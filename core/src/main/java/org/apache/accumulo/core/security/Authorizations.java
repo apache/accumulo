@@ -327,8 +327,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       return false;
     }
 
-    if (o instanceof Authorizations) {
-      Authorizations ao = (Authorizations) o;
+    if (o instanceof Authorizations ao) {
 
       return auths.equals(ao.auths);
     }
@@ -389,7 +388,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Converts to an Accumulo Access Authorizations object.
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public org.apache.accumulo.access.Authorizations toAccessAuthorizations() {
     if (auths.isEmpty()) {

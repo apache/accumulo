@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -57,8 +57,9 @@ public class ServerDirsTest extends WithTestNames {
   public void setup() throws IOException {
     String uuid = UUID.randomUUID().toString();
 
-    File folder = new File(tempDir, testName());
-    assertTrue(folder.isDirectory() || folder.mkdir(), "Failed to create folder");
+    java.nio.file.Path folder = tempDir.resolve(testName());
+    Files.createDirectories(folder);
+    assertTrue(Files.isDirectory(folder), "Failed to create folder");
 
     var vols = init(folder, List.of(uuid), List.of(AccumuloDataVersion.get()));
 
@@ -69,17 +70,18 @@ public class ServerDirsTest extends WithTestNames {
   }
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @Test
   public void testCheckBaseDirs() throws IOException {
     String uuid1 = UUID.randomUUID().toString();
     String uuid2 = UUID.randomUUID().toString();
 
-    File[] folders = new File[8];
+    java.nio.file.Path[] folders = new java.nio.file.Path[8];
     for (int i = 0; i < folders.length; i++) {
-      File newFolder = new File(tempDir, testName() + i);
-      assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "Failed to create folder");
+      java.nio.file.Path newFolder = tempDir.resolve(testName() + i);
+      Files.createDirectories(newFolder);
+      assertTrue(Files.isDirectory(newFolder), "Failed to create folder");
       folders[i] = newFolder;
     }
 
@@ -117,9 +119,9 @@ public class ServerDirsTest extends WithTestNames {
     assertThrows(RuntimeException.class, () -> constants.checkBaseUris(hadoopConf, paths, false));
   }
 
-  private Set<String> init(File newFile, List<String> uuids, List<Integer> dataVersions)
-      throws IllegalArgumentException, IOException {
-    String base = newFile.toURI().toString();
+  private Set<String> init(java.nio.file.Path newDir, List<String> uuids,
+      List<Integer> dataVersions) throws IllegalArgumentException, IOException {
+    String base = newDir.toUri().toString();
 
     LocalFileSystem fs = FileSystem.getLocal(new Configuration());
 

@@ -79,18 +79,16 @@ public class ServiceLockSupport {
     @Override
     public void lostLock(LockLossReason reason) {
       if (shutdownComplete.get()) {
-        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.", server,
-            reason);
+        Halt.halt(0, server + " lock in zookeeper lost (reason = " + reason
+            + "), exiting cleanly because shutdown is complete.");
       } else {
-        Halt.halt(server + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+        Halt.halt(1, server + " lock in zookeeper lost (reason = " + reason + "), exiting!");
       }
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      Halt.halt(-1, () -> LOG.error("FATAL: No longer able to monitor {} lock node", server, e));
-
+      Halt.halt(1, "FATAL: No longer able to monitor " + server + " lock node", e);
     }
 
     @Override
@@ -98,7 +96,7 @@ public class ServiceLockSupport {
       LOG.debug("Acquired {} lock", server);
 
       if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
+        Halt.halt(1, "Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock);
       }
 
       acquiredLock = true;
@@ -113,12 +111,12 @@ public class ServiceLockSupport {
         String msg =
             "Failed to acquire " + server + " lock due to incorrect ZooKeeper authentication.";
         LOG.error("{} Ensure instance.secret is consistent across Accumulo configuration", msg, e);
-        Halt.halt(msg, -1);
+        Halt.halt(1, msg);
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
-            -1);
+        Halt.halt(1,
+            "Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock);
       }
 
       failedToAcquireLock = true;
@@ -151,8 +149,6 @@ public class ServiceLockSupport {
    */
   public static class ServiceLockWatcher implements LockWatcher {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ServiceLockWatcher.class);
-
     private final Type server;
     private final Supplier<Boolean> shutdownComplete;
     private final Consumer<Type> lostLockAction;
@@ -167,19 +163,19 @@ public class ServiceLockSupport {
     @Override
     public void lostLock(final LockLossReason reason) {
       if (shutdownComplete.get()) {
-        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.", server,
-            reason);
+        Halt.halt(0,
+            server + " lost lock (reason = " + reason
+                + "), exiting cleanly because shutdown is complete.",
+            () -> lostLockAction.accept(server));
       } else {
-        Halt.halt(1, () -> {
-          LOG.error("{} lost lock (reason = {}), exiting.", server, reason);
-          lostLockAction.accept(server);
-        });
+        Halt.halt(1, server + " lost lock (reason = " + reason + "), exiting.",
+            () -> lostLockAction.accept(server));
       }
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(1, () -> LOG.error("Lost ability to monitor {} lock, exiting.", server, e));
+      Halt.halt(1, "Lost ability to monitor " + server + " lock, exiting.", e);
     }
 
   }

@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -30,6 +31,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -43,9 +45,6 @@ import com.google.common.annotations.VisibleForTesting;
 
 public class ServiceStatusCmd {
 
-  // used when grouping by resource group when there is no group.
-  public static final String NO_GROUP_TAG = "NO_GROUP";
-
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmd.class);
 
   public ServiceStatusCmd() {}
@@ -54,7 +53,7 @@ public class ServiceStatusCmd {
    * Read the service statuses from ZooKeeper, build the status report and then output the report to
    * stdout.
    */
-  public void execute(final ServerContext context, final boolean json, final boolean noHosts) {
+  public void execute(final ServerContext context, final boolean json, final boolean showHosts) {
 
     if (LOG.isTraceEnabled()) {
       LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
@@ -69,7 +68,7 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
     services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
 
-    ServiceStatusReport report = new ServiceStatusReport(services, noHosts);
+    ServiceStatusReport report = new ServiceStatusReport(services, showHosts);
 
     if (json) {
       System.out.println(report.toJson());
@@ -109,12 +108,15 @@ public class ServiceStatusCmd {
   StatusSummary getTServerStatus(ServerContext context) {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
-    final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
-    compactors.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
-    return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, hostsByGroups.keySet(),
-        hostsByGroups, errors.get());
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    final Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
+    hostsByGroups.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, resourceGroups, hostsByGroups,
+        errors.get());
   }
 
   /**
@@ -126,12 +128,15 @@ public class ServiceStatusCmd {
   StatusSummary getScanServerStatus(ServerContext context) {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
-    final Set<ServiceLockPath> scanServers =
-        context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
-    scanServers.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
-    return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, hostsByGroups.keySet(),
-        hostsByGroups, errors.get());
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    final Set<ServiceLockPath> scanServers = context.getServerPaths()
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    scanServers.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
+    hostsByGroups.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, resourceGroups, hostsByGroups,
+        errors.get());
   }
 
   /**
@@ -153,12 +158,15 @@ public class ServiceStatusCmd {
   StatusSummary getCompactorStatus(ServerContext context) {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
-    final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
-    compactors.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
-    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, hostsByGroups.keySet(),
-        hostsByGroups, errors.get());
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    final Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
+    hostsByGroups.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, resourceGroups, hostsByGroups,
+        errors.get());
   }
 
   /**
@@ -171,14 +179,17 @@ public class ServiceStatusCmd {
       ServerContext context, String lockPath) {
     var result = readAllNodesData(context.getZooSession().asReader(), lockPath);
     Map<String,Set<String>> byGroup = new TreeMap<>();
+    final Map<String,Integer> resourceGroups = new HashMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
       var services = sld.getServices();
       services.forEach(sd -> {
-        byGroup.computeIfAbsent(sd.getGroup(), set -> new TreeSet<>()).add(sd.getAddress());
+        byGroup.computeIfAbsent(sd.getGroup().canonical(), set -> new TreeSet<>())
+            .add(sd.getAddress());
       });
     });
-    return new StatusSummary(displayNames, byGroup.keySet(), byGroup, result.getErrorCount());
+    byGroup.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(displayNames, resourceGroups, byGroup, result.getErrorCount());
   }
 
   /**

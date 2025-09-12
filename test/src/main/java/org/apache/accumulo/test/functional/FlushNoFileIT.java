@@ -53,8 +53,6 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 /**
  * Tests that Accumulo will flush but not create a file that has 0 entries.
  */
@@ -144,7 +142,7 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       });
 
       try (Scanner scanner = c.createScanner(tableName)) {
-        assertEquals(0, Iterables.size(scanner), "Expected 0 Entries in table");
+        assertEquals(0, scanner.stream().count(), "Expected 0 Entries in table");
       }
     }
   }

@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.upgrade;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.junit.jupiter.api.Test;
 
 class UpgradeProgressTest {

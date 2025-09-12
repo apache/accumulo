@@ -46,8 +46,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -78,7 +78,8 @@ class PopulateMetadataTable extends ManagerRepo {
     try (var fsDis = fs.open(new Path(importDir, IMPORT_MAPPINGS_FILE));
         var isr = new InputStreamReader(fsDis, UTF_8);
         BufferedReader in = new BufferedReader(isr)) {
-      String line, prev;
+      String line;
+      String prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
         prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
@@ -102,8 +103,7 @@ class PopulateMetadataTable extends ManagerRepo {
     VolumeManager fs = manager.getVolumeManager();
 
     try (
-        BatchWriter mbw =
-            manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
+        BatchWriter mbw = manager.getContext().createBatchWriter(SystemTables.METADATA.tableName());
         FSDataInputStream fsDataInputStream = fs.open(path);
         ZipInputStream zis = new ZipInputStream(fsDataInputStream)) {
 
@@ -143,7 +143,7 @@ class PopulateMetadataTable extends ManagerRepo {
               StoredTabletFile exportedRef;
               var dataFileCQ = key.getColumnQualifier().toString();
               if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
-                // written without fenced range information (accumulo < 3.1), use default
+                // written without fenced range information (accumulo < 4.0), use default
                 // (null,null)
                 exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
               } else {

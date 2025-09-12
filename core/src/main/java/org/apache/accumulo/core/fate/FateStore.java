@@ -41,7 +41,7 @@ import org.apache.hadoop.io.DataInputBuffer;
  * transaction's operation, possibly pushing more operations onto the transaction as each step
  * successfully completes. If a step fails, the stack can be unwound, undoing each operation.
  */
-public interface FateStore<T> extends ReadOnlyFateStore<T> {
+public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
 
   /**
    * Create a new fate transaction id
@@ -231,8 +231,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
       if (obj == this) {
         return true;
       }
-      if (obj instanceof FateReservation) {
-        FateReservation other = (FateReservation) obj;
+      if (obj instanceof FateReservation other) {
         return Arrays.equals(this.getSerialized(), other.getSerialized());
       }
       return false;
@@ -269,4 +268,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    */
   FateTxStore<T> reserve(FateId fateId);
 
+  @Override
+  void close();
 }

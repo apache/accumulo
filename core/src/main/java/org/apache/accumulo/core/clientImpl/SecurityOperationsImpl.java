@@ -27,6 +27,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
@@ -63,18 +65,24 @@ public class SecurityOperationsImpl implements SecurityOperations {
   private void executeVoid(ExecVoid<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client));
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        // recast missing table
-        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-        } else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
-        } else {
-          throw e;
+      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client),
+          ResourceGroupPredicate.ANY);
+    } catch (AccumuloSecurityException e) {
+      throw e;
+    } catch (AccumuloException e) {
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        var tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException) {
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
+        } else if (tnfeCause instanceof ThriftTableOperationException
+            && ((ThriftTableOperationException) tnfeCause).getType()
+                == TableOperationExceptionType.NOTFOUND) {
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
         }
       }
       throw e;
@@ -95,18 +103,24 @@ public class SecurityOperationsImpl implements SecurityOperations {
   private <R> R execute(Exec<R,ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client));
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        // recast missing table
-        if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
-        } else if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
-        } else {
-          throw e;
+      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client),
+          ResourceGroupPredicate.ANY);
+    } catch (AccumuloSecurityException e) {
+      throw e;
+    } catch (AccumuloException e) {
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        var tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException) {
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
+        } else if (tnfeCause instanceof ThriftTableOperationException
+            && ((ThriftTableOperationException) tnfeCause).getType()
+                == TableOperationExceptionType.NOTFOUND) {
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
         }
       }
       throw e;

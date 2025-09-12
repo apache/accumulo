@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate;
 
 import java.util.Set;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -37,22 +38,17 @@ public class FlakyFate<T> extends Fate<T> {
 
   public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
-    super(environment, store, false, toLogStrFunc, conf);
-  }
-
-  @Override
-  protected void startFateExecutors(T environment, AccumuloConfiguration conf,
-      Set<FateExecutor<T>> fateExecutors) {
-    for (var poolConfig : getPoolConfigurations(conf).entrySet()) {
-      fateExecutors.add(
-          new FlakyFateExecutor<>(this, environment, poolConfig.getKey(), poolConfig.getValue()));
+    super(environment, store, false, toLogStrFunc, conf, new ScheduledThreadPoolExecutor(2));
+    for (var poolConfig : getPoolConfigurations(conf, getStore().type()).entrySet()) {
+      fateExecutors.add(new FlakyFateExecutor<>(this, environment, poolConfig.getKey(),
+          poolConfig.getValue().getValue(), poolConfig.getValue().getKey()));
     }
   }
 
   private static class FlakyFateExecutor<T> extends FateExecutor<T> {
-    private FlakyFateExecutor(Fate<T> fate, T environment, Set<FateOperation> fateOps,
-        int poolSize) {
-      super(fate, environment, fateOps, poolSize);
+    private FlakyFateExecutor(Fate<T> fate, T environment, Set<FateOperation> fateOps, int poolSize,
+        String name) {
+      super(fate, environment, fateOps, poolSize, name);
     }
 
     @Override

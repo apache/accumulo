@@ -102,6 +102,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
@@ -116,9 +117,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
-      monitor.runServer();
-    }
+    AbstractServer.startServer(new Monitor(new ConfigOpts(), args), log);
   }
 
   Monitor(ConfigOpts opts, String[] args) {
@@ -358,6 +357,10 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   public void run() {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
+    String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
+    // Needs leading slash in order to property create rest endpoint requests
+    Preconditions.checkArgument(rootContext.startsWith("/"),
+        "Root context: \"%s\" does not have a leading '/'", rootContext);
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
@@ -377,18 +380,25 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     } else {
-      log.debug("Monitor started on port {}", livePort);
+      log.debug("Monitor listening on {}:{}", server.getHostName(), livePort);
     }
 
-    String advertiseHost = getHostname();
-    if (advertiseHost.equals("0.0.0.0")) {
-      try {
-        advertiseHost = InetAddress.getLocalHost().getHostName();
-      } catch (UnknownHostException e) {
-        log.error("Unable to get hostname", e);
+    HostAndPort advertiseAddress = getAdvertiseAddress();
+    if (advertiseAddress == null) {
+      // use the bind address from the connector, unless it's null or 0.0.0.0
+      String advertiseHost = server.getHostName();
+      if (advertiseHost == null || advertiseHost == ConfigOpts.BIND_ALL_ADDRESSES) {
+        try {
+          advertiseHost = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+          throw new RuntimeException("Unable to get hostname for advertise address", e);
+        }
       }
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseHost, livePort));
+    } else {
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseAddress.getHost(), livePort));
     }
-    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    HostAndPort monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
 
     try {
@@ -404,8 +414,13 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         monitorHostAndPort, getResourceGroup()));
 
+    // Needed to support the existing zk monitor address format
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
+      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
+          server.getPort(), rootContext);
       final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(Constants.ZMONITOR_HTTP_ADDR);
@@ -416,7 +431,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     }
 
     // need to regularly fetch data so plot data is updated
-    Threads.createThread("Data fetcher", () -> {
+    Threads.createCriticalThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();
@@ -426,7 +441,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
     }).start();
-    Threads.createThread("Metric Fetcher Thread", fetcher).start();
+    Threads.createCriticalThread("Metric Fetcher Thread", fetcher).start();
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {

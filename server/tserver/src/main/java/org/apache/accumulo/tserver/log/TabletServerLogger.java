@@ -258,9 +258,8 @@ public class TabletServerLogger {
           throw new RuntimeException(e);
         }
       } else {
-        log.error("Repeatedly failed to create WAL. Going to exit tabletserver.", t);
         // We didn't have retries or we failed too many times.
-        Halt.halt("Experienced too many errors creating WALs, giving up", 1);
+        Halt.halt(1, "Experienced too many errors creating WALs, giving up", t);
       }
 
       // The exception will trigger the log creation to be re-attempted.
@@ -282,7 +281,7 @@ public class TabletServerLogger {
 
         try {
           alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
-              tserver.getClientAddressString());
+              tserver.getAdvertiseAddress().toString());
         } catch (Exception t) {
           log.error("Failed to open WAL", t);
           // the log is not advertised in ZK yet, so we can just delete it if it exists
@@ -398,7 +397,7 @@ public class TabletServerLogger {
 
     boolean success = false;
     while (!success) {
-      boolean sawWriteFailure = false;
+      Throwable sawWriteFailure = null;
       try {
         // get a reference to the loggers that no other thread can touch
         AtomicInteger currentId = new AtomicInteger(-1);
@@ -436,7 +435,7 @@ public class TabletServerLogger {
         writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
         writeRetry.logRetry(log, "Failed to write to WAL", t);
-        sawWriteFailure = true;
+        sawWriteFailure = t;
         try {
           // Backoff
           writeRetry.waitForNextAttempt(log, "write to WAL");
@@ -453,10 +452,11 @@ public class TabletServerLogger {
       final int finalCurrent = currentLogId;
       if (!success) {
         final ServiceLock tabletServerLock = tserver.getLock();
-        if (sawWriteFailure) {
-          log.info("WAL write failure, validating server lock in ZooKeeper");
+        if (sawWriteFailure != null) {
+          log.info("WAL write failure, validating server lock in ZooKeeper", sawWriteFailure);
           if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
-            Halt.halt("Writing to WAL has failed and TabletServer lock does not exist", -1);
+            Halt.halt(1, "Writing to WAL has failed and TabletServer lock does not exist",
+                sawWriteFailure);
           }
         }
 

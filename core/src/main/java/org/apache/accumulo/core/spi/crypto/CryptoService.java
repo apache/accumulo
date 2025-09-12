@@ -25,7 +25,7 @@ import java.util.Map;
  * through this interface. Each implementation must implement a {@link FileEncrypter} for encryption
  * and a {@link FileDecrypter} for decryption.
  *
- * @since 2.0
+ * @since 2.0.0
  * @see org.apache.accumulo.core.spi
  */
 public interface CryptoService {

@@ -309,6 +309,14 @@ public class MetadataSchema {
        */
       public static final String SELECTED_QUAL = "selected";
       public static final ColumnFQ SELECTED_COLUMN = new ColumnFQ(NAME, new Text(SELECTED_QUAL));
+
+      /**
+       * This column is used to indicate that a tablet is in the process of being migrated from one
+       * tablet server to another. The destination of the migration is the value. The tserver being
+       * migrated is the row this is set on.
+       */
+      public static final String MIGRATION_QUAL = "migration";
+      public static final ColumnFQ MIGRATION_COLUMN = new ColumnFQ(NAME, new Text(MIGRATION_QUAL));
     }
 
     /**
@@ -400,8 +408,8 @@ public class MetadataSchema {
      * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
-      // kept to support upgrades to 3.1; name is used for both col fam and col qual
-      @Deprecated(since = "3.1.0")
+      // kept to support upgrades to 4.0; name is used for both col fam and col qual
+      @Deprecated(since = "4.0.0")
       public static final Text NAME = new Text("chopped");
     }
 
@@ -453,8 +461,8 @@ public class MetadataSchema {
           new ColumnFQ(NAME, new Text(UNSPLITTABLE_QUAL));
     }
 
-    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
-    public static class Upgrade12to13 {
+    // TODO when removing the Upgrader11to12 class in the upgrade package, also remove this class.
+    public static class Upgrade11to12 {
 
       /**
        * A temporary field in case a split fails and we need to roll back

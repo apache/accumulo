@@ -34,7 +34,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -299,7 +298,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -320,7 +319,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -341,7 +340,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -362,7 +361,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -383,7 +382,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -404,7 +403,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -425,7 +424,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -444,7 +443,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       assertThrows(TableNotFoundException.class,
           () -> client.tableOperations().listSplits(tableName));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -502,7 +501,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -523,7 +522,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -544,7 +543,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -565,7 +564,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -586,7 +585,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -607,7 +606,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -628,7 +627,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -654,7 +653,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     verifyTableWithTabletAvailability(createCmd, tables[2], "UNHOSTED", 1);
 
     String splitsFile = System.getProperty("user.dir") + "/target/splitsFile";
-    Path splitFilePath = Paths.get(splitsFile);
+    Path splitFilePath = Path.of(splitsFile);
     try {
       generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
       createCmd = "createtable " + tables[3] + " -a Hosted -sf " + splitsFile;
@@ -693,7 +692,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   private SortedSet<Text> readSplitsFromFile(final String splitsFile) throws IOException {
     SortedSet<Text> splits = new TreeSet<>();
-    try (BufferedReader reader = newBufferedReader(Paths.get(splitsFile))) {
+    try (BufferedReader reader = newBufferedReader(Path.of(splitsFile))) {
       String split;
       while ((split = reader.readLine()) != null) {
         Text unencodedString = decode(split);
@@ -709,7 +708,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       final boolean binarySplits, final boolean encoded, final boolean sort,
       final boolean addBlankLine, final boolean repeat) throws IOException {
 
-    java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
+    java.nio.file.Path splitsPath = java.nio.file.Path.of(splitsFile);
     int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
     Collection<Text> sortedSplits = null;
     Collection<Text> randomSplits;
@@ -759,14 +758,9 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     String destTable = srcNS + ".dest_table_" + names[1];
 
     // define constants
-    final String sysPropName = "table.custom.my_sys_prop";
-    final String sysPropValue1 = "sys_value1";
-    final String sysPropValue2 = "sys_value2";
     final String nsPropName = "table.custom.my_ns_prop";
     final String nsPropValue1 = "ns_value1";
     final String nsPropValue2 = "ns_value2";
-
-    ts.exec("config -s " + sysPropName + "=" + sysPropValue1);
 
     ts.exec("createnamespace " + srcNS);
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
@@ -784,38 +778,31 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
       // the Zk node should have all effective properties copied from configuration
       var vp1 = propStore.get(TablePropKey.of(destId));
-      assertEquals(sysPropValue1, vp1.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp1.asMap().get(nsPropName));
 
       // check getTableProperties also inherits the effective config
       Map<String,String> tableEffective =
           accumuloClient.tableOperations().getTableProperties(destTable);
-      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
       assertEquals(nsPropValue1, tableEffective.get(nsPropName));
 
       // changing the system and namespace props should leave the copied effective props unchanged
-      ts.exec("config -s " + sysPropName + "=" + sysPropValue2);
       ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
 
       // source will still inherit from sys and namespace (no prop values)
       var vp2 = propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable))));
-      assertNull(vp2.asMap().get(sysPropName));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
       var vp3 = propStore.get(TablePropKey.of(TableId.of(tids.get(destTable))));
-      assertEquals(sysPropValue1, vp3.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
 
       // show change propagated in source table effective hierarchy
       tableEffective = accumuloClient.tableOperations().getConfiguration(srcTable);
 
-      assertEquals(sysPropValue2, tableEffective.get(sysPropName));
       assertEquals(nsPropValue2, tableEffective.get(nsPropName));
 
       // because effective config was copied, the change should not propagate to effective hierarchy
       tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
       assertEquals(nsPropValue1, tableEffective.get(nsPropName));
     }
   }
@@ -829,14 +816,9 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     String destTable = srcNS + ".dest_table_" + names[1];
 
     // define constants
-    final String sysPropName = "table.custom.my_sys_prop";
-    final String sysPropValue1 = "sys_value1";
-    final String sysPropValue2 = "sys_value2";
     final String nsPropName = "table.custom.my_ns_prop";
     final String nsPropValue1 = "ns_value1";
     final String nsPropValue2 = "ns_value2";
-
-    ts.exec("config -s " + sysPropName + "=" + sysPropValue1);
 
     ts.exec("createnamespace " + srcNS);
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
@@ -851,35 +833,29 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       // only table unique values should be stored in Zk node for the table.
       var vp1 = getCluster().getServerContext().getPropStore()
           .get(TablePropKey.of(TableId.of(tids.get(destTable))));
-      assertNull(vp1.asMap().get(sysPropName));
       assertNull(vp1.asMap().get(nsPropName));
 
       // check props were inherited in effective props
       Map<String,String> tableEffective =
           accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
       assertEquals(nsPropValue1, tableEffective.get(nsPropName));
 
       // changing the system and namespace props should leave the effective props copied unchanged
-      ts.exec("config -s " + sysPropName + "=" + sysPropValue2);
       ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
 
       // source will still inherit from sys and namespace (no prop values)
       var vp2 = getCluster().getServerContext().getPropStore()
           .get(TablePropKey.of(TableId.of(tids.get(srcTable))));
-      assertNull(vp2.asMap().get(sysPropName));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
       var vp3 = getCluster().getServerContext().getPropStore()
           .get(TablePropKey.of(TableId.of(tids.get(destTable))));
-      assertNull(vp3.asMap().get(sysPropName));
       assertNull(vp3.asMap().get(nsPropName));
 
       // because effective config was not copied, the changes should propagate to effective
       // hierarchy
       tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(sysPropValue2, tableEffective.get(sysPropName));
       assertEquals(nsPropValue2, tableEffective.get(nsPropName));
     }
   }

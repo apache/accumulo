@@ -18,22 +18,27 @@
  */
 package org.apache.accumulo.manager.metrics.fate.user;
 
+import java.util.Set;
+
+import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
 
 public class UserFateMetrics extends FateMetrics<UserFateMetricValues> {
 
-  public UserFateMetrics(ServerContext context, long minimumRefreshDelay) {
-    super(context, minimumRefreshDelay);
+  public UserFateMetrics(ServerContext context, long minimumRefreshDelay,
+      Set<FateExecutor<Manager>> fateExecutors) {
+    super(context, minimumRefreshDelay, fateExecutors);
   }
 
   @Override
   protected ReadOnlyFateStore<FateMetrics<UserFateMetricValues>>
       buildReadOnlyStore(ServerContext context) {
-    return new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+    return new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
   }
 
   @Override

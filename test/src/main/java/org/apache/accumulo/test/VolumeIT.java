@@ -45,9 +45,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.InstanceInfo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.init.Initialize;
@@ -85,7 +85,7 @@ public class VolumeIT extends VolumeITBase {
       }
       // verify the new files are written to the different volumes
       try (Scanner scanner =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(new Range("1", "1<"));
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
         int fileCount = 0;
@@ -206,7 +206,7 @@ public class VolumeIT extends VolumeITBase {
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
 
-      client.tableOperations().compact(AccumuloTable.ROOT.tableName(),
+      client.tableOperations().compact(SystemTables.ROOT.tableName(),
           new CompactionConfig().setWait(true));
 
       // check that root tablet is not on volume 1
@@ -222,8 +222,8 @@ public class VolumeIT extends VolumeITBase {
       client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
           new HashSet<>());
 
-      client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-      client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
       verifyVolumesUsed(client, tableNames[1], true, v2);

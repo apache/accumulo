@@ -41,9 +41,11 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -58,6 +60,7 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxAdminColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -72,6 +75,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 public class UserFateStore<T> extends AbstractFateStore<T> {
 
@@ -79,6 +83,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   private final ClientContext context;
   private final String tableName;
+  private final Supplier<ConditionalWriter> writer;
 
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
@@ -107,6 +112,16 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
+    Preconditions.checkArgument(this.context.tableOperations().exists(tableName),
+        "user fate store table " + tableName + " does not exist.");
+    this.writer = Suppliers.memoize(() -> {
+      try {
+        return createConditionalWriterForFateTable(this.tableName);
+      } catch (TableNotFoundException e) {
+        throw new IllegalStateException(
+            "Incorrect use of UserFateStore, table " + tableName + " does not exist.");
+      }
+    });
   }
 
   @Override
@@ -224,8 +239,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       // attempt or was not written at all).
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(getRow(fateId));
-        scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-            TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        scanner.fetchColumn(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+            TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
         FateReservation persistedRes =
             scanner.stream().map(entry -> FateReservation.deserialize(entry.getValue().get()))
                 .findFirst().orElse(null);
@@ -270,9 +285,10 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       RowFateStatusFilter.configureScanner(scanner, statuses);
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
-      TxInfoColumnFamily.FATE_OP_COLUMN.fetch(scanner);
+      // columns fetched here must be in/added to TxAdminColumnFamily for locality group benefits
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.RESERVATION_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
@@ -296,13 +312,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           Text colq = entry.getKey().getColumnQualifier();
           Value val = entry.getValue();
           switch (colq.toString()) {
-            case TxColumnFamily.STATUS:
+            case TxAdminColumnFamily.STATUS:
               status = TStatus.valueOf(val.toString());
               break;
-            case TxColumnFamily.RESERVATION:
+            case TxAdminColumnFamily.RESERVATION:
               reservation = FateReservation.deserialize(val.get());
               break;
-            case TxInfoColumnFamily.FATE_OP:
+            case TxAdminColumnFamily.FATE_OP:
               fateOp = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
               break;
             default:
@@ -352,7 +368,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   protected TStatus _getStatus(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> TStatus.valueOf(e.getValue().toString())).findFirst()
           .orElse(TStatus.UNKNOWN);
     });
@@ -381,7 +397,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {
-    return new FateMutatorImpl<>(context, tableName, fateId);
+    return new FateMutatorImpl<>(context, tableName, fateId, writer);
   }
 
   private <R> R scanTx(Function<Scanner,R> func) {
@@ -489,15 +505,15 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       }
 
       final Map<FateId,ConditionalWriter.Status> resultsMap = new HashMap<>();
-      try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
-        Iterator<ConditionalWriter.Result> results = writer
+      try {
+        Iterator<ConditionalWriter.Result> results = writer.get()
             .write(pending.values().stream().map(pair -> pair.getFirst().getMutation()).iterator());
         while (results.hasNext()) {
           var result = results.next();
           var row = new Text(result.getMutation().getRow());
           resultsMap.put(FateId.from(FateInstanceType.USER, row.toString()), result.getStatus());
         }
-      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+      } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }
       return resultsMap;
@@ -555,7 +571,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         final ColumnFQ cq;
         switch (txInfo) {
           case FATE_OP:
-            cq = TxInfoColumnFamily.FATE_OP_COLUMN;
+            cq = TxAdminColumnFamily.FATE_OP_COLUMN;
             break;
           case AUTO_CLEAN:
             cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
@@ -686,5 +702,18 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     Preconditions.checkArgument(REPO_RANGE.contains(position),
         "Position %s is not in the valid range of [0,%s]", position, MAX_REPOS);
     return position;
+  }
+
+  private ConditionalWriter createConditionalWriterForFateTable(String tableName)
+      throws TableNotFoundException {
+    int maxThreads =
+        context.getConfiguration().getCount(Property.MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX);
+    ConditionalWriterConfig cwConfig = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+    return context.createConditionalWriter(tableName, cwConfig);
+  }
+
+  @Override
+  public void close() {
+    writer.get().close();
   }
 }

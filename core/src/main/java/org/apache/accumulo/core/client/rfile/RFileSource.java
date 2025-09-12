@@ -39,7 +39,7 @@ public class RFileSource {
   }
 
   /**
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public RFileSource(InputStream in, long len, Range range) {
     this.in = Objects.requireNonNull(in);
@@ -58,7 +58,7 @@ public class RFileSource {
   /**
    * @return The range of the RFileSource
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public Range getRange() {
     return range;

@@ -51,8 +51,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LockMap;
@@ -632,7 +633,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     // System tables should always be hosted
-    if (AccumuloTable.ROOT.tableId() == tableId || AccumuloTable.METADATA.tableId() == tableId) {
+    if (SystemTables.containsTableId(tableId)) {
       return;
     }
 
@@ -675,40 +676,38 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     if (!extentsToBringOnline.isEmpty()) {
       log.debug("Requesting hosting for {} ondemand tablets for table id {}.",
           extentsToBringOnline.size(), tableId);
-      ThriftClientTypes.MANAGER.executeVoid(context,
-          client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
-              tableId.canonical(), extentsToBringOnline));
+      ThriftClientTypes.MANAGER
+          .executeVoid(context,
+              client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
+                  tableId.canonical(), extentsToBringOnline),
+              ResourceGroupPredicate.DEFAULT_RG_ONLY);
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
     }
   }
 
-  private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      InvalidTabletHostingRequestException {
+  private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession,
+      CachedTablet before) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
     CachedTablet ptl = parent.findTablet(context, metadataRow, false, LocationNeed.REQUIRED);
 
-    if (ptl != null) {
-      // Only allow a single lookup at time per parent tablet. For example if a tables tablets are
-      // all stored in three metadata tablets, then that table could have up to three concurrent
-      // metadata lookups.
-      Timer timer = Timer.startNew();
-      try (var unused = lookupLocks.lock(ptl.getExtent())) {
-        // See if entry was added to cache by another thread while we were waiting on the lock
-        var cached = findTabletInCache(row);
-        if (cached != null && cached.getCreationTimer().startedAfter(timer)) {
-          // This cache entry was added after we started waiting on the lock so lets use it and not
-          // go to the metadata table. This means another thread was holding the lock and doing
-          // metadata lookups when we requested the lock.
-          return;
-        }
-        // Lookup tablets in metadata table and update cache. Also updating the cache while holding
-        // the lock is important as it ensures other threads that are waiting on the lock will see
-        // what this thread found and may be able to avoid metadata lookups.
-        lookupTablet(context, lcSession, ptl, metadataRow);
+    if (ptl == null) {
+      return;
+    }
+
+    try (var unused = lookupLocks.lock(ptl.getExtent())) {
+      // Now that the lock is acquired, detect if another thread populated cache since the last time
+      // the cache was read. If so then do not need to read from metadata store.
+      CachedTablet after = findTabletInCache(row);
+      if (after != null && after != before && lcSession.checkLock(after) != null) {
+        return;
       }
+      // Lookup tablets in metadata table and update cache. Also updating the cache while holding
+      // the lock is important as it ensures other threads that are waiting on the lock will see
+      // what this thread found and may be able to avoid metadata lookups.
+      lookupTablet(context, lcSession, ptl, metadataRow);
     }
   }
 
@@ -860,7 +859,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       // not in cache OR the cutoff timer was started after when the cached entry timer was started,
       // so obtain info from metadata table
-      tl = lookupTabletLocationAndCheckLock(context, row, lcSession);
+      tl = lookupTabletLocationAndCheckLock(context, row, lcSession, tl);
 
     }
 
@@ -868,9 +867,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private CachedTablet lookupTabletLocationAndCheckLock(ClientContext context, Text row,
-      LockCheckerSession lcSession) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
-    lookupTablet(context, row, lcSession);
+      LockCheckerSession lcSession, CachedTablet before) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
+    lookupTablet(context, row, lcSession, before);
     return lcSession.checkLock(findTabletInCache(row));
   }
 

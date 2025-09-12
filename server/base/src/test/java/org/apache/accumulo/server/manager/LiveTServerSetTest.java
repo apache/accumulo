@@ -24,11 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.zookeeper.ZooCache;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerInfo;
 import org.easymock.EasyMock;
@@ -45,24 +42,13 @@ public class LiveTServerSetTest {
 
     TServerInfo server1 =
         new TServerInfo(new TServerInstance(HostAndPort.fromParts("localhost", 1234), "5555"),
-            mockConn, Constants.DEFAULT_RESOURCE_GROUP_NAME);
+            mockConn, ResourceGroupId.DEFAULT);
     servers.put("server1", server1);
 
-    ServerContext ctx = EasyMock.createMock(ServerContext.class);
-    ZooCache zc = EasyMock.createMock(ZooCache.class);
-    EasyMock.expect(ctx.getZooCache()).andReturn(zc);
-    zc.addZooCacheWatcher(EasyMock.isA(LiveTServerSet.class));
-    EasyMock.replay(ctx, zc);
-
-    LiveTServerSet tservers = new LiveTServerSet(ctx, EasyMock.createMock(Listener.class));
-
-    assertEquals(server1.instance, tservers.find(servers, "localhost:1234"));
-    assertNull(tservers.find(servers, "localhost:4321"));
-    assertEquals(server1.instance, tservers.find(servers, "localhost:1234[5555]"));
-    assertNull(tservers.find(servers, "localhost:1234[55755]"));
-
-    EasyMock.verify(ctx, zc);
-
+    assertEquals(server1.instance, LiveTServerSet.find(servers, "localhost:1234"));
+    assertNull(LiveTServerSet.find(servers, "localhost:4321"));
+    assertEquals(server1.instance, LiveTServerSet.find(servers, "localhost:1234[5555]"));
+    assertNull(LiveTServerSet.find(servers, "localhost:1234[55755]"));
   }
 
 }

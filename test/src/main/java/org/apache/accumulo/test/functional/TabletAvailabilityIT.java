@@ -35,6 +35,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -43,11 +44,22 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class TabletAvailabilityIT extends AccumuloClusterHarness {
+
+  @Test
+  public void testSystemFails() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      for (SystemTables t : SystemTables.values()) {
+        assertThrows(AccumuloException.class, () -> client.tableOperations()
+            .setTabletAvailability(t.tableName(), new Range(), UNHOSTED));
+      }
+    }
+  }
 
   @Test
   public void testOffline() throws Exception {

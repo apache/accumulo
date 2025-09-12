@@ -42,8 +42,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -163,11 +163,11 @@ public class Initialize implements KeywordExecutable {
 
     try (var context = ServerContext.initialize(initConfig.getSiteConf(), instanceInfo)) {
       var chooserEnv =
-          new VolumeChooserEnvironmentImpl(Scope.INIT, AccumuloTable.ROOT.tableId(), null, context);
+          new VolumeChooserEnvironmentImpl(Scope.INIT, SystemTables.ROOT.tableId(), null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
       String rootTabletFileUri = new Path(fs.choose(chooserEnv, initConfig.getVolumeUris())
-          + SEPARATOR + TABLE_DIR + SEPARATOR + AccumuloTable.ROOT.tableId() + SEPARATOR
+          + SEPARATOR + TABLE_DIR + SEPARATOR + SystemTables.ROOT.tableId() + SEPARATOR
           + rootTabletDirName + SEPARATOR + "00000_00000." + ext).toString();
       zki.initialize(context, rootTabletDirName, rootTabletFileUri);
 
@@ -177,7 +177,7 @@ public class Initialize implements KeywordExecutable {
       var fileSystemInitializer = new FileSystemInitializer(initConfig);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
       var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR
-          + AccumuloTable.ROOT.tableId() + SEPARATOR + rootTabletDirName);
+          + SystemTables.ROOT.tableId() + SEPARATOR + rootTabletDirName);
       fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);
@@ -221,8 +221,8 @@ public class Initialize implements KeywordExecutable {
       final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       // We don't have any valid creds to talk to HDFS
       if (!ugi.hasKerberosCredentials()) {
-        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB),
-            accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
+        final String accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
         // Fail if the site configuration doesn't contain appropriate credentials
         if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {

@@ -118,6 +118,7 @@ import io.opentelemetry.context.Scope;
 public class TabletServerBatchWriter implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
+  private static final AtomicInteger numWritersCreated = new AtomicInteger(0);
 
   // basic configuration
   private final ClientContext context;
@@ -211,8 +212,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.threadPools()
-        .createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor = context.threadPools().createScheduledExecutorService(2,
+        "BatchWriterThreads-" + numWritersCreated.incrementAndGet(), false);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -1095,8 +1096,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         long startTime = System.nanoTime();
 
-        boolean useCloseUpdate = false;
-
         // If somethingFailed is true then the batch writer will throw an exception on close or
         // flush, so no need to close this session. Only want to close the session for retryable
         // exceptions.
@@ -1122,21 +1121,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
             } else {
               client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
             }
-
-            if (useCloseUpdate) {
-              // This compatability handling for accumulo version 2.1.2 and earlier that did not
-              // have cancelUpdate. Can remove this in 3.1.
-              client.closeUpdate(TraceUtil.traceInfo(), usid.getAsLong());
-              retry.logCompletion(log, "Closed failed write session " + location + " " + usid);
+            if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
+              retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
               break;
             } else {
-              if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
-                retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
-                break;
-              } else {
-                retry.waitForNextAttempt(log,
-                    "Attempting to cancel failed write session " + location + " " + usid);
-              }
+              retry.waitForNextAttempt(log,
+                  "Attempting to cancel failed write session " + location + " " + usid);
             }
           } catch (NoSuchScanIDException e) {
             retry.logCompletion(log,
@@ -1144,24 +1134,14 @@ public class TabletServerBatchWriter implements AutoCloseable {
             // The session no longer exists, so done
             break;
           } catch (TApplicationException tae) {
-            if (tae.getType() == TApplicationException.UNKNOWN_METHOD && !useCloseUpdate) {
-              useCloseUpdate = true;
-              log.debug(
-                  "Accumulo server {} does not have cancelUpdate, falling back to closeUpdate.",
-                  location);
-              retry.waitForNextAttempt(log, "Attempting to cancel failed write session " + location
-                  + " " + usid + " " + tae.getMessage());
-            } else {
-              // no need to bother closing session in this case
-              updateServerErrors(location, tae);
-              break;
-            }
+            // no need to bother closing session in this case
+            updateServerErrors(location, tae);
+            break;
           } catch (ThriftSecurityException e) {
             throw e;
           } catch (TException e) {
-            String op = useCloseUpdate ? "close" : "cancel";
-            retry.waitForNextAttempt(log, "Attempting to " + op + " failed write session "
-                + location + " " + usid + " " + e.getMessage());
+            retry.waitForNextAttempt(log, "Attempting to cancel failed write session " + location
+                + " " + usid + " " + e.getMessage());
           } finally {
             ThriftUtil.returnClient(client, context);
           }

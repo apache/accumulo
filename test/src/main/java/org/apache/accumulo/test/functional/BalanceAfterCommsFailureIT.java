@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -45,8 +46,6 @@ import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
@@ -94,7 +93,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       c.tableOperations().addSplits("test", splits);
       // Ensure all of the tablets are actually assigned
-      assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
+      assertEquals(0, c.createScanner("test", Authorizations.EMPTY).stream().count());
       Thread.sleep(30_000);
       checkBalance(c);
     }
@@ -107,7 +106,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     int unassignedTablets = 1;
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       stats = ThriftClientTypes.MANAGER.execute(context,
-          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
+          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",

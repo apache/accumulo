@@ -69,7 +69,8 @@ public class ZooAuthenticationKeyDistributor {
     if (zrw.exists(baseNode)) {
       List<ACL> acls = zrw.getACL(baseNode);
       if (acls.size() == 1) {
-        ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
+        ACL actualAcl = acls.get(0);
+        ACL expectedAcl = ZooUtil.PRIVATE.get(0);
         Id actualId = actualAcl.getId();
         // The expected outcome from ZooUtil.PRIVATE
         if (actualAcl.getPerms() == expectedAcl.getPerms() && actualId.getScheme().equals("digest")

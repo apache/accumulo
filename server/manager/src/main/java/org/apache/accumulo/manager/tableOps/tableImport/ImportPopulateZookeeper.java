@@ -22,15 +22,12 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -72,28 +69,19 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
-    // reserve the table name in zookeeper or fail
 
-    Utils.getTableNameLock().lock();
-    try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.namespaceId,
-          tableInfo.tableId, TableOperation.CREATE);
+    var context = env.getContext();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
+        TableOperation.IMPORT);
+    env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
 
-      String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
-      NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
-      env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
-
-      env.getContext().clearTableListCache();
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    context.clearTableListCache();
 
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(env.getContext(), TablePropKey.of(tableInfo.tableId),
-          getExportedProps(volMan));
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId), getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
@@ -105,8 +93,9 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    env.getTableManager().removeTable(tableInfo.tableId);
+    var context = env.getContext();
+    env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
     Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
-    env.getContext().clearTableListCache();
+    context.clearTableListCache();
   }
 }

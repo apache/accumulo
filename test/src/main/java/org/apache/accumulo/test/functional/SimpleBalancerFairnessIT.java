@@ -28,11 +28,14 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -64,9 +67,11 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       final String ingestTable = "test_ingest";
       final String unusedTable = "unused";
 
-      c.tableOperations().create(ingestTable);
+      c.tableOperations().create(ingestTable,
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
       c.tableOperations().setProperty(ingestTable, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K");
-      c.tableOperations().create(unusedTable);
+      c.tableOperations().create(unusedTable,
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
       TreeSet<Text> splits = TestIngest.getSplitPoints(0, 10_000_000, NUM_SPLITS);
       log.info("Creating {} splits", splits.size());
       c.tableOperations().addSplits(unusedTable, splits);
@@ -83,7 +88,8 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       Wait.waitFor(() -> {
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
+                creds.toThrift(c.instanceOperations().getInstanceId())),
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
         int unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
@@ -98,7 +104,8 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       Wait.waitFor(() -> {
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
+                creds.toThrift(c.instanceOperations().getInstanceId())),
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
 
         List<Integer> counts = new ArrayList<>();
         for (TabletServerStatus server : stats.tServerInfo) {
@@ -115,8 +122,9 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
           int diff = Math.abs(counts.get(0) - counts.get(i));
           log.info(" Counts: {}", counts);
           if (diff > tservers.size()) {
-            log.info("Difference in tablets between tservers is greater than expected. Counts: {}",
-                counts);
+            log.info(
+                "Difference in tablets between tservers is greater than expected. Counts: {} tsevers:{}",
+                counts, tservers.size());
             return false;
           }
         }

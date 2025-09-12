@@ -144,7 +144,8 @@ public class PropertyTest {
         continue;
       }
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
       LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
 
       switch (propertyType) {
@@ -249,7 +250,7 @@ public class PropertyTest {
 
   @Test
   public void testAnnotations() {
-    assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertFalse(Property.TABLE_SAMPLER.isExperimental());
 
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
@@ -299,7 +300,7 @@ public class PropertyTest {
 
   @Test
   public void testFixedPropertiesNonNull() {
-    Property.fixedProperties.forEach(p -> {
+    Property.FIXED_PROPERTIES.forEach(p -> {
       assertNotNull(p.getDefaultValue());
       assertFalse(p.getDefaultValue().isBlank());
     });

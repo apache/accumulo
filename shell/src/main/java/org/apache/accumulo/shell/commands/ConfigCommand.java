@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static org.apache.accumulo.core.client.security.SecurityErrorCode.PERMISSION_DENIED;
+import static org.apache.accumulo.shell.ShellUtil.readPropertiesFromFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,16 +29,20 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
@@ -53,11 +58,29 @@ import org.jline.reader.LineReader;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt;
+  private Option tableOpt;
+  private Option deleteOpt;
+  private Option setOpt;
+  private Option forceOpt;
+  private Option filterOpt;
+  private Option filterWithValuesOpt;
+  private Option disablePaginationOpt;
+  private Option outputFileOpt;
+  private Option namespaceOpt;
+  private Option resourceGroupOpt;
+  private Option showExpOpt;
+  private Option propFileOpt;
 
-  private int COL1 = 10, COL2 = 7;
+  private int COL1 = 10;
+  private int COL2 = 7;
   private LineReader reader;
+
+  public ConfigCommand() {
+    Shell.log.warn("System configuration is dependent on the server's site configuration and"
+        + " applicable ZooKeeper system overrides. To get the system"
+        + " configuration for a specific server set the system property: "
+        + TServerClient.DEBUG_HOST);
+  }
 
   @Override
   public void registerCompletion(final Token root,
@@ -76,10 +99,11 @@ public class ConfigCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      NamespaceNotFoundException {
+      NamespaceNotFoundException, ResourceGroupNotFoundException {
     reader = shellState.getReader();
 
     boolean force = cl.hasOption(forceOpt);
+    boolean showExp = cl.hasOption(showExpOpt);
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
@@ -90,8 +114,20 @@ public class ConfigCommand extends Command {
         && !shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
+    final String resourceGroup = cl.getOptionValue(resourceGroupOpt.getOpt());
+    ResourceGroupId rgid = null;
+    if (resourceGroup != null) {
+      if (!shellState.getAccumuloClient().resourceGroupOperations().exists(resourceGroup)) {
+        throw new ResourceGroupNotFoundException(resourceGroup);
+      }
+      rgid = ResourceGroupId.of(resourceGroup);
+    }
+    String filename = cl.getOptionValue(propFileOpt.getOpt());
+    if (filename != null) {
+      modifyPropertiesFromFile(cl, shellState, filename);
+    }
     if (cl.hasOption(deleteOpt.getOpt())) {
-      // delete property from table
+      // delete property from table, namespace, or system
       String property = cl.getOptionValue(deleteOpt.getOpt());
       if (property.contains("=")) {
         throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand,
@@ -111,15 +147,18 @@ public class ConfigCommand extends Command {
         }
         shellState.getAccumuloClient().namespaceOperations().removeProperty(namespace, property);
         Shell.log.debug("Successfully deleted namespace configuration option.");
+      } else if (rgid != null) {
+        shellState.getAccumuloClient().resourceGroupOperations().removeProperty(rgid, property);
+        Shell.log.debug("Successfully deleted resource group configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().instanceOperations().removeProperty(property);
-        Shell.log.debug("Successfully deleted system configuration option.");
+        logSysPropChanged(Property.getPropertyByKey(property), "deleted");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
-      // set property on table
+      // set property on table, namespace, or system
       String property = cl.getOptionValue(setOpt.getOpt());
       String value;
       if (!property.contains("=")) {
@@ -162,13 +201,16 @@ public class ConfigCommand extends Command {
         shellState.getAccumuloClient().namespaceOperations().setProperty(namespace, property,
             value);
         Shell.log.debug("Successfully set table configuration option.");
+      } else if (rgid != null) {
+        shellState.getAccumuloClient().resourceGroupOperations().setProperty(rgid, property, value);
+        Shell.log.debug("Successfully set resource group configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
               fullCommand.indexOf(property));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        Shell.log.debug("Successfully set system configuration option.");
+        logSysPropChanged(theProp, "set");
       }
     } else {
       boolean warned = false;
@@ -209,10 +251,16 @@ public class ConfigCommand extends Command {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
       }
 
+      final TreeMap<ResourceGroupId,TreeMap<String,String>> resourceGroupConfigs = new TreeMap<>();
+      for (ResourceGroupId rg : shellState.getAccumuloClient().resourceGroupOperations().list()) {
+        TreeMap<String,String> rgConfig = new TreeMap<>();
+        rgConfig.putAll(shellState.getAccumuloClient().resourceGroupOperations().getProperties(rg));
+        resourceGroupConfigs.put(rg, rgConfig);
+      }
+
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getContext(),
-            shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
+        String n = TableNameUtil.qualify(tableName).getFirst();
         try {
           namespaceConfig
               .putAll(shellState.getAccumuloClient().namespaceOperations().getConfiguration(n));
@@ -241,8 +289,7 @@ public class ConfigCommand extends Command {
         try {
           acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
         } catch (AccumuloException e) {
-          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException) {
-            AccumuloSecurityException ase = (AccumuloSecurityException) e.getCause();
+          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException ase) {
             if (ase.getSecurityErrorCode() == PERMISSION_DENIED) {
               Shell.log.error(
                   "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",
@@ -303,13 +350,23 @@ public class ConfigCommand extends Command {
         String curVal = propEntry.getValue();
         String dfault = defaults.get(key);
         String nspVal = namespaceConfig.get(key);
+
+        Map<ResourceGroupId,String> rgVals = new TreeMap<>();
+        for (ResourceGroupId rg : resourceGroupConfigs.keySet()) {
+          String rgVal = resourceGroupConfigs.get(rg).get(key);
+          if (rgVal != null) {
+            rgVals.put(rg, rgVal);
+          }
+        }
+
         boolean printed = false;
 
         if (sysVal != null) {
           if (dfault != null && key.toLowerCase().contains("password")) {
             siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
           }
-          if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
+          if (defaults.containsKey(key)
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -322,12 +379,17 @@ public class ConfigCommand extends Command {
             printConfLine(output, "system", printed ? "   @override" : key, sysVal);
             printed = true;
           }
+          for (Entry<ResourceGroupId,String> rgEntry : rgVals.entrySet()) {
+            String rgVal = key.toLowerCase().contains("password")
+                ? rgEntry.getValue().replaceAll(".", "*") : rgEntry.getValue();
+            printConfLine(output, "rg " + rgEntry.getKey(), printed ? "   @override" : key, rgVal);
+          }
         }
         if (nspVal != null) {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current namespace value is different from it.
           if (sysVal == null && dfault != null && !dfault.equals(nspVal)
-              && !Property.getPropertyByKey(key).isExperimental()) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -342,7 +404,7 @@ public class ConfigCommand extends Command {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current table value is different from it.
           if (nspVal == null && dfault != null && !dfault.equals(curVal)
-              && !Property.getPropertyByKey(key).isExperimental()) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -351,7 +413,7 @@ public class ConfigCommand extends Command {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current namespace value is different from it.
           if (sysVal == null && dfault != null && !dfault.equals(curVal)
-              && !Property.getPropertyByKey(key).isExperimental()) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -366,6 +428,25 @@ public class ConfigCommand extends Command {
       }
     }
     return 0;
+  }
+
+  private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename)
+      throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
+    Map<String,String> propertiesMap = readPropertiesFromFile(filename);
+
+    Consumer<Map<String,String>> propertyModifier = currProps -> {
+      currProps.putAll(propertiesMap);
+    };
+
+    if (cl.hasOption(tableOpt.getOpt())) {
+      shellState.getAccumuloClient().tableOperations()
+          .modifyProperties(cl.getOptionValue(tableOpt.getOpt()), propertyModifier);
+    } else if (cl.hasOption(namespaceOpt.getOpt())) {
+      shellState.getAccumuloClient().namespaceOperations()
+          .modifyProperties(cl.getOptionValue(namespaceOpt.getOpt()), propertyModifier);
+    } else {
+      shellState.getAccumuloClient().instanceOperations().modifyProperties(propertyModifier);
+    }
   }
 
   private boolean matchTheFilterText(CommandLine cl, String key, String value) {
@@ -400,7 +481,7 @@ public class ConfigCommand extends Command {
 
   @Override
   public String description() {
-    return "prints system properties and table specific properties";
+    return "prints table specific, namespace specific, and system properties";
   }
 
   @Override
@@ -411,10 +492,12 @@ public class ConfigCommand extends Command {
 
     tableOpt = new Option(ShellOptions.tableOption, "table", true,
         "table to display/set/delete properties for");
-    deleteOpt = new Option("d", "delete", true, "delete a per-table property");
-    setOpt = new Option("s", "set", true, "set a per-table property");
+    deleteOpt =
+        new Option("d", "delete", true, "delete a per-table, per-namespace, or system property");
+    setOpt = new Option("s", "set", true, "set a per-table, per-namespace, or system property");
     forceOpt = new Option("force", "force", false,
         "used with set to set a deprecated property without asking");
+    showExpOpt = new Option("show", "show-exp", false, "also show experimental properties");
     filterOpt = new Option("f", "filter", true,
         "show only properties that contain this string in their name.");
     filterWithValuesOpt = new Option("fv", "filter-with-values", true,
@@ -424,6 +507,9 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
+    resourceGroupOpt = new Option(ShellOptions.resourceGroupOption, "resourceGroup", true,
+        "resource group from which to set or delete properties");
+    propFileOpt = new Option("pf", "propFile", true, "file containing properties to set");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
@@ -432,12 +518,16 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
+    resourceGroupOpt.setArgName("resourceGroup");
+    propFileOpt.setArgName("filename");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
+    og.addOption(propFileOpt);
 
+    tgroup.addOption(resourceGroupOpt);
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
 
@@ -446,6 +536,7 @@ public class ConfigCommand extends Command {
     o.addOption(disablePaginationOpt);
     o.addOption(outputFileOpt);
     o.addOption(forceOpt);
+    o.addOption(showExpOpt);
 
     return o;
   }
@@ -453,6 +544,15 @@ public class ConfigCommand extends Command {
   @Override
   public int numArgs() {
     return 0;
+  }
+
+  private void logSysPropChanged(Property prop, String setOrDeleted) {
+    if (Property.isFixedZooPropertyKey(prop)) {
+      Shell.log.warn("Successfully {} a fixed system configuration option. Change will not "
+          + "take effect until related processes are restarted.", setOrDeleted);
+    } else {
+      Shell.log.debug("Successfully {} system configuration option.", setOrDeleted);
+    }
   }
 
 }

@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.upgrade;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_UPGRADE_COORDINATOR_METADATA_POOL;
-import static org.apache.accumulo.server.AccumuloDataVersion.METADATA_FILE_JSON_ENCODING;
 import static org.apache.accumulo.server.AccumuloDataVersion.REMOVE_DEPRECATIONS_FOR_VERSION_3;
 import static org.apache.accumulo.server.AccumuloDataVersion.ROOT_TABLET_META_CHANGES;
 
@@ -48,6 +47,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,33 +129,33 @@ public class UpgradeCoordinator {
   private int currentVersion;
   // map of "current version" -> upgrader to next version.
   // Sorted so upgrades execute in order from the oldest supported data version to current
-  private final Map<Integer,
-      Upgrader> upgraders = Collections.unmodifiableMap(new TreeMap<>(
-          Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11(), REMOVE_DEPRECATIONS_FOR_VERSION_3,
-              new Upgrader11to12(), METADATA_FILE_JSON_ENCODING, new Upgrader12to13())));
+  private final Map<Integer,Upgrader> upgraders =
+      Collections.unmodifiableMap(new TreeMap<>(Map.of(ROOT_TABLET_META_CHANGES,
+          new Upgrader10to11(), REMOVE_DEPRECATIONS_FOR_VERSION_3, new Upgrader11to12())));
 
   private final ServerContext context;
   private final UpgradeProgressTracker progressTracker;
-  private final PreUpgradeValidation preUpgradeValidator;
 
   private volatile UpgradeStatus status;
 
   public UpgradeCoordinator(ServerContext context) {
     this.context = context;
     progressTracker = new UpgradeProgressTracker(context);
-    preUpgradeValidator = new PreUpgradeValidation();
     status = UpgradeStatus.INITIAL;
   }
 
-  public void preUpgradeValidation() {
-    preUpgradeValidator.validate(context);
-  }
-
-  public void startOrContinueUpgrade() {
+  public void continueUpgrade() {
+    // No need to continue an upgrade if we are at the correct
+    // version
+    if (AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get()) {
+      status = UpgradeStatus.COMPLETE;
+      return;
+    }
     // The following check will fail if an upgrade is in progress
     // but the target version is not the current version of the
     // software.
-    progressTracker.startOrContinueUpgrade();
+    progressTracker.continueUpgrade();
+    status = UpgradeStatus.INITIAL;
   }
 
   private void setStatus(UpgradeStatus status, EventCoordinator eventCoordinator) {
@@ -176,9 +177,6 @@ public class UpgradeCoordinator {
 
   public synchronized void upgradeZookeeper(EventCoordinator eventCoordinator) {
 
-    Preconditions.checkState(status == UpgradeStatus.INITIAL,
-        "Not currently in a suitable state to do zookeeper upgrade %s", status);
-
     try {
       int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
@@ -187,6 +185,9 @@ public class UpgradeCoordinator {
         status = UpgradeStatus.COMPLETE;
         return;
       }
+
+      Preconditions.checkState(status == UpgradeStatus.INITIAL,
+          "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
       if (currentVersion < AccumuloDataVersion.get()) {
         abortIfFateTransactions();

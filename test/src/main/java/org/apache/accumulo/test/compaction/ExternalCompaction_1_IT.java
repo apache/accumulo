@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -68,12 +69,15 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -85,19 +89,22 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -115,11 +122,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   private static ServiceLock testLock;
+
+  private static final Logger log = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
@@ -139,6 +150,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     if (testLock != null) {
       testLock.unlock();
     }
+    stopMiniCluster();
   }
 
   public static class TestFilter extends Filter {
@@ -153,9 +165,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // this cast should fail if the compaction is running in the tserver
       CompactorIterEnv cienv = (CompactorIterEnv) env;
 
-      Preconditions.checkArgument(!cienv.getQueueName().isEmpty());
-      Preconditions
-          .checkArgument(options.getOrDefault("expectedQ", "").equals(cienv.getQueueName()));
+      Preconditions.checkArgument(cienv.getQueueName() != null);
+      Preconditions.checkArgument(
+          options.getOrDefault("expectedQ", "").equals(cienv.getQueueName().canonical()));
       Preconditions.checkArgument(cienv.isUserCompaction());
       Preconditions.checkArgument(cienv.getIteratorScope() == IteratorScope.majc);
       Preconditions.checkArgument(!cienv.isSamplingEnabled());
@@ -251,14 +263,14 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
-    FateStore<Manager> metaFateStore =
-        new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
+        FateStore<Manager> metaFateStore =
+            new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null)) {
+      var tableId = ctx.getTableId(SystemTables.ROOT.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
       var fateId = createCompactionCommitAndDeadMetadata(c, metaFateStore,
-          AccumuloTable.ROOT.tableName(), allCids);
+          SystemTables.ROOT.tableName(), allCids);
       verifyCompactionCommitAndDead(metaFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
@@ -270,15 +282,15 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
-    FateStore<Manager> metaFateStore =
-        new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
+        FateStore<Manager> metaFateStore =
+            new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null)) {
       // Metadata table by default already has 2 tablets
-      var tableId = ctx.getTableId(AccumuloTable.METADATA.tableName());
+      var tableId = ctx.getTableId(SystemTables.METADATA.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
       var fateId = createCompactionCommitAndDeadMetadata(c, metaFateStore,
-          AccumuloTable.METADATA.tableName(), allCids);
+          SystemTables.METADATA.tableName(), allCids);
       verifyCompactionCommitAndDead(metaFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
@@ -292,9 +304,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     var ctx = getCluster().getServerContext();
     final String tableName = getUniqueNames(1)[0];
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      UserFateStore<Manager> userFateStore =
-          new UserFateStore<>(ctx, AccumuloTable.FATE.tableName(), testLock.getLockID(), null);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
+        UserFateStore<Manager> userFateStore =
+            new UserFateStore<>(ctx, SystemTables.FATE.tableName(), testLock.getLockID(), null)) {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
       c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
@@ -316,11 +328,11 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     var ctx = getCluster().getServerContext();
     final String userTable = getUniqueNames(1)[0];
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      UserFateStore<Manager> userFateStore =
-          new UserFateStore<>(ctx, AccumuloTable.FATE.tableName(), testLock.getLockID(), null);
-      FateStore<Manager> metaFateStore =
-          new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
+        FateStore<Manager> userFateStore =
+            new UserFateStore<>(ctx, SystemTables.FATE.tableName(), testLock.getLockID(), null);
+        FateStore<Manager> metaFateStore =
+            new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null)) {
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
@@ -331,8 +343,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Map<TableId,List<ExternalCompactionId>> allCids = new HashMap<>();
 
       // create compaction metadata for each data level to test
-      for (String tableName : List.of(AccumuloTable.ROOT.tableName(),
-          AccumuloTable.METADATA.tableName(), userTable)) {
+      for (String tableName : List.of(SystemTables.ROOT.tableName(),
+          SystemTables.METADATA.tableName(), userTable)) {
         var tableId = ctx.getTableId(tableName);
         var fateStore = FateInstanceType.fromTableId(tableId) == FateInstanceType.USER
             ? userFateStore : metaFateStore;
@@ -387,7 +399,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build().stream()
         .collect(Collectors.toList());
     // Root is always 1 tablet
-    if (!tableId.equals(AccumuloTable.ROOT.tableId())) {
+    if (!tableId.equals(SystemTables.ROOT.tableId())) {
       assertEquals(2, tabletsMeta.size());
     }
 
@@ -403,7 +415,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
         CompactionMetadata cm = new CompactionMetadata(tabletMeta.getFiles(),
             ReferencedTabletFile.of(tmpFile), "localhost:16789", CompactionKind.SYSTEM, (short) 10,
-            CompactorGroupId.of(GROUP1), false, null);
+            ResourceGroupId.of(GROUP1), false, null);
 
         mutator.mutateTablet(tabletMeta.getExtent())
             .putExternalCompaction(allCids.get(tableId).get(i), cm).mutate();
@@ -417,15 +429,19 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       FateId fateId, List<ExternalCompactionId> cids) {
     var ctx = getCluster().getServerContext();
 
+    log.info("cids:{}", cids);
+    var compactionWithFate = cids.get(0);
+    var compactionWithoutFate = cids.get(1);
+
     // Wait until the compaction id w/o a fate transaction is removed, should still see the one
     // with a fate transaction
     Wait.waitFor(() -> {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds1:" + currentIds);
-      assertTrue(currentIds.size() == 1 || currentIds.size() == 2);
-      return currentIds.equals(Set.of(cids.get(0)));
+      log.info("currentIds1:{}", currentIds);
+      assertTrue(currentIds.contains(compactionWithFate));
+      return currentIds.contains(compactionWithFate) && !currentIds.contains(compactionWithoutFate);
     });
 
     // Delete the fate transaction, should allow the dead compaction detector to clean up the
@@ -439,9 +455,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds2:" + currentIds);
-      assertTrue(currentIds.size() <= 1);
-      return currentIds.isEmpty();
+      log.info("currentIds2:{}", currentIds);
+      return !currentIds.contains(compactionWithFate);
     });
   }
 
@@ -582,6 +597,45 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     }
   }
 
+  public static class FourConfigurer implements CompactionConfigurer {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Overrides override(InputParameters params) {
+      if (new Text("4").equals(params.getTabletId().getEndRow())) {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
+      } else {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none"));
+      }
+    }
+  }
+
+  public static class UriConfigurer implements CompactionConfigurer {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Overrides override(InputParameters params) {
+      // This will validate the paths looks like a tablet file path and throw an exception if it
+      // does not
+      var parts = ReferencedTabletFile.of(new Path(params.getOutputFile()));
+      // For this test should be producing A files
+      Preconditions.checkArgument(
+          parts.getFileName().startsWith(FilePrefix.FULL_COMPACTION.getPrefix() + ""));
+      Preconditions.checkArgument(parts.getFileName().endsWith(RFile.EXTENSION));
+
+      if (parts.getTabletDir()
+          .equals(MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)) {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
+      } else {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none"));
+      }
+    }
+  }
+
   @Test
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
@@ -635,6 +689,44 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().cancelCompaction(tableName);
+
+      // compact using a custom configurer that considers tablet end row
+      client.tableOperations().addSplits(tableName, new TreeSet<>(List.of(new Text("4"))));
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setConfigurer(new PluginConfig(FourConfigurer.class.getName())));
+      var tabletSizes = getFilesSizesPerTablet(client, tableName);
+      assertTrue(tabletSizes.get("4") > 0 && tabletSizes.get("4") < 1000, tabletSizes.toString());
+      assertTrue(tabletSizes.get("null") > 500_000 && tabletSizes.get("4") < 510_000,
+          tabletSizes.toString());
+
+      // compact using a custom configurer that considers the output path, should invert which file
+      // is compressed
+      client.tableOperations().addSplits(tableName, new TreeSet<>(List.of(new Text("4"))));
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setConfigurer(new PluginConfig(UriConfigurer.class.getName())));
+      tabletSizes = getFilesSizesPerTablet(client, tableName);
+      assertTrue(tabletSizes.get("4") > 500_000 && tabletSizes.get("4") < 510_000,
+          tabletSizes.toString());
+      assertTrue(tabletSizes.get("null") > 0 && tabletSizes.get("null") < 1000,
+          tabletSizes.toString());
+
+    }
+  }
+
+  private Map<String,Long> getFilesSizesPerTablet(AccumuloClient client, String table)
+      throws Exception {
+    var ctx = (ClientContext) client;
+    var ample = ctx.getAmple();
+    var id = ctx.getTableId(table);
+
+    try (var tablets = ample.readTablets().forTable(id).build()) {
+      Map<String,Long> sizes = new TreeMap<>();
+      for (var tablet : tablets) {
+        var tsize = tablet.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+        var endRow = tablet.getEndRow();
+        sizes.put(endRow == null ? "null" : endRow.toString(), tsize);
+      }
+      return sizes;
     }
   }
 
@@ -700,7 +792,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // this cast should fail if the compaction is running in the tserver
       CompactorIterEnv cienv = (CompactorIterEnv) env;
 
-      Preconditions.checkArgument(!cienv.getQueueName().isEmpty());
+      Preconditions.checkArgument(cienv.getQueueName() != null);
     }
   }
 

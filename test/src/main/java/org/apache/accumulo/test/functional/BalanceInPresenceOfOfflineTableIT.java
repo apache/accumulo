@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -84,7 +85,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private static final int NUM_SPLITS = 200;
 
-  private String UNUSED_TABLE, TEST_TABLE;
+  private String UNUSED_TABLE;
+  private String TEST_TABLE;
 
   private AccumuloClient accumuloClient;
 
@@ -157,7 +159,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
       ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute((ClientContext) accumuloClient,
           client -> client.getManagerStats(TraceUtil.traceInfo(),
-              creds.toThrift(accumuloClient.instanceOperations().getInstanceId())));
+              creds.toThrift(accumuloClient.instanceOperations().getInstanceId())),
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
 
       if (stats.getTServerInfoSize() < 2) {
         log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);
@@ -189,7 +192,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
             List.of(tabletsPerServer));
         continue;
       }
-      long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);
+      long min = NumberUtils.min(tabletsPerServer);
+      long max = NumberUtils.max(tabletsPerServer);
       log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
         log.debug(

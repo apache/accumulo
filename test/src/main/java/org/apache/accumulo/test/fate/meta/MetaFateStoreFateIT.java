@@ -45,7 +45,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateStoreIT;
+import org.apache.accumulo.test.fate.FateStoreITBase;
 import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.io.TempDir;
 
 @Tag(ZOOKEEPER_TESTING_SERVER)
-public class MetaFateStoreFateIT extends FateStoreIT {
+public class MetaFateStoreFateIT extends FateStoreITBase {
   @TempDir
   private static File tempDir;
 
@@ -73,13 +73,13 @@ public class MetaFateStoreFateIT extends FateStoreIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooSession()).andReturn(FateTestUtil.MetaFateZKSetup.getZk()).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store = new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZk(),
-        createDummyLockID(), null, maxDeferred, fateIdGenerator);
-
-    // Check that the store has no transactions before and after each test
-    assertEquals(0, store.list().count());
-    testMethod.execute(store, sctx);
-    assertEquals(0, store.list().count());
+    try (FateStore<TestEnv> store = new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZk(),
+        createDummyLockID(), null, maxDeferred, fateIdGenerator)) {
+      // Check that the store has no transactions before and after each test
+      assertEquals(0, store.list().count());
+      testMethod.execute(store, sctx);
+      assertEquals(0, store.list().count());
+    }
   }
 
   @Override
@@ -136,8 +136,7 @@ public class MetaFateStoreFateIT extends FateStoreIT {
       Object currentNode) throws Exception {
     Object currentResAsObject = nodeReservation.get(currentNode);
     Optional<FateStore.FateReservation> currentReservation = Optional.empty();
-    if (currentResAsObject instanceof Optional) {
-      Optional<?> currentResAsOptional = (Optional<?>) currentResAsObject;
+    if (currentResAsObject instanceof Optional<?> currentResAsOptional) {
       if (currentResAsOptional.isPresent()
           && currentResAsOptional.orElseThrow() instanceof FateStore.FateReservation) {
         currentReservation =

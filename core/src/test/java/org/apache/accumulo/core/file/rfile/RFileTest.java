@@ -31,10 +31,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,7 +49,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -70,8 +70,9 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -100,29 +101,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest extends AbstractRFileTest {
 
-  public static class SampleIE implements IteratorEnvironment {
-
-    private SamplerConfiguration samplerConfig;
-
-    SampleIE(SamplerConfiguration config) {
-      this.samplerConfig = config;
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return samplerConfig != null;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return samplerConfig;
-    }
-  }
-
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {
@@ -190,19 +172,6 @@ public class RFileTest extends AbstractRFileTest {
 
   }
 
-  static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
-        ts);
-  }
-
-  static Value newValue(String val) {
-    return new Value(val);
-  }
-
-  static String formatString(String prefix, int i) {
-    return String.format(prefix + "%06d", i);
-  }
-
   @Test
   public void test1() throws IOException {
 
@@ -216,7 +185,8 @@ public class RFileTest extends AbstractRFileTest {
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertNull(trf.reader.getLastRow());
+    assertTrue(trf.reader.getFileRange().empty);
+    assertNull(trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -253,7 +223,7 @@ public class RFileTest extends AbstractRFileTest {
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(new Text("r1"), trf.reader.getLastRow());
+    assertEquals(new Range("r1", "r1"), trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -389,7 +359,9 @@ public class RFileTest extends AbstractRFileTest {
       }
     }
 
-    assertEquals(expectedKeys.get(expectedKeys.size() - 1).getRow(), trf.reader.getLastRow());
+    assertEquals(
+        new Range(expectedKeys.get(0).getRow(), expectedKeys.get(expectedKeys.size() - 1).getRow()),
+        trf.reader.getFileRange().rowRange);
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
@@ -465,7 +437,7 @@ public class RFileTest extends AbstractRFileTest {
     assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
     assertEquals(newValue("foo1"), trf.iter.getTopValue());
 
-    assertEquals(new Text("r1"), trf.reader.getLastRow());
+    assertEquals(new Range("r1", "r1"), trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -498,7 +470,8 @@ public class RFileTest extends AbstractRFileTest {
       assertFalse(trf.iter.hasTop());
     }
 
-    assertEquals(new Text(formatString("r_", 499)), trf.reader.getLastRow());
+    assertEquals(new Range(formatString("r_", 0), formatString("r_", 499)),
+        trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -564,7 +537,8 @@ public class RFileTest extends AbstractRFileTest {
         newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(new Text(formatString("r_", 49)), trf.reader.getLastRow());
+    assertEquals(new Range(formatString("r_", 2), formatString("r_", 49)),
+        trf.reader.getFileRange().rowRange);
 
     trf.reader.close();
   }
@@ -873,6 +847,9 @@ public class RFileTest extends AbstractRFileTest {
 
     trf.closeReader();
 
+    assertTrue(trf.reader.getFileRange().empty);
+    assertNull(trf.reader.getFileRange().rowRange);
+
     // another empty locality group test
     trf = new TestRFile(conf);
 
@@ -897,6 +874,8 @@ public class RFileTest extends AbstractRFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0000", "0002"), trf.reader.getFileRange().rowRange);
 
     // another empty locality group test
     trf = new TestRFile(conf);
@@ -923,6 +902,9 @@ public class RFileTest extends AbstractRFileTest {
 
     trf.closeReader();
 
+    // test getting row range whe some locality groups are empty
+    assertEquals(new Range("0001", "0003"), trf.reader.getFileRange().rowRange);
+
     // another empty locality group test
     trf = new TestRFile(conf);
 
@@ -947,6 +929,8 @@ public class RFileTest extends AbstractRFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0007", "0008"), trf.reader.getFileRange().rowRange);
 
     // another empty locality group test
     trf = new TestRFile(conf);
@@ -982,6 +966,8 @@ public class RFileTest extends AbstractRFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0000", "0008"), trf.reader.getFileRange().rowRange);
   }
 
   @Test
@@ -1098,6 +1084,10 @@ public class RFileTest extends AbstractRFileTest {
       assertFalse(trf.iter.hasTop());
       assertFalse(reader2.hasTop());
     }
+
+    // should get the min and max row across all locality groups
+    assertEquals(new Range(formatString("i", 0), formatString("i", 1023)),
+        trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -1926,15 +1916,16 @@ public class RFileTest extends AbstractRFileTest {
 
         trf.openReader();
 
-        FileSKVIterator sample =
-            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(sampleConf);
+
+        FileSKVIterator sample = trf.reader.getSample(sc);
 
         checkSample(sample, sampleData);
 
         assertEquals(expectedDataHash, hash(trf.reader));
 
-        SampleIE ie = new SampleIE(
-            SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
+        IteratorEnvironment ie = new ClientIteratorEnvironment.Builder()
+            .withSamplerConfiguration(sc.toSamplerConfiguration()).withSamplingEnabled().build();
 
         for (int i = 0; i < 3; i++) {
           // test opening and closing deep copies a few times.
@@ -1944,8 +1935,10 @@ public class RFileTest extends AbstractRFileTest {
           SortedKeyValueIterator<Key,Value> sampleDC1 = sample.deepCopy(ie);
           SortedKeyValueIterator<Key,Value> sampleDC2 = sample.deepCopy(ie);
           SortedKeyValueIterator<Key,Value> sampleDC3 = trf.reader.deepCopy(ie);
-          SortedKeyValueIterator<Key,Value> allDC1 = sampleDC1.deepCopy(new SampleIE(null));
-          SortedKeyValueIterator<Key,Value> allDC2 = sample.deepCopy(new SampleIE(null));
+          SortedKeyValueIterator<Key,Value> allDC1 =
+              sampleDC1.deepCopy(ClientIteratorEnvironment.DEFAULT);
+          SortedKeyValueIterator<Key,Value> allDC2 =
+              sample.deepCopy(ClientIteratorEnvironment.DEFAULT);
 
           assertEquals(expectedDataHash, hash(allDC1));
           assertEquals(expectedDataHash, hash(allDC2));
@@ -2162,7 +2155,7 @@ public class RFileTest extends AbstractRFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(TabletsSection.encodeRow(AccumuloTable.METADATA.tableId(),
+    Text tableExtent = new Text(TabletsSection.encodeRow(SystemTables.METADATA.tableId(),
         TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
@@ -2181,7 +2174,7 @@ public class RFileTest extends AbstractRFileTest {
     mfw.append(tablePrevRowKey, TabletColumnFamily.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent = new Text(TabletsSection.encodeRow(AccumuloTable.METADATA.tableId(), null));
+    Text defaultExtent = new Text(TabletsSection.encodeRow(SystemTables.METADATA.tableId(), null));
 
     // default's directory
     Key defaultDirKey =
@@ -2204,18 +2197,17 @@ public class RFileTest extends AbstractRFileTest {
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream =
-          new FileOutputStream(new File(tempDir, "testEncryptedRootFile.rf"));
-      fileOutputStream.write(testRfile.baos.toByteArray());
-      fileOutputStream.flush();
-      fileOutputStream.close();
+      try (OutputStream fileOutputStream =
+          Files.newOutputStream(tempDir.resolve("testEncryptedRootFile.rf"))) {
+        fileOutputStream.write(testRfile.baos.toByteArray());
+      }
     }
 
     testRfile.openReader();
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertTrue(testRfile.iter.hasTop());
 
-    assertNotNull(testRfile.reader.getLastRow());
+    assertNotNull(testRfile.reader.getFileRange().rowRange);
 
     testRfile.closeReader();
 

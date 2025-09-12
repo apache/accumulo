@@ -40,7 +40,8 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
@@ -53,14 +54,23 @@ import org.jline.reader.LineReader;
 
 public class SetIterCommand extends Command {
 
-  private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt;
-  Option profileOpt, priorityOpt, nameOpt;
-  Option ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
+  private Option allScopeOpt;
+  private Option mincScopeOpt;
+  private Option majcScopeOpt;
+  private Option scanScopeOpt;
+  Option profileOpt;
+  Option priorityOpt;
+  Option nameOpt;
+  Option ageoffTypeOpt;
+  Option regexTypeOpt;
+  Option versionTypeOpt;
+  Option reqvisTypeOpt;
+  Option classnameTypeOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      ShellCommandException {
+      ShellCommandException, ContextClassLoaderException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
@@ -92,7 +102,7 @@ public class SetIterCommand extends Command {
     String configuredName;
     try {
       if (profileOpt != null && (currentTableName == null || currentTableName.isBlank())) {
-        tmpTable = AccumuloTable.METADATA.tableName();
+        tmpTable = SystemTables.METADATA.tableName();
         shellState.setTableName(tmpTable);
         tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !currentTableName.isEmpty();
       }

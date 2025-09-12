@@ -18,10 +18,12 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
+
 /**
  * Offered to a Compaction Planner at initialization time, so it can create compactor groups.
  *
- * @since 3.1.0
+ * @since 4.0.0
  * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
  * @see org.apache.accumulo.core.spi.compaction
  */
@@ -29,5 +31,5 @@ public interface GroupManager {
   /**
    * @return an id for a configured compactor group.
    */
-  CompactorGroupId getGroup(String name);
+  ResourceGroupId getGroup(String name);
 }

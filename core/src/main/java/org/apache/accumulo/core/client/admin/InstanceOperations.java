@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 public interface InstanceOperations {
 
@@ -149,14 +150,17 @@ public interface InstanceOperations {
    * Retrieve the system-wide, merged view of the system configuration. Accumulo has multiple layers
    * of properties, in order of precedence (highest - lowest):
    * <ul>
-   * <li>the properties set in Zookeeper</li>
+   * <li>the system properties set in Zookeeper</li>
    * <li>the properties set in the site configuration file</li>
    * <li>the default properties</li>
    * </ul>
    * The properties returned is the merged view of these properties. The properties that are stored
    * in ZooKeeper can be modified with {@link #modifyProperties modifyProperties},
    * {@link #setProperty setProperty} and {@link #removeProperty removeProperty}. Properties can be
-   * further refined by namesapce {@link NamespaceOperations} and by table {@link TableOperations}.
+   * further refined by namespace {@link NamespaceOperations} and by table {@link TableOperations}.
+   *
+   * Note that this connects to a random server, so the configuration returned will be influenced by
+   * the site configuration local to the server and the resource group of the server.
    *
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper,
    *         then it will return the value set in accumulo.properties on some server. If nothing is
@@ -166,6 +170,9 @@ public interface InstanceOperations {
 
   /**
    * Retrieve the site configuration (that is set in the server configuration file).
+   *
+   * Note that this connects to a random server, so the configuration returned will be influenced by
+   * the site configuration local to the server.
    *
    * @return A map of system properties set in accumulo.properties on some server. If nothing is set
    *         in an accumulo.properties file, the default value for each property will be used.
@@ -178,7 +185,7 @@ public interface InstanceOperations {
    * {@link #getSystemConfiguration} for a merged view.
    *
    * @return A map of the system properties set in Zookeeper only.
-   * @since 3.1
+   * @since 4.0.0
    */
   Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
 
@@ -231,7 +238,7 @@ public interface InstanceOperations {
    * @return ServerId if found, else null
    * @since 4.0.0
    */
-  ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
+  ServerId getServer(ServerId.Type type, ResourceGroupId resourceGroup, String host, int port);
 
   /**
    * Returns all servers of the given types. For the Manager, Monitor, and Garbage Collector, the
@@ -251,7 +258,7 @@ public interface InstanceOperations {
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+  Set<ServerId> getServers(ServerId.Type type, Predicate<ResourceGroupId> resourceGroupPredicate,
       BiPredicate<String,Integer> hostPortPredicate);
 
   /**

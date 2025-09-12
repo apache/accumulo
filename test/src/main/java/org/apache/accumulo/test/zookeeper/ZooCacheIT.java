@@ -18,21 +18,30 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.zookeeper.ClientCnxn;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -82,12 +91,14 @@ public class ZooCacheIT {
   @TempDir
   private File tempDir;
 
+  private static final Duration SESSION_TIMEOUT = Duration.ofSeconds(10);
+
   @BeforeEach
   @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
       justification = "setting ticker in test for eviction test")
   public void setup() throws Exception {
     szk = new ZooKeeperTestingServer(tempDir);
-    zk = szk.newClient();
+    zk = szk.newClient(SESSION_TIMEOUT);
     zrw = zk.asReaderWriter();
   }
 
@@ -227,5 +238,92 @@ public class ZooCacheIT {
           && zooCache.childrenCached(base + "/test2") == false
           && zooCache.childrenCached(base + "/test3") == false;
     });
+  }
+
+  private void testDisruptingZookeeper(String child, Runnable zkDisruption) throws Exception {
+    final String root = Constants.ZROOT + UUID.randomUUID();
+    final String base = root + Constants.ZTSERVERS;
+    final String fullPath = base + "/" + child;
+    final String data1 = "1234";
+    final String data2 = "4321";
+    TestZooCache zooCache = new TestZooCache(zk, Set.of(base));
+
+    zrw.mkdirs(base);
+    zrw.putPersistentData(fullPath, data1.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
+
+    assertArrayEquals(data1.getBytes(UTF_8), zooCache.get(fullPath));
+    assertEquals(List.of(child), zooCache.getChildren(base));
+
+    long uc1 = zooCache.getUpdateCount();
+
+    assertTrue(zooCache.dataCached(fullPath));
+    assertTrue(zooCache.childrenCached(base));
+
+    assertArrayEquals(data1.getBytes(UTF_8), zooCache.get(fullPath));
+    assertEquals(List.of(child), zooCache.getChildren(base));
+
+    assertEquals(uc1, zooCache.getUpdateCount());
+
+    // disrupt zookeeper in some way that should cause zoocache to be cleared
+    zkDisruption.run();
+
+    // clearing the cache should increment the update count
+    Wait.waitFor(() -> uc1 != zooCache.getUpdateCount());
+    // The data and children previously cached should no longer be cached
+    assertFalse(zooCache.dataCached(fullPath));
+    assertFalse(zooCache.childrenCached(base));
+
+    assertArrayEquals(data1.getBytes(UTF_8), zooCache.get(fullPath));
+    assertEquals(List.of(child), zooCache.getChildren(base));
+
+    // after the event, ensure that zoocache will still eventually see updates. May have
+    // reregistered watchers.
+    zrw.putPersistentData(fullPath, data2.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.OVERWRITE);
+    Wait.waitFor(() -> Arrays.equals(data2.getBytes(UTF_8), zooCache.get(fullPath)));
+  }
+
+  @Test
+  public void testZookeeperRestart() throws Exception {
+    testDisruptingZookeeper("restart", () -> {
+      try {
+        szk.restart();
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    });
+  }
+
+  @SuppressWarnings({"deprecation", "removal"})
+  @Test
+  public void testDisconnect() throws Exception {
+    testDisruptingZookeeper("disconnect", () -> {
+      try {
+        // Find the zookeeper thread that sends stuff to the server and pause it for longer than the
+        // session timeout. This should cause the server to disconnect the session which should
+        // cause the cache to clear.
+        Thread sendThread = findZookeeperSendThread();
+        sendThread.suspend();
+        UtilWaitThread.sleep(SESSION_TIMEOUT.plusSeconds(1).toMillis());
+        sendThread.resume();
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    });
+  }
+
+  private Thread findZookeeperSendThread() {
+    Map<Thread,StackTraceElement[]> traces = Thread.getAllStackTraces();
+    String className = ClientCnxn.class.getSimpleName() + "$SendThread";
+    for (var entry : traces.entrySet()) {
+      Thread thread = entry.getKey();
+      StackTraceElement[] stackTrace = entry.getValue();
+      for (var ste : stackTrace) {
+        if (ste.getClassName().contains(className)) {
+          return thread;
+        }
+      }
+    }
+
+    throw new IllegalStateException("Unable to find stack trace containing class " + className);
   }
 }

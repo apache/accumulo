@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.server.ServerContext;
@@ -45,10 +47,10 @@ public class DeadServerList {
 
   // ELASTICITY_TODO See if we can get the ResourceGroup from the Monitor
   // and replace the "UNKNOWN" value with the ResourceGroup
-  private static final String RESOURCE_GROUP = "UNKNOWN";
+  private static final ResourceGroupId RESOURCE_GROUP = ResourceGroupId.of("UNKNOWN");
   private final ServerContext ctx;
   private final ZooReaderWriter zoo;
-  private static final String path = Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP;
+  private static final String path = Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP.canonical();
 
   public DeadServerList(ServerContext context) {
     this.ctx = context;
@@ -64,8 +66,8 @@ public class DeadServerList {
   public List<DeadServer> getList() {
     List<DeadServer> result = new ArrayList<>();
     try {
-      Set<ServiceLockPath> deadServers =
-          ctx.getServerPaths().getDeadTabletServer(rg -> true, AddressSelector.all(), false);
+      Set<ServiceLockPath> deadServers = ctx.getServerPaths()
+          .getDeadTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
       for (ServiceLockPath path : deadServers) {
         Stat stat = new Stat();
         byte[] data;
@@ -78,7 +80,7 @@ public class DeadServerList {
           continue;
         }
         DeadServer server = new DeadServer(path.getServer(), stat.getMtime(),
-            new String(data, UTF_8), path.getResourceGroup());
+            new String(data, UTF_8), path.getResourceGroup().canonical());
         result.add(server);
       }
     } catch (Exception ex) {

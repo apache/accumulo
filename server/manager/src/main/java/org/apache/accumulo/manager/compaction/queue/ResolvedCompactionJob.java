@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -34,7 +35,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 
 /**
  * This class takes a compaction job and the tablet metadata from which is was generated and
@@ -56,7 +56,7 @@ public class ResolvedCompactionJob implements CompactionJob {
   private final boolean compactingAll;
   private final KeyExtent extent;
   private final short priority;
-  private final CompactorGroupId group;
+  private final ResourceGroupId group;
   private final String tabletDir;
   private final boolean overlapsSelectedFiles;
 
@@ -72,8 +72,7 @@ public class ResolvedCompactionJob implements CompactionJob {
   }
 
   public static final SizeTrackingTreeMap.Weigher<CompactionJob> WEIGHER = job -> {
-    if (job instanceof ResolvedCompactionJob) {
-      var rcj = (ResolvedCompactionJob) job;
+    if (job instanceof ResolvedCompactionJob rcj) {
       long estDataSize = 0;
       if (rcj.selectedFateId != null) {
         estDataSize += rcj.selectedFateId.canonical().length();
@@ -182,7 +181,7 @@ public class ResolvedCompactionJob implements CompactionJob {
   }
 
   @Override
-  public CompactorGroupId getGroup() {
+  public ResourceGroupId getGroup() {
     return group;
   }
 

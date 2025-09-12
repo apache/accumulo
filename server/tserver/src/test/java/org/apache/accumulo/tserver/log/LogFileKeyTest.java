@@ -38,9 +38,9 @@ public class LogFileKeyTest {
 
   private static LogFileKey nk(LogEvents e, int tabletId, long seq) {
     LogFileKey k = new LogFileKey();
-    k.event = e;
-    k.tabletId = tabletId;
-    k.seq = seq;
+    k.setEvent(e);
+    k.setTabletId(tabletId);
+    k.setSeq(seq);
     return k;
   }
 
@@ -107,7 +107,7 @@ public class LogFileKeyTest {
 
   private void testToFromKey(int tabletId, long seq) throws IOException {
     var logFileKey = nk(LogEvents.DEFINE_TABLET, tabletId, seq);
-    logFileKey.tablet = new KeyExtent(TableId.of("5"), new Text("b"), null);
+    logFileKey.setTablet(new KeyExtent(TableId.of("5"), new Text("b"), null));
     Key k = logFileKey.toKey();
 
     var converted = LogFileKey.fromKey(k);

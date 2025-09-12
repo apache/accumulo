@@ -31,7 +31,8 @@ public class BlockedInputStream extends InputStream {
   byte[] array;
   // ReadPos is where to start reading
   // WritePos is the last position written to
-  int readPos, writePos;
+  int readPos;
+  int writePos;
   DataInputStream in;
   int blockSize;
   boolean finished = false;

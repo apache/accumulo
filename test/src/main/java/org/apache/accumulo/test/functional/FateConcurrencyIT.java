@@ -53,7 +53,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -256,9 +256,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       try {
 
         var zk = context.getZooSession();
-        MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
-        UserFateStore<String> readOnlyUFS =
-            new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+        ReadOnlyFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+        ReadOnlyFateStore<String> readOnlyUFS =
+            new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
         var lockPath = context.getServerPaths().createTableLocksPath(tableId);
         Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
             Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
@@ -348,7 +348,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       var zk = context.getZooSession();
-      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+      ReadOnlyFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
       var lockPath = context.getServerPaths().createTableLocksPath(tableId);
       AdminUtil.FateStatus fateStatus =
           admin.getStatus(readOnlyMFS, zk, lockPath, null, null, null);
@@ -378,8 +378,8 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      UserFateStore<String> readOnlyUFS =
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+      ReadOnlyFateStore<String> readOnlyUFS =
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
       AdminUtil.FateStatus fateStatus = admin.getStatus(readOnlyUFS, null, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());

@@ -21,6 +21,8 @@ package org.apache.accumulo.core.metrics;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.fate.FateExecutorMetrics;
+
 public enum Metric {
   // General Server Metrics
   SERVER_IDLE("accumulo.server.idle", MetricType.GAUGE,
@@ -37,6 +39,20 @@ public enum Metric {
   // Compactor Metrics
   COMPACTION_SVC_ERRORS("accumulo.compaction.svc.misconfigured", MetricType.GAUGE,
       "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricDocSection.COMPACTION),
+  COMPACTOR_MAJC_CANCELLED("accumulo.compaction.majc.cancelled", MetricType.FUNCTION_COUNTER,
+      "Number compactions that have been cancelled on this compactor", MetricDocSection.COMPACTION),
+  COMPACTOR_MAJC_COMPLETED("accumulo.compaction.majc.completed", MetricType.FUNCTION_COUNTER,
+      "Number compactions that have succeeded on this compactor", MetricDocSection.COMPACTION),
+  COMPACTOR_MAJC_FAILED("accumulo.compaction.majc.failed", MetricType.FUNCTION_COUNTER,
+      "Number compactions that have failed on this compactor", MetricDocSection.COMPACTION),
+  COMPACTOR_MAJC_FAILURES_CONSECUTIVE("accumulo.compaction.majc.failures.consecutive",
+      MetricType.GAUGE,
+      "Number of consecutive compaction failures. Resets to zero on a successful compaction",
+      MetricDocSection.COMPACTION),
+  COMPACTOR_MAJC_FAILURES_TERMINATION("accumulo.compaction.process.terminated",
+      MetricType.FUNCTION_COUNTER,
+      "Will report 1 if the Compactor terminates due to consecutive failures, else 0. Emitting this metric is a best effort before the process terminates",
       MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_IN_PROGRESS("accumulo.compaction.majc.in_progress", MetricType.GAUGE,
       "Indicator of whether a compaction is in-progress (value: 1) or not (value: 0). An"
@@ -90,7 +106,20 @@ public enum Metric {
       "Count of errors that occurred when attempting to gather fate metrics.",
       MetricDocSection.FATE),
   FATE_TX("accumulo.fate.tx", MetricType.GAUGE,
-      "The state is now in a tag (e.g., state=new, state=in.progress, state=failed, etc.).",
+      "Count of FATE operations in a certain state. The state is now in a tag "
+          + "(e.g., state=new, state=in.progress, state=failed, etc.).",
+      MetricDocSection.FATE),
+  FATE_OPS_THREADS_INACTIVE("accumulo.fate.ops.threads.inactive", MetricType.GAUGE,
+      "Keeps track of the number of idle threads (not working on a fate operation) in the thread "
+          + "pool. The pool name can be found in the " + FateExecutorMetrics.POOL_NAME_TAG_KEY
+          + " tag. The fate instance type can be found in the "
+          + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
+      MetricDocSection.FATE),
+  FATE_OPS_THREADS_TOTAL("accumulo.fate.ops.threads.total", MetricType.GAUGE,
+      "Keeps track of the total number of threads in the thread pool. The pool name can be found in the "
+          + FateExecutorMetrics.POOL_NAME_TAG_KEY
+          + " tag. The fate instance type can be found in the "
+          + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
       MetricDocSection.FATE),
 
   // Garbage Collection Metrics

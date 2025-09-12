@@ -31,10 +31,11 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -64,7 +65,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       for (int i = 0; i < 1000; i++) {
         splits.add(new Text(String.format("%03d", i)));
       }
-      c.tableOperations().setProperty(AccumuloTable.METADATA.tableName(),
+      c.tableOperations().setProperty(SystemTables.METADATA.tableName(),
           Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
       // propagation time
       Thread.sleep(SECONDS.toMillis(5));
@@ -75,14 +76,15 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
             .withInitialTabletAvailability(TabletAvailability.HOSTED);
         c.tableOperations().create(tableName, ntc);
         log.info("flushing");
-        c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-        c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+        c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       }
 
       while (true) {
         ClientContext context = (ClientContext) c;
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
+            client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {

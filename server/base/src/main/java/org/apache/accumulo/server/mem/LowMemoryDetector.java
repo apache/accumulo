@@ -193,7 +193,7 @@ public class LowMemoryDetector {
       }
 
       if (maxIncreaseInCollectionTime > keepAliveTimeout) {
-        Halt.halt("Garbage collection may be interfering with lock keep-alive. Halting.", -1);
+        Halt.halt(1, "Garbage collection may be interfering with lock keep-alive. Halting.");
       }
 
       localState.lastMemorySize = freeMemory;

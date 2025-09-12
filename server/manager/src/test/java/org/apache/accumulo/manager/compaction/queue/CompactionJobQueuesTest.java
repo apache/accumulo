@@ -40,22 +40,22 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class CompactionJobQueuesTest {
 
-  private CompactionJob newJob(short prio, int file, CompactorGroupId cgi)
+  private CompactionJob newJob(short prio, int file, ResourceGroupId cgi)
       throws URISyntaxException {
     Collection<CompactableFile> files = List
         .of(new CompactableFileImpl(new URI("file://accumulo/tables//123/t-0/f" + file), 100, 100));
@@ -71,9 +71,9 @@ public class CompactionJobQueuesTest {
     var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
     var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
 
-    var cg1 = CompactorGroupId.of("CG1");
-    var cg2 = CompactorGroupId.of("CG2");
-    var cg3 = CompactorGroupId.of("CG3");
+    var cg1 = ResourceGroupId.of("CG1");
+    var cg2 = ResourceGroupId.of("CG2");
+    var cg3 = ResourceGroupId.of("CG3");
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
@@ -231,10 +231,10 @@ public class CompactionJobQueuesTest {
     var tid = TableId.of("1");
     var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
     var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
-    var meta = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("l"), new Text("c"));
+    var meta = new KeyExtent(SystemTables.METADATA.tableId(), new Text("l"), new Text("c"));
     var root = RootTable.EXTENT;
 
-    var cg1 = CompactorGroupId.of("CG1");
+    var cg1 = ResourceGroupId.of("CG1");
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
@@ -273,8 +273,8 @@ public class CompactionJobQueuesTest {
     final int numToAdd = 100_000;
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(10000000);
-    CompactorGroupId[] groups =
-        Stream.of("G1", "G2", "G3").map(CompactorGroupId::of).toArray(CompactorGroupId[]::new);
+    ResourceGroupId[] groups =
+        Stream.of("G1", "G2", "G3").map(ResourceGroupId::of).toArray(ResourceGroupId[]::new);
 
     var executor = Executors.newFixedThreadPool(groups.length);
 
@@ -338,7 +338,7 @@ public class CompactionJobQueuesTest {
     var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
     var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
 
-    var cg1 = CompactorGroupId.of("CG1");
+    var cg1 = ResourceGroupId.of("CG1");
 
     var job1 = newJob((short) 1, 5, cg1);
     var job2 = newJob((short) 2, 6, cg1);
@@ -407,8 +407,8 @@ public class CompactionJobQueuesTest {
     var tid = TableId.of("1");
     var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
 
-    var cg1 = CompactorGroupId.of("CG1");
-    var cg2 = CompactorGroupId.of("CG2");
+    var cg1 = ResourceGroupId.of("CG1");
+    var cg2 = ResourceGroupId.of("CG2");
 
     jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
 

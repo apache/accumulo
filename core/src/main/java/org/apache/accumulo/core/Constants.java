@@ -40,7 +40,6 @@ public class Constants {
 
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
-  public static final String ZTABLE_NAME = "/name";
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
@@ -84,6 +83,8 @@ public class Constants {
 
   public static final String ZPREPARE_FOR_UPGRADE = "/upgrade_ready";
   public static final String ZUPGRADE_PROGRESS = "/upgrade_progress";
+
+  public static final String ZRESOURCEGROUPS = "/resource_groups";
 
   /**
    * Base znode for storing secret keys that back delegation tokens

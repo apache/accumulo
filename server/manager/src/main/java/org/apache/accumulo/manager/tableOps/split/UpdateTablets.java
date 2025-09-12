@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -40,14 +41,16 @@ import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.util.RowRangeUtil;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 
 public class UpdateTablets extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(UpdateTablets.class);
@@ -107,7 +110,7 @@ public class UpdateTablets extends ManagerRepo {
 
     var newTablets = splitInfo.getTablets();
 
-    var newTabletsFiles = getNewTabletFiles(newTablets, tabletMetadata,
+    var newTabletsFiles = getNewTabletFiles(fateId, newTablets, tabletMetadata,
         file -> manager.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
 
     addNewTablets(fateId, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
@@ -123,9 +126,9 @@ public class UpdateTablets extends ManagerRepo {
    * Determine which files from the original tablet go to each new tablet being created by the
    * split.
    */
-  static Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> getNewTabletFiles(
+  static Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> getNewTabletFiles(FateId fateId,
       SortedMap<KeyExtent,TabletMergeability> newTablets, TabletMetadata tabletMetadata,
-      Function<StoredTabletFile,Splitter.FileInfo> fileInfoProvider) {
+      Function<StoredTabletFile,FileSKVIterator.FileRange> fileInfoProvider) {
 
     Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> tabletsFiles = new TreeMap<>();
 
@@ -133,60 +136,73 @@ public class UpdateTablets extends ManagerRepo {
 
     // determine which files overlap which tablets and their estimated sizes
     tabletMetadata.getFilesMap().forEach((file, dataFileValue) -> {
-      Splitter.FileInfo fileInfo = fileInfoProvider.apply(file);
+      FileSKVIterator.FileRange fileRange = fileInfoProvider.apply(file);
 
-      Range fileRange;
-      if (fileInfo != null) {
-        fileRange = new Range(fileInfo.getFirstRow(), fileInfo.getLastRow());
+      // This predicate is used to determine if a given tablet range overlaps the data in this file.
+      Predicate<Range> overlapPredicate;
+      if (fileRange == null) {
+        // The range is not known, so assume all tablets overlap the file
+        overlapPredicate = r -> true;
+      } else if (fileRange.empty) {
+        // The file is empty so not tablets can overlap it
+        overlapPredicate = r -> false;
+      } else {
+        // check if the tablet range overlaps the file range
+        overlapPredicate = range -> range.clip(fileRange.rowRange, true) != null;
+
         if (!file.getRange().isInfiniteStartKey() || !file.getRange().isInfiniteStopKey()) {
           // Its expected that if a file has a range that the first row and last row will be clipped
           // to be within that range. For that reason this code does not check file.getRange() when
           // making decisions about whether a file should go to a tablet, because its assumed that
           // fileRange will cover that case. Since file.getRange() is not being checked directly
           // this code validates the assumption that fileRange is within file.getRange()
+
           Preconditions.checkState(
-              file.getRange().clip(new Range(fileInfo.getFirstRow()), false) != null,
-              "First row %s computed for file %s did not fall in its range", fileInfo.getFirstRow(),
-              file);
+              file.getRange().clip(new Range(fileRange.rowRange.getStartKey().getRow()), false)
+                  != null,
+              "First row %s computed for file %s did not fall in its range",
+              fileRange.rowRange.getStartKey().getRow(), file);
+
+          var lastRow = RowRangeUtil.stripZeroTail(fileRange.rowRange.getEndKey().getRowData());
           Preconditions.checkState(
-              file.getRange().clip(new Range(fileInfo.getLastRow()), false) != null,
-              "Last row %s computed for file %s did not fall in its range", fileInfo.getLastRow(),
-              file);
+              file.getRange().clip(new Range(new Text(lastRow.toArray())), false) != null,
+              "Last row %s computed for file %s did not fall in its range", lastRow, file);
         }
-      } else {
-        fileRange = new Range();
       }
 
       // count how many of the new tablets the file will overlap
-      double numOverlapping = newTablets.keySet().stream().map(KeyExtent::toDataRange)
-          .filter(range -> range.clip(fileRange, true) != null).count();
+      double numOverlapping =
+          newTablets.keySet().stream().map(KeyExtent::toDataRange).filter(overlapPredicate).count();
 
-      Preconditions.checkState(numOverlapping > 0);
+      if (numOverlapping == 0) {
+        log.debug("{} File {} with range {} that does not overlap tablet {}", fateId, file,
+            fileRange, tabletMetadata.getExtent());
+      } else {
+        // evenly split the tablets estimates between the number of tablets it actually overlaps
+        double sizePerTablet = dataFileValue.getSize() / numOverlapping;
+        double entriesPerTablet = dataFileValue.getNumEntries() / numOverlapping;
 
-      // evenly split the tablets estimates between the number of tablets it actually overlaps
-      double sizePerTablet = dataFileValue.getSize() / numOverlapping;
-      double entriesPerTablet = dataFileValue.getNumEntries() / numOverlapping;
-
-      // add the file to the tablets it overlaps
-      newTablets.keySet().forEach(newTablet -> {
-        if (newTablet.toDataRange().clip(fileRange, true) != null) {
-          DataFileValue ndfv = new DataFileValue((long) sizePerTablet, (long) entriesPerTablet,
-              dataFileValue.getTime());
-          tabletsFiles.get(newTablet).put(file, ndfv);
-        }
-      });
+        // add the file to the tablets it overlaps
+        newTablets.keySet().forEach(newTablet -> {
+          if (overlapPredicate.apply(newTablet.toDataRange())) {
+            DataFileValue ndfv = new DataFileValue((long) sizePerTablet, (long) entriesPerTablet,
+                dataFileValue.getTime());
+            tabletsFiles.get(newTablet).put(file, ndfv);
+          }
+        });
+      }
     });
 
     if (log.isTraceEnabled()) {
       tabletMetadata.getFilesMap().forEach((f, v) -> {
-        log.trace("{} original file {} {} {}", tabletMetadata.getExtent(), f.getFileName(),
-            v.getSize(), v.getNumEntries());
+        log.trace("{} {} original file {} {} {} {}", fateId, tabletMetadata.getExtent(),
+            f.getFileName(), f.getRange(), v.getSize(), v.getNumEntries());
       });
 
       tabletsFiles.forEach((extent, files) -> {
         files.forEach((f, v) -> {
-          log.trace("{} split file {} {} {}", extent, f.getFileName(), v.getSize(),
-              v.getNumEntries());
+          log.trace("{} {} split file {} {} {} {}", fateId, extent, f.getFileName(), f.getRange(),
+              v.getSize(), v.getNumEntries());
         });
       });
     }
@@ -312,6 +328,14 @@ public class UpdateTablets extends ManagerRepo {
       if (tabletMetadata.getUnSplittable() != null) {
         mutator.deleteUnSplittable();
         log.debug("{} deleting unsplittable metadata from {} because of split", fateId, newExtent);
+      }
+
+      var migration = tabletMetadata.getMigration();
+      if (migration != null) {
+        // This is no longer the same tablet, so delete the migration
+        mutator.deleteMigration();
+        log.debug("{} deleting migration {} metadata from {} because of split", fateId, migration,
+            newExtent);
       }
 
       // if the tablet no longer exists (because changed prev end row, then the update was

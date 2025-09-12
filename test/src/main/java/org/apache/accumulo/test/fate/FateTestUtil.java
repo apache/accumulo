@@ -39,7 +39,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
@@ -61,11 +61,11 @@ public class FateTestUtil {
    */
   public static void createFateTable(ClientContext client, String table) throws Exception {
     final var fateTableProps =
-        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+        client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
     TabletAvailability availability;
-    try (var tabletStream = client.tableOperations()
-        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+    try (var tabletStream =
+        client.tableOperations().getTabletInformation(SystemTables.FATE.tableName(), new Range())) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
@@ -93,17 +93,25 @@ public class FateTestUtil {
   }
 
   /**
-   * Returns a config with all FATE operations assigned to a single pool of size numThreads for both
-   * USER and META FATE operations
+   * Returns the config with all FATE operations assigned to a single pool of size "numThreads" for
+   * both USER and META FATE operations. The fate executor is given the name "name"
    */
-  public static ConfigurationCopy createTestFateConfig(int numThreads) {
-    ConfigurationCopy config = new ConfigurationCopy();
+  public static ConfigurationCopy updateFateConfig(ConfigurationCopy config, int numThreads,
+      String name) {
     // this value isn't important, just needs to be set
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
-        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
-        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    config
+        .set(Property.MANAGER_FATE_USER_CONFIG,
+            String
+                .format("{'%s':{'%s': %d}}", name, Fate.FateOperation.getAllUserFateOps().stream()
+                    .map(Enum::name).collect(Collectors.joining(",")), numThreads)
+                .replace("'", "\""));
+    config
+        .set(Property.MANAGER_FATE_META_CONFIG,
+            String
+                .format("{'%s':{'%s': %d}}", name, Fate.FateOperation.getAllMetaFateOps().stream()
+                    .map(Enum::name).collect(Collectors.joining(",")), numThreads)
+                .replace("'", "\""));
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
     return config;
   }

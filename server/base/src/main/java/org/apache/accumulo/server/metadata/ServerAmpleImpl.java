@@ -40,10 +40,10 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
@@ -74,7 +74,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     super(context, tableMapper);
     this.context = context;
     this.scanServerRefStore =
-        new ScanServerRefStoreImpl(context, AccumuloTable.SCAN_REF.tableName());
+        new ScanServerRefStoreImpl(context, SystemTables.SCAN_REF.tableName());
   }
 
   @Override
@@ -92,14 +92,16 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public ConditionalTabletsMutator conditionallyMutateTablets() {
-    return new ConditionalTabletsMutatorImpl(context, getTableMapper());
+    return new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+        context.getSharedMetadataWriter(), context.getSharedUserWriter());
   }
 
   @Override
   public AsyncConditionalTabletsMutator
       conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
     return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
-        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper()));
+        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+            context.getSharedMetadataWriter(), context.getSharedUserWriter()));
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
@@ -129,7 +131,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public void putGcCandidates(TableId tableId, Collection<StoredTabletFile> candidates) {
 
-    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
+    if (SystemTables.ROOT.tableId().equals(tableId)) {
       mutateRootGcCandidates(rgcc -> rgcc.add(candidates.stream()));
       return;
     }
@@ -170,7 +172,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.put(EMPTY_TEXT, EMPTY_TEXT, new Value(fateId.canonical()));
 
-    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+    try (BatchWriter bw = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);
@@ -185,7 +187,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Mutation m = new Mutation(BlipSection.getRowPrefix() + path);
     m.putDelete(EMPTY_TEXT, EMPTY_TEXT);
 
-    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+    try (BatchWriter bw = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       bw.addMutation(m);
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(e);

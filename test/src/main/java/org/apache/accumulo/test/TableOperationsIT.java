@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,6 +40,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -68,10 +74,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -195,6 +202,64 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void testDefendAgainstThreadsCreateSameTableNameConcurrently()
+      throws ExecutionException, InterruptedException {
+    final int initialTableSize = accumuloClient.tableOperations().list().size();
+    final int numTasks = 10;
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+
+    for (String tablename : getUniqueNames(30)) {
+      CountDownLatch startSignal = new CountDownLatch(numTasks);
+      List<Future<Boolean>> futureList = new ArrayList<>(numTasks);
+
+      for (int j = 0; j < numTasks; j++) {
+        Future<Boolean> future = pool.submit(() -> {
+          boolean result;
+          try {
+            startSignal.countDown();
+            startSignal.await();
+            accumuloClient.tableOperations().create(tablename);
+            result = true;
+          } catch (TableExistsException e) {
+            result = false;
+          }
+          return result;
+        });
+        futureList.add(future);
+      }
+
+      int taskSucceeded = 0;
+      int taskFailed = 0;
+      for (Future<Boolean> result : futureList) {
+        if (result.get() == true) {
+          taskSucceeded++;
+        } else {
+          taskFailed++;
+        }
+      }
+
+      assertEquals(1, taskSucceeded);
+      assertEquals(9, taskFailed);
+    }
+
+    assertEquals(30, accumuloClient.tableOperations().list().size() - initialTableSize);
+
+    pool.shutdown();
+  }
+
+  @Test
+  public void createTableWithSystemUser() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    String tableName = getUniqueNames(1)[0];
+    AccumuloClient client = getServerContext();
+    client.tableOperations().create(tableName);
+    Map<String,String> props = client.tableOperations().getConfiguration(tableName);
+    assertEquals(DefaultKeySizeConstraint.class.getName(),
+        props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
+    client.tableOperations().delete(tableName);
   }
 
   @Test
@@ -331,7 +396,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         final Key key = entry.getKey();
         String row = key.getRow().toString();
-        String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+        String cf = key.getColumnFamily().toString();
+        String cq = key.getColumnQualifier().toString();
         String value = entry.getValue().toString();
 
         if (rowCounts.containsKey(row)) {
@@ -436,10 +502,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.METADATA.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.METADATA.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.ROOT.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.ROOT.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
     // test non-existent table
@@ -821,4 +887,156 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     expected.put(new TabletIdImpl(ke), availability);
   }
 
+  @Test
+  public void testUniquenessOfTableId() throws ExecutionException, InterruptedException {
+    List<Future<TableId>> futureList = new ArrayList<>();
+
+    Set<TableId> hash = new HashSet<>();
+
+    ExecutorService pool = Executors.newFixedThreadPool(64);
+
+    for (int i = 0; i < 1000; i++) {
+      int finalI = i;
+
+      Future<TableId> future = pool.submit(() -> {
+        TableId tableId = null;
+
+        tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
+
+        return tableId;
+      });
+
+      futureList.add(future);
+    }
+
+    for (Future<TableId> tab : futureList) {
+      hash.add(tab.get());
+    }
+
+    pool.shutdown();
+
+    assertEquals(1000, hash.size());
+  }
+
+  @Test
+  public void testGetTabletInformation() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 1; i < 9; i++) {
+        splits.add(new Text(i + ""));
+      }
+      accumuloClient.tableOperations().create(tableName,
+          new NewTableConfiguration().withSplits(splits));
+      try (var writer = accumuloClient.createBatchWriter(tableName)) {
+        for (int i = 1; i <= 9; i++) {
+          var m = new Mutation("" + i);
+          m.at().family("f").qualifier("q").put("" + i);
+          writer.addMutation(m);
+        }
+      }
+
+      accumuloClient.tableOperations().flush(tableName, null, null, true);
+
+      var tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.LOCATION)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertNotNull(ti.getLocation());
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals("HOSTED", ti.getTabletState());
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.FILES)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertEquals(1, ti.getNumFiles());
+          assertEquals(1, ti.getEstimatedEntries());
+          assertTrue(ti.getEstimatedSize() > 0);
+          assertEquals(0, ti.getNumWalLogs());
+          assertNotNull(ti.getTabletDir());
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals("HOSTED", ti.getTabletState());
+          assertEquals(1, ti.getNumFiles());
+          assertEquals(1, ti.getEstimatedEntries());
+          assertTrue(ti.getEstimatedSize() > 0);
+          assertEquals(0, ti.getNumWalLogs());
+          assertNotNull(ti.getTabletDir());
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.AVAILABILITY)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertEquals(TabletAvailability.ONDEMAND, ti.getTabletAvailability());
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.MERGEABILITY)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          if (ti.getTabletId().getEndRow() == null) {
+            assertFalse(ti.getTabletMergeabilityInfo().getTabletMergeability().isNever());
+          } else {
+            assertTrue(ti.getTabletMergeabilityInfo().getTabletMergeability().isNever());
+          }
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
 }

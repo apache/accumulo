@@ -53,27 +53,21 @@ class CloneZookeeper extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
-    Utils.getTableNameLock().lock();
-    try {
-      // write tableName & tableId to zookeeper
+    var context = environment.getContext();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
+        cloneInfo.getTableName(), TableOperation.CLONE);
+    environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
+        cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
+        cloneInfo.getPropertiesToExclude());
+    context.clearTableListCache();
 
-      Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.getTableName(),
-          cloneInfo.getNamespaceId(), cloneInfo.getTableId(), TableOperation.CLONE);
-
-      environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
-          cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
-          cloneInfo.getPropertiesToExclude());
-      environment.getContext().clearTableListCache();
-
-      return new CloneMetadata(cloneInfo);
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    return new CloneMetadata(cloneInfo);
   }
 
   @Override
   public void undo(FateId fateId, Manager environment) throws Exception {
-    environment.getTableManager().removeTable(cloneInfo.getTableId());
+    environment.getTableManager().removeTable(cloneInfo.getTableId(), cloneInfo.getNamespaceId());
     if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
       Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ);
     }
