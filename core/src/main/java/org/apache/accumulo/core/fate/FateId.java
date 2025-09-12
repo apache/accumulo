@@ -137,14 +137,12 @@ public class FateId extends AbstractId<FateId> {
    * @return the FateId equivalent of the given TFateId
    */
   public static FateId fromThrift(TFateId tFateId) {
-    FateInstanceType type;
-    String txUUIDStr = tFateId.getTxUUIDStr();
-
-    type = switch (tFateId.getType()) {
+    FateInstanceType type = switch (tFateId.getType()) {
       case USER -> FateInstanceType.USER;
       case META -> FateInstanceType.META;
     };
 
+    String txUUIDStr = tFateId.getTxUUIDStr();
     if (isUUID(txUUIDStr, 0)) {
       return new FateId(PREFIX + type + ":" + txUUIDStr);
     } else {
@@ -157,9 +155,8 @@ public class FateId extends AbstractId<FateId> {
    * @return the TFateId equivalent of the FateId
    */
   public TFateId toThrift() {
-    TFateInstanceType thriftType;
     FateInstanceType type = getType();
-    thriftType = switch (type) {
+    TFateInstanceType thriftType = switch (type) {
       case USER -> TFateInstanceType.USER;
       case META -> TFateInstanceType.META;
     };
