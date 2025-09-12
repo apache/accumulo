@@ -25,8 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -37,13 +35,11 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TableOperations;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -64,8 +60,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
-public class TestCompactIT extends SharedMiniClusterBase {
-  private static final Logger log = LoggerFactory.getLogger(TestCompactIT.class);
+public class SystemTableCompactionIT extends SharedMiniClusterBase {
+  private static final Logger log = LoggerFactory.getLogger(SystemTableCompactionIT.class);
   private static final String SLOW_ITER_NAME = "CustomSlowIter";
   private AccumuloClient client;
   private TableOperations ops;
@@ -74,29 +70,7 @@ public class TestCompactIT extends SharedMiniClusterBase {
   public static class IsolatedCompactorsConfig implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      // define a compaction service for the user table that will create the FATE op
-
-      Map<String,String> siteConfig = cfg.getSiteConfig();
-
-      // Configure a compaction service for the user table
-      siteConfig.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "user.planner",
-          SimpleCompactionDispatcher.class.getName());
-      // Configure a compaction service for system tables
-      siteConfig.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "system.planner",
-          SimpleCompactionDispatcher.class.getName());
-
-      // Configure the dispatcher to map services to resource groups
-      siteConfig.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service.user",
-          "user_compactors");
-      siteConfig.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service.system",
-          "system_compactors");
-
-      // Start two compactors and assign them to the two resource groups at startup
-      siteConfig.put(Property.COMPACTOR_PREFIX.getKey() + "user.group", "user_compactors");
-      siteConfig.put(Property.COMPACTOR_PREFIX.getKey() + "system.group", "system_compactors");
-      // cfg.setSiteConfig(siteConfig);
-
-      cfg.getClusterServerConfiguration().setNumDefaultCompactors(3);
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(2);
     }
   }
 
@@ -119,22 +93,6 @@ public class TestCompactIT extends SharedMiniClusterBase {
   public void beforeEach() throws Exception {
     client = Accumulo.newClient().from(getClientProps()).build();
     ops = client.tableOperations();
-    userTable = getUniqueNames(1)[0];
-    ops.create(userTable);
-
-    // Configure the user table to use the 'user' compaction service
-    // ops.setProperty(userTable, Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-    // SimpleCompactionDispatcher.class.getName());
-    // ops.setProperty(userTable, Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
-    // "user");
-    //
-    // // Configure system tables to use the 'system' compaction service
-    // for (String table : SystemTables.tableNames()) {
-    // ops.setProperty(table, Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-    // SimpleCompactionDispatcher.class.getName());
-    // ops.setProperty(table, Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service",
-    // "system");
-    // }
   }
 
   @AfterEach
@@ -154,11 +112,11 @@ public class TestCompactIT extends SharedMiniClusterBase {
     // METADATA and ROOT tables
     getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
     try {
+      userTable = getUniqueNames(1)[0];
+      ops.create(userTable);
+
       // create some RFiles for the METADATA and ROOT tables by creating some data in the user
       // table, flushing that table, then the METADATA table, then the ROOT table
-
-      client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
-      client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       for (int i = 0; i < 3; i++) {
         try (var bw = client.createBatchWriter(userTable)) {
           var mut = new Mutation("r" + i);
@@ -170,22 +128,17 @@ public class TestCompactIT extends SharedMiniClusterBase {
         ops.flush(SystemTables.ROOT.tableName(), null, null, true);
       }
 
-      // Create a file for the scan ref table
+      // Create a file for the scan ref and Fate tables
       createScanRefTableRow();
       ops.flush(SystemTables.SCAN_REF.tableName(), null, null, true);
-
       createFateTableRow(userTable);
       ops.flush(SystemTables.FATE.tableName(), null, null, true);
-      // ops.delete(userTable);
-
-      // var sdf = List.of(SystemTables.FATE.tableName(),
-      // SystemTables.SCAN_REF.tableName());
 
       for (var sysTable : SystemTables.tableNames()) {
-        List<StoredTabletFile> stfsBeforeCompact = getStoredTabletFiles(client, sysTable);
-        log.info("Before compacting {}: {}", sysTable, stfsBeforeCompact);
+        Set<StoredTabletFile> stfsBeforeCompact =
+            getStoredTabletFiles(getCluster().getServerContext(), client, sysTable);
 
-        log.info("Compacting " + sysTable);
+        log.info("Compacting {} with files: {}", sysTable, stfsBeforeCompact);
         // This compaction will run in the 'system_compactors' group.
         // Set wait to false to avoid blocking on the FATE transaction, which can be slow.
         ops.compact(sysTable, null, null, true, false);
@@ -194,15 +147,14 @@ public class TestCompactIT extends SharedMiniClusterBase {
         // RFiles resulting from a compaction begin with 'A'. Wait until we see an RFile beginning
         // with 'A' that was not present before the compaction.
         Wait.waitFor(() -> {
-          var stfsAfterCompact = getStoredTabletFiles(client, sysTable);
-          log.info("after compacting {} {}", sysTable, stfsAfterCompact);
+          var stfsAfterCompact =
+              getStoredTabletFiles(getCluster().getServerContext(), client, sysTable);
+          log.info("Completed compaction for {} with new files {}", sysTable, stfsAfterCompact);
           String regex = "^A.*\\.rf$";
           var aStfsBeforeCompaction = stfsBeforeCompact.stream()
               .filter(stf -> stf.getFileName().matches(regex)).collect(Collectors.toSet());
-          log.info("A files before compaction: " + aStfsBeforeCompaction);
           var aStfsAfterCompaction = stfsAfterCompact.stream()
               .filter(stf -> stf.getFileName().matches(regex)).collect(Collectors.toSet());
-          log.info("A files after compaction: " + aStfsAfterCompaction);
           return !Sets.difference(aStfsAfterCompaction, aStfsBeforeCompaction).isEmpty();
         }, TimeUnit.SECONDS.toMillis(90), TimeUnit.SECONDS.toMillis(2));
       }
