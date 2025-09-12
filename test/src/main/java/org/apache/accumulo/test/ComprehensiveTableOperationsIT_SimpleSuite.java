@@ -372,11 +372,6 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
   }
 
   @Test
-  public void test_compact() throws Exception {
-    // TODO see issue#5679
-  }
-
-  @Test
   public void test_cancelCompaction() throws Exception {
     // cancelCompaction for user tables is tested in various ITs. One example is TableOperationsIT.
     // Ensure test exists
