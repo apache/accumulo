@@ -92,21 +92,6 @@ public class FunctionalTestUtils {
     }
   }
 
-  public static List<String> getRFilePaths(ServerContext context, AccumuloClient client,
-      String tableName) {
-    return getStoredTabletFiles(context, client, tableName).stream()
-        .map(StoredTabletFile::getMetadataPath).collect(Collectors.toList());
-  }
-
-  public static Set<StoredTabletFile> getStoredTabletFiles(ServerContext context,
-      AccumuloClient client, String tableName) {
-    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-    try (var tabletsMetadata = context.getAmple().readTablets().forTable(tableId).build()) {
-      return tabletsMetadata.stream().flatMap(tm -> tm.getFiles().stream())
-          .collect(Collectors.toSet());
-    }
-  }
-
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
     try (Scanner scanner =
