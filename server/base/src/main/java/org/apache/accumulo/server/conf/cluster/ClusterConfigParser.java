@@ -34,14 +34,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.zookeeper.KeeperException;
 import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.base.Preconditions;
@@ -159,8 +159,12 @@ public class ClusterConfigParser {
       if (!zkGroups.contains(cg)) {
         if (createMissingRG) {
           try {
-            ctx.resourceGroupOperations().create(ResourceGroupId.of(cg));
-          } catch (AccumuloException | AccumuloSecurityException e) {
+            // cant use API as servers may not be up when this is called
+            // from accumulo-cluster
+            final ResourceGroupId rgid = ResourceGroupId.of(cg);
+            final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
+            key.createZNode(ctx.getZooSession().asReaderWriter());
+          } catch (KeeperException | InterruptedException e) {
             throw new IllegalStateException("Error creating resource group: " + cg, e);
           }
         } else {

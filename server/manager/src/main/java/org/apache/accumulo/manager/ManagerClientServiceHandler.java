@@ -473,9 +473,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       Preconditions.checkArgument(resourceGroup != null && !resourceGroup.isBlank(),
           "Supplied resource group name is null or empty");
       final ResourceGroupId rgid = ResourceGroupId.of(resourceGroup);
-      if (rgid.equals(ResourceGroupId.DEFAULT)) {
-        return;
-      }
       final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
       key.createZNode(context.getZooSession().asReaderWriter());
     } catch (KeeperException | InterruptedException e) {
