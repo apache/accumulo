@@ -82,8 +82,12 @@ public class ReserveTablets extends ManagerRepo {
 
       for (var tabletMeta : tablets) {
         if (tabletMeta.getOperationId() == null) {
+          // Require the location to be the same inorder to detect locations set between reading
+          // tablet metadata and setting opid. Should a change to the location happen between then
+          // the conditional mutation will fail, the location will be detected, and this will wait.
           tabletsMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
-              .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
+              .requireSame(tabletMeta, LOCATION, LOGS).putOperation(opid)
+              .submit(tm -> opid.equals(tm.getOperationId()));
           opsSet++;
         } else if (!tabletMeta.getOperationId().equals(opid)) {
           otherOps++;
