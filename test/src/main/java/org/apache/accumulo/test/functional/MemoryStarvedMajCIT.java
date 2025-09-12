@@ -57,8 +57,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryStarvedMajCIT.class);
@@ -145,7 +143,6 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
           == 1, 60_000);
 
       ServerId csi = ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR).iterator().next();
-      HostAndPort compactorAddr = HostAndPort.fromParts(csi.getHost(), csi.getPort());
 
       TableOperations to = client.tableOperations();
       to.create(table);
@@ -164,11 +161,11 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       // Calling getRunningCompaction on the MemoryConsumingCompactor
       // will consume the free memory
-      LOG.info("Calling getRunningCompaction on {}", compactorAddr);
+      LOG.info("Calling getRunningCompaction on {}", csi);
       boolean success = false;
       while (!success) {
         try {
-          ExternalCompactionUtil.getRunningCompaction(compactorAddr, ctx);
+          ExternalCompactionUtil.getRunningCompaction(csi, ctx);
           success = true;
         } catch (Exception e) {
           UtilWaitThread.sleep(3000);
@@ -182,8 +179,8 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       // Calling cancel on the MemoryConsumingCompactor will free
       // the consumed memory
-      LOG.info("Calling cancel on {}", compactorAddr);
-      ExternalCompactionUtil.cancelCompaction(ctx, compactorAddr, "fakeECID");
+      LOG.info("Calling cancel on {}", csi);
+      ExternalCompactionUtil.cancelCompaction(ctx, csi, "fakeECID");
 
       compactionThread.interrupt();
       compactionThread.join();

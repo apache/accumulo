@@ -28,6 +28,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -41,7 +42,7 @@ public class MutationsRejectedException extends AccumuloException {
 
   private final ArrayList<ConstraintViolationSummary> cvsl = new ArrayList<>();
   private final HashMap<TabletId,Set<SecurityErrorCode>> af = new HashMap<>();
-  private final HashSet<String> es = new HashSet<>();
+  private final HashSet<ServerId> es = new HashSet<>();
   private final int unknownErrors;
 
   /**
@@ -56,7 +57,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @since 2.0.0
    */
   public MutationsRejectedException(AccumuloClient client, List<ConstraintViolationSummary> cvsList,
-      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<String> serverSideErrors,
+      Map<TabletId,Set<SecurityErrorCode>> hashMap, Collection<ServerId> serverSideErrors,
       int unknownErrors, Throwable cause) {
     super(
         "constraint violation codes : "
@@ -108,7 +109,7 @@ public class MutationsRejectedException extends AccumuloException {
    * @return A list of servers that had internal errors when mutations were written
    *
    */
-  public Collection<String> getErrorServers() {
+  public Collection<ServerId> getErrorServers() {
     return es;
   }
 

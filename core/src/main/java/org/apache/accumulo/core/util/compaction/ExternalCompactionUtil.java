@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
@@ -103,25 +104,26 @@ public class ExternalCompactionUtil {
    *
    * @return Optional HostAndPort of Coordinator node if found
    */
-  public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
+  public static Optional<ServerId> findCompactionCoordinator(ClientContext context) {
     final ServiceLockPath slp = context.getServerPaths().createManagerPath();
     if (slp == null) {
       return Optional.empty();
     }
     return ServiceLock.getLockData(context.getZooCache(), slp, new ZcStat())
-        .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
+        .map(sld -> sld.getServer(ThriftService.COORDINATOR));
   }
 
   /**
    * @return map of group names to compactor addresses
    */
-  public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
-    final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
+  public static Map<String,Set<ServerId>> getCompactorAddrs(ClientContext context) {
+    final Map<String,Set<ServerId>> groupsAndAddresses = new HashMap<>();
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
           groupsAndAddresses
               .computeIfAbsent(slp.getResourceGroup().canonical(), (k) -> new HashSet<>())
-              .add(HostAndPort.fromString(slp.getServer()));
+              .add(ServerId.compactor(slp.getResourceGroup(),
+                  HostAndPort.fromString(slp.getServer())));
         });
     return groupsAndAddresses;
   }
@@ -133,7 +135,7 @@ public class ExternalCompactionUtil {
    * @return list of active compaction
    * @throws ThriftSecurityException tserver permission error
    */
-  public static List<ActiveCompaction> getActiveCompaction(HostAndPort compactor,
+  public static List<ActiveCompaction> getActiveCompaction(ServerId compactor,
       ClientContext context) throws ThriftSecurityException {
     CompactorService.Client client = null;
     try {
@@ -156,7 +158,7 @@ public class ExternalCompactionUtil {
    * @param context context
    * @return external compaction job or null if none running
    */
-  public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
+  public static TExternalCompactionJob getRunningCompaction(ServerId compactorAddr,
       ClientContext context) {
 
     CompactorService.Client client = null;
@@ -176,7 +178,7 @@ public class ExternalCompactionUtil {
     return null;
   }
 
-  private static ExternalCompactionId getRunningCompactionId(HostAndPort compactorAddr,
+  private static ExternalCompactionId getRunningCompactionId(ServerId compactorAddr,
       ClientContext context) {
     CompactorService.Client client = null;
     try {
@@ -208,9 +210,10 @@ public class ExternalCompactionUtil {
 
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
-          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+          var hp = HostAndPort.fromString(slp.getServer());
+          var sid = ServerId.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort());
           rcFutures.add(new RunningCompactionFuture(slp,
-              executor.submit(() -> getRunningCompaction(hp, context))));
+              executor.submit(() -> getRunningCompaction(sid, context))));
         });
     executor.shutdown();
 
@@ -219,8 +222,8 @@ public class ExternalCompactionUtil {
       try {
         TExternalCompactionJob job = rcf.getFuture().get();
         if (null != job && null != job.getExternalCompactionId()) {
-          var compactorAddress = getHostPortString(rcf.getCompactor());
-          results.add(new RunningCompaction(job, compactorAddress, rcf.getGroup()));
+          results.add(
+              new RunningCompaction(job, ServerId.compactor(rcf.getGroup(), rcf.getCompactor())));
         }
       } catch (InterruptedException | ExecutionException e) {
         throw new IllegalStateException(e);
@@ -237,8 +240,9 @@ public class ExternalCompactionUtil {
 
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
-          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-          futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
+          var hp = HostAndPort.fromString(slp.getServer());
+          var sid = ServerId.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort());
+          futures.add(executor.submit(() -> getRunningCompactionId(sid, context)));
         });
     executor.shutdown();
 
@@ -271,8 +275,7 @@ public class ExternalCompactionUtil {
     return count;
   }
 
-  public static void cancelCompaction(ClientContext context, HostAndPort compactorAddr,
-      String ecid) {
+  public static void cancelCompaction(ClientContext context, ServerId compactorAddr, String ecid) {
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);

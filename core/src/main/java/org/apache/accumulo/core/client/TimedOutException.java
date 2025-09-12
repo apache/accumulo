@@ -23,16 +23,18 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+
 /**
  * @since 1.5.0
  */
 public class TimedOutException extends RuntimeException {
 
-  private final HashSet<String> timedoutServers = new HashSet<>();
+  private final HashSet<ServerId> timedoutServers = new HashSet<>();
 
   private static final long serialVersionUID = 1L;
 
-  private static String shorten(Set<String> set) {
+  private static String shorten(Set<ServerId> set) {
     if (set.size() < 10) {
       return set.toString();
     }
@@ -40,7 +42,7 @@ public class TimedOutException extends RuntimeException {
     return new ArrayList<>(set).subList(0, 10) + " ... " + (set.size() - 10) + " servers not shown";
   }
 
-  public TimedOutException(Set<String> timedoutServers) {
+  public TimedOutException(Set<ServerId> timedoutServers) {
     super("Servers timed out " + shorten(timedoutServers));
     this.timedoutServers.addAll(timedoutServers);
 
@@ -50,7 +52,7 @@ public class TimedOutException extends RuntimeException {
     super(msg);
   }
 
-  public Set<String> getTimedOutSevers() {
+  public Set<ServerId> getTimedOutSevers() {
     return Collections.unmodifiableSet(timedoutServers);
   }
 }

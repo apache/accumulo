@@ -38,7 +38,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
@@ -216,8 +216,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ResourceGroupId.DEFAULT));
+    zl.lock(lw,
+        new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0), ThriftService.TSERV));
 
     lw.waitForChanges(1);
 
@@ -244,8 +244,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ResourceGroupId.DEFAULT));
+    zl.lock(lw,
+        new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0), ThriftService.TSERV));
 
     lw.waitForChanges(1);
 
@@ -272,8 +272,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ResourceGroupId.DEFAULT));
+    zl.lock(lw,
+        new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0), ThriftService.TSERV));
 
     lw.waitForChanges(1);
 
@@ -308,8 +308,8 @@ public class ServiceLockIT {
 
     TestALW lw = new TestALW();
 
-    zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ResourceGroupId.DEFAULT));
+    zl.lock(lw,
+        new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0), ThriftService.TSERV));
 
     lw.waitForChanges(1);
 
@@ -323,8 +323,8 @@ public class ServiceLockIT {
 
     TestALW lw2 = new TestALW();
 
-    zl2.lock(lw2, new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
-        ResourceGroupId.DEFAULT));
+    zl2.lock(lw2,
+        new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test2", 0), ThriftService.TSERV));
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
@@ -334,8 +334,8 @@ public class ServiceLockIT {
 
     TestALW lw3 = new TestALW();
 
-    zl3.lock(lw3, new ServiceLockData(UUID.randomUUID(), "test3", ThriftService.TSERV,
-        ResourceGroupId.DEFAULT));
+    zl3.lock(lw3,
+        new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test3", 0), ThriftService.TSERV));
 
     List<String> children = ServiceLock.validateAndSort(parent, zrw.getChildren(parent.toString()));
 
@@ -387,8 +387,8 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-          ResourceGroupId.DEFAULT));
+      zl.lock(lw, new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0),
+          ThriftService.TSERV));
 
       lw.waitForChanges(1);
 
@@ -427,8 +427,8 @@ public class ServiceLockIT {
       final RetryLockWatcher zlw1 = new RetryLockWatcher();
       ServiceLock zl1 =
           getZooLock(zk1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
-      zl1.lock(zlw1, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-          ResourceGroupId.DEFAULT));
+      zl1.lock(zlw1, new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0),
+          ThriftService.TSERV));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -443,8 +443,8 @@ public class ServiceLockIT {
       final RetryLockWatcher zlw2 = new RetryLockWatcher();
       ServiceLock zl2 =
           getZooLock(zk2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
-      zl2.lock(zlw2, new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
-          ResourceGroupId.DEFAULT));
+      zl2.lock(zlw2, new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0),
+          ThriftService.TSERV));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -528,8 +528,8 @@ public class ServiceLockIT {
         ServiceLock zl = getZooLock(zk, parent, uuid);
         getLockLatch.countDown(); // signal we are done
         getLockLatch.await(); // wait for others to finish
-        zl.lock(lockWatcher, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-            ResourceGroupId.DEFAULT)); // race to the lock
+        zl.lock(lockWatcher, new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0),
+            ThriftService.TSERV)); // race to the lock
         lockCompletedLatch.countDown();
         unlockLatch.await();
         zl.unlock();
@@ -646,8 +646,8 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      boolean ret = zl.tryLock(lw, new ServiceLockData(UUID.randomUUID(), "test1",
-          ThriftService.TSERV, ResourceGroupId.DEFAULT));
+      boolean ret = zl.tryLock(lw, new ServiceLockData(UUID.randomUUID(),
+          ServerId.tserver("test1", 0), ThriftService.TSERV));
 
       assertTrue(ret);
 
@@ -675,14 +675,14 @@ public class ServiceLockIT {
 
       TestALW lw = new TestALW();
 
-      ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-          ResourceGroupId.DEFAULT);
+      ServiceLockData sld1 =
+          new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test1", 0), ThriftService.TSERV);
       zl.lock(lw, sld1);
       assertEquals(Optional.of(sld1),
           ServiceLockData.parse(zk.getData(zl.getLockPath(), null, null)));
 
-      ServiceLockData sld2 = new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
-          ResourceGroupId.DEFAULT);
+      ServiceLockData sld2 =
+          new ServiceLockData(UUID.randomUUID(), ServerId.tserver("test2", 0), ThriftService.TSERV);
       zl.replaceLockData(sld2);
       assertEquals(Optional.of(sld2),
           ServiceLockData.parse(zk.getData(zl.getLockPath(), null, null)));

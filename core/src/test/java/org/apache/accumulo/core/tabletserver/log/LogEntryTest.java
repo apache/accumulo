@@ -28,16 +28,15 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.UUID;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class LogEntryTest {
 
-  private final String validHost = "localhost+9997";
+  private final String validHost = "default+localhost+9997";
   private final UUID validUUID = UUID.randomUUID();
   private final String validPath = "viewfs:/a/accumulo/wal/" + validHost + "/" + validUUID;
 
@@ -64,7 +63,7 @@ public class LogEntryTest {
   private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
     assertEquals(validPath, logEntry.getPath());
-    assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
+    assertEquals(ServerId.fromWalFileName(validHost), logEntry.getTServer());
     assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
     assertEquals(validUUID, logEntry.getUniqueID());
   }
@@ -109,7 +108,8 @@ public class LogEntryTest {
     Stream.of("default:9997", "default+badPort").forEach(badHostAndPort -> {
       var badPath = badHostAndPort + "/" + validUUID;
       var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(badPath));
-      assertTrue(e.getMessage().contains("Expected: host+port. Found '" + badHostAndPort + "'"));
+      assertTrue(
+          e.getMessage().contains("Expected: group+host+port. Found '" + badHostAndPort + "'"));
     });
   }
 

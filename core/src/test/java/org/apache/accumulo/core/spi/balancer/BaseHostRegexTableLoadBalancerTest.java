@@ -203,7 +203,7 @@ public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableL
 
   protected boolean tabletInBounds(TabletId tabletId, TabletServerId tsi) {
     String tid = tabletId.getTable().canonical();
-    String host = tsi.getHost();
+    String host = tsi.getServer().getHost();
     if (tid.equals("1")
         && (host.equals("192.168.0.1") || host.equals("192.168.0.2") || host.equals("192.168.0.3")
             || host.equals("192.168.0.4") || host.equals("192.168.0.5"))) {

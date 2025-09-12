@@ -47,8 +47,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 /**
  * Test that {@link ThriftTransportPool} actually adheres to the cachedConnection argument
  */
@@ -68,8 +66,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       List<ThriftTransportKey> servers =
           client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).stream().map(tsi -> {
-            return new ThriftTransportKey(ThriftClientTypes.CLIENT,
-                HostAndPort.fromParts(tsi.getHost(), tsi.getPort()), rpcTimeout, context);
+            return new ThriftTransportKey(ThriftClientTypes.CLIENT, tsi, rpcTimeout, context);
           }).collect(Collectors.toList());
 
       // only want to use one server for all subsequent test
@@ -119,7 +116,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       pool.returnTransport(sixth);
       pool.returnTransport(seventh);
 
-      Pair<String,TTransport> eigth = pool.getAnyCachedTransport(ttk.getType(), context,
+      Pair<ServerId,TTransport> eigth = pool.getAnyCachedTransport(ttk.getType(), context,
           ThriftService.CLIENT, ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE")));
       assertNull(eigth);
 
@@ -130,7 +127,7 @@ public class TransportCachingIT extends AccumuloClusterHarness {
       ClientContext context, ThriftService service, ResourceGroupPredicate rgp,
       boolean preferCached) {
     if (preferCached) {
-      Pair<String,TTransport> cached =
+      Pair<ServerId,TTransport> cached =
           pool.getAnyCachedTransport(ttk.getType(), context, service, rgp);
       if (cached != null) {
         return cached.getSecond();

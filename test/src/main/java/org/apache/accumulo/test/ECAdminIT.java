@@ -36,6 +36,7 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -52,7 +53,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -117,7 +117,7 @@ public class ECAdminIT extends SharedMiniClusterBase {
       writeData(client, tableName);
       compact(client, tableName, 2, GROUP7, false);
 
-      Optional<HostAndPort> coordinatorHost =
+      Optional<ServerId> coordinatorHost =
           ExternalCompactionUtil.findCompactionCoordinator(getCluster().getServerContext());
 
       // wait for the compaction to start
@@ -140,7 +140,7 @@ public class ECAdminIT extends SharedMiniClusterBase {
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());
         assertEquals(tec.groupName, rcs.getGroup().canonical());
-        assertEquals(tec.getCompactor(), rcs.getAddr());
+        assertEquals(tec.getCompactor(), rcs.getAddr().toHostPortString());
       });
 
       // Confirm JSON output works

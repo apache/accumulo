@@ -144,7 +144,7 @@ public class ChaoticLoadBalancerTest {
     servers.clear();
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      TabletServerId tsi = new TabletServerIdImpl("127.0.0.1", c, cString);
+      TabletServerId tsi = new TabletServerIdImpl("127.0.0.1", 1100 + c, cString);
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsi, fakeTServer);
       fakeTServer.tablets.add(makeTablet(cString, null, null));

@@ -23,8 +23,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 
-import com.google.common.net.HostAndPort;
-
 public class CoordinatorInfo {
 
   // Variable names become JSON keys
@@ -33,8 +31,8 @@ public class CoordinatorInfo {
   public long numQueues;
   public int numCompactors;
 
-  public CoordinatorInfo(Optional<HostAndPort> serverOpt, ExternalCompactionInfo ecInfo) {
-    server = serverOpt.map(HostAndPort::toString).orElse("none");
+  public CoordinatorInfo(Optional<ServerId> serverOpt, ExternalCompactionInfo ecInfo) {
+    server = serverOpt.orElseThrow().toHostPortString();
     Set<ServerId> compactors = ecInfo.getCompactors();
     numQueues = compactors.stream().map(csi -> csi.getResourceGroup()).distinct().count();
     numCompactors = compactors.size();

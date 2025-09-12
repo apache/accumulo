@@ -78,12 +78,13 @@ public abstract class AbstractServer
     server.runServer();
   }
 
+  private final ServerId.Type serverType;
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
   private volatile ServerAddress thriftServer;
-  private final AtomicReference<HostAndPort> advertiseAddress; // used for everything but the Thrift
-                                                               // server (e.g. ZK, metadata, etc).
+  private final AtomicReference<ServerId> advertiseAddress; // used for everything but the Thrift
+                                                            // server (e.g. ZK, metadata, etc).
   private final String bindAddress; // used for the Thrift server
   private final ResourceGroupId resourceGroup;
   private final Logger log;
@@ -99,10 +100,12 @@ public abstract class AbstractServer
   protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
+    this.serverType = serverType;
     log = LoggerFactory.getLogger(getClass());
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
+    this.resourceGroup = ResourceGroupId.of(getResourceGroupPropertyValue(siteConfig));
     final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
     // If new bind parameter passed on command line or in file, then use it.
     if (newBindParameter != null
@@ -117,12 +120,12 @@ public abstract class AbstractServer
       if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
-      advertiseAddress = new AtomicReference<>(advertHP);
+      advertiseAddress =
+          new AtomicReference<>(ServerId.dynamic(serverType, resourceGroup, advertHP));
     } else {
       advertiseAddress = new AtomicReference<>();
     }
     log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
-    this.resourceGroup = ResourceGroupId.of(getResourceGroupPropertyValue(siteConfig));
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig, resourceGroup);
     try {
@@ -310,7 +313,7 @@ public abstract class AbstractServer
     getContext().setMeterRegistry(registry);
   }
 
-  public HostAndPort getAdvertiseAddress() {
+  public ServerId getAdvertiseAddress() {
     return advertiseAddress.get();
   }
 
@@ -330,12 +333,12 @@ public abstract class AbstractServer
     return thriftServer;
   }
 
-  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+  protected void updateAdvertiseAddress(ServerId thriftBindAddress) {
     advertiseAddress.accumulateAndGet(thriftBindAddress, (curr, update) -> {
       if (curr == null) {
         return thriftBindAddress;
-      } else if (!curr.hasPort()) {
-        return HostAndPort.fromParts(curr.getHost(), update.getPort());
+      } else if (curr.getPort() == 0) {
+        return thriftBindAddress;
       } else {
         return curr;
       }
@@ -358,7 +361,8 @@ public abstract class AbstractServer
       log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
           thriftServer.address);
     }
-    updateAdvertiseAddress(thriftServer.address);
+    updateAdvertiseAddress(
+        ServerId.dynamic(this.serverType, this.resourceGroup, thriftServer.address));
   }
 
   public ServerContext getContext() {

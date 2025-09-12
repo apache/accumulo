@@ -84,6 +84,7 @@ import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -2389,7 +2390,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       String[] tokens = line.split("\\s+");
       if (tokens[1].startsWith("loc")) {
         String loc = tokens[3];
-        assertTrue(results.contains(loc));
+        TServerInstance tsi = TServerInstance.deserialize(loc);
+        assertTrue(results.contains(tsi.getServer().toHostPortString()));
       }
       if (tokens[1].startsWith("file")) {
         String[] parts = tokens[1].split("/");

@@ -22,17 +22,17 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.net.HostAndPort;
 
 @VisibleForTesting
 public class ThriftTransportKey {
   private final ThriftClientTypes<?> type;
-  private final HostAndPort server;
+  private final ServerId server;
   private final long timeout;
   private final SslConnectionParams sslParams;
   private final SaslConnectionParams saslParams;
@@ -40,7 +40,7 @@ public class ThriftTransportKey {
   private final int hash;
 
   @VisibleForTesting
-  public ThriftTransportKey(ThriftClientTypes<?> type, HostAndPort server, long timeout,
+  public ThriftTransportKey(ThriftClientTypes<?> type, ServerId server, long timeout,
       ClientContext context) {
     this(type, server, timeout, context.getClientSslParams(), context.getSaslParams());
   }
@@ -48,7 +48,7 @@ public class ThriftTransportKey {
   /**
    * Visible only for testing
    */
-  ThriftTransportKey(ThriftClientTypes<?> type, HostAndPort server, long timeout,
+  ThriftTransportKey(ThriftClientTypes<?> type, ServerId server, long timeout,
       SslConnectionParams sslParams, SaslConnectionParams saslParams) {
     requireNonNull(server, "location is null");
     this.type = type;
@@ -69,7 +69,7 @@ public class ThriftTransportKey {
   }
 
   @VisibleForTesting
-  public HostAndPort getServer() {
+  public ServerId getServer() {
     return server;
   }
 

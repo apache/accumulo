@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.metadata.iterators;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-
 import java.io.IOException;
 import java.util.Map;
 
@@ -30,8 +28,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
-import org.apache.hadoop.io.Text;
 
 public class CurrentLocationNotEqualToIterator extends ColumnFamilyTransformationIterator {
   private static final String TSERVER_INSTANCE_OPTION = "tsi_option";
@@ -51,8 +49,7 @@ public class CurrentLocationNotEqualToIterator extends ColumnFamilyTransformatio
     TServerInstance tsiSeen;
     while (source.hasTop()) {
       Value address = source.getTopValue();
-      Text session = source.getTopKey().getColumnQualifier();
-      tsiSeen = new TServerInstance(address, session);
+      tsiSeen = new TServerInstance(address.toString());
       if (tsiSeen.equals(tsi)) {
         return new Value(EQUAL);
       }
@@ -69,7 +66,7 @@ public class CurrentLocationNotEqualToIterator extends ColumnFamilyTransformatio
   public static Condition createCondition(TServerInstance tsi) {
     IteratorSetting is = new IteratorSetting(ConditionalTabletMutatorImpl.INITIAL_ITERATOR_PRIO,
         CurrentLocationNotEqualToIterator.class);
-    is.addOption(TSERVER_INSTANCE_OPTION, tsi.getHostPortSession());
+    is.addOption(TSERVER_INSTANCE_OPTION, tsi.serialize());
     return new Condition(CurrentLocationColumnFamily.NAME, EMPTY).setValue(NOT_EQUAL)
         .setIterators(is);
   }

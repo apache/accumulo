@@ -21,6 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TabletId;
 
@@ -50,5 +51,5 @@ public interface Locations {
    *
    * @return A tablet server location in the form of {@code <host>:<port>}
    */
-  String getTabletLocation(TabletId tabletId);
+  ServerId getTabletLocation(TabletId tabletId);
 }

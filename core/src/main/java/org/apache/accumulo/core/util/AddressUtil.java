@@ -25,31 +25,9 @@ import java.security.Security;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 public class AddressUtil {
 
   private static final Logger log = LoggerFactory.getLogger(AddressUtil.class);
-
-  public static HostAndPort parseAddress(final String address) throws NumberFormatException {
-    String normalized = normalizePortSeparator(address);
-    HostAndPort hap = HostAndPort.fromString(normalized);
-    if (!hap.hasPort()) {
-      throw new IllegalArgumentException(
-          "Address was expected to contain port. address=" + address);
-    }
-
-    return hap;
-  }
-
-  public static HostAndPort parseAddress(final String address, final int defaultPort) {
-    String normalized = normalizePortSeparator(address);
-    return HostAndPort.fromString(normalized).withDefaultPort(defaultPort);
-  }
-
-  private static String normalizePortSeparator(final String address) {
-    return address.replace('+', ':');
-  }
 
   /**
    * Fetch the security value that determines how long DNS failures are cached. Looks up the

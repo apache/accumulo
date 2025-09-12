@@ -102,7 +102,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // Ensure assignments are correct
     for (Entry<TabletId,TabletServerId> e : assignments.entrySet()) {
       if (!tabletInBounds(e.getKey(), e.getValue())) {
-        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getHost());
+        fail("tablet not in bounds: " + e.getKey() + " -> " + e.getValue().getServer().getHost());
       }
     }
     Set<TabletId> migrations = new HashSet<>();
@@ -128,11 +128,11 @@ public class HostRegexTableLoadBalancerReconfigurationTest
         DataLevel.USER, tables));
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
-      assertTrue(migration.getNewTabletServer().getHost().startsWith("192.168.0.1")
-          || migration.getNewTabletServer().getHost().startsWith("192.168.0.2")
-          || migration.getNewTabletServer().getHost().startsWith("192.168.0.3")
-          || migration.getNewTabletServer().getHost().startsWith("192.168.0.4")
-          || migration.getNewTabletServer().getHost().startsWith("192.168.0.5"));
+      assertTrue(migration.getNewTabletServer().getServer().getHost().startsWith("192.168.0.1")
+          || migration.getNewTabletServer().getServer().getHost().startsWith("192.168.0.2")
+          || migration.getNewTabletServer().getServer().getHost().startsWith("192.168.0.3")
+          || migration.getNewTabletServer().getServer().getHost().startsWith("192.168.0.4")
+          || migration.getNewTabletServer().getServer().getHost().startsWith("192.168.0.5"));
     }
   }
 

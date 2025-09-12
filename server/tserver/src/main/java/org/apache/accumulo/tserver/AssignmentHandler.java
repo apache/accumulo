@@ -101,7 +101,7 @@ class AssignmentHandler implements Runnable {
     try {
       tabletMetadata = server.getContext().getAmple().readTablet(extent);
 
-      canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
+      canLoad = checkTabletMetadata(extent, server.getTServerInstance(), tabletMetadata);
     } catch (Exception e) {
       synchronized (server.openingTablets) {
         server.openingTablets.remove(extent);
@@ -150,7 +150,7 @@ class AssignmentHandler implements Runnable {
       }
 
       Assignment assignment =
-          new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
+          new Assignment(extent, server.getTServerInstance(), tabletMetadata.getLast());
       TabletStateStore.setLocation(server.getContext(), assignment);
 
       // refresh the tablet metadata after setting the location (See #3358)

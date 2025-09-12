@@ -109,7 +109,6 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
 
@@ -381,10 +380,6 @@ public class TabletMetadata {
     private final TServerInstance tServerInstance;
     private final LocationType lt;
 
-    private Location(final String server, final String session, final LocationType lt) {
-      this(new TServerInstance(HostAndPort.fromString(server), session), lt);
-    }
-
     private Location(final TServerInstance tServerInstance, final LocationType lt) {
       this.tServerInstance =
           Objects.requireNonNull(tServerInstance, "tServerInstance must not be null");
@@ -397,26 +392,6 @@ public class TabletMetadata {
 
     public TServerInstance getServerInstance() {
       return tServerInstance;
-    }
-
-    public String getHostPortSession() {
-      return tServerInstance.getHostPortSession();
-    }
-
-    public String getHost() {
-      return tServerInstance.getHost();
-    }
-
-    public String getHostPort() {
-      return tServerInstance.getHostPort();
-    }
-
-    public HostAndPort getHostAndPort() {
-      return tServerInstance.getHostAndPort();
-    }
-
-    public String getSession() {
-      return tServerInstance.getSession();
     }
 
     @Override
@@ -450,24 +425,12 @@ public class TabletMetadata {
       return new Location(instance, LocationType.LAST);
     }
 
-    public static Location last(final String server, final String session) {
-      return last(new TServerInstance(HostAndPort.fromString(server), session));
-    }
-
     public static Location current(TServerInstance instance) {
       return new Location(instance, LocationType.CURRENT);
     }
 
-    public static Location current(final String server, final String session) {
-      return current(new TServerInstance(HostAndPort.fromString(server), session));
-    }
-
     public static Location future(TServerInstance instance) {
       return new Location(instance, LocationType.FUTURE);
-    }
-
-    public static Location future(final String server, final String session) {
-      return future(new TServerInstance(HostAndPort.fromString(server), session));
     }
 
   }
@@ -759,13 +722,13 @@ public class TabletMetadata {
               BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
-          tmBuilder.location(val, qual, LocationType.CURRENT, suppressLocationError);
+          tmBuilder.location(val, LocationType.CURRENT, suppressLocationError);
           break;
         case FutureLocationColumnFamily.STR_NAME:
-          tmBuilder.location(val, qual, LocationType.FUTURE, suppressLocationError);
+          tmBuilder.location(val, LocationType.FUTURE, suppressLocationError);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          tmBuilder.last(Location.last(val, qual));
+          tmBuilder.last(Location.last(TServerInstance.deserialize(val)));
           break;
         case SuspendLocationColumn.STR_NAME:
           tmBuilder.suspend(SuspendingTServer.fromValue(kv.getValue()));
@@ -849,8 +812,8 @@ public class TabletMetadata {
     ZcStat stat = new ZcStat();
     log.trace("Checking server at ZK path: {}", slp);
     return ServiceLock.getLockData(context.getZooCache(), slp, stat)
-        .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
-        .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
+        .map(sld -> sld.getServer(ServiceLockData.ThriftService.TSERV))
+        .map(server -> new TServerInstance(server, stat.getEphemeralOwner()));
   }
 
   public static void validate(TabletMetadata tm) {
@@ -956,15 +919,15 @@ public class TabletMetadata {
       this.migration = tserver;
     }
 
-    void location(String val, String qual, LocationType lt, boolean suppressError) {
+    void location(String val, LocationType lt, boolean suppressError) {
       if (location != null) {
         if (!suppressError) {
           throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
-              + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+              + " endrow: " + endRow + " -- " + location + " " + val);
         }
         futureAndCurrentLocationSet = true;
       }
-      location = new Location(val, qual, lt);
+      location = new Location(TServerInstance.deserialize(val), lt);
     }
 
     void last(Location last) {

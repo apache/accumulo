@@ -242,9 +242,9 @@ public class ZooZap implements KeywordExecutable {
     Optional<ServiceLockData> sld = context.getZooCache().getLockData(path);
     return sld.filter(lockData -> {
       for (var service : ServiceLockData.ThriftService.values()) {
-        var address = lockData.getAddress(service);
+        var address = lockData.getServer(service);
         if (address != null) {
-          return addressSelector.getPredicate().test(address.toString());
+          return addressSelector.getPredicate().test(address.toHostPortString());
         }
       }
 

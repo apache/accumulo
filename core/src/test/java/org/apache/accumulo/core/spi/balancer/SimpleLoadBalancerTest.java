@@ -181,7 +181,7 @@ public class SimpleLoadBalancerTest {
   public void testUnevenAssignment() {
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
-      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, cString);
+      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", 1100 + c, cString);
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsid, fakeTServer);
       fakeTServer.tablets.add(makeTablet(cString, null, null));
@@ -224,7 +224,7 @@ public class SimpleLoadBalancerTest {
   public void testUnevenAssignment2() {
     // make 26 servers
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
-      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, Character.toString(c));
+      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", 1100 + c, Character.toString(c));
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsid, fakeTServer);
     }

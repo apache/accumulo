@@ -94,9 +94,9 @@ public class TableLoadBalancerTest {
     for (int i = 0; i < tableInfo.getTableMap().get(tableId.canonical()).getOnlineTabletCount();
         i++) {
       TabletStats stats = new TabletStats();
-      stats.extent =
-          new KeyExtent(tableId, new Text(tserver.getHost() + String.format("%03d", i + 1)),
-              new Text(tserver.getHost() + String.format("%03d", i))).toThrift();
+      stats.extent = new KeyExtent(tableId,
+          new Text(tserver.getServer().getHost() + String.format("%03d", i + 1)),
+          new Text(tserver.getServer().getHost() + String.format("%03d", i))).toThrift();
       result.add(new TabletStatisticsImpl(stats));
     }
     return result;

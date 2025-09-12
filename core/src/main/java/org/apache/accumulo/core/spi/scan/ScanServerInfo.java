@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 
 /**
  * Information about a scan server.
@@ -28,14 +28,8 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 public interface ScanServerInfo {
 
   /**
-   * @return the address in the form of {@code <host>:<port>} where the scan server is running.
+   * @return the location where the scan server is running.
    */
-  String getAddress();
-
-  /**
-   * @return the group set when the scan server was started. If a group name was not set for the
-   *         scan server, then {@code ResourceGroupId#DEFAULT} is returned.
-   */
-  ResourceGroupId getGroup();
+  ServerId getServer();
 
 }

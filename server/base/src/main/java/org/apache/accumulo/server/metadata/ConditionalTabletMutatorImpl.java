@@ -143,8 +143,8 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     sawOperationRequirement = true;
 
     Function<Location,Pair<byte[],byte[]>> encoder =
-        l -> new Pair<>(location.getSession().getBytes(UTF_8),
-            location.getHostPort().getBytes(UTF_8));
+        l -> new Pair<>(location.getServerInstance().getSession().getBytes(UTF_8),
+            location.getServerInstance().serialize().getBytes(UTF_8));
 
     // The location column family can have multiple column qualifiers set. When requiring a location
     // we want to check the location is set AND that no other location qualifiers are set on the
@@ -394,7 +394,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition condition =
         new Condition(MIGRATION_COLUMN.getColumnFamily(), MIGRATION_COLUMN.getColumnQualifier())
-            .setValue(tserver.getHostPortSession());
+            .setValue(tserver.serialize());
     mutation.addCondition(condition);
     return this;
   }

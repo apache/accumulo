@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tserverOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -35,27 +34,20 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 public class ShutdownTServer extends ManagerRepo {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
-  private final ResourceGroupId resourceGroup;
-  private final HostAndPort hostAndPort;
-  private final String serverSession;
+  private final TServerInstance server;
   private final boolean force;
 
-  public ShutdownTServer(TServerInstance server, ResourceGroupId resourceGroup, boolean force) {
-    this.hostAndPort = server.getHostAndPort();
-    this.resourceGroup = resourceGroup;
-    this.serverSession = server.getSession();
+  public ShutdownTServer(TServerInstance server, boolean force) {
+    this.server = server;
     this.force = force;
   }
 
   @Override
   public long isReady(FateId fateId, Manager manager) {
-    TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
       return 0;
@@ -99,11 +91,11 @@ public class ShutdownTServer extends ManagerRepo {
     // suppress assignment of tablets to the server
     if (force) {
       ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
-      var path =
-          manager.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
+      var path = manager.getContext().getServerPaths().createTabletServerPath(
+          server.getServer().getResourceGroup(), server.getServer().getHostPort());
       ServiceLock.deleteLock(zoo, path);
-      path = manager.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup,
-          hostAndPort);
+      path = manager.getContext().getServerPaths().createDeadTabletServerPath(
+          server.getServer().getResourceGroup(), server.getServer().getHostPort());
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     }

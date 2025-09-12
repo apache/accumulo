@@ -83,7 +83,6 @@ import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 import com.beust.jcommander.internal.Maps;
-import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionTestUtils {
 
@@ -254,7 +253,7 @@ public class ExternalCompactionTestUtils {
   }
 
   public static TExternalCompactionMap getRunningCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws TException {
+      Optional<ServerId> coordinatorHost) throws TException {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
@@ -267,7 +266,7 @@ public class ExternalCompactionTestUtils {
   }
 
   private static TExternalCompactionMap getCompletedCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws Exception {
+      Optional<ServerId> coordinatorHost) throws Exception {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
@@ -327,7 +326,7 @@ public class ExternalCompactionTestUtils {
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
       throws Exception {
     int matches = 0;
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    Optional<ServerId> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
@@ -352,7 +351,7 @@ public class ExternalCompactionTestUtils {
 
   public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
       TCompactionState expectedState) throws Exception {
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+    Optional<ServerId> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
     if (coordinatorHost.isEmpty()) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }

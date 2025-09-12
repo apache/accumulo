@@ -111,9 +111,9 @@ public class WalStateManager {
   // Tablet server exists
   public void initWalMarker(TServerInstance tsi) throws WalMarkerException {
     byte[] data = new byte[0];
-
     try {
-      zoo.putPersistentData(root() + "/" + tsi, data, NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(root() + "/" + tsi.toZooKeeperPathString(), data,
+          NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
@@ -132,8 +132,9 @@ public class WalStateManager {
       if (state == WalState.OPEN) {
         policy = NodeExistsPolicy.FAIL;
       }
-      log.debug("Setting {} to {}", path.getName(), state);
-      zoo.putPersistentData(root() + "/" + tsi + "/" + path.getName(), data, policy);
+      final String hostPath = root() + "/" + tsi.toZooKeeperPathString();
+      log.debug("Setting {} to {} at WAL marker host znode {}", path.getName(), state, hostPath);
+      zoo.putPersistentData(hostPath + "/" + path.getName(), data, policy);
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
@@ -153,7 +154,7 @@ public class WalStateManager {
   public List<Path> getWalsInUse(TServerInstance tsi) throws WalMarkerException {
     List<Path> result = new ArrayList<>();
     try {
-      String zpath = root() + "/" + tsi;
+      final String zpath = root() + "/" + tsi.toZooKeeperPathString();
       zoo.sync(zpath);
       for (String child : zoo.getChildren(zpath)) {
         byte[] zdata = null;
@@ -188,7 +189,7 @@ public class WalStateManager {
     try {
       String path = root();
       for (String child : zoo.getChildren(path)) {
-        TServerInstance inst = new TServerInstance(child);
+        TServerInstance inst = TServerInstance.fromZooKeeperPathString(child);
         List<UUID> logs = result.computeIfAbsent(inst, k -> new ArrayList<>());
 
         // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not
@@ -206,7 +207,7 @@ public class WalStateManager {
   // garbage collector wants to know the state (open/closed) of a log, and the filename to delete
   public Pair<WalState,Path> state(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
-      String path = root() + "/" + instance + "/" + uuid;
+      String path = root() + "/" + instance.toZooKeeperPathString() + "/" + uuid;
       return parse(zoo.getData(path));
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
@@ -230,9 +231,9 @@ public class WalStateManager {
   // garbage collector knows it's safe to remove the marker for a closed log
   public void removeWalMarker(TServerInstance instance, UUID uuid) throws WalMarkerException {
     try {
-      log.debug("Removing {}", uuid);
-      String path = root() + "/" + instance + "/" + uuid;
+      String path = root() + "/" + instance.toZooKeeperPathString() + "/" + uuid;
       zoo.delete(path);
+      log.debug("Removed {}", path);
     } catch (InterruptedException | KeeperException e) {
       throw new WalMarkerException(e);
     }
@@ -240,9 +241,10 @@ public class WalStateManager {
 
   // garbage collector knows the instance is dead, and has no markers
   public void forget(TServerInstance instance) throws WalMarkerException {
-    String path = root() + "/" + instance;
+    String path = root() + "/" + instance.toZooKeeperPathString();
     try {
       zoo.recursiveDelete(path, NodeMissingPolicy.FAIL);
+      log.debug("Removed {} recursively", path);
     } catch (InterruptedException | KeeperException e) {
       throw new WalMarkerException(e);
     }

@@ -31,6 +31,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -52,8 +53,9 @@ import org.junit.jupiter.api.Test;
 
 public class GarbageCollectWriteAheadLogsTest {
 
-  private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
-  private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
+  private final ServerId tserver = ServerId.tserver("localhost", 1234);
+  private final TServerInstance server1 = new TServerInstance(tserver, "SESSION");
+  private final TServerInstance server2 = new TServerInstance(tserver, "OTHERSESS");
   private final UUID id = UUID.randomUUID();
   private final Map<TServerInstance,List<UUID>> markers =
       Collections.singletonMap(server1, Collections.singletonList(id));

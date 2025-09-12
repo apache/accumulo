@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+
 /**
  * This object is used to communicate what previous actions were attempted, when they were
  * attempted, and the result of those attempts
@@ -31,7 +33,7 @@ public interface ScanServerAttempt {
     BUSY, ERROR
   }
 
-  String getServer();
+  ServerId getServer();
 
   ScanServerAttempt.Result getResult();
 

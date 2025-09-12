@@ -52,7 +52,7 @@ public class GcWalsFilter extends TabletMetadataFilter {
   public GcWalsFilter() {}
 
   public GcWalsFilter(Set<TServerInstance> liveTservers) {
-    String lts = liveTservers.stream().map(TServerInstance::toString).peek(tsi -> {
+    String lts = liveTservers.stream().map(TServerInstance::toZooKeeperPathString).peek(tsi -> {
       if (tsi.contains(",")) {
         throw new IllegalArgumentException(tsi);
       }
@@ -70,7 +70,7 @@ public class GcWalsFilter extends TabletMetadataFilter {
       liveTservers = Set.of();
     } else {
       liveTservers = Arrays.stream(options.get(LIVE_TSERVER_OPT).split(","))
-          .map(TServerInstance::new).collect(Collectors.toUnmodifiableSet());
+          .map(TServerInstance::fromZooKeeperPathString).collect(Collectors.toUnmodifiableSet());
     }
 
     filter = tm -> !tm.getLogs().isEmpty()

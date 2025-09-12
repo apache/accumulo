@@ -196,8 +196,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
         } else {
           group = group.substring(tableId.canonical().length() + 1).substring(0, 2);
         }
-        String loc = new TServerInstance(entry.getValue(), entry.getKey().getColumnQualifier())
-            .getHostPortSession();
+        String loc =
+            TServerInstance.deserialize(entry.getValue().toString()).toZooKeeperPathString();
 
         MutableInt count = groupLocationCounts.get(group, loc);
         if (count == null) {

@@ -104,7 +104,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
-import com.google.common.net.HostAndPort;
 
 /**
  * Serve manager statistics with an embedded web server.
@@ -148,7 +147,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final AtomicBoolean fetching = new AtomicBoolean(false);
   private ManagerMonitorInfo mmi;
   private GCStatus gcStatus;
-  private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
+  private volatile Optional<ServerId> coordinatorHost = Optional.empty();
   private final String coordinatorMissingMsg =
       "Error getting the compaction coordinator client. Check that the Manager is running.";
 
@@ -240,8 +239,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
                   "io.getServers returned nothing for Manager, but it's up.");
             }
             ServerId manager = managers.iterator().next();
-            Optional<HostAndPort> nextCoordinatorHost =
-                Optional.of(HostAndPort.fromString(manager.toHostPortString()));
+            Optional<ServerId> nextCoordinatorHost = Optional.of(manager);
             if (coordinatorHost.isEmpty()
                 || !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow())) {
               coordinatorHost = nextCoordinatorHost;
@@ -326,7 +324,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private GCStatus fetchGcStatus() {
     ServerContext context = getContext();
     GCStatus result = null;
-    HostAndPort address = null;
+    ServerId address = null;
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooSession().asReaderWriter();
@@ -334,7 +332,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
-            .map(sld -> sld.getAddress(ThriftService.GC)).orElse(null);
+            .map(sld -> sld.getServer(ThriftService.GC)).orElse(null);
         if (address == null) {
           log.warn("Unable to contact the garbage collector (no address)");
           return null;
@@ -383,7 +381,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       log.debug("Monitor listening on {}:{}", server.getHostName(), livePort);
     }
 
-    HostAndPort advertiseAddress = getAdvertiseAddress();
+    ServerId advertiseAddress = getAdvertiseAddress();
     if (advertiseAddress == null) {
       // use the bind address from the connector, unless it's null or 0.0.0.0
       String advertiseHost = server.getHostName();
@@ -394,11 +392,11 @@ public class Monitor extends AbstractServer implements Connection.Listener {
           throw new RuntimeException("Unable to get hostname for advertise address", e);
         }
       }
-      updateAdvertiseAddress(HostAndPort.fromParts(advertiseHost, livePort));
+      updateAdvertiseAddress(ServerId.monitor(advertiseHost, livePort));
     } else {
-      updateAdvertiseAddress(HostAndPort.fromParts(advertiseAddress.getHost(), livePort));
+      updateAdvertiseAddress(ServerId.monitor(advertiseAddress.getHost(), livePort));
     }
-    HostAndPort monitorHostAndPort = getAdvertiseAddress();
+    ServerId monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
 
     try {
@@ -412,7 +410,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        monitorHostAndPort, getResourceGroup()));
+        monitorHostAndPort.getHostPort(), getResourceGroup()));
 
     // Needed to support the existing zk monitor address format
     if (!rootContext.endsWith("/")) {
@@ -557,13 +555,13 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   // Use Suppliers.memoizeWithExpiration() to cache the results of expensive fetch operations. This
   // avoids unnecessary repeated fetches within the expiration period and ensures that multiple
   // requests around the same time use the same cached data.
-  private final Supplier<Map<HostAndPort,ScanStats>> tserverScansSupplier =
+  private final Supplier<Map<String,ScanStats>> tserverScansSupplier =
       Suppliers.memoizeWithExpiration(this::fetchTServerScans, expirationTimeMinutes, MINUTES);
 
-  private final Supplier<Map<HostAndPort,ScanStats>> sserverScansSupplier =
+  private final Supplier<Map<String,ScanStats>> sserverScansSupplier =
       Suppliers.memoizeWithExpiration(this::fetchSServerScans, expirationTimeMinutes, MINUTES);
 
-  private final Supplier<Map<HostAndPort,CompactionStats>> compactionsSupplier =
+  private final Supplier<Map<ServerId,CompactionStats>> compactionsSupplier =
       Suppliers.memoizeWithExpiration(this::fetchCompactions, expirationTimeMinutes, MINUTES);
 
   private final Supplier<ExternalCompactionInfo> compactorInfoSupplier =
@@ -577,7 +575,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
    * @return active tablet server scans. Values are cached and refresh after
    *         {@link #expirationTimeMinutes}.
    */
-  public Map<HostAndPort,ScanStats> getScans() {
+  public Map<String,ScanStats> getScans() {
     return tserverScansSupplier.get();
   }
 
@@ -585,14 +583,14 @@ public class Monitor extends AbstractServer implements Connection.Listener {
    * @return active scan server scans. Values are cached and refresh after
    *         {@link #expirationTimeMinutes}.
    */
-  public Map<HostAndPort,ScanStats> getScanServerScans() {
+  public Map<String,ScanStats> getScanServerScans() {
     return sserverScansSupplier.get();
   }
 
   /**
    * @return active compactions. Values are cached and refresh after {@link #expirationTimeMinutes}.
    */
-  public Map<HostAndPort,CompactionStats> getCompactions() {
+  public Map<ServerId,CompactionStats> getCompactions() {
     return compactionsSupplier.get();
   }
 
@@ -628,16 +626,15 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     return new RunningCompactorDetails(extCompaction);
   }
 
-  private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {
+  private Map<String,ScanStats> fetchScans(Collection<ServerId> servers) {
     ServerContext context = getContext();
-    Map<HostAndPort,ScanStats> scans = new HashMap<>();
+    Map<String,ScanStats> scans = new HashMap<>();
     for (ServerId server : servers) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
       TabletScanClientService.Client client = null;
       try {
-        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, server, context);
         List<ActiveScan> activeScans = client.getActiveScans(null, context.rpcCreds());
-        scans.put(parsedServer, new ScanStats(activeScans));
+        scans.put(server.toString(), new ScanStats(activeScans));
       } catch (Exception ex) {
         log.error("Failed to get active scans from {}", server, ex);
       } finally {
@@ -647,24 +644,23 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     return Collections.unmodifiableMap(scans);
   }
 
-  private Map<HostAndPort,ScanStats> fetchTServerScans() {
+  private Map<String,ScanStats> fetchTServerScans() {
     return fetchScans(getContext().instanceOperations().getServers(TABLET_SERVER));
   }
 
-  private Map<HostAndPort,ScanStats> fetchSServerScans() {
+  private Map<String,ScanStats> fetchSServerScans() {
     return fetchScans(getContext().instanceOperations().getServers(SCAN_SERVER));
   }
 
-  private Map<HostAndPort,CompactionStats> fetchCompactions() {
+  private Map<ServerId,CompactionStats> fetchCompactions() {
     ServerContext context = getContext();
-    Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
+    Map<ServerId,CompactionStats> allCompactions = new HashMap<>();
     for (ServerId server : context.instanceOperations().getServers(TABLET_SERVER)) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
       Client tserver = null;
       try {
-        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+        tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context);
         var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
-        allCompactions.put(parsedServer, new CompactionStats(compacts));
+        allCompactions.put(server, new CompactionStats(compacts));
       } catch (Exception ex) {
         log.debug("Failed to get active compactions from {}", server, ex);
       } finally {
@@ -725,7 +721,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   /**
    * Get the monitor lock in ZooKeeper
    */
-  private void getMonitorLock(HostAndPort monitorLocation)
+  private void getMonitorLock(ServerId monitorLocation)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
     final var monitorLockPath = context.getServerPaths().createMonitorPath();
@@ -764,9 +760,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
 
     while (true) {
       monitorLock.lock(monitorLockWatcher,
-          new ServiceLockData(zooLockUUID,
-              monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE,
-              this.getResourceGroup()));
+          new ServiceLockData(zooLockUUID, monitorLocation, ThriftService.NONE));
 
       monitorLockWatcher.waitForChange();
 
@@ -836,7 +830,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     return lookupRateTracker.calculateRate();
   }
 
-  public Optional<HostAndPort> getCoordinatorHost() {
+  public Optional<ServerId> getCoordinatorHost() {
     return coordinatorHost;
   }
 

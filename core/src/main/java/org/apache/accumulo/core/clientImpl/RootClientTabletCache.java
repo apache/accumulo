@@ -30,11 +30,13 @@ import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -67,10 +69,12 @@ public class RootClientTabletCache extends ClientTabletCache {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures) {
+      Map<ServerId,TabletServerMutations<T>> binnedMutations, List<T> failures) {
     CachedTablet rootCachedTablet = getRootTabletLocation(context);
     if (rootCachedTablet != null && rootCachedTablet.getTserverLocation().isPresent()) {
-      var tsm = new TabletServerMutations<T>(rootCachedTablet.getTserverSession().orElseThrow());
+      var tsm = new TabletServerMutations<T>(
+          new TServerInstance(rootCachedTablet.getTserverLocation().orElseThrow(),
+              rootCachedTablet.getTserverSession().orElseThrow()));
       for (T mutation : mutations) {
         tsm.addMutation(RootTable.EXTENT, mutation);
       }
@@ -137,11 +141,11 @@ public class RootClientTabletCache extends ClientTabletCache {
           TabletAvailability.HOSTED, false);
     }
 
-    String server = loc.getHostPort();
+    ServerId server = loc.getServerInstance().getServer();
 
-    if (lockChecker.isLockHeld(server, loc.getSession())) {
-      return new CachedTablet(RootTable.EXTENT, server, loc.getSession(), TabletAvailability.HOSTED,
-          false);
+    if (lockChecker.isLockHeld(server, loc.getServerInstance().getSession())) {
+      return new CachedTablet(RootTable.EXTENT, server, loc.getServerInstance().getSession(),
+          TabletAvailability.HOSTED, false);
     } else {
       return new CachedTablet(RootTable.EXTENT, Optional.empty(), Optional.empty(),
           TabletAvailability.HOSTED, false);

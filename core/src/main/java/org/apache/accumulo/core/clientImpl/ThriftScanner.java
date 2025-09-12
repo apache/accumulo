@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -88,7 +89,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -107,7 +107,7 @@ public class ThriftScanner {
   // the restarted client may not see the write unless we wait here.
   // this behavior is very important when the client is reading the
   // metadata
-  public static final Map<TabletType,Set<String>> serversWaitedForWrites =
+  public static final Map<TabletType,Set<ServerId>> serversWaitedForWrites =
       new EnumMap<>(TabletType.class);
 
   static {
@@ -117,7 +117,7 @@ public class ThriftScanner {
   }
 
   public static boolean getBatchFromServer(ClientContext context, Range range, KeyExtent extent,
-      String server, SortedMap<Key,Value> results, SortedSet<Column> fetchedColumns,
+      ServerId server, SortedMap<Key,Value> results, SortedSet<Column> fetchedColumns,
       List<IterInfo> serverSideIteratorList,
       Map<String,Map<String,String>> serverSideIteratorOptions, int size,
       Authorizations authorizations, long batchTimeOut, String classLoaderContext)
@@ -126,11 +126,10 @@ public class ThriftScanner {
       throw new AccumuloException(new IOException());
     }
 
-    final HostAndPort parsedServer = HostAndPort.fromString(server);
     try {
       TInfo tinfo = TraceUtil.traceInfo();
       TabletScanClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, server, context);
       try {
         // not reading whole rows (or stopping on row boundaries) so there is no need to enable
         // isolation below
@@ -183,11 +182,11 @@ public class ThriftScanner {
   }
 
   static class ScanAddress {
-    final String serverAddress;
+    final ServerId serverAddress;
     final ServerType serverType;
     final CachedTablet tabletInfo;
 
-    public ScanAddress(String serverAddress, ServerType serverType, CachedTablet tabletInfo) {
+    public ScanAddress(ServerId serverAddress, ServerType serverType, CachedTablet tabletInfo) {
       this.serverAddress = Objects.requireNonNull(serverAddress);
       this.serverType = Objects.requireNonNull(serverType);
       this.tabletInfo = Objects.requireNonNull(tabletInfo);
@@ -433,7 +432,7 @@ public class ThriftScanner {
 
       Duration delay = null;
 
-      String scanServer = actions.getScanServer(tabletId);
+      ServerId scanServer = actions.getScanServer(tabletId);
       if (scanServer != null) {
         addr = new ScanAddress(scanServer, ServerType.SSERVER, loc);
         delay = actions.getDelay();
@@ -441,10 +440,10 @@ public class ThriftScanner {
         log.trace("For tablet {} scan server selector chose scan_server:{} delay:{} busyTimeout:{}",
             loc.getExtent(), scanServer, delay, scanState.busyTimeout);
       } else {
-        Optional<String> tserverLoc = loc.getTserverLocation();
+        Optional<ServerId> tserverLoc = loc.getTserverLocation();
 
         if (tserverLoc.isPresent()) {
-          addr = new ScanAddress(loc.getTserverLocation().orElseThrow(), ServerType.TSERVER, loc);
+          addr = new ScanAddress(tserverLoc.orElseThrow(), ServerType.TSERVER, loc);
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
           log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
@@ -669,7 +668,7 @@ public class ThriftScanner {
         }
 
         Span child2 = TraceUtil.startSpan(ThriftScanner.class, "scan::location",
-            Map.of("tserver", addr.serverAddress));
+            Map.of("tserver", addr.serverAddress.toHostPortString()));
         try (Scope scanLocation = child2.makeCurrent()) {
           results = scan(addr, scanState, context);
         } catch (AccumuloSecurityException e) {
@@ -854,9 +853,8 @@ public class ThriftScanner {
 
     final TInfo tinfo = TraceUtil.traceInfo();
 
-    final HostAndPort parsedLocation = HostAndPort.fromString(addr.serverAddress);
     TabletScanClientService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, context);
+        ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, addr.serverAddress, context);
 
     String old = Thread.currentThread().getName();
     try {
@@ -988,11 +986,10 @@ public class ThriftScanner {
 
       log.trace("Closing active scan {} {} {}", scanState.prevLoc.serverType,
           scanState.prevLoc.serverAddress, scanState.scanID);
-      HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.serverAddress);
       TabletScanClientService.Client client = null;
       try {
-        client =
-            ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, scanState.context);
+        client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN,
+            scanState.prevLoc.serverAddress, scanState.context);
         client.closeScan(tinfo, scanState.scanID);
       } catch (TException e) {
         // ignore this is a best effort

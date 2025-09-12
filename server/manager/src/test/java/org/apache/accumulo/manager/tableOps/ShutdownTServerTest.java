@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.Repo;
@@ -39,17 +39,15 @@ import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class ShutdownTServerTest {
 
   @Test
   public void testSingleShutdown() throws Exception {
-    HostAndPort hap = HostAndPort.fromParts("localhost", 1234);
-    final TServerInstance tserver = new TServerInstance(hap, "fake");
+    final TServerInstance tserver =
+        new TServerInstance(ServerId.tserver("localhost", 1234), "fake");
     final boolean force = false;
 
-    final ShutdownTServer op = new ShutdownTServer(tserver, ResourceGroupId.DEFAULT, force);
+    final ShutdownTServer op = new ShutdownTServer(tserver, force);
 
     final Manager manager = EasyMock.createMock(Manager.class);
     final FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());

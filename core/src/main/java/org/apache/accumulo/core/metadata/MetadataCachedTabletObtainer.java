@@ -155,7 +155,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
   }
 
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {
-    Text location = null;
+    TServerInstance location = null;
     Text session = null;
     TabletAvailability tabletAvailability = null;
     boolean hostingRequested = false;
@@ -189,7 +189,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         if (location != null) {
           throw new IllegalStateException("Tablet has multiple locations : " + lastRowFromKey);
         }
-        location = new Text(val.toString());
+        location = TServerInstance.deserialize(val.toString());
         session = new Text(colq);
       } else if (TabletColumnFamily.AVAILABILITY_COLUMN.equals(colf, colq)) {
         tabletAvailability = TabletAvailabilityUtil.fromValue(val);
@@ -201,7 +201,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
           tabletAvailability = TabletAvailability.HOSTED;
         }
         if (location != null) {
-          results.add(new CachedTablet(ke, location.toString(), session.toString(),
+          results.add(new CachedTablet(ke, location.getServer(), session.toString(),
               tabletAvailability, hostingRequested));
         } else {
           results.add(new CachedTablet(ke, tabletAvailability, hostingRequested));

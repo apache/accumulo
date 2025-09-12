@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LockMap;
@@ -155,15 +157,15 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   public interface TabletServerLockChecker {
-    boolean isLockHeld(String tserver, String session);
+    boolean isLockHeld(ServerId tserver, String session);
 
     void invalidateCache(String server);
   }
 
   private class LockCheckerSession {
 
-    private final HashSet<Pair<String,String>> okLocks = new HashSet<>();
-    private final HashSet<Pair<String,String>> invalidLocks = new HashSet<>();
+    private final HashSet<Pair<ServerId,String>> okLocks = new HashSet<>();
+    private final HashSet<Pair<ServerId,String>> invalidLocks = new HashSet<>();
 
     private CachedTablet checkLock(CachedTablet tl) {
       // the goal of this class is to minimize calls out to lockChecker under that
@@ -181,7 +183,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
         return tl;
       }
 
-      Pair<String,String> lock =
+      Pair<ServerId,String> lock =
           new Pair<>(tl.getTserverLocation().orElseThrow(), tl.getTserverSession().orElseThrow());
 
       if (okLocks.contains(lock)) {
@@ -222,7 +224,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      Map<ServerId,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
 
@@ -293,7 +295,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private <T extends Mutation> boolean addMutation(
-      Map<String,TabletServerMutations<T>> binnedMutations, T mutation, CachedTablet tl,
+      Map<ServerId,TabletServerMutations<T>> binnedMutations, T mutation, CachedTablet tl,
       LockCheckerSession lcSession) {
 
     if (tl == null || tl.getTserverLocation().isEmpty()) {
@@ -306,7 +308,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       // do lock check once per tserver here to make binning faster
       boolean lockHeld = lcSession.checkLock(tl) != null;
       if (lockHeld) {
-        tsm = new TabletServerMutations<>(tl.getTserverSession().orElseThrow());
+        tsm = new TabletServerMutations<>(new TServerInstance(tl.getTserverLocation().orElseThrow(),
+            tl.getTserverSession().orElseThrow()));
         binnedMutations.put(tl.getTserverLocation().orElseThrow(), tsm);
       } else {
         return false;
@@ -314,7 +317,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     // its possible the same tserver could be listed with different sessions
-    if (tsm.getSession().equals(tl.getTserverSession().orElseThrow())) {
+    if (tsm.getTServerInstance().getSession().equals(tl.getTserverSession().orElseThrow())) {
       tsm.addMutation(tl.getExtent(), mutation);
       return true;
     }
@@ -873,7 +876,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     return lcSession.checkLock(findTabletInCache(row));
   }
 
-  static void addRange(Map<String,Map<KeyExtent,List<Range>>> binnedRanges, CachedTablet ct,
+  static void addRange(Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges, CachedTablet ct,
       Range range) {
     binnedRanges.computeIfAbsent(ct.getTserverLocation().orElseThrow(), k -> new HashMap<>())
         .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(range);

@@ -27,6 +27,7 @@ import java.nio.channels.ClosedByInterruptException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -43,8 +44,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Factory methods for creating Thrift client objects
@@ -98,7 +97,7 @@ public class ThriftUtil {
    * @param context RPC options
    */
   public static <T extends TServiceClient> T getClientNoTimeout(ThriftClientTypes<T> type,
-      HostAndPort address, ClientContext context) throws TTransportException {
+      ServerId address, ClientContext context) throws TTransportException {
     return getClient(type, address, context, 0);
   }
 
@@ -110,8 +109,8 @@ public class ThriftUtil {
    * @param address Server address for client to connect to
    * @param context RPC options
    */
-  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
-      HostAndPort address, ClientContext context) throws TTransportException {
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type, ServerId address,
+      ClientContext context) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(type, address,
         context.getClientTimeoutInMillis(), context, true);
     return createClient(type, transport);
@@ -126,8 +125,8 @@ public class ThriftUtil {
    * @param context RPC options
    * @param timeout Socket timeout which overrides the ClientContext timeout
    */
-  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type,
-      HostAndPort address, ClientContext context, long timeout) throws TTransportException {
+  public static <T extends TServiceClient> T getClient(ThriftClientTypes<T> type, ServerId address,
+      ClientContext context, long timeout) throws TTransportException {
     TTransport transport =
         context.getTransportPool().getTransport(type, address, timeout, context, true);
     return createClient(type, transport);
@@ -159,7 +158,7 @@ public class ThriftUtil {
    * @param address Server address to open the transport to
    * @param context RPC options
    */
-  public static TTransport createTransport(HostAndPort address, ClientContext context)
+  public static TTransport createTransport(ServerId address, ClientContext context)
       throws TException {
     return createClientTransport(address, (int) context.getClientTimeoutInMillis(),
         context.getClientSslParams(), context.getSaslParams());
@@ -194,7 +193,7 @@ public class ThriftUtil {
    * @param saslParams RPC options for SASL servers
    * @return An open TTransport which must be closed when finished
    */
-  public static TTransport createClientTransport(HostAndPort address, int timeout,
+  public static TTransport createClientTransport(ServerId address, int timeout,
       SslConnectionParams sslParams, SaslConnectionParams saslParams) throws TTransportException {
     boolean success = false;
     TTransport transport = null;
@@ -229,7 +228,7 @@ public class ThriftUtil {
 
         // Make sure a timeout is set
         try {
-          transport = TTimeoutTransport.create(address, timeout);
+          transport = TTimeoutTransport.create(address.getHostPort(), timeout);
         } catch (TTransportException e) {
           log.warn("Failed to open transport to {}", address);
           throw e;
@@ -303,7 +302,7 @@ public class ThriftUtil {
           transport.open();
         } else {
           try {
-            transport = TTimeoutTransport.create(address, timeout);
+            transport = TTimeoutTransport.create(address.getHostPort(), timeout);
           } catch (TTransportException ex) {
             log.warn("Failed to open transport to {}", address);
             throw ex;

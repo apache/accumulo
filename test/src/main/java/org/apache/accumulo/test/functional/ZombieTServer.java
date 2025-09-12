@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
@@ -131,8 +132,6 @@ public class ZombieTServer {
         HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, port));
     serverPort.startThriftServer("walking dead");
 
-    String addressString = serverPort.address.toString();
-
     var zLockPath = context.getServerPaths().createTabletServerPath(ResourceGroupId.DEFAULT,
         serverPort.address);
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
@@ -171,8 +170,8 @@ public class ZombieTServer {
       }
     };
 
-    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
-        ResourceGroupId.DEFAULT))) {
+    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(),
+        ServerId.tserver(serverPort.address), ThriftService.TSERV))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

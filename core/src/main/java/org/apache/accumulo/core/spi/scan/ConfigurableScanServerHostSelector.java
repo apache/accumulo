@@ -29,10 +29,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 
 import com.google.common.hash.HashCode;
-import com.google.common.net.HostAndPort;
 
 /**
  * Extension of the {@code ConfigurableScanServerSelector} that can be used when there are multiple
@@ -58,7 +58,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
 
   private static final class PriorHostServers {
     private final String priorHost;
-    private final List<String> priorServers = new ArrayList<>();
+    private final List<ServerId> priorServers = new ArrayList<>();
 
     public PriorHostServers(String priorHost) {
       this.priorHost = priorHost;
@@ -68,14 +68,14 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
       return priorHost;
     }
 
-    public List<String> getPriorServers() {
+    public List<ServerId> getPriorServers() {
       return priorServers;
     }
   }
 
   @Override
   protected int selectServers(SelectorParameters params, Profile profile,
-      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
+      List<ServerId> orderedScanServers, Map<TabletId,ServerId> serversToUse) {
 
     // orderedScanServers is the set of ScanServers addresses (host:port)
     // for the resource group designated for the profile being used for
@@ -83,11 +83,10 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
     // hash the tablet to the hostname, then randomly pick one of the
     // scan servers in that group.
 
-    final Map<String,List<String>> scanServerHosts = new HashMap<>();
-    for (final String address : orderedScanServers) {
-      final HostAndPort hp = HostAndPort.fromString(address);
-      scanServerHosts.computeIfAbsent(hp.getHost(), (k) -> {
-        return new ArrayList<String>();
+    final Map<String,List<ServerId>> scanServerHosts = new HashMap<>();
+    for (final ServerId address : orderedScanServers) {
+      scanServerHosts.computeIfAbsent(address.getHost(), (k) -> {
+        return new ArrayList<ServerId>();
       }).add(address);
     }
     final List<String> hostIndex = new ArrayList<>(scanServerHosts.keySet());
@@ -107,10 +106,9 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
         // scan servers remaining on that host, or has tried them all.
         final Map<String,PriorHostServers> priorServers = new HashMap<>(numberOfPreviousAttempts);
         params.getAttempts(tablet).forEach(ssa -> {
-          final String priorServerAddress = ssa.getServer();
-          final HostAndPort priorHP = HostAndPort.fromString(priorServerAddress);
-          priorServers.computeIfAbsent(priorHP.getHost(), (k) -> {
-            return new PriorHostServers(priorHP.getHost());
+          final ServerId priorServerAddress = ssa.getServer();
+          priorServers.computeIfAbsent(priorServerAddress.getHost(), (k) -> {
+            return new PriorHostServers(priorServerAddress.getHost());
           }).getPriorServers().add(priorServerAddress);
         });
         final List<PriorHostServers> priors = new ArrayList<>(priorServers.values());
@@ -118,7 +116,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
         Collections.sort(priors, new PriorHostServersComparator());
 
         for (PriorHostServers phs : priors) {
-          final Set<String> scanServersOnPriorHost =
+          final Set<ServerId> scanServersOnPriorHost =
               new HashSet<>(scanServerHosts.get(phs.getPriorHost()));
           scanServersOnPriorHost.removeAll(phs.getPriorServers());
           if (scanServersOnPriorHost.size() > 0) {
@@ -144,7 +142,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
               (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServersToUseInAttemptPlan))
                   % hostIndex.size();
           final String hostToUse = hostIndex.get(serverIndex);
-          final List<String> scanServersOnHost = scanServerHosts.get(hostToUse);
+          final List<ServerId> scanServersOnHost = scanServerHosts.get(hostToUse);
           serversToUse.put(tablet, scanServersOnHost.get(0));
         }
       }

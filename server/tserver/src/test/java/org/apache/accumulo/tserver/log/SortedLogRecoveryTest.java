@@ -203,7 +203,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
       for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
         var uuid = UUID.randomUUID();
         String origPath = "file://" + workdir + "/" + entry.getKey() + "/"
-            + VolumeManager.FileType.WAL.getDirectory() + "/localhost+9997/" + uuid;
+            + VolumeManager.FileType.WAL.getDirectory() + "/default+localhost+9997/" + uuid;
         String destPath = "file://" + workdir + "/" + entry.getKey() + "/"
             + VolumeManager.FileType.RECOVERY.getDirectory() + "/" + uuid;
         FileSystem ns = fs.getFileSystemByPath(new Path(destPath));

@@ -365,14 +365,17 @@ public class CollectTabletStats {
       for (var tabletMeta : tabletsMeta) {
         var loc = tabletMeta.getLocation();
         if (loc != null && loc.getType() == TabletMetadata.LocationType.CURRENT) {
-          boolean isLocal = loc.getHost().equals(localaddress.getHostName());
+          boolean isLocal =
+              loc.getServerInstance().getServer().getHost().equals(localaddress.getHostName());
 
           if (selectLocalTablets && isLocal) {
             candidates.add(tabletMeta.getExtent());
-            tabletLocations.put(tabletMeta.getExtent(), loc.getHostPort());
+            tabletLocations.put(tabletMeta.getExtent(),
+                loc.getServerInstance().getServer().getHostPort().toString());
           } else if (!selectLocalTablets && !isLocal) {
             candidates.add(tabletMeta.getExtent());
-            tabletLocations.put(tabletMeta.getExtent(), loc.getHostPort());
+            tabletLocations.put(tabletMeta.getExtent(),
+                loc.getServerInstance().getServer().getHostPort().toString());
           }
         }
       }

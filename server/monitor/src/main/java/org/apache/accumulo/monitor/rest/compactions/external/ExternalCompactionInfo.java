@@ -24,22 +24,20 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 
-import com.google.common.net.HostAndPort;
-
 /**
  * Bag of everything going on with external compactions.
  */
 public class ExternalCompactionInfo {
 
-  private Optional<HostAndPort> coordinatorHost;
+  private Optional<ServerId> coordinatorHost;
   private Set<ServerId> compactors = new HashSet<>();
   private long fetchedTimeMillis;
 
-  public void setCoordinatorHost(Optional<HostAndPort> coordinatorHost) {
+  public void setCoordinatorHost(Optional<ServerId> coordinatorHost) {
     this.coordinatorHost = coordinatorHost;
   }
 
-  public Optional<HostAndPort> getCoordinatorHost() {
+  public Optional<ServerId> getCoordinatorHost() {
     return coordinatorHost;
   }
 

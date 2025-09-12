@@ -859,11 +859,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance = null;
-      Iterator<TServerInstance> find = tLists.destinations
-          .tailMap(new TServerInstance(tm.getSuspend().server, " ")).keySet().iterator();
+      Iterator<TServerInstance> find =
+          tLists.destinations.tailMap(tm.getSuspend().server).keySet().iterator();
       if (find.hasNext()) {
         TServerInstance found = find.next();
-        if (found.getHostAndPort().equals(tm.getSuspend().server)) {
+        if (found.equals(tm.getSuspend().server)) {
           returnInstance = found;
         }
       }
@@ -927,7 +927,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tabletMetadata.getExtent());
       } else {
         for (Map.Entry<Key,Value> entry : locations.entrySet()) {
-          TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
+          TServerInstance alive = TServerInstance.deserialize(entry.getValue().toString());
           Manager.log.debug("Saw duplicate location key:{} value:{} alive:{} ", entry.getKey(),
               entry.getValue(), alive != null);
         }

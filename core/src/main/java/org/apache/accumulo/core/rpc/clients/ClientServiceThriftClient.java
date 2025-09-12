@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
@@ -42,7 +43,7 @@ public class ClientServiceThriftClient extends ThriftClientTypes<Client>
   }
 
   @Override
-  public Pair<String,Client> getThriftServerConnection(ClientContext context,
+  public Pair<ServerId,Client> getThriftServerConnection(ClientContext context,
       boolean preferCachedConnections, ResourceGroupPredicate rgp) throws TTransportException {
     return getThriftServerConnection(LOG, this, context, preferCachedConnections,
         warnedAboutTServersBeingDown, ThriftService.CLIENT, rgp);

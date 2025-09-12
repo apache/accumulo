@@ -20,10 +20,9 @@ package org.apache.accumulo.core.manager.balancer;
 
 import static java.util.Objects.requireNonNull;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * @since 2.1.0
@@ -36,8 +35,12 @@ public class TabletServerIdImpl implements TabletServerId {
   }
 
   public TabletServerIdImpl(String host, int port, String session) {
-    requireNonNull(host);
-    this.tServerInstance = new TServerInstance(HostAndPort.fromParts(host, port), session);
+    this.tServerInstance = new TServerInstance(ServerId.tserver(host, port), session);
+  }
+
+  public TabletServerIdImpl(ServerId server, String session) {
+    requireNonNull(server);
+    this.tServerInstance = new TServerInstance(server, session);
   }
 
   public TabletServerIdImpl(TServerInstance tServerInstance) {
@@ -49,13 +52,8 @@ public class TabletServerIdImpl implements TabletServerId {
   }
 
   @Override
-  public String getHost() {
-    return tServerInstance.getHostAndPort().getHost();
-  }
-
-  @Override
-  public int getPort() {
-    return tServerInstance.getHostAndPort().getPort();
+  public ServerId getServer() {
+    return tServerInstance.getServer();
   }
 
   @Override
@@ -87,7 +85,7 @@ public class TabletServerIdImpl implements TabletServerId {
 
   @Override
   public String toString() {
-    return getHost() + ':' + getPort() + '[' + getSession() + ']';
+    return getServer().getHost() + ':' + getServer().getPort() + '[' + getSession() + ']';
   }
 
   public TServerInstance toThrift() {
@@ -98,9 +96,7 @@ public class TabletServerIdImpl implements TabletServerId {
     if (tabletServerId instanceof TabletServerIdImpl) {
       return ((TabletServerIdImpl) tabletServerId).toThrift();
     } else {
-      return new TServerInstance(
-          HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()),
-          tabletServerId.getSession());
+      return new TServerInstance(tabletServerId.getServer(), tabletServerId.getSession());
     }
   }
 }

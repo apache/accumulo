@@ -147,7 +147,7 @@ public class TablesResource {
     if (SystemTables.ROOT.tableId().equals(tableId)) {
       var rootLoc = monitor.getContext().getAmple().readTablet(RootTable.EXTENT).getLocation();
       if (rootLoc != null && rootLoc.getType() == TabletMetadata.LocationType.CURRENT) {
-        locs.add(rootLoc.getHostPort());
+        locs.add(rootLoc.getServerInstance().getServer().getHostPort().toString());
       }
     } else {
       var level = Ample.DataLevel.of(tableId);
@@ -156,7 +156,7 @@ public class TablesResource {
 
         for (TabletMetadata tm : tablets) {
           try {
-            locs.add(tm.getLocation().getHostPort());
+            locs.add(tm.getLocation().getServerInstance().getServer().getHostPort().toString());
           } catch (Exception ex) {
             return tabletServers;
           }
