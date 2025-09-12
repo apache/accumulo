@@ -44,6 +44,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -171,8 +172,8 @@ public class TServerUtils {
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
-      return TServerUtils.createThriftServer(serverType, timedProcessor, serverName, minThreads,
-          threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
+      return TServerUtils.createThriftServer(serverType, timedProcessor, context.getInstanceID(),
+          serverName, minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
           context.getServerSslParams(), context.getSaslParams(), context.getClientTimeoutInMillis(),
           backlog, portSearch, addresses);
     } catch (TTransportException e) {
@@ -196,10 +197,11 @@ public class TServerUtils {
           }
           try {
             HostAndPort addr = HostAndPort.fromParts(hostname, port);
-            return TServerUtils.createThriftServer(serverType, timedProcessor, serverName,
-                minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
-                context.getServerSslParams(), context.getSaslParams(),
-                context.getClientTimeoutInMillis(), backlog, portSearch, addr);
+            return TServerUtils.createThriftServer(serverType, timedProcessor,
+                context.getInstanceID(), serverName, minThreads, threadTimeOut, config,
+                timeBetweenThreadChecks, maxMessageSize, context.getServerSslParams(),
+                context.getSaslParams(), context.getClientTimeoutInMillis(), backlog, portSearch,
+                addr);
           } catch (TTransportException tte) {
             log.info("Unable to use port {}, retrying.", port);
           }
@@ -565,8 +567,8 @@ public class TServerUtils {
    * {@code ServerAddress#startThriftServer(String)}
    */
   public static ServerAddress createThriftServer(final AccumuloConfiguration conf,
-      ThriftServerType serverType, TProcessor processor, String serverName, int numThreads,
-      long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
+      ThriftServerType serverType, TProcessor processor, InstanceId instanceId, String serverName,
+      int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
       long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, boolean portSearch,
       HostAndPort... addresses) {
@@ -576,9 +578,9 @@ public class TServerUtils {
     }
 
     try {
-      return createThriftServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
-          numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, sslParams,
-          saslParams, serverSocketTimeout, backlog, portSearch, addresses);
+      return createThriftServer(serverType, new TimedProcessor(processor, metricsInfo), instanceId,
+          serverName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
+          sslParams, saslParams, serverSocketTimeout, backlog, portSearch, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }
@@ -592,12 +594,12 @@ public class TServerUtils {
    *         bound to.
    */
   private static ServerAddress createThriftServer(ThriftServerType serverType,
-      TimedProcessor processor, String serverName, int numThreads, long threadTimeOut,
-      final AccumuloConfiguration conf, long timeBetweenThreadChecks, long maxMessageSize,
-      SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
+      TimedProcessor processor, InstanceId instanceId, String serverName, int numThreads,
+      long threadTimeOut, final AccumuloConfiguration conf, long timeBetweenThreadChecks,
+      long maxMessageSize, SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
       long serverSocketTimeout, int backlog, boolean portSearch, HostAndPort... addresses)
       throws TTransportException {
-    TProtocolFactory protocolFactory = ThriftUtil.protocolFactory();
+    TProtocolFactory protocolFactory = ThriftUtil.serverProtocolFactory(instanceId);
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it
     // would require changes in how the transports
     // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's

@@ -449,7 +449,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void ping(String server) throws AccumuloException {
     try (TTransport transport = createTransport(AddressUtil.parseAddress(server), context)) {
-      ClientService.Client client = createClient(ThriftClientTypes.CLIENT, transport);
+      ClientService.Client client =
+          createClient(ThriftClientTypes.CLIENT, transport, context.getInstanceID());
       client.ping(context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
