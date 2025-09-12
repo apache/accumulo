@@ -78,8 +78,7 @@ public class CompactableFileImpl implements CompactableFile {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof CompactableFileImpl) {
-      var ocfi = (CompactableFileImpl) o;
+    if (o instanceof CompactableFileImpl ocfi) {
 
       return storedTabletFile.equals(ocfi.storedTabletFile);
     }

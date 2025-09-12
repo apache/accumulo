@@ -170,11 +170,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   protected void loadFromProperties(String desiredPrefix, Properties properties,
       Map<String,String> configuration) {
     for (Entry<Object,Object> entry : properties.entrySet()) {
-      if (!(entry.getKey() instanceof String)) {
+      if (!(entry.getKey() instanceof String key)) {
         continue;
       }
 
-      String key = (String) entry.getKey();
       if (key.startsWith(desiredPrefix)) {
         configuration.put(key, (String) entry.getValue());
       }
