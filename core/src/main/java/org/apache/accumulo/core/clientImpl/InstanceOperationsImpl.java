@@ -429,8 +429,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         try {
           ret.addAll(future.get());
         } catch (InterruptedException | ExecutionException e) {
-          if (e.getCause() instanceof ThriftSecurityException) {
-            ThriftSecurityException tse = (ThriftSecurityException) e.getCause();
+          if (e.getCause() instanceof ThriftSecurityException tse) {
             throw new AccumuloSecurityException(tse.user, tse.code, e);
           }
           throw new AccumuloException(e);

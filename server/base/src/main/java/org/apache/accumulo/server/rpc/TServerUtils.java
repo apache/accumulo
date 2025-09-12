@@ -401,8 +401,7 @@ public class TServerUtils {
     }
 
     final ServerSocket serverSock = tServerSock.getServerSocket();
-    if (serverSock instanceof SSLServerSocket) {
-      SSLServerSocket sslServerSock = (SSLServerSocket) serverSock;
+    if (serverSock instanceof SSLServerSocket sslServerSock) {
       String[] protocols = params.getServerProtocols();
 
       // Be nice for the user and automatically remove protocols that might not exist in their JVM.

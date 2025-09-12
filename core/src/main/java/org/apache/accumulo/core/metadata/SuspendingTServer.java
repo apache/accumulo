@@ -63,10 +63,9 @@ public class SuspendingTServer implements Serializable {
 
   @Override
   public boolean equals(Object rhsObject) {
-    if (!(rhsObject instanceof SuspendingTServer)) {
+    if (!(rhsObject instanceof SuspendingTServer rhs)) {
       return false;
     }
-    SuspendingTServer rhs = (SuspendingTServer) rhsObject;
     return server.equals(rhs.server) && suspensionTime.equals(rhs.suspensionTime);
   }
 
