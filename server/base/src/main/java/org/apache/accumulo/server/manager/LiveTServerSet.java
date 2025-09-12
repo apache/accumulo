@@ -192,13 +192,10 @@ public class LiveTServerSet implements ZooCacheWatcher {
   static class TServerInfo {
     final TServerConnection connection;
     final TServerInstance instance;
-    final ResourceGroupId resourceGroup;
 
-    TServerInfo(TServerInstance instance, TServerConnection connection,
-        ResourceGroupId resourceGroup) {
+    TServerInfo(TServerInstance instance, TServerConnection connection) {
       this.connection = connection;
       this.instance = instance;
-      this.resourceGroup = resourceGroup;
     }
   }
 
@@ -298,20 +295,16 @@ public class LiveTServerSet implements ZooCacheWatcher {
       log.trace("Lock exists for server: {}, adding to current set", tserverPath.getServer());
       locklessServers.remove(tserverPath);
       ServerId server = sld.orElseThrow().getServer(ServiceLockData.ThriftService.TSERV);
-      ResourceGroupId resourceGroup =
-          sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(server, stat.getEphemeralOwner());
 
       if (info == null) {
         updates.add(instance);
-        TServerInfo tServerInfo =
-            new TServerInfo(instance, new TServerConnection(server), resourceGroup);
+        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(server));
         current.put(tserverPath.getServer(), tServerInfo);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
-        TServerInfo tServerInfo =
-            new TServerInfo(instance, new TServerConnection(server), resourceGroup);
+        TServerInfo tServerInfo = new TServerInfo(instance, new TServerConnection(server));
         current.put(tserverPath.getServer(), tServerInfo);
       }
     }
@@ -386,17 +379,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
     return tServerInfo.connection;
   }
 
-  public synchronized ResourceGroupId getResourceGroup(TServerInstance server) {
-    if (server == null) {
-      return null;
-    }
-    TServerInfo tServerInfo = getSnapshot().tserversInfo.get(server);
-    if (tServerInfo == null) {
-      return null;
-    }
-    return tServerInfo.resourceGroup;
-  }
-
   public static class LiveTServersSnapshot {
     private final Set<TServerInstance> tservers;
     private final Map<ResourceGroupId,Set<TServerInstance>> tserverGroups;
@@ -438,8 +420,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       Map<ResourceGroupId,Set<TServerInstance>> tserversGroups = new HashMap<>();
       current.values().forEach(tServerInfo -> {
         tServerInstances.put(tServerInfo.instance, tServerInfo);
-        tserversGroups.computeIfAbsent(tServerInfo.resourceGroup, rg -> new HashSet<>())
-            .add(tServerInfo.instance);
+        tserversGroups.computeIfAbsent(tServerInfo.instance.getServer().getResourceGroup(),
+            rg -> new HashSet<>()).add(tServerInfo.instance);
       });
       tServersSnapshot = new LiveTServersSnapshot(tServerInstances, tserversGroups);
     }
@@ -460,7 +442,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   static TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
-    var target = TServerInstance.fromHostPortSessionString(tabletServer);
+    var target = TServerInstance.fromZooKeeperPathString(tabletServer);
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
       if (entry.getValue().instance.getServer().getHostPort()
           .equals(target.getServer().getHostPort())) {
@@ -484,7 +466,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.equals(server)) {
         address = Optional.of(HostAndPort.fromString(entry.getKey()));
-        resourceGroup = Optional.of(entry.getValue().resourceGroup);
+        resourceGroup = Optional.of(entry.getValue().instance.getServer().getResourceGroup());
         break;
       }
     }

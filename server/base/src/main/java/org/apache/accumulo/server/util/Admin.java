@@ -785,7 +785,7 @@ public class Admin implements KeywordExecutable {
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context,
             client -> client.shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(),
-                finalServer.toHostPortSessionString(), force),
+                finalServer.toZooKeeperPathString(), force),
             ResourceGroupPredicate.DEFAULT_RG_ONLY);
       }
     }

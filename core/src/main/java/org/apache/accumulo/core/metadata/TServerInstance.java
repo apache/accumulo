@@ -28,6 +28,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.ServerIdInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
@@ -52,17 +53,14 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     return GSON.get().fromJson(json, TServerInstanceInfo.class).getTSI();
   }
 
-  public static TServerInstance fromHostPortSessionString(String formattedString) {
-    int pos = formattedString.indexOf("[");
-    if (pos < 0 || !formattedString.endsWith("]")) {
-      // if no session, then use zero
-      var hostAndPort = HostAndPort.fromString(formattedString);
-      return new TServerInstance(ServerId.tserver(hostAndPort), Long.toHexString(0));
-    } else {
-      var hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
-      var session = formattedString.substring(pos + 1, formattedString.length() - 1);
-      return new TServerInstance(ServerId.tserver(hostAndPort), session);
-    }
+  public static TServerInstance fromZooKeeperPathString(String zkPath) {
+    String parts[] = zkPath.split("\\+");
+    Preconditions.checkArgument(parts.length == 3,
+        "Invalid tserver instance in zk path: " + zkPath);
+    var rgid = ResourceGroupId.of(parts[0]);
+    var hostAndPort = HostAndPort.fromString(parts[1]);
+    var session = parts[2];
+    return new TServerInstance(ServerId.tserver(rgid, hostAndPort), session);
   }
 
   private final ServerId server;
@@ -74,7 +72,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
         "ServerId type must be TABLET_SERVER");
     this.server = address;
     this.session = session;
-    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
+    setZooKeeperPathString();
   }
 
   public TServerInstance(ServerId address, long session) {
@@ -82,14 +80,19 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
         "ServerId type must be TABLET_SERVER");
     this.server = address;
     this.session = Long.toHexString(session);
-    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
+    setZooKeeperPathString();
   }
 
   public TServerInstance(String json) {
     var partial = GSON.get().fromJson(json, TServerInstanceInfo.class).getTSI();
     this.server = partial.server;
     this.session = partial.session;
-    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
+    setZooKeeperPathString();
+  }
+
+  private void setZooKeeperPathString() {
+    this.hostPortSession =
+        server.getResourceGroup().canonical() + "+" + server.getHostPort() + "+" + this.session;
   }
 
   @Override
@@ -117,13 +120,13 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     return false;
   }
 
-  public String toHostPortSessionString() {
+  public String toZooKeeperPathString() {
     return hostPortSession;
   }
 
   @Override
   public String toString() {
-    return toHostPortSessionString();
+    return toZooKeeperPathString();
   }
 
   public String getSession() {
@@ -144,6 +147,6 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
 
   private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
     in.defaultReadObject();
-    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
+    setZooKeeperPathString();
   }
 }

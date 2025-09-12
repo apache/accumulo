@@ -1424,7 +1424,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             lastRow = tablet.getExtent().toMetaRow();
 
             if (loc != null) {
-              serverCounts.increment(loc.getServerInstance().toHostPortSessionString(), 1);
+              serverCounts.increment(loc.getServerInstance().toZooKeeperPathString(), 1);
             }
           }
 

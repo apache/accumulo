@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerInfo;
@@ -40,14 +39,13 @@ public class LiveTServerSetTest {
     TServerConnection mockConn = EasyMock.createMock(TServerConnection.class);
 
     TServerInfo server1 =
-        new TServerInfo(new TServerInstance(ServerId.tserver("localhost", 1234), "5555"), mockConn,
-            ResourceGroupId.DEFAULT);
+        new TServerInfo(new TServerInstance(ServerId.tserver("localhost", 1234), "5555"), mockConn);
     servers.put("server1", server1);
 
-    assertEquals(server1.instance, LiveTServerSet.find(servers, "localhost:1234"));
-    assertNull(LiveTServerSet.find(servers, "localhost:4321"));
-    assertEquals(server1.instance, LiveTServerSet.find(servers, "localhost:1234[5555]"));
-    assertNull(LiveTServerSet.find(servers, "localhost:1234[55755]"));
+    assertEquals(server1.instance, LiveTServerSet.find(servers, "default+localhost:1234+0"));
+    assertNull(LiveTServerSet.find(servers, "default+localhost:4321+0"));
+    assertEquals(server1.instance, LiveTServerSet.find(servers, "default+localhost:1234+5555"));
+    assertNull(LiveTServerSet.find(servers, "default+localhost:1234+55755"));
   }
 
 }

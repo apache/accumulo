@@ -112,9 +112,9 @@ public class TabletManagementTest {
     mutation.at().family(LastLocationColumnFamily.NAME).qualifier("s000")
         .put(new TServerInstance(ServerId.tserver("server2", 8555), "s000").serialize());
 
-    LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    LogEntry le1 = LogEntry.fromPath("default+localhost+8020/" + UUID.randomUUID());
     le1.addToMutation(mutation);
-    LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    LogEntry le2 = LogEntry.fromPath("default+localhost+8020/" + UUID.randomUUID());
     le2.addToMutation(mutation);
 
     StoredTabletFile sf1 =

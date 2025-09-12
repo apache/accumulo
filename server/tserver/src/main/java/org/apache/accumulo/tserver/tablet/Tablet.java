@@ -300,7 +300,7 @@ public class Tablet extends TabletBase {
         if (entriesUsedOnTablet.get() == 0) {
           log.debug("No replayed mutations applied, removing unused walog entries for {}", extent);
 
-          final Location expectedLocation = Location.future(this.tabletServer.getTabletSession());
+          final Location expectedLocation = Location.future(this.tabletServer.getTServerInstance());
           try (ConditionalTabletsMutator mutator =
               getContext().getAmple().conditionallyMutateTablets()) {
             ConditionalTabletMutator mut = mutator.mutateTablet(extent).requireAbsentOperation()
@@ -347,7 +347,7 @@ public class Tablet extends TabletBase {
     computeNumEntries();
 
     getScanfileManager().removeFilesAfterScan(metadata.getScans(),
-        Location.future(tabletServer.getTabletSession()));
+        Location.future(tabletServer.getTServerInstance()));
   }
 
   public TabletMetadata getMetadata() {
@@ -496,7 +496,7 @@ public class Tablet extends TabletBase {
           if (lastTabletMetadata.getFlushId().orElse(-1) < tableFlushID) {
             try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
               var tablet = tabletsMutator.mutateTablet(extent)
-                  .requireLocation(Location.current(tabletServer.getTabletSession()))
+                  .requireLocation(Location.current(tabletServer.getTServerInstance()))
                   .requireSame(lastTabletMetadata, ColumnType.FLUSH_ID);
 
               tablet.putFlushId(tableFlushID);
@@ -507,7 +507,7 @@ public class Tablet extends TabletBase {
 
               if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
                 throw new IllegalStateException("Failed to update flush id " + extent + " "
-                    + tabletServer.getTabletSession() + " " + tableFlushID);
+                    + tabletServer.getTServerInstance() + " " + tableFlushID);
               }
             }
 
@@ -1397,7 +1397,7 @@ public class Tablet extends TabletBase {
     var lastTabletMetadata = getMetadata();
 
     return updateTabletDataFile(getContext().getAmple(), maxCommittedTime, newDatafile, dfv,
-        unusedWalLogs, flushId, mincReason, tabletServer.getTabletSession(), extent,
+        unusedWalLogs, flushId, mincReason, tabletServer.getTServerInstance(), extent,
         lastTabletMetadata, tabletTime, RANDOM.get().nextLong());
   }
 
@@ -1709,7 +1709,7 @@ public class Tablet extends TabletBase {
         Preconditions.checkArgument(tabletMetadata != null);
       }
 
-      if (tabletMetadata.getLocation() == null || !tabletServer.getTabletSession()
+      if (tabletMetadata.getLocation() == null || !tabletServer.getTServerInstance()
           .equals(tabletMetadata.getLocation().getServerInstance())) {
         log.debug("Unable to refresh tablet {} for {} because it has a different location {}",
             extent, refreshPurpose, tabletMetadata.getLocation());
@@ -1776,7 +1776,7 @@ public class Tablet extends TabletBase {
 
     if (refreshPurpose == RefreshPurpose.REFRESH_RPC) {
       scanfileManager.removeFilesAfterScan(getMetadata().getScans(),
-          Location.current(tabletServer.getTabletSession()));
+          Location.current(tabletServer.getTServerInstance()));
     }
 
     return true;

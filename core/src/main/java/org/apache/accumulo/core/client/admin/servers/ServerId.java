@@ -155,9 +155,9 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
 
   public static ServerId fromWalFileName(String name) {
     String parts[] = name.split("\\+");
-    Preconditions.checkArgument(parts.length == 2, "Invalid server id in wal file: " + name);
+    Preconditions.checkArgument(parts.length == 3, "Invalid server id in wal file: " + name);
     // return an uncached tserver object
-    return ServerId.tserver(parts[0], Integer.parseInt(parts[1]));
+    return ServerId.tserver(ResourceGroupId.of(parts[0]), parts[1], Integer.parseInt(parts[2]));
   }
 
   public static final ServerId deserialize(String json) {
@@ -249,7 +249,7 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
   }
 
   public String toWalFileName() {
-    return host + "+" + port;
+    return resourceGroup + "+" + host + "+" + port;
   }
 
   public String toHostPortString() {
