@@ -48,6 +48,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class ServerDirsTest extends WithTestNames {
 
+  String instanceName = "ServerDirsTestInstance";
   AccumuloConfiguration conf;
   Configuration hadoopConf = new Configuration();
   ServerDirs constants;
@@ -133,9 +134,11 @@ public class ServerDirsTest extends WithTestNames {
       accumuloPaths.add(accumuloPath);
 
       if (uuids.get(i) != null) {
-        fs.mkdirs(new Path(accumuloPath + "/" + Constants.INSTANCE_ID_DIR));
-        fs.createNewFile(
-            new Path(accumuloPath + "/" + Constants.INSTANCE_ID_DIR + "/" + uuids.get(i)));
+        fs.mkdirs(new Path(accumuloPath + "/" + Constants.INSTANCE_DIR));
+        fs.createNewFile(new Path(accumuloPath + "/" + Constants.INSTANCE_DIR + "/"
+            + Constants.INSTANCE_ID_PREFIX + uuids.get(i)));
+        fs.createNewFile(new Path(accumuloPath + "/" + Constants.INSTANCE_DIR + "/"
+            + Constants.INSTANCE_NAME_PREFIX + instanceName));
       }
 
       if (dataVersions.get(i) != null) {

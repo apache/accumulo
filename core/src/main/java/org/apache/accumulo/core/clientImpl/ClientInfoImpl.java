@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
@@ -51,6 +52,7 @@ public class ClientInfoImpl implements ClientInfo {
   // suppliers for lazily loading
   private final Supplier<AuthenticationToken> tokenSupplier;
   private final Supplier<Configuration> hadoopConf;
+  private final Supplier<InstanceInfo> instanceInfo;
   private final Supplier<InstanceId> instanceId;
   private final BiFunction<String,String,ZooSession> zooSessionForName;
 
@@ -62,12 +64,18 @@ public class ClientInfoImpl implements ClientInfo {
     this.hadoopConf = memoize(Configuration::new);
     this.zooSessionForName = (name, rootPath) -> new ZooSession(name, getZooKeepers() + rootPath,
         getZooKeepersSessionTimeOut(), null);
+    this.instanceInfo = memoize(() -> new InstanceInfo(getInstanceName(), getInstanceId()));
     this.instanceId = memoize(() -> {
       try (var zk =
           getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceId()", "").get()) {
         return ZooUtil.getInstanceId(zk, getInstanceName());
       }
     });
+  }
+
+  @Override
+  public InstanceInfo getInstanceInfo() {
+    return instanceInfo.get();
   }
 
   @Override

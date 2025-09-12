@@ -53,10 +53,10 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -160,9 +160,8 @@ public class ServerContext extends ClientContext {
   /**
    * Used during initialization to set the instance name and ID.
    */
-  public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
-      InstanceId instanceID) {
-    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID),
+  public static ServerContext initialize(SiteConfiguration siteConfig, InstanceInfo instanceInfo) {
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceInfo),
         ResourceGroupId.DEFAULT);
   }
 

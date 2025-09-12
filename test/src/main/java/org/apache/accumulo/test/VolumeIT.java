@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -39,10 +41,10 @@ import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -112,7 +114,7 @@ public class VolumeIT extends VolumeITBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String[] tableNames = getUniqueNames(2);
 
-      InstanceId uuid = verifyAndShutdownCluster(client, tableNames[0]);
+      InstanceInfo instanceInfo = verifyAndShutdownCluster(client, tableNames[0]);
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(),
           v1 + "," + v2 + "," + v3));
@@ -120,7 +122,7 @@ public class VolumeIT extends VolumeITBase {
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
-      checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
+      checkVolumesInitialized(Arrays.asList(v1, v2, v3), instanceInfo);
 
       // start cluster and verify that new volume is used
       cluster.start();
@@ -130,15 +132,17 @@ public class VolumeIT extends VolumeITBase {
   }
 
   // grab uuid before shutting down cluster
-  private InstanceId verifyAndShutdownCluster(AccumuloClient c, String tableName) throws Exception {
-    InstanceId uuid = c.instanceOperations().getInstanceId();
+  private InstanceInfo verifyAndShutdownCluster(AccumuloClient c, String tableName)
+      throws Exception {
+    var instanceInfo = new InstanceInfo(((ClientContext) c).getInstanceName(),
+        c.instanceOperations().getInstanceId());
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
     assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
     cluster.stop();
 
-    return uuid;
+    return instanceInfo;
   }
 
   @Test
@@ -148,14 +152,14 @@ public class VolumeIT extends VolumeITBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      InstanceId uuid = verifyAndShutdownCluster(client, tableNames[0]);
+      InstanceInfo instanceInfo = verifyAndShutdownCluster(client, tableNames[0]);
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2 + "," + v3));
 
       // initialize volume
       assertEquals(0, cluster.exec(Initialize.class, "--add-volumes").getProcess().waitFor());
 
-      checkVolumesInitialized(Arrays.asList(v1, v2, v3), uuid);
+      checkVolumesInitialized(Arrays.asList(v1, v2, v3), instanceInfo);
 
       // start cluster and verify that new volume is used
       cluster.start();
@@ -169,13 +173,17 @@ public class VolumeIT extends VolumeITBase {
   }
 
   // check that all volumes are initialized
-  private void checkVolumesInitialized(List<Path> volumes, InstanceId uuid) throws Exception {
+  private void checkVolumesInitialized(List<Path> volumes, InstanceInfo instanceInfo)
+      throws Exception {
     for (Path volumePath : volumes) {
       FileSystem fs = volumePath.getFileSystem(cluster.getServerContext().getHadoopConf());
-      Path vp = new Path(volumePath, Constants.INSTANCE_ID_DIR);
-      FileStatus[] iids = fs.listStatus(vp);
-      assertEquals(1, iids.length);
-      assertEquals(uuid.canonical(), iids[0].getPath().getName());
+      Path vp = new Path(volumePath, Constants.INSTANCE_DIR);
+      var list = Stream.of(fs.listStatus(vp)).map(FileStatus::getPath).map(Path::getName)
+          .collect(Collectors.toList());
+      assertEquals(2, list.size());
+      assertTrue(
+          list.contains(Constants.INSTANCE_ID_PREFIX + instanceInfo.getInstanceId().canonical()));
+      assertTrue(list.contains(Constants.INSTANCE_NAME_PREFIX + instanceInfo.getInstanceName()));
     }
   }
 
