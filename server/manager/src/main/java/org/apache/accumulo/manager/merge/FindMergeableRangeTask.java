@@ -178,18 +178,12 @@ public class FindMergeableRangeTask implements Runnable {
         Optional.of(TABLET_MERGEABILITY);
 
     public Optional<UnmergeableReason> optional() {
-      switch (this) {
-        case NOT_CONTIGUOUS:
-          return NOT_CONTIGUOUS_OPT;
-        case MAX_FILE_COUNT:
-          return MAX_FILE_COUNT_OPT;
-        case MAX_TOTAL_SIZE:
-          return MAX_TOTAL_SIZE_OPT;
-        case TABLET_MERGEABILITY:
-          return TABLET_MERGEABILITY_OPT;
-        default:
-          throw new IllegalArgumentException("Unexpected enum type");
-      }
+      return switch (this) {
+        case NOT_CONTIGUOUS -> NOT_CONTIGUOUS_OPT;
+        case MAX_FILE_COUNT -> MAX_FILE_COUNT_OPT;
+        case MAX_TOTAL_SIZE -> MAX_TOTAL_SIZE_OPT;
+        case TABLET_MERGEABILITY -> TABLET_MERGEABILITY_OPT;
+      };
     }
   }
 

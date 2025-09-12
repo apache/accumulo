@@ -79,20 +79,11 @@ public class LowMemoryDetector {
   public boolean isRunningLowOnMemory(ServerContext context, DetectionScope scope,
       Supplier<Boolean> isUserTable, Action action) {
     if (isUserTable.get()) {
-      Property p;
-      switch (scope) {
-        case SCAN:
-          p = Property.GENERAL_LOW_MEM_SCAN_PROTECTION;
-          break;
-        case MINC:
-          p = Property.GENERAL_LOW_MEM_MINC_PROTECTION;
-          break;
-        case MAJC:
-          p = Property.GENERAL_LOW_MEM_MAJC_PROTECTION;
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown scope: " + scope);
-      }
+      Property p = switch (scope) {
+        case SCAN -> Property.GENERAL_LOW_MEM_SCAN_PROTECTION;
+        case MINC -> Property.GENERAL_LOW_MEM_MINC_PROTECTION;
+        case MAJC -> Property.GENERAL_LOW_MEM_MAJC_PROTECTION;
+      };
       boolean isEnabled = context.getConfiguration().getBoolean(p);
       // Only incur the penalty of accessing the volatile variable when enabled for this scope
       if (isEnabled && state.get().runningLowOnMemory) {

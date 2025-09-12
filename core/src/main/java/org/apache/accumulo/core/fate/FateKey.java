@@ -153,28 +153,18 @@ public class FateKey {
 
   private static Optional<KeyExtent> deserializeKeyExtent(FateKeyType type, DataInputBuffer buffer)
       throws IOException {
-    switch (type) {
-      case SPLIT:
-      case MERGE:
-        return Optional.of(KeyExtent.readFrom(buffer));
-      case COMPACTION_COMMIT:
-        return Optional.empty();
-      default:
-        throw new IllegalStateException("Unexpected FateInstanceType found " + type);
-    }
+    return switch (type) {
+      case SPLIT, MERGE -> Optional.of(KeyExtent.readFrom(buffer));
+      case COMPACTION_COMMIT -> Optional.empty();
+    };
   }
 
   private static Optional<ExternalCompactionId> deserializeCompactionId(FateKeyType type,
       DataInputBuffer buffer) throws IOException {
-    switch (type) {
-      case SPLIT:
-      case MERGE:
-        return Optional.empty();
-      case COMPACTION_COMMIT:
-        return Optional.of(ExternalCompactionId.of(buffer.readUTF()));
-      default:
-        throw new IllegalStateException("Unexpected FateInstanceType found " + type);
-    }
+    return switch (type) {
+      case SPLIT, MERGE -> Optional.empty();
+      case COMPACTION_COMMIT -> Optional.of(ExternalCompactionId.of(buffer.readUTF()));
+    };
   }
 
   @Override

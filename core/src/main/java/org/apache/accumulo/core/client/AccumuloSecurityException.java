@@ -30,40 +30,26 @@ public class AccumuloSecurityException extends Exception {
   private static final long serialVersionUID = 1L;
 
   private static String getDefaultErrorMessage(final SecurityErrorCode errorcode) {
-    switch (errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode) {
-      case BAD_CREDENTIALS:
-        return "Username or Password is Invalid";
-      case CONNECTION_ERROR:
-        return "Connection Error Occurred";
-      case PERMISSION_DENIED:
-        return "User does not have permission to perform this action";
-      case USER_DOESNT_EXIST:
-        return "The user does not exist";
-      case USER_EXISTS:
-        return "The user exists";
-      case GRANT_INVALID:
-        return "The GRANT permission cannot be granted or revoked";
-      case BAD_AUTHORIZATIONS:
-        return "The user does not have the specified authorizations assigned";
-      case UNSUPPORTED_OPERATION:
-        return "The configured security handler does not support this operation";
-      case INVALID_TOKEN:
-        return "The configured authenticator does not accept this type of token";
-      case AUTHENTICATOR_FAILED:
-        return "The configured authenticator failed for some reason";
-      case AUTHORIZOR_FAILED:
-        return "The configured authorizor failed for some reason";
-      case PERMISSIONHANDLER_FAILED:
-        return "The configured permission handler failed for some reason";
-      case TOKEN_EXPIRED:
-        return "The supplied token expired, please update and try again";
-      case INSUFFICIENT_PROPERTIES:
-        return "The login properties supplied are not sufficient for authentication. "
+    return switch (errorcode == null ? SecurityErrorCode.DEFAULT_SECURITY_ERROR : errorcode) {
+      case BAD_CREDENTIALS -> "Username or Password is Invalid";
+      case CONNECTION_ERROR -> "Connection Error Occurred";
+      case PERMISSION_DENIED -> "User does not have permission to perform this action";
+      case USER_DOESNT_EXIST -> "The user does not exist";
+      case USER_EXISTS -> "The user exists";
+      case GRANT_INVALID -> "The GRANT permission cannot be granted or revoked";
+      case BAD_AUTHORIZATIONS -> "The user does not have the specified authorizations assigned";
+      case UNSUPPORTED_OPERATION ->
+        "The configured security handler does not support this operation";
+      case INVALID_TOKEN -> "The configured authenticator does not accept this type of token";
+      case AUTHENTICATOR_FAILED -> "The configured authenticator failed for some reason";
+      case AUTHORIZOR_FAILED -> "The configured authorizor failed for some reason";
+      case PERMISSIONHANDLER_FAILED -> "The configured permission handler failed for some reason";
+      case TOKEN_EXPIRED -> "The supplied token expired, please update and try again";
+      case INSUFFICIENT_PROPERTIES ->
+        "The login properties supplied are not sufficient for authentication. "
             + "Please check the requested properties and try again";
-      case DEFAULT_SECURITY_ERROR:
-      default:
-        return "Unknown security exception";
-    }
+      default -> "Unknown security exception";
+    };
   }
 
   private String user;

@@ -222,15 +222,12 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       throw new IllegalStateException(e);
     }
 
-    switch (status) {
-      case REJECTED:
-        return Ample.ConditionalResult.Status.REJECTED;
-      case ACCEPTED:
-        return Ample.ConditionalResult.Status.ACCEPTED;
-      default:
-        throw new IllegalStateException(
-            "Unexpected conditional mutation status : " + extent + " " + status);
-    }
+    return switch (status) {
+      case REJECTED -> Ample.ConditionalResult.Status.REJECTED;
+      case ACCEPTED -> Ample.ConditionalResult.Status.ACCEPTED;
+      default -> throw new IllegalStateException(
+          "Unexpected conditional mutation status : " + extent + " " + status);
+    };
   }
 
   @Override
