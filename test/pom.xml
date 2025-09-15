@@ -30,6 +30,7 @@
   <name>Apache Accumulo Testing</name>
   <description>Tests for Apache Accumulo.</description>
   <properties>
+    <spotbugs.omitVisitors>FindDeadLocalStores,SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
     <timeout.factor>1</timeout.factor>
   </properties>
   <dependencies>
@@ -291,13 +292,6 @@
       </plugins>
     </pluginManagement>
     <plugins>
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <configuration>
-          <omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</omitVisitors>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>

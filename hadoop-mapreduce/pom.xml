@@ -29,6 +29,9 @@
   <artifactId>accumulo-hadoop-mapreduce</artifactId>
   <name>Apache Accumulo Hadoop MapReduce</name>
   <description>Apache Accumulo MapReduce bindings.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -84,13 +87,6 @@
   </dependencies>
   <build>
     <plugins>
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <configuration>
-          <omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</omitVisitors>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>net.revelc.code</groupId>
         <artifactId>apilyzer-maven-plugin</artifactId>

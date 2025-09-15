@@ -30,6 +30,9 @@
   <artifactId>accumulo-monitor</artifactId>
   <name>Apache Accumulo Monitor Server</name>
   <description>A web server for monitoring Apache Accumulo.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -254,13 +257,6 @@
       </plugins>
     </pluginManagement>
     <plugins>
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <configuration>
-          <omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</omitVisitors>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>

@@ -29,6 +29,9 @@
   <artifactId>accumulo-shell</artifactId>
   <name>Apache Accumulo Shell</name>
   <description>An interactive shell for accessing Apache Accumulo via a command line interface.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -113,14 +116,6 @@
     </dependency>
   </dependencies>
   <build>
-    <plugins>
-      <plugin>
-        <groupId>com.github.spotbugs</groupId>
-        <artifactId>spotbugs-maven-plugin</artifactId>
-        <configuration>
-          <omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</omitVisitors>
-        </configuration>
-      </plugin>
-    </plugins>
+    <plugins />
   </build>
 </project>
