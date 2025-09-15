@@ -856,7 +856,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   static TServerInstance findServerIgnoringSession(SortedMap<TServerInstance,?> servers,
       HostAndPort server) {
-    var tail = servers.tailMap(new TServerInstance(server, " ")).keySet().iterator();
+    var tail = servers.tailMap(new TServerInstance(server, 0L)).keySet().iterator();
     if (tail.hasNext()) {
       TServerInstance found = tail.next();
       if (found.getHostAndPort().equals(server)) {

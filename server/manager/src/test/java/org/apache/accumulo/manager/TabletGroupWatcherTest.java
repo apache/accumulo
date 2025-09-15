@@ -35,7 +35,7 @@ public class TabletGroupWatcherTest {
     TreeMap<TServerInstance,String> servers = new TreeMap<>();
 
     servers.put(new TServerInstance("192.168.1.2:9997", 50L), "tserver1");
-    servers.put(new TServerInstance("192.168.1.4:9997", 90L), "tserver1");
+    servers.put(new TServerInstance("192.168.1.4:9997", -90L), "tserver2");
 
     assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.1:9997")));
     assertNull(findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.2:9996")));
@@ -45,7 +45,7 @@ public class TabletGroupWatcherTest {
 
     assertEquals(new TServerInstance("192.168.1.2:9997", 50L),
         findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.2:9997")));
-    assertEquals(new TServerInstance("192.168.1.4:9997", 90L),
+    assertEquals(new TServerInstance("192.168.1.4:9997", -90L),
         findServerIgnoringSession(servers, HostAndPort.fromString("192.168.1.4:9997")));
   }
 }
