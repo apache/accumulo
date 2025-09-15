@@ -35,8 +35,8 @@ public class TabletGroupWatcherTest {
     TreeMap<TServerInstance,String> servers = new TreeMap<>();
 
     servers.put(new TServerInstance("192.168.1.2:9997", 50L), "tserver1");
-    // add an entry where only the session exists. For this case the code does not really care which
-    // one is found, the impl happens to find the first one. This situation could happen
+    // add an entry where only the session differs. For this case the code does not really care
+    // which one is found, the impl happens to find the first one. This situation could happen
     // temporarily, and it should not cause any problems.
     servers.put(new TServerInstance("192.168.1.2:9997", 70L), "tserver2");
     servers.put(new TServerInstance("192.168.1.4:9997", -90L), "tserver3");
