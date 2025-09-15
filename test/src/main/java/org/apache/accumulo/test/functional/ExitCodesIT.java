@@ -34,6 +34,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
@@ -232,6 +233,8 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     // Start MiniCluster so that getCluster() does not
     // return null,
     SharedMiniClusterBase.startMiniCluster();
+    // Create the resource group or the worker processes will fail
+    getCluster().getServerContext().resourceGroupOperations().create(ResourceGroupId.of("TEST"));
     getCluster().getClusterControl().stop(ServerType.GARBAGE_COLLECTOR);
   }
 

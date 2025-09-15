@@ -127,10 +127,9 @@ public class KerberosToken implements AuthenticationToken {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof KerberosToken)) {
+    if (!(obj instanceof KerberosToken other)) {
       return false;
     }
-    KerberosToken other = (KerberosToken) obj;
 
     return principal.equals(other.principal);
   }

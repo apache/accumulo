@@ -106,7 +106,8 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
 
       Wait.waitFor(() -> !getLocksInfo().heldLocks.isEmpty());
       var lockInfo = getLocksInfo();
-      assertEquals(lockInfo.heldLocks.keySet(), lockInfo.findId(LockRange.of(null, "b5")));
+      // For compactions the range (null, b5] will be widened to the table range (null,c]
+      assertEquals(lockInfo.heldLocks.keySet(), lockInfo.findId(LockRange.of(null, "c")));
 
       // this bulk will overlap the compaction range, but should not get stuck because both are read
       // locks
@@ -171,7 +172,7 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
 
       // remove the fate op that only has a lock on the namespace
       lockInfo.heldLocks.values().removeIf(idList -> idList.equals(List.of("R:+default")));
-      assertEquals(lockInfo.heldLocks.keySet(), lockInfo.findId(LockRange.of(null, "b5")));
+      assertEquals(lockInfo.heldLocks.keySet(), lockInfo.findId(LockRange.of(null, "c")));
       assertEquals(lockInfo.waitingLocks.keySet(),
           lockInfo.findId(LockRange.of("b", "d"), LockRange.of(null, "d"), LockRange.infinite()));
 
@@ -219,7 +220,8 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
     var names = getUniqueNames(2);
     var table1 = names[0];
     var table2 = names[1];
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        ClientContext ctx = ((ClientContext) client)) {
       SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
       for (char c = 'b'; c < 'y'; c++) {
         splits.put(new Text(c + ""), TabletMergeability.never());
@@ -227,7 +229,6 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
       client.tableOperations().create(table1, new NewTableConfiguration().withSplits(splits));
       client.tableOperations().create(table2);
 
-      ClientContext ctx = ((ClientContext) client);
       Ample ample = ctx.getAmple();
 
       TableId tableId1 = ctx.getTableId(table1);

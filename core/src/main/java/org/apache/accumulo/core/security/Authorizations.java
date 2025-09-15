@@ -331,8 +331,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       return false;
     }
 
-    if (o instanceof Authorizations) {
-      Authorizations ao = (Authorizations) o;
+    if (o instanceof Authorizations ao) {
 
       return auths.equals(ao.auths);
     }

@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -484,44 +485,66 @@ public enum PropertyType {
 
     @Override
     public boolean test(String s) {
-      final Set<Fate.FateOperation> seenFateOps;
+      final Set<Fate.FateOperation> seenFateOps = new HashSet<>();
+      final int maxPoolNameLen = 64;
 
       try {
         final var json = JsonParser.parseString(s).getAsJsonObject();
-        seenFateOps = new HashSet<>();
 
         for (var entry : json.entrySet()) {
-          var key = entry.getKey();
-          var val = entry.getValue().getAsInt();
-          if (val <= 0) {
+          var poolName = entry.getKey();
+
+          if (poolName.length() > maxPoolNameLen) {
             log.warn(
-                "Invalid entry {} in {}. Must be a valid thread pool size. Property was unchanged.",
-                entry, name);
+                "Unexpected property value {} for {}. Configured name {} is too long (> {} characters). Property was unchanged",
+                s, name, poolName, maxPoolNameLen);
             return false;
           }
-          var fateOpsStrArr = key.split(",");
+
+          var poolConfigSet = entry.getValue().getAsJsonObject().entrySet();
+          if (poolConfigSet.size() != 1) {
+            log.warn(
+                "Unexpected property value {} for {}. Expected one entry for {} but saw {}. Property was unchanged",
+                s, name, poolName, poolConfigSet.size());
+            return false;
+          }
+
+          var poolConfig = poolConfigSet.iterator().next();
+
+          var poolSize = poolConfig.getValue().getAsInt();
+          if (poolSize <= 0) {
+            log.warn(
+                "Unexpected property value {} for {}. Must be a valid thread pool size (>0), saw {}. Property was unchanged",
+                s, name, poolSize);
+            return false;
+          }
+
+          var fateOpsStrArr = poolConfig.getKey().split(",");
           for (String fateOpStr : fateOpsStrArr) {
             Fate.FateOperation fateOp = Fate.FateOperation.valueOf(fateOpStr);
-            if (seenFateOps.contains(fateOp)) {
-              log.warn("Duplicate fate operation {} seen in {}. Property was unchanged.", fateOp,
-                  name);
+            if (!seenFateOps.add(fateOp)) {
+              log.warn(
+                  "Unexpected property value {} for {}. Duplicate fate operation {} seen. Property was unchanged",
+                  s, name, fateOp);
               return false;
             }
-            seenFateOps.add(fateOp);
           }
         }
       } catch (Exception e) {
-        log.warn("Exception from attempting to set {}. Property was unchanged.", name, e);
+        log.warn("Unexpected property value {} for {}. Exception occurred. Property was unchanged",
+            s, name, e);
         return false;
       }
 
-      var allFateOpsSeen = allFateOps.equals(seenFateOps);
-      if (!allFateOpsSeen) {
+      if (!allFateOps.equals(seenFateOps)) {
         log.warn(
-            "Not all fate operations found in {}. Expected to see {} but saw {}. Property was unchanged.",
-            name, allFateOps, seenFateOps);
+            "Unexpected property value {} for {}. Not all fate operations found. Expected to see {} but saw {}. Property was unchanged",
+            s, name, allFateOps.stream().sorted().collect(Collectors.toList()),
+            seenFateOps.stream().sorted().collect(Collectors.toList()));
+        return false;
       }
-      return allFateOpsSeen;
+
+      return true;
     }
   }
 

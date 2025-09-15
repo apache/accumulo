@@ -49,6 +49,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -539,14 +540,20 @@ public class CryptoTest {
 
     var executor = Executors.newCachedThreadPool();
 
-    List<Future<Boolean>> verifyFutures = new ArrayList<>();
+    final int numTasks = 32;
+    List<Future<Boolean>> verifyFutures = new ArrayList<>(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
 
     FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
 
     // verify that each input stream returned by decrypter.decryptStream() is independent when used
     // by multiple threads
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < numTasks; i++) {
       var future = executor.submit(() -> {
+        startLatch.countDown();
+        startLatch.await();
         try (ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
             DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in))) {
           byte[] dataRead = new byte[plainText.length];
@@ -556,6 +563,7 @@ public class CryptoTest {
       });
       verifyFutures.add(future);
     }
+    assertEquals(numTasks, verifyFutures.size());
 
     for (var future : verifyFutures) {
       assertTrue(future.get());

@@ -95,8 +95,7 @@ public class DataFileValue {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof DataFileValue) {
-      DataFileValue odfv = (DataFileValue) o;
+    if (o instanceof DataFileValue odfv) {
 
       return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time;
     }

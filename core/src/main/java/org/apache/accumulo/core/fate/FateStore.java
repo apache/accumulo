@@ -231,8 +231,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
       if (obj == this) {
         return true;
       }
-      if (obj instanceof FateReservation) {
-        FateReservation other = (FateReservation) obj;
+      if (obj instanceof FateReservation other) {
         return Arrays.equals(this.getSerialized(), other.getSerialized());
       }
       return false;

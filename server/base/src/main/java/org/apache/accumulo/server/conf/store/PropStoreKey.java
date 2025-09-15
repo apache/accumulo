@@ -20,12 +20,14 @@ package org.apache.accumulo.server.conf.store;
 
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
+import static org.apache.accumulo.core.Constants.ZRESOURCEGROUPS;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import java.util.Comparator;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -52,6 +54,7 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
   // remove starting slash from constant.
   public static final String TABLES_NODE_NAME = ZTABLES.substring(1);
   public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
+  public static final String RG_NODE_NAME = ZRESOURCEGROUPS.substring(1);
   // expected token length for table and namespace config
   public static final int EXPECTED_CONFIG_LEN = 4;
   // expected token length for sys config
@@ -74,6 +77,7 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
    * @return the prop cache id
    */
   public static @Nullable PropStoreKey fromPath(final String path) {
+    // Note that tokens[0] is empty
     String[] tokens = path.split("/");
 
     if (tokens.length != EXPECTED_CONFIG_LEN && tokens.length != EXPECTED_SYS_CONFIG_LEN) {
@@ -90,6 +94,11 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
     if (tokens.length == EXPECTED_CONFIG_LEN
         && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
       return NamespacePropKey.of(NamespaceId.of(tokens[ID_TOKEN_POSITION]));
+    }
+
+    if (tokens.length == EXPECTED_CONFIG_LEN && tokens[TYPE_TOKEN_POSITION].equals(RG_NODE_NAME)
+        && nodeName.equals(ZCONFIG)) {
+      return ResourceGroupPropKey.of(ResourceGroupId.of(tokens[ID_TOKEN_POSITION]));
     }
 
     if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {

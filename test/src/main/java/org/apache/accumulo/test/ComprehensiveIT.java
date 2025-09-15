@@ -19,8 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.apache.accumulo.harness.SharedMiniClusterBase.getClientProps;
-import static org.apache.accumulo.test.ComprehensiveITBase.AUTHORIZATIONS;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;

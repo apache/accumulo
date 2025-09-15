@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -75,6 +76,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -133,7 +135,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(
-      commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  When no port is specified uses ports from tserver.port.client property.")
+      commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  Hostnames only are no longer supported; you must use <host:port>. To Stop all services on a host, use 'accumulo admin serviceStatus' to list all hosts and then pass them to this command.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop immediately by removing its lock.  Does not wait for any task the server is currently working.")
@@ -272,6 +274,9 @@ public class Admin implements KeywordExecutable {
     String directory = null;
     @Parameter(names = {"-s", "--system"}, description = "print the system configuration")
     boolean systemConfiguration = false;
+    @Parameter(names = {"-rg", "--resourceGroups"},
+        description = "print the resource group configuration")
+    boolean resourceGroupConfiguration = false;
     @Parameter(names = {"-n", "--namespaces"}, description = "print the namespace configuration")
     boolean namespaceConfiguration = false;
     @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
@@ -654,7 +659,8 @@ public class Admin implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo),
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
   }
 
   private static void stopServers(final ServerContext context, List<String> servers,
@@ -673,6 +679,9 @@ public class Admin implements KeywordExecutable {
 
     if (!hostOnly.isEmpty()) {
       // The old impl of this command with the old behavior
+      log.warn("Stopping by hostname is no longer supported\n\n"
+          + "please use <host:port> instead.\n"
+          + "To stop all services on host, run 'accumulo admin serviceStatus' to list all host:port values and filter for that host and pass those to 'accumulo admin stop'");
       stopTabletServer(context, hostOnly, force);
     }
 
@@ -684,10 +693,12 @@ public class Admin implements KeywordExecutable {
 
         AddressSelector addresses = AddressSelector.matching(hostAndPort::contains);
         List<ServiceLockPath> pathsToRemove = new ArrayList<>();
-        pathsToRemove.addAll(context.getServerPaths().getCompactor(rg -> true, addresses, false));
-        pathsToRemove.addAll(context.getServerPaths().getScanServer(rg -> true, addresses, false));
-        pathsToRemove
-            .addAll(context.getServerPaths().getTabletServer(rg -> true, addresses, false));
+        pathsToRemove.addAll(
+            context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, addresses, false));
+        pathsToRemove.addAll(
+            context.getServerPaths().getScanServer(ResourceGroupPredicate.ANY, addresses, false));
+        pathsToRemove.addAll(
+            context.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY, addresses, false));
         ZooZap.filterSingleton(context, context.getServerPaths().getManager(false), addresses)
             .ifPresent(pathsToRemove::add);
         ZooZap.filterSingleton(context, context.getServerPaths().getGarbageCollector(false),
@@ -732,6 +743,16 @@ public class Admin implements KeywordExecutable {
     }
   }
 
+  /**
+   * Stops tablet servers by hostname
+   *
+   * @param context The server context
+   * @param servers LIst of hostnames (without ports)
+   * @param force Whether to force stop
+   * @deprecated Use servers with host:port format instead. To stop all services on a host use
+   *             service status command to liat all services, then stop them with host:port format.
+   */
+  @Deprecated(since = "4.0.0")
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
     if (context.instanceOperations().getServers(ServerId.Type.MANAGER).isEmpty()) {
@@ -756,8 +777,11 @@ public class Admin implements KeywordExecutable {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
+        ThriftClientTypes.MANAGER
+            .executeVoid(
+                context, client -> client.shutdownTabletServer(TraceUtil.traceInfo(),
+                    context.rpcCreds(), finalServer, force),
+                ResourceGroupPredicate.DEFAULT_RG_ONLY);
       }
     }
   }
@@ -772,8 +796,8 @@ public class Admin implements KeywordExecutable {
   static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
     var hpObj = HostAndPort.fromString(hostAndPort);
-    Set<ServiceLockPath> paths =
-        context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hpObj), true);
+    Set<ServiceLockPath> paths = context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.exact(hpObj), true);
     if (paths.size() != 1) {
       return hostAndPort;
     }
@@ -786,12 +810,15 @@ public class Admin implements KeywordExecutable {
 
   private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
   private static final String NS_FILE_SUFFIX = "_ns.cfg";
+  private static final String RG_FILE_SUFFIX = "_rg.cfg";
   private static final String USER_FILE_SUFFIX = "_user.cfg";
   private static final MessageFormat configFormat = new MessageFormat("config -t {0} -s {1}\n");
   private static final MessageFormat createNsFormat = new MessageFormat("createnamespace {0}\n");
   private static final MessageFormat createTableFormat = new MessageFormat("createtable {0}\n");
   private static final MessageFormat createUserFormat = new MessageFormat("createuser {0}\n");
+  private static final MessageFormat createRGFormat = new MessageFormat("resourcegroup -c {0}\n");
   private static final MessageFormat nsConfigFormat = new MessageFormat("config -ns {0} -s {1}\n");
+  private static final MessageFormat rgConfigFormat = new MessageFormat("config -rg {0} -s {1}\n");
   private static final MessageFormat sysPermFormat =
       new MessageFormat("grant System.{0} -s -u {1}\n");
   private static final MessageFormat nsPermFormat =
@@ -822,6 +849,10 @@ public class Admin implements KeywordExecutable {
     if (opts.allConfiguration) {
       // print accumulo site
       printSystemConfiguration(outputDirectory);
+      // print resource groups
+      for (ResourceGroupId group : context.resourceGroupOperations().list()) {
+        printResourceGroupConfiguration(context, group, outputDirectory);
+      }
       // print namespaces
       for (String namespace : context.namespaceOperations().list()) {
         printNameSpaceConfiguration(context, namespace, outputDirectory);
@@ -838,6 +869,11 @@ public class Admin implements KeywordExecutable {
     } else {
       if (opts.systemConfiguration) {
         printSystemConfiguration(outputDirectory);
+      }
+      if (opts.resourceGroupConfiguration) {
+        for (ResourceGroupId group : context.resourceGroupOperations().list()) {
+          printResourceGroupConfiguration(context, group, outputDirectory);
+        }
       }
       if (opts.namespaceConfiguration) {
         for (String namespace : context.namespaceOperations().list()) {
@@ -889,6 +925,29 @@ public class Admin implements KeywordExecutable {
       // ignore
     }
     return defaultValue;
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
+  private void printResourceGroupConfiguration(AccumuloClient accumuloClient, ResourceGroupId group,
+      File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException,
+      ResourceGroupNotFoundException {
+    Path rgScript = outputDirectory.toPath().resolve(group + RG_FILE_SUFFIX);
+    try (BufferedWriter nsWriter = Files.newBufferedWriter(rgScript)) {
+      nsWriter.write(createRGFormat.format(new String[] {group.canonical()}));
+      Map<String,String> props = ImmutableSortedMap
+          .copyOf(accumuloClient.resourceGroupOperations().getConfiguration(group));
+      for (Entry<String,String> entry : props.entrySet()) {
+        String defaultValue = getDefaultConfigValue(entry.getKey());
+        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
+          if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
+              && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+            nsWriter.write(rgConfigFormat
+                .format(new String[] {group.canonical(), entry.getKey() + "=" + entry.getValue()}));
+          }
+        }
+      }
+    }
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",

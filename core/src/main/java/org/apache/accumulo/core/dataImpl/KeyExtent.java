@@ -288,10 +288,9 @@ public class KeyExtent implements Comparable<KeyExtent> {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof KeyExtent)) {
+    if (!(o instanceof KeyExtent oke)) {
       return false;
     }
-    KeyExtent oke = (KeyExtent) o;
     return tableId().equals(oke.tableId()) && Objects.equals(endRow(), oke.endRow())
         && Objects.equals(prevEndRow(), oke.prevEndRow());
   }

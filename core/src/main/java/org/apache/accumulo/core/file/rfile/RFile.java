@@ -85,8 +85,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 
 public class RFile {
 
@@ -1588,14 +1586,10 @@ public class RFile {
 
     private final FileSKVIterator reader;
     protected final Range fence;
-    private final Key fencedStartKey;
-    private final Supplier<Key> fencedEndKey;
 
     public FencedFileSKVIterator(FileSKVIterator reader, Range fence) {
       this.reader = Objects.requireNonNull(reader);
       this.fence = Objects.requireNonNull(fence);
-      this.fencedStartKey = fence.getStartKey();
-      this.fencedEndKey = Suppliers.memoize(() -> getEndKey(fence.getEndKey()));
     }
 
     @Override
@@ -1657,23 +1651,6 @@ public class RFile {
     @Override
     public void close() throws IOException {
       reader.close();
-    }
-
-    private Key getEndKey(Key key) {
-      // If they key is infinite it will be null or if inclusive we can just use it as is
-      // as it would be the correct value for getLastKey()
-      if (fence.isInfiniteStopKey() || fence.isEndKeyInclusive()) {
-        return key;
-      }
-
-      // If exclusive we need to strip the last byte to get the last key that is part of the
-      // actual range to return
-      final byte[] ba = key.getRowData().toArray();
-      Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
-      byte[] fba = new byte[ba.length - 1];
-      System.arraycopy(ba, 0, fba, 0, ba.length - 1);
-
-      return new Key(fba);
     }
 
   }

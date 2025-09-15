@@ -88,10 +88,9 @@ public final class ThriftTransportKey {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ThriftTransportKey)) {
+    if (!(o instanceof ThriftTransportKey ttk)) {
       return false;
     }
-    ThriftTransportKey ttk = (ThriftTransportKey) o;
     return type.equals(ttk.type) && server.equals(ttk.server) && timeout == ttk.timeout
         && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
         && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));

@@ -215,8 +215,7 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof ReferencedTabletFile) {
-      ReferencedTabletFile that = (ReferencedTabletFile) obj;
+    if (obj instanceof ReferencedTabletFile that) {
       return parts.getNormalizedPath().equals(that.parts.getNormalizedPath())
           && range.equals(that.range);
     }

@@ -32,18 +32,18 @@ import io.micrometer.core.instrument.MeterRegistry;
 public class FateExecutorMetrics<T> implements MetricsProducer {
   private static final Logger log = LoggerFactory.getLogger(FateExecutorMetrics.class);
   private final FateInstanceType type;
-  private final String operatesOn;
+  private final String poolName;
   private final Set<FateExecutor<T>.TransactionRunner> runningTxRunners;
   private final AtomicInteger idleWorkerCount;
   private MeterRegistry registry;
   private State state;
   public static final String INSTANCE_TYPE_TAG_KEY = "instanceType";
-  public static final String OPS_ASSIGNED_TAG_KEY = "ops.assigned";
+  public static final String POOL_NAME_TAG_KEY = "pool.name";
 
-  protected FateExecutorMetrics(FateInstanceType type, String operatesOn,
+  protected FateExecutorMetrics(FateInstanceType type, String poolName,
       Set<FateExecutor<T>.TransactionRunner> runningTxRunners, AtomicInteger idleWorkerCount) {
     this.type = type;
-    this.operatesOn = operatesOn;
+    this.poolName = poolName;
     this.runningTxRunners = runningTxRunners;
     this.state = State.UNREGISTERED;
     this.idleWorkerCount = idleWorkerCount;
@@ -55,12 +55,12 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
     if (state == State.UNREGISTERED) {
       Gauge.builder(Metric.FATE_OPS_THREADS_TOTAL.getName(), runningTxRunners::size)
           .description(Metric.FATE_OPS_THREADS_TOTAL.getDescription())
-          .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase())
-          .tag(OPS_ASSIGNED_TAG_KEY, operatesOn).register(registry);
+          .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase()).tag(POOL_NAME_TAG_KEY, poolName)
+          .register(registry);
       Gauge.builder(Metric.FATE_OPS_THREADS_INACTIVE.getName(), idleWorkerCount::get)
           .description(Metric.FATE_OPS_THREADS_INACTIVE.getDescription())
-          .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase())
-          .tag(OPS_ASSIGNED_TAG_KEY, operatesOn).register(registry);
+          .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase()).tag(POOL_NAME_TAG_KEY, poolName)
+          .register(registry);
 
       registered(registry);
     }
@@ -70,7 +70,7 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
     // noop if metrics were never registered or have already been cleared
     if (state == State.REGISTERED) {
       var threadsTotalMeter = registry.find(Metric.FATE_OPS_THREADS_TOTAL.getName())
-          .tags(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn)
+          .tags(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase(), POOL_NAME_TAG_KEY, poolName)
           .meter();
       // meter will be null if it could not be found, ignore IDE warning if one is seen
       if (threadsTotalMeter == null) {
@@ -78,21 +78,21 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
             "Tried removing meter{name: {} tags: {}={}, {}={}} from the registry, but did "
                 + "not find it.",
             Metric.FATE_OPS_THREADS_TOTAL.getName(), INSTANCE_TYPE_TAG_KEY,
-            type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn);
+            type.name().toLowerCase(), POOL_NAME_TAG_KEY, poolName);
       } else {
         registry.remove(threadsTotalMeter);
       }
 
       var threadsInactiveMeter = registry.find(Metric.FATE_OPS_THREADS_INACTIVE.getName())
-          .tags(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn)
+          .tags(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase(), POOL_NAME_TAG_KEY, poolName)
           .meter();
       // meter will be null if it could not be found, ignore IDE warning if one is seen
       if (threadsInactiveMeter == null) {
         log.error(
             "Tried removing meter{name: {} tags: {}={}, {}={}} from the registry, but did "
                 + "not find it.",
-            Metric.FATE_OPS_THREADS_TOTAL.getName(), INSTANCE_TYPE_TAG_KEY,
-            type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn);
+            Metric.FATE_OPS_THREADS_INACTIVE.getName(), INSTANCE_TYPE_TAG_KEY,
+            type.name().toLowerCase(), POOL_NAME_TAG_KEY, poolName);
       } else {
         registry.remove(threadsInactiveMeter);
       }

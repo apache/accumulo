@@ -296,8 +296,8 @@ public class ServiceLockPaths {
    * the ZooKeeper path.
    */
   public ServiceLockPath getGarbageCollector(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZGC_LOCK, rg -> true, AddressSelector.all(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, ResourceGroupPredicate.DEFAULT_RG_ONLY,
+        AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -311,8 +311,8 @@ public class ServiceLockPaths {
    * InstanceOperations.getServers(ServerId.Type.MANAGER) to get the location.
    */
   public ServiceLockPath getManager(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZMANAGER_LOCK, rg -> true, AddressSelector.all(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK,
+        ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -326,8 +326,8 @@ public class ServiceLockPaths {
    * ZooKeeper path.
    */
   public ServiceLockPath getMonitor(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZMONITOR_LOCK, rg -> true, AddressSelector.all(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZMONITOR_LOCK,
+        ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -351,7 +351,12 @@ public class ServiceLockPaths {
   }
 
   public interface ResourceGroupPredicate extends Predicate<ResourceGroupId> {
+    ResourceGroupPredicate ANY = rgid -> true;
+    ResourceGroupPredicate DEFAULT_RG_ONLY = ResourceGroupId.DEFAULT::equals;
 
+    static ResourceGroupPredicate exact(ResourceGroupId rgid) {
+      return rgid::equals;
+    }
   }
 
   public static class AddressSelector {

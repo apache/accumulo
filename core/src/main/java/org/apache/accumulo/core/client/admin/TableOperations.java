@@ -1057,13 +1057,24 @@ public interface TableOperations {
   }
 
   /**
+   * @param fields can optionally narrow the data retrieved per tablet, which can speed up streaming
+   *        over tablets. If this list is empty then all fields are fetched.
    * @return a stream of tablet information for tablets that fall in the specified range. The stream
    *         may be backed by a scanner, so it's best to close the stream.
    * @since 4.0.0
    */
-  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
-      throws TableNotFoundException {
+  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
+      TabletInformation.Field... fields) throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Returns the namespace for the given table name
+   *
+   * @param table fully qualified table name
+   * @return namespace name
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @since 4.0.0
+   */
+  String getNamespace(String table);
 }

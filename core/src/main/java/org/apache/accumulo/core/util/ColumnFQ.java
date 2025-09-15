@@ -77,13 +77,12 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ColumnFQ)) {
+    if (!(o instanceof ColumnFQ ocfq)) {
       return false;
     }
     if (this == o) {
       return true;
     }
-    ColumnFQ ocfq = (ColumnFQ) o;
     return ocfq.colf.equals(colf) && ocfq.colq.equals(colq);
   }
 

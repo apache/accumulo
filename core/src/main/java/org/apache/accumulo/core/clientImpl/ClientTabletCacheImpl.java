@@ -51,6 +51,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -675,9 +676,11 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     if (!extentsToBringOnline.isEmpty()) {
       log.debug("Requesting hosting for {} ondemand tablets for table id {}.",
           extentsToBringOnline.size(), tableId);
-      ThriftClientTypes.MANAGER.executeVoid(context,
-          client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
-              tableId.canonical(), extentsToBringOnline));
+      ThriftClientTypes.MANAGER
+          .executeVoid(context,
+              client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
+                  tableId.canonical(), extentsToBringOnline),
+              ResourceGroupPredicate.DEFAULT_RG_ONLY);
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
     }
   }

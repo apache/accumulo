@@ -252,8 +252,7 @@ public class SaslConnectionParams {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SaslConnectionParams) {
-      SaslConnectionParams other = (SaslConnectionParams) o;
+    if (o instanceof SaslConnectionParams other) {
       if (!kerberosServerPrimary.equals(other.kerberosServerPrimary)) {
         return false;
       }
