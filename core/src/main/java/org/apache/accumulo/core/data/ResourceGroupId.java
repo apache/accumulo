@@ -26,7 +26,7 @@ import org.apache.accumulo.core.util.cache.Caches.CacheName;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
-public class ResourceGroupId extends AbstractId<ResourceGroupId> {
+public final class ResourceGroupId extends AbstractId<ResourceGroupId> {
 
   public static final Pattern GROUP_NAME_PATTERN = Pattern.compile("^[a-zA-Z]+(_?[a-zA-Z0-9])*$");
 
