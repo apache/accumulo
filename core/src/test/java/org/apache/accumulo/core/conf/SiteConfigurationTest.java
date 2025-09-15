@@ -21,6 +21,7 @@ package org.apache.accumulo.core.conf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -92,5 +93,17 @@ public class SiteConfigurationTest {
     var results = new HashMap<String,String>();
     conf.getProperties(results, p -> p.startsWith("instance"));
     assertEquals("myhost:2181", results.get(Property.INSTANCE_ZK_HOST.getKey()));
+  }
+
+  @Test
+  public void testTableProps() {
+    // try setting a table prop as an override
+    assertThrows(IllegalArgumentException.class, () -> SiteConfiguration.empty()
+        .withOverrides(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "5")).build());
+
+    // try loading a properties file that has a a table prop
+    URL propsUrl = getClass().getClassLoader().getResource("accumulo3.properties");
+    assertThrows(IllegalArgumentException.class,
+        () -> new SiteConfiguration.Builder().fromUrl(propsUrl).build());
   }
 }
