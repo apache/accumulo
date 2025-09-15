@@ -107,6 +107,7 @@ import org.slf4j.event.Level;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
@@ -853,20 +854,26 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  static TServerInstance findServerIgnoringSession(SortedMap<TServerInstance,?> servers,
+      HostAndPort server) {
+    var tail = servers.tailMap(new TServerInstance(server, " ")).keySet().iterator();
+    if (tail.hasNext()) {
+      TServerInstance found = tail.next();
+      if (found.getHostAndPort().equals(server)) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
   private void hostSuspendedTablet(TabletLists tLists, TabletMetadata tm, Location location,
       TableConfiguration tableConf) {
     if (manager.getSteadyTime().minus(tm.getSuspend().suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
-      TServerInstance returnInstance = null;
-      Iterator<TServerInstance> find = tLists.destinations
-          .tailMap(new TServerInstance(tm.getSuspend().server, " ")).keySet().iterator();
-      if (find.hasNext()) {
-        TServerInstance found = find.next();
-        if (found.getHostAndPort().equals(tm.getSuspend().server)) {
-          returnInstance = found;
-        }
-      }
+      TServerInstance returnInstance =
+          findServerIgnoringSession(tLists.destinations, tm.getSuspend().server);
 
       // Old tablet server is back. Return this tablet to its previous owner.
       if (returnInstance != null) {
