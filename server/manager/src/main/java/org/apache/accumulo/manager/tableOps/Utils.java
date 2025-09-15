@@ -297,16 +297,10 @@ public class Utils {
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId, range);
-      switch (lockType) {
-        case WRITE:
-          lock = locker.writeLock();
-          break;
-        case READ:
-          lock = locker.readLock();
-          break;
-        default:
-          throw new IllegalStateException("Unexpected LockType: " + lockType);
-      }
+      lock = switch (lockType) {
+        case WRITE -> locker.writeLock();
+        case READ -> locker.readLock();
+      };
     }
     return lock;
   }
