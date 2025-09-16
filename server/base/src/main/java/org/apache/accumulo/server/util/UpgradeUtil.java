@@ -78,10 +78,12 @@ public class UpgradeUtil implements KeywordExecutable {
     boolean prepare = false;
 
     @Parameter(names = "--start",
-        description = "Start an upgrade of an Accumulo instance. This will check that 'accumulo upgrade --prepare'"
+        description = "Start an upgrade of an Accumulo instance. The 'start' step is intended to be run on the "
+            + "instance with the new version of software before any server processes are started.  Server processes "
+            +  "should fail to start if this step is not run. This will check that 'accumulo upgrade --prepare'"
             + " was run on the instance after it was shut down, perform pre-upgrade validation, and perform any"
             + " upgrade steps that need to occur before the Manager is started. Finally, it creates a mandatory"
-            + " marker in ZooKeeper that enables the Manager to perform an upgrade.")
+            + " marker in ZooKeeper that enables the Manager to complete an upgrade.")
     boolean start = false;
 
     @Parameter(names = "--force",
@@ -96,13 +98,7 @@ public class UpgradeUtil implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "utility used to perform various upgrade steps for an Accumulo instance. The 'prepare'"
-        + " step is intended to be run using the old version of software after an instance has"
-        + " been shut down. The 'start' step is intended to be run on the instance with the new"
-        + " version of software. Server processes should fail to start after the 'prepare' step"
-        + " has been run due to the existence of a node in ZooKeeper. When the 'start' step"
-        + " completes successfully it will remove this node allowing the user to start the"
-        + " Manager to complete the instance upgrade process.";
+    return "utility used to perform various upgrade steps for an Accumulo instance.";
   }
 
   private void prepare(final ServerContext context) {
