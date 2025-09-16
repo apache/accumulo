@@ -78,7 +78,8 @@ public class Endpoints {
   private Monitor monitor;
 
   private void validateResourceGroup(String resourceGroup) {
-    if (monitor.getInformationFetcher().getSummary().getResourceGroups().contains(resourceGroup)) {
+    if (monitor.getInformationFetcher().getSummaryForEndpoint().getResourceGroups()
+        .contains(resourceGroup)) {
       return;
     }
     throw new NotFoundException("Resource Group " + resourceGroup + " not found");
@@ -119,7 +120,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of the resource groups that are in use")
   public Set<String> getResourceGroups() {
-    return monitor.getInformationFetcher().getSummary().getResourceGroups();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getResourceGroups();
   }
 
   @GET
@@ -127,7 +128,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of the servers that are potentially down")
   public Collection<ServerId> getProblemHosts() {
-    return monitor.getInformationFetcher().getSummary().getProblemHosts();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getProblemHosts();
   }
 
   @GET
@@ -143,7 +144,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metric response for the Manager")
   public MetricResponse getManager() {
-    final ServerId s = monitor.getInformationFetcher().getSummary().getManager();
+    final ServerId s = monitor.getInformationFetcher().getSummaryForEndpoint().getManager();
     if (s == null) {
       throw new NotFoundException("Manager not found");
     }
@@ -155,7 +156,8 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metric response for the Garbage Collector")
   public MetricResponse getGarbageCollector() {
-    final ServerId s = monitor.getInformationFetcher().getSummary().getGarbageCollector();
+    final ServerId s =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getGarbageCollector();
     if (s == null) {
       throw new NotFoundException("Garbage Collector not found");
     }
@@ -182,7 +184,7 @@ public class Endpoints {
   public Collection<MetricResponse>
       getCompactors(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers = monitor.getInformationFetcher().getSummary()
+    final Set<ServerId> servers = monitor.getInformationFetcher().getSummaryForEndpoint()
         .getCompactorResourceGroupServers(resourceGroup);
     if (servers == null) {
       return List.of();
@@ -198,7 +200,7 @@ public class Endpoints {
       getCompactorResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
     final Map<Id,CumulativeDistributionSummary> metrics = monitor.getInformationFetcher()
-        .getSummary().getCompactorResourceGroupMetricSummary(resourceGroup);
+        .getSummaryForEndpoint().getCompactorResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       return Map.of();
     }
@@ -210,7 +212,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns an aggregate view of the metric responses for all Compactors")
   public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getCompactorAllMetricSummary();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getCompactorAllMetricSummary();
   }
 
   @GET
@@ -220,8 +222,8 @@ public class Endpoints {
   public Collection<MetricResponse>
       getScanServers(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers =
-        monitor.getInformationFetcher().getSummary().getSServerResourceGroupServers(resourceGroup);
+    final Set<ServerId> servers = monitor.getInformationFetcher().getSummaryForEndpoint()
+        .getSServerResourceGroupServers(resourceGroup);
     if (servers == null) {
       return List.of();
     }
@@ -236,7 +238,7 @@ public class Endpoints {
       getScanServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
     final Map<Id,CumulativeDistributionSummary> metrics = monitor.getInformationFetcher()
-        .getSummary().getSServerResourceGroupMetricSummary(resourceGroup);
+        .getSummaryForEndpoint().getSServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       return Map.of();
     }
@@ -248,7 +250,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns an aggregate view of the metric responses for all ScanServers")
   public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getSServerAllMetricSummary();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getSServerAllMetricSummary();
   }
 
   @GET
@@ -258,8 +260,8 @@ public class Endpoints {
   public Collection<MetricResponse>
       getTabletServers(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers =
-        monitor.getInformationFetcher().getSummary().getTServerResourceGroupServers(resourceGroup);
+    final Set<ServerId> servers = monitor.getInformationFetcher().getSummaryForEndpoint()
+        .getTServerResourceGroupServers(resourceGroup);
     if (servers == null) {
       return List.of();
     }
@@ -274,7 +276,7 @@ public class Endpoints {
       getTabletServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
     final Map<Id,CumulativeDistributionSummary> metrics = monitor.getInformationFetcher()
-        .getSummary().getTServerResourceGroupMetricSummary(resourceGroup);
+        .getSummaryForEndpoint().getTServerResourceGroupMetricSummary(resourceGroup);
     if (metrics == null) {
       return Map.of();
     }
@@ -286,7 +288,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns an aggregate view of the metric responses for all TabletServers")
   public Map<Id,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getTServerAllMetricSummary();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getTServerAllMetricSummary();
   }
 
   @GET
@@ -294,7 +296,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metrics for all compaction queues")
   public Map<String,List<FMetric>> getCompactionMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getCompactionMetricSummary();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getCompactionMetricSummary();
   }
 
   @GET
@@ -303,7 +305,7 @@ public class Endpoints {
   @Description("Returns a map of Compactor resource group to the 50 oldest running compactions")
   public Map<String,List<TExternalCompaction>> getCompactions() {
     Map<String,List<TExternalCompaction>> all =
-        monitor.getInformationFetcher().getSummary().getCompactions();
+        monitor.getInformationFetcher().getSummaryForEndpoint().getCompactions();
     if (all == null) {
       return Map.of();
     }
@@ -318,7 +320,7 @@ public class Endpoints {
       getCompactions(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
     List<TExternalCompaction> compactions =
-        monitor.getInformationFetcher().getSummary().getCompactions(resourceGroup);
+        monitor.getInformationFetcher().getSummaryForEndpoint().getCompactions(resourceGroup);
     if (compactions == null) {
       return List.of();
     }
@@ -330,7 +332,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a map of TableId to table details")
   public Map<TableId,TableSummary> getTables() {
-    return monitor.getInformationFetcher().getSummary().getTables();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getTables();
   }
 
   @GET
@@ -338,8 +340,8 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns table details for the supplied TableId")
   public TableSummary getTable(@PathParam(TABLEID_PARAM_KEY) String tableId) {
-    TableSummary ts =
-        monitor.getInformationFetcher().getSummary().getTables().get(TableId.of(tableId));
+    TableSummary ts = monitor.getInformationFetcher().getSummaryForEndpoint().getTables()
+        .get(TableId.of(tableId));
     if (ts == null) {
       throw new NotFoundException(tableId + " not found");
     }
@@ -352,7 +354,7 @@ public class Endpoints {
   @Description("Returns tablet details for the supplied table name")
   public List<TabletInformation> getTablets(@PathParam(TABLEID_PARAM_KEY) String tableId) {
     List<TabletInformation> ti =
-        monitor.getInformationFetcher().getSummary().getTablets(TableId.of(tableId));
+        monitor.getInformationFetcher().getSummaryForEndpoint().getTablets(TableId.of(tableId));
     if (ti == null) {
       throw new NotFoundException(tableId + " not found");
     }
@@ -365,7 +367,7 @@ public class Endpoints {
   @Description("Returns a map of resource group to server type to process summary."
       + " The process summary contains the number of configured, responding, and not responding servers")
   public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
-    return monitor.getInformationFetcher().getSummary().getDeploymentOverview();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentOverview();
   }
 
   @GET
@@ -373,7 +375,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of suggestions")
   public Set<String> getSuggestions() {
-    return monitor.getInformationFetcher().getSummary().getSuggestions();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getSuggestions();
   }
 
   @GET
@@ -381,7 +383,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the timestamp of when the monitor information was last refreshed")
   public long getTimestamp() {
-    return monitor.getInformationFetcher().getSummary().getTimestamp();
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getTimestamp();
   }
 
   @GET

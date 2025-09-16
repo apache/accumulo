@@ -161,19 +161,8 @@ public enum PropertyType {
       "One of the currently supported filename extensions for storing table data files. "
           + "Currently, only " + RFile.EXTENSION + " is supported."),
   VOLUMES("volumes", new ValidVolumes(), "See instance.volumes documentation"),
-  FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(),
-      "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
-          + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
-          + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
-          + "4. all possible user fate operations are present in the json. "
-          + "5. no fate operations are repeated."),
-
-  FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(),
-      "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
-          + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
-          + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
-          + "4. all possible meta fate operations are present in the json. "
-          + "5. no fate operations are repeated."),
+  FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(), ValidUserFateConfig.DESC),
+  FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(), ValidMetaFateConfig.DESC),
   FATE_THREADPOOL_SIZE("(deprecated) Manager FATE thread pool size", new FateThreadPoolSize(),
       "No format check. Allows any value to be set but will warn the user that the"
           + " property is no longer used."),
@@ -474,6 +463,15 @@ public enum PropertyType {
   }
 
   private static class ValidFateConfig implements Predicate<String> {
+    private static final String DESC = """
+        A string that:
+        1. Represents a valid, parsable JSON object.
+        2. Each key is a string which represents a name for the value/pool.
+        3. Each value is a JSON with a single key/value: key = comma-separated string list of FATE
+        operations, value = integer for the number of threads assigned to run those FATE operations.
+        4. All possible %s FATE operations are present in the JSON.
+        5. No FATE operations are repeated.
+        """;
     private static final Logger log = LoggerFactory.getLogger(ValidFateConfig.class);
     private final Set<Fate.FateOperation> allFateOps;
     private final String name;
@@ -549,6 +547,7 @@ public enum PropertyType {
   }
 
   private static class ValidUserFateConfig extends ValidFateConfig {
+    private static final String DESC = String.format(ValidFateConfig.DESC, "user");
     private static final String NAME = "fate user config";
 
     private ValidUserFateConfig() {
@@ -557,6 +556,7 @@ public enum PropertyType {
   }
 
   private static class ValidMetaFateConfig extends ValidFateConfig {
+    private static final String DESC = String.format(ValidFateConfig.DESC, "meta");
     private static final String NAME = "fate meta config";
 
     private ValidMetaFateConfig() {

@@ -93,47 +93,28 @@ public enum NamespacePermission {
   }
 
   public static NamespacePermission getEquivalent(TablePermission permission) {
-    switch (permission) {
-      case READ:
-        return NamespacePermission.READ;
-      case WRITE:
-        return NamespacePermission.WRITE;
-      case ALTER_TABLE:
-        return NamespacePermission.ALTER_TABLE;
-      case GRANT:
-        return NamespacePermission.GRANT;
-      case DROP_TABLE:
-        return NamespacePermission.DROP_TABLE;
-      case BULK_IMPORT:
-        return NamespacePermission.BULK_IMPORT;
-      default:
-        return null;
-    }
+    return switch (permission) {
+      case READ -> NamespacePermission.READ;
+      case WRITE -> NamespacePermission.WRITE;
+      case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
+      case GRANT -> NamespacePermission.GRANT;
+      case DROP_TABLE -> NamespacePermission.DROP_TABLE;
+      case BULK_IMPORT -> NamespacePermission.BULK_IMPORT;
+      default -> null;
+    };
 
   }
 
   public static NamespacePermission getEquivalent(SystemPermission permission) {
-    switch (permission) {
-      case CREATE_TABLE:
-        return NamespacePermission.CREATE_TABLE;
-      case DROP_TABLE:
-        return NamespacePermission.DROP_TABLE;
-      case ALTER_TABLE:
-        return NamespacePermission.ALTER_TABLE;
-      case ALTER_NAMESPACE:
-        return NamespacePermission.ALTER_NAMESPACE;
-      case DROP_NAMESPACE:
-        return NamespacePermission.DROP_NAMESPACE;
-      case GRANT:
-        return NamespacePermission.ALTER_NAMESPACE;
-      case CREATE_NAMESPACE:
-      case CREATE_USER:
-      case DROP_USER:
-      case ALTER_USER:
-      case SYSTEM:
-      default:
-        return null;
-    }
+    return switch (permission) {
+      case CREATE_TABLE -> NamespacePermission.CREATE_TABLE;
+      case DROP_TABLE -> NamespacePermission.DROP_TABLE;
+      case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
+      case ALTER_NAMESPACE -> NamespacePermission.ALTER_NAMESPACE;
+      case DROP_NAMESPACE -> NamespacePermission.DROP_NAMESPACE;
+      case GRANT -> NamespacePermission.ALTER_NAMESPACE;
+      default -> null;
+    };
   }
 
 }
