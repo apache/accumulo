@@ -21,7 +21,6 @@ package org.apache.accumulo.shell.commands;
 import static org.apache.accumulo.shell.ShellUtil.readPropertiesFromFile;
 
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,7 +35,7 @@ import org.apache.commons.cli.Options;
 
 public class CreateResourceGroupCommand extends Command {
 
-  private Option createTableOptInitPropFile;
+  private Option createRGPropFileOpt;
 
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
@@ -50,17 +49,15 @@ public class CreateResourceGroupCommand extends Command {
       return 1;
     }
 
-    String filename = cl.getOptionValue(createTableOptInitPropFile.getOpt());
+    String filename = cl.getOptionValue(createRGPropFileOpt.getOpt());
     if (filename != null) {
       final Map<String,String> initProperties = readPropertiesFromFile(filename);
-      for (Entry<String,String> e : initProperties.entrySet()) {
-        try {
-          ops.setProperty(rgid, e.getKey(), e.getValue());
-        } catch (AccumuloException | AccumuloSecurityException
-            | ResourceGroupNotFoundException e1) {
-          Shell.log.error("Error adding property {}={} to resource group {}", e.getKey(),
-              e.getValue(), resourceGroup, e);
-        }
+      try {
+        ops.modifyProperties(rgid, c -> c.putAll(initProperties));
+      } catch (IllegalArgumentException | AccumuloException | AccumuloSecurityException
+          | ResourceGroupNotFoundException e) {
+        Shell.log.error("Error setting initial resource group properties for {}", rgid, e);
+        return 1;
       }
     }
     return 0;
@@ -69,12 +66,11 @@ public class CreateResourceGroupCommand extends Command {
   @Override
   public Options getOptions() {
 
-    createTableOptInitPropFile =
-        new Option("f", "file", true, "user-defined initial properties file");
-    createTableOptInitPropFile.setArgName("properties-file");
+    createRGPropFileOpt = new Option("f", "file", true, "user-defined initial properties file");
+    createRGPropFileOpt.setArgName("properties-file");
 
     final Options o = new Options();
-    o.addOption(createTableOptInitPropFile);
+    o.addOption(createRGPropFileOpt);
     return o;
   }
 

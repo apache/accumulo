@@ -2470,12 +2470,21 @@ public class ShellServerIT extends SharedMiniClusterBase {
       String badRG = "test-RG";
       String goodRG = "testRG";
       String goodFileRG = "testFileRG";
+      String badFileRG = "testBadFileRG";
       ResourceGroupId goodRgid = ResourceGroupId.of(goodRG);
       ResourceGroupId goodFileRgid = ResourceGroupId.of(goodFileRG);
+      ResourceGroupId badFileRgid = ResourceGroupId.of(badFileRG);
       String propsFile = System.getProperty("user.dir") + "/target/resourceGroupInitPropsFile";
       java.nio.file.Path propsFilePath = java.nio.file.Path.of(propsFile);
       try (BufferedWriter writer = Files.newBufferedWriter(propsFilePath, UTF_8)) {
         writer.write(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey() + "=4\n");
+      }
+
+      String badPropsFile =
+          System.getProperty("user.dir") + "/target/resourceGroupBadInitPropsFile";
+      java.nio.file.Path badPropsFilePath = java.nio.file.Path.of(badPropsFile);
+      try (BufferedWriter writer = Files.newBufferedWriter(badPropsFilePath, UTF_8)) {
+        writer.write(Property.TABLE_BLOOM_ENABLED.getKey() + "=true\n");
       }
 
       assertEquals(1, ops.list().size());
@@ -2484,16 +2493,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("createresourcegroup " + badRG, false, "contains invalid characters");
       ts.exec("createresourcegroup " + goodRG, true);
       ts.exec("createresourcegroup -f " + propsFilePath.toAbsolutePath() + " " + goodFileRG, true);
+      ts.exec("createresourcegroup -f " + badPropsFilePath.toAbsolutePath() + " " + badFileRG,
+          false);
 
       // createresourcegroup command above goes to the Manager
       // ops.list() below uses the clients ZooCache
       // Wait a bit so that ZooCache updates.
       Thread.sleep(100);
 
-      assertEquals(3, ops.list().size());
+      assertEquals(4, ops.list().size());
       assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
       assertTrue(ops.list().contains(goodRgid));
       assertTrue(ops.list().contains(goodFileRgid));
+      assertTrue(ops.list().contains(badFileRgid));
 
       ts.exec("listresourcegroups", true, goodRG);
 
@@ -2525,6 +2537,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("deleteresourcegroup " + badRG, false, "contains invalid characters");
       ts.exec("deleteresourcegroup " + goodRG, true);
       ts.exec("deleteresourcegroup " + goodFileRG, true);
+      ts.exec("deleteresourcegroup " + badFileRG, true);
 
       // deleteresourcegroup command above goes to the Manager
       // ops.list() below uses the clients ZooCache
