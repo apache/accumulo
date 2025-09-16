@@ -51,8 +51,10 @@ public class RunningCompaction {
   }
 
   public RunningCompaction(TExternalCompaction tEC) {
-    this(tEC.getJob(), ServerId.compactor(ResourceGroupId.of(tEC.getGroupName()),
-        HostAndPort.fromString(tEC.getCompactor())));
+    this(tEC.getJob(),
+        ServerId.compactor(ResourceGroupId.of(tEC.getGroupName()),
+            HostAndPort.fromString(tEC.getCompactor()).getHost(),
+            HostAndPort.fromString(tEC.getCompactor()).getPort()));
   }
 
   public Map<Long,TCompactionStatusUpdate> getUpdates() {

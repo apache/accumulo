@@ -68,11 +68,6 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
     return cache.get(info, k -> info.getServerId());
   }
 
-  public static ServerId compactor(HostAndPort hp) {
-    return resolve(new ServerIdInfo(Type.COMPACTOR.name(), ResourceGroupId.DEFAULT.canonical(),
-        hp.getHost(), hp.getPort()));
-  }
-
   public static ServerId compactor(String host, int port) {
     return resolve(
         new ServerIdInfo(Type.COMPACTOR.name(), ResourceGroupId.DEFAULT.canonical(), host, port));
@@ -80,11 +75,6 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
 
   public static ServerId compactor(ResourceGroupId rgid, String host, int port) {
     return resolve(new ServerIdInfo(Type.COMPACTOR.name(), rgid.canonical(), host, port));
-  }
-
-  public static ServerId compactor(ResourceGroupId rgid, HostAndPort hp) {
-    return resolve(
-        new ServerIdInfo(Type.COMPACTOR.name(), rgid.canonical(), hp.getHost(), hp.getPort()));
   }
 
   public static ServerId gc(String host, int port) {
@@ -107,11 +97,6 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
         new ServerIdInfo(Type.MONITOR.name(), ResourceGroupId.DEFAULT.canonical(), host, port));
   }
 
-  public static ServerId sserver(HostAndPort hp) {
-    return resolve(new ServerIdInfo(Type.SCAN_SERVER.name(), ResourceGroupId.DEFAULT.canonical(),
-        hp.getHost(), hp.getPort()));
-  }
-
   public static ServerId sserver(String host, int port) {
     return resolve(
         new ServerIdInfo(Type.SCAN_SERVER.name(), ResourceGroupId.DEFAULT.canonical(), host, port));
@@ -121,16 +106,6 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
     return resolve(new ServerIdInfo(Type.SCAN_SERVER.name(), rgid.canonical(), host, port));
   }
 
-  public static ServerId sserver(ResourceGroupId rgid, HostAndPort hp) {
-    return resolve(
-        new ServerIdInfo(Type.SCAN_SERVER.name(), rgid.canonical(), hp.getHost(), hp.getPort()));
-  }
-
-  public static ServerId tserver(HostAndPort hp) {
-    return resolve(new ServerIdInfo(Type.TABLET_SERVER.name(), ResourceGroupId.DEFAULT.canonical(),
-        hp.getHost(), hp.getPort()));
-  }
-
   public static ServerId tserver(String host, int port) {
     return resolve(new ServerIdInfo(Type.TABLET_SERVER.name(), ResourceGroupId.DEFAULT.canonical(),
         host, port));
@@ -138,15 +113,6 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
 
   public static ServerId tserver(ResourceGroupId rgid, String host, int port) {
     return resolve(new ServerIdInfo(Type.TABLET_SERVER.name(), rgid.canonical(), host, port));
-  }
-
-  public static ServerId tserver(ResourceGroupId rgid, HostAndPort hp) {
-    return resolve(
-        new ServerIdInfo(Type.TABLET_SERVER.name(), rgid.canonical(), hp.getHost(), hp.getPort()));
-  }
-
-  public static ServerId dynamic(Type type, ResourceGroupId rgid, HostAndPort hp) {
-    return resolve(new ServerIdInfo(type.name(), rgid.canonical(), hp.getHost(), hp.getPort()));
   }
 
   public static ServerId dynamic(Type type, ResourceGroupId rgid, String host, int port) {
@@ -197,7 +163,7 @@ public final class ServerId implements Comparable<ServerId>, Serializable {
     return port;
   }
 
-  public synchronized HostAndPort getHostPort() {
+  private synchronized HostAndPort getHostPort() {
     if (hostPort == null) {
       hostPort = HostAndPort.fromParts(host, port);
     }

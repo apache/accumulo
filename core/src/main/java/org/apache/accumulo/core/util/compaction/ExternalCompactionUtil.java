@@ -120,10 +120,10 @@ public class ExternalCompactionUtil {
     final Map<String,Set<ServerId>> groupsAndAddresses = new HashMap<>();
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
+          var hp = HostAndPort.fromString(slp.getServer());
           groupsAndAddresses
               .computeIfAbsent(slp.getResourceGroup().canonical(), (k) -> new HashSet<>())
-              .add(ServerId.compactor(slp.getResourceGroup(),
-                  HostAndPort.fromString(slp.getServer())));
+              .add(ServerId.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort()));
         });
     return groupsAndAddresses;
   }
@@ -222,8 +222,8 @@ public class ExternalCompactionUtil {
       try {
         TExternalCompactionJob job = rcf.getFuture().get();
         if (null != job && null != job.getExternalCompactionId()) {
-          results.add(
-              new RunningCompaction(job, ServerId.compactor(rcf.getGroup(), rcf.getCompactor())));
+          results.add(new RunningCompaction(job, ServerId.compactor(rcf.getGroup(),
+              rcf.getCompactor().getHost(), rcf.getCompactor().getPort())));
         }
       } catch (InterruptedException | ExecutionException e) {
         throw new IllegalStateException(e);

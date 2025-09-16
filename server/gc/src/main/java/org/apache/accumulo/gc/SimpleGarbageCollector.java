@@ -184,8 +184,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
     metricsInfo.addMetricsProducers(this, new GcMetrics(this));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        address.getHostPort(), address.getResourceGroup()));
+    metricsInfo.init(
+        MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(), address));
     try {
       long delay = getStartDelay();
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);

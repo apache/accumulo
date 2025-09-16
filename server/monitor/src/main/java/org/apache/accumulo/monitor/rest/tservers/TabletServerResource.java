@@ -178,7 +178,8 @@ public class TabletServerResource {
     try {
       ClientContext context = monitor.getContext();
       TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, ServerId.tserver(address), context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+              ServerId.tserver(address.getHost(), address.getPort()), context);
       try {
         for (String tableId : mmi.tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));

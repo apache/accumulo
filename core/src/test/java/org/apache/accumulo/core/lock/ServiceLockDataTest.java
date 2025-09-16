@@ -61,13 +61,14 @@ public class ServiceLockDataTest {
     ServiceLockData ss = new ServiceLockData(sds);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getServer(ThriftService.TSERV).toHostPortString());
-    assertEquals(HostAndPort.fromString("127.0.0.1:9997"),
-        ss.getServer(ThriftService.TSERV).getHostPort());
+    assertEquals(HostAndPort.fromString("127.0.0.1:9997"), HostAndPort.fromParts(
+        ss.getServer(ThriftService.TSERV).getHost(), ss.getServer(ThriftService.TSERV).getPort()));
     assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(ThriftService.TSERV));
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TABLET_SCAN));
     assertEquals("127.0.0.1:9998", ss.getServer(ThriftService.TABLET_SCAN).toHostPortString());
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
-        ss.getServer(ThriftService.TABLET_SCAN).getHostPort());
+        HostAndPort.fromParts(ss.getServer(ThriftService.TABLET_SCAN).getHost(),
+            ss.getServer(ThriftService.TABLET_SCAN).getPort()));
     assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(ThriftService.TSERV));
   }
 
@@ -106,13 +107,14 @@ public class ServiceLockDataTest {
     ServiceLockData ss = new ServiceLockData(sds);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getServer(ThriftService.TSERV).toHostPortString());
-    assertEquals(HostAndPort.fromString("127.0.0.1:9997"),
-        ss.getServer(ThriftService.TSERV).getHostPort());
+    assertEquals(HostAndPort.fromString("127.0.0.1:9997"), HostAndPort.fromParts(
+        ss.getServer(ThriftService.TSERV).getHost(), ss.getServer(ThriftService.TSERV).getPort()));
     assertEquals(ResourceGroupId.of("meta"), ss.getGroup(ThriftService.TSERV));
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TABLET_SCAN));
     assertEquals("127.0.0.1:9998", ss.getServer(ThriftService.TABLET_SCAN).toHostPortString());
     assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
-        ss.getServer(ThriftService.TABLET_SCAN).getHostPort());
+        HostAndPort.fromParts(ss.getServer(ThriftService.TABLET_SCAN).getHost(),
+            ss.getServer(ThriftService.TABLET_SCAN).getPort()));
     assertEquals(ResourceGroupId.of("ns1"), ss.getGroup(ThriftService.TABLET_SCAN));
     assertNull(ss.getServerUUID(ThriftService.COMPACTOR));
     assertNull(ss.getServer(ThriftService.COMPACTOR));

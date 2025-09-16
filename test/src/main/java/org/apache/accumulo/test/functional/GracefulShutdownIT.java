@@ -182,8 +182,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           .getTabletServer((rg) -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true);
       assertEquals(2, tservers.size());
       final ServiceLockPath tserverPath = tservers.iterator().next();
-      Admin.signalGracefulShutdown(ctx,
-          ServerId.tserver(HostAndPort.fromString(tserverPath.getServer())));
+      final var hp = HostAndPort.fromString(tserverPath.getServer());
+      Admin.signalGracefulShutdown(ctx, ServerId.tserver(hp.getHost(), hp.getPort()));
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.TABLET_SERVER);
         return control.getProcesses(ServerType.TABLET_SERVER).size() == 1;
@@ -223,8 +223,9 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           .getCompactor(ResourceGroupPredicate.exact(ResourceGroupId.of(GROUP_NAME)),
               AddressSelector.all(), true);
       final ServiceLockPath compactorPath = compactors.iterator().next();
+      final var compactorHP = HostAndPort.fromString(compactorPath.getServer());
       final ServerId compactorAddress = ServerId.compactor(compactorPath.getResourceGroup(),
-          HostAndPort.fromString(compactorPath.getServer()));
+          compactorHP.getHost(), compactorHP.getPort());
 
       final CompactionConfig cc = new CompactionConfig();
       final IteratorSetting is = new IteratorSetting(100, SlowIterator.class);
@@ -266,6 +267,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           getCluster().getServerContext().getServerPaths().getScanServer(
               (rg) -> rg.equals(ResourceGroupId.of(GROUP_NAME)), AddressSelector.all(), true);
       final ServiceLockPath sserverPath = sservers.iterator().next();
+      final var sserverHP = HostAndPort.fromString(sserverPath.getServer());
       try (final Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
@@ -278,7 +280,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           count++;
           if (count == 2) {
             Admin.signalGracefulShutdown(ctx, ServerId.sserver(sserverPath.getResourceGroup(),
-                HostAndPort.fromString(sserverPath.getServer())));
+                sserverHP.getHost(), sserverHP.getPort()));
           }
         }
         assertEquals(10, count);

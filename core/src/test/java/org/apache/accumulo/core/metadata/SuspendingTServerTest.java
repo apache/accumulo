@@ -38,7 +38,8 @@ public class SuspendingTServerTest {
 
     var val1 = new SuspendingTServer(ser1, suspensionTime).toValue();
     var st1 = SuspendingTServer.fromValue(val1);
-    assertEquals(HostAndPort.fromParts("server1", 8555), st1.server.getServer().getHostPort());
+    assertEquals(HostAndPort.fromParts("server1", 8555),
+        HostAndPort.fromParts(st1.server.getServer().getHost(), st1.server.getServer().getPort()));
     assertEquals(suspensionTime, st1.suspensionTime);
     assertEquals(val1, st1.toValue());
     var st2 = new SuspendingTServer(new TServerInstance(ServerId.tserver("server1", 8555), "s001"),

@@ -1137,7 +1137,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     producers.addAll(managerMetrics.getProducers(this));
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress().getHostPort(), getAdvertiseAddress().getResourceGroup()));
+        getAdvertiseAddress()));
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
@@ -1177,7 +1177,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // Now that the Manager is up, start the ThriftServer
     Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
     getThriftServerAddress().startThriftServer("Manager Client Service Handler");
-    log.info("Started Manager client service at {}", getAdvertiseAddress().getHostPort());
+    log.info("Started Manager client service at {}", getAdvertiseAddress().toHostPortString());
 
     // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager

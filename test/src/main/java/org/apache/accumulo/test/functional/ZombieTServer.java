@@ -139,9 +139,11 @@ public class ZombieTServer {
 
     ServiceLock zlock = new ServiceLock(context.getZooSession(), zLockPath, UUID.randomUUID());
 
+    ServerId serverId =
+        ServerId.tserver(serverPort.address.getHost(), serverPort.address.getPort());
+
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
-        serverPort.address, ResourceGroupId.DEFAULT));
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server", serverId));
 
     LockWatcher lw = new LockWatcher() {
 
@@ -170,8 +172,7 @@ public class ZombieTServer {
       }
     };
 
-    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(),
-        ServerId.tserver(serverPort.address), ThriftService.TSERV))) {
+    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), serverId, ThriftService.TSERV))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

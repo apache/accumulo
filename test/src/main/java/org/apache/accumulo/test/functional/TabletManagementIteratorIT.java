@@ -699,10 +699,11 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     HashSet<TServerInstance> tservers = new HashSet<>();
     for (ServiceLockPath tserver : context.getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)) {
+      final var hp = HostAndPort.fromString(tserver.getServer());
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
-        tservers.add(new TServerInstance(ServerId.tserver(tserver.getResourceGroup(),
-            HostAndPort.fromString(tserver.getServer())), sessionId));
+        tservers.add(new TServerInstance(
+            ServerId.tserver(tserver.getResourceGroup(), hp.getHost(), hp.getPort()), sessionId));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

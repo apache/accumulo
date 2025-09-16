@@ -120,8 +120,8 @@ public abstract class AbstractServer
       if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
-      advertiseAddress =
-          new AtomicReference<>(ServerId.dynamic(serverType, resourceGroup, advertHP));
+      advertiseAddress = new AtomicReference<>(
+          ServerId.dynamic(serverType, resourceGroup, advertHP.getHost(), advertHP.getPort()));
     } else {
       advertiseAddress = new AtomicReference<>();
     }
@@ -361,8 +361,8 @@ public abstract class AbstractServer
       log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
           thriftServer.address);
     }
-    updateAdvertiseAddress(
-        ServerId.dynamic(this.serverType, this.resourceGroup, thriftServer.address));
+    updateAdvertiseAddress(ServerId.dynamic(this.serverType, this.resourceGroup,
+        thriftServer.address.getHost(), thriftServer.address.getPort()));
   }
 
   public ServerContext getContext() {

@@ -256,13 +256,15 @@ public class TabletMetadataTest {
         tm.getLoaded());
     allColumns.remove(LOADED);
     assertEquals(HostAndPort.fromParts("server1", 8555),
-        tm.getLocation().getServerInstance().getServer().getHostPort());
+        HostAndPort.fromParts(tm.getLocation().getServerInstance().getServer().getHost(),
+            tm.getLocation().getServerInstance().getServer().getPort()));
     allColumns.remove(LOCATION);
     assertEquals("s001", tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
     assertEquals(HostAndPort.fromParts("server2", 8555),
-        tm.getLast().getServerInstance().getServer().getHostPort());
+        HostAndPort.fromParts(tm.getLast().getServerInstance().getServer().getHost(),
+            tm.getLast().getServerInstance().getServer().getPort()));
     assertEquals("s000", tm.getLast().getServerInstance().getSession());
     allColumns.remove(LAST);
     assertEquals(LocationType.LAST, tm.getLast().getType());
@@ -308,7 +310,8 @@ public class TabletMetadataTest {
 
     assertEquals(extent, tm.getExtent());
     assertEquals(HostAndPort.fromParts("server1", 8555),
-        tm.getLocation().getServerInstance().getServer().getHostPort());
+        HostAndPort.fromParts(tm.getLocation().getServerInstance().getServer().getHost(),
+            tm.getLocation().getServerInstance().getServer().getPort()));
     assertEquals("s001", tm.getLocation().getServerInstance().getSession());
     assertEquals(LocationType.FUTURE, tm.getLocation().getType());
     assertFalse(tm.hasCurrent());

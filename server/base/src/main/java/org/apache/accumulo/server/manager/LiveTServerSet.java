@@ -444,8 +444,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
   static TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
     var target = TServerInstance.fromZooKeeperPathString(tabletServer);
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
-      if (entry.getValue().instance.getServer().getHostPort()
-          .equals(target.getServer().getHostPort())) {
+      if (entry.getValue().instance.getServer().getHost().equals(target.getServer().getHost())
+          && (entry.getValue().instance.getServer().getPort() == target.getServer().getPort())) {
         // Return the instance if we have no desired session ID, or we match the desired session ID
         if (target.getSession() == null || target.getSession().equals(Long.toHexString(0))
             || target.getSession().equals(entry.getValue().instance.getSession())) {

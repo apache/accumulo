@@ -285,8 +285,6 @@
                 <allow>org[.]apache[.]hadoop[.]mapred[.](FileAlreadyExistsException|InvalidJobConfException)</allow>
                 <!-- allow the following types from the visibility API -->
                 <allow>org[.]apache[.]accumulo[.]access[.].*</allow>
-                <!-- allow HostAndPort from ServerId -->
-                <allow>com[.]google[.]common[.]net[.]HostAndPort</allow>
               </allows>
             </configuration>
           </execution>

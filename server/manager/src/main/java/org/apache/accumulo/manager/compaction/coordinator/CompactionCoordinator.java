@@ -521,9 +521,9 @@ public class CompactionCoordinator
         result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
         // It is possible that by the time this added that the the compactor that made this request
         // is dead. In this cases the compaction is not actually running.
+        var hp = HostAndPort.fromString(compactorAddress);
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result,
-                ServerId.compactor(groupId, HostAndPort.fromString(compactorAddress))));
+            new RunningCompaction(result, ServerId.compactor(groupId, hp.getHost(), hp.getPort())));
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
             rcJob);
         break;

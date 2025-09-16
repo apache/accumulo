@@ -785,7 +785,7 @@ public class Upgrader11to12 implements Upgrader {
     } catch (JsonSyntaxException e) {
       final String session = key.getColumnQualifier().toString();
       final HostAndPort hp = HostAndPort.fromString(value.toString());
-      final var tsi = new TServerInstance(ServerId.tserver(hp), session);
+      final var tsi = new TServerInstance(ServerId.tserver(hp.getHost(), hp.getPort()), session);
       switch (key.getColumnFamily().toString()) {
         case (CurrentLocationColumnFamily.STR_NAME):
           m.at().family(CurrentLocationColumnFamily.NAME).qualifier(session).put(tsi.serialize());

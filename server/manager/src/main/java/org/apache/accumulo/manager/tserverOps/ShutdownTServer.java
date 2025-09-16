@@ -34,6 +34,8 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
+
 public class ShutdownTServer extends ManagerRepo {
 
   private static final long serialVersionUID = 2L;
@@ -90,12 +92,13 @@ public class ShutdownTServer extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
+      var hp = HostAndPort.fromParts(server.getServer().getHost(), server.getServer().getPort());
       ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
-      var path = manager.getContext().getServerPaths().createTabletServerPath(
-          server.getServer().getResourceGroup(), server.getServer().getHostPort());
+      var path = manager.getContext().getServerPaths()
+          .createTabletServerPath(server.getServer().getResourceGroup(), hp);
       ServiceLock.deleteLock(zoo, path);
-      path = manager.getContext().getServerPaths().createDeadTabletServerPath(
-          server.getServer().getResourceGroup(), server.getServer().getHostPort());
+      path = manager.getContext().getServerPaths()
+          .createDeadTabletServerPath(server.getServer().getResourceGroup(), hp);
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     }

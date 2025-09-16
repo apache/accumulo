@@ -66,8 +66,11 @@ public class ConfigurableScanServerSelectorTest {
     InitParams(Set<String> scanServers, Map<String,String> opts) {
       this.opts = opts;
       var scanServersMap = new HashMap<ServerId,ResourceGroupId>();
-      scanServers.forEach(sserv -> scanServersMap
-          .put(ServerId.sserver(HostAndPort.fromString(sserv)), ResourceGroupId.DEFAULT));
+      scanServers.forEach(sserv -> {
+        var hp = HostAndPort.fromString(sserv);
+        scanServersMap.put(ServerId.sserver(ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()),
+            ResourceGroupId.DEFAULT);
+      });
       this.scanServers = () -> scanServersMap;
     }
 
@@ -157,7 +160,8 @@ public class ConfigurableScanServerSelectorTest {
     }
 
     TestScanServerAttempt(String server, Result result) {
-      this.server = ServerId.sserver(HostAndPort.fromString(server));
+      var hp = HostAndPort.fromString(server);
+      this.server = ServerId.sserver(hp.getHost(), hp.getPort());
       this.result = result;
     }
 

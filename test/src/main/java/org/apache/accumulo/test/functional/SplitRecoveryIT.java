@@ -211,8 +211,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         highDatafileSizes, highDatafilesToRemove);
 
     SplitRecovery11to12.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
+    final var hp = HostAndPort.fromString(location);
     TServerInstance instance =
-        new TServerInstance(ServerId.tserver(HostAndPort.fromString(location)), zl.getSessionId());
+        new TServerInstance(ServerId.tserver(hp.getHost(), hp.getPort()), zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);

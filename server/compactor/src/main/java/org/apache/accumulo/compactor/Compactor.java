@@ -139,6 +139,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
@@ -368,8 +369,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throws KeeperException, InterruptedException {
 
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
-    final ServiceLockPath path = getContext().getServerPaths()
-        .createCompactorPath(getResourceGroup(), clientAddress.getHostPort());
+    final ServiceLockPath path =
+        getContext().getServerPaths().createCompactorPath(getResourceGroup(),
+            HostAndPort.fromParts(clientAddress.getHost(), clientAddress.getPort()));
     ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
     compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
     LockWatcher lw = new ServiceLockWatcher(Type.COMPACTOR, () -> getShutdownComplete().get(),
@@ -753,7 +755,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
   protected Collection<Tag> getServiceTags(ServerId clientAddress) {
     return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress.getHostPort(), clientAddress.getResourceGroup());
+        clientAddress);
   }
 
   private void performFailureProcessing(ConsecutiveErrorHistory errorHistory)

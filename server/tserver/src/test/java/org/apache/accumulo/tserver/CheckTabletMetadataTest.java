@@ -90,7 +90,8 @@ public class CheckTabletMetadataTest {
   }
 
   private static ServerId csi(String location) {
-    return ServerId.tserver(HostAndPort.fromString(location));
+    var hp = HostAndPort.fromString(location);
+    return ServerId.tserver(hp.getHost(), hp.getPort());
   }
 
   @Test

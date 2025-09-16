@@ -228,7 +228,7 @@ public class ThriftUtil {
 
         // Make sure a timeout is set
         try {
-          transport = TTimeoutTransport.create(address.getHostPort(), timeout);
+          transport = TTimeoutTransport.create(address, timeout);
         } catch (TTransportException e) {
           log.warn("Failed to open transport to {}", address);
           throw e;
@@ -302,7 +302,7 @@ public class ThriftUtil {
           transport.open();
         } else {
           try {
-            transport = TTimeoutTransport.create(address.getHostPort(), timeout);
+            transport = TTimeoutTransport.create(address, timeout);
           } catch (TTransportException ex) {
             log.warn("Failed to open transport to {}", address);
             throw ex;

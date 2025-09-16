@@ -366,7 +366,8 @@ public class NullTserver {
       List<Assignment> assignments = new ArrayList<>();
       try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
         long randomSessionID = opts.port;
-        TServerInstance instance = new TServerInstance(ServerId.tserver(addr), randomSessionID);
+        TServerInstance instance =
+            new TServerInstance(ServerId.tserver(addr.getHost(), addr.getPort()), randomSessionID);
         var s = tablets.iterator();
 
         while (s.hasNext()) {

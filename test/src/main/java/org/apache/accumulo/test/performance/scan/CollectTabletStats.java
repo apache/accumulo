@@ -371,11 +371,11 @@ public class CollectTabletStats {
           if (selectLocalTablets && isLocal) {
             candidates.add(tabletMeta.getExtent());
             tabletLocations.put(tabletMeta.getExtent(),
-                loc.getServerInstance().getServer().getHostPort().toString());
+                loc.getServerInstance().getServer().toHostPortString());
           } else if (!selectLocalTablets && !isLocal) {
             candidates.add(tabletMeta.getExtent());
             tabletLocations.put(tabletMeta.getExtent(),
-                loc.getServerInstance().getServer().getHostPort().toString());
+                loc.getServerInstance().getServer().toHostPortString());
           }
         }
       }

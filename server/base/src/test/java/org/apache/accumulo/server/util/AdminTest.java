@@ -80,9 +80,10 @@ public class AdminTest {
     String type = Constants.ZTSERVERS;
     String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
+    var hp = HostAndPort.fromString(server);
     final long session = 123456789L;
     ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(),
-        ServerId.tserver(HostAndPort.fromString(server)), ThriftService.TABLET_SCAN);
+        ServerId.tserver(hp.getHost(), hp.getPort()), ThriftService.TABLET_SCAN);
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";

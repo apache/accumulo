@@ -155,6 +155,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.net.HostAndPort;
 
 public class TabletServer extends AbstractServer implements TabletHostingServer {
 
@@ -484,8 +485,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
-      final ServiceLockPath zLockPath = context.getServerPaths()
-          .createTabletServerPath(getResourceGroup(), getAdvertiseAddress().getHostPort());
+      final ServiceLockPath zLockPath = context.getServerPaths().createTabletServerPath(
+          getResourceGroup(),
+          HostAndPort.fromParts(getAdvertiseAddress().getHost(), getAdvertiseAddress().getPort()));
       ServiceLockSupport.createNonHaServiceLockPath(Type.TABLET_SERVER, zoo, zLockPath);
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
@@ -562,7 +564,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         pausedMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
-        getAdvertiseAddress().getHostPort(), getResourceGroup()));
+        getAdvertiseAddress()));
 
     final long lockSessionId = announceExistence();
     getContext().setServiceLock(tabletServerLock);

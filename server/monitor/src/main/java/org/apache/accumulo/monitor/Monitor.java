@@ -410,7 +410,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        monitorHostAndPort.getHostPort(), getResourceGroup()));
+        monitorHostAndPort));
 
     // Needed to support the existing zk monitor address format
     if (!rootContext.endsWith("/")) {

@@ -67,6 +67,7 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -156,8 +157,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     TabletMetadata flushed = getTabletMetadata(client, tableId, null);
     assertTrue(flushed.hasCurrent());
     assertNotNull(flushed.getLocation());
-    assertEquals(flushed.getLocation().getServerInstance().getServer().getHostPort(),
-        flushed.getLast().getServerInstance().getServer().getHostPort());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getHost(),
+        flushed.getLast().getServerInstance().getServer().getHost());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getPort(),
+        flushed.getLast().getServerInstance().getServer().getPort());
     assertFalse(flushed.getLocation().getType().equals(LocationType.FUTURE));
     assertEquals(TabletAvailability.ONDEMAND, flushed.getTabletAvailability());
 
@@ -166,8 +169,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     TabletMetadata offline = getTabletMetadata(client, tableId, null);
     assertFalse(offline.hasCurrent());
     assertNull(offline.getLocation());
-    assertEquals(flushed.getLocation().getServerInstance().getServer().getHostPort(),
-        offline.getLast().getServerInstance().getServer().getHostPort());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getHost(),
+        offline.getLast().getServerInstance().getServer().getHost());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getPort(),
+        offline.getLast().getServerInstance().getServer().getPort());
     assertEquals(TabletAvailability.ONDEMAND, offline.getTabletAvailability());
 
     // put it back online
@@ -175,8 +180,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     TabletMetadata online = getTabletMetadata(client, tableId, null);
     assertTrue(online.hasCurrent());
     assertNotNull(online.getLocation());
-    assertEquals(online.getLocation().getServerInstance().getServer().getHostPort(),
-        online.getLast().getServerInstance().getServer().getHostPort());
+    assertEquals(online.getLocation().getServerInstance().getServer().getHost(),
+        online.getLast().getServerInstance().getServer().getHost());
+    assertEquals(online.getLocation().getServerInstance().getServer().getPort(),
+        online.getLast().getServerInstance().getServer().getPort());
     assertEquals(TabletAvailability.ONDEMAND, online.getTabletAvailability());
 
     // set the tablet availability to HOSTED
@@ -192,8 +199,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     final TabletMetadata always = getTabletMetadata(client, tableId, null);
     assertTrue(hostedOrCurrentNotNull.test(always));
     assertTrue(always.hasCurrent());
-    assertEquals(flushed.getLocation().getServerInstance().getServer().getHostPort(),
-        always.getLast().getServerInstance().getServer().getHostPort());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getHost(),
+        always.getLast().getServerInstance().getServer().getHost());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getPort(),
+        always.getLast().getServerInstance().getServer().getPort());
     assertEquals(TabletAvailability.HOSTED, always.getTabletAvailability());
 
     // set the hosting availability to never
@@ -207,8 +216,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     final TabletMetadata unhosted = getTabletMetadata(client, tableId, null);
     assertTrue(unhostedOrCurrentNull.test(unhosted));
     assertNull(unhosted.getLocation());
-    assertEquals(flushed.getLocation().getServerInstance().getServer().getHostPort(),
-        unhosted.getLast().getServerInstance().getServer().getHostPort());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getHost(),
+        unhosted.getLast().getServerInstance().getServer().getHost());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getPort(),
+        unhosted.getLast().getServerInstance().getServer().getPort());
     assertEquals(TabletAvailability.UNHOSTED, unhosted.getTabletAvailability());
 
     // set the tablet availability to ONDEMAND
@@ -220,8 +231,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     final TabletMetadata ondemand = getTabletMetadata(client, tableId, null);
     assertTrue(ondemandHosted.test(ondemand));
     assertNull(ondemand.getLocation());
-    assertEquals(flushed.getLocation().getServerInstance().getServer().getHostPort(),
-        ondemand.getLast().getServerInstance().getServer().getHostPort());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getHost(),
+        ondemand.getLast().getServerInstance().getServer().getHost());
+    assertEquals(flushed.getLocation().getServerInstance().getServer().getPort(),
+        ondemand.getLast().getServerInstance().getServer().getPort());
     assertEquals(TabletAvailability.ONDEMAND, ondemand.getTabletAvailability());
   }
 
@@ -527,22 +540,17 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     ((ClientContext) client).getTabletLocationCache(tid).binRanges((ClientContext) client,
         Collections.singletonList(TabletsSection.getRange()), binnedRanges);
     binnedRanges.keySet().forEach((location) -> {
-      HostAndPort address = location.getHostPort();
-      String addressWithSession = address.toString();
-      var zLockPath = getCluster().getServerContext().getServerPaths()
-          .createTabletServerPath(ResourceGroupId.DEFAULT, address);
+      var zLockPath = getCluster().getServerContext().getServerPaths().createTabletServerPath(
+          ResourceGroupId.DEFAULT, HostAndPort.fromParts(location.getHost(), location.getPort()));
       long sessionId =
           ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-      if (sessionId != 0) {
-        addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
-      }
+      final TServerInstance inst = new TServerInstance(location, sessionId);
 
-      final String finalAddress = addressWithSession;
-      System.out.println("Attempting to shutdown TabletServer at: " + address);
+      System.out.println("Attempting to shutdown TabletServer at: " + inst);
       try {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false),
+                getCluster().getServerContext().rpcCreds(), inst.toZooKeeperPathString(), false),
             ResourceGroupPredicate.DEFAULT_RG_ONLY);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
@@ -579,22 +587,17 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     Locations locs = client.tableOperations().locate(SystemTables.ROOT.tableName(),
         Collections.singletonList(TabletsSection.getRange()));
     locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
-      HostAndPort address = location.getHostPort();
-      String addressWithSession = address.toString();
-      var zLockPath = getCluster().getServerContext().getServerPaths()
-          .createTabletServerPath(ResourceGroupId.DEFAULT, address);
+      var zLockPath = getCluster().getServerContext().getServerPaths().createTabletServerPath(
+          ResourceGroupId.DEFAULT, HostAndPort.fromParts(location.getHost(), location.getPort()));
       long sessionId =
           ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
-      if (sessionId != 0) {
-        addressWithSession = address + "[" + Long.toHexString(sessionId) + "]";
-      }
+      final TServerInstance inst = new TServerInstance(location, sessionId);
 
-      final String finalAddress = addressWithSession;
-      System.out.println("Attempting to shutdown TabletServer at: " + address);
+      System.out.println("Attempting to shutdown TabletServer at: " + inst);
       try {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false),
+                getCluster().getServerContext().rpcCreds(), inst.toZooKeeperPathString(), false),
             ResourceGroupPredicate.DEFAULT_RG_ONLY);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);

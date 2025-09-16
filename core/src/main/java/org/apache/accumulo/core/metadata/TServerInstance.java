@@ -60,7 +60,8 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     var rgid = ResourceGroupId.of(parts[0]);
     var hostAndPort = HostAndPort.fromString(parts[1]);
     var session = parts[2];
-    return new TServerInstance(ServerId.tserver(rgid, hostAndPort), session);
+    return new TServerInstance(ServerId.tserver(rgid, hostAndPort.getHost(), hostAndPort.getPort()),
+        session);
   }
 
   private final ServerId server;
@@ -91,8 +92,8 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
 
   private void setZooKeeperPathString() {
-    this.hostPortSession =
-        server.getResourceGroup().canonical() + "+" + server.getHostPort() + "+" + this.session;
+    this.hostPortSession = server.getResourceGroup().canonical() + "+" + server.toHostPortString()
+        + "+" + this.session;
   }
 
   @Override

@@ -130,6 +130,7 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -315,8 +316,9 @@ public class ScanServer extends AbstractServer
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
-      final ServiceLockPath zLockPath = context.getServerPaths()
-          .createScanServerPath(getResourceGroup(), getAdvertiseAddress().getHostPort());
+      final ServiceLockPath zLockPath = context.getServerPaths().createScanServerPath(
+          getResourceGroup(),
+          HostAndPort.fromParts(getAdvertiseAddress().getHost(), getAdvertiseAddress().getPort()));
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
@@ -377,7 +379,7 @@ public class ScanServer extends AbstractServer
 
     metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress().getHostPort(), getResourceGroup()));
+        getAdvertiseAddress()));
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();

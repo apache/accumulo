@@ -39,8 +39,6 @@ import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelectorTest.Test
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt.Result;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class ConfigurableScanServerHostSelectorTest {
 
   private final ServerId ss1 = ServerId.sserver("host1", 2000);
@@ -76,7 +74,6 @@ public class ConfigurableScanServerHostSelectorTest {
     assertNotNull(selection);
     final ServerId firstServer = selection.getScanServer(tId);
     assertNotNull(firstServer);
-    final HostAndPort firstHP = firstServer.getHostPort();
 
     final Set<ServerId> remainingServers = new HashSet<>();
     if (host1Servers.contains(firstServer)) {
@@ -98,8 +95,7 @@ public class ConfigurableScanServerHostSelectorTest {
     while (!remainingServers.isEmpty()) {
       selection = selector.selectServers(new SelectorParams(tId, Map.of(tId, attempts), Map.of()));
       ServerId selectedServer = selection.getScanServer(tId);
-      HostAndPort selectedHP = selectedServer.getHostPort();
-      assertEquals(selectedHP.getHost(), firstHP.getHost());
+      assertEquals(selectedServer.getHost(), firstServer.getHost());
       assertTrue(remainingServers.remove(selectedServer));
       attempts.add(new TestScanServerAttempt(selectedServer, Result.BUSY));
     }
@@ -107,8 +103,7 @@ public class ConfigurableScanServerHostSelectorTest {
     // At this point we should have exhausted all of the scan servers on the first selected host
     selection = selector.selectServers(new SelectorParams(tId, Map.of(tId, attempts), Map.of()));
     ServerId secondServer = selection.getScanServer(tId);
-    final HostAndPort secondHP = secondServer.getHostPort();
-    assertFalse(secondHP.getHost().equals(firstHP.getHost()));
+    assertFalse(secondServer.getHost().equals(firstServer.getHost()));
 
     if (host1Servers.contains(secondServer)) {
       if (firstHostSeen) {
@@ -137,8 +132,7 @@ public class ConfigurableScanServerHostSelectorTest {
     while (!remainingServers.isEmpty()) {
       selection = selector.selectServers(new SelectorParams(tId, Map.of(tId, attempts), Map.of()));
       ServerId selectedServer = selection.getScanServer(tId);
-      HostAndPort selectedHP = selectedServer.getHostPort();
-      assertEquals(selectedHP.getHost(), secondHP.getHost());
+      assertEquals(selectedServer.getHost(), secondServer.getHost());
       assertTrue(remainingServers.remove(selectedServer));
       attempts.add(new TestScanServerAttempt(selectedServer, Result.BUSY));
     }
@@ -147,9 +141,8 @@ public class ConfigurableScanServerHostSelectorTest {
     // selected host
     selection = selector.selectServers(new SelectorParams(tId, Map.of(tId, attempts), Map.of()));
     ServerId thirdServer = selection.getScanServer(tId);
-    final HostAndPort thirdHP = thirdServer.getHostPort();
-    assertFalse(thirdHP.getHost().equals(firstHP.getHost()));
-    assertFalse(thirdHP.getHost().equals(secondHP.getHost()));
+    assertFalse(thirdServer.getHost().equals(firstServer.getHost()));
+    assertFalse(thirdServer.getHost().equals(secondServer.getHost()));
 
     if (host1Servers.contains(thirdServer)) {
       if (firstHostSeen) {
@@ -178,8 +171,7 @@ public class ConfigurableScanServerHostSelectorTest {
     while (!remainingServers.isEmpty()) {
       selection = selector.selectServers(new SelectorParams(tId, Map.of(tId, attempts), Map.of()));
       ServerId selectedServer = selection.getScanServer(tId);
-      HostAndPort selectedHP = selectedServer.getHostPort();
-      assertEquals(selectedHP.getHost(), thirdHP.getHost());
+      assertEquals(selectedServer.getHost(), thirdServer.getHost());
       assertTrue(remainingServers.remove(selectedServer));
       attempts.add(new TestScanServerAttempt(selectedServer, Result.BUSY));
     }

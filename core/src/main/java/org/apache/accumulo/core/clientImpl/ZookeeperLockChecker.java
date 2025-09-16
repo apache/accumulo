@@ -32,6 +32,8 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 
+import com.google.common.net.HostAndPort;
+
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   private final ZooCache zc;
@@ -46,7 +48,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     // ServiceLockPaths only returns items that have a lock
     Set<ServiceLockPath> tservers =
         lockPaths.getTabletServer(ResourceGroupPredicate.exact(server.getResourceGroup()),
-            AddressSelector.exact(server.getHostPort()), true);
+            AddressSelector.exact(HostAndPort.fromParts(server.getHost(), server.getPort())), true);
     return !tservers.isEmpty();
   }
 
@@ -55,7 +57,7 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     // ServiceLockPaths only returns items that have a lock
     Set<ServiceLockPath> tservers =
         lockPaths.getTabletServer(ResourceGroupPredicate.exact(server.getResourceGroup()),
-            AddressSelector.exact(server.getHostPort()), true);
+            AddressSelector.exact(HostAndPort.fromParts(server.getHost(), server.getPort())), true);
     for (ServiceLockPath slp : tservers) {
       if (ServiceLock.getSessionId(zc, slp) == Long.parseLong(session, 16)) {
         return true;

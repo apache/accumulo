@@ -781,7 +781,7 @@ public class Admin implements KeywordExecutable {
       }
       for (ServerId sid : runningServers) {
         final TServerInstance finalServer =
-            qualifyWithZooKeeperSessionId(context, zc, sid.getHostPort().toString());
+            qualifyWithZooKeeperSessionId(context, zc, sid.toHostPortString());
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context,
             client -> client.shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(),
@@ -804,14 +804,17 @@ public class Admin implements KeywordExecutable {
     Set<ServiceLockPath> paths = context.getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.exact(hpObj), true);
     if (paths.size() != 1) {
-      return new TServerInstance(ServerId.tserver(hpObj), Long.toHexString(0));
+      return new TServerInstance(ServerId.tserver(hpObj.getHost(), hpObj.getPort()),
+          Long.toHexString(0));
     }
     ServiceLockPath slp = paths.iterator().next();
     long sessionId = ServiceLock.getSessionId(zooCache, slp);
     if (sessionId == 0) {
-      return new TServerInstance(ServerId.tserver(hpObj), Long.toHexString(0));
+      return new TServerInstance(ServerId.tserver(hpObj.getHost(), hpObj.getPort()),
+          Long.toHexString(0));
     }
-    return new TServerInstance(ServerId.tserver(hpObj), Long.toHexString(sessionId));
+    return new TServerInstance(ServerId.tserver(hpObj.getHost(), hpObj.getPort()),
+        Long.toHexString(sessionId));
   }
 
   private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
