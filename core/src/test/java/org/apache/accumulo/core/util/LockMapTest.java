@@ -18,12 +18,14 @@
  */
 package org.apache.accumulo.core.util;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -88,7 +90,9 @@ public class LockMapTest {
    */
   @Test
   public void testConcurrency() throws Exception {
-    var executor = Executors.newFixedThreadPool(32);
+    final int numThreads = 32;
+    var executor = Executors.newFixedThreadPool(numThreads);
+    final int numTasks = numThreads * 4;
 
     try {
       var lockMap = new LockMap<Integer>();
@@ -97,13 +101,21 @@ public class LockMapTest {
       var booleans = new AtomicBoolean[] {new AtomicBoolean(), new AtomicBoolean(),
           new AtomicBoolean(), new AtomicBoolean(), new AtomicBoolean()};
 
-      var futures = new ArrayList<Future<Boolean>>();
+      var futures = new ArrayList<Future<Boolean>>(numTasks);
+      // start a portion of threads at the same time
+      CountDownLatch startLatch = new CountDownLatch(numThreads);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
+      assertTrue(numThreads >= startLatch.getCount(),
+          "Not enough threads to satisfy latch count - deadlock risk");
 
       var maxLocked = new AtomicLong(0);
 
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < numTasks; i++) {
         int key = random.nextInt(booleans.length);
         var future = executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
           try (var unused = lockMap.lock(key)) {
             var set1 = booleans[key].compareAndSet(false, true);
             // maxLocked is used to check that at some point we see another thread w/ a lock for a
@@ -121,6 +133,7 @@ public class LockMapTest {
         });
         futures.add(future);
       }
+      assertEquals(numTasks, futures.size());
 
       for (var future : futures) {
         assertTrue(future.get());

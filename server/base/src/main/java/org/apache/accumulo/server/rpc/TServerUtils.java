@@ -610,39 +610,35 @@ public class TServerUtils {
     ServerAddress serverAddress = null;
     for (HostAndPort address : addresses) {
       try {
-        switch (serverType) {
-          case SSL:
+        serverAddress = switch (serverType) {
+          case SSL -> {
             log.debug("Instantiating SSL Thrift server");
-            serverAddress = createSslThreadPoolServer(address, processor, protocolFactory,
+            yield createSslThreadPoolServer(address, processor, protocolFactory,
                 serverSocketTimeout, sslParams, serverName, numThreads, threadTimeOut, conf,
                 timeBetweenThreadChecks);
-            break;
-          case SASL:
+          }
+          case SASL -> {
             log.debug("Instantiating SASL Thrift server");
-            serverAddress = createSaslThreadPoolServer(address, processor, protocolFactory,
+            yield createSaslThreadPoolServer(address, processor, protocolFactory,
                 serverSocketTimeout, saslParams, serverName, numThreads, threadTimeOut, conf,
                 timeBetweenThreadChecks, backlog);
-            break;
-          case THREADPOOL:
+          }
+          case THREADPOOL -> {
             log.debug("Instantiating unsecure TThreadPool Thrift server");
-            serverAddress =
-                createBlockingServer(address, processor, protocolFactory, maxMessageSize,
-                    serverName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, backlog);
-            break;
-          case THREADED_SELECTOR:
+            yield createBlockingServer(address, processor, protocolFactory, maxMessageSize,
+                serverName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, backlog);
+          }
+          case THREADED_SELECTOR -> {
             log.debug("Instantiating default, unsecure Threaded selector Thrift server");
-            serverAddress = createThreadedSelectorServer(address, processor, protocolFactory,
-                serverName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks,
-                maxMessageSize, backlog);
-            break;
-          case CUSTOM_HS_HA:
-            log.debug("Instantiating unsecure custom half-async Thrift server");
-            serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName,
+            yield createThreadedSelectorServer(address, processor, protocolFactory, serverName,
                 numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
-            break;
-          default:
-            throw new IllegalArgumentException("Unknown server type " + serverType);
-        }
+          }
+          case CUSTOM_HS_HA -> {
+            log.debug("Instantiating unsecure custom half-async Thrift server");
+            yield createNonBlockingServer(address, processor, protocolFactory, serverName,
+                numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
+          }
+        };
         break;
       } catch (TTransportException e) {
         if (portSearch) {
