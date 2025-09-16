@@ -136,8 +136,7 @@ public class MetaFateStoreFateIT extends FateStoreITBase {
       Object currentNode) throws Exception {
     Object currentResAsObject = nodeReservation.get(currentNode);
     Optional<FateStore.FateReservation> currentReservation = Optional.empty();
-    if (currentResAsObject instanceof Optional) {
-      Optional<?> currentResAsOptional = (Optional<?>) currentResAsObject;
+    if (currentResAsObject instanceof Optional<?> currentResAsOptional) {
       if (currentResAsOptional.isPresent()
           && currentResAsOptional.orElseThrow() instanceof FateStore.FateReservation) {
         currentReservation =

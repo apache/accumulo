@@ -303,8 +303,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
         Throwable tnfeCause = eCause.getCause();
-        if (tnfeCause instanceof NamespaceNotFoundException) {
-          var nnfe = (NamespaceNotFoundException) tnfeCause;
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
           nnfe.addSuppressed(e);
           throw nnfe;
         }
@@ -328,8 +327,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
         Throwable tnfeCause = eCause.getCause();
-        if (tnfeCause instanceof NamespaceNotFoundException) {
-          var nnfe = (NamespaceNotFoundException) tnfeCause;
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
           nnfe.addSuppressed(e);
           throw nnfe;
         }
@@ -368,8 +366,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
         Throwable tnfeCause = eCause.getCause();
-        if (tnfeCause instanceof NamespaceNotFoundException) {
-          var nnfe = (NamespaceNotFoundException) tnfeCause;
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
           nnfe.addSuppressed(e);
           throw nnfe;
         }

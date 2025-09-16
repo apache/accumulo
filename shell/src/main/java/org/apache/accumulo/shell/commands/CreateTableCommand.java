@@ -124,17 +124,11 @@ public class CreateTableCommand extends Command {
     if (cl.hasOption(createTableOptInitialTabletAvailability.getOpt())) {
       String tabletAvailability =
           cl.getOptionValue(createTableOptInitialTabletAvailability.getOpt()).toUpperCase();
-      TabletAvailability initialTabletAvailability;
-      switch (tabletAvailability) {
-        case "HOSTED":
-          initialTabletAvailability = TabletAvailability.HOSTED;
-          break;
-        case "UNHOSTED":
-          initialTabletAvailability = TabletAvailability.UNHOSTED;
-          break;
-        default:
-          initialTabletAvailability = TabletAvailability.ONDEMAND;
-      }
+      TabletAvailability initialTabletAvailability = switch (tabletAvailability) {
+        case "HOSTED" -> TabletAvailability.HOSTED;
+        case "UNHOSTED" -> TabletAvailability.UNHOSTED;
+        default -> TabletAvailability.ONDEMAND;
+      };
       ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
     }
 

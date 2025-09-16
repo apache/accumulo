@@ -71,8 +71,7 @@ public class SamplerConfigurationImpl implements Writable {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SamplerConfigurationImpl) {
-      SamplerConfigurationImpl osc = (SamplerConfigurationImpl) o;
+    if (o instanceof SamplerConfigurationImpl osc) {
 
       return className.equals(osc.className) && options.equals(osc.options);
     }

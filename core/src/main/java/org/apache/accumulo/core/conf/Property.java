@@ -457,30 +457,30 @@ public enum Property {
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
   MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
-      "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+      "{'general':{'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
           + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
-          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE\": 4,"
-          + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4}, "
+          + "'commit':{'COMMIT_COMPACTION': 4}, 'split':{'SYSTEM_SPLIT': 4}}".replace("'", "\""),
       PropertyType.FATE_USER_CONFIG,
       "The number of threads used to run fault-tolerant executions (FATE) on user"
-          + "tables. These are primarily table operations like merge. Each key/value "
-          + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
-          + "more FATE operations and each value is the number of threads that will be assigned "
-          + "to the pool.",
+          + "tables. These are primarily table operations like merge. The property value is JSON. "
+          + "Each key is the name of the pool (can be assigned any string). Each value is a JSON "
+          + "object (with a single key/value) whose key is a comma-separated string list of "
+          + "operations and whose value is a pool size for those operations.",
       "4.0.0"),
   MANAGER_FATE_META_CONFIG("manager.fate.meta.config",
-      "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+      "{'general':{'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
           + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
-          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE\": 4,"
-          + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4}, "
+          + "'commit':{'COMMIT_COMPACTION': 4}, 'split':{'SYSTEM_SPLIT': 4}}".replace("'", "\""),
       PropertyType.FATE_META_CONFIG,
-      "The number of threads used to run fault-tolerant executions (FATE) on Accumulo"
-          + "system tables. These are primarily table operations like merge. Each key/value "
-          + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
-          + "more FATE operations and each value is the number of threads that will be assigned "
-          + "to the pool.",
+      "The number of threads used to run fault-tolerant executions (FATE) on Accumulo system"
+          + "tables. These are primarily table operations like merge. The property value is JSON. "
+          + "Each key is the name of the pool (can be assigned any string). Each value is a JSON "
+          + "object (with a single key/value) whose key is a comma-separated string list of "
+          + "operations and whose value is a pool size for those operations.",
       "4.0.0"),
   @Deprecated(since = "4.0.0")
   MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
@@ -493,10 +493,12 @@ public enum Property {
       "1.4.3"),
   MANAGER_FATE_IDLE_CHECK_INTERVAL("manager.fate.idle.check.interval", "60m",
       PropertyType.TIMEDURATION,
-      "The interval at which to check if the number of idle Fate threads has consistently been zero."
-          + " The way this is checked is an approximation. Logs a warning in the Manager log to change"
-          + " MANAGER_FATE_USER_CONFIG or MANAGER_FATE_META_CONFIG. A value less than a minute disables"
-          + " this check and has a maximum value of 60m.",
+      String.format(
+          "The interval at which to check if the number of idle Fate threads has consistently been"
+              + " zero. The way this is checked is an approximation. Logs a warning in the Manager"
+              + " log to change %s or %s. A value less than a minute disables this check and has a"
+              + " maximum value of 60m.",
+          MANAGER_FATE_USER_CONFIG.getKey(), MANAGER_FATE_META_CONFIG.getKey()),
       "4.0.0"),
   MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "

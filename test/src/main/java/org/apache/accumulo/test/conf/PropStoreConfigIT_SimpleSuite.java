@@ -29,11 +29,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -574,11 +575,18 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
    * if any single modification is lost it can be detected.
    */
   private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    final int numTasks = 4;
+    ExecutorService executor = Executors.newFixedThreadPool(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks/threads to satisfy latch count - deadlock risk");
+    var tasks = new ArrayList<Callable<Void>>(numTasks);
 
     final int iterations = 151;
 
-    Callable<Void> task1 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
 
         Map<String,String> prevProps = null;
@@ -619,9 +627,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         }
       }
       return null;
-    };
+    });
 
-    Callable<Void> task2 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
@@ -632,9 +642,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
 
-    Callable<Void> task3 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
@@ -643,9 +655,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
 
-    Callable<Void> task4 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));
@@ -653,10 +667,12 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
+
+    assertEquals(numTasks, tasks.size());
 
     // run all of the above task concurrently
-    for (Future<Void> future : executor.invokeAll(List.of(task1, task2, task3, task4))) {
+    for (Future<Void> future : executor.invokeAll(tasks)) {
       // see if there were any exceptions in the background thread and wait for it to finish
       future.get();
     }

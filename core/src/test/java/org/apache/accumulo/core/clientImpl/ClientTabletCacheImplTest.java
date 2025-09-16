@@ -40,6 +40,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1989,8 +1990,12 @@ public class ClientTabletCacheImplTest {
     var executor = Executors.newCachedThreadPool();
     final int lookupCount = 128;
     final int roundCount = 8;
+    final int numTasks = roundCount * lookupCount;
 
-    List<Future<CachedTablet>> futures = new ArrayList<>(roundCount * lookupCount);
+    List<Future<CachedTablet>> futures = new ArrayList<>(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at once
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
 
     // multiple rounds to increase the chance of contention
     for (int round = 0; round < roundCount; round++) {
@@ -2008,6 +2013,8 @@ public class ClientTabletCacheImplTest {
 
       for (var lookup : rowsToLookup) {
         var future = executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
           if (RANDOM.get().nextInt(10) < 3) {
             Thread.yield();
           }
@@ -2024,6 +2031,7 @@ public class ClientTabletCacheImplTest {
         futures.add(future);
       }
     }
+    assertEquals(numTasks, futures.size());
 
     for (var future : futures) {
       assertNotNull(future.get());

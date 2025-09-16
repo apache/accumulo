@@ -117,8 +117,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       }
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftResourceGroupNotExistsException) {
-        var te = (ThriftResourceGroupNotExistsException) t;
+      if (t instanceof ThriftResourceGroupNotExistsException te) {
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;
@@ -144,8 +143,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           ResourceGroupPredicate.DEFAULT_RG_ONLY);
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftResourceGroupNotExistsException) {
-        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+      if (t instanceof ThriftResourceGroupNotExistsException te) {
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;
@@ -165,8 +163,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           ResourceGroupPredicate.exact(group));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftResourceGroupNotExistsException) {
-        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+      if (t instanceof ThriftResourceGroupNotExistsException te) {
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;
@@ -200,8 +197,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           ResourceGroupPredicate.DEFAULT_RG_ONLY);
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftResourceGroupNotExistsException) {
-        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+      if (t instanceof ThriftResourceGroupNotExistsException te) {
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;
@@ -262,8 +258,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           ResourceGroupPredicate.DEFAULT_RG_ONLY);
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftResourceGroupNotExistsException) {
-        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+      if (t instanceof ThriftResourceGroupNotExistsException te) {
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;
@@ -281,8 +276,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           ResourceGroupPredicate.DEFAULT_RG_ONLY);
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftResourceGroupNotExistsException) {
-        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+      if (t instanceof ThriftResourceGroupNotExistsException te) {
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;

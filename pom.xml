@@ -1529,6 +1529,13 @@
       <id>sunny</id>
       <properties>
         <failsafe.groups>SunnyDay</failsafe.groups>
+        <!--
+          exclude junit-platform-suite engine from this list of engines to run,
+          so it skips the SimpleSuite tests, which contain no sunny tests, to
+          prevent the suite engine from running the BeforeSuite and AfterSuite
+          minicluster setup and teardown unnecessarily for zero tests
+        -->
+        <failsafe.includeJUnit5Engines>junit-jupiter</failsafe.includeJUnit5Engines>
       </properties>
     </profile>
     <profile>

@@ -41,11 +41,9 @@ public class ClientInfoProcessorFactory extends TProcessorFactory {
 
   @Override
   public TProcessor getProcessor(TTransport trans) {
-    if (trans instanceof TBufferedSocket) {
-      TBufferedSocket tsock = (TBufferedSocket) trans;
+    if (trans instanceof TBufferedSocket tsock) {
       clientAddress.set(tsock.getClientString());
-    } else if (trans instanceof TSocket) {
-      TSocket tsock = (TSocket) trans;
+    } else if (trans instanceof TSocket tsock) {
       clientAddress.set(
           tsock.getSocket().getInetAddress().getHostAddress() + ":" + tsock.getSocket().getPort());
     } else {
