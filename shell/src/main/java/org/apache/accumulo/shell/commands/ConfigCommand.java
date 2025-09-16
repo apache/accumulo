@@ -213,6 +213,12 @@ public class ConfigCommand extends Command {
         logSysPropChanged(theProp, "set");
       }
     } else {
+
+      if (rgid != null) {
+        throw new IllegalArgumentException(
+            "resource group argument must be accompanied by -s or -d argument.");
+      }
+
       boolean warned = false;
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
