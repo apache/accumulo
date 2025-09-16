@@ -22,6 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Set;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.thrift.TException;
@@ -52,10 +54,10 @@ public class AccumuloProtocolTest {
       protocol.writeString(Constants.VERSION);
       protocol.writeString(INSTANCE_ID.canonical());
 
-      var serverProtocol = (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
-          .serverFactory(INSTANCE_ID).getProtocol(transport);
+      var serverProtocol =
+          AccumuloProtocolFactory.serverFactory(INSTANCE_ID).getProtocol(transport);
 
-      serverProtocol.validateHeader();
+      serverProtocol.readAndValidateHeader();
 
       assertEquals(0, transport.read(new byte[10], 0, 10), "Expected all data to be consumed");
     }
@@ -74,12 +76,11 @@ public class AccumuloProtocolTest {
       protocol.writeI32(INVALID_MAGIC_NUMBER);
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
-          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
-              .serverFactory(INSTANCE_ID).getProtocol(transport);
+          AccumuloProtocolFactory.serverFactory(INSTANCE_ID).getProtocol(transport);
 
-      TException exception = assertThrows(TException.class, serverProtocol::validateHeader);
-      assertTrue(exception.getMessage().contains("magic number mismatch"),
-          "Expected bad magic number msg. Got: " + exception.getMessage());
+      var e = assertThrows(TException.class, serverProtocol::readAndValidateHeader);
+      assertTrue(e.getMessage().contains("magic number mismatch"),
+          "Expected bad magic number msg. Got: " + e.getMessage());
     }
   }
 
@@ -96,12 +97,11 @@ public class AccumuloProtocolTest {
       // don't need to write the other header parts since it should fail before reading them
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
-          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
-              .serverFactory(INSTANCE_ID).getProtocol(transport);
+          AccumuloProtocolFactory.serverFactory(INSTANCE_ID).getProtocol(transport);
 
-      TException exception = assertThrows(TException.class, serverProtocol::validateHeader);
-      assertTrue(exception.getMessage().contains("Incompatible protocol version"),
-          "Expected incompatible version msg. Got: " + exception.getMessage());
+      var e = assertThrows(TException.class, serverProtocol::readAndValidateHeader);
+      assertTrue(e.getMessage().contains("Incompatible protocol version"),
+          "Expected incompatible version msg. Got: " + e.getMessage());
     }
   }
 
@@ -123,10 +123,9 @@ public class AccumuloProtocolTest {
       protocol.writeString(INSTANCE_ID.canonical());
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
-          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
-              .serverFactory(INSTANCE_ID).getProtocol(transport);
+          AccumuloProtocolFactory.serverFactory(INSTANCE_ID).getProtocol(transport);
 
-      serverProtocol.validateHeader();
+      serverProtocol.readAndValidateHeader();
     }
   }
 
@@ -135,24 +134,29 @@ public class AccumuloProtocolTest {
    */
   @Test
   public void testIncompatibleVersions() throws TException {
-    try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
-      TCompactProtocol protocol = new TCompactProtocol(transport);
-      protocol.writeI32(VALID_MAGIC_NUMBER);
-      protocol.writeByte(VALID_PROTOCOL_VERSION);
+    // increment major version number so it is incompatible
+    String[] parts = Constants.VERSION.split("\\.");
+    String incompatibleVersionMajorBump = (Integer.parseInt(parts[0]) + 1) + ".0.0";
+    String incompatibleVersionMinorBump = parts[0] + "." + (Integer.parseInt(parts[1]) + 1) + ".0";
+    String incompatibleVersionMajorMinorBump =
+        (Integer.parseInt(parts[0]) + 1) + "." + (Integer.parseInt(parts[1]) + 1) + ".0";
 
-      // increment major version number so it is incompatible
-      String[] parts = Constants.VERSION.split("\\.");
-      String incompatibleVersion = (Integer.parseInt(parts[0]) + 1) + ".0.0";
+    for (String incompatibleVersion : Set.of(incompatibleVersionMajorBump,
+        incompatibleVersionMinorBump, incompatibleVersionMajorMinorBump)) {
+      try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
+        TCompactProtocol protocol = new TCompactProtocol(transport);
+        protocol.writeI32(VALID_MAGIC_NUMBER);
+        protocol.writeByte(VALID_PROTOCOL_VERSION);
 
-      protocol.writeString(incompatibleVersion);
+        protocol.writeString(incompatibleVersion);
 
-      AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
-          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
-              .serverFactory(INSTANCE_ID).getProtocol(transport);
+        AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
+            AccumuloProtocolFactory.serverFactory(INSTANCE_ID).getProtocol(transport);
 
-      TException exception = assertThrows(TException.class, serverProtocol::validateHeader);
-      assertTrue(exception.getMessage().contains("Incompatible Accumulo versions"),
-          "Expected incompatible version msg. Got: " + exception.getMessage());
+        var e = assertThrows(TException.class, serverProtocol::readAndValidateHeader);
+        assertTrue(e.getMessage().contains("Incompatible Accumulo versions"),
+            "Expected incompatible version msg. Got: " + e.getMessage());
+      }
     }
   }
 
@@ -170,10 +174,9 @@ public class AccumuloProtocolTest {
       protocol.writeBool(false);
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
-          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
-              .serverFactory(INSTANCE_ID).getProtocol(transport);
+          AccumuloProtocolFactory.serverFactory(INSTANCE_ID).getProtocol(transport);
 
-      var e = assertThrows(TException.class, serverProtocol::validateHeader);
+      var e = assertThrows(TException.class, serverProtocol::readAndValidateHeader);
       assertTrue(e.getMessage().contains("Failed to read accumulo version from header"),
           "Expected incomplete header msg. Got: " + e.getMessage());
     }

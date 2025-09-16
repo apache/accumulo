@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import static java.util.Objects.requireNonNull;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TMessage;
-import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
 import io.opentelemetry.api.trace.Span;
@@ -43,10 +44,10 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
   private final boolean isClient;
   private final InstanceId instanceId;
 
-  public static class AccumuloProtocol extends TCompactProtocol {
+  static class AccumuloProtocol extends TCompactProtocol {
 
     static final int MAGIC_NUMBER = 0x41434355; // "ACCU" in ASCII
-    static final byte PROTOCOL_VERSION = 1;
+    static final byte PROTOCOL_VERSION = 1; // changes only when the header format changes
 
     private final boolean isClient;
     private final InstanceId instanceId;
@@ -54,7 +55,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     private Span span = null;
     private Scope scope = null;
 
-    public AccumuloProtocol(TTransport transport, InstanceId instanceId, boolean isClient) {
+    private AccumuloProtocol(TTransport transport, InstanceId instanceId, boolean isClient) {
       super(transport);
       this.instanceId = instanceId;
       this.isClient = isClient;
@@ -76,9 +77,12 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     @Override
     public void writeMessageEnd() throws TException {
-      super.writeMessageEnd();
-      scope.close();
-      span.end();
+      try {
+        super.writeMessageEnd();
+      } finally {
+        scope.close();
+        span.end();
+      }
     }
 
     /**
@@ -87,7 +91,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     @Override
     public TMessage readMessageBegin() throws TException {
       if (!this.isClient) {
-        this.validateHeader();
+        this.readAndValidateHeader();
       }
 
       return super.readMessageBegin();
@@ -108,7 +112,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
      *
      * @throws TException if the header is invalid or incompatible
      */
-    void validateHeader() throws TException {
+    void readAndValidateHeader() throws TException {
 
       final int magic;
       try {
@@ -190,24 +194,18 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
      *         (server)
      */
     private void validateInstanceId(String clientInstanceId) throws TException {
-      InstanceId clientId;
-      try {
-        clientId = InstanceId.of(clientInstanceId);
-      } catch (IllegalArgumentException e) {
-        throw new TException("Invalid instance ID in header: " + clientInstanceId, e);
-      }
-      if (!clientId.equals(this.instanceId)) {
+      if (!clientInstanceId.equals(this.instanceId.canonical())) {
         throw new TException(
             "Mismatched instance ID in header. Expected to match server instance ID: "
-                + this.instanceId + ", but got: " + clientId);
+                + this.instanceId + ", but got: " + clientInstanceId);
       }
     }
 
   }
 
   @Override
-  public TProtocol getProtocol(TTransport trans) {
-    return new AccumuloProtocol(trans, this.instanceId, isClient);
+  public AccumuloProtocol getProtocol(TTransport trans) {
+    return new AccumuloProtocol(requireNonNull(trans), this.instanceId, isClient);
   }
 
   /**
@@ -219,7 +217,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
    */
   private AccumuloProtocolFactory(InstanceId instanceId, boolean isClient) {
     this.isClient = isClient;
-    this.instanceId = instanceId;
+    this.instanceId = requireNonNull(instanceId);
   }
 
   /**
