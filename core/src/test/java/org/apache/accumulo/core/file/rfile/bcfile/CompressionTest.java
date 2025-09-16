@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -187,16 +188,23 @@ public class CompressionTest {
 
         assertNotNull(codec, al + " should not be null");
 
-        ExecutorService service = Executors.newFixedThreadPool(10);
+        final int numTasks = 32;
+        ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>();
+        ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < numTasks; i++) {
           results.add(service.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
             assertNotNull(al.getCodec(), al + " should not be null");
             return true;
           }));
         }
+        assertEquals(numTasks, results.size());
 
         service.shutdown();
 
@@ -227,17 +235,24 @@ public class CompressionTest {
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        ExecutorService service = Executors.newFixedThreadPool(10);
+        final int numTasks = 32;
+        ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>();
+        ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < numTasks; i++) {
 
           results.add(service.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
             assertNotNull(al.getCodec(), al + " should have a non-null codec");
             return true;
           }));
         }
+        assertEquals(numTasks, results.size());
 
         service.shutdown();
 
@@ -265,39 +280,38 @@ public class CompressionTest {
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        ExecutorService service = Executors.newFixedThreadPool(20);
+        final int numTasks = 32;
+        ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
-        ArrayList<Callable<Boolean>> list = new ArrayList<>();
+        ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>();
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
         // keep track of the system's identity hashcodes.
-        final HashSet<Integer> testSet = new HashSet<>();
 
-        for (int i = 0; i < 40; i++) {
+        for (int i = 0; i < numTasks; i++) {
           list.add(() -> {
+            startLatch.countDown();
+            startLatch.await();
             CompressionCodec codec = al.getCodec();
             assertNotNull(codec, al + " resulted in a non-null codec");
-            // add the identity hashcode to the set.
-            synchronized (testSet) {
-              testSet.add(System.identityHashCode(codec));
-            }
-            return true;
+            return System.identityHashCode(codec);
           });
         }
+        assertEquals(numTasks, list.size());
 
-        results.addAll(service.invokeAll(list));
-        // ensure that we
-        assertEquals(1, testSet.size(), al + " created too many codecs");
+        final HashSet<Integer> hashCodes = new HashSet<>();
+        for (Future<Integer> result : service.invokeAll(list)) {
+          hashCodes.add(result.get());
+        }
+        assertEquals(1, hashCodes.size(), al + " created too many codecs");
+
         service.shutdown();
 
         while (!service.awaitTermination(1, SECONDS)) {
           // wait
-        }
-
-        for (Future<Boolean> result : results) {
-          assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }

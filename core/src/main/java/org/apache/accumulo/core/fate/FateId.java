@@ -137,20 +137,12 @@ public class FateId extends AbstractId<FateId> {
    * @return the FateId equivalent of the given TFateId
    */
   public static FateId fromThrift(TFateId tFateId) {
-    FateInstanceType type;
+    FateInstanceType type = switch (tFateId.getType()) {
+      case USER -> FateInstanceType.USER;
+      case META -> FateInstanceType.META;
+    };
+
     String txUUIDStr = tFateId.getTxUUIDStr();
-
-    switch (tFateId.getType()) {
-      case USER:
-        type = FateInstanceType.USER;
-        break;
-      case META:
-        type = FateInstanceType.META;
-        break;
-      default:
-        throw new IllegalArgumentException("Invalid TFateInstanceType: " + tFateId.getType());
-    }
-
     if (isUUID(txUUIDStr, 0)) {
       return new FateId(PREFIX + type + ":" + txUUIDStr);
     } else {
@@ -163,18 +155,11 @@ public class FateId extends AbstractId<FateId> {
    * @return the TFateId equivalent of the FateId
    */
   public TFateId toThrift() {
-    TFateInstanceType thriftType;
     FateInstanceType type = getType();
-    switch (type) {
-      case USER:
-        thriftType = TFateInstanceType.USER;
-        break;
-      case META:
-        thriftType = TFateInstanceType.META;
-        break;
-      default:
-        throw new IllegalArgumentException("Invalid FateInstanceType: " + type);
-    }
+    TFateInstanceType thriftType = switch (type) {
+      case USER -> TFateInstanceType.USER;
+      case META -> TFateInstanceType.META;
+    };
     return new TFateId(thriftType, getTxUUIDStr());
   }
 }

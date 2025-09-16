@@ -1066,21 +1066,28 @@ public class CompactionIT extends CompactionITBase {
 
       // start a bunch of compactions in the background
       var executor = Executors.newCachedThreadPool();
-      List<Future<?>> futures = new ArrayList<>();
+      final int numTasks = 20;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
       // start user compactions on a subset of the tables tablets, system compactions should attempt
       // to run on all tablets. With concurrency should get a mix.
-      for (int i = 1; i < 20; i++) {
+      for (int i = 1; i < numTasks + 1; i++) {
         var startRow = new Text(String.format("r:%04d", i - 1));
         var endRow = new Text(String.format("r:%04d", i));
+        final CompactionConfig config = new CompactionConfig();
+        config.setWait(true);
+        config.setStartRow(startRow);
+        config.setEndRow(endRow);
         futures.add(executor.submit(() -> {
-          CompactionConfig config = new CompactionConfig();
-          config.setWait(true);
-          config.setStartRow(startRow);
-          config.setEndRow(endRow);
+          startLatch.countDown();
+          startLatch.await();
           client.tableOperations().compact(table, config);
           return null;
         }));
       }
+      assertEquals(numTasks, futures.size());
 
       log.debug("Waiting for offline");
       // take tablet offline while there are concurrent compactions
