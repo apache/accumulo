@@ -86,6 +86,7 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
@@ -656,7 +657,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
             .stream().flatMap(Set::stream).collect(MoreCollectors.onlyElement()));
         // ensure no new data was written
         assertEquals(new Text(row(99)), client.tableOperations().getMaxRow(rootsTable,
-            AUTHORIZATIONS, new Text(row(98)), true, new Text(row(110)), true));
+            AUTHORIZATIONS, RowRange.closed(new Text(row(98)), new Text(row(110)))));
 
         client.securityOperations().grantTablePermission("user1", rootsTable,
             TablePermission.WRITE);
