@@ -40,9 +40,9 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
@@ -791,7 +791,7 @@ public class RatioBasedCompactionPlannerTest {
     var overrides2 = new HashMap<>(overrides);
     overrides2.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.lowestRatio",
         "1.04");
-    var conf2 = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides2).build());
+    var conf2 = new ConfigurationImpl(new ConfigurationCopy(overrides2));
     var planner2 = createPlanner(conf2, groups);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner2.makePlan(params);
