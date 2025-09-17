@@ -54,6 +54,12 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
 
   public static TServerInstance fromZooKeeperPathString(String zkPath) {
+
+    // TODO: WAL marker serializations using the old format could present a
+    // problem. If we change the code here to handle the old format, then
+    // we have to make a guess at the resource group, which could affect
+    // callers of this method (GcWalsFilter, WalStateManager, LiveTServerSet)
+
     String parts[] = zkPath.split("\\+");
     Preconditions.checkArgument(parts.length == 3,
         "Invalid tserver instance in zk path: " + zkPath);

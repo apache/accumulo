@@ -114,12 +114,12 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = cluster.getFileSystem();
 
-      // Fake out something that looks like host:port, it's irrelevant
-      String fakeServer = "127.0.0.1:12345";
+      // Fake out something that looks like group+host+port, it's irrelevant
+      String fakeServer = "default+127.0.0.1+12345";
 
       java.nio.file.Path walogs =
           cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
-      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
+      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer);
       java.nio.file.Path emptyWalog = walogServerDir.resolve(UUID.randomUUID().toString());
 
       log.info("Created empty WAL at {}", emptyWalog.toUri());
@@ -170,12 +170,12 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       MiniAccumuloClusterImpl cluster = getCluster();
       FileSystem fs = getCluster().getFileSystem();
 
-      // Fake out something that looks like host:port, it's irrelevant
-      String fakeServer = "127.0.0.1:12345";
+      // Fake out something that looks like group+host+port, it's irrelevant
+      String fakeServer = "default+127.0.0.1+12345";
 
       java.nio.file.Path walogs =
           cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
-      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
+      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer);
       java.nio.file.Path partialHeaderWalog = walogServerDir.resolve(UUID.randomUUID().toString());
 
       log.info("Created WAL with malformed header at {}", partialHeaderWalog.toUri());

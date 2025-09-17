@@ -246,7 +246,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void testPermissions_shutdownTabletServer() throws Exception {
     // To shutdownTabletServer, user needs SystemPermission.SYSTEM
     // this server won't exist, so shutting it down is a NOOP on success
-    String fakeHostAndPort = getUniqueNames(1)[0] + ":0";
+    String fakeHostAndPort = "default+" + getUniqueNames(1)[0] + ":0+1234";
     op = user -> client -> {
       client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId), fakeHostAndPort,
           false);
@@ -261,7 +261,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void shutdownTabletServer() throws Exception {
     op = user -> client -> {
       client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId),
-          "fakeTabletServer:9997", true);
+          "default+fakeTabletServer:9997+1234", true);
       return null;
     };
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())

@@ -473,7 +473,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
     // Test adding a WAL to a tablet and verifying its presence
     String walFilePath =
-        java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+        java.nio.file.Path.of("default+tserver+8080", UUID.randomUUID().toString()).toString();
     final LogEntry originalLogEntry = LogEntry.fromPath(walFilePath);
     // create a tablet metadata with no write ahead logs
     var tmEmptySet = TabletMetadata.builder(e1).build(LOGS);
@@ -491,7 +491,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
     // Test adding another WAL and verifying the update
     String walFilePath2 =
-        java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+        java.nio.file.Path.of("default+tserver+8080", UUID.randomUUID().toString()).toString();
     LogEntry newLogEntry = LogEntry.fromPath(walFilePath2);
     try (var ctmi = context.getAmple().conditionallyMutateTablets()) {
       ctmi.mutateTablet(e1).requireAbsentOperation().putWal(newLogEntry).submit(tm -> false);
@@ -504,7 +504,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
     assertEquals(expectedLogs, actualLogs, "Both original and new LogEntry should be present.");
 
     String walFilePath3 =
-        java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+        java.nio.file.Path.of("default+tserver+8080", UUID.randomUUID().toString()).toString();
     LogEntry otherLogEntry = LogEntry.fromPath(walFilePath3);
 
     // create a powerset to ensure all possible subsets fail when using requireSame except the
@@ -1234,7 +1234,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
           "Initially, all tablets should be present");
 
-      String server = "server1+8555";
+      String server = "default+server1+8555";
 
       String walFilePath = java.nio.file.Path.of(server, UUID.randomUUID().toString()).toString();
       LogEntry wal = LogEntry.fromPath(walFilePath);
@@ -1341,7 +1341,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
       // add a wal to e2
       var walFilePath =
-          java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+          java.nio.file.Path.of("default+tserver+8080", UUID.randomUUID().toString()).toString();
       var wal = LogEntry.fromPath(walFilePath);
       try (var ctmi = context.getAmple().conditionallyMutateTablets()) {
         ctmi.mutateTablet(e2).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);
@@ -1352,7 +1352,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
 
       // add wal to tablet e4
-      walFilePath = java.nio.file.Path.of("tserver+8080", UUID.randomUUID().toString()).toString();
+      walFilePath =
+          java.nio.file.Path.of("default+tserver+8080", UUID.randomUUID().toString()).toString();
       wal = LogEntry.fromPath(walFilePath);
       try (var ctmi = context.getAmple().conditionallyMutateTablets()) {
         ctmi.mutateTablet(e4).requireAbsentOperation().putWal(wal).submit(tabletMetadata -> false);

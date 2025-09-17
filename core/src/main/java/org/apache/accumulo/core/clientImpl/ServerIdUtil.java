@@ -103,10 +103,19 @@ public class ServerIdUtil {
   }
 
   public static ServerId fromWalFileName(String name) {
+    // Old path was host+port
+    // New path is group+host+port
+    // Need to handle both
     String parts[] = name.split("\\+");
-    Preconditions.checkArgument(parts.length == 3, "Invalid server id in wal file: " + name);
-    // return an uncached tserver object
-    return tserver(ResourceGroupId.of(parts[0]), parts[1], Integer.parseInt(parts[2]));
+    Preconditions.checkArgument(parts.length == 2 || parts.length == 3,
+        "Invalid server id in wal file: " + name);
+    if (parts.length == 2) {
+      // return an uncached tserver object
+      return tserver(parts[0], Integer.parseInt(parts[1]));
+    } else {
+      // return an uncached tserver object
+      return tserver(ResourceGroupId.of(parts[0]), parts[1], Integer.parseInt(parts[2]));
+    }
   }
 
   public static String toWalFileName(ServerId server) {
