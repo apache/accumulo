@@ -80,7 +80,7 @@ public class UpgradeUtil implements KeywordExecutable {
     @Parameter(names = "--start",
         description = """
             Start an upgrade of an Accumulo instance. The 'start' step is intended to be run on the \
-            instance with the new version of software before any server processes are started.  Server processes \
+            instance with the new version of software before any server processes are started. Server processes \
             should fail to start if this step is not run. This will check that 'accumulo upgrade --prepare' \
             was run on the instance after it was shut down, perform pre-upgrade validation, and perform any \
             upgrade steps that need to occur before the Manager is started. Finally, it creates a mandatory \
