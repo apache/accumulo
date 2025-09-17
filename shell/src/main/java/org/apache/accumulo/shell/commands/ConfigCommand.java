@@ -149,7 +149,7 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully deleted namespace configuration option.");
       } else if (rgid != null) {
         shellState.getAccumuloClient().resourceGroupOperations().removeProperty(rgid, property);
-        logPropChanged(Property.getPropertyByKey(property), "resource group", "set");
+        logPropChanged(Property.getPropertyByKey(property), "resource group", "deleted");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           Shell.log.warn(invalidTablePropFormatString, property);
