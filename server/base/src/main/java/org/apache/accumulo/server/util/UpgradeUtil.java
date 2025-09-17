@@ -135,6 +135,9 @@ public class UpgradeUtil implements KeywordExecutable {
             + "properties consider if they will override something at a higher level. For example "
             + "if moving a property to the namespace level, check if its set at the system level.");
       }
+      LOG.info(
+          "Please examine the the accumulo.properties files across your cluster to ensure none "
+              + "have table properties that could cause later versions to fail.");
 
       final String zUpgradepath = Constants.ZROOT + "/" + iid + Constants.ZPREPARE_FOR_UPGRADE;
       try {
