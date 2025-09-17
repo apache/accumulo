@@ -214,6 +214,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration(Map<String,String> config) {
     ConfigCheckUtil.validate(config.entrySet(), "site config");
+    config.forEach((prop, value) -> {
+      if (prop.startsWith(Property.TABLE_PREFIX.getKey())) {
+        log.warn("Setting table props in site configuration is deprecated, saw {}", prop);
+      }
+    });
     this.config = config;
   }
 
