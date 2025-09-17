@@ -109,7 +109,8 @@ public interface TServerClient<C extends TServiceClient> {
       Pair<String,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type, context, service, rgp);
       if (cachedTransport != null) {
-        C client = ThriftUtil.createClient(type, cachedTransport.getSecond());
+        C client =
+            ThriftUtil.createClient(type, cachedTransport.getSecond(), context.getInstanceID());
         warned.set(false);
         return new Pair<String,C>(cachedTransport.getFirst(), client);
       }
@@ -160,7 +161,7 @@ public interface TServerClient<C extends TServiceClient> {
           try {
             TTransport transport = context.getTransportPool().getTransport(type,
                 tserverClientAddress, rpcTimeout, context, preferCachedConnections);
-            C client = ThriftUtil.createClient(type, transport);
+            C client = ThriftUtil.createClient(type, transport, context.getInstanceID());
             if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
               LOG.info("Connecting to debug host: {}", debugHost);
             }
