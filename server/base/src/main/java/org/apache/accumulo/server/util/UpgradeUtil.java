@@ -83,8 +83,8 @@ public class UpgradeUtil implements KeywordExecutable {
             instance with the new version of software before any server processes are started. Server processes \
             should fail to start if this step is not run. This will check that 'accumulo upgrade --prepare' \
             was run on the instance after it was shut down, perform pre-upgrade validation, and perform any \
-            upgrade steps that need to occur before the Manager is started. Finally, it creates a mandatory \
-            marker in ZooKeeper that enables the Manager to complete an upgrade.""")
+            upgrade steps that need to occur before the Manager is started. After successfully completing this \
+            step, start the server processes to complete the upgrade.""")
     boolean start = false;
 
     @Parameter(names = "--force",
