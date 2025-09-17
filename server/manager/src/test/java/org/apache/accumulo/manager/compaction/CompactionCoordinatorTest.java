@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -96,7 +97,7 @@ public class CompactionCoordinatorTest {
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
 
-  private final ServerId tserverAddr = ServerId.tserver(GROUP_ID, "192.168.1.1", 9090);
+  private final ServerId tserverAddr = ServerIdUtil.tserver(GROUP_ID, "192.168.1.1", 9090);
 
   public MetricsInfo getMockMetrics() {
     MetricsInfo metricsInfo = createMock(MetricsInfo.class);

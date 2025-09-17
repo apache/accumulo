@@ -36,8 +36,8 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -179,7 +179,7 @@ public class TabletServerResource {
       ClientContext context = monitor.getContext();
       TabletServerClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
-              ServerId.tserver(address.getHost(), address.getPort()), context);
+              ServerIdUtil.tserver(address.getHost(), address.getPort()), context);
       try {
         for (String tableId : mmi.tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));

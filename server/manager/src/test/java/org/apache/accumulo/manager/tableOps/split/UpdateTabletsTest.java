@@ -40,7 +40,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -227,11 +227,11 @@ public class UpdateTabletsTest {
     var flushID = OptionalLong.of(40);
     var availability = TabletAvailability.HOSTED;
     var lastLocation = TabletMetadata.Location
-        .last(new TServerInstance(ServerId.tserver("1.2.3.4", 1234), "123456789"));
+        .last(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1234), "123456789"));
     var suspendingTServer =
-        new SuspendingTServer(new TServerInstance(ServerId.tserver("1.2.3.4", 1025), ""),
+        new SuspendingTServer(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1025), ""),
             SteadyTime.from(Duration.ofMillis(56)));
-    var migration = new TServerInstance(ServerId.tserver("localhost", 1234), 56L);
+    var migration = new TServerInstance(ServerIdUtil.tserver("localhost", 1234), 56L);
 
     String dir1 = "dir1";
     String dir2 = "dir2";
@@ -417,7 +417,7 @@ public class UpdateTabletsTest {
 
     // Test splitting a tablet with a location
     var location = TabletMetadata.Location
-        .future(new TServerInstance(ServerId.tserver("1.2.3.4", 1234), 123456789L));
+        .future(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1234), 123456789L));
     var tablet1 =
         TabletMetadata.builder(origExtent).putOperation(opid).putLocation(location).build();
     var e = assertThrows(IllegalStateException.class, () -> testError(origExtent, tablet1, fateId));

@@ -55,6 +55,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -366,7 +367,7 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
                 tl.invalidateCache();
               }
             } else {
-              final ServerId unhostedKey = ServerId.tserver("", 0);
+              final ServerId unhostedKey = ServerIdUtil.tserver("", 0);
               Map<ServerId,Map<KeyExtent,List<Range>>> unhostedRanges = new HashMap<>();
               unhostedRanges.put(unhostedKey, new HashMap<>());
               BiConsumer<CachedTablet,Range> consumer = (ct, r) -> {

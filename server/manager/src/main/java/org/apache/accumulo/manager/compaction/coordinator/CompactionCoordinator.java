@@ -69,6 +69,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -523,7 +524,8 @@ public class CompactionCoordinator
         // is dead. In this cases the compaction is not actually running.
         var hp = HostAndPort.fromString(compactorAddress);
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result, ServerId.compactor(groupId, hp.getHost(), hp.getPort())));
+            new RunningCompaction(result,
+                ServerIdUtil.compactor(groupId, hp.getHost(), hp.getPort())));
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
             rcJob);
         break;

@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -52,7 +53,7 @@ public class RunningCompaction {
 
   public RunningCompaction(TExternalCompaction tEC) {
     this(tEC.getJob(),
-        ServerId.compactor(ResourceGroupId.of(tEC.getGroupName()),
+        ServerIdUtil.compactor(ResourceGroupId.of(tEC.getGroupName()),
             HostAndPort.fromString(tEC.getCompactor()).getHost(),
             HostAndPort.fromString(tEC.getCompactor()).getPort()));
   }

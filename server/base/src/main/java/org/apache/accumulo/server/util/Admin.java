@@ -59,6 +59,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -804,16 +805,16 @@ public class Admin implements KeywordExecutable {
     Set<ServiceLockPath> paths = context.getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.exact(hpObj), true);
     if (paths.size() != 1) {
-      return new TServerInstance(ServerId.tserver(hpObj.getHost(), hpObj.getPort()),
+      return new TServerInstance(ServerIdUtil.tserver(hpObj.getHost(), hpObj.getPort()),
           Long.toHexString(0));
     }
     ServiceLockPath slp = paths.iterator().next();
     long sessionId = ServiceLock.getSessionId(zooCache, slp);
     if (sessionId == 0) {
-      return new TServerInstance(ServerId.tserver(hpObj.getHost(), hpObj.getPort()),
+      return new TServerInstance(ServerIdUtil.tserver(hpObj.getHost(), hpObj.getPort()),
           Long.toHexString(0));
     }
-    return new TServerInstance(ServerId.tserver(hpObj.getHost(), hpObj.getPort()),
+    return new TServerInstance(ServerIdUtil.tserver(hpObj.getHost(), hpObj.getPort()),
         Long.toHexString(sessionId));
   }
 
@@ -1150,9 +1151,9 @@ public class Admin implements KeywordExecutable {
     ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors
-        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
-            ServerId.dynamic(ServerId.Type.MANAGER, ResourceGroupId.DEFAULT, "admin_utility", 0)));
+    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
+        ServiceLockData.ThriftService.NONE,
+        ServerIdUtil.dynamic(ServerId.Type.MANAGER, ResourceGroupId.DEFAULT, "admin_utility", 0)));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));

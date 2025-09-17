@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelectorTest.InitParams;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelectorTest.SelectorParams;
@@ -41,15 +42,15 @@ import org.junit.jupiter.api.Test;
 
 public class ConfigurableScanServerHostSelectorTest {
 
-  private final ServerId ss1 = ServerId.sserver("host1", 2000);
-  private final ServerId ss2 = ServerId.sserver("host1", 2001);
-  private final ServerId ss3 = ServerId.sserver("host1", 2002);
-  private final ServerId ss4 = ServerId.sserver("host1", 2003);
-  private final ServerId ss5 = ServerId.sserver("host2", 2000);
-  private final ServerId ss6 = ServerId.sserver("host2", 2001);
-  private final ServerId ss7 = ServerId.sserver("host2", 2002);
-  private final ServerId ss8 = ServerId.sserver("host2", 2003);
-  private final ServerId ss9 = ServerId.sserver("host3", 2000);
+  private final ServerId ss1 = ServerIdUtil.sserver("host1", 2000);
+  private final ServerId ss2 = ServerIdUtil.sserver("host1", 2001);
+  private final ServerId ss3 = ServerIdUtil.sserver("host1", 2002);
+  private final ServerId ss4 = ServerIdUtil.sserver("host1", 2003);
+  private final ServerId ss5 = ServerIdUtil.sserver("host2", 2000);
+  private final ServerId ss6 = ServerIdUtil.sserver("host2", 2001);
+  private final ServerId ss7 = ServerIdUtil.sserver("host2", 2002);
+  private final ServerId ss8 = ServerIdUtil.sserver("host2", 2003);
+  private final ServerId ss9 = ServerIdUtil.sserver("host3", 2000);
 
   private final Set<ServerId> host1Servers = Set.of(ss1, ss2, ss3, ss4);
   private final Set<ServerId> host2Servers = Set.of(ss5, ss6, ss7, ss8);

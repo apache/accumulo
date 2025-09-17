@@ -66,9 +66,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -722,7 +722,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
       ServiceLockData sld =
-          new ServiceLockData(miniUUID, ServerId.mini("localhost", 0), ThriftService.NONE);
+          new ServiceLockData(miniUUID, ServerIdUtil.mini("localhost", 0), ThriftService.NONE);
       miniLock = new ServiceLock(miniLockZk, slp, miniUUID);
       miniLock.lock(miniLockWatcher, sld);
 

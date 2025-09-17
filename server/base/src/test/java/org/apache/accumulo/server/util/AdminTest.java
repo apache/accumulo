@@ -44,8 +44,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -83,7 +83,7 @@ public class AdminTest {
     var hp = HostAndPort.fromString(server);
     final long session = 123456789L;
     ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(),
-        ServerId.tserver(hp.getHost(), hp.getPort()), ThriftService.TABLET_SCAN);
+        ServerIdUtil.tserver(hp.getHost(), hp.getPort()), ThriftService.TABLET_SCAN);
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
@@ -103,7 +103,7 @@ public class AdminTest {
     expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc)).anyTimes();
     replay(ctx, zc);
 
-    assertEquals(new TServerInstance(ServerId.tserver("localhost", 12345), session),
+    assertEquals(new TServerInstance(ServerIdUtil.tserver("localhost", 12345), session),
         Admin.qualifyWithZooKeeperSessionId(ctx, zc, server));
 
     verify(ctx, zc);
@@ -125,7 +125,7 @@ public class AdminTest {
     replay(ctx, zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original
-    assertEquals(new TServerInstance(ServerId.tserver("localhost", 12345), "0"),
+    assertEquals(new TServerInstance(ServerIdUtil.tserver("localhost", 12345), "0"),
         Admin.qualifyWithZooKeeperSessionId(ctx, zc, server));
 
     verify(ctx, zc);

@@ -21,7 +21,7 @@ package org.apache.accumulo.test.fate;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -69,7 +69,7 @@ public class TestLock {
     TestLockWatcher lw = new TestLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
     descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
-        ServiceLockData.ThriftService.NONE, ServerId.tserver("fake_test_host", 0)));
+        ServiceLockData.ThriftService.NONE, ServerIdUtil.tserver("fake_test_host", 0)));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));

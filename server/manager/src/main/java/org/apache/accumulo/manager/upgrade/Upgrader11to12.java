@@ -48,9 +48,9 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -785,7 +785,8 @@ public class Upgrader11to12 implements Upgrader {
     } catch (JsonSyntaxException e) {
       final String session = key.getColumnQualifier().toString();
       final HostAndPort hp = HostAndPort.fromString(value.toString());
-      final var tsi = new TServerInstance(ServerId.tserver(hp.getHost(), hp.getPort()), session);
+      final var tsi =
+          new TServerInstance(ServerIdUtil.tserver(hp.getHost(), hp.getPort()), session);
       switch (key.getColumnFamily().toString()) {
         case (CurrentLocationColumnFamily.STR_NAME):
           m.at().family(CurrentLocationColumnFamily.NAME).qualifier(session).put(tsi.serialize());

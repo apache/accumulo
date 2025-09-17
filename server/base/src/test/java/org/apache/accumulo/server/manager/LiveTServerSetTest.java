@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerInfo;
@@ -38,8 +38,8 @@ public class LiveTServerSetTest {
     Map<String,TServerInfo> servers = new HashMap<>();
     TServerConnection mockConn = EasyMock.createMock(TServerConnection.class);
 
-    TServerInfo server1 =
-        new TServerInfo(new TServerInstance(ServerId.tserver("localhost", 1234), "5555"), mockConn);
+    TServerInfo server1 = new TServerInfo(
+        new TServerInstance(ServerIdUtil.tserver("localhost", 1234), "5555"), mockConn);
     servers.put("server1", server1);
 
     assertEquals(server1.instance, LiveTServerSet.find(servers, "default+localhost:1234+0"));

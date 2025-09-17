@@ -28,7 +28,7 @@ import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
@@ -63,7 +63,7 @@ public class LogEntryTest {
   private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
     assertEquals(validPath, logEntry.toString());
     assertEquals(validPath, logEntry.getPath());
-    assertEquals(ServerId.fromWalFileName(validHost), logEntry.getTServer());
+    assertEquals(ServerIdUtil.fromWalFileName(validHost), logEntry.getTServer());
     assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
     assertEquals(validUUID, logEntry.getUniqueID());
   }

@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
@@ -46,8 +46,8 @@ public class TabletManagementParametersTest {
         Ample.DataLevel.USER, true, Ample.DataLevel.METADATA, true);
     final Set<TableId> onlineTables = Set.of(TableId.of("1"), TableId.of("2"), TableId.of("3"));
     final Set<TServerInstance> tservers =
-        Set.of(new TServerInstance(ServerId.tserver("127.0.0.1", 10000), 0),
-            new TServerInstance(ServerId.tserver("127.0.0.1", 10001), 1));
+        Set.of(new TServerInstance(ServerIdUtil.tserver("127.0.0.1", 10000), 0),
+            new TServerInstance(ServerIdUtil.tserver("127.0.0.1", 10001), 1));
     final LiveTServerSet.LiveTServersSnapshot serverSnapshot =
         new LiveTServerSet.LiveTServersSnapshot(tservers,
             Map.of(ResourceGroupId.DEFAULT, tservers));

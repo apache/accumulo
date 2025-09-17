@@ -30,7 +30,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -355,8 +355,8 @@ public class NullTserver {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockData sld = new ServiceLockData(nullTServerUUID, ServerId.tserver("localhost", 0),
-          ThriftService.TSERV);
+      ServiceLockData sld = new ServiceLockData(nullTServerUUID,
+          ServerIdUtil.tserver("localhost", 0), ThriftService.TSERV);
       miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
       context.setServiceLock(miniLock);
@@ -366,8 +366,8 @@ public class NullTserver {
       List<Assignment> assignments = new ArrayList<>();
       try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
         long randomSessionID = opts.port;
-        TServerInstance instance =
-            new TServerInstance(ServerId.tserver(addr.getHost(), addr.getPort()), randomSessionID);
+        TServerInstance instance = new TServerInstance(
+            ServerIdUtil.tserver(addr.getHost(), addr.getPort()), randomSessionID);
         var s = tablets.iterator();
 
         while (s.hasNext()) {

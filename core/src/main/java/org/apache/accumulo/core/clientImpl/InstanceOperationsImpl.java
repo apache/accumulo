@@ -636,7 +636,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     HostAndPort hp = HostAndPort.fromString(Objects.requireNonNull(slp.getServer()));
     String host = hp.getHost();
     int port = hp.getPort();
-    return ServerId.dynamic(type, resourceGroup, host, port);
+    return ServerIdUtil.dynamic(type, resourceGroup, host, port);
   }
 
   private Optional<ServerId> getServerId(String server, List<Type> types) {

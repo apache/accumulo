@@ -26,6 +26,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
@@ -140,7 +141,7 @@ public class ZombieTServer {
     ServiceLock zlock = new ServiceLock(context.getZooSession(), zLockPath, UUID.randomUUID());
 
     ServerId serverId =
-        ServerId.tserver(serverPort.address.getHost(), serverPort.address.getPort());
+        ServerIdUtil.tserver(serverPort.address.getHost(), serverPort.address.getPort());
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server", serverId));

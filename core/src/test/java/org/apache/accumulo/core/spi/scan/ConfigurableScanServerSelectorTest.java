@@ -39,6 +39,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -68,7 +69,8 @@ public class ConfigurableScanServerSelectorTest {
       var scanServersMap = new HashMap<ServerId,ResourceGroupId>();
       scanServers.forEach(sserv -> {
         var hp = HostAndPort.fromString(sserv);
-        scanServersMap.put(ServerId.sserver(ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()),
+        scanServersMap.put(
+            ServerIdUtil.sserver(ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()),
             ResourceGroupId.DEFAULT);
       });
       this.scanServers = () -> scanServersMap;
@@ -161,7 +163,7 @@ public class ConfigurableScanServerSelectorTest {
 
     TestScanServerAttempt(String server, Result result) {
       var hp = HostAndPort.fromString(server);
-      this.server = ServerId.sserver(hp.getHost(), hp.getPort());
+      this.server = ServerIdUtil.sserver(hp.getHost(), hp.getPort());
       this.result = result;
     }
 
@@ -464,13 +466,13 @@ public class ConfigurableScanServerSelectorTest {
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     var dg = ResourceGroupId.DEFAULT;
     selector.init(new InitParams(
-        Map.of(ServerId.sserver("ss1", 1101), dg, ServerId.sserver("ss2", 1102), dg,
-            ServerId.sserver("ss3", 1103), dg,
-            ServerId.sserver(ResourceGroupId.of("g1"), "ss4", 1104), ResourceGroupId.of("g1"),
-            ServerId.sserver(ResourceGroupId.of("g1"), "ss5", 1105), ResourceGroupId.of("g1"),
-            ServerId.sserver(ResourceGroupId.of("g2"), "ss6", 1106), ResourceGroupId.of("g2"),
-            ServerId.sserver(ResourceGroupId.of("g2"), "ss7", 1107), ResourceGroupId.of("g2"),
-            ServerId.sserver(ResourceGroupId.of("g2"), "ss8", 1108), ResourceGroupId.of("g2")),
+        Map.of(ServerIdUtil.sserver("ss1", 1101), dg, ServerIdUtil.sserver("ss2", 1102), dg,
+            ServerIdUtil.sserver("ss3", 1103), dg,
+            ServerIdUtil.sserver(ResourceGroupId.of("g1"), "ss4", 1104), ResourceGroupId.of("g1"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g1"), "ss5", 1105), ResourceGroupId.of("g1"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g2"), "ss6", 1106), ResourceGroupId.of("g2"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g2"), "ss7", 1107), ResourceGroupId.of("g2"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g2"), "ss8", 1108), ResourceGroupId.of("g2")),
         opts));
 
     Set<String> servers = new HashSet<>();
@@ -560,8 +562,8 @@ public class ConfigurableScanServerSelectorTest {
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {
         // make some scan servers available now that wait was called
-        scanServers.set(Map.of(ServerId.sserver("ss1", 1101), dg, ServerId.sserver("ss2", 1102), dg,
-            ServerId.sserver("ss3", 1103), dg));
+        scanServers.set(Map.of(ServerIdUtil.sserver("ss1", 1101), dg,
+            ServerIdUtil.sserver("ss2", 1102), dg, ServerIdUtil.sserver("ss3", 1103), dg));
 
         Optional<T> optional = condition.get();
 
@@ -576,8 +578,8 @@ public class ConfigurableScanServerSelectorTest {
 
     ScanServerSelections actions = selector.selectServers(params);
 
-    assertTrue(Set.of(ServerId.sserver("ss1", 1101), ServerId.sserver("ss2", 1102),
-        ServerId.sserver("ss3", 1103)).contains(actions.getScanServer(tabletId)));
+    assertTrue(Set.of(ServerIdUtil.sserver("ss1", 1101), ServerIdUtil.sserver("ss2", 1102),
+        ServerIdUtil.sserver("ss3", 1103)).contains(actions.getScanServer(tabletId)));
     assertFalse(scanServers.get().isEmpty());
   }
 }

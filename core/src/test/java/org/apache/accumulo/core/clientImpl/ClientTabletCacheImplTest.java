@@ -87,11 +87,11 @@ public class ClientTabletCacheImplTest {
       new KeyExtent(SystemTables.METADATA.tableId(), null, ROOT_TABLE_EXTENT.endRow());
 
   static ServerId csi(String host, int port) {
-    return ServerId.tserver(host, port);
+    return ServerIdUtil.tserver(host, port);
   }
 
   static ServerId csi(String host) {
-    return ServerId.tserver(host, 0);
+    return ServerIdUtil.tserver(host, 0);
   }
 
   static KeyExtent createNewKeyExtent(String table, String endRow, String prevEndRow) {

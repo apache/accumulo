@@ -31,6 +31,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -121,7 +122,7 @@ public abstract class AbstractServer
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
       advertiseAddress = new AtomicReference<>(
-          ServerId.dynamic(serverType, resourceGroup, advertHP.getHost(), advertHP.getPort()));
+          ServerIdUtil.dynamic(serverType, resourceGroup, advertHP.getHost(), advertHP.getPort()));
     } else {
       advertiseAddress = new AtomicReference<>();
     }
@@ -361,7 +362,7 @@ public abstract class AbstractServer
       log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
           thriftServer.address);
     }
-    updateAdvertiseAddress(ServerId.dynamic(this.serverType, this.resourceGroup,
+    updateAdvertiseAddress(ServerIdUtil.dynamic(this.serverType, this.resourceGroup,
         thriftServer.address.getHost(), thriftServer.address.getPort()));
   }
 

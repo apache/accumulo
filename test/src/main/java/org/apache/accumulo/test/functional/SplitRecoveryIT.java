@@ -38,8 +38,8 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -213,7 +213,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SplitRecovery11to12.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
     final var hp = HostAndPort.fromString(location);
     TServerInstance instance =
-        new TServerInstance(ServerId.tserver(hp.getHost(), hp.getPort()), zl.getSessionId());
+        new TServerInstance(ServerIdUtil.tserver(hp.getHost(), hp.getPort()), zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);

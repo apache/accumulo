@@ -32,7 +32,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerId.ServerIdInfo;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 
 public class ServiceLockData implements Comparable<ServiceLockData> {
@@ -217,7 +217,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   private static class ServiceDescriptorGson {
     private UUID uuid;
     private ThriftService service;
-    private ServerIdInfo address;
+    private ServerIdUtil.ServerIdInfo address;
 
     // default constructor required for Gson
     @SuppressWarnings("unused")
@@ -226,7 +226,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     public ServiceDescriptorGson(UUID uuid, ThriftService service, ServerId address) {
       this.uuid = uuid;
       this.service = service;
-      this.address = address.toServerIdInfo();
+      this.address = ServerIdUtil.toServerIdInfo(address);
     }
   }
 

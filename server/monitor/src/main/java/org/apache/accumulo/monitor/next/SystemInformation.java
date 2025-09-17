@@ -273,7 +273,7 @@ public class SystemInformation {
     }
 
     public void addNotResponded(ServerId server) {
-      notResponded.add(server.getHost() + ":" + server.getPort());
+      notResponded.add(server.toHostPortString());
     }
 
     public long getConfigured() {

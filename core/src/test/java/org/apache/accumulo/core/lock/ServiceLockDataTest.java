@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
@@ -41,8 +41,8 @@ public class ServiceLockDataTest {
 
   @Test
   public void testSingleServiceConstructor() throws Exception {
-    ServiceLockData ss =
-        new ServiceLockData(serverUUID, ServerId.tserver("127.0.0.1", 9997), ThriftService.TSERV);
+    ServiceLockData ss = new ServiceLockData(serverUUID, ServerIdUtil.tserver("127.0.0.1", 9997),
+        ThriftService.TSERV);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1", ss.getServer(ThriftService.TSERV).getHost());
     assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(ThriftService.TSERV));
@@ -55,9 +55,9 @@ public class ServiceLockDataTest {
   public void testMultipleServiceConstructor() throws Exception {
     ServiceDescriptors sds = new ServiceDescriptors();
     sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV,
-        ServerId.tserver("127.0.0.1", 9997)));
+        ServerIdUtil.tserver("127.0.0.1", 9997)));
     sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN,
-        ServerId.tserver("127.0.0.1", 9998)));
+        ServerIdUtil.tserver("127.0.0.1", 9998)));
     ServiceLockData ss = new ServiceLockData(sds);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getServer(ThriftService.TSERV).toHostPortString());
@@ -75,7 +75,7 @@ public class ServiceLockDataTest {
   @Test
   public void testSingleServiceConstructorWithGroup() throws Exception {
     ServiceLockData ss = new ServiceLockData(serverUUID,
-        ServerId.tserver(ResourceGroupId.of("meta"), "127.0.0.1", 9997), ThriftService.TSERV);
+        ServerIdUtil.tserver(ResourceGroupId.of("meta"), "127.0.0.1", 9997), ThriftService.TSERV);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getServer(ThriftService.TSERV).toHostPortString());
     assertEquals(ResourceGroupId.of("meta"), ss.getGroup(ThriftService.TSERV));
@@ -87,7 +87,7 @@ public class ServiceLockDataTest {
   @Test
   public void testSingleServiceConstructor2WithGroup() throws Exception {
     ServiceLockData ss = new ServiceLockData(serverUUID,
-        ServerId.tserver(ResourceGroupId.of("meta"), "127.0.0.1", 9997), ThriftService.TSERV);
+        ServerIdUtil.tserver(ResourceGroupId.of("meta"), "127.0.0.1", 9997), ThriftService.TSERV);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getServer(ThriftService.TSERV).toHostPortString());
     assertEquals(ResourceGroupId.of("meta"), ss.getGroup(ThriftService.TSERV));
@@ -101,9 +101,9 @@ public class ServiceLockDataTest {
   public void testMultipleServiceConstructorWithGroup() throws Exception {
     ServiceDescriptors sds = new ServiceDescriptors();
     sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV,
-        ServerId.tserver(ResourceGroupId.of("meta"), "127.0.0.1", 9997)));
+        ServerIdUtil.tserver(ResourceGroupId.of("meta"), "127.0.0.1", 9997)));
     sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN,
-        ServerId.tserver(ResourceGroupId.of("ns1"), "127.0.0.1", 9998)));
+        ServerIdUtil.tserver(ResourceGroupId.of("ns1"), "127.0.0.1", 9998)));
     ServiceLockData ss = new ServiceLockData(sds);
     assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
     assertEquals("127.0.0.1:9997", ss.getServer(ThriftService.TSERV).toHostPortString());

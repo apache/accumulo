@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.Repo;
@@ -44,7 +44,7 @@ public class ShutdownTServerTest {
   @Test
   public void testSingleShutdown() throws Exception {
     final TServerInstance tserver =
-        new TServerInstance(ServerId.tserver("localhost", 1234), "fake");
+        new TServerInstance(ServerIdUtil.tserver("localhost", 1234), "fake");
     final boolean force = false;
 
     final ShutdownTServer op = new ShutdownTServer(tserver, force);

@@ -36,6 +36,7 @@ import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -123,7 +124,7 @@ public class ExternalCompactionUtil {
           var hp = HostAndPort.fromString(slp.getServer());
           groupsAndAddresses
               .computeIfAbsent(slp.getResourceGroup().canonical(), (k) -> new HashSet<>())
-              .add(ServerId.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort()));
+              .add(ServerIdUtil.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort()));
         });
     return groupsAndAddresses;
   }
@@ -211,7 +212,7 @@ public class ExternalCompactionUtil {
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
           var hp = HostAndPort.fromString(slp.getServer());
-          var sid = ServerId.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort());
+          var sid = ServerIdUtil.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort());
           rcFutures.add(new RunningCompactionFuture(slp,
               executor.submit(() -> getRunningCompaction(sid, context))));
         });
@@ -222,7 +223,7 @@ public class ExternalCompactionUtil {
       try {
         TExternalCompactionJob job = rcf.getFuture().get();
         if (null != job && null != job.getExternalCompactionId()) {
-          results.add(new RunningCompaction(job, ServerId.compactor(rcf.getGroup(),
+          results.add(new RunningCompaction(job, ServerIdUtil.compactor(rcf.getGroup(),
               rcf.getCompactor().getHost(), rcf.getCompactor().getPort())));
         }
       } catch (InterruptedException | ExecutionException e) {
@@ -241,7 +242,7 @@ public class ExternalCompactionUtil {
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
           var hp = HostAndPort.fromString(slp.getServer());
-          var sid = ServerId.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort());
+          var sid = ServerIdUtil.compactor(slp.getResourceGroup(), hp.getHost(), hp.getPort());
           futures.add(executor.submit(() -> getRunningCompactionId(sid, context)));
         });
     executor.shutdown();

@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.junit.jupiter.api.Test;
@@ -58,7 +57,7 @@ public class ScanAttemptsImplTest {
 
     var tablet1 = nti("1", "a");
 
-    var reporter1 = sai.createReporter(ServerId.sserver("ss1", 1101), tablet1);
+    var reporter1 = sai.createReporter(ServerIdUtil.sserver("ss1", 1101), tablet1);
 
     reporter1.report(ScanServerAttempt.Result.BUSY);
 
@@ -78,9 +77,9 @@ public class ScanAttemptsImplTest {
     assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY", "ss1:1101_ERROR")), simplify(snap3));
 
     var tablet2 = nti("1", "m");
-    var reporter2 = sai.createReporter(ServerId.sserver("ss1", 1101), tablet2);
+    var reporter2 = sai.createReporter(ServerIdUtil.sserver("ss1", 1101), tablet2);
     var tablet3 = nti("2", "r");
-    var reporter3 = sai.createReporter(ServerId.sserver("ss2", 1102), tablet3);
+    var reporter3 = sai.createReporter(ServerIdUtil.sserver("ss2", 1102), tablet3);
 
     reporter2.report(ScanServerAttempt.Result.BUSY);
     reporter3.report(ScanServerAttempt.Result.ERROR);

@@ -229,7 +229,7 @@ public class ClientContext implements AccumuloClient {
                 @Override
                 public ServerId getServer() {
                   HostAndPort hp = HostAndPort.fromString(entry.getServer());
-                  return ServerId.sserver(entry.getResourceGroup(), hp.getHost(), hp.getPort());
+                  return ServerIdUtil.sserver(entry.getResourceGroup(), hp.getHost(), hp.getPort());
                 }
               }).collect(Collectors.toSet());
         }

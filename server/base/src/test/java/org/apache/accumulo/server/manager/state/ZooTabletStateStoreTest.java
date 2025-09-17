@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.List;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -50,7 +50,8 @@ public class ZooTabletStateStoreTest {
     ZooTabletStateStore tstore = new ZooTabletStateStore(DataLevel.ROOT, context);
 
     String sessionId = "this is my unique session data";
-    TServerInstance server = new TServerInstance(ServerId.tserver("127.0.0.1", 10000), sessionId);
+    TServerInstance server =
+        new TServerInstance(ServerIdUtil.tserver("127.0.0.1", 10000), sessionId);
 
     KeyExtent notRoot = new KeyExtent(TableId.of("0"), null, null);
     final var assignmentList = List.of(new Assignment(notRoot, server, null));

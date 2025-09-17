@@ -26,8 +26,8 @@ import java.io.Serializable;
 import java.util.Objects;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerId.ServerIdInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 
 import com.google.common.base.Preconditions;
@@ -43,7 +43,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
 
   private static final long serialVersionUID = 1L;
 
-  public static record TServerInstanceInfo(ServerIdInfo server, String session) {
+  public static record TServerInstanceInfo(ServerIdUtil.ServerIdInfo server, String session) {
     public TServerInstance getTSI() {
       return new TServerInstance(server.getServerId(), session);
     }
@@ -60,8 +60,8 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
     var rgid = ResourceGroupId.of(parts[0]);
     var hostAndPort = HostAndPort.fromString(parts[1]);
     var session = parts[2];
-    return new TServerInstance(ServerId.tserver(rgid, hostAndPort.getHost(), hostAndPort.getPort()),
-        session);
+    return new TServerInstance(
+        ServerIdUtil.tserver(rgid, hostAndPort.getHost(), hostAndPort.getPort()), session);
   }
 
   private final ServerId server;
@@ -139,7 +139,7 @@ public class TServerInstance implements Comparable<TServerInstance>, Serializabl
   }
 
   public TServerInstanceInfo getTServerInstanceInfo() {
-    return new TServerInstanceInfo(server.toServerIdInfo(), session);
+    return new TServerInstanceInfo(ServerIdUtil.toServerIdInfo(server), session);
   }
 
   public String serialize() {

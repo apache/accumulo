@@ -23,6 +23,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -80,7 +81,7 @@ public final class LogEntry {
     }
     ServerId tserver;
     try {
-      tserver = ServerId.fromWalFileName(tserverPart);
+      tserver = ServerIdUtil.fromWalFileName(tserverPart);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(badTServerMsg);
     }

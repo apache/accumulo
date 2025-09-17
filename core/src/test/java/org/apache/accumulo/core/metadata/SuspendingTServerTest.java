@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +34,7 @@ public class SuspendingTServerTest {
   @Test
   public void testToFromValue() {
     SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
-    TServerInstance ser1 = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
+    TServerInstance ser1 = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
 
     var val1 = new SuspendingTServer(ser1, suspensionTime).toValue();
     var st1 = SuspendingTServer.fromValue(val1);
@@ -42,8 +42,8 @@ public class SuspendingTServerTest {
         HostAndPort.fromParts(st1.server.getServer().getHost(), st1.server.getServer().getPort()));
     assertEquals(suspensionTime, st1.suspensionTime);
     assertEquals(val1, st1.toValue());
-    var st2 = new SuspendingTServer(new TServerInstance(ServerId.tserver("server1", 8555), "s001"),
-        suspensionTime);
+    var st2 = new SuspendingTServer(
+        new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001"), suspensionTime);
     assertEquals(st1, st2);
     assertEquals(st1.hashCode(), st2.hashCode());
     assertEquals(st1.toString(), st2.toString());
@@ -51,14 +51,14 @@ public class SuspendingTServerTest {
 
     // Create three SuspendingTServer objs that differ in one field. Ensure each field is considered
     // in equality checks.
-    var st3 = new SuspendingTServer(new TServerInstance(ServerId.tserver("server2", 8555), "s001"),
-        suspensionTime);
-    var st4 = new SuspendingTServer(new TServerInstance(ServerId.tserver("server1", 9555), "s001"),
-        suspensionTime);
+    var st3 = new SuspendingTServer(
+        new TServerInstance(ServerIdUtil.tserver("server2", 8555), "s001"), suspensionTime);
+    var st4 = new SuspendingTServer(
+        new TServerInstance(ServerIdUtil.tserver("server1", 9555), "s001"), suspensionTime);
     SteadyTime suspensionTime2 =
         SteadyTime.from(System.currentTimeMillis() + 100, TimeUnit.MILLISECONDS);
-    var st5 = new SuspendingTServer(new TServerInstance(ServerId.tserver("server2", 8555), "s001"),
-        suspensionTime2);
+    var st5 = new SuspendingTServer(
+        new TServerInstance(ServerIdUtil.tserver("server2", 8555), "s001"), suspensionTime2);
     for (var stne : List.of(st3, st4, st5)) {
       assertNotEquals(st1, stne);
       assertNotEquals(st1.toValue(), stne.toValue());

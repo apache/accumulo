@@ -81,7 +81,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -135,8 +135,8 @@ public class TabletMetadataTest {
     FateId fateId1 = FateId.from(type, UUID.randomUUID());
     FateId fateId2 = FateId.from(type, UUID.randomUUID());
 
-    TServerInstance current = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
-    TServerInstance last = new TServerInstance(ServerId.tserver("server2", 8555), "s000");
+    TServerInstance current = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
+    TServerInstance last = new TServerInstance(ServerIdUtil.tserver("server2", 8555), "s000");
 
     mutation.put(MetadataSchema.TabletsSection.CompactedColumnFamily.STR_NAME, fateId1.canonical(),
         "");
@@ -210,7 +210,7 @@ public class TabletMetadataTest {
             ResourceGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
 
-    TServerInstance tsi = new TServerInstance(ServerId.tserver("localhost", 9997), 5000L);
+    TServerInstance tsi = new TServerInstance(ServerIdUtil.tserver("localhost", 9997), 5000L);
 
     MIGRATION_COLUMN.put(mutation, new Value(tsi.serialize()));
 
@@ -299,7 +299,7 @@ public class TabletMetadataTest {
   public void testFuture() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    TServerInstance tsi = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
+    TServerInstance tsi = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put(tsi.serialize());
 
@@ -321,7 +321,7 @@ public class TabletMetadataTest {
   public void testFutureAndCurrent() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
-    TServerInstance tsi = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
+    TServerInstance tsi = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
     mutation.at().family(CurrentLocationColumnFamily.NAME).qualifier("s001").put(tsi.serialize());
     mutation.at().family(FutureLocationColumnFamily.NAME).qualifier("s001").put(tsi.serialize());
@@ -339,9 +339,9 @@ public class TabletMetadataTest {
   @Test
   public void testLocationStates() {
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
-    TServerInstance ser1 = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
-    TServerInstance ser2 = new TServerInstance(ServerId.tserver("server2", 8111), "s002");
-    TServerInstance deadSer = new TServerInstance(ServerId.tserver("server3", 8000), "s003");
+    TServerInstance ser1 = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
+    TServerInstance ser2 = new TServerInstance(ServerIdUtil.tserver("server2", 8111), "s002");
+    TServerInstance deadSer = new TServerInstance(ServerIdUtil.tserver("server3", 8000), "s003");
     Set<TServerInstance> tservers = new LinkedHashSet<>();
     tservers.add(ser1);
     tservers.add(ser2);
@@ -745,7 +745,7 @@ public class TabletMetadataTest {
 
   @Test
   public void testBuilder() {
-    TServerInstance ser1 = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
+    TServerInstance ser1 = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
 
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
@@ -774,7 +774,7 @@ public class TabletMetadataTest {
     FateId compactFateId1 = FateId.from(type, UUID.randomUUID());
     FateId compactFateId2 = FateId.from(type, UUID.randomUUID());
 
-    TServerInstance migration = new TServerInstance(ServerId.tserver("localhost", 9999), 1000L);
+    TServerInstance migration = new TServerInstance(ServerIdUtil.tserver("localhost", 9999), 1000L);
 
     TabletMetadata tm = TabletMetadata.builder(extent)
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))

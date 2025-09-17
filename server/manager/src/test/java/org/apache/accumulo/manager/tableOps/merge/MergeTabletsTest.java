@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -153,12 +153,12 @@ public class MergeTabletsTest {
     var flushID = OptionalLong.of(40);
     var availability = TabletAvailability.HOSTED;
     var lastLocation = TabletMetadata.Location
-        .last(new TServerInstance(ServerId.tserver("1.2.3.4", 1234), "123456789"));
+        .last(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1234), "123456789"));
     var suspendingTServer =
-        new SuspendingTServer(new TServerInstance(ServerId.tserver("1.2.3.4", 1025), ""),
+        new SuspendingTServer(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1025), ""),
             SteadyTime.from(Duration.ofMillis(56)));
     var mergeability = TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS));
-    var migration = new TServerInstance(ServerId.tserver("localhost", 1234), 56L);
+    var migration = new TServerInstance(ServerIdUtil.tserver("localhost", 1234), 56L);
 
     var tablet1 =
         TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
@@ -310,7 +310,7 @@ public class MergeTabletsTest {
 
   @Test
   public void testUnexpectedColumns() {
-    var tserver = new TServerInstance(ServerId.tserver("1.2.3.4", 1234), 123456789L);
+    var tserver = new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1234), 123456789L);
     var futureLoc = TabletMetadata.Location.future(tserver);
     testUnexpectedColumn(tmb -> tmb.putLocation(futureLoc), "had location", futureLoc.toString());
 

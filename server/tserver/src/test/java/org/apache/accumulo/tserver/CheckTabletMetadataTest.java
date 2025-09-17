@@ -28,6 +28,7 @@ import java.util.EnumSet;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -91,7 +92,7 @@ public class CheckTabletMetadataTest {
 
   private static ServerId csi(String location) {
     var hp = HostAndPort.fromString(location);
-    return ServerId.tserver(hp.getHost(), hp.getPort());
+    return ServerIdUtil.tserver(hp.getHost(), hp.getPort());
   }
 
   @Test

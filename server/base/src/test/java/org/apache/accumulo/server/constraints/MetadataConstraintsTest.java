@@ -35,7 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -158,7 +158,7 @@ public class MetadataConstraintsTest {
   public void testSuspensionCheck() throws Exception {
     Mutation m = new Mutation(new Text("0;foo"));
     MetadataConstraints mc = new MetadataConstraints();
-    TServerInstance ser1 = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
+    TServerInstance ser1 = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
 
     SuspendLocationColumn.SUSPEND_COLUMN.put(m, new SuspendingTServer(ser1,
         SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)).toValue());

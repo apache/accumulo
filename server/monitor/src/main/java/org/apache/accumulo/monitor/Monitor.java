@@ -49,6 +49,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
@@ -392,9 +393,9 @@ public class Monitor extends AbstractServer implements Connection.Listener {
           throw new RuntimeException("Unable to get hostname for advertise address", e);
         }
       }
-      updateAdvertiseAddress(ServerId.monitor(advertiseHost, livePort));
+      updateAdvertiseAddress(ServerIdUtil.monitor(advertiseHost, livePort));
     } else {
-      updateAdvertiseAddress(ServerId.monitor(advertiseAddress.getHost(), livePort));
+      updateAdvertiseAddress(ServerIdUtil.monitor(advertiseAddress.getHost(), livePort));
     }
     ServerId monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);

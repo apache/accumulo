@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.junit.jupiter.api.Test;
 
@@ -33,22 +33,22 @@ public class TabletGroupWatcherTest {
   public void testFindingServer() {
     TreeMap<TServerInstance,String> servers = new TreeMap<>();
 
-    servers.put(new TServerInstance(ServerId.tserver("192.168.1.2", 9997), 50L), "tserver1");
+    servers.put(new TServerInstance(ServerIdUtil.tserver("192.168.1.2", 9997), 50L), "tserver1");
     // add an entry where only the session differs. For this case the code does not really care
     // which one is found, the impl happens to find the first one. This situation could happen
     // temporarily, and it should not cause any problems.
-    servers.put(new TServerInstance(ServerId.tserver("192.168.1.2", 9997), 70L), "tserver2");
-    servers.put(new TServerInstance(ServerId.tserver("192.168.1.4", 9997), -90L), "tserver3");
+    servers.put(new TServerInstance(ServerIdUtil.tserver("192.168.1.2", 9997), 70L), "tserver2");
+    servers.put(new TServerInstance(ServerIdUtil.tserver("192.168.1.4", 9997), -90L), "tserver3");
 
-    assertNull(findServerIgnoringSession(servers, ServerId.tserver("192.168.1.1", 9997)));
-    assertNull(findServerIgnoringSession(servers, ServerId.tserver("192.168.1.2", 9996)));
-    assertNull(findServerIgnoringSession(servers, ServerId.tserver("192.168.1.2", 9998)));
-    assertNull(findServerIgnoringSession(servers, ServerId.tserver("192.168.1.3", 9997)));
-    assertNull(findServerIgnoringSession(servers, ServerId.tserver("192.168.1.5", 9997)));
+    assertNull(findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.1", 9997)));
+    assertNull(findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.2", 9996)));
+    assertNull(findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.2", 9998)));
+    assertNull(findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.3", 9997)));
+    assertNull(findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.5", 9997)));
 
-    assertEquals(new TServerInstance(ServerId.tserver("192.168.1.2", 9997), 50L),
-        findServerIgnoringSession(servers, ServerId.tserver("192.168.1.2", 9997)));
-    assertEquals(new TServerInstance(ServerId.tserver("192.168.1.4", 9997), -90L),
-        findServerIgnoringSession(servers, ServerId.tserver("192.168.1.4", 9997)));
+    assertEquals(new TServerInstance(ServerIdUtil.tserver("192.168.1.2", 9997), 50L),
+        findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.2", 9997)));
+    assertEquals(new TServerInstance(ServerIdUtil.tserver("192.168.1.4", 9997), -90L),
+        findServerIgnoringSession(servers, ServerIdUtil.tserver("192.168.1.4", 9997)));
   }
 }

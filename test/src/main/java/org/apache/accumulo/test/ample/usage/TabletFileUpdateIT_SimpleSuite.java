@@ -32,7 +32,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -70,7 +70,7 @@ public class TabletFileUpdateIT_SimpleSuite extends SharedMiniClusterBase {
       ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/F1.rf"));
   private static final DataFileValue dfv1 = new DataFileValue(1000, 100);
   private static final TServerInstance tserverInstance =
-      new TServerInstance(ServerId.tserver("localhost", 9997), 0xabcdef123L);
+      new TServerInstance(ServerIdUtil.tserver("localhost", 9997), 0xabcdef123L);
   private static final TableId tableId = TableId.of("99");
   private static final KeyExtent extent = new KeyExtent(tableId, null, null);
 
@@ -204,9 +204,10 @@ public class TabletFileUpdateIT_SimpleSuite extends SharedMiniClusterBase {
 
       // try locations that differ in type, port, and session
       for (var location : List.of(Location.future(tserverInstance),
-          Location.current(new TServerInstance(ServerId.tserver("localhost", 9998), 0xabcdef123L)),
           Location
-              .current(new TServerInstance(ServerId.tserver("localhost", 9997), 0xabcdef124L)))) {
+              .current(new TServerInstance(ServerIdUtil.tserver("localhost", 9998), 0xabcdef123L)),
+          Location.current(
+              new TServerInstance(ServerIdUtil.tserver("localhost", 9997), 0xabcdef124L)))) {
         // set a location on the tablet that will not match
         testAmple.mutateTablet(extent).putLocation(location).mutate();
         // should fail to add file to tablet because tablet location is not as expected

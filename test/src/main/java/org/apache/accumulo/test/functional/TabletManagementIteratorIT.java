@@ -58,8 +58,8 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -372,7 +372,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         KeyExtent nonExistantTable = new KeyExtent(badTableId, null, null);
         TabletMutator tm = mut.mutateTablet(nonExistantTable);
         tm.putLocation(Location
-            .current(new TServerInstance(ServerId.tserver("fakeServer", 0), "fakeSession")));
+            .current(new TServerInstance(ServerIdUtil.tserver("fakeServer", 0), "fakeSession")));
         tm.automaticallyPutServerLock(false);
         tm.mutate();
       }
@@ -393,7 +393,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         KeyExtent nonExistantTable = new KeyExtent(badTableId, null, null);
         TabletMutator tm = mut.mutateTablet(nonExistantTable);
         tm.deleteLocation(Location
-            .current(new TServerInstance(ServerId.tserver("fakeServer", 0), "fakeSession")));
+            .current(new TServerInstance(ServerIdUtil.tserver("fakeServer", 0), "fakeSession")));
         tm.automaticallyPutServerLock(false);
         tm.mutate();
       }
@@ -461,7 +461,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).toMetaRow());
     m.put(CurrentLocationColumnFamily.NAME, new Text("1234567"),
-        new Value(new TServerInstance(ServerId.tserver("fake", 9005), "1234567").serialize()));
+        new Value(new TServerInstance(ServerIdUtil.tserver("fake", 9005), "1234567").serialize()));
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
@@ -493,8 +493,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
           entry.getKey().getTimestamp());
       m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
-          entry.getKey().getTimestamp() + 1,
-          new Value(new TServerInstance(ServerId.tserver("fake", 9005), "1234567").serialize()));
+          entry.getKey().getTimestamp() + 1, new Value(
+              new TServerInstance(ServerIdUtil.tserver("fake", 9005), "1234567").serialize()));
       try (BatchWriter bw = client.createBatchWriter(table)) {
         bw.addMutation(m);
       }
@@ -703,7 +703,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
         tservers.add(new TServerInstance(
-            ServerId.tserver(tserver.getResourceGroup(), hp.getHost(), hp.getPort()), sessionId));
+            ServerIdUtil.tserver(tserver.getResourceGroup(), hp.getHost(), hp.getPort()),
+            sessionId));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

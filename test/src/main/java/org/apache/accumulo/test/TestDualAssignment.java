@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -78,9 +78,9 @@ public class TestDualAssignment extends ConfigurableMacBase {
       var extent1 = new KeyExtent(tableId, new Text("m"), new Text("l"));
 
       var loc1 = TabletMetadata.Location
-          .current(new TServerInstance(ServerId.tserver("192.168.1.1", 9997), "56"));
+          .current(new TServerInstance(ServerIdUtil.tserver("192.168.1.1", 9997), "56"));
       var loc2 = TabletMetadata.Location
-          .future(new TServerInstance(ServerId.tserver("192.168.1.2", 9997), "67"));
+          .future(new TServerInstance(ServerIdUtil.tserver("192.168.1.2", 9997), "67"));
 
       // set multiple locations for a tablet
       serverContext.getAmple().mutateTablet(extent1).putLocation(loc1).putLocation(loc2).mutate();

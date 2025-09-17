@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -183,7 +184,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       assertEquals(2, tservers.size());
       final ServiceLockPath tserverPath = tservers.iterator().next();
       final var hp = HostAndPort.fromString(tserverPath.getServer());
-      Admin.signalGracefulShutdown(ctx, ServerId.tserver(hp.getHost(), hp.getPort()));
+      Admin.signalGracefulShutdown(ctx, ServerIdUtil.tserver(hp.getHost(), hp.getPort()));
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.TABLET_SERVER);
         return control.getProcesses(ServerType.TABLET_SERVER).size() == 1;
@@ -224,7 +225,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
               AddressSelector.all(), true);
       final ServiceLockPath compactorPath = compactors.iterator().next();
       final var compactorHP = HostAndPort.fromString(compactorPath.getServer());
-      final ServerId compactorAddress = ServerId.compactor(compactorPath.getResourceGroup(),
+      final ServerId compactorAddress = ServerIdUtil.compactor(compactorPath.getResourceGroup(),
           compactorHP.getHost(), compactorHP.getPort());
 
       final CompactionConfig cc = new CompactionConfig();
@@ -279,7 +280,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           assertNotNull(e);
           count++;
           if (count == 2) {
-            Admin.signalGracefulShutdown(ctx, ServerId.sserver(sserverPath.getResourceGroup(),
+            Admin.signalGracefulShutdown(ctx, ServerIdUtil.sserver(sserverPath.getResourceGroup(),
                 sserverHP.getHost(), sserverHP.getPort()));
           }
         }
