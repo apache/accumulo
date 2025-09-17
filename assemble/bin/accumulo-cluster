@@ -302,8 +302,8 @@ function parse_config() {
   if isDebug; then
     debug "Printing resource groups to $RG_FILE"
   fi
-  "$accumulo_cmd" "zoo-info-viewer" "--print-resource-groups" > "$RG_FILE" || exit 1
-  read -r -a all_resource_groups<<<"$(grep "Resource Groups: " "$RG_FILE" | sed "s/Resource Groups: //")"
+  "$accumulo_cmd" "zoo-info-viewer" "--print-resource-groups" >"$RG_FILE" || exit 1
+  read -r -a all_resource_groups <<<"$(grep "Resource Groups: " "$RG_FILE" | sed "s/Resource Groups: //")"
   if isDebug; then
     debug "All resource groups: ${all_resource_groups[*]}"
   fi
