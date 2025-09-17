@@ -126,12 +126,9 @@ public class UpgradeUtil implements KeywordExecutable {
           key -> key.startsWith(Property.TABLE_PREFIX.getKey()), false);
 
       if (!tablePropsInSite.isEmpty()) {
-        LOG.warn("Saw table properties in site configuration : {} ", tablePropsInSite.keySet());
-        throw new IllegalStateException("Did not start upgrade preparation because table properties"
-            + " are present in site config which cause 4.0 upgrade to fail.  Recommended action"
-            + " is to start cluster, set these properties at the namespace or table level if"
-            + " still needed, stop cluster, remove table properties from all accumulo.properties"
-            + " across cluster, run upgrade prepare again.");
+        LOG.warn(
+            "Saw table properties in site configuration, these may cause problems in later versions of Accumulo : {} ",
+            tablePropsInSite.keySet());
       }
 
       final String zUpgradepath = Constants.ZROOT + "/" + iid + Constants.ZPREPARE_FOR_UPGRADE;
