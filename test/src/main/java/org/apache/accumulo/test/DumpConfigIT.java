@@ -90,7 +90,7 @@ public class DumpConfigIT extends ConfigurableMacBase {
     assertFalse(systemPerm
         .contains("grant Table.DROP -t " + SystemTables.METADATA.tableName() + " -u root"));
     String rg = FunctionalTestUtils.readAll(Files.newInputStream(folder.resolve("test_rg.cfg")));
-    assertTrue(rg.contains("resourcegroup -c test"));
+    assertTrue(rg.contains("createresourcegroup test"));
     assertTrue(rg.contains("config -rg test -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m"));
 
   }
