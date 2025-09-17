@@ -18,61 +18,33 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.io.IOException;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.Options;
 
-public class ResourceGroupCommand extends Command {
-
-  private Option createOpt;
-  private Option listOpt;
-  private Option deleteOpt;
+public class ListResourceGroupsCommand extends Command {
 
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-
-    final ResourceGroupOperations ops = shellState.getAccumuloClient().resourceGroupOperations();
-
-    if (cl.hasOption(createOpt.getOpt())) {
-      ops.create(ResourceGroupId.of(cl.getOptionValue(createOpt)));
-    } else if (cl.hasOption(deleteOpt.getOpt())) {
-      ops.remove(ResourceGroupId.of(cl.getOptionValue(deleteOpt)));
-    } else if (cl.hasOption(listOpt.getOpt())) {
+    try {
       Set<String> sorted = new TreeSet<>();
-      ops.list().forEach(rg -> sorted.add(rg.canonical()));
+      shellState.getAccumuloClient().resourceGroupOperations().list()
+          .forEach(rg -> sorted.add(rg.canonical()));
       shellState.printLines(sorted.iterator(), false);
+    } catch (IOException e) {
+      Shell.log.error("Error listing resource groups", e);
+      return 1;
     }
     return 0;
   }
 
   @Override
-  public Options getOptions() {
-    final Options o = new Options();
-
-    createOpt = new Option("c", "create", true, "create a resource group");
-    createOpt.setArgName("group");
-    o.addOption(createOpt);
-
-    listOpt = new Option("l", "list", false, "display resource group names");
-    o.addOption(listOpt);
-
-    deleteOpt = new Option("d", "delete", true, "delete a resource group");
-    deleteOpt.setArgName("group");
-    o.addOption(deleteOpt);
-
-    return o;
-  }
-
-  @Override
   public String description() {
-    return "create, list, or remove resource groups";
+    return "list resource groups";
   }
 
   @Override

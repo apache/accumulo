@@ -50,6 +50,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -853,20 +854,26 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  static TServerInstance findServerIgnoringSession(SortedMap<TServerInstance,?> servers,
+      ServerId server) {
+    var tail = servers.tailMap(new TServerInstance(server, 0L)).keySet().iterator();
+    if (tail.hasNext()) {
+      TServerInstance found = tail.next();
+      if (found.getServer().equals(server)) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
   private void hostSuspendedTablet(TabletLists tLists, TabletMetadata tm, Location location,
       TableConfiguration tableConf) {
     if (manager.getSteadyTime().minus(tm.getSuspend().suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
-      TServerInstance returnInstance = null;
-      Iterator<TServerInstance> find =
-          tLists.destinations.tailMap(tm.getSuspend().server).keySet().iterator();
-      if (find.hasNext()) {
-        TServerInstance found = find.next();
-        if (found.equals(tm.getSuspend().server)) {
-          returnInstance = found;
-        }
-      }
+      TServerInstance returnInstance =
+          findServerIgnoringSession(tLists.destinations, tm.getSuspend().server.getServer());
 
       // Old tablet server is back. Return this tablet to its previous owner.
       if (returnInstance != null) {
