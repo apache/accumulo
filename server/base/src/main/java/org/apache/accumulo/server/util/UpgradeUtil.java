@@ -126,9 +126,14 @@ public class UpgradeUtil implements KeywordExecutable {
           key -> key.startsWith(Property.TABLE_PREFIX.getKey()), false);
 
       if (!tablePropsInSite.isEmpty()) {
-        LOG.warn(
-            "Saw table properties in site configuration, these may cause problems in later versions of Accumulo. Consider setting these properties on the namespace or table directly. Table properties found : {} ",
-            tablePropsInSite.keySet());
+        LOG.warn("Saw table properties in site configuration : {} ", tablePropsInSite.keySet());
+        throw new IllegalStateException("Did not start upgrade preparation because table properties"
+            + " are present in site config which may cause later versions to fail.  Recommended action"
+            + " is to set these properties at the system, namespace, or table level if still needed."
+            + " This can be done by starting accumulo and using the shell/api, or using the 'accumulo "
+            + "zoo-prop-editor' command.  Site configuration is the lowest level, so when moving "
+            + "properties consider if they will override something at a higher level. For example "
+            + "if moving a property to the namespace level, check if its set at the system level.");
       }
 
       final String zUpgradepath = Constants.ZROOT + "/" + iid + Constants.ZPREPARE_FOR_UPGRADE;
