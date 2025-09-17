@@ -298,6 +298,17 @@ function parse_config() {
     trap 'rm -rf -- "$AC_TMP_DIR"' EXIT
   fi
 
+  RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
+  if isDebug; then
+    debug "Printing resource groups to $RG_FILE"
+  fi
+  "$accumulo_cmd" "zoo-info-viewer" "--print-resource-groups" > "$RG_FILE" || exit 1
+  read -r -a all_resource_groups<<<"$(grep "Resource Groups: " "$RG_FILE" | sed "s/Resource Groups: //")"
+  if isDebug; then
+    debug "All resource groups: ${all_resource_groups[*]}"
+  fi
+  rm -f "$RG_FILE"
+
   CONFIG_FILE="$AC_TMP_DIR/ClusterConfigParser.out"
   "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
@@ -321,6 +332,10 @@ function parse_config() {
     echo "$(yellow WARN): No compactor groups configured"
   else
     for group in $COMPACTOR_GROUPS; do
+      if ! ${all_resource_groups[$group]}; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="COMPACTOR_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): External compactor group $(yellow "$group") configured, but no compactors configured for it"
@@ -333,6 +348,10 @@ function parse_config() {
     echo "$(yellow WARN): No tablet server groups configured"
   else
     for group in $TSERVER_GROUPS; do
+      if ! ${all_resource_groups[$group]}; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="TSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): tablet server group $(yellow "$group") configured, but no hosts configured for it"
@@ -349,6 +368,10 @@ function parse_config() {
 
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
+      if ! ${all_resource_groups[$group]}; then
+        echo "$(red ERROR): Resource group $(yellow "$group"p) does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="SSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): scan server group $(yellow "$group") configured, but no hosts configured for it"

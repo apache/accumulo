@@ -39,6 +39,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -49,6 +50,7 @@ import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -436,6 +438,26 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
+  private static boolean addResourceGroups(ZooReaderWriter zrw, String resourceGroupsArg) {
+    if (resourceGroupsArg == null) {
+      return true;
+    }
+    final String[] rgs = resourceGroupsArg.split(",");
+    for (String rg : rgs) {
+      final var rgid = ResourceGroupId.of(rg);
+      if (rgid == ResourceGroupId.DEFAULT) {
+        continue;
+      }
+      try {
+        ResourceGroupPropKey.of(rgid).createZNode(zrw);
+      } catch (KeeperException | InterruptedException e) {
+        log.error("Error creating resource group: " + rg, e);
+        return false;
+      }
+    }
+    return true;
+  }
+
   private static boolean addVolumes(VolumeManager fs, InitialConfiguration initConfig,
       ServerDirs serverDirs) {
     var hadoopConf = initConfig.getHadoopConf();
@@ -477,6 +499,9 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static class Opts extends Help {
+    @Parameter(names = "--add-resource-groups",
+        description = "Add resource groups (comma separated list of names)")
+    String resourceGroups = null;
     @Parameter(names = "--add-volumes",
         description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;
@@ -536,6 +561,11 @@ public class Initialize implements KeywordExecutable {
       }
       if (success && opts.addVolumes) {
         success = addVolumes(fs, initConfig, serverDirs);
+      }
+      if (success && opts.resourceGroups != null) {
+        try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+          success = addResourceGroups(zk.asReaderWriter(), opts.resourceGroups);
+        }
       }
       if (!opts.resetSecurity && !opts.addVolumes) {
         try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
