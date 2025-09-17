@@ -79,8 +79,7 @@ public class LockRange {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof LockRange) {
-      var other = (LockRange) o;
+    if (o instanceof LockRange other) {
       return range.equals(other.range);
     }
     return false;

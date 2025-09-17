@@ -91,8 +91,7 @@ public class CompactionServicesConfig {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof CompactionServicesConfig) {
-      var oc = (CompactionServicesConfig) o;
+    if (o instanceof CompactionServicesConfig oc) {
       return getPlanners().equals(oc.getPlanners()) && getOptions().equals(oc.getOptions());
     }
 

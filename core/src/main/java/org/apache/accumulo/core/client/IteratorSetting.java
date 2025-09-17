@@ -289,10 +289,9 @@ public class IteratorSetting implements Writable {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof IteratorSetting)) {
+    if (!(obj instanceof IteratorSetting other)) {
       return false;
     }
-    IteratorSetting other = (IteratorSetting) obj;
     if (iteratorClass == null) {
       if (other.iteratorClass != null) {
         return false;

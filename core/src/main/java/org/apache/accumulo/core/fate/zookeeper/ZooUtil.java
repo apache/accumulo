@@ -123,8 +123,7 @@ public class ZooUtil {
       if (obj == this) {
         return true;
       }
-      if (obj instanceof LockID) {
-        LockID other = (LockID) obj;
+      if (obj instanceof LockID other) {
         return this.path.equals(other.path) && this.node.equals(other.node)
             && this.eid == other.eid;
       }

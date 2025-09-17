@@ -127,10 +127,9 @@ public class ColumnUpdate {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof ColumnUpdate)) {
+    if (!(obj instanceof ColumnUpdate upd)) {
       return false;
     }
-    ColumnUpdate upd = (ColumnUpdate) obj;
     return Arrays.equals(getColumnFamily(), upd.getColumnFamily())
         && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())
         && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility())

@@ -167,8 +167,7 @@ public class CustomNonBlockingServer extends THsHaServer {
      */
     private String getClientAddress() {
       String clientAddress = null;
-      if (trans_ instanceof TNonblockingSocket) {
-        TNonblockingSocket tsock = (TNonblockingSocket) trans_;
+      if (trans_ instanceof TNonblockingSocket tsock) {
         Socket sock = tsock.getSocketChannel().socket();
         clientAddress = sock.getInetAddress().getHostAddress() + ":" + sock.getPort();
         log.trace("CustomFrameBuffer captured client address: {}", clientAddress);
