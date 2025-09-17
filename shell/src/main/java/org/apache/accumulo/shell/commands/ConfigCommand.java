@@ -213,6 +213,12 @@ public class ConfigCommand extends Command {
         logPropChanged(theProp, "system", "set");
       }
     } else {
+
+      if (rgid != null) {
+        throw new IllegalArgumentException(
+            "resource group argument must be accompanied by -s or -d argument.");
+      }
+
       boolean warned = false;
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
@@ -289,8 +295,7 @@ public class ConfigCommand extends Command {
         try {
           acuconf = shellState.getAccumuloClient().tableOperations().getConfiguration(tableName);
         } catch (AccumuloException e) {
-          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException) {
-            AccumuloSecurityException ase = (AccumuloSecurityException) e.getCause();
+          if (e.getCause() != null && e.getCause() instanceof AccumuloSecurityException ase) {
             if (ase.getSecurityErrorCode() == PERMISSION_DENIED) {
               Shell.log.error(
                   "User unable to retrieve {} table configuration (requires Table.ALTER_TABLE permission)",

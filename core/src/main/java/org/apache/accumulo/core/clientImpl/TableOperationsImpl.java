@@ -609,17 +609,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // Below all exceptions are wrapped and rethrown. This is done so that the user knows
         // what code path got them here. If the wrapping was not done, the user would only
         // have the stack trace for the background thread.
-        if (excep instanceof TableNotFoundException) {
-          TableNotFoundException tnfe = (TableNotFoundException) excep;
+        if (excep instanceof TableNotFoundException tnfe) {
           throw new TableNotFoundException(tableId.canonical(), tableName,
               "Table not found by background thread", tnfe);
         } else if (excep instanceof TableOfflineException) {
           log.debug("TableOfflineException occurred in background thread. Throwing new exception",
               excep);
           throw new TableOfflineException(tableId, tableName);
-        } else if (excep instanceof AccumuloSecurityException) {
+        } else if (excep instanceof AccumuloSecurityException base) {
           // base == background accumulo security exception
-          AccumuloSecurityException base = (AccumuloSecurityException) excep;
           throw new AccumuloSecurityException(base.getUser(), base.asThriftException().getCode(),
               base.getTableInfo(), excep);
         } else if (excep instanceof AccumuloServerException) {
@@ -1127,8 +1125,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return modifyProperties(tableName, mapMutator);
     } catch (AccumuloException ae) {
       Throwable cause = ae.getCause();
-      if (cause instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) cause;
+      if (cause instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(ae);
         throw tnfe;
       }
@@ -1191,8 +1188,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ResourceGroupPredicate.ANY);
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) t;
+      if (t instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(e);
         throw tnfe;
       }
@@ -1213,8 +1209,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
           ResourceGroupPredicate.ANY);
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) t;
+      if (t instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(e);
         throw tnfe;
       }
@@ -1803,8 +1798,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throw e;
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) t;
+      if (t instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(e);
         throw tnfe;
       }

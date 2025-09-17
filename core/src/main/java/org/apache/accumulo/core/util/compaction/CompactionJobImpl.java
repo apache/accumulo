@@ -84,8 +84,7 @@ public class CompactionJobImpl implements CompactionJob {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof CompactionJobImpl) {
-      CompactionJobImpl ocj = (CompactionJobImpl) o;
+    if (o instanceof CompactionJobImpl ocj) {
 
       return priority == ocj.priority && group.equals(ocj.group) && files.equals(ocj.files)
           && kind == ocj.kind;

@@ -151,9 +151,8 @@ public class RowHashIT extends ConfigurableMacBase {
         // For MapReduce, Kerberos credentials don't make it to the Mappers and Reducers,
         // so we need to request a delegation token and use that instead.
         AuthenticationToken authToken = ClientProperty.getAuthenticationToken(props);
-        if (authToken instanceof KerberosToken) {
+        if (authToken instanceof KerberosToken krbToken) {
           log.info("Received KerberosToken, fetching DelegationToken for MapReduce");
-          final KerberosToken krbToken = (KerberosToken) authToken;
 
           try {
             UserGroupInformation user = UserGroupInformation.getCurrentUser();

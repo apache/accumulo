@@ -105,8 +105,7 @@ public class VolumeImpl implements Volume {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof VolumeImpl) {
-      VolumeImpl other = (VolumeImpl) o;
+    if (o instanceof VolumeImpl other) {
       return getFileSystem().equals(other.getFileSystem())
           && getBasePath().equals(other.getBasePath());
     }

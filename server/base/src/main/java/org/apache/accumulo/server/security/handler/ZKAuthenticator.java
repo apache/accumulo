@@ -91,10 +91,9 @@ public final class ZKAuthenticator implements Authenticator {
   public void createUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
     try {
-      if (!(token instanceof PasswordToken)) {
+      if (!(token instanceof PasswordToken pt)) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
       }
-      PasswordToken pt = (PasswordToken) token;
       constructUser(principal, ZKSecurityTool.createPass(pt.getPassword()));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
@@ -131,10 +130,9 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void changePassword(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (!(token instanceof PasswordToken)) {
+    if (!(token instanceof PasswordToken pt)) {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     }
-    PasswordToken pt = (PasswordToken) token;
     if (userExists(principal)) {
       try {
         String userPath = Constants.ZUSERS + "/" + principal;
@@ -170,10 +168,9 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (!(token instanceof PasswordToken)) {
+    if (!(token instanceof PasswordToken pt)) {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     }
-    PasswordToken pt = (PasswordToken) token;
     byte[] zkData;
     String zpath = Constants.ZUSERS + "/" + principal;
     zkData = context.getZooCache().get(zpath);
