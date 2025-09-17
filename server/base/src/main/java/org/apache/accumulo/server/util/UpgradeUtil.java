@@ -127,7 +127,7 @@ public class UpgradeUtil implements KeywordExecutable {
 
       if (!tablePropsInSite.isEmpty()) {
         LOG.warn(
-            "Saw table properties in site configuration, these may cause problems in later versions of Accumulo : {} ",
+            "Saw table properties in site configuration, these may cause problems in later versions of Accumulo. Consider setting these properties on the namespace or table directly. Table properties found : {} ",
             tablePropsInSite.keySet());
       }
 
