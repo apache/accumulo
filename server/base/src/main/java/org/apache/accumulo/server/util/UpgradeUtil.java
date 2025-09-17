@@ -93,13 +93,6 @@ public class UpgradeUtil implements KeywordExecutable {
     }
   }
 
-  public static void main(String[] args) {
-    Opts opts = new Opts();
-    var jc = new JCommander(opts);
-    jc.setUsageFormatter(new UpgradeUsageFormatter(jc));
-    jc.usage();
-  }
-
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
