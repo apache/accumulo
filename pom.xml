@@ -834,7 +834,7 @@ under the License.
           <configuration>
             <archive>
               <manifestEntries>
-                <Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name>
+                <Automatic-Module-Name>${accumulo.build.module.name}</Automatic-Module-Name>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
                 <Sealed>true</Sealed>
               </manifestEntries>
@@ -1042,7 +1042,7 @@ under the License.
               <goal>regex-property</goal>
             </goals>
             <configuration>
-              <name>accumulo.module.name</name>
+              <name>accumulo.build.module.name</name>
               <regex>-</regex>
               <replacement>.</replacement>
               <value>org-apache-${project.artifactId}</value>
