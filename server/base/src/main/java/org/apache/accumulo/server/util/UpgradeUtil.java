@@ -126,14 +126,15 @@ public class UpgradeUtil implements KeywordExecutable {
           key -> key.startsWith(Property.TABLE_PREFIX.getKey()), false);
 
       if (!tablePropsInSite.isEmpty()) {
-        LOG.warn("Saw table properties in site configuration : {} ", tablePropsInSite.keySet());
+        LOG.warn("Saw table properties in accumulo.properties file : {} ",
+            tablePropsInSite.keySet());
         throw new IllegalStateException("Did not start upgrade preparation because table properties"
-            + " are present in site config which may cause later versions to fail.  Recommended action"
+            + " are present in the accumulo.properties which may cause later versions to fail.  Recommended action"
             + " is to set these properties at the system, namespace, or table level if still needed."
-            + " This can be done by starting accumulo and using the shell/api, or using the 'accumulo "
-            + "zoo-prop-editor' command.  Site configuration is the lowest level, so when moving "
-            + "properties consider if they will override something at a higher level. For example "
-            + "if moving a property to the namespace level, check if its set at the system level.");
+            + " This can be done by starting accumulo and using the shell/api, or using the 'accumulo"
+            + " zoo-prop-editor' command.  The accumulo.properties file is the lowest level of configuration, so when moving"
+            + " properties consider if they will override something at a higher level. For example"
+            + " if moving a property to the namespace level, check if its set at the system level.");
       }
       LOG.info(
           "Please examine the the accumulo.properties files across your cluster to ensure none "
