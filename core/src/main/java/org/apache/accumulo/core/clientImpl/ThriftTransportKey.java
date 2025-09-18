@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -36,13 +37,21 @@ public class ThriftTransportKey {
   private final long timeout;
   private final SslConnectionParams sslParams;
   private final SaslConnectionParams saslParams;
+  private final ResourceGroupId resourceGroup;
 
   private final int hash;
 
   @VisibleForTesting
   public ThriftTransportKey(ThriftClientTypes<?> type, HostAndPort server, long timeout,
       ClientContext context) {
-    this(type, server, timeout, context.getClientSslParams(), context.getSaslParams());
+    this(type, server, timeout, context.getClientSslParams(), context.getSaslParams(), null);
+  }
+
+  @VisibleForTesting
+  public ThriftTransportKey(ThriftClientTypes<?> type, HostAndPort server, long timeout,
+      ClientContext context, ResourceGroupId resourceGroup) {
+    this(type, server, timeout, context.getClientSslParams(), context.getSaslParams(),
+        resourceGroup);
   }
 
   /**
@@ -50,17 +59,27 @@ public class ThriftTransportKey {
    */
   ThriftTransportKey(ThriftClientTypes<?> type, HostAndPort server, long timeout,
       SslConnectionParams sslParams, SaslConnectionParams saslParams) {
+    this(type, server, timeout, sslParams, saslParams, null);
+  }
+
+  /**
+   * Visible only for testing
+   */
+  ThriftTransportKey(ThriftClientTypes<?> type, HostAndPort server, long timeout,
+      SslConnectionParams sslParams, SaslConnectionParams saslParams,
+      ResourceGroupId resourceGroup) {
     requireNonNull(server, "location is null");
     this.type = type;
     this.server = server;
     this.timeout = timeout;
     this.sslParams = sslParams;
     this.saslParams = saslParams;
+    this.resourceGroup = resourceGroup;
     if (saslParams != null && sslParams != null) {
       // TSasl and TSSL transport factories don't play nicely together
       throw new IllegalArgumentException("Cannot use both SSL and SASL thrift transports");
     }
-    this.hash = Objects.hash(type, server, timeout, sslParams, saslParams);
+    this.hash = Objects.hash(type, server, timeout, sslParams, saslParams, resourceGroup);
   }
 
   @VisibleForTesting
@@ -78,6 +97,11 @@ public class ThriftTransportKey {
     return timeout;
   }
 
+  @VisibleForTesting
+  public ResourceGroupId getResourceGroup() {
+    return resourceGroup;
+  }
+
   public boolean isSsl() {
     return sslParams != null;
   }
@@ -93,7 +117,8 @@ public class ThriftTransportKey {
     }
     return type.equals(ttk.type) && server.equals(ttk.server) && timeout == ttk.timeout
         && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
-        && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));
+        && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)))
+        && Objects.equals(resourceGroup, ttk.resourceGroup);
   }
 
   @Override
@@ -109,7 +134,8 @@ public class ThriftTransportKey {
     } else if (isSasl()) {
       prefix = saslParams + ":";
     }
-    return prefix + type + ":" + server + " (" + timeout + ")";
+    String rgSuffix = resourceGroup != null ? " [" + resourceGroup + "]" : "";
+    return prefix + type + ":" + server + " (" + timeout + ")" + rgSuffix;
   }
 
   public SslConnectionParams getSslParams() {

@@ -158,8 +158,9 @@ public interface TServerClient<C extends TServiceClient> {
         HostAndPort tserverClientAddress = data.orElseThrow().getAddress(service);
         if (tserverClientAddress != null) {
           try {
-            TTransport transport = context.getTransportPool().getTransport(type,
-                tserverClientAddress, rpcTimeout, context, preferCachedConnections);
+            TTransport transport =
+                context.getTransportPool().getTransport(type, tserverClientAddress, rpcTimeout,
+                    context, preferCachedConnections, path.getResourceGroup());
             C client = ThriftUtil.createClient(type, transport);
             if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
               LOG.info("Connecting to debug host: {}", debugHost);

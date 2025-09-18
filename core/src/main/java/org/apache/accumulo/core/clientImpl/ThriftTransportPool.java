@@ -43,6 +43,7 @@ import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
@@ -133,8 +134,15 @@ public class ThriftTransportPool {
 
   public TTransport getTransport(ThriftClientTypes<?> type, HostAndPort location, long milliseconds,
       ClientContext context, boolean preferCached) throws TTransportException {
+    return getTransport(type, location, milliseconds, context, preferCached, null);
+  }
 
-    ThriftTransportKey cacheKey = new ThriftTransportKey(type, location, milliseconds, context);
+  public TTransport getTransport(ThriftClientTypes<?> type, HostAndPort location, long milliseconds,
+      ClientContext context, boolean preferCached, ResourceGroupId resourceGroup)
+      throws TTransportException {
+
+    ThriftTransportKey cacheKey =
+        new ThriftTransportKey(type, location, milliseconds, context, resourceGroup);
     if (preferCached) {
       CachedConnection connection = connectionPool.reserveAny(cacheKey);
       if (connection != null) {
@@ -170,8 +178,7 @@ public class ThriftTransportPool {
     };
 
     for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
-      if (ttk.getType().equals(type)
-          && !paths.apply(AddressSelector.exact(ttk.getServer())).isEmpty()) {
+      if (ttk.getType().equals(type) && rgp.test(ttk.getResourceGroup())) {
         serversSet.add(ttk);
       }
     }
