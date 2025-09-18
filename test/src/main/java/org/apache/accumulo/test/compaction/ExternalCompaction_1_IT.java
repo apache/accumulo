@@ -533,6 +533,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         addCompactionIterators(compactionConfig, 2, GROUP4);
         client.tableOperations().compact(table1, compactionConfig);
         evenRanges.add(tabletId.toRange());
+
       }
 
       // compact the odd tablets with a modulus filter of 5
