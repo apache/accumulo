@@ -174,6 +174,6 @@ public class ThriftTransportKeyTest {
 
     assertEquals(groupA, ttkGroupA1.getResourceGroup());
     assertEquals(groupB, ttkGroupB.getResourceGroup());
-      assertNull(ttkGroupNull.getResourceGroup());
+    assertNull(ttkGroupNull.getResourceGroup());
   }
 }

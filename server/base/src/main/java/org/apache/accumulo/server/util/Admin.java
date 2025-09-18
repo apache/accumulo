@@ -816,7 +816,8 @@ public class Admin implements KeywordExecutable {
   private static final MessageFormat createNsFormat = new MessageFormat("createnamespace {0}\n");
   private static final MessageFormat createTableFormat = new MessageFormat("createtable {0}\n");
   private static final MessageFormat createUserFormat = new MessageFormat("createuser {0}\n");
-  private static final MessageFormat createRGFormat = new MessageFormat("resourcegroup -c {0}\n");
+  private static final MessageFormat createRGFormat =
+      new MessageFormat("createresourcegroup {0}\n");
   private static final MessageFormat nsConfigFormat = new MessageFormat("config -ns {0} -s {1}\n");
   private static final MessageFormat rgConfigFormat = new MessageFormat("config -rg {0} -s {1}\n");
   private static final MessageFormat sysPermFormat =
