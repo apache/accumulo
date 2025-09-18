@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.SortedMap;
+import java.util.TreeMap;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
@@ -37,6 +40,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.DefaultUsageFormatter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -63,13 +67,44 @@ public class UpgradeUtil implements KeywordExecutable {
     return "utility used to perform various upgrade steps for an Accumulo instance";
   }
 
+  private static class UpgradeUsageFormatter extends DefaultUsageFormatter {
+
+    public UpgradeUsageFormatter(JCommander commander) {
+      super(commander);
+    }
+
+    @Override
+    public void appendMainLine(StringBuilder out, boolean hasOptions, boolean hasCommands,
+        int indentCount, String indent) {
+      super.appendMainLine(out, hasOptions, hasCommands, indentCount, indent);
+
+      out.append("\n");
+      out.append(indent)
+          .append("  The upgrade command is intended to be used in the following way :\n");
+      out.append(indent).append("    1. Stop older version of accumulo\n");
+      out.append(indent)
+          .append("    2. Run 'accumulo upgrade --prepare' using the older version of accumulo\n");
+      out.append(indent).append("    3. Setup the newer version of the accumulo software\n");
+      out.append(indent)
+          .append("    4. Run 'accumulo upgrade --start' using the newer version of accumulo\n");
+      out.append(indent).append(
+          "    5. Start accumulo using the newer version and let the manager complete the upgrade\n");
+      out.append("\n");
+    }
+  }
+
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(keyword(), args);
+    opts.parseArgs(
+        jCommander -> jCommander.setUsageFormatter(new UpgradeUsageFormatter(jCommander)),
+        keyword(), args);
 
     if (!opts.prepare) {
-      new JCommander(opts).usage();
+      var jc = new JCommander(opts);
+      jc.setProgramName(keyword());
+      jc.setUsageFormatter(new UpgradeUsageFormatter(jc));
+      jc.usage();
       return;
     }
 
@@ -85,6 +120,26 @@ public class UpgradeUtil implements KeywordExecutable {
     ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
     if (opts.prepare) {
+      SortedMap<String,String> tablePropsInSite = new TreeMap<>();
+      // get table props in site conf excluding default config
+      siteConf.getProperties(tablePropsInSite,
+          key -> key.startsWith(Property.TABLE_PREFIX.getKey()), false);
+
+      if (!tablePropsInSite.isEmpty()) {
+        LOG.warn("Saw table properties in accumulo.properties file : {} ",
+            tablePropsInSite.keySet());
+        throw new IllegalStateException("Did not start upgrade preparation because table properties"
+            + " are present in the accumulo.properties which may cause later versions to fail.  Recommended action"
+            + " is to set these properties at the system, namespace, or table level if still needed."
+            + " This can be done by starting accumulo and using the shell/api, or using the 'accumulo"
+            + " zoo-prop-editor' command.  The accumulo.properties file is the lowest level of configuration, so when moving"
+            + " properties consider if they will override something at a higher level. For example"
+            + " if moving a property to the namespace level, check if its set at the system level.");
+      }
+      LOG.info(
+          "Please examine the the accumulo.properties files across your cluster to ensure none "
+              + "have table properties that could cause later versions to fail.");
+
       final String zUpgradepath = Constants.ZROOT + "/" + iid + Constants.ZPREPARE_FOR_UPGRADE;
       try {
         if (zoo.exists(zUpgradepath)) {
