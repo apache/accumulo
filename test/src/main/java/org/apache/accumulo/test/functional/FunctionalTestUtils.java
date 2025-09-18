@@ -33,6 +33,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
@@ -43,6 +44,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -60,6 +62,7 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -89,21 +92,19 @@ public class FunctionalTestUtils {
     }
   }
 
-  public static List<String> getRFilePaths(ServerContext context, AccumuloClient client,
-      String tableName) {
-    return getStoredTabletFiles(context, client, tableName).stream()
-        .map(StoredTabletFile::getMetadataPath).collect(Collectors.toList());
+  public static List<String> getRFilePaths(ServerContext context, String tableName) {
+    return getStoredTabletFiles(context, tableName).stream().map(StoredTabletFile::getMetadataPath)
+        .collect(Collectors.toList());
   }
 
   public static Set<StoredTabletFile> getStoredTabletFiles(ServerContext context,
-      AccumuloClient client, String tableName) {
-    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+      String tableName) {
+    TableId tableId = TableId.of(context.tableOperations().tableIdMap().get(tableName));
     try (var tabletsMetadata = context.getAmple().readTablets().forTable(tableId).build()) {
       return tabletsMetadata.stream().flatMap(tm -> tm.getFiles().stream())
           .collect(Collectors.toSet());
     }
   }
-
 
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
