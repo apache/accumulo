@@ -102,7 +102,7 @@ public class SiteConfigurationTest {
         .withOverrides(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "5")).build());
 
     // try loading a properties file that has a a table prop
-    URL propsUrl = getClass().getClassLoader().getResource("accumulo3.properties");
+    URL propsUrl = getClass().getResource("SiteConfigurationTest-testTableProps.properties");
     assertThrows(IllegalArgumentException.class,
         () -> new SiteConfiguration.Builder().fromUrl(propsUrl).build());
   }
