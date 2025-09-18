@@ -52,14 +52,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     justification = "visible for testing")
 public class ClusterConfigParser {
 
-  static void validateGroupNames(List<String> names) {
-    for (String name : names) {
-      if (!ResourceGroupId.GROUP_NAME_PATTERN.matcher(name).matches()) {
-        throw new IllegalArgumentException("Group name: " + name + " contains invalid characters");
-      }
-    }
-  }
-
   // visible for testing
   public static SiteConfiguration siteConf = null;
 
@@ -132,7 +124,7 @@ public class ClusterConfigParser {
   private static List<String> parseGroup(Map<String,String> config, String prefix) {
     Preconditions.checkArgument(prefix.equals(COMPACTOR_PREFIX) || prefix.equals(SSERVER_PREFIX)
         || prefix.equals(TSERVER_PREFIX));
-    List<String> groups = config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
+    return config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
       int periods = StringUtils.countMatches(k, '.');
       if (periods == 1) {
         return k.substring(prefix.length());
@@ -148,9 +140,7 @@ public class ClusterConfigParser {
       } else {
         throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
       }
-    }).sorted().distinct().collect(Collectors.toList());
-    validateGroupNames(groups);
-    return groups;
+    }).sorted().distinct().peek(ResourceGroupId::validateGroupName).collect(Collectors.toList());
   }
 
   private static void validateConfiguredGroups(final ServerContext ctx, final Set<String> zkGroups,

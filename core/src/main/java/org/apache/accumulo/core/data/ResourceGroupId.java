@@ -28,7 +28,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 
 public class ResourceGroupId extends AbstractId<ResourceGroupId> {
 
-  public static final Pattern GROUP_NAME_PATTERN = Pattern.compile("^[a-zA-Z]+(_?[a-zA-Z0-9])*$");
+  private static final Pattern GROUP_NAME_PATTERN = Pattern.compile("^[a-zA-Z]+(_?[a-zA-Z0-9])*$");
 
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of ResourceGroupId objects in the JVM at any given moment
@@ -43,16 +43,23 @@ public class ResourceGroupId extends AbstractId<ResourceGroupId> {
 
   private ResourceGroupId(String canonical) {
     super(canonical);
-    if (!GROUP_NAME_PATTERN.matcher(canonical).matches()) {
-      throw new IllegalArgumentException(
-          "Group name: " + canonical + " contains invalid characters");
+    validateGroupName(canonical);
+  }
+
+  /**
+   * @throws IllegalArgumentException if the group name is invalid
+   */
+  public static void validateGroupName(String groupName) {
+    if (!GROUP_NAME_PATTERN.matcher(groupName).matches()) {
+      throw new IllegalArgumentException("Group name '" + groupName
+          + "' is invalid. Valid names must match the pattern: " + GROUP_NAME_PATTERN.pattern());
     }
   }
 
   /**
    * Get a ResourceGroupId object for the provided canonical string.
    *
-   * @param canonical table ID string
+   * @param canonical resource group ID string
    * @return ResourceGroupId object
    */
   public static ResourceGroupId of(final String canonical) {
