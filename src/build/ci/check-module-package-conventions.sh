@@ -59,7 +59,6 @@ ALLOWED=(
   core/src/test/resources/empty.jceks
   core/src/test/resources/site-cfg.jceks
   core/src/test/resources/accumulo2.properties
-  core/src/test/resources/accumulo3.properties
   core/src/test/resources/passwords.jceks
   minicluster/src/test/resources/FooFilter.jar
   server/tserver/src/test/resources/walog-from-15.walog

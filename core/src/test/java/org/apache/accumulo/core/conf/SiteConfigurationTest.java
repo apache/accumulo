@@ -103,6 +103,7 @@ public class SiteConfigurationTest {
 
     // try loading a properties file that has a a table prop
     URL propsUrl = getClass().getResource("SiteConfigurationTest-testTableProps.properties");
+    assertNotNull(propsUrl);
     assertThrows(IllegalArgumentException.class,
         () -> new SiteConfiguration.Builder().fromUrl(propsUrl).build());
   }
