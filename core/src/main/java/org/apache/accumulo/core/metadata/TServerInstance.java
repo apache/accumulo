@@ -32,7 +32,7 @@ import com.google.common.net.HostAndPort;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance> {
+public final class TServerInstance implements Comparable<TServerInstance> {
 
   private final HostAndPort hostAndPort;
   private final String hostPort;

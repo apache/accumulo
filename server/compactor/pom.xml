@@ -29,6 +29,9 @@
   </parent>
   <artifactId>accumulo-compactor</artifactId>
   <name>Apache Accumulo Compactor</name>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.google.auto.service</groupId>
@@ -88,5 +91,6 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins />
   </build>
 </project>
