@@ -49,12 +49,14 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -79,6 +81,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
+import com.google.common.net.HostAndPort;
 
 public class SuspendedTabletsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
@@ -88,8 +91,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
   public static final int TSERVERS = 3;
   public static final int TABLETS = 30;
 
-  private String defaultGroup;
-  private Set<String> testGroup = new HashSet<>();
+  private TServerInstance defaultGroup;
+  private Set<TServerInstance> testGroup = new HashSet<>();
   private List<ProcessReference> tabletServerProcesses;
 
   @Override
@@ -123,10 +126,13 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
     Map<String,ResourceGroupId> hostAndGroup = TabletResourceGroupBalanceIT.getTServerGroups(mac);
     hostAndGroup.forEach((k, v) -> {
+      HostAndPort hp = HostAndPort.fromString(k);
       if (v.equals(ResourceGroupId.DEFAULT)) {
-        defaultGroup = k;
+        defaultGroup =
+            new TServerInstance(ServerIdUtil.tserver(v, hp.getHost(), hp.getPort()), "0");
       } else {
-        testGroup.add(k);
+        testGroup
+            .add(new TServerInstance(ServerIdUtil.tserver(v, hp.getHost(), hp.getPort()), "0"));
       }
     });
 
@@ -309,7 +315,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         try {
           ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
             log.info("Sending shutdown command to {} via ManagerClientService", ts);
-            client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
+            client.shutdownTabletServer(null, ctx.rpcCreds(), ts.toZooKeeperPathString(), false);
           }, ResourceGroupPredicate.DEFAULT_RG_ONLY);
         } catch (AccumuloSecurityException | AccumuloException e) {
           throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
