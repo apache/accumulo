@@ -220,7 +220,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
             .collect(Collectors.toSet());
     if (!tableProps.isEmpty()) {
       log.warn(
-          "Setting table properties in accumulo.properties file or with -o option is deprecated, saw:{}",
+          "Setting table properties in accumulo.properties file or with -o option is deprecated, saw: {}",
           tableProps);
     }
     this.config = config;
