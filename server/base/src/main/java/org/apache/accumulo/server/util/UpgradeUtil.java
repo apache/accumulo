@@ -61,6 +61,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.DefaultUsageFormatter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -100,6 +101,32 @@ public class UpgradeUtil implements KeywordExecutable {
   @Override
   public String description() {
     return "utility used to perform various upgrade steps for an Accumulo instance.";
+  }
+
+  private static class UpgradeUsageFormatter extends DefaultUsageFormatter {
+
+    public UpgradeUsageFormatter(JCommander commander) {
+      super(commander);
+    }
+
+    @Override
+    public void appendMainLine(StringBuilder out, boolean hasOptions, boolean hasCommands,
+        int indentCount, String indent) {
+      super.appendMainLine(out, hasOptions, hasCommands, indentCount, indent);
+
+      out.append("\n");
+      out.append(indent)
+          .append("  The upgrade command is intended to be used in the following way :\n");
+      out.append(indent).append("    1. Stop older version of accumulo\n");
+      out.append(indent)
+          .append("    2. Run 'accumulo upgrade --prepare' using the older version of accumulo\n");
+      out.append(indent).append("    3. Setup the newer version of the accumulo software\n");
+      out.append(indent)
+          .append("    4. Run 'accumulo upgrade --start' using the newer version of accumulo\n");
+      out.append(indent).append(
+          "    5. Start accumulo using the newer version and let the manager complete the upgrade\n");
+      out.append("\n");
+    }
   }
 
   private void prepare(final ServerContext context) {
@@ -299,10 +326,15 @@ public class UpgradeUtil implements KeywordExecutable {
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(keyword(), args);
+    opts.parseArgs(
+        jCommander -> jCommander.setUsageFormatter(new UpgradeUsageFormatter(jCommander)),
+        keyword(), args);
 
     if (!opts.prepare && !opts.start) {
-      new JCommander(opts).usage();
+      var jc = new JCommander(opts);
+      jc.setProgramName(keyword());
+      jc.setUsageFormatter(new UpgradeUsageFormatter(jc));
+      jc.usage();
       return;
     }
 
