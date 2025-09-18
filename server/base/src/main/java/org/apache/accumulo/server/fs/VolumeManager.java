@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
@@ -208,28 +209,51 @@ public interface VolumeManager extends AutoCloseable {
 
   Logger log = LoggerFactory.getLogger(VolumeManager.class);
 
-  static InstanceId getInstanceIDFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
+  static InstanceInfo getInstanceInfoFromHdfs(Path instanceDirectory, Configuration hadoopConf) {
     try {
-      FileSystem fs =
-          VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
+      log.debug("Trying to read instance info from {}", instanceDirectory);
+      var fs = VolumeConfiguration.fileSystemForPath(instanceDirectory.toString(), hadoopConf);
       FileStatus[] files = null;
       try {
         files = fs.listStatus(instanceDirectory);
       } catch (FileNotFoundException ex) {
         // ignored
       }
-      log.debug("Trying to read instance id from {}", instanceDirectory);
-      if (files == null || files.length == 0) {
-        log.error("unable to obtain instance id at {}", instanceDirectory);
-        throw new IllegalStateException(
-            "Accumulo not initialized, there is no instance id at " + instanceDirectory);
-      } else if (files.length != 1) {
-        log.error("multiple potential instances in {}", instanceDirectory);
-        throw new IllegalStateException(
-            "Accumulo found multiple possible instance ids in " + instanceDirectory);
-      } else {
-        return InstanceId.of(files[0].getPath().getName());
+      InstanceId instanceId = null;
+      String instanceName = null;
+      if (files != null) {
+        for (FileStatus file : files) {
+          String fileName = file.getPath().getName();
+          if (fileName.startsWith(Constants.INSTANCE_ID_PREFIX)) {
+            if (instanceId == null) {
+              instanceId = InstanceId.of(fileName.substring(Constants.INSTANCE_ID_PREFIX.length()));
+            } else {
+              log.error("multiple potential instances in {}", instanceDirectory);
+              throw new IllegalStateException(
+                  "Accumulo found multiple instance ids in " + instanceDirectory);
+            }
+          } else if (fileName.startsWith(Constants.INSTANCE_NAME_PREFIX)) {
+            if (instanceName == null) {
+              instanceName = fileName.substring(Constants.INSTANCE_NAME_PREFIX.length());
+            } else {
+              log.error("multiple potential instances in {}", instanceDirectory);
+              throw new IllegalStateException(
+                  "Accumulo found multiple instance names in " + instanceDirectory);
+            }
+          } else {
+            log.error("found unexpected file {} in {}", fileName, instanceDirectory);
+            throw new IllegalStateException(
+                "Accumulo found unexpected file " + fileName + " in " + instanceDirectory);
+          }
+        }
       }
+      if (instanceName == null || instanceId == null) {
+        log.error("unable to obtain instance id ({}) or name ({}) at {}", instanceId, instanceName,
+            instanceDirectory);
+        throw new IllegalStateException(
+            "Accumulo not initialized, instance info is missing at " + instanceDirectory);
+      }
+      return new InstanceInfo(instanceName, instanceId);
     } catch (IOException e) {
       log.error("Problem reading instance id out of hdfs at " + instanceDirectory, e);
       throw new UncheckedIOException(
