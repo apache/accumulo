@@ -51,6 +51,10 @@ public class LockRange {
     return range.contains(widenedRange.range);
   }
 
+  public boolean contains(Text row) {
+    return range.contains(row);
+  }
+
   public static LockRange of(String startRow, String endRow) {
     return of(startRow == null ? null : new Text(startRow),
         endRow == null ? null : new Text(endRow));

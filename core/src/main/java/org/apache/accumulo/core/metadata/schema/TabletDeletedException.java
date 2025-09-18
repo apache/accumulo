@@ -18,11 +18,34 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import java.util.Optional;
+
+import org.apache.accumulo.core.data.TableId;
+import org.apache.hadoop.io.Text;
+
 public class TabletDeletedException extends RuntimeException {
 
   private static final long serialVersionUID = 1L;
+  private final TableId tableId;
+  private final Text deletedEndRow;
+
+  public TabletDeletedException(String msg, TableId tableId, Text deletedEndRow) {
+    super(msg);
+    this.tableId = tableId;
+    this.deletedEndRow = deletedEndRow;
+  }
 
   public TabletDeletedException(String msg) {
     super(msg);
+    tableId = null;
+    deletedEndRow = null;
+  }
+
+  public Optional<TableId> getDeletedTableId() {
+    return Optional.ofNullable(tableId);
+  }
+
+  public Optional<Text> getDeletedEndRow() {
+    return Optional.ofNullable(deletedEndRow);
   }
 }
