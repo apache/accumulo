@@ -38,6 +38,8 @@ public class NamespacePermissionsTest {
         assertEquals(permission.name(), equivalent.name());
       }
     }
+
+    // these namespace permissions have no equivalent table permission
     assertEquals(EnumSet.of(NamespacePermission.ALTER_NAMESPACE, NamespacePermission.DROP_NAMESPACE,
         NamespacePermission.CREATE_TABLE), set);
 
@@ -55,6 +57,8 @@ public class NamespacePermissionsTest {
 
       }
     }
+
+    // these namespace permissions have no equivalent system permission
     assertEquals(EnumSet.of(NamespacePermission.READ, NamespacePermission.WRITE,
         NamespacePermission.GRANT, NamespacePermission.BULK_IMPORT), set);
   }
