@@ -39,7 +39,6 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
-import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -105,7 +104,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
         OutputStream walogInHDFStream =
             Files.newOutputStream(perTestTempSubDir.resolve(walogToTest))) {
-      IOUtils.copyLarge(walogStream, walogInHDFStream);
+      walogStream.transferTo(walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
 
@@ -128,7 +127,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
         OutputStream walogInHDFStream =
             Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
-      IOUtils.copyLarge(walogStream, walogInHDFStream);
+      walogStream.transferTo(walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
 
@@ -153,7 +152,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
         OutputStream walogInHDFStream =
             Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
-      IOUtils.copyLarge(walogStream, walogInHDFStream);
+      walogStream.transferTo(walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
 
