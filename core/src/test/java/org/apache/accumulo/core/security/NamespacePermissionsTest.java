@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -31,18 +32,34 @@ public class NamespacePermissionsTest {
     EnumSet<NamespacePermission> set = EnumSet.allOf(NamespacePermission.class);
 
     for (TablePermission permission : TablePermission.values()) {
-      set.remove(NamespacePermission.getEquivalent(permission));
+      var equivalent = NamespacePermission.getEquivalent(permission);
+      if (equivalent != null) {
+        assertTrue(set.remove(equivalent));
+        assertEquals(permission.name(), equivalent.name());
+      }
     }
+
+    // these namespace permissions have no equivalent table permission
+    assertEquals(EnumSet.of(NamespacePermission.ALTER_NAMESPACE, NamespacePermission.DROP_NAMESPACE,
+        NamespacePermission.CREATE_TABLE), set);
+
+    set = EnumSet.allOf(NamespacePermission.class);
     for (SystemPermission permission : SystemPermission.values()) {
       if (permission == SystemPermission.GRANT) {
         assertThrows(IllegalArgumentException.class,
             () -> NamespacePermission.getEquivalent(permission), "GRANT has no equivalent");
       } else {
-        set.remove(NamespacePermission.getEquivalent(permission));
+        var equivalent = NamespacePermission.getEquivalent(permission);
+        if (equivalent != null) {
+          assertTrue(set.remove(equivalent));
+          assertEquals(permission.name(), equivalent.name());
+        }
+
       }
     }
 
-    assertTrue(set.isEmpty(),
-        "All namespace permissions should have equivalent table or system permissions.");
+    // these namespace permissions have no equivalent system permission
+    assertEquals(EnumSet.of(NamespacePermission.READ, NamespacePermission.WRITE,
+        NamespacePermission.GRANT, NamespacePermission.BULK_IMPORT), set);
   }
 }
