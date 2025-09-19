@@ -20,6 +20,10 @@ package org.apache.accumulo.core.spi.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.util.stream.Collectors.toSet;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -40,9 +44,10 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
@@ -50,7 +55,6 @@ import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
 import org.apache.accumulo.core.util.ConfigurationImpl;
@@ -58,7 +62,8 @@ import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
-import org.easymock.EasyMock;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
@@ -71,10 +76,20 @@ public class RatioBasedCompactionPlannerTest {
     return c.stream().collect(onlyElement());
   }
 
-  private static final Configuration defaultConf =
-      ServiceEnvironment.Configuration.from(Map.of(), true);
   private static final CompactionServiceId csid = CompactionServiceId.of("cs1");
   private static final String prefix = Property.COMPACTION_SERVICE_PREFIX.getKey();
+
+  private ServiceEnvironment defaultEnv;
+
+  @BeforeEach
+  public void createDefaultServiceEnv() {
+    defaultEnv = createServiceEnvironment(Map.of(), Map.of());
+  }
+
+  @AfterEach
+  public void verifyDefaultServiceEnv() {
+    verify(defaultEnv);
+  }
 
   @Test
   public void testFindFilesToCompact() {
@@ -159,13 +174,14 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
-    var planner = createPlanner(defaultConf, groups);
+    var planner = createPlanner(defaultEnv, groups);
 
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
     var candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
     var compacting =
         Set.of(createJob(CompactionKind.SYSTEM, all, createCFs("F1", "3M", "F2", "3M")));
-    var params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.SYSTEM);
+    var params =
+        createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
 
     // The result of the running compaction could be included in a future compaction, so the planner
@@ -175,7 +191,8 @@ public class RatioBasedCompactionPlannerTest {
     all = createCFs("F1", "30M", "F2", "30M", "F3", "11M", "F4", "12M", "F5", "13M");
     candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
     compacting = Set.of(createJob(CompactionKind.SYSTEM, all, createCFs("F1", "30M", "F2", "30M")));
-    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.SYSTEM);
+    params =
+        createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
 
     // The result of the running compaction would not be included in future compactions, so the
@@ -190,7 +207,7 @@ public class RatioBasedCompactionPlannerTest {
     String executors = "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'},{'group':'huge'}]";
 
-    var planner = createPlanner(defaultConf, executors);
+    var planner = createPlanner(defaultEnv, executors);
 
     int count = 0;
 
@@ -214,7 +231,7 @@ public class RatioBasedCompactionPlannerTest {
     var candidates = createCFs(candidateStrings.toArray(new String[0]));
     var all = Sets.union(compacting, candidates);
     var jobs = Set.of(createJob(CompactionKind.SYSTEM, all, compacting));
-    var params = createPlanningParams(all, candidates, jobs, 2, CompactionKind.SYSTEM);
+    var params = createPlanningParams(defaultEnv, all, candidates, jobs, 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
 
     // The compaction running over the size 10 files would produce a file that would be used by a
@@ -226,14 +243,14 @@ public class RatioBasedCompactionPlannerTest {
 
   @Test
   public void testRunningCompactionLookAhead2() {
-
-    var config = ServiceEnvironment.Configuration
-        .from(Map.of(prefix + "cs1.planner.opts.maxOpen", "10"), true);
-
-    String executors = "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},"
+    String groups = "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'},{'group':'huge'}]";
 
-    var planner = createPlanner(config, executors);
+    var systemConf = Map.of(prefix + "cs1.planner.opts.maxOpen", "10");
+    var tableConf = Map.<String,String>of();
+    var senv = createServiceEnvironment(systemConf, tableConf);
+
+    var planner = createPlanner(senv, groups);
 
     int count = 0;
 
@@ -269,7 +286,7 @@ public class RatioBasedCompactionPlannerTest {
     var candidates = createCFs(candidateStrings.toArray(new String[0]));
     var all = Sets.union(compacting, candidates);
     var jobs = Set.of(createJob(CompactionKind.SYSTEM, all, compacting));
-    var params = createPlanningParams(all, candidates, jobs, 2, CompactionKind.SYSTEM);
+    var params = createPlanningParams(defaultEnv, all, candidates, jobs, 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
 
     // There are currently 20 files of size 11 of which 10 are compacting. The 10 files that are
@@ -294,7 +311,7 @@ public class RatioBasedCompactionPlannerTest {
     for (var job : plan.getJobs()) {
       candidates2.removeAll(job.getFiles());
     }
-    params = createPlanningParams(all, candidates2, jobs2, 2, CompactionKind.SYSTEM);
+    params = createPlanningParams(defaultEnv, all, candidates2, jobs2, 2, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
 
     // Simulating multiple compactions forward, the next set of files that would not include files
@@ -307,7 +324,7 @@ public class RatioBasedCompactionPlannerTest {
     var jobs3 = Sets.union(jobs2, Set.copyOf(plan.getJobs()));
     var candidates3 = new HashSet<>(candidates2);
     candidates3.removeAll(job.getFiles());
-    params = createPlanningParams(all, candidates3, jobs3, 2, CompactionKind.SYSTEM);
+    params = createPlanningParams(defaultEnv, all, candidates3, jobs3, 2, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
 
     // The 5 files of size 100_000 should not be found because it would be most optimal to compact
@@ -317,18 +334,20 @@ public class RatioBasedCompactionPlannerTest {
 
   @Test
   public void testUserCompaction() {
-    var config = ServiceEnvironment.Configuration
-        .from(Map.of(prefix + "cs1.planner.opts.maxOpen", "15"), true);
-
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
-    var planner = createPlanner(config, groups);
+    var systemConf = Map.of(prefix + "cs1.planner.opts.maxOpen", "15");
+    var tableConf = Map.<String,String>of();
+    var senv = createServiceEnvironment(systemConf, tableConf);
+
+    var planner = createPlanner(senv, groups);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
     var candidates = createCFs("F3", "11M", "F4", "12M", "F5", "13M");
     var compacting =
         Set.of(createJob(CompactionKind.SYSTEM, all, createCFs("F1", "3M", "F2", "3M")));
-    var params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.USER);
+    var params =
+        createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.USER);
     var plan = planner.makePlan(params);
 
     // a running non-user compaction should not prevent a user compaction
@@ -340,7 +359,7 @@ public class RatioBasedCompactionPlannerTest {
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
-    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     assertTrue(plan.getJobs().isEmpty());
 
@@ -350,7 +369,7 @@ public class RatioBasedCompactionPlannerTest {
         "64M", "F8", "128M", "F9", "256M", "FA", "512M", "FB", "1G", "FC", "2G", "FD", "4G", "FE",
         "8G", "FF", "16G", "FG", "32G", "FH", "64G");
     compacting = Set.of();
-    params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
@@ -360,7 +379,7 @@ public class RatioBasedCompactionPlannerTest {
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
         "F9", "256M", "FA", "512M", "FB", "1G", "FC", "2G", "FD", "4G", "FE", "8G", "FF", "16G",
         "FG", "32G", "FH", "64G");
-    params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
@@ -370,7 +389,7 @@ public class RatioBasedCompactionPlannerTest {
     // larger set of files that meets the compaction ratio
     all = createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M", "F5", "50M", "F6", "51M", "F7",
         "52M");
-    params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
@@ -379,7 +398,7 @@ public class RatioBasedCompactionPlannerTest {
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
     all = createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M", "F5", "50M");
-    params = createPlanningParams(all, all, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, all, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
@@ -392,9 +411,9 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}]";
 
-    var planner = createPlanner(defaultConf, groups);
+    var planner = createPlanner(defaultEnv, groups);
     var all = createCFs("F1", "128M", "F2", "129M", "F3", "130M", "F4", "131M", "F5", "132M");
-    var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    var params = createPlanningParams(defaultEnv, all, all, Set.of(), 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
 
     // should only compact files less than max size
@@ -403,7 +422,7 @@ public class RatioBasedCompactionPlannerTest {
     assertEquals(ResourceGroupId.of("large"), job.getGroup());
 
     // user compaction can exceed the max size
-    params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
@@ -418,13 +437,13 @@ public class RatioBasedCompactionPlannerTest {
         + "{'group':'large','maxSize':'512M'}]";
 
     for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
-      var planner = createPlanner(defaultConf, groups);
+      var planner = createPlanner(defaultEnv, groups);
       var all = IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
       // simulate 10 larger files, these should not compact at the same time as the smaller files.
       // Its more optimal to wait for all of the smaller files to compact and them compact the
       // output of compacting the smaller files with the larger files.
       IntStream.range(990, 1000).mapToObj(i -> createCF("C" + i, 20000)).forEach(all::add);
-      var params = createPlanningParams(all, all, Set.of(), 2, kind);
+      var params = createPlanningParams(defaultEnv, all, all, Set.of(), 2, kind);
       var plan = planner.makePlan(params);
 
       // There are 990 smaller files to compact. Should produce 66 jobs of 15 smaller files each.
@@ -450,11 +469,11 @@ public class RatioBasedCompactionPlannerTest {
 
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}]";
-    var planner = createPlanner(defaultConf, groups);
+    var planner = createPlanner(defaultEnv, groups);
     var all = IntStream.range(0, 65).mapToObj(i -> createCF("F" + i, i + 1)).collect(toSet());
     // This compaction ratio would not cause a system compaction, how a user compaction must compact
     // all of the files so it should generate some compactions.
-    var params = createPlanningParams(all, all, Set.of(), 100, CompactionKind.USER);
+    var params = createPlanningParams(defaultEnv, all, all, Set.of(), 100, CompactionKind.USER);
     var plan = planner.makePlan(params);
 
     assertEquals(3, plan.getJobs().size());
@@ -485,7 +504,7 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}]";
     for (var kind : List.of(CompactionKind.USER, CompactionKind.SYSTEM)) {
-      var planner = createPlanner(defaultConf, groups);
+      var planner = createPlanner(defaultEnv, groups);
       var all = IntStream.range(0, 990).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet());
       // simulate 10 larger files, these should not compact at the same time as the smaller files.
       // Its more optimal to wait for all of the smaller files to compact and them compact the
@@ -499,7 +518,7 @@ public class RatioBasedCompactionPlannerTest {
           IntStream.range(0, 15).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet()));
       var job2 = createJob(kind, all,
           IntStream.range(15, 30).mapToObj(i -> createCF("F" + i, 1000)).collect(toSet()));
-      var params = createPlanningParams(all, candidates, Set.of(job1, job2), 2, kind);
+      var params = createPlanningParams(defaultEnv, all, candidates, Set.of(job1, job2), 2, kind);
       var plan = planner.makePlan(params);
 
       // There are 990 smaller files to compact. Should produce 66 jobs of 15 smaller files each.
@@ -526,19 +545,20 @@ public class RatioBasedCompactionPlannerTest {
 
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}]";
-    var planner = createPlanner(defaultConf, groups);
+    var planner = createPlanner(defaultEnv, groups);
     var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "3M", "F5", "3M", "F6", "3M",
         "F7", "20M");
     var candidates = createCFs("F4", "3M", "F5", "3M", "F6", "3M", "F7", "20M");
     var compacting = Set
         .of(createJob(CompactionKind.SYSTEM, all, createCFs("F1", "1M", "F2", "1M", "F3", "1M")));
-    var params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.SYSTEM);
+    var params =
+        createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
     // The planning of the system compaction should find its most optimal to wait on the running
     // system compaction and emit zero jobs.
     assertEquals(0, plan.getJobs().size());
 
-    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     // The planning of user compaction should not take the running system compaction into
     // consideration and should create a compaction job.
@@ -549,7 +569,8 @@ public class RatioBasedCompactionPlannerTest {
     // Reverse the situation and turn the running compaction into a user compaction
     compacting =
         Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "1M", "F2", "1M", "F3", "1M")));
-    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.SYSTEM);
+    params =
+        createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     // The planning of a system compaction should not take the running user compaction into account
     // and should emit a job
@@ -557,7 +578,7 @@ public class RatioBasedCompactionPlannerTest {
     assertEquals(createCFs("F4", "3M", "F5", "3M", "F6", "3M"),
         getOnlyElement(plan.getJobs()).getFiles());
 
-    params = createPlanningParams(all, candidates, compacting, 2, CompactionKind.USER);
+    params = createPlanningParams(defaultEnv, all, candidates, compacting, 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     // The planning of the user compaction should decide the most optimal thing to do is to wait on
     // the running user compaction and should not emit any jobs.
@@ -569,10 +590,10 @@ public class RatioBasedCompactionPlannerTest {
     RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
 
     String groups = "[{\"group\": \"small\", \"maxSize\":\"32M\"},{\"group\":\"midsize\"}]";
-    planner.init(getInitParams(defaultConf, groups));
+    planner.init(getInitParams(defaultEnv, groups));
 
     var all = createCFs("F1", "1M", "F2", "1M", "F3", "1M", "F4", "1M");
-    var params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    var params = createPlanningParams(defaultEnv, all, all, Set.of(), 2, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
 
     var job = getOnlyElement(plan.getJobs());
@@ -580,7 +601,7 @@ public class RatioBasedCompactionPlannerTest {
     assertEquals(ResourceGroupId.of("small"), job.getGroup());
 
     all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
-    params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
+    params = createPlanningParams(defaultEnv, all, all, Set.of(), 2, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
 
     job = getOnlyElement(plan.getJobs());
@@ -598,7 +619,7 @@ public class RatioBasedCompactionPlannerTest {
     String groups =
         "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"group\":\"largeQueue\", \"type\":\"internal\", \"foo\":\"bar\", \"queue\":\"broken\"}]";
 
-    final InitParameters params = getInitParams(defaultConf, groups);
+    final InitParameters params = getInitParams(defaultEnv, groups);
     assertNotNull(params);
     var e =
         assertThrows(JsonParseException.class, () -> planner.init(params), "Failed to throw error");
@@ -615,7 +636,7 @@ public class RatioBasedCompactionPlannerTest {
     RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
     String groups = "[{\"group\":\"smallQueue\", \"maxSize\":\"32M\"}, {\"maxSize\":\"120M\"}]";
 
-    final InitParameters params = getInitParams(defaultConf, groups);
+    final InitParameters params = getInitParams(defaultEnv, groups);
     assertNotNull(params);
 
     var e = assertThrows(NullPointerException.class, () -> planner.init(params),
@@ -630,7 +651,7 @@ public class RatioBasedCompactionPlannerTest {
   @Test
   public void testErrorNoGroups() {
     RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
-    var groupParams = getInitParams(defaultConf, "");
+    var groupParams = getInitParams(defaultEnv, "");
     assertNotNull(groupParams);
 
     var e = assertThrows(IllegalStateException.class, () -> planner.init(groupParams),
@@ -648,7 +669,7 @@ public class RatioBasedCompactionPlannerTest {
     String groups =
         "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
-        () -> planner.init(getInitParams(defaultConf, groups)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultEnv, groups)), "Failed to throw error");
     assertTrue(e.getMessage().contains("Can only have one group w/o a maxSize"),
         "Error message didn't contain maxSize");
   }
@@ -662,7 +683,7 @@ public class RatioBasedCompactionPlannerTest {
     String groups =
         "[{\"group\":\"small\", \"maxSize\":\"32M\"}, {\"group\":\"medium\", \"maxSize\":\"32M\"}, {\"group\":\"large\"}]";
     var e = assertThrows(IllegalArgumentException.class,
-        () -> planner.init(getInitParams(defaultConf, groups)), "Failed to throw error");
+        () -> planner.init(getInitParams(defaultEnv, groups)), "Failed to throw error");
     assertTrue(e.getMessage().contains("Duplicate maxSize set in groups"),
         "Error message didn't contain maxSize");
   }
@@ -675,36 +696,37 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large'}]";
 
-    Map<String,String> overrides = new HashMap<>();
-    overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
-    overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
-    var conf = ServiceEnvironment.Configuration.from(overrides, false);
+    var systemConf =
+        Map.of(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10",
+            Property.TABLE_FILE_MAX.getKey(), "7");
+    var tableConf = Map.<String,String>of();
+    var senv = createServiceEnvironment(systemConf, tableConf);
 
     // The highest ratio is 1.9 so should compact this. Will need a subsequent compaction to bring
     // it below the limit.
-    var planner = createPlanner(conf, groups);
+    var planner = createPlanner(senv, groups);
     var all = createCFs(1000, 1.1, 1.9, 1.8, 1.6, 1.3, 1.4, 1.3, 1.2, 1.1);
-    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 1.1, 1.9), job.getFiles());
 
     // For this case need to compact two files and the highest ratio that achieves that is 2.9
     all = createCFs(1000, 2, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 2, 2.9), job.getFiles());
 
     all =
         createCFs(1000, 1.1, 2.89, 2.85, 2.7, 2.3, 2.9, 2.8, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 1.1, 2.89, 2.85, 2.7, 2.3, 2.9), job.getFiles());
 
     all = createCFs(1000, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 1.1);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9), job.getFiles());
@@ -714,7 +736,7 @@ public class RatioBasedCompactionPlannerTest {
     for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
       all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1,
           1.1, 1.1);
-      params = createPlanningParams(all, all, Set.of(), ratio, CompactionKind.SYSTEM, conf);
+      params = createPlanningParams(senv, all, all, Set.of(), ratio, CompactionKind.SYSTEM);
       plan = planner.makePlan(params);
       job = getOnlyElement(plan.getJobs());
       assertEquals(createCFs(1000, 1.9), job.getFiles());
@@ -724,27 +746,27 @@ public class RatioBasedCompactionPlannerTest {
     // multiple compactions to bring the tablet below the limit.
     all =
         createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 1.9), job.getFiles());
 
     all = createCFs(10, 1.3, 2.2, 2.51, 1.02, 1.7, 2.54, 2.3, 1.7, 1.5, 1.4);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(10, 1.3, 2.2, 2.51, 1.02, 1.7, 2.54), job.getFiles());
 
     // each file is 10x the size of the file smaller than it
     all = createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     assertTrue(plan.getJobs().isEmpty());
 
     // test with some files growing 20x, ensure those are not included
     for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
       all = createCFs(10, 1.05, 1.05, 1.25, 1.75, 1.25, 1.05, 1.05, 1.05);
-      params = createPlanningParams(all, all, Set.of(), ratio, CompactionKind.SYSTEM, conf);
+      params = createPlanningParams(senv, all, all, Set.of(), ratio, CompactionKind.SYSTEM);
       plan = planner.makePlan(params);
       job = getOnlyElement(plan.getJobs());
       assertEquals(createCFs(10, 1.05, 1.05, 1.25, 1.75), job.getFiles());
@@ -756,15 +778,15 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large', 'maxSize':'512M'}]";
 
-    Map<String,String> overrides = new HashMap<>();
-    overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
-    overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
-    var conf = ServiceEnvironment.Configuration.from(overrides, false);
+    var systemConf =
+        Map.of(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
+    var tableConf = Map.of(Property.TABLE_FILE_MAX.getKey(), "7");
+    var senv = createServiceEnvironment(systemConf, tableConf);
 
     // ensure that when a compaction would be over the max size limit that it is not planned
-    var planner = createPlanner(conf, groups);
+    var planner = createPlanner(senv, groups);
     var all = createCFs(1_000_000_000, 2, 2, 2, 2, 2, 2, 2);
-    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
 
     assertTrue(plan.getJobs().isEmpty());
@@ -774,7 +796,7 @@ public class RatioBasedCompactionPlannerTest {
     all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
     var job = new CompactionJobImpl((short) 1, ResourceGroupId.of("ee1"), createCFs("F1", "1000"),
         CompactionKind.SYSTEM);
-    params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(job), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
 
     assertTrue(plan.getJobs().isEmpty());
@@ -782,18 +804,19 @@ public class RatioBasedCompactionPlannerTest {
     // a really bad situation, each file is 20 times the size of its smaller file. By default, the
     // algorithm does not search that for ratios that low.
     all = createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner.makePlan(params);
     assertTrue(plan.getJobs().isEmpty());
 
     // adjust the config for the lowest search ratio and recreate the planner, this should allow a
     // compaction to happen
-    var overrides2 = new HashMap<>(overrides);
-    overrides2.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.lowestRatio",
+    var systemConf2 = new HashMap<>(systemConf);
+    systemConf2.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.lowestRatio",
         "1.04");
-    var conf2 = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides2).build());
-    var planner2 = createPlanner(conf2, groups);
-    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var senv2 = createServiceEnvironment(systemConf2, tableConf);
+
+    var planner2 = createPlanner(senv2, groups);
+    params = createPlanningParams(senv2, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner2.makePlan(params);
     var job2 = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05), job2.getFiles());
@@ -805,15 +828,15 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large'}]";
 
-    Map<String,String> overrides = new HashMap<>();
-    overrides.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
-    overrides.put(Property.TABLE_FILE_MAX.getKey(), "0");
-    overrides.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "5");
-    var conf = ServiceEnvironment.Configuration.from(overrides, false);
+    var systemConf =
+        Map.of(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10",
+            Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "5");
+    var tableConf = Map.of(Property.TABLE_FILE_MAX.getKey(), "0");
+    var senv = createServiceEnvironment(systemConf, tableConf);
 
-    var planner = createPlanner(conf, groups);
+    var planner = createPlanner(senv, groups);
     var all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1);
-    var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    var params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 1.9), job.getFiles());
@@ -909,15 +932,9 @@ public class RatioBasedCompactionPlannerTest {
     assertEquals(expectedNames, resultNames);
   }
 
-  private static CompactionPlanner.PlanningParameters createPlanningParams(Set<CompactableFile> all,
-      Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
-      CompactionKind kind) {
-    return createPlanningParams(all, candidates, compacting, ratio, kind, defaultConf);
-  }
-
-  private static CompactionPlanner.PlanningParameters createPlanningParams(Set<CompactableFile> all,
-      Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
-      CompactionKind kind, Configuration conf) {
+  private static CompactionPlanner.PlanningParameters createPlanningParams(ServiceEnvironment senv,
+      Set<CompactableFile> all, Set<CompactableFile> candidates, Set<CompactionJob> compacting,
+      double ratio, CompactionKind kind) {
     return new CompactionPlanner.PlanningParameters() {
 
       @Override
@@ -937,10 +954,6 @@ public class RatioBasedCompactionPlannerTest {
 
       @Override
       public ServiceEnvironment getServiceEnvironment() {
-        ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-        EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-        EasyMock.expect(senv.getConfiguration(TableId.of("42"))).andReturn(conf).anyTimes();
-        EasyMock.replay(senv);
         return senv;
       }
 
@@ -981,13 +994,14 @@ public class RatioBasedCompactionPlannerTest {
     };
   }
 
-  private static CompactionPlanner.InitParameters getInitParams(Configuration conf, String groups) {
+  private static CompactionPlanner.InitParameters getInitParams(ServiceEnvironment senv,
+      String groups) {
 
     Map<String,String> options = new HashMap<>();
 
     var optsPrefix = prefix + "cs1.planner.opts.";
 
-    conf.forEach(e -> {
+    senv.getConfiguration().forEach(e -> {
       if (e.getKey().startsWith(optsPrefix)) {
         options.put(e.getKey().substring(optsPrefix.length()), e.getValue());
       }
@@ -998,16 +1012,31 @@ public class RatioBasedCompactionPlannerTest {
       options.put("maxOpen", "15");
     }
 
-    ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
-    EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
-    EasyMock.replay(senv);
-
     return new CompactionPlannerInitParams(csid, prefix, options, senv);
   }
 
-  private static RatioBasedCompactionPlanner createPlanner(Configuration conf, String groups) {
+  private static ServiceEnvironment createServiceEnvironment(Map<String,String> systemConfOverrides,
+      Map<String,String> tableConfOverrides) {
+
+    // simulate system config with some user overrides
+    ConfigurationCopy systemConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    systemConfOverrides.forEach(systemConfig::set);
+
+    // simulate table config that uses the system config as its parent with some user overrides
+    ConfigurationCopy tableConfig = new ConfigurationCopy(systemConfig);
+    tableConfOverrides.forEach(tableConfig::set);
+
+    ServiceEnvironment senv = createMock(ServiceEnvironment.class);
+    expect(senv.getConfiguration()).andReturn(new ConfigurationImpl(systemConfig)).anyTimes();
+    expect(senv.getConfiguration(TableId.of("42"))).andReturn(new ConfigurationImpl(tableConfig))
+        .anyTimes();
+    replay(senv);
+    return senv;
+  }
+
+  private static RatioBasedCompactionPlanner createPlanner(ServiceEnvironment senv, String groups) {
     RatioBasedCompactionPlanner planner = new RatioBasedCompactionPlanner();
-    var initParams = getInitParams(conf, groups);
+    var initParams = getInitParams(senv, groups);
     planner.init(initParams);
     return planner;
   }
