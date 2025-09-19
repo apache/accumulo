@@ -26,10 +26,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -121,7 +121,7 @@ public class ClusterConfigParser {
     }
   }
 
-  private static List<String> parseGroup(Map<String,String> config, String prefix) {
+  private static TreeSet<ResourceGroupId> parseGroup(Map<String,String> config, String prefix) {
     Preconditions.checkArgument(prefix.equals(COMPACTOR_PREFIX) || prefix.equals(SSERVER_PREFIX)
         || prefix.equals(TSERVER_PREFIX));
     return config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
@@ -140,16 +140,17 @@ public class ClusterConfigParser {
       } else {
         throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
       }
-    }).sorted().distinct().peek(ResourceGroupId::of).collect(Collectors.toList());
+    }).map(ResourceGroupId::of).collect(Collectors.toCollection(TreeSet::new));
   }
 
-  private static void validateConfiguredGroups(final ServerContext ctx, final Set<String> zkGroups,
-      final List<String> configuredGroups, boolean createMissingRG) {
-    for (String cg : configuredGroups) {
+  private static void validateConfiguredGroups(final ServerContext ctx,
+      final Set<ResourceGroupId> zkGroups, final Set<ResourceGroupId> configuredGroups,
+      boolean createMissingRG) {
+    for (ResourceGroupId cg : configuredGroups) {
       if (!zkGroups.contains(cg)) {
         if (createMissingRG) {
           try {
-            ctx.resourceGroupOperations().create(ResourceGroupId.of(cg));
+            ctx.resourceGroupOperations().create(cg);
           } catch (AccumuloException | AccumuloSecurityException e) {
             throw new IllegalStateException("Error creating resource group: " + cg, e);
           }
@@ -163,7 +164,7 @@ public class ClusterConfigParser {
   }
 
   public static void outputShellVariables(ServerContext ctx, Map<String,String> config,
-      Set<String> zkGroups, boolean createMissingRG, PrintStream out) {
+      Set<ResourceGroupId> zkGroups, boolean createMissingRG, PrintStream out) {
 
     // find invalid config sections and point the user to the first one
     config.keySet().stream().filter(VALID_CONFIG_SECTIONS.negate()).findFirst()
@@ -182,7 +183,7 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
+    var compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
     if (compactorGroups.isEmpty()) {
       throw new IllegalArgumentException(
           "No compactor groups found, at least one compactor group is required to compact the system tables.");
@@ -190,8 +191,8 @@ public class ClusterConfigParser {
     validateConfiguredGroups(ctx, zkGroups, compactorGroups, createMissingRG);
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
-          compactorGroups.stream().collect(Collectors.joining(" ")));
-      for (String group : compactorGroups) {
+          String.join(" ", compactorGroups.stream().map(ResourceGroupId::canonical).toList()));
+      for (ResourceGroupId group : compactorGroups) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
             config.get(COMPACTOR_PREFIX + group + HOSTS_SUFFIX));
         String numCompactors =
@@ -200,18 +201,18 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> sserverGroups = parseGroup(config, SSERVER_PREFIX);
+    var sserverGroups = parseGroup(config, SSERVER_PREFIX);
     validateConfiguredGroups(ctx, zkGroups, sserverGroups, createMissingRG);
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
-          sserverGroups.stream().collect(Collectors.joining(" ")));
+          String.join(" ", sserverGroups.stream().map(ResourceGroupId::canonical).toList()));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
           config.get(SSERVER_PREFIX + ssg + HOSTS_SUFFIX)));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVERS_PER_HOST_" + ssg,
           config.getOrDefault(SSERVER_PREFIX + ssg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
-    List<String> tserverGroups = parseGroup(config, TSERVER_PREFIX);
+    var tserverGroups = parseGroup(config, TSERVER_PREFIX);
     if (tserverGroups.isEmpty()) {
       throw new IllegalArgumentException(
           "No tserver groups found, at least one tserver group is required to host the system tables.");
@@ -220,7 +221,7 @@ public class ClusterConfigParser {
     AtomicBoolean foundTServer = new AtomicBoolean(false);
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
-          tserverGroups.stream().collect(Collectors.joining(" ")));
+          String.join(" ", tserverGroups.stream().map(ResourceGroupId::canonical).toList()));
       tserverGroups.forEach(tsg -> {
         String hosts = config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX);
         foundTServer.compareAndSet(false, hosts != null && !hosts.isEmpty());
@@ -254,12 +255,11 @@ public class ClusterConfigParser {
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);
       }
-      final Set<String> zkGroups = new HashSet<>();
-      context.resourceGroupOperations().list().forEach(rg -> zkGroups.add(rg.canonical()));
-      if (!zkGroups.contains(ResourceGroupId.DEFAULT.canonical())) {
+      final Set<ResourceGroupId> zkGroups = new TreeSet<>(context.resourceGroupOperations().list());
+      if (!zkGroups.contains(ResourceGroupId.DEFAULT)) {
         throw new IllegalStateException("Default resource group not found in ZooKeeper");
       }
-      boolean createMissingRG = args[0].equals("true") ? true : false;
+      boolean createMissingRG = args[0].equals("true");
       try {
         if (args.length == 3) {
           // Write to a file instead of System.out if provided as an argument
