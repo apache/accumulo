@@ -361,8 +361,12 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       assertEquals(Set.of(ResourceGroupId.DEFAULT, first, second, third), rgops.list());
 
       // make some changes to resource groups check if we see them
-      rgops.modifyProperties(first, (map) -> {map.clear(); map.putAll(secondProps);});
-      rgops.modifyProperties(second, (map) -> {map.clear(); map.putAll(firstProps);});
+      rgops.modifyProperties(first, (map) -> {
+        map.clear(); map.putAll(secondProps);
+      });
+      rgops.modifyProperties(second, (map) -> {
+        map.clear(); map.putAll(firstProps);
+      });
       rgops.remove(third);
 
       assertEquals(secondProps, rgops.getProperties(first));
