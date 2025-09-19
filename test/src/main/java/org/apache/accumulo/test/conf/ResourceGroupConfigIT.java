@@ -22,7 +22,6 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,7 +29,6 @@ import java.time.Duration;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.cluster.ClusterUser;
@@ -175,7 +173,6 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       // test error cases
       ResourceGroupId invalid = ResourceGroupId.of("INVALID");
       Consumer<Map<String,String>> consumer = (m) -> {};
-      assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.getConfiguration(invalid));
       assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.getProperties(invalid));
       assertThrows(ResourceGroupNotFoundException.class,
           () -> rgOps.setProperty(invalid, Property.COMPACTION_WARN_TIME.getKey(), "1m"));
@@ -312,119 +309,5 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       test_user_client.resourceGroupOperations().remove(rgid);
       test_user_client.resourceGroupOperations().create(rgid);
     }
-  }
-
-  @Test
-  public void testMultipleConfigurations() throws Exception {
-
-    final String FIRST = "FIRST";
-    final String SECOND = "SECOND";
-    final String THIRD = "THIRD";
-
-    final ResourceGroupId first = ResourceGroupId.of(FIRST);
-    final ResourceGroupId second = ResourceGroupId.of(SECOND);
-    final ResourceGroupId third = ResourceGroupId.of(THIRD);
-
-    // @formatter:off
-    Map<String,String> firstProps = Map.of(
-        Property.COMPACTION_WARN_TIME.getKey(), "1m",
-        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
-        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
-
-    Map<String,String> secondProps = Map.of(
-        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "5",
-        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
-
-    Map<String,String> thirdProps = Map.of(
-        Property.COMPACTION_WARN_TIME.getKey(), "1m",
-        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "6");
-    // @formatter:off
-
-    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-
-      client.instanceOperations().setProperty(Property.COMPACTION_WARN_TIME.getKey(), "1m");
-
-      // Set the SSERV_WAL_SORT_MAX_CONCURRENT property to 3. The default is 2
-      // and the resource groups will override to 4, 5, and 6. We should never
-      // see 2 or 3 when getting the running configurations from the processes.
-      client.instanceOperations().setProperty(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "3");
-
-      @SuppressWarnings("resource")
-      ClientContext cc = (ClientContext) client;
-
-      final ResourceGroupOperations rgops = client.resourceGroupOperations();
-
-      rgops.create(first);
-      rgops.create(second);
-      rgops.create(third);
-
-      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultCompactors(1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(FIRST, 1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(SECOND, 1);
-      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(THIRD, 1);
-      getCluster().start();
-
-      Wait.waitFor(() -> cc.getServerPaths()
-          .getCompactor(ResourceGroupPredicate.exact(first), AddressSelector.all(), true).size()
-          == 1);
-      Wait.waitFor(() -> cc.getServerPaths()
-          .getCompactor(ResourceGroupPredicate.exact(second), AddressSelector.all(), true).size()
-          == 1);
-      Wait.waitFor(() -> cc.getServerPaths()
-          .getCompactor(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
-          == 1);
-
-      rgops.modifyProperties(first, (map) -> {
-        map.putAll(firstProps);
-      });
-      rgops.modifyProperties(second, (map) -> {
-        map.putAll(secondProps);
-      });
-      rgops.modifyProperties(third, (map) -> {
-        map.putAll(thirdProps);
-      });
-
-      System.setProperty(TServerClient.DEBUG_RG, FIRST);
-      Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
-      assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-      compareConfigurations(sysConfig, firstProps, rgops.getConfiguration(first));
-
-      System.setProperty(TServerClient.DEBUG_RG, SECOND);
-      sysConfig = client.instanceOperations().getSystemConfiguration();
-      assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-      compareConfigurations(sysConfig, secondProps, rgops.getConfiguration(second));
-
-      System.setProperty(TServerClient.DEBUG_RG, THIRD);
-      sysConfig = client.instanceOperations().getSystemConfiguration();
-      assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-      compareConfigurations(sysConfig, thirdProps, rgops.getConfiguration(third));
-
-      getCluster().getClusterControl().stopCompactorGroup(FIRST);
-      getCluster().getClusterControl().stopCompactorGroup(SECOND);
-      getCluster().getClusterControl().stopCompactorGroup(THIRD);
-
-      getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
-
-      Wait.waitFor(() -> cc.getServerPaths()
-          .getCompactor(ResourceGroupPredicate.exact(first), AddressSelector.all(), true).size()
-          == 0);
-      Wait.waitFor(() -> cc.getServerPaths()
-          .getScanServer(ResourceGroupPredicate.exact(second), AddressSelector.all(), true).size()
-          == 0);
-      Wait.waitFor(() -> cc.getServerPaths()
-          .getTabletServer(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
-          == 0);
-    }
-  }
-
-  private void compareConfigurations(Map<String,String> sysConfig, Map<String,String> rgConfig, Map<String,String> actual) {
-
-    assertEquals("1m", actual.get(Property.COMPACTION_WARN_TIME.getKey()));
-    assertNotEquals("2", actual.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-    assertNotEquals("3", actual.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-
-    TreeMap<String,String> expected = new TreeMap<>(sysConfig);
-    expected.putAll(rgConfig);
-    assertEquals(expected, new TreeMap<>(actual));
   }
 }

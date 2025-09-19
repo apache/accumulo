@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -88,8 +87,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       Wait.waitFor(() -> {
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())),
-            ResourceGroupPredicate.DEFAULT_RG_ONLY);
+                creds.toThrift(c.instanceOperations().getInstanceId())));
         int unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
@@ -104,8 +102,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
       Wait.waitFor(() -> {
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())),
-            ResourceGroupPredicate.DEFAULT_RG_ONLY);
+                creds.toThrift(c.instanceOperations().getInstanceId())));
 
         List<Integer> counts = new ArrayList<>();
         for (TabletServerStatus server : stats.tServerInfo) {
