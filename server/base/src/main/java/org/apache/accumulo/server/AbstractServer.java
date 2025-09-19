@@ -117,7 +117,7 @@ public abstract class AbstractServer
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
-      HostAndPort advertHP = HostAndPort.fromString(advertAddr);
+      HostAndPort advertHP = HostAndPort.fromString(advertAddr).withDefaultPort(0);
       if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
@@ -339,7 +339,8 @@ public abstract class AbstractServer
       if (curr == null) {
         return thriftBindAddress;
       } else if (curr.getPort() == 0) {
-        return thriftBindAddress;
+        return ServerIdUtil.dynamic(curr.getType(), curr.getResourceGroup(), curr.getHost(),
+            thriftBindAddress.getPort());
       } else {
         return curr;
       }
