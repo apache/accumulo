@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.cluster;
+package org.apache.accumulo.miniclusterImpl.cluster;
 
 import java.util.Properties;
 

@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.accumulo.cluster.ClusterUser;
+import org.apache.accumulo.miniclusterImpl.cluster.ClusterUser;
 import org.apache.hadoop.minikdc.MiniKdc;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

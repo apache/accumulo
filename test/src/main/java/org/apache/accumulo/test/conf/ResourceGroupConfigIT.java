@@ -33,7 +33,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -56,6 +55,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.cluster.ClusterUser;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
