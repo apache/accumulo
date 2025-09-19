@@ -337,7 +337,7 @@ public class ZooInfoViewer implements KeywordExecutable {
   private void printResourceGroups(ServerContext context, PrintWriter writer) {
     Set<String> groups = new TreeSet<>();
     context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS).forEach(groups::add);
-    String rgs = String.join(",", groups.toArray(new String[] {}));
+    String rgs = String.join(" ", groups.toArray(new String[] {}));
     writer.println("Resource Groups: " + rgs);
     writer.println();
   }

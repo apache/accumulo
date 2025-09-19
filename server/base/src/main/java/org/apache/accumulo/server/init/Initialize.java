@@ -438,24 +438,31 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
-  private static boolean addResourceGroups(ZooReaderWriter zrw, String resourceGroupsArg) {
-    if (resourceGroupsArg == null) {
+  private static boolean addResourceGroups(InitialConfiguration initConfig,
+      String resourceGroupsArg) {
+
+    try (ServerContext context = new ServerContext(initConfig.getSiteConf())) {
+      if (resourceGroupsArg == null) {
+        return true;
+      }
+      final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
+      final String[] rgs = resourceGroupsArg.split(",");
+      for (String rg : rgs) {
+        String trimmed = rg.trim();
+        final var rgid = ResourceGroupId.of(trimmed);
+        if (rgid == ResourceGroupId.DEFAULT) {
+          continue;
+        }
+        try {
+          ResourceGroupPropKey.of(rgid).createZNode(zrw);
+          log.info("Added resource group {}", trimmed);
+        } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          log.error("Error creating resource group: " + trimmed, e);
+          return false;
+        }
+      }
       return true;
     }
-    final String[] rgs = resourceGroupsArg.split(",");
-    for (String rg : rgs) {
-      final var rgid = ResourceGroupId.of(rg);
-      if (rgid == ResourceGroupId.DEFAULT) {
-        continue;
-      }
-      try {
-        ResourceGroupPropKey.of(rgid).createZNode(zrw);
-      } catch (KeeperException | InterruptedException e) {
-        log.error("Error creating resource group: " + rg, e);
-        return false;
-      }
-    }
-    return true;
   }
 
   private static boolean addVolumes(VolumeManager fs, InitialConfiguration initConfig,
@@ -564,10 +571,10 @@ public class Initialize implements KeywordExecutable {
       }
       if (success && opts.resourceGroups != null) {
         try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
-          success = addResourceGroups(zk.asReaderWriter(), opts.resourceGroups);
+          success = addResourceGroups(initConfig, opts.resourceGroups);
         }
       }
-      if (!opts.resetSecurity && !opts.addVolumes) {
+      if (!opts.resetSecurity && !opts.addVolumes && opts.resourceGroups == null) {
         try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
           success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
         }

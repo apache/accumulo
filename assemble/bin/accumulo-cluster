@@ -277,6 +277,14 @@ function canRunOnHost() {
   [[ $found == 1 ]]
 }
 
+function arrayContains() {
+  local m=$1
+  shift
+  local x
+  for x in "$@"; do [[ $x == "$m" ]] && return 0; done
+  return 1
+}
+
 function parse_config() {
 
   local manager1
@@ -303,7 +311,6 @@ function parse_config() {
   "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || exit 1
   read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
   debug "All resource groups: ${all_resource_groups[*]}"
-  rm -f "$RG_FILE"
 
   CONFIG_FILE="$AC_TMP_DIR/ClusterConfigParser.out"
   "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
@@ -316,7 +323,6 @@ function parse_config() {
       debug "$(white "$line")"
     done <"$CONFIG_FILE"
   fi
-  rm -f "$CONFIG_FILE"
 
   # this might not be possible, since the ClusterConfigParser would probably fail instead
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -328,7 +334,7 @@ function parse_config() {
     echo "$(yellow WARN): No compactor groups configured"
   else
     for group in $COMPACTOR_GROUPS; do
-      if ! ${all_resource_groups[$group]}; then
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
         echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
         exit 1
       fi
@@ -344,7 +350,7 @@ function parse_config() {
     echo "$(yellow WARN): No tablet server groups configured"
   else
     for group in $TSERVER_GROUPS; do
-      if ! ${all_resource_groups[$group]}; then
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
         echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
         exit 1
       fi
@@ -364,7 +370,7 @@ function parse_config() {
 
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
-      if ! ${all_resource_groups[$group]}; then
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
         echo "$(red ERROR): Resource group $(yellow "$group"p) does not exist. Use 'accumulo init --add-resource-groups' to create it"
         exit 1
       fi
