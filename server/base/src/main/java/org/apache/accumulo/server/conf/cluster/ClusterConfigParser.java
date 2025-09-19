@@ -140,7 +140,7 @@ public class ClusterConfigParser {
       } else {
         throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
       }
-    }).sorted().distinct().peek(ResourceGroupId::validateGroupName).collect(Collectors.toList());
+    }).sorted().distinct().peek(ResourceGroupId::of).collect(Collectors.toList());
   }
 
   private static void validateConfiguredGroups(final ServerContext ctx, final Set<String> zkGroups,

@@ -49,7 +49,7 @@ public class ResourceGroupId extends AbstractId<ResourceGroupId> {
   /**
    * @throws IllegalArgumentException if the group name is invalid
    */
-  public static void validateGroupName(String groupName) {
+  private static void validateGroupName(String groupName) {
     if (!GROUP_NAME_PATTERN.matcher(groupName).matches()) {
       throw new IllegalArgumentException("Group name '" + groupName
           + "' is invalid. Valid names must match the pattern: " + GROUP_NAME_PATTERN.pattern());
