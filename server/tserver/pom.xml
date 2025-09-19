@@ -154,7 +154,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${rootlocation}/src/build/license-header.txt</header>
+                <inlineHeader>${accumulo.build.license.header}</inlineHeader>
                 <excludes>
                   <exclude>src/test/resources/*.walog</exclude>
                   <exclude>src/test/resources/walog-from-14/*</exclude>
