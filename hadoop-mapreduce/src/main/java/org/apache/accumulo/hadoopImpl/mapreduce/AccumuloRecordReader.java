@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
@@ -54,6 +55,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -316,7 +318,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
     }
   }
 
-  private static Map<String,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context,
+  private static Map<ServerId,Map<KeyExtent,List<Range>>> binOfflineTable(JobContext context,
       TableId tableId, List<Range> ranges, Class<?> callingClass)
       throws TableNotFoundException, AccumuloException {
     try (AccumuloClient client = createClient(context, callingClass)) {
@@ -367,7 +369,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         }
 
         // get the metadata information for these ranges
-        Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+        Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
         ClientTabletCache tl;
         try {
           if (tableConfig.isOfflineScan()) {
@@ -398,11 +400,12 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
                 tl.invalidateCache();
               }
             } else {
-              Map<String,Map<KeyExtent,List<Range>>> unhostedRanges = new HashMap<>();
-              unhostedRanges.put("", new HashMap<>());
+              final ServerId unhostedKey = ServerIdUtil.tserver("", 0);
+              Map<ServerId,Map<KeyExtent,List<Range>>> unhostedRanges = new HashMap<>();
+              unhostedRanges.put(unhostedKey, new HashMap<>());
               BiConsumer<CachedTablet,Range> consumer = (ct, r) -> {
-                unhostedRanges.get("").computeIfAbsent(ct.getExtent(), k -> new ArrayList<>())
-                    .add(r);
+                unhostedRanges.get(unhostedKey)
+                    .computeIfAbsent(ct.getExtent(), k -> new ArrayList<>()).add(r);
               };
               List<Range> failures =
                   tl.findTablets(clientContext, ranges, consumer, LocationNeed.NOT_REQUIRED);
@@ -422,7 +425,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
                 } catch (InterruptedException e) {
                   throw new RuntimeException(e);
                 }
-                unhostedRanges.get("").clear();
+                unhostedRanges.get(unhostedKey).clear();
                 tl.invalidateCache();
                 failures =
                     tl.findTablets(clientContext, ranges, consumer, LocationNeed.NOT_REQUIRED);
@@ -444,14 +447,14 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
           splitsToAdd = new HashMap<>();
         }
 
-        HashMap<String,String> hostNameCache = new HashMap<>();
-        for (Map.Entry<String,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
-          String ip = tserverBin.getKey().split(":", 2)[0];
-          String location = hostNameCache.get(ip);
+        HashMap<ServerId,String> hostNameCache = new HashMap<>();
+        for (Map.Entry<ServerId,Map<KeyExtent,List<Range>>> tserverBin : binnedRanges.entrySet()) {
+          ServerId server = tserverBin.getKey();
+          String location = hostNameCache.get(server);
           if (location == null) {
-            InetAddress inetAddress = InetAddress.getByName(ip);
+            InetAddress inetAddress = InetAddress.getByName(server.getHost());
             location = inetAddress.getCanonicalHostName();
-            hostNameCache.put(ip, location);
+            hostNameCache.put(server, location);
           }
           for (Map.Entry<KeyExtent,List<Range>> extentRanges : tserverBin.getValue().entrySet()) {
             Range ke = extentRanges.getKey().toDataRange();

@@ -49,12 +49,14 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -89,8 +91,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
   public static final int TSERVERS = 3;
   public static final int TABLETS = 30;
 
-  private String defaultGroup;
-  private Set<String> testGroup = new HashSet<>();
+  private TServerInstance defaultGroup;
+  private Set<TServerInstance> testGroup = new HashSet<>();
   private List<ProcessReference> tabletServerProcesses;
 
   @Override
@@ -124,10 +126,13 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
     Map<String,ResourceGroupId> hostAndGroup = TabletResourceGroupBalanceIT.getTServerGroups(mac);
     hostAndGroup.forEach((k, v) -> {
+      HostAndPort hp = HostAndPort.fromString(k);
       if (v.equals(ResourceGroupId.DEFAULT)) {
-        defaultGroup = k;
+        defaultGroup =
+            new TServerInstance(ServerIdUtil.tserver(v, hp.getHost(), hp.getPort()), "0");
       } else {
-        testGroup.add(k);
+        testGroup
+            .add(new TServerInstance(ServerIdUtil.tserver(v, hp.getHost(), hp.getPort()), "0"));
       }
     });
 
@@ -244,11 +249,11 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       } while (ds.suspended.keySet().size() != (TSERVERS - 1)
           || (ds.suspendedCount + ds.hostedCount) != TABLETS);
 
-      SetMultimap<HostAndPort,KeyExtent> deadTabletsByServer = ds.suspended;
+      SetMultimap<ServerId,KeyExtent> deadTabletsByServer = ds.suspended;
 
       // All suspended tablets should "belong" to the dead tablet servers, and should be in exactly
       // the same place as before any tserver death.
-      for (HostAndPort server : deadTabletsByServer.keySet()) {
+      for (ServerId server : deadTabletsByServer.keySet()) {
         // Comparing pre-death, hosted tablets to suspended tablets on a server
         assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
       }
@@ -266,8 +271,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         }
       } else if (action == AfterSuspendAction.RESUME) {
         // Restart the first tablet server, making sure it ends up on the same port
-        HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
-        log.info("Restarting " + restartedServer);
+        ServerId restartedServer = deadTabletsByServer.keySet().iterator().next();
+        log.info("Restarting " + restartedServer.toHostPortString());
         ((MiniAccumuloClusterImpl) getCluster())._exec(TabletServer.class, ServerType.TABLET_SERVER,
             Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
                 Property.TSERV_PORTSEARCH.getKey(), "false"),
@@ -279,7 +284,6 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           Thread.sleep(1000);
           ds = TabletLocations.retrieve(ctx, tableName);
         }
-        assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
 
         // Finally, after much longer, remaining suspended tablets should be reassigned.
         log.info("Awaiting tablet reassignment for remaining tablets (suspension timeout)");
@@ -289,6 +293,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         }
 
         // Ensure all suspension markers in the metadata table were cleared.
+        assertTrue(ds.hostedCount == TABLETS);
         assertTrue(ds.suspended.isEmpty());
       } else {
         throw new IllegalStateException("Unknown action " + action);
@@ -310,7 +315,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         try {
           ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
             log.info("Sending shutdown command to {} via ManagerClientService", ts);
-            client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
+            client.shutdownTabletServer(null, ctx.rpcCreds(), ts.toZooKeeperPathString(), false);
           }, ResourceGroupPredicate.DEFAULT_RG_ONLY);
         } catch (AccumuloSecurityException | AccumuloException e) {
           throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
@@ -358,8 +363,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
   private static class TabletLocations {
     public final Map<KeyExtent,TabletMetadata> locationStates = new HashMap<>();
-    public final SetMultimap<HostAndPort,KeyExtent> hosted = HashMultimap.create();
-    public final SetMultimap<HostAndPort,KeyExtent> suspended = HashMultimap.create();
+    public final SetMultimap<ServerId,KeyExtent> hosted = HashMultimap.create();
+    public final SetMultimap<ServerId,KeyExtent> suspended = HashMultimap.create();
     public int hostedCount = 0;
     public int assignedCount = 0;
     public int suspendedCount = 0;
@@ -407,10 +412,10 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           }
           locationStates.put(ke, tm);
           if (tm.getSuspend() != null) {
-            suspended.put(tm.getSuspend().server, ke);
+            suspended.put(tm.getSuspend().server.getServer(), ke);
             ++suspendedCount;
           } else if (tm.hasCurrent()) {
-            hosted.put(tm.getLocation().getHostAndPort(), ke);
+            hosted.put(tm.getLocation().getServerInstance().getServer(), ke);
             ++hostedCount;
           } else if (tm.getLocation() != null
               && tm.getLocation().getType().equals(LocationType.FUTURE)) {

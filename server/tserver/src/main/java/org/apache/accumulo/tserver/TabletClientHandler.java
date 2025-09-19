@@ -1039,7 +1039,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       }
     }
 
-    TabletLogger.loading(extent, server.getTabletSession());
+    TabletLogger.loading(extent, server.getTServerInstance());
 
     final AssignmentHandler ah = new AssignmentHandler(server, extent);
     // Root tablet assignment must take place immediately

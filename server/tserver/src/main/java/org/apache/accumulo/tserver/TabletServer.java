@@ -42,6 +42,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -203,7 +204,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private ServiceLock tabletServerLock;
 
   private volatile ZooUtil.LockID lockID;
-  private volatile long lockSessionId = -1;
+  private volatile TServerInstance instance;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
 
@@ -417,13 +418,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }, true);
   }
 
-  private HostAndPort getManagerAddress() {
+  private ServerId getManagerAddress() {
     try {
       Set<ServerId> managers = getContext().instanceOperations().getServers(ServerId.Type.MANAGER);
       if (managers == null || managers.isEmpty()) {
         return null;
       }
-      return HostAndPort.fromString(managers.iterator().next().toHostPortString());
+      return managers.iterator().next();
     } catch (Exception e) {
       log.warn("Failed to obtain manager host " + e);
     }
@@ -432,7 +433,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   // Connect to the manager for posting asynchronous results
-  private ManagerClientService.Client managerConnection(HostAndPort address) {
+  private ManagerClientService.Client managerConnection(ServerId address) {
     try {
       if (address == null) {
         return null;
@@ -480,12 +481,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return tabletServerLock;
   }
 
-  private void announceExistence() {
+  private long announceExistence() {
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
-      final ServiceLockPath zLockPath = context.getServerPaths()
-          .createTabletServerPath(getResourceGroup(), getAdvertiseAddress());
+      final ServiceLockPath zLockPath = context.getServerPaths().createTabletServerPath(
+          getResourceGroup(),
+          HostAndPort.fromParts(getAdvertiseAddress().getHost(), getAdvertiseAddress().getPort()));
       ServiceLockSupport.createNonHaServiceLockPath(Type.TABLET_SERVER, zoo, zLockPath);
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
@@ -500,17 +502,17 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
             ThriftService.TSERV}) {
-          descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
-              getAdvertiseAddress().toString(), this.getResourceGroup()));
+          descriptors
+              .addService(new ServiceDescriptor(tabletServerUUID, svc, getAdvertiseAddress()));
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
           lockID = tabletServerLock.getLockID();
-          lockSessionId = tabletServerLock.getSessionId();
+          final long lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
-              getTabletSession());
+              lockSessionId);
           startServiceLockVerificationThread();
-          return;
+          return lockSessionId;
         }
         log.info("Waiting for tablet server lock");
         sleepUninterruptibly(5, TimeUnit.SECONDS);
@@ -562,13 +564,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         pausedMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+        getAdvertiseAddress()));
 
-    announceExistence();
+    final long lockSessionId = announceExistence();
     getContext().setServiceLock(tabletServerLock);
+    setTServerInstance(lockSessionId);
 
     try {
-      walMarker.initWalMarker(getTabletSession());
+      walMarker.initWalMarker(getTServerInstance());
     } catch (Exception e) {
       log.error("Unable to create WAL marker node in zookeeper", e);
       throw new RuntimeException(e);
@@ -598,7 +601,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       evaluateOnDemandTabletsForUnload();
     });
 
-    HostAndPort managerHost;
+    ServerId managerHost;
     final String advertiseAddressString = getAdvertiseAddress().toString();
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {
@@ -676,7 +679,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         Halt.halt(1, "Error informing Manager that we are shutting down, exiting!");
       } else {
         iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-            getTabletSession().getHostPortSession(), getResourceGroup().canonical());
+            getTServerInstance().serialize(), getResourceGroup().canonical());
       }
 
       boolean managerDown = false;
@@ -726,20 +729,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return managerDown;
   }
 
-  public TServerInstance getTabletSession() {
-    if (getAdvertiseAddress() == null) {
-      return null;
-    }
-    if (lockSessionId == -1) {
-      return null;
-    }
+  public void setTServerInstance(final long lockSessionId) {
+    this.instance = new TServerInstance(getAdvertiseAddress(), lockSessionId);
+  }
 
-    try {
-      return new TServerInstance(getAdvertiseAddress().toString(), lockSessionId);
-    } catch (Exception ex) {
-      log.warn("Unable to read session from tablet server lock" + ex);
-      return null;
-    }
+  public TServerInstance getTServerInstance() {
+    Objects.requireNonNull(this.instance, "TServerInstance not set yet");
+    return this.instance;
   }
 
   private static void checkWalCanSync(ServerContext context) {
@@ -845,7 +841,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.lastContact = RelativeTime.currentTimeMillis();
     result.tableMap = tables;
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-    result.name = String.valueOf(getAdvertiseAddress());
+    result.name = getAdvertiseAddress().toString();
     result.holdTime = resourceManager.holdTime();
     result.lookups = seekCount.get();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
@@ -1020,7 +1016,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     Set<DfsLogger> eligible = findOldestUnreferencedWals(closedCopy, refRemover);
 
     try {
-      TServerInstance session = this.getTabletSession();
+      TServerInstance session = this.getTServerInstance();
       for (DfsLogger candidate : eligible) {
         log.info("Marking " + candidate.getPath() + " as unreferenced");
         walMarker.walUnreferenced(session, candidate.getPath());
@@ -1035,7 +1031,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public void addNewLogMarker(DfsLogger copy) throws WalMarkerException {
     log.info("Writing log marker for " + copy.getPath());
-    walMarker.addNewWalMarker(getTabletSession(), copy.getPath());
+    walMarker.addNewWalMarker(getTServerInstance(), copy.getPath());
   }
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
@@ -1048,7 +1044,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         clSize = closedLogs.size();
       }
       log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
-      walMarker.closeWal(getTabletSession(), currentLog.getPath());
+      walMarker.closeWal(getTServerInstance(), currentLog.getPath());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
       // see if any need to minor compact
@@ -1067,7 +1063,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     } else {
       log.info(
           "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
-      walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
+      walMarker.walUnreferenced(getTServerInstance(), currentLog.getPath());
     }
   }
 
@@ -1183,7 +1179,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   private void removeHostingRequests(Collection<KeyExtent> extents) {
-    var myLocation = TabletMetadata.Location.current(getTabletSession());
+    var myLocation = TabletMetadata.Location.current(getTServerInstance());
 
     try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets()) {
       extents.forEach(ke -> {

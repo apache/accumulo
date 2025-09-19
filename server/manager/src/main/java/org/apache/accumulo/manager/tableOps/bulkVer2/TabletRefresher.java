@@ -203,8 +203,8 @@ public class TabletRefresher {
       log.trace("{} sending refresh request to {} for {} extents", logId, location,
           refreshes.size());
       var timeInMillis = context.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
-      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location.getHostAndPort(),
-          context, timeInMillis);
+      client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+          location.getServerInstance().getServer(), context, timeInMillis);
 
       var unrefreshed = client.refreshTablets(TraceUtil.traceInfo(), context.rpcCreds(), refreshes);
 

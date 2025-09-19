@@ -38,6 +38,8 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -49,13 +51,14 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 public class ConfigurableScanServerSelectorTest {
 
   static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
-    private final Supplier<Map<String,ResourceGroupId>> scanServers;
+    private final Supplier<Map<ServerId,ResourceGroupId>> scanServers;
 
     InitParams(Set<String> scanServers) {
       this(scanServers, Map.of());
@@ -63,17 +66,22 @@ public class ConfigurableScanServerSelectorTest {
 
     InitParams(Set<String> scanServers, Map<String,String> opts) {
       this.opts = opts;
-      var scanServersMap = new HashMap<String,ResourceGroupId>();
-      scanServers.forEach(sserv -> scanServersMap.put(sserv, ResourceGroupId.DEFAULT));
+      var scanServersMap = new HashMap<ServerId,ResourceGroupId>();
+      scanServers.forEach(sserv -> {
+        var hp = HostAndPort.fromString(sserv);
+        scanServersMap.put(
+            ServerIdUtil.sserver(ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()),
+            ResourceGroupId.DEFAULT);
+      });
       this.scanServers = () -> scanServersMap;
     }
 
-    InitParams(Map<String,ResourceGroupId> scanServers, Map<String,String> opts) {
+    InitParams(Map<ServerId,ResourceGroupId> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = () -> scanServers;
     }
 
-    InitParams(Supplier<Map<String,ResourceGroupId>> scanServers, Map<String,String> opts) {
+    InitParams(Supplier<Map<ServerId,ResourceGroupId>> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = scanServers;
     }
@@ -93,15 +101,9 @@ public class ConfigurableScanServerSelectorTest {
       return () -> scanServers.get().entrySet().stream().map(entry -> new ScanServerInfo() {
 
         @Override
-        public String getAddress() {
+        public ServerId getServer() {
           return entry.getKey();
         }
-
-        @Override
-        public ResourceGroupId getGroup() {
-          return entry.getValue();
-        }
-
       }).collect(Collectors.toSet());
     }
   }
@@ -151,16 +153,22 @@ public class ConfigurableScanServerSelectorTest {
 
   static class TestScanServerAttempt implements ScanServerAttempt {
 
-    private final String server;
+    private final ServerId server;
     private final Result result;
 
-    TestScanServerAttempt(String server, Result result) {
+    TestScanServerAttempt(ServerId server, Result result) {
       this.server = server;
       this.result = result;
     }
 
+    TestScanServerAttempt(String server, Result result) {
+      var hp = HostAndPort.fromString(server);
+      this.server = ServerIdUtil.sserver(hp.getHost(), hp.getPort());
+      this.result = result;
+    }
+
     @Override
-    public String getServer() {
+    public ServerId getServer() {
       return server;
     }
 
@@ -178,10 +186,10 @@ public class ConfigurableScanServerSelectorTest {
   @Test
   public void testBasic() {
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    selector.init(new InitParams(
-        Set.of("ss1:1", "ss2:2", "ss3:3", "ss4:4", "ss5:5", "ss6:6", "ss7:7", "ss8:8")));
+    selector.init(new InitParams(Set.of("ss1:1101", "ss2:1102", "ss3:1103", "ss4:1104", "ss5:1105",
+        "ss6:1106", "ss7:1107", "ss8:1108")));
 
-    Set<String> servers = new HashSet<>();
+    Set<ServerId> servers = new HashSet<>();
 
     for (int i = 0; i < 100; i++) {
       var tabletId = nti("1", "m");
@@ -208,17 +216,18 @@ public class ConfigurableScanServerSelectorTest {
       long expectedBusyTimeout, Map<String,String> opts, Map<String,String> hints) {
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 
-    var servers = Stream.iterate(1, i -> i <= numServers, i -> i + 1).map(i -> "s" + i + ":" + i)
-        .collect(Collectors.toSet());
+    var servers = Stream.iterate(1, i -> i <= numServers, i -> i + 1)
+        .map(i -> "s" + i + ":" + (1100 + i)).collect(Collectors.toSet());
 
     selector.init(new InitParams(servers, opts));
 
-    Set<String> serversSeen = new HashSet<>();
+    Set<ServerId> serversSeen = new HashSet<>();
 
     var tabletId = nti("1", "m");
 
     var tabletAttempts = Stream.iterate(1, i -> i <= busyAttempts, i -> i + 1)
-        .map(i -> (new TestScanServerAttempt("ss" + i + ":" + i, ScanServerAttempt.Result.BUSY)))
+        .map(i -> (new TestScanServerAttempt("ss" + i + ":" + (1100 + i),
+            ScanServerAttempt.Result.BUSY)))
         .collect(Collectors.toList());
 
     Map<TabletId,Collection<? extends ScanServerAttempt>> attempts = new HashMap<>();
@@ -268,14 +277,14 @@ public class ConfigurableScanServerSelectorTest {
   @Test
   public void testCoverage() {
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    var servers = Stream.iterate(1, i -> i <= 20, i -> i + 1).map(i -> "s" + i + ":" + i)
+    var servers = Stream.iterate(1, i -> i <= 20, i -> i + 1).map(i -> "s" + i + ":" + (1100 + i))
         .collect(Collectors.toSet());
     selector.init(new InitParams(servers));
 
-    Map<String,Long> allServersSeen = new HashMap<>();
+    Map<ServerId,Long> allServersSeen = new HashMap<>();
 
     for (int t = 0; t < 10000; t++) {
-      Set<String> serversSeen = new HashSet<>();
+      Set<ServerId> serversSeen = new HashSet<>();
 
       String endRow =
           Long.toString(Math.abs(Math.max(RANDOM.get().nextLong(), Long.MIN_VALUE + 1)), 36);
@@ -301,18 +310,40 @@ public class ConfigurableScanServerSelectorTest {
   @Test
   public void testOpts() {
 
-    String defaultProfile =
-        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4, 'attemptPlans':"
-            + "[{'servers':'5', 'busyTimeout':'5ms'},{'servers':'20', 'busyTimeout':'33ms'},"
-            + "{'servers':'50%', 'busyTimeout':'100ms'},{'servers':'100%', 'busyTimeout':'200ms'}]}";
+    String defaultProfile = """
+        {'isDefault':true,'maxBusyTimeout':'5m',
+         'busyTimeoutMultiplier':4,
+         'attemptPlans':
+           [
+             {'servers':'5', 'busyTimeout':'5ms'},{'servers':'20', 'busyTimeout':'33ms'},
+             {'servers':'50%', 'busyTimeout':'100ms'},{'servers':'100%', 'busyTimeout':'200ms'}
+           ]
+        }
+        """;
 
-    String profile1 = "{'scanTypeActivations':['long','st9'],'maxBusyTimeout':'30m',"
-        + "'busyTimeoutMultiplier':4, 'attemptPlans':[{'servers':'2', 'busyTimeout':'10s'},"
-        + "{'servers':'4', 'busyTimeout':'2m'},{'servers':'10%', 'busyTimeout':'5m'}]}";
+    String profile1 = """
+        {'scanTypeActivations':['long','st9'],
+         'maxBusyTimeout':'30m',
+         'busyTimeoutMultiplier':4,
+         'attemptPlans':
+           [
+             {'servers':'2', 'busyTimeout':'10s'},
+             {'servers':'4', 'busyTimeout':'2m'},
+             {'servers':'10%', 'busyTimeout':'5m'}
+           ]
+        }
+        """;
 
-    String profile2 =
-        "{'scanTypeActivations':['mega'],'maxBusyTimeout':'60m','busyTimeoutMultiplier':2, "
-            + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
+    String profile2 = """
+        {'scanTypeActivations':['mega'],
+         'maxBusyTimeout':'60m',
+         'busyTimeoutMultiplier':2,
+         'attemptPlans':
+           [
+             {'servers':'100%', 'busyTimeout':'10m'}
+           ]
+        }
+        """;
 
     // Intentionally put the default profile in 2nd position. There was a bug where config parsing
     // would fail if the default did not come first.
@@ -435,9 +466,13 @@ public class ConfigurableScanServerSelectorTest {
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
     var dg = ResourceGroupId.DEFAULT;
     selector.init(new InitParams(
-        Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", ResourceGroupId.of("g1"), "ss5:5",
-            ResourceGroupId.of("g1"), "ss6:6", ResourceGroupId.of("g2"), "ss7:7",
-            ResourceGroupId.of("g2"), "ss8:8", ResourceGroupId.of("g2")),
+        Map.of(ServerIdUtil.sserver("ss1", 1101), dg, ServerIdUtil.sserver("ss2", 1102), dg,
+            ServerIdUtil.sserver("ss3", 1103), dg,
+            ServerIdUtil.sserver(ResourceGroupId.of("g1"), "ss4", 1104), ResourceGroupId.of("g1"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g1"), "ss5", 1105), ResourceGroupId.of("g1"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g2"), "ss6", 1106), ResourceGroupId.of("g2"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g2"), "ss7", 1107), ResourceGroupId.of("g2"),
+            ServerIdUtil.sserver(ResourceGroupId.of("g2"), "ss8", 1108), ResourceGroupId.of("g2")),
         opts));
 
     Set<String> servers = new HashSet<>();
@@ -447,10 +482,10 @@ public class ConfigurableScanServerSelectorTest {
 
       ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
 
-      servers.add(actions.getScanServer(tabletId));
+      servers.add(actions.getScanServer(tabletId).toHostPortString());
     }
 
-    assertEquals(Set.of("ss1:1", "ss2:2", "ss3:3"), servers);
+    assertEquals(Set.of("ss1:1101", "ss2:1102", "ss3:1103"), servers);
 
     // config should map this scan type to the group of scan servers g1
     var hints = Map.of("scan_type", "long");
@@ -463,10 +498,10 @@ public class ConfigurableScanServerSelectorTest {
       ScanServerSelections actions =
           selector.selectServers(new SelectorParams(tabletId, Map.of(), hints));
 
-      servers.add(actions.getScanServer(tabletId));
+      servers.add(actions.getScanServer(tabletId).toHostPortString());
     }
 
-    assertEquals(Set.of("ss4:4", "ss5:5"), servers);
+    assertEquals(Set.of("ss4:1104", "ss5:1105"), servers);
 
     // config should map this scan type to the group of scan servers g2
     hints = Map.of("scan_type", "mega");
@@ -479,10 +514,10 @@ public class ConfigurableScanServerSelectorTest {
       ScanServerSelections actions =
           selector.selectServers(new SelectorParams(tabletId, Map.of(), hints));
 
-      servers.add(actions.getScanServer(tabletId));
+      servers.add(actions.getScanServer(tabletId).toHostPortString());
     }
 
-    assertEquals(Set.of("ss6:6", "ss7:7", "ss8:8"), servers);
+    assertEquals(Set.of("ss6:1106", "ss7:1107", "ss8:1108"), servers);
 
     // config does map this scan type to anything, so should use the default group of scan servers
     hints = Map.of("scan_type", "rust");
@@ -495,10 +530,10 @@ public class ConfigurableScanServerSelectorTest {
       ScanServerSelections actions =
           selector.selectServers(new SelectorParams(tabletId, Map.of(), hints));
 
-      servers.add(actions.getScanServer(tabletId));
+      servers.add(actions.getScanServer(tabletId).toHostPortString());
     }
 
-    assertEquals(Set.of("ss1:1", "ss2:2", "ss3:3"), servers);
+    assertEquals(Set.of("ss1:1101", "ss2:1102", "ss3:1103"), servers);
   }
 
   @Test
@@ -514,7 +549,7 @@ public class ConfigurableScanServerSelectorTest {
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 
-    AtomicReference<Map<String,ResourceGroupId>> scanServers = new AtomicReference<>(Map.of());
+    AtomicReference<Map<ServerId,ResourceGroupId>> scanServers = new AtomicReference<>(Map.of());
 
     selector.init(new InitParams(scanServers::get, opts));
 
@@ -527,7 +562,8 @@ public class ConfigurableScanServerSelectorTest {
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {
         // make some scan servers available now that wait was called
-        scanServers.set(Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg));
+        scanServers.set(Map.of(ServerIdUtil.sserver("ss1", 1101), dg,
+            ServerIdUtil.sserver("ss2", 1102), dg, ServerIdUtil.sserver("ss3", 1103), dg));
 
         Optional<T> optional = condition.get();
 
@@ -542,7 +578,8 @@ public class ConfigurableScanServerSelectorTest {
 
     ScanServerSelections actions = selector.selectServers(params);
 
-    assertTrue(Set.of("ss1:1", "ss2:2", "ss3:3").contains(actions.getScanServer(tabletId)));
+    assertTrue(Set.of(ServerIdUtil.sserver("ss1", 1101), ServerIdUtil.sserver("ss2", 1102),
+        ServerIdUtil.sserver("ss3", 1103)).contains(actions.getScanServer(tabletId)));
     assertFalse(scanServers.get().isEmpty());
   }
 }

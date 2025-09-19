@@ -37,8 +37,6 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class AdvertiseAndBindIT extends ConfigurableMacBase {
 
   @Override
@@ -69,7 +67,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // advertise address.
     cluster.start();
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals(localHostName)));
     } finally {
       cluster.stop();
@@ -79,7 +77,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // Set only the bind address
     restartClusterWithArguments(null, "127.0.0.1");
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("127.0.0.1")));
     } finally {
       cluster.stop();
@@ -89,7 +87,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // Set only the advertise address
     restartClusterWithArguments("localhost", null);
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
     } finally {
       cluster.stop();
@@ -99,7 +97,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // Set advertise and bind address
     restartClusterWithArguments("localhost", "127.0.0.1");
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
     } finally {
       cluster.stop();
@@ -110,8 +108,9 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // try to connect to it
     restartClusterWithArguments("192.168.1.2:59000", "127.0.0.1");
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
-      zkAddrs.values().forEach(hp -> assertTrue(hp.toString().equals("192.168.1.2:59000")));
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      zkAddrs.values()
+          .forEach(hp -> assertTrue(hp.getHost().equals("192.168.1.2") && hp.getPort() == 59000));
     } finally {
       cluster.stop();
     }
@@ -132,7 +131,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // advertise address.
     cluster.start();
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals(localHostName)));
     } finally {
       cluster.stop();
@@ -142,7 +141,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // Set only the bind address
     restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1"));
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("127.0.0.1")));
     } finally {
       cluster.stop();
@@ -153,7 +152,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     restartClusterWithProperties(
         Map.of(Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "localhost"));
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
     } finally {
       cluster.stop();
@@ -164,7 +163,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1",
         Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "localhost"));
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
     } finally {
       cluster.stop();
@@ -176,8 +175,9 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1",
         Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "192.168.1.1:10005"));
     try {
-      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper();
-      zkAddrs.values().forEach(hp -> assertTrue(hp.toString().equals("192.168.1.1:10005")));
+      Map<ServerType,ServerId> zkAddrs = getAdvertiseAddressFromZooKeeper();
+      zkAddrs.values()
+          .forEach(hp -> assertTrue(hp.getHost().equals("192.168.1.1") && hp.getPort() == 10005));
     } finally {
       cluster.stop();
     }
@@ -228,32 +228,27 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     cluster.start();
   }
 
-  private Map<ServerType,HostAndPort> getAdvertiseAddressFromZooKeeper()
-      throws InterruptedException {
-    Map<ServerType,HostAndPort> addresses = new HashMap<>();
+  private Map<ServerType,ServerId> getAdvertiseAddressFromZooKeeper() throws InterruptedException {
+    Map<ServerType,ServerId> addresses = new HashMap<>();
 
     Set<ServerId> mgrs = getServerContext().instanceOperations().getServers(ServerId.Type.MANAGER);
     assertEquals(1, mgrs.size());
-    addresses.put(ServerType.MANAGER,
-        HostAndPort.fromString(mgrs.iterator().next().toHostPortString()));
+    addresses.put(ServerType.MANAGER, mgrs.iterator().next());
 
     Set<ServerId> tservers =
         getServerContext().instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(1, tservers.size());
-    addresses.put(ServerType.TABLET_SERVER,
-        HostAndPort.fromString(tservers.iterator().next().toHostPortString()));
+    addresses.put(ServerType.TABLET_SERVER, tservers.iterator().next());
 
     Set<ServerId> compactors =
         getServerContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
     assertEquals(1, compactors.size());
-    addresses.put(ServerType.COMPACTOR,
-        HostAndPort.fromString(compactors.iterator().next().toHostPortString()));
+    addresses.put(ServerType.COMPACTOR, compactors.iterator().next());
 
     Set<ServerId> sservers =
         getServerContext().instanceOperations().getServers(ServerId.Type.SCAN_SERVER);
     assertEquals(1, sservers.size());
-    addresses.put(ServerType.SCAN_SERVER,
-        HostAndPort.fromString(sservers.iterator().next().toHostPortString()));
+    addresses.put(ServerType.SCAN_SERVER, sservers.iterator().next());
 
     return addresses;
   }

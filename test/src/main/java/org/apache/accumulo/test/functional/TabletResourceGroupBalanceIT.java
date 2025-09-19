@@ -152,7 +152,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       assertEquals(26, locations.size());
       Location l1 = locations.get(0).getLocation();
-      assertEquals(ResourceGroupId.DEFAULT, tserverGroups.get(l1.getHostAndPort().toString()));
+      assertEquals(ResourceGroupId.DEFAULT,
+          tserverGroups.get(l1.getServerInstance().getServer().toHostPortString()));
       locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
 
       // Check table names[1]
@@ -161,7 +162,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       assertEquals(26, locations.size());
       Location l2 = locations.get(0).getLocation();
-      assertEquals(ResourceGroupId.of("GROUP1"), tserverGroups.get(l2.getHostAndPort().toString()));
+      assertEquals(ResourceGroupId.of("GROUP1"),
+          tserverGroups.get(l2.getServerInstance().getServer().toHostPortString()));
       locations.forEach(loc -> assertEquals(l2, loc.getLocation()));
 
       client.tableOperations().delete(names[0]);
@@ -293,7 +295,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     List<TabletMetadata> locations = getLocations(ample, tableId);
     assertEquals(numExpectedSplits, locations.size());
     Location l1 = locations.get(0).getLocation();
-    assertEquals(ResourceGroupId.DEFAULT, tserverGroups.get(l1.getHostAndPort().toString()));
+    assertEquals(ResourceGroupId.DEFAULT,
+        tserverGroups.get(l1.getServerInstance().getServer().toHostPortString()));
     locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
 
     // change the resource group property for the table
@@ -304,13 +307,13 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     while ((locations == null || locations.isEmpty() || locations.size() != numExpectedSplits
         || locations.get(0).getLocation() == null
         || locations.get(0).getLocation().getType() == LocationType.FUTURE)
-        || (locations.get(0).getLocation().getType() == LocationType.CURRENT
-            && !tserverGroups.get(locations.get(0).getLocation().getHostAndPort().toString())
-                .equals(ResourceGroupId.of("GROUP1")))) {
+        || (locations.get(0).getLocation().getType() == LocationType.CURRENT && !tserverGroups
+            .get(locations.get(0).getLocation().getServerInstance().getServer().toHostPortString())
+            .equals(ResourceGroupId.of("GROUP1")))) {
       locations = getLocations(ample, tableId);
     }
     Location group1Location = locations.get(0).getLocation();
-    assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString())
+    assertTrue(tserverGroups.get(group1Location.getServerInstance().getServer().toHostPortString())
         .equals(ResourceGroupId.of("GROUP1")));
 
     client.instanceOperations().waitForBalance();

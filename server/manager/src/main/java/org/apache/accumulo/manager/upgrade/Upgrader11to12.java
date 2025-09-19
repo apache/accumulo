@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -65,14 +66,18 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -104,6 +109,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
+import com.google.gson.JsonSyntaxException;
 
 //TODO when removing this class, also remove MetadataSchema.Upgrader11to12
 public class Upgrader11to12 implements Upgrader {
@@ -214,8 +221,10 @@ public class Upgrader11to12 implements Upgrader {
   static final String ZTABLE_NAME = "/name";
 
   @VisibleForTesting
-  static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
-      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
+  static final Set<Text> UPGRADE_FAMILIES =
+      Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME,
+          ScanFileColumnFamily.NAME, CurrentLocationColumnFamily.NAME,
+          FutureLocationColumnFamily.NAME, LastLocationColumnFamily.NAME);
 
   @VisibleForTesting
   static final String ZNAMESPACE_NAME = "/name";
@@ -767,6 +776,33 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  static void upgradeLocationCF(final Key key, final Value value, final Mutation m) {
+    // Before version 4.0 the locations in the RootTabletMetadata were stored
+    // in the format: {"session": "host:port"}. Attempt to convert the location
+    // using the current format and if that fails attempt to read the old format.
+    try {
+      TServerInstance.deserialize(value.toString());
+    } catch (JsonSyntaxException e) {
+      final String session = key.getColumnQualifier().toString();
+      final HostAndPort hp = HostAndPort.fromString(value.toString());
+      final var tsi =
+          new TServerInstance(ServerIdUtil.tserver(hp.getHost(), hp.getPort()), session);
+      switch (key.getColumnFamily().toString()) {
+        case (CurrentLocationColumnFamily.STR_NAME):
+          m.at().family(CurrentLocationColumnFamily.NAME).qualifier(session).put(tsi.serialize());
+          break;
+        case (FutureLocationColumnFamily.STR_NAME):
+          m.at().family(FutureLocationColumnFamily.NAME).qualifier(session).put(tsi.serialize());
+          break;
+        case (LastLocationColumnFamily.STR_NAME):
+          m.at().family(LastLocationColumnFamily.NAME).qualifier(session).put(tsi.serialize());
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled location colf: " + key.getColumnFamily());
+      }
+    }
+  }
+
   void processReferences(MutationWriter batchWriter, Iterable<Map.Entry<Key,Value>> scanner,
       String tableName) {
     try {
@@ -793,6 +829,10 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
+        } else if (family.equals(CurrentLocationColumnFamily.NAME)
+            || family.equals(FutureLocationColumnFamily.NAME)
+            || family.equals(LastLocationColumnFamily.NAME)) {
+          upgradeLocationCF(key, value, update);
         } else if (family.equals(ScanFileColumnFamily.NAME)) {
           LOG.debug("Deleting scan reference from:{}. Ref: {}", tableName, key.getRow());
           update.at().family(ScanFileColumnFamily.NAME).qualifier(key.getColumnQualifier())

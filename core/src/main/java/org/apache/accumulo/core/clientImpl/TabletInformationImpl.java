@@ -99,8 +99,8 @@ public class TabletInformationImpl implements TabletInformation {
   @Override
   public Optional<String> getLocation() {
     Location location = tabletMetadata.getLocation();
-    return location == null ? Optional.empty()
-        : Optional.of(location.getType() + ":" + location.getHostPort());
+    return location == null ? Optional.empty() : Optional
+        .of(location.getType() + ":" + location.getServerInstance().getServer().toHostPortString());
   }
 
   @Override

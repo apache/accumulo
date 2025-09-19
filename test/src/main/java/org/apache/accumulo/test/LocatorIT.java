@@ -62,7 +62,7 @@ public class LocatorIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(2);
   }
 
-  private void assertContains(Locations locations, HashSet<String> tservers,
+  private void assertContains(Locations locations, HashSet<ServerId> tservers,
       Map<Range,Set<TabletId>> expected1, Map<TabletId,Set<Range>> expected2) {
 
     Map<Range,Set<TabletId>> gbr = new HashMap<>();
@@ -77,10 +77,11 @@ public class LocatorIT extends AccumuloClusterHarness {
       gbt.put(entry.getKey(), new HashSet<>(entry.getValue()));
 
       TabletId tid = entry.getKey();
-      String location = locations.getTabletLocation(tid);
+      ServerId location = locations.getTabletLocation(tid);
       assertNotNull(location, "Location for " + tid + " was null");
       assertTrue(tservers.contains(location), "Unknown location " + location);
-      assertEquals(2, location.split(":").length, "Expected <host>:<port> " + location);
+      assertEquals(2, location.toHostPortString().split(":").length,
+          "Expected <host>:<port> " + location);
 
     }
 
@@ -97,7 +98,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
     final Predicate<TabletMetadata> hostedAndCurrentNotNull =
         t -> t.getTabletAvailability() == TabletAvailability.HOSTED && t.hasCurrent()
-            && t.getLocation().getHostAndPort() != null;
+            && t.getLocation().getServerInstance().getServer().getHost() != null;
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
@@ -116,9 +117,9 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ArrayList<Range> ranges = new ArrayList<>();
 
-      HashSet<String> tservers = new HashSet<>();
+      HashSet<ServerId> tservers = new HashSet<>();
       client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
-          .forEach((s) -> tservers.add(s.toHostPortString()));
+          .forEach((s) -> tservers.add(s));
 
       // locate won't find any locations, tablets are not hosted
       ranges.add(r1);

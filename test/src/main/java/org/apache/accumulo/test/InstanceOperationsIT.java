@@ -34,8 +34,8 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
@@ -199,8 +199,7 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
         io.ping(sid);
       }
 
-      ServerId fake =
-          new ServerId(ServerId.Type.COMPACTOR, ResourceGroupId.DEFAULT, "localhost", 1024);
+      ServerId fake = ServerIdUtil.compactor("localhost", 1024);
       assertThrows(AccumuloException.class, () -> io.ping(fake));
     }
 

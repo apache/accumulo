@@ -365,12 +365,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @throws KeeperException zookeeper error
    * @throws InterruptedException thread interrupted
    */
-  protected void announceExistence(HostAndPort clientAddress)
+  protected void announceExistence(ServerId clientAddress)
       throws KeeperException, InterruptedException {
 
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     final ServiceLockPath path =
-        getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
+        getContext().getServerPaths().createCompactorPath(getResourceGroup(),
+            HostAndPort.fromParts(clientAddress.getHost(), clientAddress.getPort()));
     ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
     compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
     LockWatcher lw = new ServiceLockWatcher(Type.COMPACTOR, () -> getShutdownComplete().get(),
@@ -383,8 +384,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         ServiceDescriptors descriptors = new ServiceDescriptors();
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.COMPACTOR}) {
-          descriptors.addService(new ServiceDescriptor(compactorId, svc,
-              ExternalCompactionUtil.getHostPortString(clientAddress), this.getResourceGroup()));
+          descriptors
+              .addService(new ServiceDescriptor(compactorId, svc, this.getAdvertiseAddress()));
         }
 
         if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -540,7 +541,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
     final long maxWaitTime =
         getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME);
-
     RetryableThriftCall<TNextCompactionJob> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
           Client coordinatorClient = getCoordinatorClient();
@@ -550,7 +550,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
                 getContext().rpcCreds(), this.getResourceGroup().canonical(),
-                ExternalCompactionUtil.getHostPortString(getAdvertiseAddress()), eci.toString());
+                getAdvertiseAddress().toHostPortString(), eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
@@ -753,9 +753,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return sleepTime;
   }
 
-  protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
+  protected Collection<Tag> getServiceTags(ServerId clientAddress) {
     return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress, getResourceGroup());
+        clientAddress);
   }
 
   private void performFailureProcessing(ConsecutiveErrorHistory errorHistory)
@@ -808,7 +808,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
-    final HostAndPort clientAddress = getAdvertiseAddress();
+    final ServerId clientAddress = getAdvertiseAddress();
 
     try {
       announceExistence(clientAddress);

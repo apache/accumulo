@@ -31,8 +31,6 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.Monitor.ScanStats;
 
-import com.google.common.net.HostAndPort;
-
 /**
  * Generate a new Scan list JSON object
  *
@@ -58,11 +56,11 @@ public class ScansResource {
       return scans;
     }
 
-    Map<HostAndPort,ScanStats> entry = monitor.getScans();
+    Map<String,ScanStats> entry = monitor.getScans();
 
     // Adds new scans to the array for tservers known to the Manager
     for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
-      ScanStats stats = entry.get(HostAndPort.fromString(tserverInfo.name));
+      ScanStats stats = entry.get(tserverInfo.name);
       if (stats != null) {
         scans.addScan(new ScanInformation(tserverInfo.name, stats));
       }

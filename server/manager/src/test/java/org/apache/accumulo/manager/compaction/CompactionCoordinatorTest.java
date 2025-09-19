@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -88,8 +89,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import com.google.common.net.HostAndPort;
-
 public class CompactionCoordinatorTest {
 
   // Need a non-null fateInstances reference for CompactionCoordinator.compactionCompleted
@@ -98,7 +97,7 @@ public class CompactionCoordinatorTest {
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
 
-  private final HostAndPort tserverAddr = HostAndPort.fromParts("192.168.1.1", 9090);
+  private final ServerId tserverAddr = ServerIdUtil.tserver(GROUP_ID, "192.168.1.1", 9090);
 
   public MetricsInfo getMockMetrics() {
     MetricsInfo metricsInfo = createMock(MetricsInfo.class);
@@ -219,7 +218,7 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {}
+    protected void cancelCompactionOnCompactor(ServerId address, String externalCompactionId) {}
 
   }
 
@@ -289,7 +288,7 @@ public class CompactionCoordinatorTest {
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).atLeastOnce();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes(UTF_8));
-    runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID));
+    runningCompactions.add(new RunningCompaction(job, tserverAddr));
     replay(job);
 
     var coordinator = new TestCoordinator(manager, runningCompactions);
@@ -307,14 +306,12 @@ public class CompactionCoordinatorTest {
     Entry<ExternalCompactionId,RunningCompaction> ecomp = running.entrySet().iterator().next();
     assertEquals(eci, ecomp.getKey());
     RunningCompaction rc = ecomp.getValue();
-    assertEquals(GROUP_ID, rc.getGroup());
-    assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
+    assertEquals(tserverAddr, rc.getCompactor());
 
     assertTrue(coordinator.getLongRunningByGroup().containsKey(GROUP_ID.toString()));
     assertTrue(coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).size() == 1);
     rc = coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).iterator().next();
-    assertEquals(GROUP_ID, rc.getGroup());
-    assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
+    assertEquals(tserverAddr, rc.getCompactor());
 
     verify(job);
   }
@@ -362,7 +359,7 @@ public class CompactionCoordinatorTest {
     Entry<ExternalCompactionId,RunningCompaction> entry =
         coordinator.getRunning().entrySet().iterator().next();
     assertEquals(eci.toString(), entry.getKey().toString());
-    assertEquals("localhost:10241", entry.getValue().getCompactorAddress());
+    assertEquals("localhost:10241", entry.getValue().getCompactor().toHostPortString());
     assertEquals(eci.toString(), entry.getValue().getJob().getExternalCompactionId());
 
     verify(tm);

@@ -47,11 +47,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -69,6 +71,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.Pair;
@@ -82,6 +85,14 @@ public class ClientTabletCacheImplTest {
   private static final KeyExtent ROOT_TABLE_EXTENT = RootTable.EXTENT;
   private static final KeyExtent METADATA_TABLE_EXTENT =
       new KeyExtent(SystemTables.METADATA.tableId(), null, ROOT_TABLE_EXTENT.endRow());
+
+  static ServerId csi(String host, int port) {
+    return ServerIdUtil.tserver(host, port);
+  }
+
+  static ServerId csi(String host) {
+    return ServerIdUtil.tserver(host, 0);
+  }
 
   static KeyExtent createNewKeyExtent(String table, String endRow, String prevEndRow) {
     return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),
@@ -128,15 +139,15 @@ public class ClientTabletCacheImplTest {
     return new RangeLocation(location, extent1, range1, extent2, range2);
   }
 
-  static Map<String,Map<KeyExtent,List<Range>>>
+  static Map<ServerId,Map<KeyExtent,List<Range>>>
       createExpectedBinnings(RangeLocation... rangeLocations) {
 
-    Map<String,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
+    Map<ServerId,Map<KeyExtent,List<Range>>> expBinnedRanges = new HashMap<>();
 
     for (RangeLocation rl : rangeLocations) {
       Map<KeyExtent,List<Range>> binnedKE =
-          expBinnedRanges.computeIfAbsent(rl.location, k -> new HashMap<>());
-      expBinnedRanges.put(rl.location, binnedKE);
+          expBinnedRanges.computeIfAbsent(csi(rl.location), k -> new HashMap<>());
+      expBinnedRanges.put(csi(rl.location), binnedKE);
       binnedKE.putAll(rl.extents);
     }
     return expBinnedRanges;
@@ -148,7 +159,7 @@ public class ClientTabletCacheImplTest {
     for (int i = 0; i < data.length; i += 2) {
       KeyExtent ke = (KeyExtent) data[i];
       String loc = (String) data[i + 1];
-      mcke.put(ke, new CachedTablet(ke, loc, "1", TabletAvailability.ONDEMAND, false));
+      mcke.put(ke, new CachedTablet(ke, csi(loc), "1", TabletAvailability.ONDEMAND, false));
     }
 
     return mcke;
@@ -189,7 +200,7 @@ public class ClientTabletCacheImplTest {
 
     for (Entry<KeyExtent,CachedTablet> entry : mcke.entrySet()) {
       setLocation(tservers, metaTabLoc, METADATA_TABLE_EXTENT, entry.getKey(),
-          entry.getValue().getTserverLocation().orElseThrow());
+          entry.getValue().getTserverLocation().orElseThrow().getHost());
     }
 
     return tab1TabletCache;
@@ -235,15 +246,15 @@ public class ClientTabletCacheImplTest {
   }
 
   private void runTest(List<Range> ranges, ClientTabletCacheImpl tab1TabletCache,
-      Map<String,Map<KeyExtent,List<Range>>> expected) throws Exception {
+      Map<ServerId,Map<KeyExtent,List<Range>>> expected) throws Exception {
     List<Range> failures = Collections.emptyList();
     runTest(ranges, tab1TabletCache, expected, failures);
   }
 
   private void runTest(List<Range> ranges, ClientTabletCacheImpl tab1TabletCache,
-      Map<String,Map<KeyExtent,List<Range>>> expected, List<Range> efailures) throws Exception {
+      Map<ServerId,Map<KeyExtent,List<Range>>> expected, List<Range> efailures) throws Exception {
 
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     List<Range> f = tab1TabletCache.binRanges(context, ranges, binnedRanges);
     assertEquals(expected, binnedRanges);
 
@@ -295,8 +306,8 @@ public class ClientTabletCacheImplTest {
   }
 
   private void runTest(ClientTabletCacheImpl metaCache, List<Mutation> ml,
-      Map<String,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
-    Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
+      Map<ServerId,Map<KeyExtent,List<String>>> emb, String... efailures) throws Exception {
+    Map<ServerId,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
     List<Mutation> afailures = new ArrayList<>();
     metaCache.binMutations(context, ml, binnedMutations, afailures);
 
@@ -316,11 +327,11 @@ public class ClientTabletCacheImplTest {
 
   }
 
-  private void verify(Map<String,Map<KeyExtent,List<String>>> expected,
-      Map<String,TabletServerMutations<Mutation>> actual) {
+  private void verify(Map<ServerId,Map<KeyExtent,List<String>>> expected,
+      Map<ServerId,TabletServerMutations<Mutation>> actual) {
     assertEquals(expected.keySet(), actual.keySet());
 
-    for (String server : actual.keySet()) {
+    for (ServerId server : actual.keySet()) {
       TabletServerMutations<Mutation> atb = actual.get(server);
       Map<KeyExtent,List<String>> etb = expected.get(server);
 
@@ -359,12 +370,13 @@ public class ClientTabletCacheImplTest {
     return new ServerExtent(location, row, extent);
   }
 
-  static Map<String,Map<KeyExtent,List<String>>> createServerExtentMap(ServerExtent... locations) {
+  static Map<ServerId,Map<KeyExtent,List<String>>>
+      createServerExtentMap(ServerExtent... locations) {
 
-    Map<String,Map<KeyExtent,List<String>>> serverExtents = new HashMap<>();
+    Map<ServerId,Map<KeyExtent,List<String>>> serverExtents = new HashMap<>();
 
     for (ServerExtent se : locations) {
-      serverExtents.computeIfAbsent(se.location, k -> new HashMap<>())
+      serverExtents.computeIfAbsent(csi(se.location), k -> new HashMap<>())
           .computeIfAbsent(se.extent, k -> new ArrayList<>()).add(se.row);
     }
 
@@ -505,13 +517,13 @@ public class ClientTabletCacheImplTest {
   }
 
   static class TServers {
-    private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
+    private final Map<ServerId,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
     private volatile BiConsumer<CachedTablet,Text> lookupConsumer = (cachedTablet, row) -> {};
   }
 
   static class TestCachedTabletObtainer implements CachedTabletObtainer {
 
-    private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers;
+    private final Map<ServerId,Map<KeyExtent,SortedMap<Key,Value>>> tservers;
     private final BiConsumer<CachedTablet,Text> lookupConsumer;
 
     TestCachedTabletObtainer(TServers tservers) {
@@ -552,7 +564,7 @@ public class ClientTabletCacheImplTest {
 
   static class YesLockChecker implements TabletServerLockChecker {
     @Override
-    public boolean isLockHeld(String tserver, String session) {
+    public boolean isLockHeld(ServerId tserver, String session) {
       return true;
     }
 
@@ -568,14 +580,14 @@ public class ClientTabletCacheImplTest {
 
     @Override
     protected CachedTablet getRootTabletLocation(ClientContext context) {
-      return new CachedTablet(RootTable.EXTENT, rootTabletLoc, "1", TabletAvailability.HOSTED,
+      return new CachedTablet(RootTable.EXTENT, csi(rootTabletLoc), "1", TabletAvailability.HOSTED,
           false);
     }
   }
 
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
-        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
+        tservers.tservers.computeIfAbsent(csi(server), k -> new HashMap<>());
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
     if (!tabletData.isEmpty()) {
       throw new IllegalStateException("Asked for empty tablet, but non empty tablet exists");
@@ -584,7 +596,7 @@ public class ClientTabletCacheImplTest {
 
   static void clearLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke,
       String instance) {
-    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(server);
+    Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.tservers.get(csi(server));
     if (tablets == null) {
       return;
     }
@@ -601,20 +613,21 @@ public class ClientTabletCacheImplTest {
   }
 
   static void setLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke,
-      String location, String instance) {
+      String location, String session) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
-        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
+        tservers.tservers.computeIfAbsent(csi(server), k -> new HashMap<>());
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
     Text mr = ke.toMetaRow();
     Value per = TabletColumnFamily.encodePrevEndRow(ke.prevEndRow());
 
     if (location != null) {
-      if (instance == null) {
-        instance = "";
+      if (session == null) {
+        session = "";
       }
-      Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(instance));
-      tabletData.put(lk, new Value(location));
+      Key lk = new Key(mr, CurrentLocationColumnFamily.NAME, new Text(session));
+      var tsi = new TServerInstance(csi(location), session);
+      tabletData.put(lk, new Value(tsi.serialize()));
     }
 
     Key hk = new Key(mr, TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
@@ -629,7 +642,7 @@ public class ClientTabletCacheImplTest {
   static void deleteLocation(TServers tservers, String server, KeyExtent tablet, KeyExtent ke,
       String instance) {
     Map<KeyExtent,SortedMap<Key,Value>> tablets =
-        tservers.tservers.computeIfAbsent(server, k -> new HashMap<>());
+        tservers.tservers.computeIfAbsent(csi(server), k -> new HashMap<>());
     SortedMap<Key,Value> tabletData = tablets.computeIfAbsent(tablet, k -> new TreeMap<>());
 
     Text mr = ke.toMetaRow();
@@ -643,7 +656,7 @@ public class ClientTabletCacheImplTest {
   }
 
   static void deleteServer(TServers tservers, String server) {
-    tservers.tservers.remove(server);
+    tservers.tservers.remove(csi(server));
 
   }
 
@@ -662,7 +675,7 @@ public class ClientTabletCacheImplTest {
         assertTrue(tl.getTserverLocation().isEmpty());
         assertTrue(tl.getTserverSession().isEmpty());
       } else {
-        assertEquals(server, tl.getTserverLocation().orElseThrow());
+        assertEquals(server, tl.getTserverLocation().orElseThrow().getHost());
       }
       assertEquals(expected, tl.getExtent());
     }
@@ -869,7 +882,7 @@ public class ClientTabletCacheImplTest {
         createLocators("foo", createNewKeyExtent("foo", null, null), "l1");
 
     List<Range> ranges = createNewRangeList(createNewRange(null, null));
-    Map<String,Map<KeyExtent,List<Range>>> expected =
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected =
         createExpectedBinnings(createRangeLocation("l1", createNewKeyExtent("foo", null, null),
             createNewRangeList(createNewRange(null, null))));
 
@@ -899,7 +912,7 @@ public class ClientTabletCacheImplTest {
     ClientTabletCacheImpl metaCache = createLocators("foo", createNewKeyExtent("foo", "g", null),
         "l1", createNewKeyExtent("foo", null, "g"), "l2");
 
-    Map<String,
+    Map<ServerId,
         Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
             createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
                 createNewRangeList(createNewRange(null, null))),
@@ -918,7 +931,7 @@ public class ClientTabletCacheImplTest {
         createLocators("foo", createNewKeyExtent("foo", "g", null), "l1",
             createNewKeyExtent("foo", "m", "g"), "l2", createNewKeyExtent("foo", null, "m"), "l2");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
         createRangeLocation("l1", createNewKeyExtent("foo", "g", null),
             createNewRangeList(createNewRange(null, null))),
         createRangeLocation("l2", createNewKeyExtent("foo", "m", "g"),
@@ -992,7 +1005,7 @@ public class ClientTabletCacheImplTest {
         "l1", createNewKeyExtent("foo", "1", "0"), "l2", createNewKeyExtent("foo", "2", "1"), "l3",
         createNewKeyExtent("foo", "3", "2"), "l4", createNewKeyExtent("foo", null, "3"), "l5");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected =
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected =
         createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", "1", "0"),
             createNewRangeList(new Range(new Text("1")))));
 
@@ -1003,7 +1016,7 @@ public class ClientTabletCacheImplTest {
         new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW), false);
 
     ranges = createNewRangeList(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings(
         createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
 
     runTest(ranges, metaCache, expected4, createNewRangeList());
@@ -1011,7 +1024,7 @@ public class ClientTabletCacheImplTest {
     range = new Range(rowColKey, true, new Key(new Text("3")).followingKey(PartialKey.ROW), true);
 
     ranges = createNewRangeList(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected5 = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected5 = createExpectedBinnings(
         createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)),
         createRangeLocation("l5", createNewKeyExtent("foo", null, "3"), createNewRangeList(range)));
 
@@ -1019,26 +1032,26 @@ public class ClientTabletCacheImplTest {
 
     range = new Range(new Text("2"), false, new Text("3"), false);
     ranges = createNewRangeList(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected6 = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected6 = createExpectedBinnings(
         createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
     runTest(ranges, metaCache, expected6, createNewRangeList());
 
     range = new Range(new Text("2"), true, new Text("3"), false);
     ranges = createNewRangeList(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected7 = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected7 = createExpectedBinnings(
         createRangeLocation("l3", createNewKeyExtent("foo", "2", "1"), createNewRangeList(range)),
         createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
     runTest(ranges, metaCache, expected7, createNewRangeList());
 
     range = new Range(new Text("2"), false, new Text("3"), true);
     ranges = createNewRangeList(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected8 = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected8 = createExpectedBinnings(
         createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
     runTest(ranges, metaCache, expected8, createNewRangeList());
 
     range = new Range(new Text("2"), true, new Text("3"), true);
     ranges = createNewRangeList(range);
-    Map<String,Map<KeyExtent,List<Range>>> expected9 = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected9 = createExpectedBinnings(
         createRangeLocation("l3", createNewKeyExtent("foo", "2", "1"), createNewRangeList(range)),
         createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"), createNewRangeList(range)));
     runTest(ranges, metaCache, expected9, createNewRangeList());
@@ -1054,14 +1067,14 @@ public class ClientTabletCacheImplTest {
         "l1", createNewKeyExtent("foo", "1", "0"), "l2", createNewKeyExtent("foo", "3", "2"), "l4",
         createNewKeyExtent("foo", null, "3"), "l5");
 
-    Map<String,Map<KeyExtent,List<Range>>> expected1 =
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected1 =
         createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", "1", "0"),
             createNewRangeList(new Range(new Text("1")))));
 
     runTest(ranges, metaCache, expected1);
 
     ranges = createNewRangeList(new Range(new Text("2")), new Range(new Text("11")));
-    Map<String,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings();
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected2 = createExpectedBinnings();
 
     runTest(ranges, metaCache, expected2, ranges);
 
@@ -1070,7 +1083,7 @@ public class ClientTabletCacheImplTest {
     runTest(ranges, metaCache, expected1, createNewRangeList(new Range(new Text("2"))));
 
     ranges = createNewRangeList(createNewRange("0", "2"), createNewRange("3", "4"));
-    Map<String,
+    Map<ServerId,
         Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings(
             createRangeLocation("l4", createNewKeyExtent("foo", "3", "2"),
                 createNewRangeList(createNewRange("3", "4"))),
@@ -1082,7 +1095,7 @@ public class ClientTabletCacheImplTest {
     ranges = createNewRangeList(createNewRange("0", "1"), createNewRange("0", "11"),
         createNewRange("1", "2"), createNewRange("0", "4"), createNewRange("2", "4"),
         createNewRange("21", "4"));
-    Map<String,
+    Map<ServerId,
         Map<KeyExtent,List<Range>>> expected4 = createExpectedBinnings(
             createRangeLocation("l1", createNewKeyExtent("foo", "0", null),
                 createNewRangeList(createNewRange("0", "1"))),
@@ -1111,7 +1124,7 @@ public class ClientTabletCacheImplTest {
         createLocators(tservers, "tserver1", "tserver2", "foo", e1, "l1", e2, "l1");
 
     List<Range> ranges = createNewRangeList(createNewRange("01", "07"));
-    Map<String,
+    Map<ServerId,
         Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
             createRangeLocation("l1", e1, createNewRangeList(createNewRange("01", "07"))),
             createRangeLocation("l1", e2, createNewRangeList(createNewRange("01", "07"))));
@@ -1159,7 +1172,7 @@ public class ClientTabletCacheImplTest {
     Range r2 = createNewRange("loop", "nope"); // overlaps e4 e5
     Range r3 = createNewRange("silly", "sunny"); // overlaps e7
 
-    Map<String,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
+    Map<ServerId,Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
 
         createRangeLocation("l1", e1, createNewRangeList(r1)),
         createRangeLocation("l1", e2, createNewRangeList(r1)),
@@ -1193,13 +1206,13 @@ public class ClientTabletCacheImplTest {
 
   @Test
   public void testIsContiguous() {
-    CachedTablet e1 = new CachedTablet(createNewKeyExtent("foo", "1", null), "l1", "1",
+    CachedTablet e1 = new CachedTablet(createNewKeyExtent("foo", "1", null), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
-    CachedTablet e2 = new CachedTablet(createNewKeyExtent("foo", "2", "1"), "l1", "1",
+    CachedTablet e2 = new CachedTablet(createNewKeyExtent("foo", "2", "1"), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
-    CachedTablet e3 = new CachedTablet(createNewKeyExtent("foo", "3", "2"), "l1", "1",
+    CachedTablet e3 = new CachedTablet(createNewKeyExtent("foo", "3", "2"), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
-    CachedTablet e4 = new CachedTablet(createNewKeyExtent("foo", null, "3"), "l1", "1",
+    CachedTablet e4 = new CachedTablet(createNewKeyExtent("foo", null, "3"), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
 
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4)));
@@ -1213,7 +1226,7 @@ public class ClientTabletCacheImplTest {
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e4)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e3, e4)));
 
-    CachedTablet e5 = new CachedTablet(createNewKeyExtent("foo", null, null), "l1", "1",
+    CachedTablet e5 = new CachedTablet(createNewKeyExtent("foo", null, null), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e4, e5)));
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e5, e1, e2, e3, e4)));
@@ -1221,12 +1234,12 @@ public class ClientTabletCacheImplTest {
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e5, e2, e3, e4)));
     assertTrue(ClientTabletCacheImpl.isContiguous(List.of(e5)));
 
-    CachedTablet e6 = new CachedTablet(createNewKeyExtent("foo", null, "1"), "l1", "1",
+    CachedTablet e6 = new CachedTablet(createNewKeyExtent("foo", null, "1"), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
 
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e3, e6)));
 
-    CachedTablet e7 = new CachedTablet(createNewKeyExtent("foo", "33", "11"), "l1", "1",
+    CachedTablet e7 = new CachedTablet(createNewKeyExtent("foo", "33", "11"), csi("l1"), "1",
         TabletAvailability.ONDEMAND, false);
 
     assertFalse(ClientTabletCacheImpl.isContiguous(List.of(e1, e2, e7, e4)));
@@ -1240,7 +1253,7 @@ public class ClientTabletCacheImplTest {
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("c", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
+    Map<ServerId,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
         createServerExtent("a", "l1", ke1), createServerExtent("c", "l1", ke1));
     runTest(metaCache, ml, emb);
 
@@ -1263,7 +1276,7 @@ public class ClientTabletCacheImplTest {
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("c", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap();
+    Map<ServerId,Map<KeyExtent,List<String>>> emb = createServerExtentMap();
     runTest(metaCache, ml, emb, "a", "c");
   }
 
@@ -1278,7 +1291,7 @@ public class ClientTabletCacheImplTest {
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
+    Map<ServerId,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
         createServerExtent("a", "l1", ke1), createServerExtent("i", "l2", ke2));
     runTest(metaCache, ml, emb);
 
@@ -1322,7 +1335,7 @@ public class ClientTabletCacheImplTest {
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb =
+    Map<ServerId,Map<KeyExtent,List<String>>> emb =
         createServerExtentMap(createServerExtent("a", "l1", ke1));
     runTest(metaCache, ml, emb, "i");
 
@@ -1372,7 +1385,7 @@ public class ClientTabletCacheImplTest {
 
       List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
           createNewMutation("m", "cf1:cq1=v3", "cf1:cq2=v4"), createNewMutation("z", "cf1:cq1=v5"));
-      Map<String,Map<KeyExtent,List<String>>> emb =
+      Map<ServerId,Map<KeyExtent,List<String>>> emb =
           createServerExtentMap(createServerExtent("a", "l1", ke1),
               createServerExtent("m", "l1", ke1), createServerExtent("z", "l1", ke1));
       if (i == 0 || i == 2) {
@@ -1382,7 +1395,7 @@ public class ClientTabletCacheImplTest {
       List<Range> ranges = createNewRangeList(new Range(new Text("a")), new Range(new Text("m")),
           new Range(new Text("z")));
 
-      Map<String,Map<KeyExtent,List<Range>>> expected1 = createExpectedBinnings(
+      Map<ServerId,Map<KeyExtent,List<Range>>> expected1 = createExpectedBinnings(
           createRangeLocation("l1", createNewKeyExtent("foo", null, null), ranges));
 
       if (i == 1 || i == 2) {
@@ -1401,7 +1414,7 @@ public class ClientTabletCacheImplTest {
         runTest(metaCache, ml, emb, "a", "m");
       }
 
-      Map<String,Map<KeyExtent,List<Range>>> expected2 =
+      Map<ServerId,Map<KeyExtent,List<Range>>> expected2 =
           createExpectedBinnings(createRangeLocation("l2", createNewKeyExtent("foo", null, "n"),
               createNewRangeList(new Range(new Text("z")))));
 
@@ -1417,7 +1430,7 @@ public class ClientTabletCacheImplTest {
         runTest(metaCache, ml, emb);
       }
 
-      Map<String,
+      Map<ServerId,
           Map<KeyExtent,List<Range>>> expected3 = createExpectedBinnings(
               createRangeLocation("l2", createNewKeyExtent("foo", null, "n"),
                   createNewRangeList(new Range(new Text("z")))),
@@ -1484,7 +1497,7 @@ public class ClientTabletCacheImplTest {
     // create the ~ tablet so it exists
     Map<KeyExtent,SortedMap<Key,Value>> ts3 = new HashMap<>();
     ts3.put(mte2, new TreeMap<>());
-    tservers.tservers.put("tserver3", ts3);
+    tservers.tservers.put(csi("tserver3"), ts3);
 
     assertNull(tab0TabletCache.findTablet(context, new Text("row_0000000000"), false,
         LocationNeed.REQUIRED));
@@ -1561,8 +1574,8 @@ public class ClientTabletCacheImplTest {
     ClientTabletCacheImpl metaCache =
         createLocators(tservers, "tserver1", "tserver2", "foo", new TabletServerLockChecker() {
           @Override
-          public boolean isLockHeld(String tserver, String session) {
-            return activeLocks.contains(tserver + ":" + session);
+          public boolean isLockHeld(ServerId tserver, String session) {
+            return activeLocks.contains(tserver.getHost() + ":" + session);
           }
 
           @Override
@@ -1611,7 +1624,7 @@ public class ClientTabletCacheImplTest {
 
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("w", "cf1:cq3=v3"));
-    Map<String,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
+    Map<ServerId,Map<KeyExtent,List<String>>> emb = createServerExtentMap(
         createServerExtent("a", "L3", ke1), createServerExtent("w", "L3", ke1));
     runTest(metaCache, ml, emb);
 
@@ -1647,7 +1660,7 @@ public class ClientTabletCacheImplTest {
 
     List<Range> ranges =
         createNewRangeList(new Range("a"), createNewRange("b", "o"), createNewRange("r", "z"));
-    Map<String,
+    Map<ServerId,
         Map<KeyExtent,List<Range>>> expected = createExpectedBinnings(
             createRangeLocation("L1", ke11,
                 createNewRangeList(new Range("a"), createNewRange("b", "o"))),
@@ -1728,7 +1741,7 @@ public class ClientTabletCacheImplTest {
     assertEquals(List.of(), failures);
     var tl1 = new CachedTablet(ke1, TabletAvailability.ONDEMAND, false);
     var tl2 = new CachedTablet(ke2, TabletAvailability.ONDEMAND, false);
-    var tl3 = new CachedTablet(ke3, "L2", "I2", TabletAvailability.ONDEMAND, false);
+    var tl3 = new CachedTablet(ke3, csi("L2"), "I2", TabletAvailability.ONDEMAND, false);
     var expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1755,7 +1768,7 @@ public class ClientTabletCacheImplTest {
     failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.NOT_REQUIRED);
     assertEquals(List.of(), failures);
-    tl1 = new CachedTablet(ke1, "L3", "I3", TabletAvailability.ONDEMAND, false);
+    tl1 = new CachedTablet(ke1, csi("L3"), "I3", TabletAvailability.ONDEMAND, false);
     expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1764,7 +1777,7 @@ public class ClientTabletCacheImplTest {
     failures = metaCache.findTablets(context, ranges, (tl, r) -> actual.add(new Pair<>(tl, r)),
         LocationNeed.REQUIRED);
     assertEquals(List.of(), failures);
-    tl2 = new CachedTablet(ke2, "L4", "I4", TabletAvailability.ONDEMAND, false);
+    tl2 = new CachedTablet(ke2, csi("L4"), "I4", TabletAvailability.ONDEMAND, false);
     expected =
         Set.of(new Pair<>(tl1, r1), new Pair<>(tl1, r2), new Pair<>(tl2, r2), new Pair<>(tl3, r2));
     assertEquals(expected, actual);
@@ -1783,7 +1796,7 @@ public class ClientTabletCacheImplTest {
     // one mutation should fail because there is no location for ke2
     List<Mutation> ml = createNewMutationList(createNewMutation("a", "cf1:cq1=v1", "cf1:cq2=v2"),
         createNewMutation("i", "cf1:cq1=v3", "cf1:cq2=v4"));
-    Map<String,Map<KeyExtent,List<String>>> emb =
+    Map<ServerId,Map<KeyExtent,List<String>>> emb =
         createServerExtentMap(createServerExtent("a", "L3", ke1));
     runTest(metaCache, ml, emb, "i");
 
@@ -1823,7 +1836,7 @@ public class ClientTabletCacheImplTest {
     for (char c = 'a'; c <= 'z'; c++) {
       ml.add(createNewMutation("" + c, "cf1:cq1=v3", "cf1:cq2=v4"));
     }
-    Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
+    Map<ServerId,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
     List<Mutation> afailures = new ArrayList<>();
     assertEquals(List.of(), lookups);
     metaCache.binMutations(context, ml, binnedMutations, afailures);
@@ -1891,11 +1904,12 @@ public class ClientTabletCacheImplTest {
     afailures.clear();
     assertEquals(List.of(), lookups);
     metaCache.binMutations(context, ml, binnedMutations, afailures);
-    assertEquals(Set.of("T1", "T2", "T3"), binnedMutations.keySet());
-    assertEquals(7, binnedMutations.get("T1").getMutations().get(ke1).size());
-    assertEquals(6, binnedMutations.get("T2").getMutations().get(ke2).size());
-    assertEquals(5, binnedMutations.get("T3").getMutations().get(ke3).size());
-    assertEquals(8, binnedMutations.get("T3").getMutations().get(ke4).size());
+    assertEquals(Set.of("T1", "T2", "T3"),
+        binnedMutations.keySet().stream().map(ServerId::getHost).collect(Collectors.toSet()));
+    assertEquals(7, binnedMutations.get(csi("T1")).getMutations().get(ke1).size());
+    assertEquals(6, binnedMutations.get(csi("T2")).getMutations().get(ke2).size());
+    assertEquals(5, binnedMutations.get(csi("T3")).getMutations().get(ke3).size());
+    assertEquals(8, binnedMutations.get(csi("T3")).getMutations().get(ke4).size());
     assertEquals(0, afailures.size());
     assertEquals(List.of(METADATA_TABLE_EXTENT), lookups);
 
@@ -1904,11 +1918,12 @@ public class ClientTabletCacheImplTest {
     binnedMutations.clear();
     afailures.clear();
     metaCache.binMutations(context, ml, binnedMutations, afailures);
-    assertEquals(Set.of("T1", "T2", "T3"), binnedMutations.keySet());
-    assertEquals(7, binnedMutations.get("T1").getMutations().get(ke1).size());
-    assertEquals(6, binnedMutations.get("T2").getMutations().get(ke2).size());
-    assertEquals(5, binnedMutations.get("T3").getMutations().get(ke3).size());
-    assertEquals(8, binnedMutations.get("T3").getMutations().get(ke4).size());
+    assertEquals(Set.of("T1", "T2", "T3"),
+        binnedMutations.keySet().stream().map(ServerId::getHost).collect(Collectors.toSet()));
+    assertEquals(7, binnedMutations.get(csi("T1")).getMutations().get(ke1).size());
+    assertEquals(6, binnedMutations.get(csi("T2")).getMutations().get(ke2).size());
+    assertEquals(5, binnedMutations.get(csi("T3")).getMutations().get(ke3).size());
+    assertEquals(8, binnedMutations.get(csi("T3")).getMutations().get(ke4).size());
     assertEquals(0, afailures.size());
     assertEquals(List.of(), lookups);
 
@@ -2020,11 +2035,11 @@ public class ClientTabletCacheImplTest {
           }
           var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
           if (lookup.compareTo("m") <= 0) {
-            assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
+            assertEquals("tserver7", loc.getTserverLocation().orElseThrow().getHost());
           } else if (lookup.compareTo("q") <= 0) {
-            assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
+            assertEquals("tserver8", loc.getTserverLocation().orElseThrow().getHost());
           } else {
-            assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
+            assertEquals("tserver9", loc.getTserverLocation().orElseThrow().getHost());
           }
           return loc;
         });
@@ -2086,16 +2101,16 @@ public class ClientTabletCacheImplTest {
 
     assertEquals("tserver3",
         metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
     assertEquals("tserver4",
         metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
     assertEquals("tserver5",
         metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
     assertEquals("tserver6",
         metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
 
     // clear this extent from cache to cause it to be looked up again in the metadata table
     metaCache.invalidateCache(ke2);
@@ -2125,13 +2140,13 @@ public class ClientTabletCacheImplTest {
     // should be able to get the tablet locations that are still in the cache w/o blocking
     assertEquals("tserver3",
         metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
     assertEquals("tserver5",
         metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
     assertEquals("tserver6",
         metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
-            .getTserverLocation().orElseThrow());
+            .getTserverLocation().orElseThrow().getHost());
 
     // The lookup task should still be blocked
     assertFalse(lookupFuture.isDone());
@@ -2141,7 +2156,7 @@ public class ClientTabletCacheImplTest {
     lookupLock.unlock();
 
     // The future should be able to run and complete
-    assertEquals("tserver4", lookupFuture.get());
+    assertEquals("tserver4", lookupFuture.get().getHost());
 
     // verify test assumptions
     assertTrue(lookupFuture.isDone());
@@ -2218,7 +2233,7 @@ public class ClientTabletCacheImplTest {
       String location = entry.getValue();
       assertEquals(location,
           metaCache.findTablet(context, new Text(row), false, LocationNeed.REQUIRED)
-              .getTserverLocation().orElseThrow());
+              .getTserverLocation().orElseThrow().getHost());
     }
   }
 }

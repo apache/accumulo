@@ -42,8 +42,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Override
@@ -139,8 +137,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
     ServerContext context = getServerContext();
     for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
       TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
-              HostAndPort.fromParts(tserver.getHost(), tserver.getPort()), context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, tserver, context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

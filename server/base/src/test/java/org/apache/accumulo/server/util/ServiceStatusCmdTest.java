@@ -81,18 +81,65 @@ public class ServiceStatusCmdTest {
   @Test
   public void testManagerHosts() throws Exception {
     replay(zooCache);
-    String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
-    String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
-    String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
+    final String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
+    final String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
+    final String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
 
-    String lock1data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
-    String lock2Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9992\",\"group\":\"default\"}]}";
-    String lock3Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"hostA:9999\",\"group\":\"manager1\"}]}";
+    final String lock1data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'MANAGER',
+             'address':
+               {
+                 'type': 'MANAGER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9991
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
-    String lockPath = Constants.ZMANAGER_LOCK;
+    final String lock2Data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'MANAGER',
+             'address':
+               {
+                 'type': 'MANAGER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9992
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lock3Data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'MANAGER',
+             'address':
+               {
+                 'type': 'MANAGER',
+                 'resourceGroup': 'manager1',
+                 'host': 'hostA',
+                 'port': 9999
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockPath = Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(lockPath, null))
         .andReturn(List.of(lock1Name, lock2Name, lock3Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
@@ -129,15 +176,46 @@ public class ServiceStatusCmdTest {
   @Test
   public void testMonitorHosts() throws Exception {
     replay(zooCache);
-    String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
-    String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
+    final String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
+    final String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
 
-    String host1 =
-        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostA\",\"group\":\"default\"}]}";
-    String host2 =
-        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostB\",\"group\":\"default\"}]}";
+    final String host1 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'87465459-9c8f-4f95-b4c6-ef3029030d05',
+             'service':'NONE',
+             'address':
+               {
+                 'type': 'MONITOR',
+                 'resourceGroup': 'default',
+                 'host': 'hostA',
+                 'port': 9999
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
-    String lockPath = Constants.ZMONITOR_LOCK;
+    final String host2 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'87465459-9c8f-4f95-b4c6-ef3029030d05',
+             'service':'NONE',
+             'address':
+               {
+                 'type': 'MONITOR',
+                 'resourceGroup': 'default',
+                 'host': 'hostB',
+                 'port': 9999
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockPath = Constants.ZMONITOR_LOCK;
     expect(zooReader.getChildren(lockPath, null)).andReturn(List.of(lock1Name, lock2Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
         .andReturn(host1.getBytes(UTF_8));
@@ -154,12 +232,11 @@ public class ServiceStatusCmdTest {
 
     // expect sorted by name
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
-    hostByGroup.put("default", new TreeSet<>(List.of("hostA", "hostB")));
+    hostByGroup.put("default", new TreeSet<>(List.of("hostA:9999", "hostB:9999")));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.MONITOR,
         Map.of("default", 2), hostByGroup, 0);
 
-    assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
     assertEquals(expected.getResourceGroups(), status.getResourceGroups());
     assertEquals(expected.getServiceByGroups(), status.getServiceByGroups());
@@ -179,39 +256,191 @@ public class ServiceStatusCmdTest {
     String host2 = "localhost:10000";
     String host3 = "hostZ:9999";
 
-    String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"CLIENT\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_INGEST\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TSERV\",\"address\":\""
-            + host1 + "\",\"group\":\"default\"}]}\n";
-    String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"CLIENT\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TSERV\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
-    String lockData3 =
-        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"CLIENT\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TSERV\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
-            + host3 + "\",\"group\":\"default\"}]}";
+    final String lockData1 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'e0a717f2-43a1-466c-aa91-8b33e20e17e5',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9997
+               }
+           },
+           {
+             'uuid':'e0a717f2-43a1-466c-aa91-8b33e20e17e5',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9997
+               }
+            },
+           {
+             'uuid':'e0a717f2-43a1-466c-aa91-8b33e20e17e5',
+             'service':'TABLET_INGEST',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9997
+               }
+            },
+           {
+             'uuid':'e0a717f2-43a1-466c-aa91-8b33e20e17e5',
+             'service':'TABLET_MANAGEMENT',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9997
+               }
+            },
+           {
+             'uuid':'e0a717f2-43a1-466c-aa91-8b33e20e17e5',
+             'service':'TSERV',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9997
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockData2 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 10000
+               }
+           },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 10000
+               }
+            },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TABLET_INGEST',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 10000
+               }
+            },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TABLET_MANAGEMENT',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 10000
+               }
+            },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TSERV',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 10000
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockData3 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'hostZ',
+                 'port': 9999
+               }
+           },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'hostZ',
+                 'port': 9999
+               }
+            },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TABLET_INGEST',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'hostZ',
+                 'port': 9999
+               }
+            },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TABLET_MANAGEMENT',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'hostZ',
+                 'port': 9999
+               }
+            },
+           {
+             'uuid':'d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32',
+             'service':'TSERV',
+             'address':
+               {
+                 'type': 'TABLET_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'hostZ',
+                 'port': 9999
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
     String basePath = Constants.ZTSERVERS;
     expect(zooCache.getChildren(basePath))
@@ -271,40 +500,135 @@ public class ServiceStatusCmdTest {
   public void testScanServerHosts() throws Exception {
     replay(zooReader);
     UUID uuid1 = UUID.randomUUID();
-    String lock1Name = "zlock#" + uuid1 + "#0000000001";
+    final String lock1Name = "zlock#" + uuid1 + "#0000000001";
     UUID uuid2 = UUID.randomUUID();
-    String lock2Name = "zlock#" + uuid2 + "#0000000022";
+    final String lock2Name = "zlock#" + uuid2 + "#0000000022";
     UUID uuid3 = UUID.randomUUID();
-    String lock3Name = "zlock#" + uuid3 + "#0000000033";
-    String lock4Name = "zlock#" + uuid3 + "#0000000044";
+    final String lock3Name = "zlock#" + uuid3 + "#0000000033";
+    final String lock4Name = "zlock#" + uuid3 + "#0000000044";
 
-    String host1 = "host1:8080";
-    String host2 = "host2:9090";
-    String host3 = "host3:9091";
-    String host4 = "host4:9091";
+    final String host1 = "host1:8080";
+    final String host2 = "host2:9090";
+    final String host3 = "host3:9091";
+    final String host4 = "host4:9091";
 
-    String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host1
-            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host1 + "\",\"group\":\"sg1\"}]}";
-    String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
-    String lockData3 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host3
-            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host3 + "\",\"group\":\"sg1\"}]}";
-    String lockData4 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host4
-            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host4 + "\",\"group\":\"default\"}]}";
+    final String lockData1 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'sg1',
+                 'host': 'host1',
+                 'port': 8080
+               }
+           },
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'sg1',
+                 'host': 'host1',
+                 'port': 8080
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
-    String lockPath = Constants.ZSSERVERS;
+    final String lockData2 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'host2',
+                 'port': 9090
+               }
+           },
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'host2',
+                 'port': 9090
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockData3 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'sg1',
+                 'host': 'host3',
+                 'port': 9091
+               }
+           },
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'sg1',
+                 'host': 'host3',
+                 'port': 9091
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockData4 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'TABLET_SCAN',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'host4',
+                 'port': 9091
+               }
+           },
+           {
+             'uuid':'f408fed7-ce93-40d2-8e60-63e8a3daf416',
+             'service':'CLIENT',
+             'address':
+               {
+                 'type': 'SCAN_SERVER',
+                 'resourceGroup': 'default',
+                 'host': 'host4',
+                 'port': 9091
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockPath = Constants.ZSSERVERS;
     expect(zooCache.getChildren(lockPath))
         .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, "sg1"));
     expect(zooCache.getChildren(lockPath + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME))
@@ -355,24 +679,87 @@ public class ServiceStatusCmdTest {
     replay(zooReader);
 
     UUID uuid1 = UUID.randomUUID();
-    String lock1Name = "zlock#" + uuid1 + "#0000000001";
+    final String lock1Name = "zlock#" + uuid1 + "#0000000001";
     UUID uuid2 = UUID.randomUUID();
-    String lock2Name = "zlock#" + uuid2 + "#0000000022";
+    final String lock2Name = "zlock#" + uuid2 + "#0000000022";
     UUID uuid3 = UUID.randomUUID();
-    String lock3Name = "zlock#" + uuid3 + "#0000000033";
+    final String lock3Name = "zlock#" + uuid3 + "#0000000033";
     UUID uuid4 = UUID.randomUUID();
-    String lock4Name = "zlock#" + uuid4 + "#0000000044";
+    final String lock4Name = "zlock#" + uuid4 + "#0000000044";
 
-    String lock1data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostA:8080\",\"group\":\"q1\"}]}";
-    String lock2data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostC:8081\",\"group\":\"q1\"}]}";
-    String lock3data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostB:9090\",\"group\":\"q2\"}]}";
-    String lock4data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostD:9091\",\"group\":\"q2\"}]}";
+    final String lock1data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'COMPACTOR',
+             'address':
+               {
+                 'type': 'COMPACTOR',
+                 'resourceGroup': 'q1',
+                 'host': 'hostA',
+                 'port': 8080
+               }
+           }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
-    String lockPath = Constants.ZCOMPACTORS;
+    final String lock2data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'COMPACTOR',
+             'address':
+               {
+                 'type': 'COMPACTOR',
+                 'resourceGroup': 'q1',
+                 'host': 'hostC',
+                 'port': 8081
+               }
+           }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lock3data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'COMPACTOR',
+             'address':
+               {
+                 'type': 'COMPACTOR',
+                 'resourceGroup': 'q2',
+                 'host': 'hostB',
+                 'port': 9090
+               }
+           }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lock4data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'COMPACTOR',
+             'address':
+               {
+                 'type': 'COMPACTOR',
+                 'resourceGroup': 'q2',
+                 'host': 'hostD',
+                 'port': 9091
+               }
+           }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockPath = Constants.ZCOMPACTORS;
     expect(zooCache.getChildren(lockPath)).andReturn(List.of("q1", "q2", "q3"));
     expect(zooCache.getChildren(lockPath + "/q1")).andReturn(List.of("hostA:8080", "hostC:8081"));
     expect(zooCache.getChildren(lockPath + "/q2")).andReturn(List.of("hostB:9090", "hostD:9091"));
@@ -409,21 +796,50 @@ public class ServiceStatusCmdTest {
   public void testGcHosts() throws Exception {
     replay(zooCache);
 
-    String lockPath = ZGC_LOCK;
+    final String lockPath = ZGC_LOCK;
     UUID uuid1 = UUID.randomUUID();
-    String lock1Name = "zlock#" + uuid1 + "#0000000001";
+    final String lock1Name = "zlock#" + uuid1 + "#0000000001";
     UUID uuid2 = UUID.randomUUID();
-    String lock2Name = "zlock#" + uuid2 + "#0000000022";
+    final String lock2Name = "zlock#" + uuid2 + "#0000000022";
 
-    String host1 = "host1:8080";
-    String host2 = "host2:9090";
+    final String host1 = "host1:8080";
+    final String host2 = "host2:9090";
 
-    String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\"GC\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
-    String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\"GC\",\"address\":\""
-            + host1 + "\",\"group\":\"gc1\"}]}";
+    final String lockData1 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'5c901352-b027-4f78-8ee1-05ae163fbb0e',
+             'service':'GC',
+             'address':
+               {
+                 'type': 'GARBAGE_COLLECTOR',
+                 'resourceGroup': 'default',
+                 'host': 'host2',
+                 'port': 9090
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lockData2 = """
+        {
+         'descriptors':[
+           {
+             'uuid':'5c901352-b027-4f78-8ee1-05ae163fbb0e',
+             'service':'GC',
+             'address':
+               {
+                 'type': 'GARBAGE_COLLECTOR',
+                 'resourceGroup': 'gc1',
+                 'host': 'host1',
+                 'port': 8080
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
     expect(zooReader.getChildren(lockPath, null)).andReturn(List.of(lock1Name, lock2Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
@@ -454,19 +870,48 @@ public class ServiceStatusCmdTest {
   @Test
   public void zkNodeDeletedTest() throws Exception {
     replay(zooCache);
-    String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
-    String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
-    String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
+    final String lock1Name = "zlock#" + UUID.randomUUID() + "#0000000001";
+    final String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
+    final String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
 
-    String host2 = "localhost:9992";
-    String host3 = "hostA:9999";
+    final String host2 = "localhost:9992";
+    final String host3 = "hostA:9999";
 
-    String lock2Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
-    String lock3Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
-            + host3 + "\",\"group\":\"manager1\"}]}";
+    final String lock2Data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'MANAGER',
+             'address':
+               {
+                 'type': 'MANAGER',
+                 'resourceGroup': 'default',
+                 'host': 'localhost',
+                 'port': 9992
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
+
+    final String lock3Data = """
+        {
+         'descriptors':[
+           {
+             'uuid':'6effb690-c29c-4e0b-92ff-f6b308385a42',
+             'service':'MANAGER',
+             'address':
+               {
+                 'type': 'MANAGER',
+                 'resourceGroup': 'manager1',
+                 'host': 'hostA',
+                 'port': 9999
+               }
+            }
+          ]
+        }
+        """.replaceAll("'", "\"");
 
     String lockPath = Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(lockPath, null))

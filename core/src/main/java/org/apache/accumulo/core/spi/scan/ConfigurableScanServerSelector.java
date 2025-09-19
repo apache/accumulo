@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
@@ -180,7 +181,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
       + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
 
-  private Supplier<Map<ResourceGroupId,List<String>>> orderedScanServersSupplier;
+  private Supplier<Map<ResourceGroupId,List<ServerId>>> orderedScanServersSupplier;
 
   private Map<String,Profile> profiles;
   private Profile defaultProfile;
@@ -332,9 +333,10 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     // avoid constantly resorting the scan servers, just do it periodically in case they change
     orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
       Collection<ScanServerInfo> scanServers = params.getScanServers().get();
-      Map<ResourceGroupId,List<String>> groupedServers = new HashMap<>();
+      Map<ResourceGroupId,List<ServerId>> groupedServers = new HashMap<>();
       scanServers.forEach(sserver -> groupedServers
-          .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
+          .computeIfAbsent(sserver.getServer().getResourceGroup(), k -> new ArrayList<>())
+          .add(sserver.getServer()));
       groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
       return groupedServers;
     }, 3, TimeUnit.SECONDS);
@@ -363,7 +365,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     // only get this once and use it for the entire method so that the method uses a consistent
     // snapshot
-    List<String> orderedScanServers =
+    List<ServerId> orderedScanServers =
         orderedScanServersSupplier.get().getOrDefault(ResourceGroupId.of(profile.group), List.of());
 
     Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
@@ -383,7 +385,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       // there are no scan servers so fall back to the tablet server
       return new ScanServerSelections() {
         @Override
-        public String getScanServer(TabletId tabletId) {
+        public ServerId getScanServer(TabletId tabletId) {
           return null;
         }
 
@@ -399,7 +401,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       };
     }
 
-    Map<TabletId,String> serversToUse = new HashMap<>();
+    Map<TabletId,ServerId> serversToUse = new HashMap<>();
 
     int maxAttempts = selectServers(params, profile, orderedScanServers, serversToUse);
 
@@ -407,7 +409,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     return new ScanServerSelections() {
       @Override
-      public String getScanServer(TabletId tabletId) {
+      public ServerId getScanServer(TabletId tabletId) {
         return serversToUse.get(tabletId);
       }
 
@@ -424,7 +426,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   }
 
   protected int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
-      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
+      List<ServerId> orderedScanServers, Map<TabletId,ServerId> serversToUse) {
 
     int attempts = params.getTablets().stream()
         .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
@@ -432,7 +434,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     int numServers = profile.getNumServers(attempts, orderedScanServers.size());
     for (TabletId tablet : params.getTablets()) {
 
-      String serverToUse = null;
+      ServerId serverToUse = null;
 
       var hashCode = hashTablet(tablet, profile.getSalt(attempts));
 

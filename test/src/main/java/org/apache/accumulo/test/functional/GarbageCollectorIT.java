@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -84,7 +85,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
-import com.google.common.net.HostAndPort;
 
 public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
@@ -428,7 +428,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           Optional<ServiceLockData> sld = ServiceLockData.parse(zk.getData(lockPath));
 
           assertNotNull(sld.orElseThrow());
-          HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
+          ServerId hostAndPort = sld.orElseThrow().getServer(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
           assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES, hostAndPort.getHost());

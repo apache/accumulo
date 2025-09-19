@@ -22,6 +22,8 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -31,16 +33,15 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.net.HostAndPort;
 
 public final class LogEntry {
 
   private final String path;
-  private final HostAndPort tserver;
+  private ServerId tserver;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
-  private LogEntry(String path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
+  private LogEntry(String path, ServerId tserver, UUID uniqueId, Text columnQualifier) {
     this.path = path;
     this.tserver = tserver;
     this.uniqueId = uniqueId;
@@ -51,8 +52,8 @@ public final class LogEntry {
    * Creates a new LogEntry object after validating the expected format of the path. We expect the
    * path to contain a tserver (host+port) followed by a UUID as the file name as the last two
    * components.<br>
-   * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
-   * valid path.
+   * For example, file:///some/dir/path/group+localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is
+   * a valid path.
    *
    * @param path path to validate
    * @return an object representation of this log entry
@@ -74,13 +75,13 @@ public final class LogEntry {
     String uuidPart = parts[parts.length - 1];
 
     String badTServerMsg =
-        "Invalid tserver in path. Expected: host+port. Found '" + tserverPart + "'";
+        "Invalid tserver in path. Expected: group+host+port. Found '" + tserverPart + "'";
     if (tserverPart.contains(":") || !tserverPart.contains("+")) {
       throw new IllegalArgumentException(badTServerMsg);
     }
-    HostAndPort tserver;
+    ServerId tserver;
     try {
-      tserver = HostAndPort.fromString(tserverPart.replace("+", ":"));
+      tserver = ServerIdUtil.fromWalFileName(tserverPart);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(badTServerMsg);
     }
@@ -120,7 +121,7 @@ public final class LogEntry {
 
   @NonNull
   @VisibleForTesting
-  HostAndPort getTServer() {
+  ServerId getTServer() {
     return tserver;
   }
 

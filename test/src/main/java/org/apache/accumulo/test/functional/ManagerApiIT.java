@@ -35,12 +35,14 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -246,10 +248,11 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void testPermissions_shutdownTabletServer() throws Exception {
     // To shutdownTabletServer, user needs SystemPermission.SYSTEM
     // this server won't exist, so shutting it down is a NOOP on success
-    String fakeHostAndPort = getUniqueNames(1)[0] + ":0";
+    var inst = new TServerInstance(ServerIdUtil.tserver(getUniqueNames(1)[0], 0), "1234");
+
     op = user -> client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId), fakeHostAndPort,
-          false);
+      client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId),
+          inst.toZooKeeperPathString(), false);
       return null;
     };
     expectPermissionDenied(op, regularUser);
@@ -260,8 +263,9 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   @Test
   public void shutdownTabletServer() throws Exception {
     op = user -> client -> {
+      var inst = new TServerInstance(ServerIdUtil.tserver("fakeTabletServer", 9997), "1234");
       client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId),
-          "fakeTabletServer:9997", true);
+          inst.toZooKeeperPathString(), true);
       return null;
     };
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())

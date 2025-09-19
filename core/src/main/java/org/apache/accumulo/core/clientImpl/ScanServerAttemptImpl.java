@@ -20,20 +20,21 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.util.Objects;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 
 class ScanServerAttemptImpl implements ScanServerAttempt {
 
-  private final String server;
+  private final ServerId server;
   private final Result result;
 
-  ScanServerAttemptImpl(Result result, String server) {
+  ScanServerAttemptImpl(Result result, ServerId server) {
     this.result = result;
     this.server = Objects.requireNonNull(server);
   }
 
   @Override
-  public String getServer() {
+  public ServerId getServer() {
     return server;
   }
 

@@ -47,6 +47,7 @@ import static org.apache.accumulo.manager.tableOps.split.UpdateTabletsTest.newST
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -58,9 +59,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -151,10 +152,13 @@ public class MergeTabletsTest {
     var tabletTime = MetadataTime.parse("L30");
     var flushID = OptionalLong.of(40);
     var availability = TabletAvailability.HOSTED;
-    var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
-    var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
+    var lastLocation = TabletMetadata.Location
+        .last(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1234), "123456789"));
+    var suspendingTServer =
+        new SuspendingTServer(new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1025), ""),
+            SteadyTime.from(Duration.ofMillis(56)));
     var mergeability = TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS));
-    var migration = new TServerInstance("localhost:1234", 56L);
+    var migration = new TServerInstance(ServerIdUtil.tserver("localhost", 1234), 56L);
 
     var tablet1 =
         TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
@@ -306,7 +310,7 @@ public class MergeTabletsTest {
 
   @Test
   public void testUnexpectedColumns() {
-    var tserver = new TServerInstance("1.2.3.4:1234", 123456789L);
+    var tserver = new TServerInstance(ServerIdUtil.tserver("1.2.3.4", 1234), 123456789L);
     var futureLoc = TabletMetadata.Location.future(tserver);
     testUnexpectedColumn(tmb -> tmb.putLocation(futureLoc), "had location", futureLoc.toString());
 
@@ -318,7 +322,7 @@ public class MergeTabletsTest {
     testUnexpectedColumn(tmb -> tmb.putOperation(otherOpid), "had unexpected opid",
         otherOpid.toString());
 
-    var walog = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
+    var walog = LogEntry.fromPath("default+localhost+8020/" + UUID.randomUUID());
     testUnexpectedColumn(tmb -> tmb.putWal(walog), "has unexpected walogs 1");
 
     FateId ucfid1 = otherFateId;

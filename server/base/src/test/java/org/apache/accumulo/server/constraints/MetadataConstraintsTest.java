@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Base64;
@@ -34,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -66,8 +68,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class MetadataConstraintsTest {
 
@@ -155,25 +155,31 @@ public class MetadataConstraintsTest {
   }
 
   @Test
-  public void testSuspensionCheck() {
+  public void testSuspensionCheck() throws Exception {
     Mutation m = new Mutation(new Text("0;foo"));
     MetadataConstraints mc = new MetadataConstraints();
-    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+    TServerInstance ser1 = new TServerInstance(ServerIdUtil.tserver("server1", 8555), "s001");
 
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, SuspendingTServer.toValue(ser1,
-        SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, new SuspendingTServer(ser1,
+        SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS)).toValue());
     List<Short> violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     SuspendLocationColumn.SUSPEND_COLUMN.put(m,
-        SuspendingTServer.toValue(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)));
+        new SuspendingTServer(ser1, SteadyTime.from(0, TimeUnit.MILLISECONDS)).toValue());
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
     // We must encode manually since SteadyTime won't allow a negative
-    SuspendLocationColumn.SUSPEND_COLUMN.put(m, new Value(ser1.getHostPort() + "|" + -1L));
+    var sts = new SuspendingTServer(ser1,
+        SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS));
+    Field timeField = SteadyTime.class.getDeclaredField("time");
+    assertNotNull(timeField);
+    timeField.setAccessible(true);
+    timeField.set(sts.suspensionTime, Duration.ofMillis(-1));
+    SuspendLocationColumn.SUSPEND_COLUMN.put(m, new Value(sts.toValue()));
     violations = mc.check(createEnv(), m);
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());

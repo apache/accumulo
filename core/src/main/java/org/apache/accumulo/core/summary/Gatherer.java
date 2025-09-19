@@ -88,7 +88,6 @@ import org.slf4j.LoggerFactory;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.base.Preconditions;
 import com.google.common.hash.Hashing;
-import com.google.common.net.HostAndPort;
 
 /**
  * This class implements using multiple tservers to gather summaries.
@@ -165,7 +164,7 @@ public class Gatherer {
    * @return A map of the form : {@code map<tserver location, map<path, list<range>>} . The ranges
    *         associated with a file represent the tablets that use the file.
    */
-  private Map<String,Map<StoredTabletFile,List<TRowRange>>>
+  private Map<ServerId,Map<StoredTabletFile,List<TRowRange>>>
       getFilesGroupedByLocation(Predicate<StoredTabletFile> fileSelector) {
 
     // get a subset of files
@@ -185,23 +184,25 @@ public class Gatherer {
 
     // group by location, then file
 
-    Map<String,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
+    Map<ServerId,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
 
     List<ServerId> tservers = null;
 
     for (Entry<StoredTabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
-      String location = entry.getValue().stream().filter(tm -> tm.getLocation() != null) // filter
-                                                                                         // tablets
-                                                                                         // w/o a
-                                                                                         // location
-          .map(tm -> tm.getLocation().getHostPort()) // convert to host:port strings
-          .min(String::compareTo) // find minimum host:port
+      ServerId location = entry.getValue().stream().filter(tm -> tm.getLocation() != null) // filter
+          // tablets
+          // w/o a
+          // location
+          .map(tm -> tm.getLocation().getServerInstance().getServer()) // convert to host:port
+                                                                       // strings
+          .min(ServerId::compareTo) // find minimum host:port
           .orElse(entry.getValue().stream().filter(tm -> tm.getLast() != null) // if no locations,
                                                                                // then look at last
                                                                                // locations
-              .map(tm -> tm.getLast().getHostPort()) // convert to host:port strings
-              .min(String::compareTo).orElse(null)); // find minimum last location or return null
+              .map(tm -> tm.getLast().getServerInstance().getServer()) // convert to host:port
+                                                                       // strings
+              .min(ServerId::compareTo).orElse(null)); // find minimum last location or return null
 
       if (location == null) {
         if (tservers == null) {
@@ -214,7 +215,7 @@ public class Gatherer {
         // same file (as long as the set of tservers is stable).
         int idx = Math.abs(Hashing.murmur3_32_fixed()
             .hashString(entry.getKey().getNormalizedPathStr(), UTF_8).asInt()) % tservers.size();
-        location = tservers.get(idx).toHostPortString();
+        location = tservers.get(idx);
       }
 
       // merge contiguous ranges
@@ -287,12 +288,12 @@ public class Gatherer {
 
   private class FilesProcessor implements Supplier<ProcessedFiles> {
 
-    final HostAndPort location;
+    final ServerId location;
     final Map<StoredTabletFile,List<TRowRange>> allFiles;
     private final TInfo tinfo;
     private final AtomicBoolean cancelFlag;
 
-    public FilesProcessor(TInfo tinfo, HostAndPort location,
+    public FilesProcessor(TInfo tinfo, ServerId location,
         Map<StoredTabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
       this.location = location;
       this.allFiles = allFiles;
@@ -358,7 +359,7 @@ public class Gatherer {
         if (previousWork != null) {
           fileSelector = fileSelector.and(previousWork.failedFiles::contains);
         }
-        Map<String,Map<StoredTabletFile,List<TRowRange>>> filesGBL;
+        Map<ServerId,Map<StoredTabletFile,List<TRowRange>>> filesGBL;
         filesGBL = getFilesGroupedByLocation(fileSelector);
 
         List<CompletableFuture<ProcessedFiles>> futures = new ArrayList<>();
@@ -367,12 +368,11 @@ public class Gatherer {
               .completedFuture(new ProcessedFiles(previousWork.summaries, factory)));
         }
 
-        for (Entry<String,Map<StoredTabletFile,List<TRowRange>>> entry : filesGBL.entrySet()) {
-          HostAndPort location = HostAndPort.fromString(entry.getKey());
+        for (Entry<ServerId,Map<StoredTabletFile,List<TRowRange>>> entry : filesGBL.entrySet()) {
           Map<StoredTabletFile,List<TRowRange>> allFiles = entry.getValue();
 
-          futures.add(CompletableFuture
-              .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
+          futures.add(CompletableFuture.supplyAsync(
+              new FilesProcessor(tinfo, entry.getKey(), allFiles, cancelFlag), execSrv));
         }
 
         return CompletableFutureUtil.merge(futures,

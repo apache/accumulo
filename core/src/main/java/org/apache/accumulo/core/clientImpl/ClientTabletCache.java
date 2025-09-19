@@ -34,9 +34,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -128,7 +130,7 @@ public abstract class ClientTabletCache {
   }
 
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      Map<ServerId,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException;
 
@@ -165,7 +167,7 @@ public abstract class ClientTabletCache {
    * hosted tablets with a location.
    */
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     return findTablets(context, ranges, ((cachedTablet, range) -> ClientTabletCacheImpl
         .addRange(binnedRanges, cachedTablet, range)), LocationNeed.REQUIRED);
@@ -201,30 +203,30 @@ public abstract class ClientTabletCache {
     private static final Interner<String> interner = new Interner<>();
 
     private final KeyExtent tablet_extent;
-    private final String tserverLocation;
+    private final ServerId tserverLocation;
     private final String tserverSession;
     private final TabletAvailability availability;
     private final boolean hostingRequested;
 
     private final Timer creationTimer = Timer.startNew();
 
-    public CachedTablet(KeyExtent tablet_extent, String tablet_location, String session,
+    public CachedTablet(KeyExtent tablet_extent, ServerId tablet_location, String session,
         TabletAvailability availability, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       checkArgument(tablet_location != null, "tablet_location is null");
       checkArgument(session != null, "session is null");
       this.tablet_extent = tablet_extent;
-      this.tserverLocation = interner.intern(tablet_location);
+      this.tserverLocation = tablet_location;
       this.tserverSession = interner.intern(session);
       this.availability = Objects.requireNonNull(availability);
       this.hostingRequested = hostingRequested;
     }
 
-    public CachedTablet(KeyExtent tablet_extent, Optional<String> tablet_location,
+    public CachedTablet(KeyExtent tablet_extent, Optional<ServerId> tablet_location,
         Optional<String> session, TabletAvailability availability, boolean hostingRequested) {
       checkArgument(tablet_extent != null, "tablet_extent is null");
       this.tablet_extent = tablet_extent;
-      this.tserverLocation = tablet_location.map(interner::intern).orElse(null);
+      this.tserverLocation = tablet_location.orElse(null);
       this.tserverSession = session.map(interner::intern).orElse(null);
       this.availability = Objects.requireNonNull(availability);
       this.hostingRequested = hostingRequested;
@@ -268,7 +270,7 @@ public abstract class ClientTabletCache {
       return tablet_extent;
     }
 
-    public Optional<String> getTserverLocation() {
+    public Optional<ServerId> getTserverLocation() {
       return Optional.ofNullable(tserverLocation);
     }
 
@@ -300,9 +302,9 @@ public abstract class ClientTabletCache {
 
   public static class TabletServerMutations<T extends Mutation> {
     private final Map<KeyExtent,List<T>> mutations;
-    private final String tserverSession;
+    private final TServerInstance tserverSession;
 
-    public TabletServerMutations(String tserverSession) {
+    public TabletServerMutations(TServerInstance tserverSession) {
       this.tserverSession = tserverSession;
       this.mutations = new HashMap<>();
     }
@@ -316,7 +318,7 @@ public abstract class ClientTabletCache {
       return mutations;
     }
 
-    final String getSession() {
+    public TServerInstance getTServerInstance() {
       return tserverSession;
     }
   }

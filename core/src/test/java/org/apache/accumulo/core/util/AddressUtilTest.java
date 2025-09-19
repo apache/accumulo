@@ -28,8 +28,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 /**
  * Test the AddressUtil class.
  */
@@ -105,27 +103,4 @@ public class AddressUtilTest {
 
   }
 
-  @Test
-  public void normalizeAddressRequirePortTest() {
-    HostAndPort hostAndPort = AddressUtil.parseAddress("127.0.1.2+8080");
-    assertEquals("127.0.1.2", hostAndPort.getHost());
-    assertEquals(8080, hostAndPort.getPort());
-
-    HostAndPort hostAndPort2 = AddressUtil.parseAddress("127.0.1.2:9123");
-    assertEquals("127.0.1.2", hostAndPort2.getHost());
-    assertEquals(9123, hostAndPort2.getPort());
-
-    assertThrows(IllegalArgumentException.class, () -> AddressUtil.parseAddress("127.0.1.2"));
-  }
-
-  @Test
-  public void normalizeAddressWithDefaultTest() {
-    HostAndPort hostAndPort = AddressUtil.parseAddress("127.0.1.2+8080", 9123);
-    assertEquals("127.0.1.2", hostAndPort.getHost());
-    assertEquals(8080, hostAndPort.getPort());
-
-    HostAndPort hostAndPort2 = AddressUtil.parseAddress("127.0.1.2", 9123);
-    assertEquals("127.0.1.2", hostAndPort2.getHost());
-    assertEquals(9123, hostAndPort2.getPort());
-  }
 }

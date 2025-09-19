@@ -18,19 +18,27 @@
  */
 package org.apache.accumulo.core.client.admin.servers;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
 import java.util.Objects;
 
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil.ServerIdInfo;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.data.ResourceGroupId;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 /**
  * Object representing the type, resource group, and address of a server process.
  *
  * @since 4.0.0
  */
-public final class ServerId implements Comparable<ServerId> {
+public final class ServerId implements Comparable<ServerId>, Serializable {
 
   /**
    * Server process type names.
@@ -38,13 +46,20 @@ public final class ServerId implements Comparable<ServerId> {
    * @since 4.0.0
    */
   public enum Type {
-    MANAGER, MONITOR, GARBAGE_COLLECTOR, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
+    MANAGER, MINI, MONITOR, GARBAGE_COLLECTOR, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
+  }
+
+  private static final long serialVersionUID = 1L;
+
+  public static final ServerId deserialize(String json) {
+    return GSON.get().fromJson(json, ServerIdInfo.class).getServerId();
   }
 
   private final Type type;
   private final ResourceGroupId resourceGroup;
   private final String host;
   private final int port;
+  private transient HostAndPort hostPort;
 
   public ServerId(Type type, ResourceGroupId resourceGroup, String host, int port) {
     super();
@@ -54,6 +69,7 @@ public final class ServerId implements Comparable<ServerId> {
     this.resourceGroup = Objects.requireNonNull(resourceGroup);
     this.host = Objects.requireNonNull(host);
     this.port = port;
+    this.hostPort = HostAndPort.fromParts(host, port);
   }
 
   public Type getType() {
@@ -70,6 +86,13 @@ public final class ServerId implements Comparable<ServerId> {
 
   public int getPort() {
     return port;
+  }
+
+  private synchronized HostAndPort getHostPort() {
+    if (hostPort == null) {
+      hostPort = HostAndPort.fromParts(host, port);
+    }
+    return hostPort;
   }
 
   @Override
@@ -117,6 +140,15 @@ public final class ServerId implements Comparable<ServerId> {
   }
 
   public String toHostPortString() {
-    return host + ":" + port;
+    return getHostPort().toString();
+  }
+
+  public String serialize() {
+    return GSON.get().toJson(ServerIdUtil.toServerIdInfo(this));
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    this.hostPort = HostAndPort.fromParts(host, port);
   }
 }

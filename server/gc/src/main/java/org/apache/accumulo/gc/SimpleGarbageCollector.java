@@ -172,6 +172,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
       throw new RuntimeException("Failed to start the gc client service", e1);
     }
 
+    ServerId address = getAdvertiseAddress();
     try {
       getZooLock(getAdvertiseAddress());
     } catch (Exception ex) {
@@ -183,8 +184,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
     metricsInfo.addMetricsProducers(this, new GcMetrics(this));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+    metricsInfo.init(
+        MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(), address));
     try {
       long delay = getStartDelay();
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
@@ -387,7 +388,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     }
   }
 
-  private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
+  private void getZooLock(ServerId addr) throws KeeperException, InterruptedException {
     var path = getContext().getServerPaths().createGarbageCollectorPath();
 
     UUID zooLockUUID = UUID.randomUUID();
@@ -396,8 +397,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         new HAServiceLockWatcher(Type.GARBAGE_COLLECTOR, () -> getShutdownComplete().get());
 
     while (true) {
-      gcLock.lock(gcLockWatcher, new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC,
-          this.getResourceGroup()));
+      gcLock.lock(gcLockWatcher, new ServiceLockData(zooLockUUID, addr, ThriftService.GC));
 
       gcLockWatcher.waitForChange();
 

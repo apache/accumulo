@@ -68,7 +68,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Retry;
@@ -302,10 +301,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     checkActiveScanServer(server);
 
-    final var parsedTserver = HostAndPort.fromParts(server.getHost(), server.getPort());
     TabletScanClientService.Client rpcClient = null;
     try {
-      rpcClient = getClient(ThriftClientTypes.TABLET_SCAN, parsedTserver, context);
+      rpcClient = getClient(ThriftClientTypes.TABLET_SCAN, server, context);
 
       List<ActiveScan> as = new ArrayList<>();
       for (var activeScan : rpcClient.getActiveScans(TraceUtil.traceInfo(), context.rpcCreds())) {
@@ -349,13 +347,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     checkActiveCompactionServer(server);
 
-    final HostAndPort serverHostAndPort = HostAndPort.fromParts(server.getHost(), server.getPort());
     final List<ActiveCompaction> as = new ArrayList<>();
     try {
       if (server.getType() == ServerId.Type.TABLET_SERVER) {
         Client client = null;
         try {
-          client = getClient(ThriftClientTypes.TABLET_SERVER, serverHostAndPort, context);
+          client = getClient(ThriftClientTypes.TABLET_SERVER, server, context);
           for (var tac : client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds())) {
             as.add(new ActiveCompactionImpl(context, tac, server));
           }
@@ -366,7 +363,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         }
       } else {
         // if not a TabletServer address, maybe it's a Compactor
-        for (var tac : ExternalCompactionUtil.getActiveCompaction(serverHostAndPort, context)) {
+        for (var tac : ExternalCompactionUtil.getActiveCompaction(server, context)) {
           as.add(new ActiveCompactionImpl(context, tac, server));
         }
       }
@@ -448,18 +445,25 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public void ping(String server) throws AccumuloException {
-    try (TTransport transport = createTransport(AddressUtil.parseAddress(server), context)) {
+    final HostAndPort hp = HostAndPort.fromString(server);
+    for (Type t : Type.values()) {
+      Set<ServerId> s = this.getServers(t, ResourceGroupPredicate.ANY,
+          (h, p) -> hp.getHost().equals(h) && hp.getPort() == p);
+      if (s != null && !s.isEmpty()) {
+        ping(s.iterator().next());
+      }
+    }
+  }
+
+  @Override
+  public void ping(ServerId server) throws AccumuloException {
+    try (TTransport transport = createTransport(server, context)) {
       ClientService.Client client =
           createClient(ThriftClientTypes.CLIENT, transport, context.getInstanceID());
       client.ping(context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
     }
-  }
-
-  @Override
-  public void ping(ServerId server) throws AccumuloException {
-    ping(server.toHostPortString());
   }
 
   @Override
@@ -574,12 +578,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
         ServiceLockPath m = context.getServerPaths().getManager(true);
         if (m != null) {
           Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
-          String location = null;
           if (sld.isPresent()) {
-            location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-            if (location != null && addressSelector.getPredicate().test(location)) {
-              HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
+            ServerId location = sld.orElseThrow().getServer(ThriftService.MANAGER);
+            if (location != null
+                && addressSelector.getPredicate().test(location.toHostPortString())) {
+              results.add(location);
             }
           }
         }
@@ -588,12 +591,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
         ServiceLockPath mon = context.getServerPaths().getMonitor(true);
         if (mon != null) {
           Optional<ServiceLockData> sld = context.getZooCache().getLockData(mon);
-          String location = null;
           if (sld.isPresent()) {
-            location = sld.orElseThrow().getAddressString(ThriftService.NONE);
-            if (location != null && addressSelector.getPredicate().test(location)) {
-              HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
+            ServerId location = sld.orElseThrow().getServer(ThriftService.NONE);
+            if (location != null
+                && addressSelector.getPredicate().test(location.toHostPortString())) {
+              results.add(location);
             }
           }
         }
@@ -602,12 +604,11 @@ public class InstanceOperationsImpl implements InstanceOperations {
         ServiceLockPath gc = context.getServerPaths().getGarbageCollector(true);
         if (gc != null) {
           Optional<ServiceLockData> sld = context.getZooCache().getLockData(gc);
-          String location = null;
           if (sld.isPresent()) {
-            location = sld.orElseThrow().getAddressString(ThriftService.GC);
-            if (location != null && addressSelector.getPredicate().test(location)) {
-              HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
+            ServerId location = sld.orElseThrow().getServer(ThriftService.GC);
+            if (location != null
+                && addressSelector.getPredicate().test(location.toHostPortString())) {
+              results.add(location);
             }
           }
         }
@@ -635,7 +636,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     HostAndPort hp = HostAndPort.fromString(Objects.requireNonNull(slp.getServer()));
     String host = hp.getHost();
     int port = hp.getPort();
-    return new ServerId(type, resourceGroup, host, port);
+    return ServerIdUtil.dynamic(type, resourceGroup, host, port);
   }
 
   private Optional<ServerId> getServerId(String server, List<Type> types) {

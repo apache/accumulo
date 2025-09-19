@@ -22,6 +22,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -30,29 +32,30 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
+
 public class RunningCompaction {
 
   private final static Logger LOG = LoggerFactory.getLogger(RunningCompaction.class);
 
   private final TExternalCompactionJob job;
-  private final String compactorAddress;
-  private final ResourceGroupId groupName;
+  private final ServerId compactor;
   private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
 
   // If this object were to be added to a time sorted list before the start time
   // is set, then it will end up at the end of the list.
   private Long startTime = Long.MAX_VALUE;
 
-  public RunningCompaction(TExternalCompactionJob job, String compactorAddress,
-      ResourceGroupId groupName) {
+  public RunningCompaction(TExternalCompactionJob job, ServerId compactor) {
     this.job = Objects.requireNonNull(job, "job cannot be null");
-    this.compactorAddress =
-        Objects.requireNonNull(compactorAddress, "compactor address cannot be null");
-    this.groupName = Objects.requireNonNull(groupName, "groupName cannot be null");
+    this.compactor = Objects.requireNonNull(compactor, "compactor address cannot be null");
   }
 
   public RunningCompaction(TExternalCompaction tEC) {
-    this(tEC.getJob(), tEC.getCompactor(), ResourceGroupId.of(tEC.getGroupName()));
+    this(tEC.getJob(),
+        ServerIdUtil.compactor(ResourceGroupId.of(tEC.getGroupName()),
+            HostAndPort.fromString(tEC.getCompactor()).getHost(),
+            HostAndPort.fromString(tEC.getCompactor()).getPort()));
   }
 
   public Map<Long,TCompactionStatusUpdate> getUpdates() {
@@ -74,12 +77,8 @@ public class RunningCompaction {
     return job;
   }
 
-  public String getCompactorAddress() {
-    return compactorAddress;
-  }
-
-  public ResourceGroupId getGroup() {
-    return groupName;
+  public ServerId getCompactor() {
+    return compactor;
   }
 
   public boolean isStartTimeSet() {

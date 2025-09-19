@@ -95,11 +95,11 @@ public class SimpleLoadBalancer implements TabletBalancer {
     if (last != null) {
       // Maintain locality
       String fakeSessionID = " ";
-      TabletServerId simple = new TabletServerIdImpl(last.getHost(), last.getPort(), fakeSessionID);
+      TabletServerId simple = new TabletServerIdImpl(last.getServer(), fakeSessionID);
       Iterator<TabletServerId> find = locations.tailMap(simple).keySet().iterator();
       if (find.hasNext()) {
         TabletServerId current = find.next();
-        if (current.getHost().equals(last.getHost())) {
+        if (current.getServer().getHost().equals(last.getServer().getHost())) {
           return current;
         }
       }

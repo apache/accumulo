@@ -25,9 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
-
-import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Tag;
 
@@ -79,15 +78,15 @@ public interface MetricsInfo {
    * Convenience method to create tag name / value pairs for the host and port from address
    * host:port pair.
    *
-   * @param hostAndPort the host:port pair
+   * @param host the host
+   * @param port the port
    */
-  static List<Tag> addressTags(final HostAndPort hostAndPort) {
-    Objects.requireNonNull(hostAndPort, "cannot create the tag without providing the hostAndPort");
+  static List<Tag> addressTags(final String host, final int port) {
+    Objects.requireNonNull(host, "cannot create the tag without providing the host");
     List<Tag> tags = new ArrayList<>(2);
-    tags.add(Tag.of(HOST_TAG_KEY, hostAndPort.getHost()));
-    int port = hostAndPort.getPort();
+    tags.add(Tag.of(HOST_TAG_KEY, host));
     if (port != 0) {
-      tags.add(Tag.of(PORT_TAG_KEY, Integer.toString(hostAndPort.getPort())));
+      tags.add(Tag.of(PORT_TAG_KEY, Integer.toString(port)));
     }
     return Collections.unmodifiableList(tags);
   }
@@ -98,12 +97,12 @@ public interface MetricsInfo {
    * Common tags for all services.
    */
   static Collection<Tag> serviceTags(final String instanceName, final String applicationName,
-      final HostAndPort hostAndPort, final ResourceGroupId resourceGroupName) {
+      final ServerId server) {
     List<Tag> tags = new ArrayList<>();
     tags.add(instanceNameTag(instanceName));
     tags.add(processTag(applicationName));
-    tags.addAll(addressTags(hostAndPort));
-    tags.add(resourceGroupTag(resourceGroupName));
+    tags.addAll(addressTags(server.getHost(), server.getPort()));
+    tags.add(resourceGroupTag(server.getResourceGroup()));
     return tags;
   }
 

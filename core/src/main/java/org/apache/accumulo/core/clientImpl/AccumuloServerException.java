@@ -19,29 +19,30 @@
 package org.apache.accumulo.core.clientImpl;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.thrift.TApplicationException;
 
 /**
  * This class is intended to encapsulate errors that occurred on the server side.
  */
 public class AccumuloServerException extends AccumuloException {
-  private static final long serialVersionUID = 1L;
-  private String server;
+  private static final long serialVersionUID = 2L;
+  private ServerId server;
 
   AccumuloServerException(final AccumuloServerException cause) {
     super("Error on server " + cause.getServer(), cause);
   }
 
-  public AccumuloServerException(final String server, final TApplicationException tae) {
+  public AccumuloServerException(final ServerId server, final TApplicationException tae) {
     super("Error on server " + server, tae);
     this.setServer(server);
   }
 
-  private void setServer(final String server) {
+  private void setServer(final ServerId server) {
     this.server = server;
   }
 
-  public String getServer() {
+  public ServerId getServer() {
     return server;
   }
 

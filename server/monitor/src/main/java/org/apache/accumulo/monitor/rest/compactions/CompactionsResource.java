@@ -26,10 +26,9 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.monitor.Monitor;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Generate a new Compaction list JSON object
@@ -56,7 +55,7 @@ public class CompactionsResource {
       return compactions;
     }
 
-    Map<HostAndPort,Monitor.CompactionStats> entry = monitor.getCompactions();
+    Map<ServerId,Monitor.CompactionStats> entry = monitor.getCompactions();
 
     entry.forEach((k, v) -> compactions.addCompaction(new CompactionInfo(k, v)));
 

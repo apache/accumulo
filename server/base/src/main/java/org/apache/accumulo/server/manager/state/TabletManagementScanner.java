@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
@@ -68,7 +69,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
       try {
         final TableId tid = context.getTableId(tableName);
         final ClientTabletCache locator = context.getTabletLocationCache(tid);
-        final Set<String> locations = new HashSet<>();
+        final Set<ServerId> locations = new HashSet<>();
         final List<Range> failures = locator.findTablets(context, ALL_TABLETS_RANGE,
             (ct, r) -> ct.getTserverLocation().ifPresent(locations::add),
             LocationNeed.NOT_REQUIRED);

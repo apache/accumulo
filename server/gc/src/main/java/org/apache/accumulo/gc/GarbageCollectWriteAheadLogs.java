@@ -225,6 +225,7 @@ public class GarbageCollectWriteAheadLogs {
     try {
       for (Entry<UUID,TServerInstance> entry : uidMap.entrySet()) {
         walMarker.removeWalMarker(entry.getValue(), entry.getKey());
+        result++;
       }
     } catch (Exception ex) {
       throw new RuntimeException(ex);

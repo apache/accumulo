@@ -79,6 +79,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -126,6 +127,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.base.Suppliers;
+import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
@@ -225,13 +227,9 @@ public class ClientContext implements AccumuloClient {
               .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).stream()
               .map(entry -> new ScanServerInfo() {
                 @Override
-                public String getAddress() {
-                  return entry.getServer();
-                }
-
-                @Override
-                public ResourceGroupId getGroup() {
-                  return entry.getResourceGroup();
+                public ServerId getServer() {
+                  HostAndPort hp = HostAndPort.fromString(entry.getServer());
+                  return ServerIdUtil.sserver(entry.getResourceGroup(), hp.getHost(), hp.getPort());
                 }
               }).collect(Collectors.toSet());
         }
@@ -455,9 +453,9 @@ public class ClientContext implements AccumuloClient {
   /**
    * @return map of live scan server addresses to lock uuids.
    */
-  public Map<String,Pair<UUID,ResourceGroupId>> getScanServers() {
+  public Map<ServerId,Pair<UUID,ResourceGroupId>> getScanServers() {
     ensureOpen();
-    Map<String,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
+    Map<ServerId,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
         getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     for (ServiceLockPath path : scanServerPaths) {
@@ -466,7 +464,7 @@ public class ClientContext implements AccumuloClient {
         Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), path, stat);
         if (sld.isPresent()) {
           final ServiceLockData data = sld.orElseThrow();
-          final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
+          final ServerId addr = data.getServer(ThriftService.TABLET_SCAN);
           final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
           final ResourceGroupId group = data.getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));

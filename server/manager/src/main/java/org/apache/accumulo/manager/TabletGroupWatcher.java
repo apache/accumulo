@@ -50,6 +50,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -107,7 +108,6 @@ import org.slf4j.event.Level;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
@@ -855,11 +855,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   static TServerInstance findServerIgnoringSession(SortedMap<TServerInstance,?> servers,
-      HostAndPort server) {
+      ServerId server) {
     var tail = servers.tailMap(new TServerInstance(server, 0L)).keySet().iterator();
     if (tail.hasNext()) {
       TServerInstance found = tail.next();
-      if (found.getHostAndPort().equals(server)) {
+      if (found.getServer().equals(server)) {
         return found;
       }
     }
@@ -873,7 +873,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
       TServerInstance returnInstance =
-          findServerIgnoringSession(tLists.destinations, tm.getSuspend().server);
+          findServerIgnoringSession(tLists.destinations, tm.getSuspend().server.getServer());
 
       // Old tablet server is back. Return this tablet to its previous owner.
       if (returnInstance != null) {
@@ -934,7 +934,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tabletMetadata.getExtent());
       } else {
         for (Map.Entry<Key,Value> entry : locations.entrySet()) {
-          TServerInstance alive = manager.tserverSet.find(entry.getValue().toString());
+          TServerInstance alive = TServerInstance.deserialize(entry.getValue().toString());
           Manager.log.debug("Saw duplicate location key:{} value:{} alive:{} ", entry.getKey(),
               entry.getValue(), alive != null);
         }

@@ -39,6 +39,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -71,6 +72,8 @@ import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class SplitRecoveryIT extends ConfigurableMacBase {
 
@@ -208,7 +211,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         highDatafileSizes, highDatafilesToRemove);
 
     SplitRecovery11to12.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
-    TServerInstance instance = new TServerInstance(location, zl.getSessionId());
+    final var hp = HostAndPort.fromString(location);
+    TServerInstance instance =
+        new TServerInstance(ServerIdUtil.tserver(hp.getHost(), hp.getPort()), zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
     TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);

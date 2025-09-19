@@ -27,6 +27,7 @@ import java.util.SortedSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -46,7 +47,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Collections2;
-import com.google.common.net.HostAndPort;
 
 /**
  * This class contains source for logs messages about a tablets internal state, like its location,
@@ -79,8 +79,7 @@ public class TabletLogger {
     locLog.debug("Loading {} on {}", extent, server);
   }
 
-  public static void suspended(KeyExtent extent, HostAndPort server, SteadyTime time,
-      int numWalogs) {
+  public static void suspended(KeyExtent extent, ServerId server, SteadyTime time, int numWalogs) {
     locLog.debug("Suspended {} to {} at {} ms with {} walogs", extent, server, time, numWalogs);
   }
 

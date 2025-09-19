@@ -20,6 +20,7 @@ package org.apache.accumulo.server.manager.state;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -30,9 +31,11 @@ import org.junit.jupiter.api.Test;
 public class AbstractTabletStateStoreTest {
 
   private Ample.TabletMutator tabletMutator;
-  private final TServerInstance server1 = new TServerInstance("127.0.0.1:10000", 0);
+  private final TServerInstance server1 =
+      new TServerInstance(ServerIdUtil.tserver("127.0.0.1", 10000), 0);
   private final Location last1 = Location.last(server1);
-  private final TServerInstance server2 = new TServerInstance("127.0.0.2:10000", 1);
+  private final TServerInstance server2 =
+      new TServerInstance(ServerIdUtil.tserver("127.0.0.2", 10000), 1);
   private final Location last2 = Location.last(server2);
 
   @BeforeEach

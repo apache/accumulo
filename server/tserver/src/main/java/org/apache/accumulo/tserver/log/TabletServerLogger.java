@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
@@ -281,7 +282,7 @@ public class TabletServerLogger {
 
         try {
           alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
-              tserver.getAdvertiseAddress().toString());
+              ServerIdUtil.toWalFileName(tserver.getAdvertiseAddress()));
         } catch (Exception t) {
           log.error("Failed to open WAL", t);
           // the log is not advertised in ZK yet, so we can just delete it if it exists

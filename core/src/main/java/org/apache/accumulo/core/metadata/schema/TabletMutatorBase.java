@@ -171,15 +171,16 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   @Override
   public T putLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.put(getLocationFamily(location.getType()), location.getSession(),
-        location.getHostPort());
+    mutation.put(getLocationFamily(location.getType()), location.getServerInstance().getSession(),
+        location.getServerInstance().serialize());
     return getThis();
   }
 
   @Override
   public T deleteLocation(Location location) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    mutation.putDelete(getLocationFamily(location.getType()), location.getSession());
+    mutation.putDelete(getLocationFamily(location.getType()),
+        location.getServerInstance().getSession());
     return getThis();
   }
 
@@ -240,7 +241,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     mutation.put(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily(),
         SuspendLocationColumn.SUSPEND_COLUMN.getColumnQualifier(),
-        SuspendingTServer.toValue(tServer, suspensionTime));
+        new SuspendingTServer(tServer, suspensionTime).toValue());
     return getThis();
   }
 
@@ -387,7 +388,7 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T putMigration(TServerInstance tserver) {
-    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, new Value(tserver.getHostPortSession()));
+    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, new Value(tserver.serialize()));
     return getThis();
   }
 

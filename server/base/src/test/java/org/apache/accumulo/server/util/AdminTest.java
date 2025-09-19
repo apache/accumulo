@@ -45,7 +45,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.clientImpl.ServerIdUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -55,6 +55,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -67,6 +68,8 @@ import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.net.HostAndPort;
+
 public class AdminTest {
 
   @Test
@@ -77,9 +80,10 @@ public class AdminTest {
     String type = Constants.ZTSERVERS;
     String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
+    var hp = HostAndPort.fromString(server);
     final long session = 123456789L;
-    ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), server, ThriftService.TABLET_SCAN,
-        ResourceGroupId.DEFAULT);
+    ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(),
+        ServerIdUtil.tserver(hp.getHost(), hp.getPort()), ThriftService.TABLET_SCAN);
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
@@ -99,7 +103,7 @@ public class AdminTest {
     expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc)).anyTimes();
     replay(ctx, zc);
 
-    assertEquals(server + "[" + Long.toHexString(session) + "]",
+    assertEquals(new TServerInstance(ServerIdUtil.tserver("localhost", 12345), session),
         Admin.qualifyWithZooKeeperSessionId(ctx, zc, server));
 
     verify(ctx, zc);
@@ -121,7 +125,8 @@ public class AdminTest {
     replay(ctx, zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original
-    assertEquals(server, Admin.qualifyWithZooKeeperSessionId(ctx, zc, server));
+    assertEquals(new TServerInstance(ServerIdUtil.tserver("localhost", 12345), "0"),
+        Admin.qualifyWithZooKeeperSessionId(ctx, zc, server));
 
     verify(ctx, zc);
   }

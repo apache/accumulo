@@ -71,7 +71,7 @@ class ScanfileManager {
     synchronized (tablet) {
       snapshot = new HashSet<>(filesToDeleteAfterScan);
       filesToDeleteAfterScan.clear();
-      currLoc = Location.current(tablet.getTabletServer().getTabletSession());
+      currLoc = Location.current(tablet.getTabletServer().getTServerInstance());
     }
     removeFilesAfterScan(snapshot, currLoc);
   }

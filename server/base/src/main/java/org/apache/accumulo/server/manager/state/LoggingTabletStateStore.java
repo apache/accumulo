@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
@@ -32,8 +33,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Wraps a tablet state store and logs important events.
@@ -106,9 +105,9 @@ class LoggingTabletStateStore implements TabletStateStore {
 
     for (TabletMetadata tm : tablets) {
       var location = tm.getLocation();
-      HostAndPort server = null;
+      ServerId server = null;
       if (location != null) {
-        server = location.getHostAndPort();
+        server = location.getServerInstance().getServer();
       }
       TabletLogger.suspended(tm.getExtent(), server, suspensionTimestamp,
           logsForDeadServers.size());

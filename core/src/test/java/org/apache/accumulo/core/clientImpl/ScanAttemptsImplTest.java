@@ -40,7 +40,7 @@ public class ScanAttemptsImplTest {
     map.forEach((tabletId, scanAttempts) -> {
       Set<String> stringAttempts = new HashSet<>();
       scanAttempts.forEach(scanAttempt -> stringAttempts
-          .add(scanAttempt.getServer() + "_" + scanAttempt.getResult()));
+          .add(scanAttempt.getServer().toHostPortString() + "_" + scanAttempt.getResult()));
       ret.put(tabletId, stringAttempts);
     });
 
@@ -57,7 +57,7 @@ public class ScanAttemptsImplTest {
 
     var tablet1 = nti("1", "a");
 
-    var reporter1 = sai.createReporter("ss1:1", tablet1);
+    var reporter1 = sai.createReporter(ServerIdUtil.sserver("ss1", 1101), tablet1);
 
     reporter1.report(ScanServerAttempt.Result.BUSY);
 
@@ -65,21 +65,21 @@ public class ScanAttemptsImplTest {
 
     var snap2 = sai.snapshot();
 
-    assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
+    assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY")), simplify(snap2));
 
     reporter1.report(ScanServerAttempt.Result.ERROR);
 
     assertEquals(Map.of(), snap1);
-    assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
+    assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY")), simplify(snap2));
 
     var snap3 = sai.snapshot();
 
-    assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY", "ss1:1_ERROR")), simplify(snap3));
+    assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY", "ss1:1101_ERROR")), simplify(snap3));
 
     var tablet2 = nti("1", "m");
-    var reporter2 = sai.createReporter("ss1:1", tablet2);
+    var reporter2 = sai.createReporter(ServerIdUtil.sserver("ss1", 1101), tablet2);
     var tablet3 = nti("2", "r");
-    var reporter3 = sai.createReporter("ss2:2", tablet3);
+    var reporter3 = sai.createReporter(ServerIdUtil.sserver("ss2", 1102), tablet3);
 
     reporter2.report(ScanServerAttempt.Result.BUSY);
     reporter3.report(ScanServerAttempt.Result.ERROR);
@@ -87,10 +87,10 @@ public class ScanAttemptsImplTest {
     var snap4 = sai.snapshot();
 
     assertEquals(Map.of(), snap1);
-    assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY")), simplify(snap2));
-    assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY", "ss1:1_ERROR")), simplify(snap3));
-    assertEquals(Map.of(tablet1, Set.of("ss1:1_BUSY", "ss1:1_ERROR"), tablet2, Set.of("ss1:1_BUSY"),
-        tablet3, Set.of("ss2:2_ERROR")), simplify(snap4));
+    assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY")), simplify(snap2));
+    assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY", "ss1:1101_ERROR")), simplify(snap3));
+    assertEquals(Map.of(tablet1, Set.of("ss1:1101_BUSY", "ss1:1101_ERROR"), tablet2,
+        Set.of("ss1:1101_BUSY"), tablet3, Set.of("ss2:1102_ERROR")), simplify(snap4));
 
   }
 }

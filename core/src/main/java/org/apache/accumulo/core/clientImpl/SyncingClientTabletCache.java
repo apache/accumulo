@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -76,7 +77,7 @@ public class SyncingClientTabletCache extends ClientTabletCache {
 
   @Override
   public <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
-      Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
+      Map<ServerId,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
     syncLocator().binMutations(context, mutations, binnedMutations, failures);
@@ -92,7 +93,7 @@ public class SyncingClientTabletCache extends ClientTabletCache {
 
   @Override
   public List<Range> binRanges(ClientContext context, List<Range> ranges,
-      Map<String,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
+      Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges) throws AccumuloException,
       AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     return syncLocator().binRanges(context, ranges, binnedRanges);
   }

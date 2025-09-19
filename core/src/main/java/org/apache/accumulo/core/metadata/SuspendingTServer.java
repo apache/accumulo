@@ -18,39 +18,47 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
+import java.io.Serializable;
+import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.TServerInstance.TServerInstanceInfo;
 import org.apache.accumulo.core.util.time.SteadyTime;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * For a suspended tablet, the time of suspension and the server it was suspended from.
  */
-public class SuspendingTServer {
-  public final HostAndPort server;
+public class SuspendingTServer implements Serializable {
+
+  public static record SuspendingTServerInfo(TServerInstanceInfo tsi, long millis) {
+    public SuspendingTServer getSTS() {
+      return new SuspendingTServer(tsi.getTSI(), SteadyTime.from(Duration.ofMillis(millis)));
+    }
+  }
+
+  private static final long serialVersionUID = 1L;
+
+  public final TServerInstance server;
   public final SteadyTime suspensionTime;
 
-  public SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
+  public SuspendingTServer(TServerInstance server, SteadyTime suspensionTime) {
     this.server = Objects.requireNonNull(server);
     this.suspensionTime = Objects.requireNonNull(suspensionTime);
   }
 
   public static SuspendingTServer fromValue(Value value) {
-    String valStr = value.toString();
-    String[] parts = valStr.split("[|]", 2);
-    return new SuspendingTServer(HostAndPort.fromString(parts[0]),
-        SteadyTime.from(Long.parseLong(parts[1]), TimeUnit.MILLISECONDS));
+    return GSON.get().fromJson(value.toString(), SuspendingTServerInfo.class).getSTS();
   }
 
-  public static Value toValue(TServerInstance tServer, SteadyTime suspensionTime) {
-    return new Value(tServer.getHostPort() + "|" + suspensionTime.getMillis());
+  private SuspendingTServerInfo toSuspendingTServerInfo() {
+    return new SuspendingTServerInfo(server.getTServerInstanceInfo(), suspensionTime.getMillis());
   }
 
   public Value toValue() {
-    return new Value(server + "|" + suspensionTime.getMillis());
+    return new Value(GSON.get().toJson(toSuspendingTServerInfo()));
   }
 
   @Override

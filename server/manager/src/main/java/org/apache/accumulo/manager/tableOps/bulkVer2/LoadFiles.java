@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -77,7 +79,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.net.HostAndPort;
 
 /**
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
@@ -288,23 +289,24 @@ class LoadFiles extends ManagerRepo {
 
     private Map<KeyExtent,Long> allocateTimestamps(List<TabletMetadata> tablets, int numStamps) {
 
-      Map<HostAndPort,List<TKeyExtent>> serversToAsk = new HashMap<>();
+      Map<TServerInstance,List<TKeyExtent>> serversToAsk = new HashMap<>();
 
       Map<KeyExtent,Long> allTimestamps = new HashMap<>();
 
       for (var tablet : tablets) {
         if (tablet.getLocation() != null && tablet.getLocation().getType() == CURRENT) {
-          var location = tablet.getLocation().getHostAndPort();
+          var location = tablet.getLocation().getServerInstance();
           serversToAsk.computeIfAbsent(location, l -> new ArrayList<>())
               .add(tablet.getExtent().toThrift());
         }
       }
 
       for (var entry : serversToAsk.entrySet()) {
-        HostAndPort server = entry.getKey();
+        TServerInstance server = entry.getKey();
         List<TKeyExtent> extents = entry.getValue();
 
-        Map<KeyExtent,Long> serversTimestamps = allocateTimestamps(server, extents, numStamps);
+        Map<KeyExtent,Long> serversTimestamps =
+            allocateTimestamps(server.getServer(), extents, numStamps);
         allTimestamps.putAll(serversTimestamps);
 
       }
@@ -312,7 +314,7 @@ class LoadFiles extends ManagerRepo {
       return allTimestamps;
     }
 
-    private Map<KeyExtent,Long> allocateTimestamps(HostAndPort server, List<TKeyExtent> extents,
+    private Map<KeyExtent,Long> allocateTimestamps(ServerId server, List<TKeyExtent> extents,
         int numStamps) {
       TabletServerClientService.Client client = null;
       var context = manager.getContext();
