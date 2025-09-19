@@ -83,7 +83,7 @@ public class RatioBasedCompactionPlannerTest {
 
   @BeforeEach
   public void createDefaultServiceEnv() {
-    defaultEnv = createServiceEnvironment(Map.of(), Map.of());
+    defaultEnv = createMockServiceEnvironment(Map.of(), Map.of());
   }
 
   @AfterEach
@@ -248,7 +248,7 @@ public class RatioBasedCompactionPlannerTest {
 
     var systemConf = Map.of(prefix + "cs1.planner.opts.maxOpen", "10");
     var tableConf = Map.<String,String>of();
-    var senv = createServiceEnvironment(systemConf, tableConf);
+    var senv = createMockServiceEnvironment(systemConf, tableConf);
 
     var planner = createPlanner(senv, groups);
 
@@ -330,6 +330,8 @@ public class RatioBasedCompactionPlannerTest {
     // The 5 files of size 100_000 should not be found because it would be most optimal to compact
     // those 5 files with the output of the compactions over the files of size 10_000.
     assertEquals(0, plan.getJobs().size());
+
+    verify(senv);
   }
 
   @Test
@@ -339,7 +341,7 @@ public class RatioBasedCompactionPlannerTest {
 
     var systemConf = Map.of(prefix + "cs1.planner.opts.maxOpen", "15");
     var tableConf = Map.<String,String>of();
-    var senv = createServiceEnvironment(systemConf, tableConf);
+    var senv = createMockServiceEnvironment(systemConf, tableConf);
 
     var planner = createPlanner(senv, groups);
     var all = createCFs("F1", "3M", "F2", "3M", "F3", "11M", "F4", "12M", "F5", "13M");
@@ -404,6 +406,7 @@ public class RatioBasedCompactionPlannerTest {
     assertEquals(all, job.getFiles());
     assertEquals(ResourceGroupId.of("medium"), job.getGroup());
 
+    verify(senv);
   }
 
   @Test
@@ -700,7 +703,7 @@ public class RatioBasedCompactionPlannerTest {
         Map.of(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10",
             Property.TABLE_FILE_MAX.getKey(), "7");
     var tableConf = Map.<String,String>of();
-    var senv = createServiceEnvironment(systemConf, tableConf);
+    var senv = createMockServiceEnvironment(systemConf, tableConf);
 
     // The highest ratio is 1.9 so should compact this. Will need a subsequent compaction to bring
     // it below the limit.
@@ -771,6 +774,8 @@ public class RatioBasedCompactionPlannerTest {
       job = getOnlyElement(plan.getJobs());
       assertEquals(createCFs(10, 1.05, 1.05, 1.25, 1.75), job.getFiles());
     }
+
+    verify(senv);
   }
 
   @Test
@@ -781,7 +786,7 @@ public class RatioBasedCompactionPlannerTest {
     var systemConf =
         Map.of(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10");
     var tableConf = Map.of(Property.TABLE_FILE_MAX.getKey(), "7");
-    var senv = createServiceEnvironment(systemConf, tableConf);
+    var senv = createMockServiceEnvironment(systemConf, tableConf);
 
     // ensure that when a compaction would be over the max size limit that it is not planned
     var planner = createPlanner(senv, groups);
@@ -813,13 +818,15 @@ public class RatioBasedCompactionPlannerTest {
     var systemConf2 = new HashMap<>(systemConf);
     systemConf2.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.lowestRatio",
         "1.04");
-    var senv2 = createServiceEnvironment(systemConf2, tableConf);
+    var senv2 = createMockServiceEnvironment(systemConf2, tableConf);
 
     var planner2 = createPlanner(senv2, groups);
     params = createPlanningParams(senv2, all, all, Set.of(), 3, CompactionKind.SYSTEM);
     plan = planner2.makePlan(params);
     var job2 = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05), job2.getFiles());
+
+    verify(senv, senv2);
   }
 
   // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
@@ -832,7 +839,7 @@ public class RatioBasedCompactionPlannerTest {
         Map.of(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen", "10",
             Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "5");
     var tableConf = Map.of(Property.TABLE_FILE_MAX.getKey(), "0");
-    var senv = createServiceEnvironment(systemConf, tableConf);
+    var senv = createMockServiceEnvironment(systemConf, tableConf);
 
     var planner = createPlanner(senv, groups);
     var all = createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.3, 1.2, 1.1);
@@ -840,6 +847,8 @@ public class RatioBasedCompactionPlannerTest {
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs(1000, 1.9), job.getFiles());
+
+    verify(senv);
   }
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
@@ -1015,8 +1024,8 @@ public class RatioBasedCompactionPlannerTest {
     return new CompactionPlannerInitParams(csid, prefix, options, senv);
   }
 
-  private static ServiceEnvironment createServiceEnvironment(Map<String,String> systemConfOverrides,
-      Map<String,String> tableConfOverrides) {
+  private static ServiceEnvironment createMockServiceEnvironment(
+      Map<String,String> systemConfOverrides, Map<String,String> tableConfOverrides) {
 
     // simulate system config with some user overrides
     ConfigurationCopy systemConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
