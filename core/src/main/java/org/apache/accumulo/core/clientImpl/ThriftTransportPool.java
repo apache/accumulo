@@ -39,21 +39,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.commons.collections4.set.CompositeSet;
 import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -153,29 +148,11 @@ public class ThriftTransportPool {
     return createNewTransport(cacheKey);
   }
 
-  @SuppressWarnings("unchecked")
-  public Pair<String,TTransport> getAnyCachedTransport(ThriftClientTypes<?> type, ClientContext ctx,
-      ThriftService service, ResourceGroupPredicate rgp) {
+  public Pair<String,TTransport> getAnyCachedTransport(ThriftClientTypes<?> type,
+      ResourceGroupPredicate rgp) {
 
     final Timer timer = Timer.startNew();
     final List<ThriftTransportKey> serversSet = new ArrayList<>();
-
-    Function<AddressSelector,Set<ServiceLockPath>> paths = switch (service) {
-      case CLIENT -> (selector) -> new CompositeSet<ServiceLockPath>(
-          ctx.getServerPaths().getCompactor(rgp, selector, true),
-          ctx.getServerPaths().getScanServer(rgp, selector, true),
-          ctx.getServerPaths().getTabletServer(rgp, selector, true));
-      case COMPACTOR -> (selector) -> ctx.getServerPaths().getCompactor(rgp, selector, true);
-      case MANAGER, COORDINATOR, FATE ->
-        (selector) -> Set.of(ctx.getServerPaths().getManager(true));
-      case GC -> (selector) -> Set.of(ctx.getServerPaths().getGarbageCollector(true));
-      case TABLET_SCAN -> (selector) -> new CompositeSet<ServiceLockPath>(
-          ctx.getServerPaths().getTabletServer(rgp, selector, true),
-          ctx.getServerPaths().getScanServer(rgp, selector, true));
-      case TABLET_INGEST, TABLET_MANAGEMENT, TSERV ->
-        (selector) -> ctx.getServerPaths().getTabletServer(rgp, selector, true);
-      default -> throw new IllegalArgumentException("Unhandled thrift service type: " + service);
-    };
 
     for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
       if (ttk.getType().equals(type) && rgp.test(ttk.getResourceGroup())) {
