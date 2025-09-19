@@ -125,7 +125,8 @@ public enum NamespacePermission {
       case DROP_NAMESPACE:
         return NamespacePermission.DROP_NAMESPACE;
       case GRANT:
-        return NamespacePermission.ALTER_NAMESPACE;
+        throw new IllegalArgumentException(
+            "SystemPermission.GRANT has no equivalent NamespacePermission. GRANT operations require special handling in SecurityOperation.");
       case CREATE_NAMESPACE:
       case CREATE_USER:
       case DROP_USER:

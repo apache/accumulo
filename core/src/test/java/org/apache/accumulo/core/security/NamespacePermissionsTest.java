@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
@@ -33,7 +34,12 @@ public class NamespacePermissionsTest {
       set.remove(NamespacePermission.getEquivalent(permission));
     }
     for (SystemPermission permission : SystemPermission.values()) {
-      set.remove(NamespacePermission.getEquivalent(permission));
+      if (permission == SystemPermission.GRANT) {
+        assertThrows(IllegalArgumentException.class,
+            () -> NamespacePermission.getEquivalent(permission), "GRANT has no equivalent");
+      } else {
+        set.remove(NamespacePermission.getEquivalent(permission));
+      }
     }
 
     assertTrue(set.isEmpty(),
