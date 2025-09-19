@@ -300,7 +300,7 @@ function parse_config() {
 
   RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
   debug "Printing resource groups to $RG_FILE"
-  "$accumulo_cmd" "zoo-info-viewer" "--print-resource-groups" >"$RG_FILE" || exit 1
+  "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || exit 1
   read -r -a all_resource_groups <<<"$(grep "Resource Groups: " "$RG_FILE" | sed "s/Resource Groups: //")"
   debug "All resource groups: ${all_resource_groups[*]}"
   rm -f "$RG_FILE"
