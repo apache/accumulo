@@ -310,4 +310,66 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       test_user_client.resourceGroupOperations().create(rgid);
     }
   }
+
+  @Test
+  public void testMultipleConfigurations() throws Exception {
+
+    final String FIRST = "FIRST";
+    final String SECOND = "SECOND";
+    final String THIRD = "THIRD";
+
+    final ResourceGroupId first = ResourceGroupId.of(FIRST);
+    final ResourceGroupId second = ResourceGroupId.of(SECOND);
+    final ResourceGroupId third = ResourceGroupId.of(THIRD);
+
+    // @formatter:off
+    Map<String,String> firstProps = Map.of(
+        Property.COMPACTION_WARN_TIME.getKey(), "1m",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+
+    Map<String,String> secondProps = Map.of(
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "5",
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+
+    Map<String,String> thirdProps = Map.of(
+        Property.COMPACTION_WARN_TIME.getKey(), "1m",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "6");
+
+    Map<String, String> defaultProps = Map.of(
+            Property.COMPACTION_WARN_TIME.getKey(), "2m"
+    );
+    // @formatter:off
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      final ResourceGroupOperations rgops = client.resourceGroupOperations();
+
+      rgops.create(first);
+      rgops.create(second);
+      rgops.create(third);
+
+      rgops.modifyProperties(first, (map) -> map.putAll(firstProps));
+      rgops.modifyProperties(second, (map) -> map.putAll(secondProps));
+      rgops.modifyProperties(third, (map) -> map.putAll(thirdProps));
+      rgops.modifyProperties(ResourceGroupId.DEFAULT, (map) -> map.putAll(defaultProps));
+
+      assertEquals(firstProps, rgops.getProperties(first));
+      assertEquals(secondProps, rgops.getProperties(second));
+      assertEquals(thirdProps, rgops.getProperties(third));
+      assertEquals(defaultProps, rgops.getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Set.of(ResourceGroupId.DEFAULT, first, second, third), rgops.list());
+
+      // make some changes to resource groups check if we see them
+      rgops.modifyProperties(first, (map) -> {map.clear(); map.putAll(secondProps);});
+      rgops.modifyProperties(second, (map) -> {map.clear(); map.putAll(firstProps);});
+      rgops.remove(third);
+
+      assertEquals(secondProps, rgops.getProperties(first));
+      assertEquals(firstProps, rgops.getProperties(second));
+      assertEquals(defaultProps, rgops.getProperties(ResourceGroupId.DEFAULT));
+      assertThrows(ResourceGroupNotFoundException.class, ()->rgops.getProperties(third));
+      assertEquals(Set.of(ResourceGroupId.DEFAULT, first, second), rgops.list());
+    }
+  }
 }
