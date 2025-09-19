@@ -62,7 +62,6 @@ import com.google.common.net.HostAndPort;
 public interface TServerClient<C extends TServiceClient> {
 
   static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
-  static final String DEBUG_RG = "org.apache.accumulo.client.rpc.debug.group";
 
   Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
