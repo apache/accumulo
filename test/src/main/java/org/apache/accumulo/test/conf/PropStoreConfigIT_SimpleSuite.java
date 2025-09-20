@@ -731,7 +731,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testTablePropInSystemConfigFails() {
+  public void testTablePropInSystemConfigFails() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
@@ -746,6 +746,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
                 + " cannot be set at the system or resource group level."
                 + " Set table properties at the namespace or table level."));
       }
+
+      assertEquals(Map.of(), client.instanceOperations().getSystemProperties());
     }
   }
 
