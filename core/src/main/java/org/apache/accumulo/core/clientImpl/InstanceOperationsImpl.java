@@ -106,8 +106,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           + " setting its replacement {} instead", property, replacement);
     });
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value));
     checkLocalityGroups(property);
   }
 
@@ -116,8 +115,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     checkArgument(mapMutator != null, "mapMutator is null");
 
     final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupPredicate.ANY);
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -141,8 +139,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties));
 
     return vProperties.getProperties();
   }
@@ -188,8 +185,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           + " its replacement {} and will remove that instead", property, replacement);
     });
     ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property));
     checkLocalityGroups(property);
   }
 
@@ -212,24 +208,21 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Map<String,String> getSystemConfiguration()
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SYSTEM),
-        ResourceGroupPredicate.ANY);
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SYSTEM));
   }
 
   @Override
   public Map<String,String> getSiteConfiguration()
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SITE),
-        ResourceGroupPredicate.ANY);
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SITE));
   }
 
   @Override
   public Map<String,String> getSystemProperties()
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupPredicate.ANY);
+        client -> client.getSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()));
   }
 
   @Override
@@ -331,8 +324,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public boolean testClassLoad(final String className, final String asTypeName)
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
-        .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName),
-        ResourceGroupPredicate.ANY);
+        .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName));
   }
 
   @Override
@@ -466,8 +458,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void waitForBalance() throws AccumuloException {
     try {
       ThriftClientTypes.MANAGER.executeVoid(context,
-          client -> client.waitForBalance(TraceUtil.traceInfo()),
-          ResourceGroupPredicate.DEFAULT_RG_ONLY);
+          client -> client.waitForBalance(TraceUtil.traceInfo()));
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new IllegalStateException("Unexpected exception thrown", ex);
@@ -483,8 +474,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public Duration getManagerTime() throws AccumuloException, AccumuloSecurityException {
     return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
-        client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY));
+        client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
   }
 
   @Override

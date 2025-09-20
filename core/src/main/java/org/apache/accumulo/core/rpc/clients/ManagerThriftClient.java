@@ -32,7 +32,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.transport.TTransportException;
@@ -91,7 +90,7 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
   }
 
   @Override
-  public <R> R execute(ClientContext context, Exec<R,Client> exec, ResourceGroupPredicate rgp)
+  public <R> R execute(ClientContext context, Exec<R,Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
       return executeTableCommand(context, exec);
@@ -139,7 +138,7 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
   }
 
   @Override
-  public void executeVoid(ClientContext context, ExecVoid<Client> exec, ResourceGroupPredicate rgp)
+  public void executeVoid(ClientContext context, ExecVoid<Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
       executeVoidTableCommand(context, exec);

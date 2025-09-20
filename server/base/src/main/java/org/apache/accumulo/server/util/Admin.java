@@ -659,8 +659,7 @@ public class Admin implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
   private static void stopServers(final ServerContext context, List<String> servers,
@@ -777,11 +776,8 @@ public class Admin implements KeywordExecutable {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER
-            .executeVoid(
-                context, client -> client.shutdownTabletServer(TraceUtil.traceInfo(),
-                    context.rpcCreds(), finalServer, force),
-                ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }
   }
@@ -936,8 +932,8 @@ public class Admin implements KeywordExecutable {
     Path rgScript = outputDirectory.toPath().resolve(group + RG_FILE_SUFFIX);
     try (BufferedWriter nsWriter = Files.newBufferedWriter(rgScript)) {
       nsWriter.write(createRGFormat.format(new String[] {group.canonical()}));
-      Map<String,String> props = ImmutableSortedMap
-          .copyOf(accumuloClient.resourceGroupOperations().getConfiguration(group));
+      Map<String,String> props =
+          ImmutableSortedMap.copyOf(accumuloClient.resourceGroupOperations().getProperties(group));
       for (Entry<String,String> entry : props.entrySet()) {
         String defaultValue = getDefaultConfigValue(entry.getKey());
         if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
