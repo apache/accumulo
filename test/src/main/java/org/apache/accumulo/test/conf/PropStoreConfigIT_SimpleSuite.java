@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
@@ -770,19 +771,14 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
           client.resourceGroupOperations().getProperties(rgid));
 
       for (Entry<String,String> e : defaultProperties.entrySet()) {
-        AccumuloException ae =
-            assertThrows(AccumuloException.class, () -> client.resourceGroupOperations()
-                .setProperty(ResourceGroupId.DEFAULT, e.getKey(), e.getValue()));
-        assertTrue(ae.getMessage()
-            .contains("Table property " + e.getKey()
-                + " cannot be set at the system or resource group level."
-                + " Set table properties at the namespace or table level."));
-        ae = assertThrows(AccumuloException.class,
-            () -> client.resourceGroupOperations().setProperty(rgid, e.getKey(), e.getValue()));
-        assertTrue(ae.getMessage()
-            .contains("Table property " + e.getKey()
-                + " cannot be set at the system or resource group level."
-                + " Set table properties at the namespace or table level."));
+        for (var testRG : List.of(rgid, ResourceGroupId.DEFAULT)) {
+          AccumuloException ae = assertThrows(AccumuloException.class,
+              () -> client.resourceGroupOperations().setProperty(testRG, e.getKey(), e.getValue()));
+          assertTrue(ae.getMessage()
+              .contains("Table property " + e.getKey()
+                  + " cannot be set at the system or resource group level."
+                  + " Set table properties at the namespace or table level."));
+        }
       }
 
       assertEquals(Map.of(),
