@@ -32,10 +32,10 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl.SplitMergeability;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.accumulo.core.util.time.SteadyTime;
@@ -80,19 +80,19 @@ public class TabletMergeabilityUtil {
     return gson.toJson(jData);
   }
 
-  public static ByteBuffer encodeAsBuffer(TableOperationsImpl.SplitMergeability sm) {
+  public static ByteBuffer encodeAsBuffer(SplitMergeability sm) {
     return ByteBuffer.wrap(encode(sm.split(), sm.mergeability()).getBytes(UTF_8));
   }
 
-  public static Pair<Text,TabletMergeability> decode(ByteBuffer data) {
+  public static SplitMergeability decode(ByteBuffer data) {
     return decode(ByteBufferUtil.toString(data));
   }
 
-  public static Pair<Text,TabletMergeability> decode(String data) {
+  public static SplitMergeability decode(String data) {
     GSonData jData = gson.fromJson(data, GSonData.class);
     Preconditions.checkArgument(jData.never == (jData.delay == null),
         "delay should both be set if and only if mergeability 'never' is false");
-    return new Pair<>(new Text(jData.split), jData.never ? TabletMergeability.never()
+    return new SplitMergeability(new Text(jData.split), jData.never ? TabletMergeability.never()
         : TabletMergeability.after(Duration.ofNanos(jData.delay)));
   }
 
