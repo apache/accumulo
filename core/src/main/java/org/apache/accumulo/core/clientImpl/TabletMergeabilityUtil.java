@@ -80,12 +80,8 @@ public class TabletMergeabilityUtil {
     return gson.toJson(jData);
   }
 
-  public static ByteBuffer encodeAsBuffer(Pair<Text,TabletMergeability> split) {
-    return ByteBuffer.wrap(encode(split).getBytes(UTF_8));
-  }
-
-  public static String encode(Pair<Text,TabletMergeability> split) {
-    return encode(split.getFirst(), split.getSecond());
+  public static ByteBuffer encodeAsBuffer(TableOperationsImpl.SplitMergeability sm) {
+    return ByteBuffer.wrap(encode(sm.split(), sm.mergeability()).getBytes(UTF_8));
   }
 
   public static Pair<Text,TabletMergeability> decode(ByteBuffer data) {
