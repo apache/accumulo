@@ -339,7 +339,7 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
  * stores it on a sessionStorage variable
  */
 function getManager() {
-  return getJSONForTable(contextPath + 'rest/manager', 'manager');
+  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
 }
 
 /**
