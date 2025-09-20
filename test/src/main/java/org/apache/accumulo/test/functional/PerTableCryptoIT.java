@@ -35,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.cluster.standalone.StandaloneAccumuloCluster;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;

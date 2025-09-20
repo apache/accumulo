@@ -26,7 +26,6 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -44,6 +43,7 @@ import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.MiniClusterHarness;
 import org.apache.accumulo.harness.TestingKdc;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.miniclusterImpl.cluster.ClusterUser;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;

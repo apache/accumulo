@@ -74,16 +74,16 @@ ALLOWED=(
   test/src/main/resources/v2_import_test/data/exportMetadata.zip
 
   # TODO: these minicluster classes should be moved into the correct package for the module
-  minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloCluster.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControl.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/ClusterUsers.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/ClusterUser.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/RemoteShell.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/AccumuloCluster.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/ClusterControl.java
-  minicluster/src/main/java/org/apache/accumulo/cluster/RemoteShellOptions.java
-  minicluster/src/test/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloClusterTest.java
-  minicluster/src/test/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControlTest.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloCluster.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControl.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/ClusterUsers.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/ClusterUser.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/RemoteShell.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/AccumuloCluster.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/ClusterControl.java
+#  minicluster/src/main/java/org/apache/accumulo/cluster/RemoteShellOptions.java
+#  minicluster/src/test/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloClusterTest.java
+#  minicluster/src/test/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControlTest.java
 )
 
 ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x"; done; } | paste -sd'|')

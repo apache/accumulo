@@ -50,7 +50,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -96,6 +95,7 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.cluster.ClusterUser;
 import org.apache.accumulo.test.constraints.AlphaNumKeyConstraint;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.SlowIterator;
