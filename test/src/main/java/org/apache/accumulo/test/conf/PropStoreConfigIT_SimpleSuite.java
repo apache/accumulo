@@ -735,6 +735,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+
+      assertFalse(defaultProperties.isEmpty());
+
       for (Entry<String,String> e : defaultProperties.entrySet()) {
         AccumuloException ae = assertThrows(AccumuloException.class,
             () -> client.instanceOperations().setProperty(e.getKey(), e.getValue()));
@@ -747,10 +750,23 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testTablePropInResourceGroupConfigFails() {
+  public void testTablePropInResourceGroupConfigFails() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+
+      assertFalse(defaultProperties.isEmpty());
+
+      var rgid = ResourceGroupId.of("tabpt");
+      client.resourceGroupOperations().create(rgid);
+      client.resourceGroupOperations().setProperty(rgid,
+          Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123");
+
+      assertEquals(Map.of(),
+          client.resourceGroupOperations().getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Map.of(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123"),
+          client.resourceGroupOperations().getProperties(rgid));
+
       for (Entry<String,String> e : defaultProperties.entrySet()) {
         AccumuloException ae =
             assertThrows(AccumuloException.class, () -> client.resourceGroupOperations()
@@ -759,7 +775,18 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
             .contains("Table property " + e.getKey()
                 + " cannot be set at the system or resource group level."
                 + " Set table properties at the namespace or table level."));
+        ae = assertThrows(AccumuloException.class,
+            () -> client.resourceGroupOperations().setProperty(rgid, e.getKey(), e.getValue()));
+        assertTrue(ae.getMessage()
+            .contains("Table property " + e.getKey()
+                + " cannot be set at the system or resource group level."
+                + " Set table properties at the namespace or table level."));
       }
+
+      assertEquals(Map.of(),
+          client.resourceGroupOperations().getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Map.of(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123"),
+          client.resourceGroupOperations().getProperties(rgid));
     }
   }
 
