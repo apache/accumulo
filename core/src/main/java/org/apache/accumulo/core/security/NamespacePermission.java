@@ -112,7 +112,8 @@ public enum NamespacePermission {
       case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
       case ALTER_NAMESPACE -> NamespacePermission.ALTER_NAMESPACE;
       case DROP_NAMESPACE -> NamespacePermission.DROP_NAMESPACE;
-      case GRANT -> NamespacePermission.ALTER_NAMESPACE;
+      case GRANT -> throw new IllegalArgumentException(
+          "SystemPermission.GRANT has no equivalent NamespacePermission. GRANT operations require special handling in SecurityOperation.");
       default -> null;
     };
   }
