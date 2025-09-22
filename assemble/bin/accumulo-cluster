@@ -371,7 +371,7 @@ function parse_config() {
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
       if ! arrayContains "$group" "${all_resource_groups[@]}"; then
-        echo "$(red ERROR): Resource group $(yellow "$group"p) does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
         exit 1
       fi
       G="SSERVER_HOSTS_$group"
