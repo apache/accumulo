@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -115,7 +114,6 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     v1 = new Path("file://" + v1f.toAbsolutePath());
     v2 = new Path("file://" + v2f.toAbsolutePath());
     v3 = new Path("file://" + v3f.toAbsolutePath());
-
 
     siteConfig.put(getPerTableProp(Scope.LOGGER), PreferredVolumeChooser.class.getName());
     siteConfig.put(getPreferredProp(Scope.LOGGER), v2.toString());
@@ -293,22 +291,22 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(client, namespace1, v1+"", v1 + "," + v2 + "," + v3);
-      createAndVerify(client, namespace2, v2+"", v1 + "," + v2 + "," + v3);
+      createAndVerify(client, namespace1, v1 + "", v1 + "," + v2 + "," + v3);
+      createAndVerify(client, namespace2, v2 + "", v1 + "," + v2 + "," + v3);
     }
   }
 
-  private void createAndVerify(AccumuloClient client, String ns, String preferred, String expectedVolumes)
-      throws Exception {
+  private void createAndVerify(AccumuloClient client, String ns, String preferred,
+      String expectedVolumes) throws Exception {
     client.namespaceOperations().create(ns);
 
     // Set properties on the namespace
     client.namespaceOperations().setProperty(ns, PERTABLE_CHOOSER_PROP,
         RandomVolumeChooser.class.getName());
 
-    // The random volume chooser should not use this property, so setting it should not cause a problem
-    client.namespaceOperations().setProperty(ns, PREFERRED_CHOOSER_PROP,
-            preferred);
+    // The random volume chooser should not use this property, so setting it should not cause a
+    // problem
+    client.namespaceOperations().setProperty(ns, PREFERRED_CHOOSER_PROP, preferred);
 
     verifyVolumesForWritesToNewTable(client, ns, expectedVolumes);
   }
@@ -321,7 +319,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(c, namespace1, v3+"", v1 + "," + v2 + "," + v3);
+      createAndVerify(c, namespace1, v3 + "", v1 + "," + v2 + "," + v3);
       configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
       // Create table2 on namespace2
       verifyVolumesForWritesToNewTable(c, namespace2, v1.toString());
