@@ -594,6 +594,7 @@ public class Upgrader11to12Test {
     namespaces.add(Namespace.ACCUMULO.name());
     namespaces.add(Namespace.DEFAULT.name());
     namespaces.add("test");
+    var testNsId = NamespaceId.of("5");
 
     final Map<String,String> sysProps = new HashMap<>();
     sysProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -633,11 +634,16 @@ public class Upgrader11to12Test {
     expect(sysVerProps.asMap()).andReturn(sysProps).once();
 
     expect(context.namespaceOperations()).andReturn(nsops).once();
+    expect(context.getNamespaceId(Namespace.DEFAULT.name())).andReturn(Namespace.DEFAULT.id())
+        .once();
+    expect(context.getNamespaceId(Namespace.ACCUMULO.name())).andReturn(Namespace.ACCUMULO.id())
+        .once();
+    expect(context.getNamespaceId("test")).andReturn(testNsId).once();
     expect(nsops.list()).andReturn(namespaces).once();
 
-    final NamespacePropKey apk = NamespacePropKey.of(NamespaceId.of(Namespace.ACCUMULO.name()));
-    final NamespacePropKey dpk = NamespacePropKey.of(NamespaceId.of(Namespace.DEFAULT.name()));
-    final NamespacePropKey tpk = NamespacePropKey.of(NamespaceId.of("test"));
+    final NamespacePropKey apk = NamespacePropKey.of(Namespace.ACCUMULO.id());
+    final NamespacePropKey dpk = NamespacePropKey.of(Namespace.DEFAULT.id());
+    final NamespacePropKey tpk = NamespacePropKey.of(testNsId);
 
     expect(propStore.get(apk)).andReturn(systemNsProps).once();
     expect(systemNsProps.asMap()).andReturn(accProps).once();
