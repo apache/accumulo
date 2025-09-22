@@ -44,7 +44,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class DefaultOnDemandTabletUnloaderTest {
+public class LastAccessTimeOnDemandTabletUnloaderTest {
 
   @Test
   public void evaluationTest() {
