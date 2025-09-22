@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -52,10 +53,13 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -93,7 +97,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testConfiguration() throws Exception {
+  public void testProperties() throws Exception {
 
     final ResourceGroupId rgid = ResourceGroupId.of(RG);
     final ResourceGroupPropKey rgpk = ResourceGroupPropKey.of(rgid);
@@ -175,7 +179,6 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       // test error cases
       ResourceGroupId invalid = ResourceGroupId.of("INVALID");
       Consumer<Map<String,String>> consumer = (m) -> {};
-      assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.getConfiguration(invalid));
       assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.getProperties(invalid));
       assertThrows(ResourceGroupNotFoundException.class,
           () -> rgOps.setProperty(invalid, Property.COMPACTION_WARN_TIME.getKey(), "1m"));
@@ -311,6 +314,73 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getClientProps()).as(principal, token).build()) {
       test_user_client.resourceGroupOperations().remove(rgid);
       test_user_client.resourceGroupOperations().create(rgid);
+      test_user_client.resourceGroupOperations().remove(rgid);
+    }
+  }
+
+  @Test
+  public void testMultipleProperties() throws Exception {
+
+    final String FIRST = "FIRST";
+    final String SECOND = "SECOND";
+    final String THIRD = "THIRD";
+
+    final ResourceGroupId first = ResourceGroupId.of(FIRST);
+    final ResourceGroupId second = ResourceGroupId.of(SECOND);
+    final ResourceGroupId third = ResourceGroupId.of(THIRD);
+
+    // @formatter:off
+    Map<String,String> firstProps = Map.of(
+        Property.COMPACTION_WARN_TIME.getKey(), "1m",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+
+    Map<String,String> secondProps = Map.of(
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "5",
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+
+    Map<String,String> thirdProps = Map.of(
+        Property.COMPACTION_WARN_TIME.getKey(), "1m",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "6");
+
+    Map<String, String> defaultProps = Map.of(
+            Property.COMPACTION_WARN_TIME.getKey(), "2m"
+    );
+    // @formatter:off
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      final ResourceGroupOperations rgops = client.resourceGroupOperations();
+
+      rgops.create(first);
+      rgops.create(second);
+      rgops.create(third);
+
+      rgops.modifyProperties(first, (map) -> map.putAll(firstProps));
+      rgops.modifyProperties(second, (map) -> map.putAll(secondProps));
+      rgops.modifyProperties(third, (map) -> map.putAll(thirdProps));
+      rgops.modifyProperties(ResourceGroupId.DEFAULT, (map) -> map.putAll(defaultProps));
+
+      assertEquals(firstProps, rgops.getProperties(first));
+      assertEquals(secondProps, rgops.getProperties(second));
+      assertEquals(thirdProps, rgops.getProperties(third));
+      assertEquals(defaultProps, rgops.getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Set.of(ResourceGroupId.DEFAULT, first, second, third), rgops.list());
+
+      // make some changes to resource groups check if we see them
+      rgops.modifyProperties(first, (map) -> {
+        map.clear(); map.putAll(secondProps);
+      });
+      rgops.modifyProperties(second, (map) -> {
+        map.clear(); map.putAll(firstProps);
+      });
+      rgops.remove(third);
+
+      assertEquals(secondProps, rgops.getProperties(first));
+      assertEquals(firstProps, rgops.getProperties(second));
+      assertEquals(defaultProps, rgops.getProperties(ResourceGroupId.DEFAULT));
+      assertThrows(ResourceGroupNotFoundException.class, ()->rgops.getProperties(third));
+      assertEquals(Set.of(ResourceGroupId.DEFAULT, first, second), rgops.list());
     }
   }
 
@@ -384,20 +454,25 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
         map.putAll(thirdProps);
       });
 
-      System.setProperty(TServerClient.DEBUG_RG, FIRST);
+      final ServerContext ctx = getCluster().getServerContext();
+
+      System.setProperty(TServerClient.DEBUG_HOST, getCompactorAddress(ctx, first));
       Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
       assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-      compareConfigurations(sysConfig, firstProps, rgops.getConfiguration(first));
+      compareConfigurations(sysConfig, firstProps, getCompactorConfiguration(ctx));
+      System.clearProperty(TServerClient.DEBUG_HOST);
 
-      System.setProperty(TServerClient.DEBUG_RG, SECOND);
+      System.setProperty(TServerClient.DEBUG_HOST, getCompactorAddress(ctx, second));
       sysConfig = client.instanceOperations().getSystemConfiguration();
       assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-      compareConfigurations(sysConfig, secondProps, rgops.getConfiguration(second));
+      compareConfigurations(sysConfig, secondProps, getCompactorConfiguration(ctx));
+      System.clearProperty(TServerClient.DEBUG_HOST);
 
-      System.setProperty(TServerClient.DEBUG_RG, THIRD);
+      System.setProperty(TServerClient.DEBUG_HOST, getCompactorAddress(ctx, third));
       sysConfig = client.instanceOperations().getSystemConfiguration();
       assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
-      compareConfigurations(sysConfig, thirdProps, rgops.getConfiguration(third));
+      compareConfigurations(sysConfig, thirdProps, getCompactorConfiguration(ctx));
+      System.clearProperty(TServerClient.DEBUG_HOST);
 
       getCluster().getClusterControl().stopCompactorGroup(FIRST);
       getCluster().getClusterControl().stopCompactorGroup(SECOND);
@@ -415,6 +490,21 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
           .getTabletServer(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
           == 0);
     }
+  }
+
+  private String getCompactorAddress(ServerContext ctx, ResourceGroupId rgid) {
+    Set<ServiceLockPath> compactors = ctx.getServerPaths().getCompactor(
+        ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true);
+    assertEquals(1, compactors.size());
+    return compactors.iterator().next().getServer();
+  }
+
+  private Map<String,String> getCompactorConfiguration(ServerContext ctx) throws Exception {
+    Map<String,String> config = ThriftClientTypes.CLIENT.execute(
+        ctx, client -> client.getConfiguration(TraceUtil.traceInfo(),
+            ctx.rpcCreds(), ConfigurationType.PROCESS));
+    return Map.copyOf(config);
+
   }
 
   private void compareConfigurations(Map<String,String> sysConfig, Map<String,String> rgConfig, Map<String,String> actual) {
