@@ -30,11 +30,12 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.WithTestNames;
@@ -116,11 +117,11 @@ public class ClusterConfigParserTest extends WithTestNames {
             ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
         final Path outputFile = Files.createFile(tempDir.resolve(testName()));
-
+        var groups = new HashSet<ResourceGroupId>();
+        groups.add(ResourceGroupId.DEFAULT);
+        Stream.of("q1", "q2", "cheap", "highmem").map(ResourceGroupId::of).forEach(groups::add);
         try (var out = Files.newOutputStream(outputFile); var ps = new PrintStream(out)) {
-          ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical(), "q1", "q2", "cheap", "highmem"), false,
-              ps);
+          ClusterConfigParser.outputShellVariables(null, contents, groups, false, ps);
         }
 
         return outputFile;
@@ -183,9 +184,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
-      var exception = assertThrows(IllegalArgumentException.class,
-          () -> ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
+      var exception = assertThrows(IllegalArgumentException.class, () -> ClusterConfigParser
+          .outputShellVariables(null, contents, Set.of(ResourceGroupId.DEFAULT), false, ps));
       assertTrue(exception.getMessage().contains("vserver"));
     }
   }
@@ -200,9 +200,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
-      var exception =
-          assertThrows(RuntimeException.class, () -> ClusterConfigParser.outputShellVariables(null,
-              contents, Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
+      var exception = assertThrows(RuntimeException.class, () -> ClusterConfigParser
+          .outputShellVariables(null, contents, Set.of(ResourceGroupId.DEFAULT), false, ps));
       assertTrue(exception.getMessage().contains("bad-group-name"));
     }
   }
@@ -217,9 +216,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
-      var exception = assertThrows(IllegalArgumentException.class,
-          () -> ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
+      var exception = assertThrows(IllegalArgumentException.class, () -> ClusterConfigParser
+          .outputShellVariables(null, contents, Set.of(ResourceGroupId.DEFAULT), false, ps));
       assertTrue(exception.getMessage().contains("servers_per_hosts"));
     }
   }
@@ -234,9 +232,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
-      var exception = assertThrows(IllegalArgumentException.class,
-          () -> ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
+      var exception = assertThrows(IllegalArgumentException.class, () -> ClusterConfigParser
+          .outputShellVariables(null, contents, Set.of(ResourceGroupId.DEFAULT), false, ps));
       assertTrue(exception.getMessage().contains("too many levels"));
     }
   }
@@ -251,9 +248,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
-      var exception = assertThrows(IllegalArgumentException.class,
-          () -> ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
+      var exception = assertThrows(IllegalArgumentException.class, () -> ClusterConfigParser
+          .outputShellVariables(null, contents, Set.of(ResourceGroupId.DEFAULT), false, ps));
       assertTrue(exception.getMessage().contains("No compactor groups found"));
     }
   }
@@ -270,7 +266,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
           () -> ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical(), "q1"), false, ps));
+              Set.of(ResourceGroupId.DEFAULT, ResourceGroupId.of("q1")), false, ps));
       assertTrue(exception.getMessage().contains("No tserver groups found"));
     }
   }
@@ -285,28 +281,10 @@ public class ClusterConfigParserTest extends WithTestNames {
         ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
-      var exception = assertThrows(IllegalArgumentException.class,
-          () -> ClusterConfigParser.outputShellVariables(null, contents,
-              Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
+      var exception = assertThrows(IllegalArgumentException.class, () -> ClusterConfigParser
+          .outputShellVariables(null, contents, Set.of(ResourceGroupId.DEFAULT), false, ps));
       assertTrue(exception.getMessage().contains("Check the format"));
     }
-  }
-
-  @Test
-  public void testGroupNamePattern() {
-    ClusterConfigParser.validateGroupNames(List.of("a"));
-    ClusterConfigParser.validateGroupNames(List.of("a", "b"));
-    ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a-b")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a*b")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a?b")));
   }
 
 }
