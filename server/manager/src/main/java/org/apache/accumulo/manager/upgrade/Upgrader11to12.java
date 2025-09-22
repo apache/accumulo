@@ -943,6 +943,9 @@ public class Upgrader11to12 implements Upgrader {
           if (ns.equals(Namespace.ACCUMULO.name())
               && (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
                   || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()))) {
+            LOG.debug(
+                "Not moving property {} to 'accumulo' namespace, iterator and constraint properties are ignored on purpose.",
+                e.getKey());
             continue;
           }
 

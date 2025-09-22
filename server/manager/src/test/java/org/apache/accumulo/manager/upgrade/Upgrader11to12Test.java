@@ -63,6 +63,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -601,6 +602,8 @@ public class Upgrader11to12Test {
     sysProps.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
     sysProps.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "sysContext");
     sysProps.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "test", "iteratorProperty");
+    sysProps.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+        DefaultKeySizeConstraint.class.getName());
 
     // Accumulo ns props
     final Map<String,String> accProps = new HashMap<>();
@@ -619,6 +622,8 @@ public class Upgrader11to12Test {
     final Map<String,String> defChanges = new HashMap<>();
     defChanges.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
     defChanges.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "test", "iteratorProperty");
+    defChanges.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+        DefaultKeySizeConstraint.class.getName());
 
     // Test ns has one different prop
     final Map<String,String> testProps = new HashMap<>();
@@ -628,6 +633,8 @@ public class Upgrader11to12Test {
     testChanges.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
     testChanges.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "sysContext");
     testChanges.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "test", "iteratorProperty");
+    testChanges.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+        DefaultKeySizeConstraint.class.getName());
 
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(propStore.get(SystemPropKey.of())).andReturn(sysVerProps).once();
