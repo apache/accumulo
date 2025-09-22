@@ -75,7 +75,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
+import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -101,7 +101,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10s");
-      cfg.setProperty(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
+      cfg.setProperty(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
     });
     client = Accumulo.newClient().from(getClientProps()).build();
   }
