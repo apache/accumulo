@@ -936,6 +936,19 @@ public class Upgrader11to12 implements Upgrader {
         final Map<String,String> nsPropAdditions = new HashMap<>();
 
         for (Entry<String,String> e : sysTableProps.entrySet()) {
+
+          // Don't move iterators or constraints from the system configuration
+          // to the system namespace. This will affect the root and metadata
+          // tables.
+          if (ns.equals(Namespace.ACCUMULO.name())
+              && (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+                  || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()))) {
+            LOG.debug(
+                "Not moving property {} to 'accumulo' namespace, iterator and constraint properties are ignored on purpose.",
+                e.getKey());
+            continue;
+          }
+
           final String nsVal = nsProps.get(e.getKey());
           // If it's not set, then add the system table property
           // to the namespace. If it is set, then it doesnt matter
