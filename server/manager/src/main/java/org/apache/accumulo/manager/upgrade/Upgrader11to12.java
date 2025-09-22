@@ -934,6 +934,16 @@ public class Upgrader11to12 implements Upgrader {
         final Map<String,String> nsPropAdditions = new HashMap<>();
 
         for (Entry<String,String> e : sysTableProps.entrySet()) {
+
+          // Don't move iterators or constraints from the system configuration
+          // to the system namespace. This will affect the root and metadata
+          // tables.
+          if (ns.equals(Namespace.ACCUMULO.name())
+              && (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+                  || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()))) {
+            continue;
+          }
+
           final String nsVal = nsProps.get(e.getKey());
           // If it's not set, then add the system table property
           // to the namespace. If it is set, then it doesnt matter
@@ -943,7 +953,7 @@ public class Upgrader11to12 implements Upgrader {
           }
         }
         context.getPropStore().putAll(nsk, nsPropAdditions);
-        LOG.debug("Added table properties to namespace {}:", ns);
+        LOG.debug("Added table properties to namespace '{}':", ns);
         nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
         LOG.info("Namespace '{}' completed.", ns);
       }

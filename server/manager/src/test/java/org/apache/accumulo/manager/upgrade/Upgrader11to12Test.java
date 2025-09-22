@@ -599,9 +599,16 @@ public class Upgrader11to12Test {
     sysProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     sysProps.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
     sysProps.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "sysContext");
+    sysProps.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "test", "iteratorProperty");
 
     // Accumulo ns props
     final Map<String,String> accProps = new HashMap<>();
+
+    // iterator property will not get moved
+    final Map<String,String> accChanges = new HashMap<>();
+    accChanges.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+    accChanges.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+    accChanges.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "sysContext");
 
     // Default ns has one same and one different prop
     final Map<String,String> defProps = new HashMap<>();
@@ -610,6 +617,7 @@ public class Upgrader11to12Test {
 
     final Map<String,String> defChanges = new HashMap<>();
     defChanges.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+    defChanges.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "test", "iteratorProperty");
 
     // Test ns has one different prop
     final Map<String,String> testProps = new HashMap<>();
@@ -618,6 +626,7 @@ public class Upgrader11to12Test {
     final Map<String,String> testChanges = new HashMap<>();
     testChanges.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
     testChanges.put(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "sysContext");
+    testChanges.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "test", "iteratorProperty");
 
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(propStore.get(SystemPropKey.of())).andReturn(sysVerProps).once();
@@ -633,7 +642,7 @@ public class Upgrader11to12Test {
     expect(propStore.get(apk)).andReturn(systemNsProps).once();
     expect(systemNsProps.asMap()).andReturn(accProps).once();
 
-    propStore.putAll(apk, sysProps);
+    propStore.putAll(apk, accChanges);
     expectLastCall().once();
 
     expect(propStore.get(dpk)).andReturn(defaultNsProps).once();
