@@ -74,8 +74,7 @@ public enum Property {
   COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.maxOpen", "10",
       PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
   COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.groups", """
-      [{"group": "default"}]
-      """, PropertyType.JSON,
+      [{"group": "default"}]""", PropertyType.JSON,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.",
       "4.0.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
@@ -472,15 +471,14 @@ public enum Property {
       "1.9.3"),
   MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
       """
-          {
+          {\
             'general': {'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,\
           NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,\
           TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,\
-          TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4},
-            'commit': {'COMMIT_COMPACTION': 4},
-            'split': {'SYSTEM_SPLIT': 4}
-          }
-          """,
+          TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4},\
+            'commit': {'COMMIT_COMPACTION': 4},\
+            'split': {'SYSTEM_SPLIT': 4}\
+          }""",
       PropertyType.FATE_USER_CONFIG, """
           The number of threads used to run fault-tolerant executions (FATE) on user \
           tables. These are primarily table operations like merge. The property value is JSON. \
@@ -490,15 +488,14 @@ public enum Property {
           """, "4.0.0"),
   MANAGER_FATE_META_CONFIG("manager.fate.meta.config",
       """
-          {
+          {\
             'general': {'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,\
           NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,\
           TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,\
-          TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4},
-            'commit': {'COMMIT_COMPACTION': 4},
-            'split': {'SYSTEM_SPLIT': 4}
-          }
-          """,
+          TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4},\
+            'commit': {'COMMIT_COMPACTION': 4},\
+            'split': {'SYSTEM_SPLIT': 4}\
+          }""",
       PropertyType.FATE_META_CONFIG, """
           The number of threads used to run fault-tolerant executions (FATE) on Accumulo system \
           tables. These are primarily table operations like merge. The property value is JSON. \
