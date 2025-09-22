@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -87,7 +88,6 @@ public class VolumeChooserIT extends ConfigurableMacBase {
       "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
   private String namespace2;
-  private String systemPreferredVolumes;
 
   @Override
   protected Duration defaultTimeout() {
@@ -105,8 +105,6 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     // specified
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), DelegatingChooser.class.getName());
-    // if a table doesn't have a volume chooser, use the preferred volume chooser
-    siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
     java.nio.file.Path baseDir = cfg.getDir().toPath();
@@ -118,15 +116,11 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     v2 = new Path("file://" + v2f.toAbsolutePath());
     v3 = new Path("file://" + v3f.toAbsolutePath());
 
-    systemPreferredVolumes = v1 + "," + v2;
-    // exclude v3
-    siteConfig.put(PREFERRED_CHOOSER_PROP, systemPreferredVolumes);
-    cfg.setSiteConfig(siteConfig);
 
     siteConfig.put(getPerTableProp(Scope.LOGGER), PreferredVolumeChooser.class.getName());
     siteConfig.put(getPreferredProp(Scope.LOGGER), v2.toString());
     siteConfig.put(getPerTableProp(Scope.INIT), PreferredVolumeChooser.class.getName());
-    siteConfig.put(getPreferredProp(Scope.INIT), systemPreferredVolumes);
+    siteConfig.put(getPreferredProp(Scope.INIT), v1 + "," + v2);
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
@@ -299,18 +293,22 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v3);
-      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v3);
+      createAndVerify(client, namespace1, v1+"", v1 + "," + v2 + "," + v3);
+      createAndVerify(client, namespace2, v2+"", v1 + "," + v2 + "," + v3);
     }
   }
 
-  private void createAndVerify(AccumuloClient client, String ns, String expectedVolumes)
+  private void createAndVerify(AccumuloClient client, String ns, String preferred, String expectedVolumes)
       throws Exception {
     client.namespaceOperations().create(ns);
 
     // Set properties on the namespace
     client.namespaceOperations().setProperty(ns, PERTABLE_CHOOSER_PROP,
         RandomVolumeChooser.class.getName());
+
+    // The random volume chooser should not use this property, so setting it should not cause a problem
+    client.namespaceOperations().setProperty(ns, PREFERRED_CHOOSER_PROP,
+            preferred);
 
     verifyVolumesForWritesToNewTable(client, ns, expectedVolumes);
   }
@@ -323,7 +321,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Create namespace
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(c, namespace1, v1 + "," + v2 + "," + v3);
+      createAndVerify(c, namespace1, v3+"", v1 + "," + v2 + "," + v3);
       configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
       // Create table2 on namespace2
       verifyVolumesForWritesToNewTable(c, namespace2, v1.toString());
