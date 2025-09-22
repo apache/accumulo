@@ -20,8 +20,11 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Map;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -48,7 +51,6 @@ public class OnDemandTabletUnloadingFlakyAmpleIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "3s");
-      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "3");
       cfg.setServerClass(ServerType.TABLET_SERVER, rg -> FlakyAmpleTserver.class);
       cfg.setServerClass(ServerType.MANAGER, rg -> FlakyAmpleManager.class);
     });
@@ -65,7 +67,9 @@ public class OnDemandTabletUnloadingFlakyAmpleIT extends SharedMiniClusterBase {
 
       String tableName = super.getUniqueNames(1)[0];
 
-      c.tableOperations().create(tableName);
+      NewTableConfiguration ntc = new NewTableConfiguration();
+      ntc.setProperties(Map.of("table.custom.ondemand.unloader.inactivity.threshold.seconds", "3"));
+      c.tableOperations().create(tableName, ntc);
 
       var tableId = getCluster().getServerContext().getTableId(tableName);
 

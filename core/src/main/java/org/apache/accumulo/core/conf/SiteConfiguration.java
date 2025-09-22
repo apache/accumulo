@@ -65,6 +65,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
 
+  private static final Predicate<String> DEFAULT_TABLE_PROP_FILTER =
+      p -> !p.startsWith(Property.TABLE_PREFIX.getKey());
+
   public interface Buildable {
     SiteConfiguration build();
   }
@@ -271,7 +274,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
   public void getProperties(Map<String,String> props, Predicate<String> filter,
       boolean useDefaults) {
     if (useDefaults) {
-      parent.getProperties(props, filter);
+      parent.getProperties(props, DEFAULT_TABLE_PROP_FILTER.and(filter));
     }
     config.keySet().forEach(k -> {
       if (filter.test(k)) {
