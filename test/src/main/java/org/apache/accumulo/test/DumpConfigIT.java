@@ -55,7 +55,8 @@ public class DumpConfigIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.getClusterServerConfiguration().addCompactorResourceGroup("test", 1);
-    cfg.setSiteConfig(Collections.singletonMap(Property.TABLE_FILE_BLOCK_SIZE.getKey(), "1234567"));
+    cfg.setSiteConfig(
+        Collections.singletonMap(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD.getKey(), "123s"));
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
@@ -77,8 +78,8 @@ public class DumpConfigIT extends ConfigurableMacBase {
     assertEquals(0, exec(Admin.class, "dumpConfig", "-a", "-d", folder.toString()).waitFor());
     assertTrue(Files.exists(siteFileBackup));
     String site = FunctionalTestUtils.readAll(Files.newInputStream(siteFileBackup));
-    assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
-    assertTrue(site.contains("1234567"));
+    assertTrue(site.contains(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD.getKey()));
+    assertTrue(site.contains("123s"));
     String meta = FunctionalTestUtils
         .readAll(Files.newInputStream(folder.resolve(SystemTables.METADATA.tableName() + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
