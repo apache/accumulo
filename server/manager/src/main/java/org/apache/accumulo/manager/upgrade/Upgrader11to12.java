@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -929,7 +930,8 @@ public class Upgrader11to12 implements Upgrader {
       sysTableProps.forEach((k, v) -> LOG.info("{} -> {}", k, v));
 
       for (String ns : context.namespaceOperations().list()) {
-        final NamespacePropKey nsk = NamespacePropKey.of(NamespaceId.of(ns));
+        final NamespaceId nsid = context.getNamespaceId(ns);
+        final NamespacePropKey nsk = NamespacePropKey.of(nsid);
         final Map<String,String> nsProps = context.getPropStore().get(nsk).asMap();
         final Map<String,String> nsPropAdditions = new HashMap<>();
 
@@ -943,9 +945,9 @@ public class Upgrader11to12 implements Upgrader {
           }
         }
         context.getPropStore().putAll(nsk, nsPropAdditions);
-        LOG.debug("Added table properties to namespace {}:", ns);
+        LOG.debug("Added table properties to namespace '{}' id:{}:", ns, nsid);
         nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
-        LOG.info("Namespace '{}' completed.", ns);
+        LOG.info("Namespace '{}' id:{} completed.", ns, nsid);
       }
 
       LOG.info("Removing table properties from system configuration.");
@@ -954,7 +956,7 @@ public class Upgrader11to12 implements Upgrader {
       LOG.info(
           "Moving table properties from system configuration to namespace configurations complete.");
 
-    } catch (AccumuloException | AccumuloSecurityException e) {
+    } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException e) {
       throw new IllegalStateException(
           "Error trying to move table properties from system to namespace", e);
     }
