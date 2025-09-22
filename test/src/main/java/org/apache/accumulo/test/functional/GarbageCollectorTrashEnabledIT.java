@@ -66,7 +66,7 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      c.namespaceOperations().setProperty("", Property.TABLE_MAJC_RATIO.getKey(), "5.0");
+      c.namespaceOperations().setProperty(Namespace.DEFAULT.name(), Property.TABLE_MAJC_RATIO.getKey(), "5.0");
       ArrayList<StoredTabletFile> files = super.loadData(super.getServerContext(), c, table);
       assertFalse(files.isEmpty());
       c.tableOperations().compact(table, new CompactionConfig());
