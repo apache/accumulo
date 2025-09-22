@@ -73,10 +73,8 @@ public class TabletMergeabilityUtil {
 
   // Encode A split and TabletMergeability as json. The split will be Base64 encoded
   public static String encode(Text split, TabletMergeability tabletMergeability) {
-    GSonData jData = new GSonData();
-    jData.split = TextUtil.getBytes(split);
-    jData.never = tabletMergeability.isNever();
-    jData.delay = tabletMergeability.getDelay().map(Duration::toNanos).orElse(null);
+    GSonData jData = new GSonData(TextUtil.getBytes(split), tabletMergeability.isNever(),
+        tabletMergeability.getDelay().map(Duration::toNanos).orElse(null));
     return gson.toJson(jData);
   }
 
@@ -121,10 +119,7 @@ public class TabletMergeabilityUtil {
     return currentTime.compareTo(totalDelay) >= 0;
   }
 
-  private static class GSonData {
-    byte[] split;
-    boolean never;
-    Long delay;
+  private record GSonData(byte[] split, boolean never, Long delay) {
   }
 
 }
