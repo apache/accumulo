@@ -2490,7 +2490,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
 
-      ts.exec("createresourcegroup " + badRG, false, "Group name 'test-RG' is invalid");
+      ts.exec("createresourcegroup " + badRG, false, "Group name '" + badRG +"' is invalid");
       ts.exec("createresourcegroup " + goodRG, true);
       ts.exec("createresourcegroup -f " + propsFilePath.toAbsolutePath() + " " + goodFileRG, true);
       ts.exec("createresourcegroup -f " + badPropsFilePath.toAbsolutePath() + " " + badFileRG,
