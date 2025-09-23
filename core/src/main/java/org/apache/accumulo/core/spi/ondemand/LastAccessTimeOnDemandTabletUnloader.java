@@ -27,9 +27,10 @@ import org.apache.accumulo.core.data.TableId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DefaultOnDemandTabletUnloader implements OnDemandTabletUnloader {
+public class LastAccessTimeOnDemandTabletUnloader implements OnDemandTabletUnloader {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultOnDemandTabletUnloader.class);
+  private static final Logger LOG =
+      LoggerFactory.getLogger(LastAccessTimeOnDemandTabletUnloader.class);
   public static final String INACTIVITY_THRESHOLD =
       "table.custom.ondemand.unloader.inactivity.threshold.seconds";
   private static final String TEN_MINUTES = Long.toString(MINUTES.toSeconds(10));

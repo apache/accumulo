@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -99,7 +100,6 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
           Integer.toString(managerTabletGroupWatcherInterval));
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL,
           Integer.toString(inactiveOnDemandTabletUnloaderInterval));
-      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -141,6 +141,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration();
       ntc.withSplits(splits);
+      ntc.setProperties(Map.of(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15"));
       c.tableOperations().create(tableName, ntc);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
 
@@ -214,7 +215,8 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       SortedSet<Text> splits = new TreeSet<>(
           List.of(new Text("005"), new Text("013"), new Text("027"), new Text("075")));
-      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits)
+          .setProperties(Map.of(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15")));
       try (var writer = c.createBatchWriter(tableName)) {
         IntStream.range(0, 100).mapToObj(i -> String.format("%03d", i)).forEach(row -> {
           Mutation m = new Mutation(row);
