@@ -120,7 +120,6 @@ public class MiniAccumuloConfigImpl {
 
   private String[] nativePathItems = null;
 
-  // These are only used on top of existing instances
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
   /**
@@ -789,7 +788,7 @@ public class MiniAccumuloConfigImpl {
 
     System.setProperty("accumulo.properties", "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
-    SiteConfiguration siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
+    var siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
 
     Map<String,String> siteConfigMap = new HashMap<>();
     siteConfiguration.getProperties(siteConfigMap, key -> true, false);
