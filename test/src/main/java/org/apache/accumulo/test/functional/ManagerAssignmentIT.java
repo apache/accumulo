@@ -56,6 +56,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -101,7 +102,6 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10s");
-      cfg.setProperty(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
     });
     client = Accumulo.newClient().from(getClientProps()).build();
   }
@@ -116,6 +116,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   public void before() throws Exception {
     Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.ROOT.tableId()) > 0);
     Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.METADATA.tableId()) > 0);
+    client.namespaceOperations().setProperty(Namespace.ACCUMULO.name(), LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
+    client.namespaceOperations().setProperty(Namespace.DEFAULT.name(), LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
   }
 
   @Test
