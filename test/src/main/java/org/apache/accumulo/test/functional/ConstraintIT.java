@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -135,6 +136,9 @@ public class ConstraintIT extends AccumuloClusterHarness {
           throw new Exception("Unexpected # violating mutations " + cvs.numberOfViolatingMutations);
         }
       }
+
+      assertTrue(mre.getMessage().contains(
+          "constraint violation codes : {org.apache.accumulo.test.constraints.NumericValueConstraint=[1]}"));
     }
 
     if (!sawMRE) {
@@ -300,8 +304,6 @@ public class ConstraintIT extends AccumuloClusterHarness {
       // should not get here
       throw new Exception("Test failed, constraint did not catch bad mutation");
     } catch (MutationsRejectedException mre) {
-      System.out.println(mre);
-
       sawMRE = true;
 
       // verify constraint violation summary
@@ -322,6 +324,11 @@ public class ConstraintIT extends AccumuloClusterHarness {
               "Unexpected " + cvs.constrainClass + " " + cvs.numberOfViolatingMutations);
         }
       }
+
+      assertTrue(mre.getMessage().contains(
+          "constraint violation codes : {org.apache.accumulo.test.constraints.NumericValueConstraint=[1], org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[1]}")
+          || mre.getMessage().contains(
+              "constraint violation codes : {org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[1], org.apache.accumulo.test.constraints.NumericValueConstraint=[1]}"));
     }
 
     if (!sawMRE) {
