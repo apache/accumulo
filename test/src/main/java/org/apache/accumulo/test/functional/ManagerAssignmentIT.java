@@ -116,8 +116,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   public void before() throws Exception {
     Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.ROOT.tableId()) > 0);
     Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.METADATA.tableId()) > 0);
-    client.namespaceOperations().setProperty(Namespace.ACCUMULO.name(), LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
-    client.namespaceOperations().setProperty(Namespace.DEFAULT.name(), LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
+    client.namespaceOperations().setProperty(Namespace.ACCUMULO.name(),
+        LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
+    client.namespaceOperations().setProperty(Namespace.DEFAULT.name(),
+        LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
   }
 
   @Test
