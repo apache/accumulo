@@ -2490,7 +2490,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
 
-      ts.exec("createresourcegroup " + badRG, false, "contains invalid characters");
+      ts.exec("createresourcegroup " + badRG, false, "Group name 'test-RG' is invalid");
       ts.exec("createresourcegroup " + goodRG, true);
       ts.exec("createresourcegroup -f " + propsFilePath.toAbsolutePath() + " " + goodFileRG, true);
       ts.exec("createresourcegroup -f " + badPropsFilePath.toAbsolutePath() + " " + badFileRG,
@@ -2510,7 +2510,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("listresourcegroups", true, goodRG);
 
       ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
-          false, "contains invalid characters");
+          false, "Group name 'test-RG' is invalid");
       ts.exec("config -rg " + goodRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
           true);
 
@@ -2534,7 +2534,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(fileProps.containsKey(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
       assertEquals("4", fileProps.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
 
-      ts.exec("deleteresourcegroup " + badRG, false, "contains invalid characters");
+      ts.exec("deleteresourcegroup " + badRG, false, "Group name 'test-RG' is invalid");
       ts.exec("deleteresourcegroup " + goodRG, true);
       ts.exec("deleteresourcegroup " + goodFileRG, true);
       ts.exec("deleteresourcegroup " + badFileRG, true);
