@@ -104,7 +104,7 @@ public class Admin implements KeywordExecutable {
     public boolean help = false;
   }
 
-  @Parameters(
+  @Parameters(commandNames = "stop",
       commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  When no port is specified uses ports from tserver.port.client property.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
@@ -114,13 +114,15 @@ public class Admin implements KeywordExecutable {
     List<String> args = new ArrayList<>();
   }
 
-  @Parameters(commandDescription = "Ping tablet servers.  If no arguments, pings all.")
+  @Parameters(commandNames = "ping",
+      commandDescription = "Ping tablet servers.  If no arguments, pings all.")
   static class PingCommand extends SubCommandOpts {
     @Parameter(description = "{<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
-  @Parameters(commandDescription = "print tablets that are offline in online tables")
+  @Parameters(commandNames = "checkTablets",
+      commandDescription = "print tablets that are offline in online tables")
   static class CheckTabletsCommand extends SubCommandOpts {
     @Parameter(names = "--fixFiles", description = "Remove dangling file pointers")
     boolean fixFiles = false;
@@ -130,17 +132,20 @@ public class Admin implements KeywordExecutable {
     String tableName = null;
   }
 
-  @Parameters(commandDescription = "stop the manager")
+  @Parameters(commandNames = "stopManager", commandDescription = "stop the manager")
   static class StopManagerCommand extends SubCommandOpts {}
 
   @Deprecated(since = "2.1.0")
-  @Parameters(commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
+  @Parameters(commandNames = "stopMaster",
+      commandDescription = "stop the master (DEPRECATED -- use stopManager instead)")
   static class StopMasterCommand {}
 
-  @Parameters(commandDescription = "stop all tablet servers and the manager")
+  @Parameters(commandNames = "stopAll",
+      commandDescription = "stop all tablet servers and the manager")
   static class StopAllCommand extends SubCommandOpts {}
 
-  @Parameters(commandDescription = "list Accumulo instances in zookeeper")
+  @Parameters(commandNames = "listInstances",
+      commandDescription = "list Accumulo instances in zookeeper")
   static class ListInstancesCommand extends SubCommandOpts {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
@@ -149,13 +154,14 @@ public class Admin implements KeywordExecutable {
     boolean printAll = false;
   }
 
-  @Parameters(commandDescription = "Accumulo volume utility")
+  @Parameters(commandNames = "volumes", commandDescription = "Accumulo volume utility")
   static class VolumesCommand extends SubCommandOpts {
     @Parameter(names = {"-l", "--list"}, description = "list volumes currently in use")
     boolean printErrors = false;
   }
 
-  @Parameters(commandDescription = "print out non-default configuration settings")
+  @Parameters(commandNames = "dumpConfig",
+      commandDescription = "print out non-default configuration settings")
   static class DumpConfigCommand extends SubCommandOpts {
     @Parameter(names = {"-a", "--all"},
         description = "print the system and all table configurations")
@@ -178,13 +184,14 @@ public class Admin implements KeywordExecutable {
           + " calls the volume chooser for each file created by a tablet, so its no longer "
           + "necessary.";
 
-  @Parameters(commandDescription = RV_DEPRECATION_MSG)
+  @Parameters(commandNames = "randomizeVolumes", commandDescription = RV_DEPRECATION_MSG)
   static class RandomizeVolumesCommand extends SubCommandOpts {
     @Parameter(names = {"-t"}, description = "table to update", required = true)
     String tableName = null;
   }
 
-  @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
+  @Parameters(commandNames = "verifyTabletAssigns",
+      commandDescription = "Verify all Tablets are assigned to tablet servers")
   static class VerifyTabletAssignmentsCommand extends SubCommandOpts {
     @Parameter(names = {"-v", "--verbose"},
         description = "verbose mode (prints locations of tablets)")
@@ -194,18 +201,18 @@ public class Admin implements KeywordExecutable {
   /**
    * @since 2.1.0
    */
-  @Parameters(
+  @Parameters(commandNames = "changeSecret",
       commandDescription = "Changes the unique secret given to the instance that all servers must know.")
   static class ChangeSecretCommand {}
 
-  @Parameters(
+  @Parameters(commandNames = "locks",
       commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
   static class TabletServerLocksCommand extends SubCommandOpts {
     @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
     String delete = null;
   }
 
-  @Parameters(
+  @Parameters(commandNames = "deleteZooInstance",
       commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
   static class DeleteZooInstanceCommand extends SubCommandOpts {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
@@ -219,7 +226,8 @@ public class Admin implements KeywordExecutable {
     String auth;
   }
 
-  @Parameters(commandDescription = "Restore Zookeeper data from a file.")
+  @Parameters(commandNames = "restoreZoo",
+      commandDescription = "Restore Zookeeper data from a file.")
   static class RestoreZooCommand extends SubCommandOpts {
     @Parameter(names = "--overwrite")
     boolean overwrite = false;
@@ -261,7 +269,7 @@ public class Admin implements KeywordExecutable {
     List<String> states = new ArrayList<>();
   }
 
-  @Parameters(commandDescription = "show service status")
+  @Parameters(commandNames = "serviceStatus", commandDescription = "show service status")
   public static class ServiceStatusCmdOpts extends SubCommandOpts {
     @Parameter(names = "--json", description = "provide output in json format")
     boolean json = false;
@@ -298,56 +306,56 @@ public class Admin implements KeywordExecutable {
     cl.setProgramName("accumulo admin");
 
     ServiceStatusCmdOpts serviceStatusCommandOpts = new ServiceStatusCmdOpts();
-    cl.addCommand("serviceStatus", serviceStatusCommandOpts);
+    cl.addCommand(serviceStatusCommandOpts);
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
-    cl.addCommand("changeSecret", changeSecretCommand);
+    cl.addCommand(changeSecretCommand);
 
     CheckTabletsCommand checkTabletsCommand = new CheckTabletsCommand();
-    cl.addCommand("checkTablets", checkTabletsCommand);
+    cl.addCommand(checkTabletsCommand);
 
     DeleteZooInstanceCommand deleteZooInstOpts = new DeleteZooInstanceCommand();
-    cl.addCommand("deleteZooInstance", deleteZooInstOpts);
+    cl.addCommand(deleteZooInstOpts);
 
     DumpConfigCommand dumpConfigCommand = new DumpConfigCommand();
-    cl.addCommand("dumpConfig", dumpConfigCommand);
+    cl.addCommand(dumpConfigCommand);
 
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
-    cl.addCommand("fate", fateOpsCommand);
+    cl.addCommand(fateOpsCommand);
 
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
-    cl.addCommand("listInstances", listInstancesOpts);
+    cl.addCommand(listInstancesOpts);
 
     TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
-    cl.addCommand("locks", tServerLocksOpts);
+    cl.addCommand(tServerLocksOpts);
 
     PingCommand pingCommand = new PingCommand();
-    cl.addCommand("ping", pingCommand);
+    cl.addCommand(pingCommand);
 
     RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
-    cl.addCommand("restoreZoo", restoreZooOpts);
+    cl.addCommand(restoreZooOpts);
 
     RandomizeVolumesCommand randomizeVolumesOpts = new RandomizeVolumesCommand();
-    cl.addCommand("randomizeVolumes", randomizeVolumesOpts);
+    cl.addCommand(randomizeVolumesOpts);
 
     StopCommand stopOpts = new StopCommand();
-    cl.addCommand("stop", stopOpts);
+    cl.addCommand(stopOpts);
 
     StopAllCommand stopAllOpts = new StopAllCommand();
-    cl.addCommand("stopAll", stopAllOpts);
+    cl.addCommand(stopAllOpts);
 
     StopManagerCommand stopManagerOpts = new StopManagerCommand();
-    cl.addCommand("stopManager", stopManagerOpts);
+    cl.addCommand(stopManagerOpts);
 
     StopMasterCommand stopMasterOpts = new StopMasterCommand();
-    cl.addCommand("stopMaster", stopMasterOpts);
+    cl.addCommand(stopMasterOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();
-    cl.addCommand("verifyTabletAssigns", verifyTabletAssignmentsOpts);
+    cl.addCommand(verifyTabletAssignmentsOpts);
 
     VolumesCommand volumesCommand = new VolumesCommand();
-    cl.addCommand("volumes", volumesCommand);
+    cl.addCommand(volumesCommand);
 
     cl.parse(args);
 

@@ -165,13 +165,14 @@ public class ECAdmin implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(ECAdmin.class);
 
-  @Parameters(commandDescription = "cancel the external compaction with given ECID")
+  @Parameters(commandNames = "cancel",
+      commandDescription = "cancel the external compaction with given ECID")
   static class CancelCommand {
     @Parameter(names = "-ecid", description = "<ecid>", required = true)
     String ecid;
   }
 
-  @Parameters(commandDescription = "list the running compactions")
+  @Parameters(commandNames = "running", commandDescription = "list the running compactions")
   static class RunningCommand {
     @Parameter(names = {"-d", "--details"},
         description = "display details about the running compactions")
@@ -181,7 +182,8 @@ public class ECAdmin implements KeywordExecutable {
     boolean jsonOutput = false;
   }
 
-  @Parameters(commandDescription = "list all compactors in zookeeper")
+  @Parameters(commandNames = "listCompactors",
+      commandDescription = "list all compactors in zookeeper")
   static class ListCompactorsCommand {}
 
   public static void main(String[] args) {
@@ -211,13 +213,13 @@ public class ECAdmin implements KeywordExecutable {
     cl.setProgramName("accumulo ec-admin");
 
     CancelCommand cancelOps = new CancelCommand();
-    cl.addCommand("cancel", cancelOps);
+    cl.addCommand(cancelOps);
 
     ListCompactorsCommand listCompactorsOpts = new ListCompactorsCommand();
-    cl.addCommand("listCompactors", listCompactorsOpts);
+    cl.addCommand(listCompactorsOpts);
 
     RunningCommand runningOpts = new RunningCommand();
-    cl.addCommand("running", runningOpts);
+    cl.addCommand(runningOpts);
 
     cl.parse(args);
 
