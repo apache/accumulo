@@ -570,9 +570,7 @@ public class Initialize implements KeywordExecutable {
         success = addVolumes(fs, initConfig, serverDirs);
       }
       if (success && opts.resourceGroups != null) {
-        try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
-          success = addResourceGroups(initConfig, opts.resourceGroups);
-        }
+        success = addResourceGroups(initConfig, opts.resourceGroups);
       }
       if (!opts.resetSecurity && !opts.addVolumes && opts.resourceGroups == null) {
         try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
