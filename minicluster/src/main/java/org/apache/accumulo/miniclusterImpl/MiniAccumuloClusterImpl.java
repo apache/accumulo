@@ -217,7 +217,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), dfsUri + "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
-      dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+      dfsUri = loadExistingHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file:///";
     }
@@ -473,6 +473,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     fileWriter.close();
   }
 
+  private Configuration loadExistingHadoopConfiguration() {
+    if (config.getHadoopConfDir() == null) {
+      throw new IllegalStateException(
+          "Hadoop configuration directory is required for existing instances");
+    }
+    return config.buildHadoopConfiguration();
+  }
+
   /**
    * Starts Accumulo and Zookeeper processes. Can only be called once.
    */
@@ -487,8 +495,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     if (config.useExistingInstance()) {
-      AccumuloConfiguration acuConf = config.getAccumuloConfiguration();
-      Configuration hadoopConf = config.getHadoopConfiguration();
+      AccumuloConfiguration acuConf = getSiteConfiguration();
+      Configuration hadoopConf = loadExistingHadoopConfiguration();
       ServerDirs serverDirs = new ServerDirs(acuConf, hadoopConf);
 
       Path instanceIdPath;
