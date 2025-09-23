@@ -23,20 +23,38 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 
 public class ResourceGroupIdTest {
+
+  @Test
+  public void testValidIds() {
+    ResourceGroupId.of("a");
+    ResourceGroupId.of("b");
+    ResourceGroupId.of("default");
+    ResourceGroupId.of("reg_ular");
+    ResourceGroupId.of("group1");
+    ResourceGroupId.of("validGroup");
+  }
+
   @Test
   public void testIllegalIds() {
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(""));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(" "));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("\t"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group1 "));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group 1"));
+
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("_"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9group1"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("invalid_Group_"));
+
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$group1"));
-    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group1 "));
-    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group 1"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("gro$up1"));
-    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("invalid_Group_"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("a-b"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("a*b"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("a?b"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group@name"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group#name"));
   }
 
 }

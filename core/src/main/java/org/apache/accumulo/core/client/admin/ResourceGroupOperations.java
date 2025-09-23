@@ -77,19 +77,6 @@ public interface ResourceGroupOperations {
   void create(final ResourceGroupId group) throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Returns the properties set for this resource group in zookeeper merged with the system
-   * configuration.
-   *
-   * @param group resource group
-   * @return Map of property keys/values
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
-   */
-  Map<String,String> getConfiguration(final ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
-
-  /**
    * Returns the un-merged properties set for this resource group in zookeeper.
    *
    * @param group resource group

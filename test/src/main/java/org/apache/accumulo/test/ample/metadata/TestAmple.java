@@ -238,7 +238,8 @@ public class TestAmple {
     SiteConfiguration siteConfig;
     try {
       Map<String,String> propsMap = new HashMap<>();
-      context.getSiteConfiguration().getProperties(propsMap, x -> true);
+      // get only properties set in the site config but do not include defaults
+      context.getSiteConfiguration().getProperties(propsMap, x -> true, false);
       siteConfig = SiteConfiguration.empty().withOverrides(propsMap).build();
     } catch (Exception e) {
       throw new RuntimeException(e);

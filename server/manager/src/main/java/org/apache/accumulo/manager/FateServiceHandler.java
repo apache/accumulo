@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl.SplitMergeability;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -81,7 +82,6 @@ import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -746,8 +746,9 @@ class FateServiceHandler implements FateService.Iface {
 
         SortedMap<Text,
             TabletMergeability> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
-                .map(TabletMergeabilityUtil::decode).collect(
-                    Collectors.toMap(Pair::getFirst, Pair::getSecond, (a, b) -> a, TreeMap::new));
+                .map(TabletMergeabilityUtil::decode)
+                .collect(Collectors.toMap(SplitMergeability::split, SplitMergeability::mergeability,
+                    (a, b) -> a, TreeMap::new));
 
         KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
 

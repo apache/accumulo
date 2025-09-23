@@ -39,7 +39,6 @@ import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
@@ -63,51 +62,21 @@ import com.google.common.net.HostAndPort;
 public interface TServerClient<C extends TServiceClient> {
 
   static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
-  static final String DEBUG_RG = "org.apache.accumulo.client.rpc.debug.group";
 
-  Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections,
-      ResourceGroupPredicate rgp) throws TTransportException;
+  Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
+      throws TTransportException;
 
   default Pair<String,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned,
-      ThriftService service, ResourceGroupPredicate rgp) throws TTransportException {
+      ThriftService service) throws TTransportException {
     checkArgument(context != null, "context is null");
 
     final String debugHost = System.getProperty(DEBUG_HOST, null);
     final boolean debugHostSpecified = debugHost != null;
-    final String debugRG = System.getProperty(DEBUG_RG, null);
-    final boolean debugRGSpecified = debugRG != null;
-    final ResourceGroupId debugRGid = debugRGSpecified ? ResourceGroupId.of(debugRG) : null;
 
-    if (debugHostSpecified && debugRGSpecified) {
-      LOG.warn("System properties {} and {} are both set. If set incorrectly then"
-          + " this client may not find a server to connect to.", DEBUG_HOST, DEBUG_RG);
-    }
-
-    if (debugRGSpecified) {
-      if (type == ThriftClientTypes.CLIENT || type == ThriftClientTypes.COMPACTOR
-          || type == ThriftClientTypes.SERVER_PROCESS || type == ThriftClientTypes.TABLET_INGEST
-          || type == ThriftClientTypes.TABLET_MGMT || type == ThriftClientTypes.TABLET_SCAN
-          || type == ThriftClientTypes.TABLET_SERVER) {
-        if (rgp.test(debugRGid)) {
-          // its safe to potentially narrow the predicate
-          LOG.debug("System property '{}' set to '{}' overriding predicate argument", DEBUG_RG,
-              debugRG);
-          rgp = ResourceGroupPredicate.exact(debugRGid);
-        } else {
-          LOG.warn("System property '{}' set to '{}' does not intersect with predicate argument."
-              + " Ignoring degug system property.", DEBUG_RG, debugRG);
-        }
-      } else {
-        LOG.debug(
-            "System property '{}' set to '{}' but ignored when making RPCs to management servers",
-            DEBUG_RG, debugRG);
-      }
-    }
-
-    if (preferCachedConnections && !debugHostSpecified && !debugRGSpecified) {
+    if (preferCachedConnections && !debugHostSpecified) {
       Pair<String,TTransport> cachedTransport =
-          context.getTransportPool().getAnyCachedTransport(type, context, service, rgp);
+          context.getTransportPool().getAnyCachedTransport(type);
       if (cachedTransport != null) {
         C client =
             ThriftUtil.createClient(type, cachedTransport.getSecond(), context.getInstanceID());
@@ -120,6 +89,7 @@ public interface TServerClient<C extends TServiceClient> {
     final ZooCache zc = context.getZooCache();
     final ServiceLockPaths sp = context.getServerPaths();
     final List<ServiceLockPath> serverPaths = new ArrayList<>();
+    final ResourceGroupPredicate rgp = ResourceGroupPredicate.ANY;
 
     if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
       // add all three paths to the set even though they may not be correct.
@@ -142,12 +112,7 @@ public interface TServerClient<C extends TServiceClient> {
               "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
               type);
         }
-        // If the user set the system property for the resource group, then don't throw
-        // a TTransportException here. That will cause the call to be continuously retried.
-        // Instead, let this continue so that we can throw a different error below.
-        if (!debugRGSpecified) {
-          throw new TTransportException("There are no servers for type: " + type);
-        }
+        throw new TTransportException("There are no servers for type: " + type);
       }
     }
 
@@ -173,11 +138,6 @@ public interface TServerClient<C extends TServiceClient> {
                   "Error creating transport to debug host: {}. If this server is"
                       + " down, then you will need to remove or change the system property {}.",
                   debugHost, DEBUG_HOST);
-            } else if (debugRGSpecified && rgp.test(debugRGid)) {
-              LOG.error(
-                  "Error creating transport to debug group: {}. If all servers are"
-                      + " down, then you will need to remove or change the system property {}.",
-                  debugRG, DEBUG_RG);
             } else {
               LOG.trace("Error creating transport to {}", tserverClientAddress);
             }
@@ -197,22 +157,18 @@ public interface TServerClient<C extends TServiceClient> {
       throw new UncheckedIOException("Error creating transport to debug host: " + debugHost
           + ". If this server is down, then you will need to remove or change the system property "
           + DEBUG_HOST + ".", new IOException(""));
-    } else if (debugRGSpecified && rgp.test(debugRGid)) {
-      throw new UncheckedIOException("Error creating transport to debug group: " + debugRG
-          + ". If all servers are down, then you will need to remove or change the system property "
-          + DEBUG_RG + ".", new IOException(""));
     } else {
       throw new TTransportException("Failed to connect to any server for API type " + type);
     }
   }
 
-  default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec,
-      ResourceGroupPredicate rgp) throws AccumuloException, AccumuloSecurityException {
+  default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)
+      throws AccumuloException, AccumuloSecurityException {
     while (true) {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true, rgp);
+        Pair<String,C> pair = getThriftServerConnection(context, true);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -246,13 +202,13 @@ public interface TServerClient<C extends TServiceClient> {
     }
   }
 
-  default void executeVoid(Logger LOG, ClientContext context, ExecVoid<C> exec,
-      ResourceGroupPredicate rgp) throws AccumuloException, AccumuloSecurityException {
+  default void executeVoid(Logger LOG, ClientContext context, ExecVoid<C> exec)
+      throws AccumuloException, AccumuloSecurityException {
     while (true) {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true, rgp);
+        Pair<String,C> pair = getThriftServerConnection(context, true);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);
