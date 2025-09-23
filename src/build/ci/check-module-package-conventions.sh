@@ -65,13 +65,13 @@ ALLOWED=(
   server/tserver/src/test/resources/walog-from-16.walog
   server/tserver/src/test/resources/walog-from-14/550e8400-e29b-41d4-a716-446655440000
   server/tserver/src/test/resources/walog-from-20.walog
-  test/src/main/resources/v2_import_test/README.md
-  test/src/main/resources/v2_import_test/data/A0000008.rf
-  test/src/main/resources/v2_import_test/data/A0000009.rf
-  test/src/main/resources/v2_import_test/data/A000000a.rf
-  test/src/main/resources/v2_import_test/data/A000000b.rf
-  test/src/main/resources/v2_import_test/data/distcp.txt
-  test/src/main/resources/v2_import_test/data/exportMetadata.zip
+#  test/src/main/resources/v2_import_test/README.md
+#  test/src/main/resources/v2_import_test/data/A0000008.rf
+#  test/src/main/resources/v2_import_test/data/A0000009.rf
+#  test/src/main/resources/v2_import_test/data/A000000a.rf
+#  test/src/main/resources/v2_import_test/data/A000000b.rf
+#  test/src/main/resources/v2_import_test/data/distcp.txt
+#  test/src/main/resources/v2_import_test/data/exportMetadata.zip
 
   # TODO: these minicluster classes should be moved into the correct package for the module
 #  minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloCluster.java
