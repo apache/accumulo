@@ -18,10 +18,8 @@
  */
 package org.apache.accumulo.core.constraints;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -38,43 +36,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class DefaultKeySizeConstraint extends
     org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint implements Constraint {
 
-  protected static final short MAX__KEY_SIZE_EXCEEDED_VIOLATION = 1;
-  protected static final long maxSize = 1048576; // 1MB default size
+  protected static final short MAX__KEY_SIZE_EXCEEDED_VIOLATION =
+      org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint.MAX__KEY_SIZE_EXCEEDED_VIOLATION;
+  protected static final long maxSize =
+      org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint.maxSize;
 
   @Override
   public String getViolationDescription(short violationCode) {
-
-    switch (violationCode) {
-      case MAX__KEY_SIZE_EXCEEDED_VIOLATION:
-        return "Key was larger than 1MB";
-    }
-
-    return null;
+    return super.getViolationDescription(violationCode);
   }
-
-  static final List<Short> NO_VIOLATIONS = new ArrayList<>();
 
   @Override
   public List<Short> check(Constraint.Environment env, Mutation mutation) {
-
-    // fast size check
-    if (mutation.numBytes() < maxSize) {
-      return NO_VIOLATIONS;
-    }
-
-    List<Short> violations = new ArrayList<>();
-
-    for (ColumnUpdate cu : mutation.getUpdates()) {
-      int size = mutation.getRow().length;
-      size += cu.getColumnFamily().length;
-      size += cu.getColumnQualifier().length;
-      size += cu.getColumnVisibility().length;
-
-      if (size > maxSize) {
-        violations.add(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
-      }
-    }
-
-    return violations;
+    return super.check(env, mutation);
   }
 }
