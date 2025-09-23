@@ -516,7 +516,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       tabLocator.invalidateCache();
 
       var splitsToTablets = mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
-      Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits = splitsToTablets.newSplits;
+      Map<KeyExtent,List<SplitMergeability>> tabletSplits = splitsToTablets.newSplits;
       Map<KeyExtent,TabletMergeability> existingSplits = splitsToTablets.existingSplits;
 
       List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -542,9 +542,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }, waitExecutor));
       }
 
+      record FateSplits(TFateId opid, List<SplitMergeability> splits) {
+      }
+
       // begin the fate operation for each tablet without waiting for the operation to complete
-      for (Entry<KeyExtent,List<Pair<Text,TabletMergeability>>> splitsForTablet : tabletSplits
-          .entrySet()) {
+      for (Entry<KeyExtent,List<SplitMergeability>> splitsForTablet : tabletSplits.entrySet()) {
         CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
           var extent = splitsForTablet.getKey();
 
@@ -562,7 +564,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               TFateInstanceType t = FateInstanceType.fromNamespaceOrTableName(tableName).toThrift();
               TFateId opid = beginFateOperation(t);
               executeFateOperation(opid, TFateOperation.TABLE_SPLIT, args, Map.of(), false);
-              return new Pair<>(opid, splitsForTablet.getValue());
+              return new FateSplits(opid, splitsForTablet.getValue());
             }, tableName);
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
@@ -571,15 +573,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new CompletionException(e);
           }
           // wait for the fate operation to complete in a separate thread pool
-        }, startExecutor).thenApplyAsync(pair -> {
-          final TFateId opid = pair.getFirst();
-          final List<Pair<Text,TabletMergeability>> completedSplits = pair.getSecond();
+        }, startExecutor).thenApplyAsync(fateSplits -> {
 
           try {
-            String status = handleFateOperation(() -> waitForFateOperation(opid), tableName);
+            String status =
+                handleFateOperation(() -> waitForFateOperation(fateSplits.opid()), tableName);
 
             if (SPLIT_SUCCESS_MSG.equals(status)) {
-              completedSplits.stream().map(Pair::getFirst).forEach(splitsTodo::remove);
+              fateSplits.splits().stream().map(SplitMergeability::split)
+                  .forEach(splitsTodo::remove);
             }
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
@@ -588,9 +590,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new CompletionException(e);
           } finally {
             // always finish table op, even when exception
-            if (opid != null) {
+            if (fateSplits.opid() != null) {
               try {
-                finishFateOperation(opid);
+                finishFateOperation(fateSplits.opid());
               } catch (Exception e) {
                 log.warn("Exception thrown while finishing fate table operation", e);
               }
@@ -634,7 +636,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private SplitsToTablets mapSplitsToTablets(String tableName, TableId tableId,
       ClientTabletCache tabLocator, SortedMap<Text,TabletMergeability> splitsTodo)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits = new HashMap<>();
+    Map<KeyExtent,List<SplitMergeability>> newSplits = new HashMap<>();
     Map<KeyExtent,TabletMergeability> existingSplits = new HashMap<>();
 
     for (Entry<Text,TabletMergeability> splitEntry : splitsTodo.entrySet()) {
@@ -664,7 +666,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
 
         newSplits.computeIfAbsent(tablet.getExtent(), k -> new ArrayList<>())
-            .add(Pair.fromEntry(splitEntry));
+            .add(new SplitMergeability(splitEntry.getKey(), splitEntry.getValue()));
 
       } catch (InvalidTabletHostingRequestException e) {
         // not expected
@@ -674,11 +676,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return new SplitsToTablets(newSplits, existingSplits);
   }
 
+  public record SplitMergeability(Text split, TabletMergeability mergeability) {
+  }
+
   private static class SplitsToTablets {
-    final Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits;
+    final Map<KeyExtent,List<SplitMergeability>> newSplits;
     final Map<KeyExtent,TabletMergeability> existingSplits;
 
-    private SplitsToTablets(Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits,
+    private SplitsToTablets(Map<KeyExtent,List<SplitMergeability>> newSplits,
         Map<KeyExtent,TabletMergeability> existingSplits) {
       this.newSplits = Objects.requireNonNull(newSplits);
       this.existingSplits = Objects.requireNonNull(existingSplits);
