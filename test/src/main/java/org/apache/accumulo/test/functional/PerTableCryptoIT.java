@@ -193,8 +193,6 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
               args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
             }
             args.add("-o");
-            args.add(TABLE_SERVICE_NAME_PROP + "=" + AESCryptoService.class.getName());
-            args.add("-o");
             args.add(INSTANCE_CRYPTO_FACTORY + "=" + GenericCryptoServiceFactory.class.getName());
             log.info("Invoking PrintInfo with {}", args);
             org.apache.accumulo.core.file.rfile.PrintInfo.main(args.toArray(new String[0]));
