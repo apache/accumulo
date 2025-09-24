@@ -182,13 +182,8 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       String tableName = super.getUniqueNames(1)[0];
 
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("f"));
-      splits.add(new Text("m"));
-      splits.add(new Text("t"));
-
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.withSplits(splits);
+      var splits = new TreeSet<>(Set.of(new Text("f"), new Text("m"), new Text("t")));
+      var ntc = new NewTableConfiguration().withSplits(splits);
       // set this really high because the manager should unassign tablets because of a lack of a
       // hosting requested column
       ntc.setProperties(
