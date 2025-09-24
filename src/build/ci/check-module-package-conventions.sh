@@ -38,9 +38,9 @@ ALLOWED=(
   server/native/src/main/resources/NOTICE
 
   # TODO: these test classes should be moved into the correct package for the module
-  start/src/test/java/test/HelloWorldTemplate
-  start/src/test/java/test/TestTemplate
-  start/src/test/java/test/Test.java
+#  start/src/test/java/test/HelloWorldTemplate
+#  start/src/test/java/test/TestTemplate
+#  start/src/test/java/test/Test.java
   test/src/main/java/org/apache/accumulo/harness/conf/AccumuloClusterConfiguration.java
   test/src/main/java/org/apache/accumulo/harness/conf/AccumuloMiniClusterConfiguration.java
   test/src/main/java/org/apache/accumulo/harness/conf/AccumuloClusterPropertyConfiguration.java
