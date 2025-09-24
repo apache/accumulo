@@ -61,10 +61,10 @@ ALLOWED=(
   core/src/test/resources/accumulo2.properties
   core/src/test/resources/passwords.jceks
   minicluster/src/test/resources/FooFilter.jar
-  server/tserver/src/test/resources/walog-from-15.walog
-  server/tserver/src/test/resources/walog-from-16.walog
-  server/tserver/src/test/resources/walog-from-14/550e8400-e29b-41d4-a716-446655440000
-  server/tserver/src/test/resources/walog-from-20.walog
+#  server/tserver/src/test/resources/walog-from-15.walog
+#  server/tserver/src/test/resources/walog-from-16.walog
+#  server/tserver/src/test/resources/walog-from-14/550e8400-e29b-41d4-a716-446655440000
+#  server/tserver/src/test/resources/walog-from-20.walog
 #  test/src/main/resources/v2_import_test/README.md
 #  test/src/main/resources/v2_import_test/data/A0000008.rf
 #  test/src/main/resources/v2_import_test/data/A0000009.rf
