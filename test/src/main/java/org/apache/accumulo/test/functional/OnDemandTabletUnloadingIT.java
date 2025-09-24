@@ -177,7 +177,6 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
    * ONDEMAND. This transition should cause all tablets to unload because tablets are hosted but do
    * not have a hosting requested column set.
    */
-  @Timeout(120)
   @Test
   public void testTransitionFromHostedToOndemand() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
