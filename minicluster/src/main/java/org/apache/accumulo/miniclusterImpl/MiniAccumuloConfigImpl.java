@@ -28,6 +28,8 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -261,10 +263,15 @@ public class MiniAccumuloConfigImpl {
   Configuration buildHadoopConfiguration() {
     Configuration conf = new Configuration(false);
     if (hadoopConfDir != null) {
-      File coreSite = hadoopConfDir.toPath().resolve("core-site.xml").toFile();
-      File hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml").toFile();
-      conf.addResource(new org.apache.hadoop.fs.Path(coreSite.toURI()));
-      conf.addResource(new org.apache.hadoop.fs.Path(hdfsSite.toURI()));
+      Path coreSite = hadoopConfDir.toPath().resolve("core-site.xml");
+      Path hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml");
+
+      try {
+        conf.addResource(coreSite.toUri().toURL());
+        conf.addResource(hdfsSite.toUri().toURL());
+      } catch (MalformedURLException e) {
+        throw new UncheckedIOException(e);
+      }
     }
     return conf;
   }
