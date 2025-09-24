@@ -26,7 +26,7 @@
 NUM_EXPECTED=0
 ALLOWED=(
   # test module uses main path for ITs, so log4j2-test.properties is okay there
-  test/src/main/resources/log4j2-test.properties
+#  test/src/main/resources/log4j2-test.properties
 
   # special exceptions for the main assembly resources; these can be at the root
   assemble/src/main/resources/LICENSE
@@ -38,9 +38,9 @@ ALLOWED=(
   server/native/src/main/resources/NOTICE
 
   # TODO: these test classes should be moved into the correct package for the module
-  start/src/test/java/test/HelloWorldTemplate
-  start/src/test/java/test/TestTemplate
-  start/src/test/java/test/Test.java
+#  start/src/test/java/test/HelloWorldTemplate
+#  start/src/test/java/test/TestTemplate
+#  start/src/test/java/test/Test.java
   test/src/main/java/org/apache/accumulo/harness/conf/AccumuloClusterConfiguration.java
   test/src/main/java/org/apache/accumulo/harness/conf/AccumuloMiniClusterConfiguration.java
   test/src/main/java/org/apache/accumulo/harness/conf/AccumuloClusterPropertyConfiguration.java
@@ -60,7 +60,6 @@ ALLOWED=(
 #  core/src/test/resources/site-cfg.jceks
 #  core/src/test/resources/accumulo2.properties
 #  core/src/test/resources/passwords.jceks
-  minicluster/src/test/resources/FooFilter.jar
 #  server/tserver/src/test/resources/walog-from-15.walog
 #  server/tserver/src/test/resources/walog-from-16.walog
 #  server/tserver/src/test/resources/walog-from-14/550e8400-e29b-41d4-a716-446655440000
@@ -74,6 +73,7 @@ ALLOWED=(
 #  test/src/main/resources/v2_import_test/data/exportMetadata.zip
 
   # TODO: these minicluster classes should be moved into the correct package for the module
+  minicluster/src/test/resources/FooFilter.jar
   minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneAccumuloCluster.java
   minicluster/src/main/java/org/apache/accumulo/cluster/standalone/StandaloneClusterControl.java
   minicluster/src/main/java/org/apache/accumulo/cluster/ClusterUsers.java
