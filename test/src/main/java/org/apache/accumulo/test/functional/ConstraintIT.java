@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.HashMap;
@@ -135,6 +136,9 @@ public class ConstraintIT extends AccumuloClusterHarness {
           throw new Exception("Unexpected # violating mutations " + cvs.numberOfViolatingMutations);
         }
       }
+
+      assertTrue(mre.getMessage().contains(
+          "constraint violation codes : {org.apache.accumulo.test.constraints.NumericValueConstraint=[1]}"));
     }
 
     if (!sawMRE) {
@@ -290,7 +294,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
     }
     bw.addMutation(newMut("r1", "cf1", "cq3", "I'm a naughty value"));
-    bw.addMutation(newMut("@bad row@", "cf1", "cq2", "456"));
+    bw.addMutation(newMut("r1", "@bad fam@", "@bad qual@", "456"));
     bw.addMutation(newMut("r1", "cf1", "cq4", "789"));
 
     boolean sawMRE = false;
@@ -300,14 +304,12 @@ public class ConstraintIT extends AccumuloClusterHarness {
       // should not get here
       throw new Exception("Test failed, constraint did not catch bad mutation");
     } catch (MutationsRejectedException mre) {
-      System.out.println(mre);
-
       sawMRE = true;
 
       // verify constraint violation summary
       List<ConstraintViolationSummary> cvsl = mre.getConstraintViolationSummaries();
 
-      if (cvsl.size() != 2) {
+      if (cvsl.size() != 3) {
         throw new Exception("Unexpected constraints");
       }
 
@@ -322,6 +324,12 @@ public class ConstraintIT extends AccumuloClusterHarness {
               "Unexpected " + cvs.constrainClass + " " + cvs.numberOfViolatingMutations);
         }
       }
+
+      assertTrue(mre.getMessage().contains(
+          "constraint violation codes : {org.apache.accumulo.test.constraints.NumericValueConstraint=[1], org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[2, 3]}")
+          || mre.getMessage().contains(
+              "constraint violation codes : {org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[2, 3], org.apache.accumulo.test.constraints.NumericValueConstraint=[1]}"),
+          mre::getMessage);
     }
 
     if (!sawMRE) {
