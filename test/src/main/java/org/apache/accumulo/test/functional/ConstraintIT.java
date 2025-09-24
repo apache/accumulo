@@ -294,7 +294,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
     }
     bw.addMutation(newMut("r1", "cf1", "cq3", "I'm a naughty value"));
-    bw.addMutation(newMut("@bad row@", "cf1", "cq2", "456"));
+    bw.addMutation(newMut("r1", "@bad fam@", "@bad qual@", "456"));
     bw.addMutation(newMut("r1", "cf1", "cq4", "789"));
 
     boolean sawMRE = false;
@@ -309,7 +309,7 @@ public class ConstraintIT extends AccumuloClusterHarness {
       // verify constraint violation summary
       List<ConstraintViolationSummary> cvsl = mre.getConstraintViolationSummaries();
 
-      if (cvsl.size() != 2) {
+      if (cvsl.size() != 3) {
         throw new Exception("Unexpected constraints");
       }
 
@@ -326,9 +326,10 @@ public class ConstraintIT extends AccumuloClusterHarness {
       }
 
       assertTrue(mre.getMessage().contains(
-          "constraint violation codes : {org.apache.accumulo.test.constraints.NumericValueConstraint=[1], org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[1]}")
+          "constraint violation codes : {org.apache.accumulo.test.constraints.NumericValueConstraint=[1], org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[2, 3]}")
           || mre.getMessage().contains(
-              "constraint violation codes : {org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[1], org.apache.accumulo.test.constraints.NumericValueConstraint=[1]}"));
+              "constraint violation codes : {org.apache.accumulo.test.constraints.AlphaNumKeyConstraint=[2, 3], org.apache.accumulo.test.constraints.NumericValueConstraint=[1]}"),
+          mre::getMessage);
     }
 
     if (!sawMRE) {
