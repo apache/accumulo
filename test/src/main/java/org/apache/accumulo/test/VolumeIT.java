@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.stream.Collectors.toCollection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +28,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -36,7 +37,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
@@ -64,23 +64,10 @@ public class VolumeIT extends VolumeITBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // create set of splits
-      SortedSet<Text> partitions = new TreeSet<>();
-      for (String s : "d,m,t".split(",")) {
-        partitions.add(new Text(s));
-      }
-      // create table with splits
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
-      client.tableOperations().create(tableName, ntc);
-      // scribble over the splits
-      VolumeChooserIT.writeDataToTable(client, tableName, VolumeChooserIT.alpha_rows);
-      // write the data to disk, read it back
-      client.tableOperations().flush(tableName, null, null, true);
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        int i = 0;
-        for (Entry<Key,Value> entry : scanner) {
-          assertEquals(VolumeChooserIT.alpha_rows[i++], entry.getKey().getRow().toString());
-        }
-      }
+      TreeSet<Text> splits =
+          Stream.of("d", "m", "t").map(Text::new).collect(toCollection(TreeSet::new));
+      // create table with splits, write some data, and verify read
+      VolumeChooserIT.createAndVerifyTable(client, tableName, splits, true);
       // verify the new files are written to the different volumes
       try (Scanner scanner =
           client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
