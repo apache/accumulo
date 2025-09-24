@@ -51,8 +51,8 @@ public class HadoopCredentialProviderTest {
 
   private static final Configuration hadoopConf = new Configuration();
 
-  private static final String populatedKeyStoreName = "/accumulo.jceks";
-  private static final String emptyKeyStoreName = "/empty.jceks";
+  private static final String populatedKeyStoreName = "/org/apache/accumulo/core/accumulo.jceks";
+  private static final String emptyKeyStoreName = "/org/apache/accumulo/core/empty.jceks";
   private static File emptyKeyStore;
   private static File populatedKeyStore;
 
