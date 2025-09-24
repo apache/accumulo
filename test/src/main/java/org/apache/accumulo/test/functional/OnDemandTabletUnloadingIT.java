@@ -62,6 +62,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
@@ -176,6 +177,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
    * ONDEMAND. This transition should cause all tablets to unload because tablets are hosted but do
    * not have a hosting requested column set.
    */
+  @Timeout(120)
   @Test
   public void testTransitionFromHostedToOndemand() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
