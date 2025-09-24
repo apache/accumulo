@@ -28,6 +28,7 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -52,7 +53,6 @@ import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -261,11 +261,10 @@ public class MiniAccumuloConfigImpl {
   Configuration buildHadoopConfiguration() {
     Configuration conf = new Configuration(false);
     if (hadoopConfDir != null) {
-      File coreSite = new File(hadoopConfDir, "core-site.xml");
-      File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
-
-      conf.addResource(new Path(coreSite.toURI()));
-      conf.addResource(new Path(hdfsSite.toURI()));
+      File coreSite = hadoopConfDir.toPath().resolve("core-site.xml").toFile();
+      File hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml").toFile();
+      conf.addResource(new org.apache.hadoop.fs.Path(coreSite.toURI()));
+      conf.addResource(new org.apache.hadoop.fs.Path(hdfsSite.toURI()));
     }
     return conf;
   }
