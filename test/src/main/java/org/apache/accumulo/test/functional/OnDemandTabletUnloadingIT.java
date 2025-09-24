@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE_ONDEMAND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -166,6 +168,49 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // Waiting for tablets to be unloaded due to inactivity
       Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 0);
       Wait.waitFor(() -> ManagerAssignmentIT.getTabletStats(c, tableId).size() == 0);
+    }
+  }
+
+  /**
+   * Test the behavior of transitioning tablets from having a tablet availability of HOSTED to
+   * ONDEMAND. This transition should cause all tablets to unload because tablets are hosted but do
+   * not have a hosting requested column set.
+   */
+  @Test
+  public void testTransitionFromHostedToOndemand() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = super.getUniqueNames(1)[0];
+
+      var splits = new TreeSet<>(Set.of(new Text("f"), new Text("m"), new Text("t")));
+      var ntc = new NewTableConfiguration().withSplits(splits);
+      // set this really high because the manager should unassign tablets because of a lack of a
+      // hosting requested column
+      ntc.setProperties(
+          Map.of(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "1000000"));
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      c.tableOperations().create(tableName, ntc);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+
+      // wait for all tablets in table to be hosted
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 4);
+
+      // transition all tablets to ondemand. Since no tablets have a hosting requested column set
+      // the manager should unassign all tablets.
+      c.tableOperations().setTabletAvailability(tableName, new Range(),
+          TabletAvailability.ONDEMAND);
+
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 0);
+
+      // scan tablet.
+      try (var scanner = c.createScanner(tableName)) {
+        scanner.setRange(new Range("h"));
+        assertFalse(scanner.iterator().hasNext());
+      }
+
+      // ensure only one tablet is hosted now since we transitioned all tablets to ONDEMAND
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 1);
+      Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 1);
     }
   }
 
