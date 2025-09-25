@@ -45,7 +45,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,7 +52,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
@@ -77,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.manager.WithTestNames;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -92,7 +91,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Upgrader11to12Test {
+public class Upgrader11to12Test extends WithTestNames {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader11to12Test.class);
 
@@ -589,13 +588,13 @@ public class Upgrader11to12Test {
     final VersionedProperties systemNsProps = createMock(VersionedProperties.class);
     final VersionedProperties defaultNsProps = createMock(VersionedProperties.class);
     final VersionedProperties testNsProps = createMock(VersionedProperties.class);
-    final NamespaceOperations nsops = createMock(NamespaceOperations.class);
+    final NamespaceMapping nsmap = createMock(NamespaceMapping.class);
 
-    final TreeSet<String> namespaces = new TreeSet<>();
-    namespaces.add(Namespace.ACCUMULO.name());
-    namespaces.add(Namespace.DEFAULT.name());
-    namespaces.add("test");
-    var testNsId = NamespaceId.of("5");
+    var testNsId = NamespaceId.of("nsid_" + testName());
+    var testNsName = "nsname_" + testName();
+    final TreeMap<NamespaceId,String> namespaces =
+        new TreeMap<>(Map.of(Namespace.DEFAULT.id(), Namespace.DEFAULT.name(),
+            Namespace.ACCUMULO.id(), Namespace.ACCUMULO.name(), testNsId, testNsName));
 
     final Map<String,String> sysProps = new HashMap<>();
     sysProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -640,13 +639,8 @@ public class Upgrader11to12Test {
     expect(propStore.get(SystemPropKey.of())).andReturn(sysVerProps).once();
     expect(sysVerProps.asMap()).andReturn(sysProps).once();
 
-    expect(context.namespaceOperations()).andReturn(nsops).once();
-    expect(context.getNamespaceId(Namespace.DEFAULT.name())).andReturn(Namespace.DEFAULT.id())
-        .once();
-    expect(context.getNamespaceId(Namespace.ACCUMULO.name())).andReturn(Namespace.ACCUMULO.id())
-        .once();
-    expect(context.getNamespaceId("test")).andReturn(testNsId).once();
-    expect(nsops.list()).andReturn(namespaces).once();
+    expect(context.getNamespaceMapping()).andReturn(nsmap).once();
+    expect(nsmap.getIdToNameMap()).andReturn(namespaces).once();
 
     final NamespacePropKey apk = NamespacePropKey.of(Namespace.ACCUMULO.id());
     final NamespacePropKey dpk = NamespacePropKey.of(Namespace.DEFAULT.id());
@@ -672,11 +666,11 @@ public class Upgrader11to12Test {
 
     propStore.removeProperties(SystemPropKey.of(), sysProps.keySet());
 
-    replay(context, propStore, sysVerProps, systemNsProps, defaultNsProps, testNsProps, nsops);
+    replay(context, propStore, sysVerProps, systemNsProps, defaultNsProps, testNsProps, nsmap);
 
     new Upgrader11to12().moveTableProperties(context);
 
-    verify(context, propStore, sysVerProps, systemNsProps, defaultNsProps, testNsProps, nsops);
+    verify(context, propStore, sysVerProps, systemNsProps, defaultNsProps, testNsProps, nsmap);
 
   }
 }
