@@ -196,7 +196,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     Set<String> allTableFiles = getServerContext().getAmple().readTablets().forTable(tableID)
         .fetch(ColumnType.FILES).build().stream().flatMap(tm -> tm.getFiles().stream())
         .map(StoredTabletFile::getPath).map(Path::toString).collect(toSet());
-    assertEquals(26, allTableFiles.size(), "Wrong number of files");
+    assertEquals(alpha_rows.size(), allTableFiles.size(), "Wrong number of files");
     Set<Path> expectedVolumesSeen = new TreeSet<>();
     allTableFiles.forEach(file -> {
       boolean foundMatchingExpectedVolume = false;
