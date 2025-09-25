@@ -37,9 +37,13 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A collection of authorization strings.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
 
   private static final long serialVersionUID = 1L;
