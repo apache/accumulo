@@ -74,7 +74,7 @@ public class DefaultKeySizeConstraint implements Constraint {
         violations.add(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
         Key k = new Key(mutation.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(),
             cu.getColumnVisibility(), cu.getTimestamp(), cu.isDeleted());
-        LOG.info("Constraint violation. Key {} (size = {}) larger than 1MB", k, size);
+        LOG.debug("Constraint violation. Key {} (size = {}) larger than 1MB", k, size);
       }
     }
 

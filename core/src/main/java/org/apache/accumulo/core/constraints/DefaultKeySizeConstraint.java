@@ -42,11 +42,6 @@ public class DefaultKeySizeConstraint extends
       org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint.maxSize;
 
   @Override
-  public String getViolationDescription(short violationCode) {
-    return super.getViolationDescription(violationCode);
-  }
-
-  @Override
   public List<Short> check(Constraint.Environment env, Mutation mutation) {
     return super.check(env, mutation);
   }
