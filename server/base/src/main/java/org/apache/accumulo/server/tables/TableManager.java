@@ -126,7 +126,7 @@ public class TableManager {
         return newState.name().getBytes(UTF_8);
       });
     } catch (Exception e) {
-      log.error("FATAL Failed to transition table to state {}", newState);
+      log.error("FATAL Failed to transition table {} to state {}", tableId, newState);
       throw new IllegalStateException(e);
     }
   }
