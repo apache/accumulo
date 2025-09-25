@@ -185,8 +185,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       setSamplerConfiguration(samplerConfig);
     }
 
-    if (scanner instanceof ScannerImpl) {
-      var scannerImpl = (ScannerImpl) scanner;
+    if (scanner instanceof ScannerImpl scannerImpl) {
       this.context = () -> scannerImpl.getClientContext();
       this.tableId = () -> scannerImpl.getTableId();
     } else {

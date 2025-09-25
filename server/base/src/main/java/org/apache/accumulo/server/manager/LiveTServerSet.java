@@ -106,8 +106,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
         try (TTransport transport = ThriftUtil.createTransport(address, context)) {
-          TabletManagementClientService.Client client =
-              ThriftUtil.createClient(ThriftClientTypes.TABLET_MGMT, transport);
+          TabletManagementClientService.Client client = ThriftUtil
+              .createClient(ThriftClientTypes.TABLET_MGMT, transport, context.getInstanceID());
           loadTablet(client, lock, extent);
         }
       } else {
@@ -143,8 +143,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       long start = System.currentTimeMillis();
 
       try (TTransport transport = ThriftUtil.createTransport(address, context)) {
-        TabletServerClientService.Client client =
-            ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
+        TabletServerClientService.Client client = ThriftUtil
+            .createClient(ThriftClientTypes.TABLET_SERVER, transport, context.getInstanceID());
         TabletServerStatus status =
             client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
         if (status != null) {
@@ -237,8 +237,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
     try {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
-      final Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
+      final Set<ServiceLockPath> tservers = context.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
 
       locklessServers.keySet().retainAll(tservers);
 
@@ -506,7 +506,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     ResourceGroupPredicate rgPredicate = resourceGroup.map(rg -> {
       ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
       return rgp;
-    }).orElse(rg -> true);
+    }).orElse(ResourceGroupPredicate.ANY);
     AddressSelector addrPredicate =
         address.map(AddressSelector::exact).orElse(AddressSelector.all());
     Set<ServiceLockPath> paths =

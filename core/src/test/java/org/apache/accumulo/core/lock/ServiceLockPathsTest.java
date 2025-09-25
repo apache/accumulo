@@ -48,6 +48,7 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
@@ -284,13 +285,13 @@ public class ServiceLockPathsTest {
 
     assertThrows(NullPointerException.class, () -> paths.getCompactor(null, null, true));
     assertThrows(NullPointerException.class,
-        () -> paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), null, true));
-    assertTrue(paths.getCompactor(rg -> true, AddressSelector.all(), true).isEmpty());
-    assertTrue(paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true)
-        .isEmpty());
+        () -> paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP), null, true));
     assertTrue(
-        paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true)
-            .isEmpty());
+        paths.getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
+    assertTrue(paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true).isEmpty());
+    assertTrue(paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), true).isEmpty());
   }
 
   @Test
@@ -334,7 +335,8 @@ public class ServiceLockPathsTest {
     replay(zc);
 
     // query for all
-    Set<ServiceLockPath> results = paths.getCompactor(rg -> true, AddressSelector.all(), false);
+    Set<ServiceLockPath> results =
+        paths.getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
     assertEquals(4, results.size());
     for (ServiceLockPath path : results) {
       assertEquals(ZCOMPACTORS, path.getType());
@@ -352,7 +354,7 @@ public class ServiceLockPathsTest {
     }
 
     // query for all with locks
-    results = paths.getCompactor(rg -> true, AddressSelector.all(), true);
+    results = paths.getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     var slp1 = iter.next();
@@ -381,12 +383,14 @@ public class ServiceLockPathsTest {
     }
 
     // query for all in non-existent resource group
-    results = paths.getCompactor(rg -> rg.equals(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
-        AddressSelector.all(), true);
+    results =
+        paths.getCompactor(ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
+            AddressSelector.all(), true);
     assertEquals(0, results.size());
 
     // query for all in test resource group
-    results = paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true);
+    results = paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -397,8 +401,8 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a specific server
-    results =
-        paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true);
+    results = paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -410,10 +414,10 @@ public class ServiceLockPathsTest {
 
     // query for a wrong server
     for (boolean withLock : new boolean[] {true, false}) {
-      results = paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
+      results = paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
           AddressSelector.exact(HostAndPort.fromString("localhost:1234")), withLock);
       assertEquals(0, results.size());
-      results = paths.getCompactor(rg -> rg.equals(TEST_RESOURCE_GROUP),
+      results = paths.getCompactor(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
           AddressSelector.matching(hp -> hp.equals("localhost:1234")), withLock);
       assertEquals(0, results.size());
     }
@@ -426,14 +430,13 @@ public class ServiceLockPathsTest {
 
     assertThrows(NullPointerException.class, () -> paths.getScanServer(null, null, true));
     assertThrows(NullPointerException.class,
-        () -> paths.getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), null, true));
-    assertTrue(paths.getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
+        () -> paths.getScanServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP), null, true));
     assertTrue(
-        paths.getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true)
-            .isEmpty());
-    assertTrue(
-        paths.getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true)
-            .isEmpty());
+        paths.getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
+    assertTrue(paths.getScanServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true).isEmpty());
+    assertTrue(paths.getScanServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), true).isEmpty());
   }
 
   @Test
@@ -475,7 +478,8 @@ public class ServiceLockPathsTest {
     replay(zc);
 
     // query for all
-    Set<ServiceLockPath> results = paths.getScanServer(rg -> true, AddressSelector.all(), false);
+    Set<ServiceLockPath> results =
+        paths.getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
     assertEquals(4, results.size());
     for (ServiceLockPath path : results) {
       assertEquals(ZSSERVERS, path.getType());
@@ -493,7 +497,7 @@ public class ServiceLockPathsTest {
     }
 
     // query for all with lock
-    results = paths.getScanServer(rg -> true, AddressSelector.all(), true);
+    results = paths.getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     var slp1 = iter.next();
@@ -522,13 +526,14 @@ public class ServiceLockPathsTest {
     }
 
     // query for all in non-existent resource group
-    results = paths.getScanServer(rg -> rg.equals(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
-        AddressSelector.all(), true);
+    results =
+        paths.getScanServer(ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
+            AddressSelector.all(), true);
     assertEquals(0, results.size());
 
     // query for all in test resource group
-    results =
-        paths.getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true);
+    results = paths.getScanServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -539,8 +544,8 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a specific server
-    results =
-        paths.getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true);
+    results = paths.getScanServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -551,7 +556,7 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a wrong server
-    results = paths.getScanServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
+    results = paths.getScanServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
         AddressSelector.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
   }
@@ -563,14 +568,13 @@ public class ServiceLockPathsTest {
 
     assertThrows(NullPointerException.class, () -> paths.getTabletServer(null, null, true));
     assertThrows(NullPointerException.class,
-        () -> paths.getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), null, true));
-    assertTrue(paths.getTabletServer(rg -> true, AddressSelector.all(), true).isEmpty());
+        () -> paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP), null, true));
     assertTrue(
-        paths.getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true)
-            .isEmpty());
-    assertTrue(
-        paths.getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), true)
-            .isEmpty());
+        paths.getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
+    assertTrue(paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true).isEmpty());
+    assertTrue(paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), true).isEmpty());
   }
 
   @Test
@@ -612,7 +616,8 @@ public class ServiceLockPathsTest {
     replay(zc);
 
     // query for all
-    Set<ServiceLockPath> results = paths.getTabletServer(rg -> true, AddressSelector.all(), false);
+    Set<ServiceLockPath> results =
+        paths.getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
     assertEquals(4, results.size());
     for (ServiceLockPath path : results) {
       assertEquals(ZTSERVERS, path.getType());
@@ -630,7 +635,7 @@ public class ServiceLockPathsTest {
     }
 
     // query for all with lock
-    results = paths.getTabletServer(rg -> true, AddressSelector.all(), true);
+    results = paths.getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     var slp1 = iter.next();
@@ -659,13 +664,14 @@ public class ServiceLockPathsTest {
     }
 
     // query for all in non-existent resource group
-    results = paths.getTabletServer(rg -> rg.equals(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
+    results = paths.getTabletServer(
+        ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
         AddressSelector.all(), true);
     assertEquals(0, results.size());
 
     // query for all in test resource group
-    results =
-        paths.getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), true);
+    results = paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -676,8 +682,8 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a specific server
-    results = paths.getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp),
-        true);
+    results = paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), true);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -688,7 +694,7 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a wrong server
-    results = paths.getTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
+    results = paths.getTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
         AddressSelector.exact(HostAndPort.fromString("localhost:1234")), true);
     assertEquals(0, results.size());
   }
@@ -699,15 +705,14 @@ public class ServiceLockPathsTest {
     replay(zc);
 
     assertThrows(NullPointerException.class, () -> paths.getDeadTabletServer(null, null, false));
-    assertThrows(NullPointerException.class,
-        () -> paths.getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), null, false));
-    assertTrue(paths.getDeadTabletServer(rg -> true, AddressSelector.all(), false).isEmpty());
-    assertTrue(paths
-        .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(), false)
+    assertThrows(NullPointerException.class, () -> paths
+        .getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP), null, false));
+    assertTrue(paths.getDeadTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false)
         .isEmpty());
-    assertTrue(paths
-        .getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.exact(hp), false)
-        .isEmpty());
+    assertTrue(paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), false).isEmpty());
+    assertTrue(paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.exact(hp), false).isEmpty());
   }
 
   @Test
@@ -746,7 +751,7 @@ public class ServiceLockPathsTest {
 
     // query for all
     Set<ServiceLockPath> results =
-        paths.getDeadTabletServer(rg -> true, AddressSelector.all(), false);
+        paths.getDeadTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
     assertEquals(2, results.size());
     Iterator<ServiceLockPath> iter = results.iterator();
     var slp1 = iter.next();
@@ -775,13 +780,14 @@ public class ServiceLockPathsTest {
     }
 
     // query for all in non-existent resource group
-    results = paths.getDeadTabletServer(rg -> rg.equals(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
+    results = paths.getDeadTabletServer(
+        ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE_RESOURCE_GROUP")),
         AddressSelector.all(), false);
     assertEquals(0, results.size());
 
     // query for all in test resource group
-    results = paths.getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP), AddressSelector.all(),
-        false);
+    results = paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
+        AddressSelector.all(), false);
     assertEquals(1, results.size());
     iter = results.iterator();
     slp1 = iter.next();
@@ -792,7 +798,7 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a specific server
-    results = paths.getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
+    results = paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
         AddressSelector.exact(hp), false);
     assertEquals(1, results.size());
     iter = results.iterator();
@@ -804,7 +810,7 @@ public class ServiceLockPathsTest {
         slp1.toString());
 
     // query for a wrong server
-    results = paths.getDeadTabletServer(rg -> rg.equals(TEST_RESOURCE_GROUP),
+    results = paths.getDeadTabletServer(ResourceGroupPredicate.exact(TEST_RESOURCE_GROUP),
         AddressSelector.exact(HostAndPort.fromString("localhost:1234")), false);
     assertEquals(0, results.size());
   }

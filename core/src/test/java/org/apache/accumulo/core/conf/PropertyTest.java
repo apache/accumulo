@@ -61,8 +61,21 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
+        // default values shouldn't be null, but they can be an empty string
+        assertNotNull(prop.getDefaultValue());
+        // default values shouldn't start or end with whitespace
+        assertEquals(prop.getDefaultValue().strip(), prop.getDefaultValue(),
+            "Property " + prop.name() + " starts or ends with whitespace");
+        // default values shouldn't contain newline characters or tabs
+        assertFalse(prop.getDefaultValue().contains("\t"),
+            "Property " + prop.name() + " contains a tab character");
+        assertFalse(prop.getDefaultValue().contains("\n"),
+            "Property " + prop.name() + " contains a newline (\\n) character");
+        assertFalse(prop.getDefaultValue().contains("\r"),
+            "Property " + prop.name() + " contains a return (\\r) character");
+
         assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
-            "Property " + prop + " has invalid default value " + prop.getDefaultValue()
+            "Property " + prop.name() + " has invalid default value " + prop.getDefaultValue()
                 + " for type " + prop.getType());
       }
 
@@ -71,8 +84,8 @@ public class PropertyTest {
           "Description not set for " + prop);
 
       // make sure property description ends with a period
-      assertTrue(prop.getDescription().endsWith("."),
-          "Property: " + prop.getKey() + " description does not end with period.");
+      assertTrue(prop.getDescription().trim().endsWith("."), "Property: " + prop.getKey()
+          + " description does not end with period. Description = " + prop.getDescription());
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;

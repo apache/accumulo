@@ -59,7 +59,8 @@ enum TableOperationExceptionType {
 }
 
 enum ConfigurationType {
-  CURRENT
+  PROCESS
+  SYSTEM
   SITE
   DEFAULT
 }
@@ -97,6 +98,10 @@ exception ThriftTableOperationException {
   3:TableOperation op
   4:TableOperationExceptionType type
   5:string description
+}
+
+exception ThriftResourceGroupNotExistsException {
+  1:string resourceGroupName
 }
 
 exception ThriftNotActiveServiceException {
@@ -327,6 +332,15 @@ service ClientService {
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedResourceGroupProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftResourceGroupNotExistsException rgne
   )
 
   map<string, string> getTableConfiguration(

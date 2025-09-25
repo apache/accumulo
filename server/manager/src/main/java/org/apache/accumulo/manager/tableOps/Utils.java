@@ -34,6 +34,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -53,7 +54,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
@@ -297,16 +297,10 @@ public class Utils {
       }
     } else {
       DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId, range);
-      switch (lockType) {
-        case WRITE:
-          lock = locker.writeLock();
-          break;
-        case READ:
-          lock = locker.readLock();
-          break;
-        default:
-          throw new IllegalStateException("Unexpected LockType: " + lockType);
-      }
+      lock = switch (lockType) {
+        case WRITE -> locker.writeLock();
+        case READ -> locker.readLock();
+      };
     }
     return lock;
   }
@@ -344,8 +338,8 @@ public class Utils {
       while (file.hasNextLine()) {
         String line = file.nextLine();
         log.trace("split line: {}", line);
-        Pair<Text,TabletMergeability> splitTm = TabletMergeabilityUtil.decode(line);
-        data.put(splitTm.getFirst(), splitTm.getSecond());
+        TableOperationsImpl.SplitMergeability splitTm = TabletMergeabilityUtil.decode(line);
+        data.put(splitTm.split(), splitTm.mergeability());
       }
     }
     return data;

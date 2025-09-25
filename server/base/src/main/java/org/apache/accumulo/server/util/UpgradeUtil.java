@@ -61,6 +61,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.DefaultUsageFormatter;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -78,10 +79,13 @@ public class UpgradeUtil implements KeywordExecutable {
     boolean prepare = false;
 
     @Parameter(names = "--start",
-        description = "Start an upgrade of an Accumulo instance. This will check that 'accumulo upgrade --prepare'"
-            + " was run on the instance after it was shut down, perform pre-upgrade validation, and perform any"
-            + " upgrade steps that need to occur before the Manager is started. Finally, it creates a mandatory"
-            + " marker in ZooKeeper that enables the Manager to perform an upgrade.")
+        description = """
+            Start an upgrade of an Accumulo instance. The 'start' step is intended to be run on the \
+            instance with the new version of software before any server processes are started. Server processes \
+            should fail to start if this step is not run. This will check that 'accumulo upgrade --prepare' \
+            was run on the instance after it was shut down, perform pre-upgrade validation, and perform any \
+            upgrade steps that need to occur before the Manager is started. After successfully completing this \
+            step, start the server processes to complete the upgrade.""")
     boolean start = false;
 
     @Parameter(names = "--force",
@@ -96,13 +100,33 @@ public class UpgradeUtil implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "utility used to perform various upgrade steps for an Accumulo instance. The 'prepare'"
-        + " step is intended to be run using the old version of software after an instance has"
-        + " been shut down. The 'start' step is intended to be run on the instance with the new"
-        + " version of software. Server processes should fail to start after the 'prepare' step"
-        + " has been run due to the existence of a node in ZooKeeper. When the 'start' step"
-        + " completes successfully it will remove this node allowing the user to start the"
-        + " Manager to complete the instance upgrade process.";
+    return "utility used to perform various upgrade steps for an Accumulo instance.";
+  }
+
+  private static class UpgradeUsageFormatter extends DefaultUsageFormatter {
+
+    public UpgradeUsageFormatter(JCommander commander) {
+      super(commander);
+    }
+
+    @Override
+    public void appendMainLine(StringBuilder out, boolean hasOptions, boolean hasCommands,
+        int indentCount, String indent) {
+      super.appendMainLine(out, hasOptions, hasCommands, indentCount, indent);
+
+      out.append("\n");
+      out.append(indent)
+          .append("  The upgrade command is intended to be used in the following way :\n");
+      out.append(indent).append("    1. Stop older version of accumulo\n");
+      out.append(indent)
+          .append("    2. Run 'accumulo upgrade --prepare' using the older version of accumulo\n");
+      out.append(indent).append("    3. Setup the newer version of the accumulo software\n");
+      out.append(indent)
+          .append("    4. Run 'accumulo upgrade --start' using the newer version of accumulo\n");
+      out.append(indent).append(
+          "    5. Start accumulo using the newer version and let the manager complete the upgrade\n");
+      out.append("\n");
+    }
   }
 
   private void prepare(final ServerContext context) {
@@ -302,10 +326,15 @@ public class UpgradeUtil implements KeywordExecutable {
   @Override
   public void execute(String[] args) throws Exception {
     Opts opts = new Opts();
-    opts.parseArgs(keyword(), args);
+    opts.parseArgs(
+        jCommander -> jCommander.setUsageFormatter(new UpgradeUsageFormatter(jCommander)),
+        keyword(), args);
 
     if (!opts.prepare && !opts.start) {
-      new JCommander(opts).usage();
+      var jc = new JCommander(opts);
+      jc.setProgramName(keyword());
+      jc.setUsageFormatter(new UpgradeUsageFormatter(jc));
+      jc.usage();
       return;
     }
 

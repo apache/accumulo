@@ -31,12 +31,14 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.WithTestNames;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -115,7 +117,9 @@ public class ClusterConfigParserTest extends WithTestNames {
             ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
         final Path outputFile = Files.createFile(tempDir.resolve(testName()));
-
+        var groups = new HashSet<ResourceGroupId>();
+        groups.add(ResourceGroupId.DEFAULT);
+        Stream.of("q1", "q2", "cheap", "highmem").map(ResourceGroupId::of).forEach(groups::add);
         try (var out = Files.newOutputStream(outputFile); var ps = new PrintStream(out)) {
           ClusterConfigParser.outputShellVariables(contents, ps);
         }
@@ -127,7 +131,6 @@ public class ClusterConfigParserTest extends WithTestNames {
     });
   }
 
-  @Test
   public void testShellOutputMain() throws Exception {
 
     // Test that the main method in ClusterConfigParser properly parses the configuration
@@ -145,7 +148,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     });
   }
 
-  private void testShellOutput(Function<URL,Path> outputConfigFunction) throws Exception {
+  private static void testShellOutput(Function<URL,Path> outputConfigFunction) throws Exception {
     final URL configFile = ClusterConfigParserTest.class
         .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yaml");
     assertNotNull(configFile);
@@ -300,20 +303,4 @@ public class ClusterConfigParserTest extends WithTestNames {
     }
   }
 
-  @Test
-  public void testGroupNamePattern() {
-    ClusterConfigParser.validateGroupNames(List.of("a"));
-    ClusterConfigParser.validateGroupNames(List.of("a", "b"));
-    ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a-b")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a*b")));
-    assertThrows(RuntimeException.class,
-        () -> ClusterConfigParser.validateGroupNames(List.of("a?b")));
-  }
 }

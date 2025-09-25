@@ -133,10 +133,9 @@ public class ConditionalMutation extends Mutation {
     if (o == this) {
       return true;
     }
-    if (o == null || !(o instanceof ConditionalMutation)) {
+    if (o == null || !(o instanceof ConditionalMutation cm)) {
       return false;
     }
-    ConditionalMutation cm = (ConditionalMutation) o;
     if (!conditions.equals(cm.conditions)) {
       return false;
     }

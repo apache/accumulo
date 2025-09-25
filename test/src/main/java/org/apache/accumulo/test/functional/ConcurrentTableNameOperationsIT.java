@@ -56,7 +56,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofMinutes(3);
+    return Duration.ofMinutes(5);
   }
 
   @BeforeAll

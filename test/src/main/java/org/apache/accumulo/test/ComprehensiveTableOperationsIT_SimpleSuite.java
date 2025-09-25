@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -745,6 +746,24 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
       ops.getTabletInformation(sysTable, new Range())
           .forEach(ti -> assertEquals(TabletAvailability.HOSTED, ti.getTabletAvailability()));
     }
+  }
+
+  @Test
+  public void test_getNamespace() throws Exception {
+    for (var sysTable : SystemTables.tableNames()) {
+      assertEquals(Namespace.ACCUMULO.name(), ops.getNamespace(sysTable));
+    }
+    ops.create("table1");
+    assertEquals(Namespace.DEFAULT.name(), ops.getNamespace("table1"));
+    client.namespaceOperations().create("ns1");
+    ops.create("ns1.table1");
+    assertEquals("ns1", ops.getNamespace("ns1.table1"));
+
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace((String) null));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(""));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(".foo"));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace("foo."));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(".foo."));
   }
 
   /**

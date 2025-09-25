@@ -86,6 +86,7 @@ import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -243,7 +244,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), dfsUri + "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
-      dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+      dfsUri = loadExistingHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file:///";
     }
@@ -505,6 +506,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
     }
     fileWriter.close();
+  }
+
+  private Configuration loadExistingHadoopConfiguration() {
+    if (config.getHadoopConfDir() == null) {
+      throw new IllegalStateException(
+          "Hadoop configuration directory is required for existing instances");
+    }
+    return config.buildHadoopConfiguration();
   }
 
   /**
@@ -850,8 +859,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int tsActualCount = 0;
     while (tsActualCount < tsExpectedCount) {
-      Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
+      Set<ServiceLockPath> tservers = context.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
       Thread.sleep(500);
@@ -859,8 +868,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int ssActualCount = 0;
     while (ssActualCount < ssExpectedCount) {
-      Set<ServiceLockPath> tservers =
-          context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+      Set<ServiceLockPath> tservers = context.getServerPaths()
+          .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
       Thread.sleep(500);
@@ -868,8 +877,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int ecActualCount = 0;
     while (ecActualCount < ecExpectedCount) {
-      Set<ServiceLockPath> compactors =
-          context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
+      Set<ServiceLockPath> compactors = context.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
       Thread.sleep(500);

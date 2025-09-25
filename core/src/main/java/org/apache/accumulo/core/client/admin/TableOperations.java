@@ -1089,4 +1089,13 @@ public interface TableOperations {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Returns the namespace for the given table name
+   *
+   * @param table fully qualified table name
+   * @return namespace name
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @since 4.0.0
+   */
+  String getNamespace(String table);
 }

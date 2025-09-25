@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration2.AbstractConfiguration;
@@ -204,6 +205,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration(Map<String,String> config) {
     ConfigCheckUtil.validate(config.entrySet(), "site config");
+    var tableProps =
+        config.keySet().stream().filter(prop -> prop.startsWith(Property.TABLE_PREFIX.getKey()))
+            .collect(Collectors.toSet());
+    if (!tableProps.isEmpty()) {
+      throw new IllegalArgumentException(
+          "accumulo.properties file or options set with -o must not contain table properties, saw : "
+              + tableProps);
+    }
+
     this.config = config;
   }
 

@@ -779,11 +779,9 @@ public class ScanServer extends AbstractServer
   }
 
   private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
-    if (session instanceof SingleScanSession) {
-      var sss = (SingleScanSession) session;
+    if (session instanceof SingleScanSession sss) {
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
-    } else if (session instanceof MultiScanSession) {
-      var mss = (MultiScanSession) session;
+    } else if (session instanceof MultiScanSession mss) {
       return mss.exents.stream().flatMap(e -> {
         var tablet = mss.getTabletResolver().getTablet(e);
         if (tablet == null) {

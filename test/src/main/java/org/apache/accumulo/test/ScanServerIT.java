@@ -60,6 +60,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -102,7 +103,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10");
-      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
     }
   }
 
@@ -114,7 +114,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
         "localhost");
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
   }
 
   @AfterAll

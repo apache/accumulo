@@ -74,7 +74,6 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -870,78 +869,6 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
       loginAs(root);
       c.securityOperations().revokeSystemPermission(u1, SystemPermission.ALTER_NAMESPACE);
     }
-  }
-
-  @Test
-  public void verifySystemPropertyInheritance() throws Exception {
-
-    try (AccumuloClient client =
-        getCluster().createAccumuloClient(getPrincipal(), new PasswordToken(getRootPassword()))) {
-      client.securityOperations().grantNamespacePermission(getPrincipal(), "accumulo",
-          NamespacePermission.ALTER_NAMESPACE);
-      client.securityOperations().grantNamespacePermission(getPrincipal(), "",
-          NamespacePermission.ALTER_NAMESPACE);
-    }
-
-    String t1 = "1";
-    String t2 = namespace + "." + t1;
-    c.tableOperations().create(t1);
-    c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t2);
-
-    // verify iterator inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.sum",
-        "20," + SimpleFilter.class.getName(), false);
-
-    // verify constraint inheritance
-    _verifySystemPropertyInheritance(t1, t2, Property.TABLE_CONSTRAINT_PREFIX.getKey() + "42",
-        NumericValueConstraint.class.getName(), false);
-
-    // verify other inheritance
-    _verifySystemPropertyInheritance(t1, t2,
-        Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "dummy", "dummy", true);
-  }
-
-  private void _verifySystemPropertyInheritance(String defaultNamespaceTable, String namespaceTable,
-      String k, String v, boolean systemNamespaceShouldInherit) throws Exception {
-    // nobody should have any of these properties yet
-    assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.ROOT.tableName(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.METADATA.tableName(), k, v));
-    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
-    assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
-    assertFalse(checkNamespaceHasProp(namespace, k, v));
-    assertFalse(checkTableHasProp(namespaceTable, k, v));
-
-    // set the filter, verify that accumulo namespace is the only one unaffected
-    c.instanceOperations().setProperty(k, v);
-    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    Thread.sleep(250);
-    assertTrue(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertEquals(systemNamespaceShouldInherit,
-        checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertEquals(systemNamespaceShouldInherit,
-        checkTableHasProp(SystemTables.ROOT.tableName(), k, v));
-    assertEquals(systemNamespaceShouldInherit,
-        checkTableHasProp(SystemTables.METADATA.tableName(), k, v));
-    assertTrue(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
-    assertTrue(checkTableHasProp(defaultNamespaceTable, k, v));
-    assertTrue(checkNamespaceHasProp(namespace, k, v));
-    assertTrue(checkTableHasProp(namespaceTable, k, v));
-
-    // verify it is no longer inherited
-    c.instanceOperations().removeProperty(k);
-    // doesn't take effect immediately, needs time to propagate to tserver's ZooKeeper cache
-    Thread.sleep(250);
-    assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
-    assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.ROOT.tableName(), k, v));
-    assertFalse(checkTableHasProp(SystemTables.METADATA.tableName(), k, v));
-    assertFalse(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
-    assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
-    assertFalse(checkNamespaceHasProp(namespace, k, v));
-    assertFalse(checkTableHasProp(namespaceTable, k, v));
   }
 
   @Test

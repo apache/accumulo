@@ -36,11 +36,13 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -66,6 +68,8 @@ public class ServerConfigurationFactoryTest {
     propStore = createMock(ZooPropStore.class);
     expect(propStore.get(eq(SystemPropKey.of()))).andReturn(new VersionedProperties(Map.of()))
         .anyTimes();
+    expect(propStore.get(eq(ResourceGroupPropKey.DEFAULT)))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
     expect(propStore.get(eq(TablePropKey.of(TID)))).andReturn(new VersionedProperties(Map.of()))
         .anyTimes();
     expect(propStore.get(eq(NamespacePropKey.of(NSID))))
@@ -86,7 +90,7 @@ public class ServerConfigurationFactoryTest {
     expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getConfiguration()).andReturn(sysConfig).anyTimes();
-    scf = new ServerConfigurationFactory(context, siteConfig) {
+    scf = new ServerConfigurationFactory(context, siteConfig, ResourceGroupId.DEFAULT) {
       @Override
       public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {
         if (tableId.equals(TID)) {

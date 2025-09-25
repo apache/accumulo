@@ -69,8 +69,7 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
 
   @Override
   public boolean equals(Object obj) {
-    if (obj instanceof UnreferencedTabletFile) {
-      UnreferencedTabletFile that = (UnreferencedTabletFile) obj;
+    if (obj instanceof UnreferencedTabletFile that) {
       return path.equals(that.path);
     }
     return false;

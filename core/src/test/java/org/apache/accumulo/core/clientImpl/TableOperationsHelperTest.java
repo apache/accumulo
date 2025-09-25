@@ -284,6 +284,12 @@ public class TableOperationsHelperTest {
     public List<SummarizerConfiguration> listSummarizers(String tableName) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String getNamespace(String table) {
+      throw new UnsupportedOperationException();
+    }
+
   }
 
   protected TableOperationsHelper getHelper() {

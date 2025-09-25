@@ -76,6 +76,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -94,6 +95,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
@@ -169,6 +171,7 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
+  private ResourceGroupOperations rgOps = null;
   private final Supplier<ThreadPools> clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
@@ -218,8 +221,9 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
-              .stream().map(entry -> new ScanServerInfo() {
+          return () -> getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).stream()
+              .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
                   return entry.getServer();
@@ -455,7 +459,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     Map<String,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+        getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();
@@ -899,6 +903,15 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
+  public synchronized ResourceGroupOperations resourceGroupOperations() {
+    ensureOpen();
+    if (rgOps == null) {
+      rgOps = new ResourceGroupOperationsImpl(this);
+    }
+    return rgOps;
+  }
+
+  @Override
   public Properties properties() {
     ensureOpen();
     Properties result = new Properties();
@@ -1282,7 +1295,8 @@ public class ClientContext implements AccumuloClient {
     for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
+        Constants.ZRESOURCEGROUPS)) {
       pathsToWatch.add(path);
     }
     return pathsToWatch;
