@@ -193,9 +193,12 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     TableId tableID = createAndVerifyTable(client, tableName, alpha_rows, true);
 
     // Verify the new files are written only to the expected volumes
-    Set<String> allTableFiles = getServerContext().getAmple().readTablets().forTable(tableID)
-        .fetch(ColumnType.FILES).build().stream().flatMap(tm -> tm.getFiles().stream())
-        .map(StoredTabletFile::getPath).map(Path::toString).collect(toSet());
+    Set<String> allTableFiles;
+    try (var tabletsMetadata = getServerContext().getAmple().readTablets().forTable(tableID)
+        .fetch(ColumnType.FILES).build()) {
+      allTableFiles = tabletsMetadata.stream().flatMap(tm -> tm.getFiles().stream())
+          .map(StoredTabletFile::getPath).map(Path::toString).collect(toSet());
+    }
     assertEquals(alpha_rows.size(), allTableFiles.size(), "Wrong number of files");
     Set<Path> expectedVolumesSeen = new TreeSet<>();
     allTableFiles.forEach(file -> {
