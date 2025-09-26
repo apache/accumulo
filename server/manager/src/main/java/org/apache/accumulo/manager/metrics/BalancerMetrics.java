@@ -31,10 +31,6 @@ public class BalancerMetrics implements MetricsProducer {
 
   LongSupplier migratingCount;
 
-  public void assignMigratingCount(LongSupplier f) {
-    migratingCount = f;
-  }
-
   public long getMigratingCount() {
     // Handle inital NaN value state when balance has never been called
     if (migratingCount == null) {

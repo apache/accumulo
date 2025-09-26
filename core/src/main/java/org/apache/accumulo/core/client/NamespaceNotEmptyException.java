@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.client;
 
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-
 /**
  * Thrown when the namespace specified contains tables
  */
@@ -53,13 +51,6 @@ public class NamespaceNotEmptyException extends Exception {
       Throwable cause) {
     this(namespaceId, namespaceName, description);
     super.initCause(cause);
-  }
-
-  /**
-   * @param e constructs an exception from a thrift exception
-   */
-  public NamespaceNotEmptyException(ThriftTableOperationException e) {
-    this(e.getTableId(), e.getTableName(), e.getDescription(), e);
   }
 
   /**

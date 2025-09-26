@@ -97,10 +97,6 @@ public class UnreferencedTabletFile extends AbstractTabletFile<UnreferencedTable
     return new UnreferencedTabletFile(fs, path);
   }
 
-  public static UnreferencedTabletFile ofRanged(FileSystem fs, Path path, Range range) {
-    return new UnreferencedTabletFile(fs, path, range);
-  }
-
   public static UnreferencedTabletFile of(Configuration conf, Path path) throws IOException {
     return new UnreferencedTabletFile(Objects.requireNonNull(path).getFileSystem(conf), path);
   }
