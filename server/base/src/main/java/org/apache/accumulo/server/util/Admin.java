@@ -305,13 +305,6 @@ public class Admin implements KeywordExecutable {
       commandDescription = "Changes the unique secret given to the instance that all servers must know.")
   static class ChangeSecretCommand {}
 
-  @Parameters(commandNames = "locks",
-      commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
-  static class TabletServerLocksCommand extends SubCommandOpts {
-    @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
-    String delete = null;
-  }
-
   @Parameters(commandNames = "deleteZooInstance",
       commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
   static class DeleteZooInstanceCommand extends SubCommandOpts {
@@ -462,9 +455,6 @@ public class Admin implements KeywordExecutable {
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand(listInstancesOpts);
 
-    TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
-    cl.addCommand(tServerLocksOpts);
-
     PingCommand pingCommand = new PingCommand();
     cl.addCommand(pingCommand);
 
@@ -537,8 +527,8 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("restoreZoo")) {
         RestoreZookeeper.execute(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
       } else if (cl.getParsedCommand().equals("locks")) {
-        TabletServerLocks.execute(context, args.length > 2 ? args[2] : null,
-            tServerLocksOpts.delete);
+        System.out.println("'locks' command has been removed. Use 'serviceStatus' command"
+            + " to list processes and 'stop -f' command to remove their locks.");
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
