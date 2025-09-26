@@ -1180,7 +1180,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     }
 
     if (len > maxLen) {
-      sb.append("... TRUNCATED");
+      sb.append("... TRUNCATED (length: ").append(len).append(")");
     }
 
     return sb;
