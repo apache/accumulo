@@ -161,8 +161,8 @@ public class CompactionPluginUtils {
                 SummaryCollection fsc = SummaryReader
                     .load(conf, source, file.getFileName(), summarySelector, factory,
                         tableConf.getCryptoService())
-                    .getSummaries(Collections
-                        .singletonList(RowRange.openClosed(extent.prevEndRow(), extent.endRow())));
+                    .getSummaries(Collections.singletonList(
+                        RowRange.range(extent.prevEndRow(), false, extent.endRow(), true)));
 
                 sc.merge(fsc, factory);
               }

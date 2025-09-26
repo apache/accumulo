@@ -32,7 +32,7 @@ import org.apache.hadoop.io.Text;
 /**
  * This class is used to specify a range of rows.
  *
- * @since 3.0.0
+ * @since 4.0.0
  */
 public class RowRange implements Comparable<RowRange> {
 
@@ -310,10 +310,10 @@ public class RowRange implements Comparable<RowRange> {
    */
   private RowRange(Text lowerBound, boolean lowerBoundInclusive, Text upperBound,
       boolean upperBoundInclusive) {
-    this.lowerBound = lowerBound;
+    this.lowerBound = lowerBound == null ? null : new Text(lowerBound);
     this.lowerBoundInclusive = lowerBoundInclusive;
     this.infiniteLowerBound = lowerBound == null;
-    this.upperBound = upperBound;
+    this.upperBound = upperBound == null ? null : new Text(upperBound);
     this.upperBoundInclusive = upperBoundInclusive;
     this.infiniteUpperBound = upperBound == null;
 
@@ -427,7 +427,7 @@ public class RowRange implements Comparable<RowRange> {
 
   /**
    * Compares this row range to another row range. Compares in order: lower bound, inclusiveness of
-   * lower bound, upper bound, inclusiveness of upper bound. Infinite rows sort first, and
+   * lower bound, upper bound, inclusiveness of upper bound. Infinite rows sort last, and
    * non-infinite rows are compared with {@link Text#compareTo(BinaryComparable)}. Inclusive sorts
    * before non-inclusive.
    *
@@ -482,7 +482,8 @@ public class RowRange implements Comparable<RowRange> {
   }
 
   /**
-   * Merges overlapping and adjacent row ranges. For example, given the following input:
+   * Merges overlapping and adjacent row ranges. Adjacent ranges are those that share an endpoint
+   * where at least one range includes that endpoint. For example, given the following input:
    *
    * <pre>
    * [a,c], (c, d], (g,m), (j,t]
@@ -528,12 +529,22 @@ public class RowRange implements Comparable<RowRange> {
           || (currentRange.lowerBound != null
               && currentRange.lowerBound.equals(nextRange.lowerBound));
 
-      int comparison;
-      if (lowerBoundsEqual || currentRange.infiniteUpperBound
-          || (nextRange.lowerBound != null && (currentRange.upperBound == null
-              || currentRange.upperBound.compareTo(nextRange.lowerBound) > 0
-              || (currentRange.upperBound.equals(nextRange.lowerBound)
-                  && (!currentRange.upperBoundInclusive || nextRange.lowerBoundInclusive))))) {
+      boolean shouldMerge = lowerBoundsEqual || currentRange.infiniteUpperBound;
+
+      if (!shouldMerge) {
+        if (nextRange.lowerBound == null) {
+          shouldMerge = true;
+        } else if (!currentRange.isBefore(nextRange.lowerBound)) {
+          shouldMerge = true;
+        } else if (currentRange.upperBound != null
+            && currentRange.upperBound.equals(nextRange.lowerBound)
+            && nextRange.lowerBoundInclusive) {
+          shouldMerge = true;
+        }
+      }
+
+      if (shouldMerge) {
+        int comparison;
         if (nextRange.infiniteUpperBound) {
           comparison = 1;
         } else if (currentRange.upperBound == null) {

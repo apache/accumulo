@@ -435,9 +435,11 @@ public class Gatherer {
   public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
-    Function<TRowRange,RowRange> fromThrift =
-        tRowRange -> RowRange.openClosed(ByteBufferUtil.toText(tRowRange.startRow),
-            ByteBufferUtil.toText(tRowRange.endRow));
+    Function<TRowRange,RowRange> fromThrift = tRowRange -> {
+      Text lowerBound = ByteBufferUtil.toText(tRowRange.startRow);
+      Text upperBound = ByteBufferUtil.toText(tRowRange.endRow);
+      return RowRange.range(lowerBound, false, upperBound, true);
+    };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
@@ -543,7 +545,7 @@ public class Gatherer {
     final Text lowerBound = removeTrailingZeroFromRow(r.getStartKey());
     final Text upperBound = removeTrailingZeroFromRow(r.getEndKey());
 
-    return RowRange.openClosed(lowerBound, upperBound);
+    return RowRange.range(lowerBound, false, upperBound, true);
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,

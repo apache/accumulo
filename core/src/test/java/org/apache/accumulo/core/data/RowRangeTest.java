@@ -21,6 +21,7 @@ package org.apache.accumulo.core.data;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,6 +69,23 @@ public class RowRangeTest {
       assertEquals(isLowerBoundInclusive, range.isLowerBoundInclusive());
       assertEquals(upperBound, range.getUpperBound());
       assertEquals(isUpperBoundInclusive, range.isUpperBoundInclusive());
+    }
+
+    @Test
+    void testDefensiveCopyOfBounds() {
+      Text originalLower = new Text("a");
+      Text originalUpper = new Text("z");
+
+      RowRange range = RowRange.range(originalLower, true, originalUpper, false);
+
+      assertNotSame(originalLower, range.getLowerBound());
+      assertNotSame(originalUpper, range.getUpperBound());
+
+      originalLower.set("changed");
+      originalUpper.set("changed");
+
+      assertEquals(new Text("a"), range.getLowerBound());
+      assertEquals(new Text("z"), range.getUpperBound());
     }
 
     @Test
@@ -651,15 +669,15 @@ public class RowRangeTest {
           Arguments.of(List.of(RowRange.atMost("d"), RowRange.atLeast("r"),
               RowRange.closed("c", "e"), RowRange.closed("g", "t"), RowRange.closed("d", "h")),
               List.of(RowRange.all())),
-          // [a,b) (b,c) -> [a,c)
+          // [a,b) (b,c) -> [a,b), (b,c)
           Arguments.of(List.of(RowRange.closedOpen("a", "b"), RowRange.open("b", "c")),
-              List.of(RowRange.closedOpen("a", "c"))),
+              List.of(RowRange.closedOpen("a", "b"), RowRange.open("b", "c"))),
           // [a,b) [b,c) -> [a,c)
           Arguments.of(List.of(RowRange.closedOpen("a", "b"), RowRange.closedOpen("b", "c")),
               List.of(RowRange.closedOpen("a", "c"))),
-          // [a,b] (b,c) -> [a,b], (b,c)
+          // [a,b] (b,c) -> [a,c)
           Arguments.of(List.of(RowRange.closed("a", "b"), RowRange.open("b", "c")),
-              List.of(RowRange.closed("a", "b"), RowRange.open("b", "c"))),
+              List.of(RowRange.closedOpen("a", "c"))),
           // [a,b] [b,c) -> [a,c)
           Arguments.of(List.of(RowRange.closed("a", "b"), RowRange.closedOpen("b", "c")),
               List.of(RowRange.closedOpen("a", "c"))),
