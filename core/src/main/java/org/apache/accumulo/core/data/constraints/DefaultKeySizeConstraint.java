@@ -22,7 +22,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.data.ColumnUpdate;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A constraints that limits the size of keys to 1mb.
@@ -34,6 +37,7 @@ import org.apache.accumulo.core.data.Mutation;
  */
 public class DefaultKeySizeConstraint implements Constraint {
 
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultKeySizeConstraint.class);
   protected static final short MAX__KEY_SIZE_EXCEEDED_VIOLATION = 1;
   protected static final long maxSize = 1048576; // 1MB default size
 
@@ -67,6 +71,9 @@ public class DefaultKeySizeConstraint implements Constraint {
 
       if (size > maxSize) {
         violations.add(MAX__KEY_SIZE_EXCEEDED_VIOLATION);
+        Key k = new Key(mutation.getRow(), cu.getColumnFamily(), cu.getColumnQualifier(),
+            cu.getColumnVisibility(), cu.getTimestamp(), cu.isDeleted());
+        LOG.debug("Constraint violation. Key {} (size = {}) larger than 1MB", k, size);
       }
     }
 
