@@ -131,6 +131,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -1571,12 +1572,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-      boolean startInclusive, Text endRow, boolean endInclusive) throws TableNotFoundException {
+  public Text getMaxRow(String tableName, Authorizations auths, RowRange rowRange)
+      throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
-
-    Scanner scanner = context.createScanner(tableName, auths);
-    return FindMax.findMax(scanner, startRow, startInclusive, endRow, endInclusive);
+    try (Scanner scanner = context.createScanner(tableName, auths)) {
+      return FindMax.findMax(scanner, rowRange);
+    }
   }
 
   @Override
