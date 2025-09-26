@@ -161,6 +161,15 @@ public class SummarizerConfiguration {
   }
 
   /**
+   * Decodes table properties with the prefix {@code table.summarizer} into
+   * {@link SummarizerConfiguration} objects. Table properties with prefixes other than
+   * {@code table.summarizer} are ignored.
+   */
+  public static Collection<SummarizerConfiguration> fromTableProperties(Map<String,String> props) {
+    return fromTableProperties(props.entrySet());
+  }
+
+  /**
    * @see #fromTableProperties(Map)
    */
   public static Collection<SummarizerConfiguration>
