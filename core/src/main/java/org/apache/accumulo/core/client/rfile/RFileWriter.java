@@ -131,6 +131,15 @@ public class RFileWriter implements AutoCloseable {
   }
 
   /**
+   * See javadoc for {@link #startNewLocalityGroup(String, List)}
+   *
+   * @throws IllegalStateException When default locality group already started.
+   */
+  public void startNewLocalityGroup(String name, byte[]... families) throws IOException {
+    startNewLocalityGroup(name, Arrays.asList(families));
+  }
+
+  /**
    * See javadoc for {@link #startNewLocalityGroup(String, List)}.
    *
    * @param families will be encoded using UTF-8

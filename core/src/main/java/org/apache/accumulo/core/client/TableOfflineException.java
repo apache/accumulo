@@ -25,6 +25,13 @@ public class TableOfflineException extends RuntimeException {
   private static final long serialVersionUID = 1L;
 
   /**
+   * @since 2.0.0
+   */
+  public TableOfflineException(String msg) {
+    super(msg);
+  }
+
+  /**
    * @since 2.1.0
    */
   public TableOfflineException(TableId tableId, String tableName) {

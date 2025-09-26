@@ -38,6 +38,10 @@ public class DoNothingBalancer implements TabletBalancer {
     this.tableId = null;
   }
 
+  public DoNothingBalancer(TableId tableId) {
+    this.tableId = tableId;
+  }
+
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {}
 
