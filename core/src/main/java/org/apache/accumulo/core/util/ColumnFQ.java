@@ -20,7 +20,6 @@ package org.apache.accumulo.core.util;
 
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Column;
-import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -41,10 +40,6 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
 
   public ColumnFQ(Key k) {
     this(k.getColumnFamily(), k.getColumnQualifier());
-  }
-
-  public ColumnFQ(ColumnUpdate cu) {
-    this(new Text(cu.getColumnFamily()), new Text(cu.getColumnQualifier()));
   }
 
   public Text getColumnQualifier() {

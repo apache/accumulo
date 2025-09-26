@@ -52,12 +52,4 @@ public interface CompactableFile {
     return new CompactableFileImpl(uri, estimatedSize, estimatedEntries);
   }
 
-  /**
-   * Creates a new CompactableFile object that implements this interface.
-   *
-   * @since 4.0.0
-   */
-  static CompactableFile create(URI uri, Range range, long estimatedSize, long estimatedEntries) {
-    return new CompactableFileImpl(uri, range, estimatedSize, estimatedEntries);
-  }
 }

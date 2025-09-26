@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import org.apache.accumulo.core.rpc.TBufferedSocket;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.transport.TSocket;
@@ -41,9 +40,7 @@ public class ClientInfoProcessorFactory extends TProcessorFactory {
 
   @Override
   public TProcessor getProcessor(TTransport trans) {
-    if (trans instanceof TBufferedSocket tsock) {
-      clientAddress.set(tsock.getClientString());
-    } else if (trans instanceof TSocket tsock) {
+    if (trans instanceof TSocket tsock) {
       clientAddress.set(
           tsock.getSocket().getInetAddress().getHostAddress() + ":" + tsock.getSocket().getPort());
     } else {

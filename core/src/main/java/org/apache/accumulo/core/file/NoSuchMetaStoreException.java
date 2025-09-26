@@ -26,10 +26,6 @@ public class NoSuchMetaStoreException extends IOException {
     super(msg, e);
   }
 
-  public NoSuchMetaStoreException(String msg) {
-    super(msg);
-  }
-
   private static final long serialVersionUID = 1L;
 
 }

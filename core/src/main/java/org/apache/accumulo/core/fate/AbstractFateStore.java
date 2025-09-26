@@ -101,10 +101,6 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   // Keeps track of the number of concurrent callers to waitForStatusChange()
   private final AtomicInteger concurrentStatusChangeCallers = new AtomicInteger(0);
 
-  public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld) {
-    this(lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
-  }
-
   public AbstractFateStore(ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld,
       int maxDeferred, FateIdGenerator fateIdGenerator) {
     this.maxDeferred = maxDeferred;

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager;
 
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.Map;
 
@@ -126,13 +125,6 @@ public class EventCoordinator {
   public void event(KeyExtent extent, String msg, Object... args) {
     log.debug(String.format(msg, args));
     publish(new Event(EventScope.TABLE_RANGE, extent));
-  }
-
-  public void event(Collection<KeyExtent> extents, String msg, Object... args) {
-    if (!extents.isEmpty()) {
-      log.debug(String.format(msg, args));
-      extents.forEach(extent -> publish(new Event(EventScope.TABLE_RANGE, extent)));
-    }
   }
 
   private synchronized void publish(Event event) {

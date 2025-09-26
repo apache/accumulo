@@ -491,19 +491,6 @@ public class TabletServerLogger {
   }
 
   /**
-   * Log a single mutation. This method expects mutations that have a durability other than NONE.
-   */
-  public void log(final CommitSession commitSession, final Mutation m, final Durability durability)
-      throws IOException {
-    if (durability == Durability.DEFAULT || durability == Durability.NONE) {
-      throw new IllegalArgumentException("Unexpected durability " + durability);
-    }
-    write(singletonList(commitSession), false, logger -> logger.log(commitSession, m, durability),
-        writeRetryFactory.createRetry());
-    logSizeEstimate.addAndGet(m.numBytes());
-  }
-
-  /**
    * Log mutations. This method expects mutations that have a durability other than NONE.
    */
   public void logManyTablets(Map<CommitSession,TabletMutations> loggables) throws IOException {
