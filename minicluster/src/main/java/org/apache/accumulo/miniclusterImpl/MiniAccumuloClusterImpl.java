@@ -244,7 +244,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), dfsUri + "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
-      dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+      dfsUri = loadExistingHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file:///";
     }
@@ -506,6 +506,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
     }
     fileWriter.close();
+  }
+
+  private Configuration loadExistingHadoopConfiguration() {
+    if (config.getHadoopConfDir() == null) {
+      throw new IllegalStateException(
+          "Hadoop configuration directory is required for existing instances");
+    }
+    return config.buildHadoopConfiguration();
   }
 
   /**
@@ -1160,8 +1168,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     try (AccumuloClient c = Accumulo.newClient().from(clientProperties.get()).build()) {
       ClientContext context = (ClientContext) c;
       return ThriftClientTypes.MANAGER.execute(context,
-          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-          ResourceGroupPredicate.DEFAULT_RG_ONLY);
+          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
     }
   }
 

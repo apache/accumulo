@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
@@ -40,6 +41,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.IdBasedPropStoreKey;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -163,6 +165,8 @@ public class ZooPropEditor implements KeywordExecutable {
     String scope;
     if (propKey instanceof SystemPropKey) {
       scope = "SYSTEM";
+    } else if (propKey instanceof ResourceGroupPropKey) {
+      scope = "RESOURCE GROUP";
     } else if (propKey instanceof NamespacePropKey) {
       scope = "NAMESPACE";
     } else if (propKey instanceof TablePropKey) {
@@ -181,13 +185,14 @@ public class ZooPropEditor implements KeywordExecutable {
       writer.printf(": Name: %s\n", getDisplayName(propKey, context));
       writer.printf(": Id: %s\n", propKey instanceof IdBasedPropStoreKey
           ? ((IdBasedPropStoreKey<?>) propKey).getId() : "N/A");
-      writer.printf(": Data version: %d\n", props.getDataVersion());
-      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
         return;
       }
+
+      writer.printf(": Data version: %d\n", props.getDataVersion());
+      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
 
       SortedMap<String,String> sortedMap = new TreeMap<>(props.asMap());
       sortedMap.forEach((name, value) -> writer.printf("%s=%s\n", name, value));
@@ -216,7 +221,15 @@ public class ZooPropEditor implements KeywordExecutable {
       return NamespacePropKey.of(nid);
     }
 
-    // no table or namespace, assume system.
+    if (!opts.resourceGroupOpt.isEmpty()) {
+      if (!context.resourceGroupOperations().exists(opts.resourceGroupOpt)) {
+        throw new IllegalArgumentException(
+            "Could not find resource group " + opts.resourceGroupOpt);
+      }
+      return ResourceGroupPropKey.of(ResourceGroupId.of(opts.resourceGroupOpt));
+    }
+
+    // no table, namespace or resource group, assume system.
     return SystemPropKey.of();
   }
 
@@ -250,6 +263,9 @@ public class ZooPropEditor implements KeywordExecutable {
       return context.getNamespaceIdToNameMap()
           .getOrDefault(((NamespacePropKey) propStoreKey).getId(), "unknown");
     }
+    if (propStoreKey instanceof ResourceGroupPropKey) {
+      return ((ResourceGroupPropKey) propStoreKey).getId().canonical();
+    }
     if (propStoreKey instanceof SystemPropKey) {
       return "system";
     }
@@ -276,6 +292,9 @@ public class ZooPropEditor implements KeywordExecutable {
     @Parameter(names = {"-tid", "--table-id"},
         description = "table id to display/set/delete properties for")
     public String tableIdOpt = "";
+    @Parameter(names = {"-r", "--resource-group"},
+        description = "resource group name to display/set/delete properties for")
+    private String resourceGroupOpt = "";
 
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {

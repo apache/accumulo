@@ -72,8 +72,7 @@ public class ResolvedCompactionJob implements CompactionJob {
   }
 
   public static final SizeTrackingTreeMap.Weigher<CompactionJob> WEIGHER = job -> {
-    if (job instanceof ResolvedCompactionJob) {
-      var rcj = (ResolvedCompactionJob) job;
+    if (job instanceof ResolvedCompactionJob rcj) {
       long estDataSize = 0;
       if (rcj.selectedFateId != null) {
         estDataSize += rcj.selectedFateId.canonical().length();

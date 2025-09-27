@@ -47,6 +47,8 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ServiceLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
@@ -497,6 +499,9 @@ public class ServiceLock implements Watcher {
     return del;
   }
 
+  @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
+      justification = "Sleep is okay. Can hold the lock as long as needed, as we are shutting down."
+          + " Don't need or want other operations to run.")
   public synchronized void unlock() throws InterruptedException, KeeperException {
     if (lockNodeName == null) {
       throw new IllegalStateException();
@@ -516,7 +521,7 @@ public class ServiceLock implements Watcher {
     // Wait for the delete to happen on the server before exiting method
     Timer start = Timer.startNew();
     while (zooKeeper.exists(pathToDelete, null) != null) {
-      Thread.onSpinWait();
+      Thread.sleep(100);
       if (start.hasElapsed(10, SECONDS)) {
         start.restart();
         LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,

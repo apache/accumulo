@@ -55,6 +55,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -120,10 +121,14 @@ public class ServerContext extends ClientContext {
   private final AtomicBoolean sharedUserWriterCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(ServerInfo.fromServerConfig(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig), ResourceGroupId.DEFAULT);
   }
 
-  private ServerContext(ServerInfo info) {
+  public ServerContext(SiteConfiguration siteConfig, ResourceGroupId rgid) {
+    this(ServerInfo.fromServerConfig(siteConfig), rgid);
+  }
+
+  private ServerContext(ServerInfo info, ResourceGroupId rgid) {
     super(info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     serverDirs = info.getServerDirs();
@@ -135,7 +140,8 @@ public class ServerContext extends ClientContext {
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
-    serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
+    serverConfFactory =
+        memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration(), rgid));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
@@ -156,7 +162,8 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID));
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID),
+        ResourceGroupId.DEFAULT);
   }
 
   /**
@@ -164,7 +171,8 @@ public class ServerContext extends ClientContext {
    * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
    */
   public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
-    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info));
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info),
+        ResourceGroupId.DEFAULT);
   }
 
   /**
@@ -173,7 +181,8 @@ public class ServerContext extends ClientContext {
   public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
-        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
+        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut),
+        ResourceGroupId.DEFAULT);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -182,6 +191,10 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
+    return serverConfFactory.get().getResourceGroupConfiguration();
+  }
+
+  public AccumuloConfiguration getSystemConfiguration() {
     return serverConfFactory.get().getSystemConfiguration();
   }
 

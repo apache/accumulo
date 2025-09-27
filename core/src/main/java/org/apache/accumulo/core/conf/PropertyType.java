@@ -29,6 +29,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -160,19 +161,8 @@ public enum PropertyType {
       "One of the currently supported filename extensions for storing table data files. "
           + "Currently, only " + RFile.EXTENSION + " is supported."),
   VOLUMES("volumes", new ValidVolumes(), "See instance.volumes documentation"),
-  FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(),
-      "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
-          + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
-          + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
-          + "4. all possible user fate operations are present in the json. "
-          + "5. no fate operations are repeated."),
-
-  FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(),
-      "An arbitrary string that: 1. Represents a valid, parsable generic json object. "
-          + "2. the keys of the json are strings which contain a comma-separated list of fate operations. "
-          + "3. the values of the json are integers which represent the number of threads assigned to the fate operations. "
-          + "4. all possible meta fate operations are present in the json. "
-          + "5. no fate operations are repeated."),
+  FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(), ValidUserFateConfig.DESC),
+  FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(), ValidMetaFateConfig.DESC),
   FATE_THREADPOOL_SIZE("(deprecated) Manager FATE thread pool size", new FateThreadPoolSize(),
       "No format check. Allows any value to be set but will warn the user that the"
           + " property is no longer used."),
@@ -473,6 +463,15 @@ public enum PropertyType {
   }
 
   private static class ValidFateConfig implements Predicate<String> {
+    private static final String DESC = """
+        A string that:
+        1. Represents a valid, parsable JSON object.
+        2. Each key is a string which represents a name for the value/pool.
+        3. Each value is a JSON with a single key/value: key = comma-separated string list of FATE
+        operations, value = integer for the number of threads assigned to run those FATE operations.
+        4. All possible %s FATE operations are present in the JSON.
+        5. No FATE operations are repeated.
+        """;
     private static final Logger log = LoggerFactory.getLogger(ValidFateConfig.class);
     private final Set<Fate.FateOperation> allFateOps;
     private final String name;
@@ -484,48 +483,71 @@ public enum PropertyType {
 
     @Override
     public boolean test(String s) {
-      final Set<Fate.FateOperation> seenFateOps;
+      final Set<Fate.FateOperation> seenFateOps = new HashSet<>();
+      final int maxPoolNameLen = 64;
 
       try {
         final var json = JsonParser.parseString(s).getAsJsonObject();
-        seenFateOps = new HashSet<>();
 
         for (var entry : json.entrySet()) {
-          var key = entry.getKey();
-          var val = entry.getValue().getAsInt();
-          if (val <= 0) {
+          var poolName = entry.getKey();
+
+          if (poolName.length() > maxPoolNameLen) {
             log.warn(
-                "Invalid entry {} in {}. Must be a valid thread pool size. Property was unchanged.",
-                entry, name);
+                "Unexpected property value {} for {}. Configured name {} is too long (> {} characters). Property was unchanged",
+                s, name, poolName, maxPoolNameLen);
             return false;
           }
-          var fateOpsStrArr = key.split(",");
+
+          var poolConfigSet = entry.getValue().getAsJsonObject().entrySet();
+          if (poolConfigSet.size() != 1) {
+            log.warn(
+                "Unexpected property value {} for {}. Expected one entry for {} but saw {}. Property was unchanged",
+                s, name, poolName, poolConfigSet.size());
+            return false;
+          }
+
+          var poolConfig = poolConfigSet.iterator().next();
+
+          var poolSize = poolConfig.getValue().getAsInt();
+          if (poolSize <= 0) {
+            log.warn(
+                "Unexpected property value {} for {}. Must be a valid thread pool size (>0), saw {}. Property was unchanged",
+                s, name, poolSize);
+            return false;
+          }
+
+          var fateOpsStrArr = poolConfig.getKey().split(",");
           for (String fateOpStr : fateOpsStrArr) {
             Fate.FateOperation fateOp = Fate.FateOperation.valueOf(fateOpStr);
-            if (seenFateOps.contains(fateOp)) {
-              log.warn("Duplicate fate operation {} seen in {}. Property was unchanged.", fateOp,
-                  name);
+            if (!seenFateOps.add(fateOp)) {
+              log.warn(
+                  "Unexpected property value {} for {}. Duplicate fate operation {} seen. Property was unchanged",
+                  s, name, fateOp);
               return false;
             }
-            seenFateOps.add(fateOp);
           }
         }
       } catch (Exception e) {
-        log.warn("Exception from attempting to set {}. Property was unchanged.", name, e);
+        log.warn("Unexpected property value {} for {}. Exception occurred. Property was unchanged",
+            s, name, e);
         return false;
       }
 
-      var allFateOpsSeen = allFateOps.equals(seenFateOps);
-      if (!allFateOpsSeen) {
+      if (!allFateOps.equals(seenFateOps)) {
         log.warn(
-            "Not all fate operations found in {}. Expected to see {} but saw {}. Property was unchanged.",
-            name, allFateOps, seenFateOps);
+            "Unexpected property value {} for {}. Not all fate operations found. Expected to see {} but saw {}. Property was unchanged",
+            s, name, allFateOps.stream().sorted().collect(Collectors.toList()),
+            seenFateOps.stream().sorted().collect(Collectors.toList()));
+        return false;
       }
-      return allFateOpsSeen;
+
+      return true;
     }
   }
 
   private static class ValidUserFateConfig extends ValidFateConfig {
+    private static final String DESC = String.format(ValidFateConfig.DESC, "user");
     private static final String NAME = "fate user config";
 
     private ValidUserFateConfig() {
@@ -534,6 +556,7 @@ public enum PropertyType {
   }
 
   private static class ValidMetaFateConfig extends ValidFateConfig {
+    private static final String DESC = String.format(ValidFateConfig.DESC, "meta");
     private static final String NAME = "fate meta config";
 
     private ValidMetaFateConfig() {

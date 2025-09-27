@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
@@ -75,6 +74,7 @@ public class FateExecutor<T> {
   private final Thread workFinder;
   private final TransferQueue<FateId> workQueue;
   private final AtomicInteger idleWorkerCount;
+  private final String name;
   private final String poolName;
   private final ThreadPoolExecutor transactionExecutor;
   private final Set<TransactionRunner> runningTxRunners;
@@ -82,26 +82,26 @@ public class FateExecutor<T> {
   private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
   private final FateExecutorMetrics<T> fateExecutorMetrics;
 
-  public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize) {
+  public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize,
+      String name) {
     final FateInstanceType type = fate.getStore().type();
     final String typeStr = type.name().toLowerCase();
-    final String operatesOn = fateOps.stream().map(fo -> fo.name().toLowerCase()).sorted()
-        .collect(Collectors.joining("."));
-    final String transactionRunnerPoolName =
-        ThreadPoolNames.MANAGER_FATE_POOL_PREFIX.poolName + typeStr + "." + operatesOn;
-    final String workFinderThreadName = "fate.work.finder." + typeStr + "." + operatesOn;
+    final String poolName =
+        ThreadPoolNames.MANAGER_FATE_POOL_PREFIX.poolName + typeStr + "." + name;
+    final String workFinderThreadName = "fate.work.finder." + typeStr + "." + name;
 
     this.fate = fate;
     this.environment = environment;
     this.fateOps = Collections.unmodifiableSet(fateOps);
     this.workQueue = new LinkedTransferQueue<>();
     this.runningTxRunners = Collections.synchronizedSet(new HashSet<>());
-    this.poolName = transactionRunnerPoolName;
-    this.transactionExecutor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(transactionRunnerPoolName).numCoreThreads(poolSize).build();
+    this.name = name;
+    this.poolName = poolName;
+    this.transactionExecutor = ThreadPools.getServerThreadPools().getPoolBuilder(poolName)
+        .numCoreThreads(poolSize).build();
     this.idleWorkerCount = new AtomicInteger(0);
     this.fateExecutorMetrics =
-        new FateExecutorMetrics<>(type, operatesOn, runningTxRunners, idleWorkerCount);
+        new FateExecutorMetrics<T>(type, poolName, runningTxRunners, idleWorkerCount);
 
     this.workFinder = Threads.createCriticalThread(workFinderThreadName, new WorkFinder());
     this.workFinder.start();
@@ -112,9 +112,10 @@ public class FateExecutor<T> {
    * grew, stop TransactionRunners if the pool shrunk, and potentially suggest resizing the pool if
    * the load is consistently high.
    */
-  protected void resizeFateExecutor(Map<Set<Fate.FateOperation>,Integer> poolConfigs,
+  protected void resizeFateExecutor(
+      Map<Set<Fate.FateOperation>,Map.Entry<String,Integer>> poolConfigs,
       long idleCheckIntervalMillis) {
-    final int configured = poolConfigs.get(fateOps);
+    final int configured = poolConfigs.get(fateOps).getValue();
     ThreadPools.resizePool(transactionExecutor, () -> configured, poolName);
     synchronized (runningTxRunners) {
       final int running = runningTxRunners.size();
@@ -201,6 +202,10 @@ public class FateExecutor<T> {
         }
       }
     }
+  }
+
+  protected String getName() {
+    return name;
   }
 
   private int getIdleWorkerCount() {
@@ -608,7 +613,7 @@ public class FateExecutor<T> {
 
   @Override
   public String toString() {
-    return String.format("FateExecutor:{FateOps=%s,PoolSize:%s,TransactionRunners:%s}", fateOps,
-        runningTxRunners.size(), runningTxRunners);
+    return String.format("FateExecutor:{FateOps=%s,Name=%s,PoolSize:%s,TransactionRunners:%s}",
+        fateOps, name, runningTxRunners.size(), runningTxRunners);
   }
 }

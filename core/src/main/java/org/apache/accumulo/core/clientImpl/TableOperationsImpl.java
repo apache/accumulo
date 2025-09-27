@@ -143,7 +143,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -172,6 +171,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -516,7 +516,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       tabLocator.invalidateCache();
 
       var splitsToTablets = mapSplitsToTablets(tableName, tableId, tabLocator, splitsTodo);
-      Map<KeyExtent,List<Pair<Text,TabletMergeability>>> tabletSplits = splitsToTablets.newSplits;
+      Map<KeyExtent,List<SplitMergeability>> tabletSplits = splitsToTablets.newSplits;
       Map<KeyExtent,TabletMergeability> existingSplits = splitsToTablets.existingSplits;
 
       List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -542,9 +542,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }, waitExecutor));
       }
 
+      record FateSplits(TFateId opid, List<SplitMergeability> splits) {
+      }
+
       // begin the fate operation for each tablet without waiting for the operation to complete
-      for (Entry<KeyExtent,List<Pair<Text,TabletMergeability>>> splitsForTablet : tabletSplits
-          .entrySet()) {
+      for (Entry<KeyExtent,List<SplitMergeability>> splitsForTablet : tabletSplits.entrySet()) {
         CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
           var extent = splitsForTablet.getKey();
 
@@ -562,7 +564,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               TFateInstanceType t = FateInstanceType.fromNamespaceOrTableName(tableName).toThrift();
               TFateId opid = beginFateOperation(t);
               executeFateOperation(opid, TFateOperation.TABLE_SPLIT, args, Map.of(), false);
-              return new Pair<>(opid, splitsForTablet.getValue());
+              return new FateSplits(opid, splitsForTablet.getValue());
             }, tableName);
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
@@ -571,15 +573,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new CompletionException(e);
           }
           // wait for the fate operation to complete in a separate thread pool
-        }, startExecutor).thenApplyAsync(pair -> {
-          final TFateId opid = pair.getFirst();
-          final List<Pair<Text,TabletMergeability>> completedSplits = pair.getSecond();
+        }, startExecutor).thenApplyAsync(fateSplits -> {
 
           try {
-            String status = handleFateOperation(() -> waitForFateOperation(opid), tableName);
+            String status =
+                handleFateOperation(() -> waitForFateOperation(fateSplits.opid()), tableName);
 
             if (SPLIT_SUCCESS_MSG.equals(status)) {
-              completedSplits.stream().map(Pair::getFirst).forEach(splitsTodo::remove);
+              fateSplits.splits().stream().map(SplitMergeability::split)
+                  .forEach(splitsTodo::remove);
             }
           } catch (TableExistsException | NamespaceExistsException | NamespaceNotFoundException
               | AccumuloSecurityException | TableNotFoundException | AccumuloException e) {
@@ -588,9 +590,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
             throw new CompletionException(e);
           } finally {
             // always finish table op, even when exception
-            if (opid != null) {
+            if (fateSplits.opid() != null) {
               try {
-                finishFateOperation(opid);
+                finishFateOperation(fateSplits.opid());
               } catch (Exception e) {
                 log.warn("Exception thrown while finishing fate table operation", e);
               }
@@ -608,17 +610,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // Below all exceptions are wrapped and rethrown. This is done so that the user knows
         // what code path got them here. If the wrapping was not done, the user would only
         // have the stack trace for the background thread.
-        if (excep instanceof TableNotFoundException) {
-          TableNotFoundException tnfe = (TableNotFoundException) excep;
+        if (excep instanceof TableNotFoundException tnfe) {
           throw new TableNotFoundException(tableId.canonical(), tableName,
               "Table not found by background thread", tnfe);
         } else if (excep instanceof TableOfflineException) {
           log.debug("TableOfflineException occurred in background thread. Throwing new exception",
               excep);
           throw new TableOfflineException(tableId, tableName);
-        } else if (excep instanceof AccumuloSecurityException) {
+        } else if (excep instanceof AccumuloSecurityException base) {
           // base == background accumulo security exception
-          AccumuloSecurityException base = (AccumuloSecurityException) excep;
           throw new AccumuloSecurityException(base.getUser(), base.asThriftException().getCode(),
               base.getTableInfo(), excep);
         } else if (excep instanceof AccumuloServerException) {
@@ -636,7 +636,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private SplitsToTablets mapSplitsToTablets(String tableName, TableId tableId,
       ClientTabletCache tabLocator, SortedMap<Text,TabletMergeability> splitsTodo)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits = new HashMap<>();
+    Map<KeyExtent,List<SplitMergeability>> newSplits = new HashMap<>();
     Map<KeyExtent,TabletMergeability> existingSplits = new HashMap<>();
 
     for (Entry<Text,TabletMergeability> splitEntry : splitsTodo.entrySet()) {
@@ -666,7 +666,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         }
 
         newSplits.computeIfAbsent(tablet.getExtent(), k -> new ArrayList<>())
-            .add(Pair.fromEntry(splitEntry));
+            .add(new SplitMergeability(splitEntry.getKey(), splitEntry.getValue()));
 
       } catch (InvalidTabletHostingRequestException e) {
         // not expected
@@ -676,11 +676,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return new SplitsToTablets(newSplits, existingSplits);
   }
 
+  public record SplitMergeability(Text split, TabletMergeability mergeability) {
+  }
+
   private static class SplitsToTablets {
-    final Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits;
+    final Map<KeyExtent,List<SplitMergeability>> newSplits;
     final Map<KeyExtent,TabletMergeability> existingSplits;
 
-    private SplitsToTablets(Map<KeyExtent,List<Pair<Text,TabletMergeability>>> newSplits,
+    private SplitsToTablets(Map<KeyExtent,List<SplitMergeability>> newSplits,
         Map<KeyExtent,TabletMergeability> existingSplits) {
       this.newSplits = Objects.requireNonNull(newSplits);
       this.existingSplits = Objects.requireNonNull(existingSplits);
@@ -1054,10 +1057,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private Map<String,String> tryToModifyProperties(String tableName,
       final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
       AccumuloSecurityException, IllegalArgumentException, ConcurrentModificationException {
-    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
-            tableName),
-        ResourceGroupPredicate.ANY);
+    final TVersionedProperties vProperties =
+        ThriftClientTypes.CLIENT.execute(context, client -> client
+            .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -1068,11 +1070,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER
-          .executeVoid(
-              context, client -> client.modifyTableProperties(TraceUtil.traceInfo(),
-                  context.rpcCreds(), tableName, vProperties),
-              ResourceGroupPredicate.DEFAULT_RG_ONLY);
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+              tableName, vProperties));
       for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(tableName, property);
       }
@@ -1126,8 +1126,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return modifyProperties(tableName, mapMutator);
     } catch (AccumuloException ae) {
       Throwable cause = ae.getCause();
-      if (cause instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) cause;
+      if (cause instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(ae);
         throw tnfe;
       }
@@ -1139,8 +1138,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value));
   }
 
   @Override
@@ -1161,8 +1159,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void removePropertyNoChecks(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property));
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
@@ -1186,12 +1183,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName),
-          ResourceGroupPredicate.ANY);
+          .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) t;
+      if (t instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(e);
         throw tnfe;
       }
@@ -1207,13 +1202,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     try {
-      return ThriftClientTypes.CLIENT.execute(context,
-          client -> client.getTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName),
-          ResourceGroupPredicate.ANY);
+      return ThriftClientTypes.CLIENT.execute(context, client -> client
+          .getTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) t;
+      if (t instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(e);
         throw tnfe;
       }
@@ -1597,8 +1590,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... it's likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
-        pair = ThriftClientTypes.CLIENT.getThriftServerConnection(context, false,
-            ResourceGroupPredicate.ANY);
+        pair = ThriftClientTypes.CLIENT.getThriftServerConnection(context, false);
         diskUsages = pair.getSecond().getDiskUsage(tableNames, context.rpcCreds());
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
@@ -1796,14 +1788,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkTableClass(TraceUtil.traceInfo(), context.rpcCreds(), tableName,
-              className, asTypeName),
-          ResourceGroupPredicate.ANY);
+              className, asTypeName));
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof TableNotFoundException) {
-        var tnfe = (TableNotFoundException) t;
+      if (t instanceof TableNotFoundException tnfe) {
         tnfe.addSuppressed(e);
         throw tnfe;
       }
@@ -2090,7 +2080,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
           }
           return tsr;
-        }, ResourceGroupPredicate.ANY);
+        });
         return new SummaryCollection(ret).getSummaries();
       }
 
@@ -2299,8 +2289,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     var currentTime = Suppliers.memoize(() -> {
       try {
         return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-            ResourceGroupPredicate.DEFAULT_RG_ONLY));
+            client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }
@@ -2316,6 +2305,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
         .map(tm -> new TabletInformationImpl(tm,
             () -> TabletState.compute(tm, liveTserverSet).toString(), currentTime));
+  }
+
+  @Override
+  public String getNamespace(String table) {
+    return TableNameUtil.qualify(table).getFirst();
   }
 
 }

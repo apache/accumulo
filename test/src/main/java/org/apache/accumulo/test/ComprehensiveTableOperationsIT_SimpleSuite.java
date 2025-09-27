@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -55,6 +54,7 @@ import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -92,7 +92,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +104,6 @@ import com.google.common.net.HostAndPort;
  * avoiding duplicating existing testing. This does not test for edge cases, but rather tests for
  * basic expected functionality of all table operations against user tables and all system tables.
  */
-@Tag(SUNNY_DAY)
 public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniClusterBase {
   private static final Logger log =
       LoggerFactory.getLogger(ComprehensiveTableOperationsIT_SimpleSuite.class);
@@ -747,6 +745,24 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
       ops.getTabletInformation(sysTable, new Range())
           .forEach(ti -> assertEquals(TabletAvailability.HOSTED, ti.getTabletAvailability()));
     }
+  }
+
+  @Test
+  public void test_getNamespace() throws Exception {
+    for (var sysTable : SystemTables.tableNames()) {
+      assertEquals(Namespace.ACCUMULO.name(), ops.getNamespace(sysTable));
+    }
+    ops.create("table1");
+    assertEquals(Namespace.DEFAULT.name(), ops.getNamespace("table1"));
+    client.namespaceOperations().create("ns1");
+    ops.create("ns1.table1");
+    assertEquals("ns1", ops.getNamespace("ns1.table1"));
+
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace((String) null));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(""));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(".foo"));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace("foo."));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(".foo."));
   }
 
   /**

@@ -224,7 +224,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       return;
     }
     // DO NOT ADD CODE HERE that could throw an exception before we enter the try block
-    // Otherwise, we'll never release the lock by unsetting 'fetching' in the the finally block
+    // Otherwise, we'll never release the lock by unsetting 'fetching' in the finally block
     try {
       while (retry) {
         ManagerClientService.Client client = null;

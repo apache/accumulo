@@ -19,11 +19,13 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -123,9 +125,14 @@ public class LargeReadIT extends AccumuloClusterHarness {
         }
       }
 
-      final int numThreads = 64;
-      var executor = Executors.newFixedThreadPool(numThreads);
+      final int numTasks = 64;
+      var executor = Executors.newFixedThreadPool(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
       Callable<Long> scanTask = () -> {
+        startLatch.countDown();
+        startLatch.await();
         try (var scanner = client.createScanner(tableName)) {
           scannerConfigurer.accept(scanner);
           return scanner.stream().count();
@@ -135,9 +142,8 @@ public class LargeReadIT extends AccumuloClusterHarness {
       // Run lots of concurrent task that should only read the small data, if they read the big
       // column family then it will exceed the tablet server memory and cause it to die and the test
       // to timeout.
-      var tasks =
-          Stream.iterate(scanTask, t -> t).limit(numThreads * 5).collect(Collectors.toList());
-      assertEquals(numThreads * 5, tasks.size());
+      var tasks = Stream.iterate(scanTask, t -> t).limit(numTasks * 5).collect(Collectors.toList());
+      assertEquals(numTasks * 5, tasks.size());
       for (var future : executor.invokeAll(tasks)) {
         assertEquals(100, future.get());
       }
