@@ -143,8 +143,8 @@ public class ServiceLockSupport {
       return acquiredLock;
     }
 
-    public boolean isFailedToAcquireLock() {
-      return failedToAcquireLock;
+    public boolean cannotRetryLocking() {
+      return acquiredLock && !failedToAcquireLock;
     }
 
   }
@@ -180,6 +180,7 @@ public class ServiceLockSupport {
     @Override
     public void failedToAcquireLock(Exception e) {
       log.debug("Failed to acquire lock", e);
+      lockAcquired.getAndSet(false);
     }
 
     @Override

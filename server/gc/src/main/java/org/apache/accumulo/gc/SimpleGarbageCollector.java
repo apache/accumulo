@@ -405,7 +405,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         break;
       }
 
-      if (!gcLockWatcher.isFailedToAcquireLock()) {
+      if (gcLockWatcher.cannotRetryLocking()) {
         throw new IllegalStateException("gc lock in unknown state");
       }
 
