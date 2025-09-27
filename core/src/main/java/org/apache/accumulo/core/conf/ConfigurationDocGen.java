@@ -24,6 +24,10 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.TreeMap;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonParser;
+
 /**
  * This class generates documentation to inform users of the available configuration properties in a
  * presentable form.
@@ -31,6 +35,8 @@ import java.util.TreeMap;
 public class ConfigurationDocGen {
   private final PrintStream doc;
   private final TreeMap<String,Property> sortedProps = new TreeMap<>();
+  private final Gson gsonPrettyPrinter =
+      new GsonBuilder().setPrettyPrinting().disableJdkUnsafe().create();
 
   void generate() {
     pageHeader();
@@ -43,10 +49,12 @@ public class ConfigurationDocGen {
         property(prop);
       }
     }
+    endTable();
 
     beginSection("Property Types");
     beginTable("Type");
     propertyTypeDescriptions();
+    endTable();
 
     doc.close();
   }
@@ -56,8 +64,23 @@ public class ConfigurationDocGen {
   }
 
   void beginTable(String name) {
-    doc.println("| " + name + " | Description |");
-    doc.println("|--------------|-------------|");
+    doc.printf("""
+        <table>
+          <thead>
+            <tr>
+              <th>%s</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+        """, name);
+  }
+
+  void endTable() {
+    doc.println("""
+          </tbody>
+        </table>
+        """);
   }
 
   void pageHeader() {
@@ -76,75 +99,81 @@ public class ConfigurationDocGen {
 
   void prefixSection(Property prefix) {
     boolean depr = prefix.isDeprecated();
-    String key = strike("<a name=\"" + prefix.getKey().replace(".", "_")
-        + "prefix\" class=\"prop\"></a> **" + prefix.getKey() + "***", depr);
-    String description = prefix.isExperimental() ? "**Experimental**<br>" : "";
-    description += "**Available since:** " + prefix.availableSince() + "<br>";
-    if (depr) {
-      description += "*Deprecated since:* " + prefix.deprecatedSince() + "<br>";
-      if (prefix.isReplaced()) {
-        description += "*Replaced by:* <a href=\"#" + prefix.replacedBy().getKey().replace(".", "_")
-            + "prefix\">" + prefix.replacedBy() + "</a><br>";
-      }
-    }
-    description += strike(sanitize(prefix.getDescription()), depr);
-    doc.println("| " + key + " | " + description + " |");
+    String delStart = depr ? "<del>" : "";
+    String delEnd = depr ? "</del>" : "";
+    doc.printf("""
+          <tr>
+            <td>%s<a name="%sprefix" class="prop"></a> <strong>%s*</strong>%s</td>
+            <td>%s<strong>Available since:</strong> %s<br>%s%s%s%s%s</td>
+          </tr>
+        """, delStart, prefix.getKey().replace(".", "_"), prefix.getKey(), delEnd,
+        prefix.isExperimental() ? "<strong>&#9888;Experimental&#9888;</strong><br>" : "",
+        prefix.availableSince(),
+        depr ? "<em>Deprecated since:</em> " + prefix.deprecatedSince() + "<br>" : "",
+        depr && prefix.isReplaced() ? String.format("""
+            <em>Replaced by:</em> <a href="#%sprefix">%s</a><br>""",
+            prefix.replacedBy().getKey().replace(".", "_"), prefix.replacedBy()) : "",
+        delStart, replaceNewlinesWithBr(prefix.getDescription()), delEnd);
   }
 
   void property(Property prop) {
     boolean depr = prop.isDeprecated();
-    String key = strike(
-        "<a name=\"" + prop.getKey().replace(".", "_") + "\" class=\"prop\"></a> " + prop.getKey(),
-        depr);
-    String description = prop.isExperimental() ? "**Experimental**<br>" : "";
-    description += "**Available since:** ";
-    if (prop.getKey().startsWith("manager.")
-        && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))) {
-      description += "2.1.0 (formerly *master." + prop.getKey().substring(8) + "* since "
-          + prop.availableSince() + ")<br>";
-    } else {
-      description += prop.availableSince() + "<br>";
-    }
-    if (depr) {
-      description += "*Deprecated since:* " + prop.deprecatedSince() + "<br>";
-      if (prop.isReplaced()) {
-        description += "*Replaced by:* <a href=\"#" + prop.replacedBy().getKey().replace(".", "_")
-            + "\">" + prop.replacedBy() + "</a><br>";
-      }
-    }
-    description += strike(sanitize(prop.getDescription()), depr) + "<br>"
-        + strike("**type:** " + prop.getType().name(), depr) + ", "
-        + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
-    String defaultValue = sanitize(prop.getDefaultValue()).trim();
+    String delStart = depr ? "<del>" : "";
+    String delEnd = depr ? "</del>" : "";
+    String availableSince = prop.getKey().startsWith("manager.")
+        && (prop.availableSince().startsWith("1.") || prop.availableSince().startsWith("2.0"))
+            ? "2.1.0 (formerly <em>master." + prop.getKey().substring(8) + "</em> since "
+                + prop.availableSince() + ")"
+            : prop.availableSince();
+    String defaultValue = prop.getDefaultValue().trim();
     if (defaultValue.isEmpty()) {
-      description += strike("**default value:** empty", depr);
-    } else if (defaultValue.contains("\n")) {
-      // deal with multi-line values, skip strikethrough of value
-      description += strike("**default value:** ", depr) + "\n```\n" + defaultValue + "\n```\n";
+      defaultValue = "empty";
     } else if (prop.getType() == PropertyType.CLASSNAME
         && defaultValue.startsWith("org.apache.accumulo")) {
-      description += strike("**default value:** {% jlink -f " + defaultValue + " %}", depr);
+      defaultValue = "{% jlink -f " + defaultValue + " %}";
     } else {
-      description += strike("**default value:** `" + defaultValue + "`", depr);
+      defaultValue = switch (prop.getType()) {
+        case JSON, FATE_META_CONFIG, FATE_USER_CONFIG -> String.format(
+            """
+                <div style="overflow: auto; resize: both; border: 1px solid; width: 600px;"><code class="language-json highlighter-rouge">%s</code></div>""",
+            gsonPrettyPrinter.toJson(JsonParser.parseString(defaultValue)).replace(" ", "&nbsp;")
+                .replace("\n", "<br>"));
+        default -> String.format("""
+            <code class="language-plaintext highlighter-rouge">%s</code>""", defaultValue);
+      };
     }
-    doc.println("| " + key + " | " + description + " |");
-  }
-
-  private String strike(String s, boolean isDeprecated) {
-    return (isDeprecated ? "~~" : "") + s + (isDeprecated ? "~~" : "");
+    doc.printf(
+        """
+              <tr>
+                <td>%s<a name="%s" class="prop"></a> %s%s</td>
+                <td>%s<strong>Available since:</strong> %s<br>%s%s%s%s<br>
+                  <strong>type: </strong>%s, <strong>zk mutable:</strong> %s, <strong>default value:</strong> %s%s</td>
+              </tr>
+            """,
+        delStart, prop.getKey().replace(".", "_"), prop.getKey(), delEnd,
+        prop.isExperimental() ? "<strong>&#9888;Experimental&#9888;</strong><br>" : "",
+        availableSince, depr ? "<em>Deprecated since:</em> " + prop.deprecatedSince() + "<br>" : "",
+        depr && prop.isReplaced() ? String.format("""
+            <em>Replaced by:</em> <a href="#%s">%s</a><br>""",
+            prop.replacedBy().getKey().replace(".", "_"), prop.replacedBy()) : "",
+        delStart, replaceNewlinesWithBr(prop.getDescription()), prop.getType().toString(),
+        isZooKeeperMutable(prop), defaultValue, delEnd);
   }
 
   void propertyTypeDescriptions() {
     for (PropertyType type : PropertyType.values()) {
-      if (type == PropertyType.PREFIX) {
-        continue;
+      if (type != PropertyType.PREFIX) {
+        doc.printf("""
+              <tr>
+                <td>%s<br>(%s)</td>
+                <td>%s</td>
+              </tr>
+            """, type.name(), type.toString(), replaceNewlinesWithBr(type.getFormatDescription()));
       }
-      doc.println(
-          "| " + sanitize(type.toString()) + " | " + sanitize(type.getFormatDescription()) + " |");
     }
   }
 
-  String sanitize(String str) {
+  String replaceNewlinesWithBr(String str) {
     return str.replace("\n", "<br>");
   }
 
@@ -160,7 +189,9 @@ public class ConfigurationDocGen {
       return "no";
     }
     if (Property.isFixedZooPropertyKey(prop)) {
-      return "yes but requires restart of the " + prop.getKey().split("[.]")[0];
+      String shortname = prop.getKey().startsWith("compaction.coordinator.") ? "manager"
+          : prop.getKey().split("[.]")[0];
+      return "yes but requires restart of the " + shortname;
     }
     return "yes";
   }
