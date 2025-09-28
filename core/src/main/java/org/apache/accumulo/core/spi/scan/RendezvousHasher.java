@@ -211,8 +211,8 @@ class RendezvousHasher {
    * 30 hosts and 295 servers running across all the hosts then for a host with 3 servers its
    * probability of being chosen should be 3/295=1.02% across all tablets. If the host with 3
    * servers were chosen uniformly from the 30 host then it would be chosen 1/30=3.33% of the time
-   * instead of 1.02% which would cause its scan servers to have higher load than other servers in
-   * the group.
+   * instead of 1.02% which would cause its scan servers to have higher load than other scan
+   * servers.
    *
    * <p>
    * The implementation for achieving this goal is to sort all servers (not host) by hash and then
