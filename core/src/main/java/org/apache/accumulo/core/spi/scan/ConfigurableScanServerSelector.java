@@ -291,6 +291,10 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedTimeToWaitForScanServers;
     }
+
+    List<AttemptPlan> getAttemptPlans() {
+      return attemptPlans;
+    }
   }
 
   private void parseProfiles(Map<String,String> options) {

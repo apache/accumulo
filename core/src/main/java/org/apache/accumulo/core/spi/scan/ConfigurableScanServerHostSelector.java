@@ -163,7 +163,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
     for (TabletId tablet : params.getTablets()) {
       Map<String,Set<String>> prevFailures = computeFailuresByHost(tablet, params);
 
-      for (int hostAttempt = 0; hostAttempt < profile.attemptPlans.size(); hostAttempt++) {
+      for (int hostAttempt = 0; hostAttempt < profile.getAttemptPlans().size(); hostAttempt++) {
         maxHostAttempt = Math.max(hostAttempt, maxHostAttempt);
         List<String> scanServers =
             getServersForHostAttempt(hostAttempt, tablet, profile, rhasher, prevFailures);
@@ -177,8 +177,8 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
       if (!serversToUse.containsKey(tablet) && !prevFailures.isEmpty()) {
         // assuming no servers were found because all servers have previously failed, so in the
         // case were all servers have previous failed ignore previous failures and try any server
-        List<String> scanServers = getServersForHostAttempt(profile.attemptPlans.size() - 1, tablet,
-            profile, rhasher, Map.of());
+        List<String> scanServers = getServersForHostAttempt(profile.getAttemptPlans().size() - 1,
+            tablet, profile, rhasher, Map.of());
         if (!scanServers.isEmpty()) {
           String serverToUse = scanServers.get(RANDOM.nextInt(scanServers.size()));
           serversToUse.put(tablet, serverToUse);

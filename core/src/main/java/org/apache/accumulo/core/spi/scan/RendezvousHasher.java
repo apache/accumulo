@@ -56,6 +56,19 @@ class RendezvousHasher {
     }
 
     @Override
+    public boolean equals(Object o) {
+      if (o instanceof ServerHash) {
+        return compareTo((ServerHash) o) == 0;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return hash.asInt();
+    }
+
+    @Override
     public int compareTo(ServerHash o) {
       return Arrays.compare(hash.asBytes(), o.hash.asBytes());
     }
