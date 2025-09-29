@@ -99,7 +99,6 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileAlreadyExistsException;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -241,34 +240,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
           CountDownLatch startSignal = new CountDownLatch(numTasks);
           List<Future<Boolean>> futures = new ArrayList<>(numTasks);
           Predicate<Throwable> expectedConcurrentFailure = throwable -> {
-            final String threadName = Thread.currentThread().getName();
-            for (Throwable current = throwable; current != null; current = current.getCause()) {
-              // File system level concurrency failures during bulk import validation
-              if (current instanceof IllegalArgumentException
-                  || current instanceof FileAlreadyExistsException) {
-                LOG.debug("Concurrent import attempt ({}) failed as expected with: {}", threadName,
-                    current.getMessage());
-                return true;
-              }
-
-            }
-
-            String message = throwable == null ? null : throwable.getMessage();
-            if (message == null) {
-              return false;
-            }
-            // Directory processed by another thread
-            if (message.contains("Attempted to import zero files")
-                // Concurrent .isWritable file creation
-                || message.contains("File exists")
-            // Directory permissions changed by winner
-                || message.contains("not writable")
-            // Permission test file conflicts
-                || message.contains("isWritable")
-            // FATE operation layer conflicts
-                || message.contains("Internal error processing waitForFateOperation")) {
-              LOG.debug("Concurrent import attempt ({}) failed with expected message: {}",
-                  threadName, message);
+            if (throwable instanceof IOException || throwable instanceof AccumuloException) {
+              LOG.debug("Concurrent import attempt ({}) failed as expected with {}: {}",
+                  Thread.currentThread().getName(), throwable.getClass().getSimpleName(),
+                  throwable.getMessage());
               return true;
             }
             return false;
