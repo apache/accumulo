@@ -23,13 +23,13 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.validator.routines.UrlValidator;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -120,6 +120,10 @@ public class EmbeddedWebServer {
       LOG.debug("Not configuring Jetty to use TLS");
       return new AbstractConnectionFactory[] {httpFactory};
     }
+  }
+
+  public ServletContextHandler getContextHandler() {
+    return handler;
   }
 
   public void addServlet(ServletHolder restServlet, String where) {

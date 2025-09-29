@@ -86,11 +86,11 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
+import org.eclipse.jetty.ee10.servlet.ResourceServlet;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.ConnectionStatistics;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.resource.Resource;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.jackson.JacksonFeature;
@@ -365,7 +365,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       try {
         log.debug("Trying monitor on port {}", port);
         server = new EmbeddedWebServer(this, port);
-        server.addServlet(getDefaultServlet(), "/resources/*");
+        server.addServlet(getDefaultServlet(server.getContextHandler()), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getRestV2Servlet(), "/rest-v2/*");
         server.addServlet(getViewServlet(), "/*");
@@ -460,15 +460,11 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     log.info("stop requested. exiting ... ");
   }
 
-  private ServletHolder getDefaultServlet() {
-    return new ServletHolder(new DefaultServlet() {
-      private static final long serialVersionUID = 1L;
-
-      @Override
-      public Resource getResource(String pathInContext) {
-        return Resource.newClassPathResource("/org/apache/accumulo/monitor" + pathInContext);
-      }
-    });
+  private ServletHolder getDefaultServlet(ServletContextHandler context) {
+    context.setInitParameter("dirAllowed", "false");
+    context.setInitParameter("baseResource",
+        Monitor.class.getClassLoader().getResource("org/apache/accumulo/monitor").toExternalForm());
+    return new ServletHolder("default", ResourceServlet.class);
   }
 
   public static class MonitorFactory extends AbstractBinder implements Factory<Monitor> {
