@@ -41,8 +41,9 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceInfo.namespaceId, fateId, LockType.WRITE,
-        false, TableOperation.CREATE);
+    return Utils.reserveNamespace(environment.getContext(), namespaceInfo.namespaceId, fateId,
+        LockType.WRITE, false, TableOperation.CREATE);
+
   }
 
   @Override
@@ -65,7 +66,8 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   public void undo(FateId fateId, Manager manager) throws Exception {
     manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
     manager.getContext().clearTableListCache();
-    Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager.getContext(), namespaceInfo.namespaceId, fateId,
+        LockType.WRITE);
   }
 
 }

@@ -43,11 +43,11 @@ class CloneZookeeper extends ManagerRepo {
   public long isReady(FateId fateId, Manager environment) throws Exception {
     long val = 0;
     if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
-      val += Utils.reserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ,
-          true, TableOperation.CLONE);
+      val += Utils.reserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+          LockType.READ, true, TableOperation.CLONE);
     }
-    val += Utils.reserveTable(environment, cloneInfo.getTableId(), fateId, LockType.WRITE, false,
-        TableOperation.CLONE);
+    val += Utils.reserveTable(environment.getContext(), cloneInfo.getTableId(), fateId,
+        LockType.WRITE, false, TableOperation.CLONE);
     return val;
   }
 
@@ -69,9 +69,10 @@ class CloneZookeeper extends ManagerRepo {
   public void undo(FateId fateId, Manager environment) throws Exception {
     environment.getTableManager().removeTable(cloneInfo.getTableId(), cloneInfo.getNamespaceId());
     if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
-      Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ);
+      Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+          LockType.READ);
     }
-    Utils.unreserveTable(environment, cloneInfo.getTableId(), fateId, LockType.WRITE);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getTableId(), fateId, LockType.WRITE);
     environment.getContext().clearTableListCache();
   }
 

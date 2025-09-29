@@ -67,8 +67,9 @@ public class CreateTable extends ManagerRepo {
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), fateId, LockType.READ,
-        true, TableOperation.CREATE);
+    return Utils.reserveNamespace(environment.getContext(), tableInfo.getNamespaceId(), fateId,
+        LockType.READ, true, TableOperation.CREATE);
+
   }
 
   @Override
@@ -97,7 +98,7 @@ public class CreateTable extends ManagerRepo {
     } catch (IOException e) {
       log.error("Table failed to be created and failed to clean up split files at {}", p, e);
     } finally {
-      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);
+      Utils.unreserveNamespace(env.getContext(), tableInfo.getNamespaceId(), fateId, LockType.READ);
     }
   }
 

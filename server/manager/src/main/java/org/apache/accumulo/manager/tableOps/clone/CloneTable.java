@@ -45,10 +45,10 @@ public class CloneTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    long val = Utils.reserveNamespace(environment, cloneInfo.getNamespaceId(), fateId,
+    long val = Utils.reserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
         LockType.READ, true, TableOperation.CLONE);
-    val += Utils.reserveTable(environment, cloneInfo.getSrcTableId(), fateId, LockType.READ, true,
-        TableOperation.CLONE);
+    val += Utils.reserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
+        LockType.READ, true, TableOperation.CLONE);
     return val;
   }
 
@@ -62,8 +62,10 @@ public class CloneTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager environment) {
-    Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ);
-    Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), fateId, LockType.READ);
+    NamespaceId namespaceId = cloneInfo.getNamespaceId();
+    Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.READ);
+    TableId tableId = cloneInfo.getSrcTableId();
+    Utils.unreserveTable(environment.getContext(), tableId, fateId, LockType.READ);
   }
 
 }

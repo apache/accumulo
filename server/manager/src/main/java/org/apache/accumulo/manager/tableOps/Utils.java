@@ -54,7 +54,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -140,13 +139,14 @@ public class Utils {
 
   }
 
-  public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
-      boolean tableMustExist, TableOperation op) throws Exception {
-    return reserveTable(env, tableId, fateId, lockType, tableMustExist, op, LockRange.infinite());
+  public static long reserveTable(ServerContext ctx, TableId tableId, FateId fateId,
+      LockType lockType, boolean tableMustExist, TableOperation op) throws Exception {
+    return reserveTable(ctx, tableId, fateId, lockType, tableMustExist, op, LockRange.infinite());
   }
 
-  public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
-      boolean tableMustExist, TableOperation op, final LockRange range) throws Exception {
+  public static long reserveTable(ServerContext ctx, TableId tableId, FateId fateId,
+      LockType lockType, boolean tableMustExist, TableOperation op, final LockRange range)
+      throws Exception {
     final LockRange widenedRange;
 
     boolean shouldWiden = lockType == LockType.WRITE || op == TableOperation.COMPACT;
@@ -174,13 +174,13 @@ public class Utils {
        *
        * Widening is done for compactions because those operations widen their range.
        */
-      widenedRange = widen(env.getContext().getAmple(), tableId, range, op, tableMustExist);
+      widenedRange = widen(ctx.getAmple(), tableId, range, op, tableMustExist);
       log.debug("{} widened write lock range from {} to {}", fateId, range, widenedRange);
     } else {
       widenedRange = range;
     }
 
-    var lock = getLock(env.getContext(), tableId, fateId, lockType, widenedRange);
+    var lock = getLock(ctx, tableId, fateId, lockType, widenedRange);
     if (shouldWiden && !widenedRange.equals(lock.getRange())) {
       // It is possible the range changed since the lock entry was created. Pre existing locks are
       // found using the fate id and could have a different range.
@@ -201,7 +201,7 @@ public class Utils {
         // it means the table splits changed so release the lock and try again later. The table
         // splits in this range can not change once the lock is acquired, so this recheck is done
         // after getting the lock.
-        var widenedRange2 = widen(env.getContext().getAmple(), tableId, range, op, tableMustExist);
+        var widenedRange2 = widen(ctx.getAmple(), tableId, range, op, tableMustExist);
         if (!widenedRange.equals(widenedRange2)) {
           lock.unlock();
           log.info(
@@ -212,7 +212,7 @@ public class Utils {
       }
 
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+        ZooReaderWriter zk = ctx.getZooSession().asReaderWriter();
         if (!zk.exists(Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
@@ -232,23 +232,23 @@ public class Utils {
     }
   }
 
-  public static void unreserveTable(Manager env, TableId tableId, FateId fateId,
+  public static void unreserveTable(ServerContext ctx, TableId tableId, FateId fateId,
       LockType lockType) {
-    getLock(env.getContext(), tableId, fateId, lockType, LockRange.infinite()).unlock();
+    getLock(ctx, tableId, fateId, lockType, LockRange.infinite()).unlock();
     log.info("table {} {} unlocked for {}", tableId, fateId, lockType);
   }
 
-  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
+  public static void unreserveNamespace(ServerContext ctx, NamespaceId namespaceId, FateId fateId,
       LockType lockType) {
-    getLock(env.getContext(), namespaceId, fateId, lockType, LockRange.infinite()).unlock();
+    getLock(ctx, namespaceId, fateId, lockType, LockRange.infinite()).unlock();
     log.info("namespace {} {} unlocked for {}", namespaceId, fateId, lockType);
   }
 
-  public static long reserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
+  public static long reserveNamespace(ServerContext ctx, NamespaceId namespaceId, FateId fateId,
       LockType lockType, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, fateId, lockType, LockRange.infinite()).tryLock()) {
+    if (getLock(ctx, namespaceId, fateId, lockType, LockRange.infinite()).tryLock()) {
       if (mustExist) {
-        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+        ZooReaderWriter zk = ctx.getZooSession().asReaderWriter();
         if (!zk.exists(Constants.ZNAMESPACES + "/" + namespaceId)) {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
@@ -261,10 +261,10 @@ public class Utils {
     }
   }
 
-  public static long reserveHdfsDirectory(Manager env, String directory, FateId fateId)
+  public static long reserveHdfsDirectory(ServerContext ctx, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
 
-    ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+    ZooReaderWriter zk = ctx.getZooSession().asReaderWriter();
 
     if (ZooReservation.attempt(zk, Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId, "")) {
@@ -276,12 +276,10 @@ public class Utils {
     }
   }
 
-  public static void unreserveHdfsDirectory(Manager env, String directory, FateId fateId)
+  public static void unreserveHdfsDirectory(ServerContext ctx, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
-    ZooReservation.release(env.getContext().getZooSession().asReaderWriter(),
-        Constants.ZHDFS_RESERVATIONS + "/"
-            + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)),
-        fateId);
+    ZooReservation.release(ctx.getZooSession().asReaderWriter(), Constants.ZHDFS_RESERVATIONS + "/"
+        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId);
     log.trace("{} unreserved bulk dir {}", fateId, directory);
   }
 
@@ -308,9 +306,9 @@ public class Utils {
     return lock;
   }
 
-  public static DistributedLock getReadLock(Manager env, AbstractId<?> id, FateId fateId,
+  public static DistributedLock getReadLock(ServerContext ctx, AbstractId<?> id, FateId fateId,
       LockRange range) {
-    return Utils.getLock(env.getContext(), id, fateId, LockType.READ, range);
+    return Utils.getLock(ctx, id, fateId, LockType.READ, range);
   }
 
   /**
@@ -320,9 +318,9 @@ public class Utils {
    *
    * @param path the fully-qualified path
    */
-  public static SortedSet<Text> getSortedSetFromFile(Manager manager, Path path, boolean encoded)
+  public static SortedSet<Text> getSortedSetFromFile(ServerContext ctx, Path path, boolean encoded)
       throws IOException {
-    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(ctx.getHadoopConf());
     var data = new TreeSet<Text>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {
@@ -333,9 +331,9 @@ public class Utils {
     return data;
   }
 
-  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(Manager manager,
+  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(ServerContext ctx,
       Path path) throws IOException {
-    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(ctx.getHadoopConf());
     var data = new TreeMap<Text,TabletMergeability>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {

@@ -62,12 +62,15 @@ class FinishCloneTable extends ManagerRepo {
           expectedCurrStates);
     }
 
-    Utils.unreserveNamespace(environment, cloneInfo.getSrcNamespaceId(), fateId, LockType.READ);
+    Utils.unreserveNamespace(environment.getContext(), cloneInfo.getSrcNamespaceId(), fateId,
+        LockType.READ);
     if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
-      Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ);
+      Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+          LockType.READ);
     }
-    Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), fateId, LockType.READ);
-    Utils.unreserveTable(environment, cloneInfo.getTableId(), fateId, LockType.WRITE);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
+        LockType.READ);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getTableId(), fateId, LockType.WRITE);
 
     environment.getEventCoordinator().event(cloneInfo.getTableId(), "Cloned table %s from %s",
         cloneInfo.getTableName(), cloneInfo.getSrcTableId());

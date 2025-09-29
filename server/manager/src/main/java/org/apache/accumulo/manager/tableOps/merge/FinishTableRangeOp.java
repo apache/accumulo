@@ -55,8 +55,8 @@ class FinishTableRangeOp extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     removeOperationIds(log, data, fateId, manager);
 
-    Utils.unreserveTable(manager, data.tableId, fateId, LockType.WRITE);
-    Utils.unreserveNamespace(manager, data.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(manager.getContext(), data.tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager.getContext(), data.namespaceId, fateId, LockType.READ);
     return null;
   }
 

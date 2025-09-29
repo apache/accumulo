@@ -143,8 +143,8 @@ class CleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
-    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(manager.getContext(), tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId, LockType.READ);
 
     LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
 

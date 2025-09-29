@@ -45,9 +45,10 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, false,
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, false,
         TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.DELETE);
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.WRITE, true,
+            TableOperation.DELETE);
   }
 
   @Override
@@ -61,7 +62,7 @@ public class DeleteTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 }

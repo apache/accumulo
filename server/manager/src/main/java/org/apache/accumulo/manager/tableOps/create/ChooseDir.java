@@ -87,7 +87,7 @@ class ChooseDir extends ManagerRepo {
    */
   private void createTableDirectoriesInfo(Manager manager) throws IOException {
     SortedMap<Text,TabletMergeability> splits =
-        Utils.getSortedSplitsFromFile(manager, tableInfo.getSplitPath());
+        Utils.getSortedSplitsFromFile(manager.getContext(), tableInfo.getSplitPath());
     SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(manager, splits.size());
     writeTabletDirectoriesToFileSystem(manager, tabletDirectoryInfo);
   }
