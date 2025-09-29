@@ -62,10 +62,10 @@ public class CloneTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager environment) {
-    NamespaceId namespaceId = cloneInfo.getNamespaceId();
-    Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.READ);
-    TableId tableId = cloneInfo.getSrcTableId();
-    Utils.unreserveTable(environment.getContext(), tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+        LockType.READ);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
+        LockType.READ);
   }
 
 }
