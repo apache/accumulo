@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.lock;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -149,8 +148,7 @@ public class ServiceLockSupport {
    */
   public static class ServiceLockWatcher implements AccumuloLockWatcher {
 
-    private final AtomicBoolean lockAcquired = new AtomicBoolean(false);
-    private final Logger log = LoggerFactory.getLogger(ServiceLock.class);
+    private final Logger log = LoggerFactory.getLogger(ServiceLockWatcher.class);
     private final Type server;
     private final Supplier<Boolean> shutdownComplete;
     private final Consumer<Type> lostLockAction;
@@ -164,13 +162,12 @@ public class ServiceLockSupport {
 
     @Override
     public void acquiredLock() {
-      lockAcquired.getAndSet(true);
+      LOG.debug("Acquired {} lock", server);
     }
 
     @Override
     public void failedToAcquireLock(Exception e) {
       log.debug("Failed to acquire lock", e);
-      lockAcquired.getAndSet(false);
     }
 
     @Override
