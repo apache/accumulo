@@ -54,6 +54,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
@@ -897,8 +898,8 @@ public class RatioBasedCompactionPlannerTest {
 
   private static CompactableFile createCF(String name, long size) {
     try {
-      return CompactableFile
-          .create(new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0);
+      return new CompactableFileImpl(
+          new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }

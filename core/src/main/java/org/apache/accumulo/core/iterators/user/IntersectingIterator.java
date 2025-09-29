@@ -96,6 +96,13 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
     public Collection<ByteSequence> seekColfams;
     public final boolean notFlag;
 
+    public TermSource(TermSource other) {
+      this.iter = other.iter;
+      this.term = other.term;
+      this.notFlag = other.notFlag;
+      this.seekColfams = other.seekColfams;
+    }
+
     public TermSource(SortedKeyValueIterator<Key,Value> iter, Text term) {
       this(iter, term, false);
     }
@@ -389,6 +396,13 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
       }
     }
     topKey = buildKey(currentPartition, nullText, currentDocID);
+  }
+
+  public static String stringTopKey(SortedKeyValueIterator<Key,Value> iter) {
+    if (iter.hasTop()) {
+      return iter.getTopKey().toString();
+    }
+    return "";
   }
 
   private static final String columnFamiliesOptionName = "columnFamilies";

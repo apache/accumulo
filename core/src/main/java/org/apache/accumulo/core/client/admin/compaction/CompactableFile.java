@@ -21,7 +21,6 @@ package org.apache.accumulo.core.client.admin.compaction;
 import java.net.URI;
 
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metadata.CompactableFileImpl;
 
 /**
  * A single file ready to compact, that will come in a set of possible candidates.
@@ -47,9 +46,5 @@ public interface CompactableFile {
   public long getEstimatedSize();
 
   public long getEstimatedEntries();
-
-  static CompactableFile create(URI uri, long estimatedSize, long estimatedEntries) {
-    return new CompactableFileImpl(uri, estimatedSize, estimatedEntries);
-  }
 
 }

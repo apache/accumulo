@@ -483,6 +483,22 @@ public class MetadataSchema {
   }
 
   /**
+   * Contains additional metadata in a reserved area not for tablets
+   */
+  public static class ReservedSection {
+    private static final Section section = new Section(RESERVED_PREFIX, true, null, false);
+
+    public static Range getRange() {
+      return section.getRange();
+    }
+
+    public static String getRowPrefix() {
+      return section.getRowPrefix();
+    }
+
+  }
+
+  /**
    * Holds delete markers for potentially unused files/directories
    */
   public static class DeletesSection {
