@@ -47,6 +47,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloITBase extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
+  public static final String UNIQUE_TEST_DIR_SYS_PROPERTY = "accumulo.it.uniq.test.dir";
   public static final String STANDALONE_CAPABLE_CLUSTER = "StandaloneCapableCluster";
   public static final String SUNNY_DAY = "SunnyDay";
   public static final String MINI_CLUSTER_ONLY = "MiniClusterOnly";
@@ -91,8 +92,10 @@ public class AccumuloITBase extends WithTestNames {
     if (name == null) {
       return baseDir;
     }
-    String uniqueName = String.format("%s-%d-%d", name, System.currentTimeMillis(),
-        RANDOM.get().nextInt(Short.MAX_VALUE));
+
+    String uniqueName = System.getProperty(UNIQUE_TEST_DIR_SYS_PROPERTY).equalsIgnoreCase("false")
+        ? name : String.format("%s-%d-%d", name, System.currentTimeMillis(),
+            RANDOM.get().nextInt(Short.MAX_VALUE));
     File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());

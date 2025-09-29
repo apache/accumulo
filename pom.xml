@@ -141,6 +141,7 @@ under the License.
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
+    <failsafe.unique.accumulo.test.dirs>false</failsafe.unique.accumulo.test.dirs>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
     <maven.compiler.target>17</maven.compiler.target>
@@ -850,6 +851,7 @@ under the License.
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables combine.children="append">
+              <accumulo.it.uniq.test.dir>${failsafe.unique.accumulo.test.dirs}</accumulo.it.uniq.test.dir>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
             <argLine>${accumulo.build.extraTestArgs}</argLine>
@@ -1744,6 +1746,17 @@ under the License.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>uniq-test-dirs</id>
+      <activation>
+        <property>
+          <name>uniq-test-dirs</name>
+        </property>
+      </activation>
+      <properties>
+        <failsafe.unique.accumulo.test.dirs>true</failsafe.unique.accumulo.test.dirs>
+      </properties>
     </profile>
   </profiles>
 </project>
