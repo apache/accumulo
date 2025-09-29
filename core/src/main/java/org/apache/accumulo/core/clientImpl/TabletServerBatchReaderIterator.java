@@ -653,9 +653,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
       List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
-      CountDownTimer retryCountDownTimer)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      InvalidTabletHostingRequestException {
+      CountDownTimer retryCountDownTimer) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, InvalidTabletHostingRequestException {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
     Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
