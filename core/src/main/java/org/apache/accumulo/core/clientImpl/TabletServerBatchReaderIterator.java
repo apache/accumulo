@@ -263,7 +263,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     ScanServerData ssd;
 
-    Timer startTime = Timer.startNew();
     CountDownTimer retryCountDownTimer = CountDownTimer.startNew(retryTimeout, MILLISECONDS);
 
     while (true) {
@@ -301,7 +300,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               failures.size(), tableId);
         }
 
-        if (startTime.elapsed(MILLISECONDS) > retryTimeout) {
+        if (retryCountDownTimer.isExpired()) {
           // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
