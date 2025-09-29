@@ -113,6 +113,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
+import com.beust.jcommander.MissingCommandException;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
@@ -477,7 +478,25 @@ public class Admin implements KeywordExecutable {
     VolumesCommand volumesCommand = new VolumesCommand();
     cl.addCommand(volumesCommand);
 
-    cl.parse(args);
+    try {
+      cl.parse(args);
+    } catch (MissingCommandException e) {
+      // Process removed commands to provide alternate approach
+      boolean foundRemovedCommand = false;
+      for (String arg : args) {
+        if (arg.equals("locks")) {
+          foundRemovedCommand = true;
+          System.out.println("'locks' command has been removed. Use 'serviceStatus' command"
+              + " to list processes and 'stop -f' command to remove their locks.");
+        }
+      }
+      if (foundRemovedCommand) {
+        return;
+      } else {
+        cl.usage();
+        return;
+      }
+    }
 
     if (cl.getParsedCommand() == null) {
       cl.usage();
@@ -526,9 +545,6 @@ public class Admin implements KeywordExecutable {
             deleteZooInstOpts.auth);
       } else if (cl.getParsedCommand().equals("restoreZoo")) {
         RestoreZookeeper.execute(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
-      } else if (cl.getParsedCommand().equals("locks")) {
-        System.out.println("'locks' command has been removed. Use 'serviceStatus' command"
-            + " to list processes and 'stop -f' command to remove their locks.");
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
