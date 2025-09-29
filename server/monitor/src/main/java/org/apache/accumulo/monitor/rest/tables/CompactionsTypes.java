@@ -27,7 +27,6 @@ public class CompactionsTypes {
 
   // Variable names become JSON objects
   public CompactionsList scans = new CompactionsList();
-  public CompactionsList major = new CompactionsList();
   public CompactionsList minor = new CompactionsList();
 
   public CompactionsTypes() {}
@@ -36,12 +35,10 @@ public class CompactionsTypes {
    * Create a new compaction list based on types
    *
    * @param scans Scan compaction list
-   * @param major Major compaction list
    * @param minor Minor compaction list
    */
-  public CompactionsTypes(CompactionsList scans, CompactionsList major, CompactionsList minor) {
+  public CompactionsTypes(CompactionsList scans, CompactionsList minor) {
     this.scans = scans;
-    this.major = major;
     this.minor = minor;
   }
 }

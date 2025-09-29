@@ -18,21 +18,96 @@
  */
 package org.apache.accumulo.manager.metrics;
 
+import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
+
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
+import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
+import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
 
-public class ManagerMetrics {
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 
-  public static List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {
+public class ManagerMetrics implements MetricsProducer {
+
+  private List<FateMetrics<?>> fateMetrics;
+
+  private final AtomicLong rootTGWErrorsGauge = new AtomicLong(0);
+  private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
+  private final AtomicLong userTGWErrorsGauge = new AtomicLong(0);
+  private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
+
+  public void configureFateMetrics(final AccumuloConfiguration conf, final Manager manager,
+      Map<FateInstanceType,Fate<Manager>> fateRefs) {
+    requireNonNull(conf, "AccumuloConfiguration must not be null");
+    requireNonNull(conf, "Manager must not be null");
+    fateMetrics = List.of(
+        new MetaFateMetrics(manager.getContext(),
+            conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
+            fateRefs.get(FateInstanceType.META).getFateExecutors()),
+        new UserFateMetrics(manager.getContext(),
+            conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
+            fateRefs.get(FateInstanceType.USER).getFateExecutors()));
+  }
+
+  public void incrementTabletGroupWatcherError(DataLevel level) {
+    switch (level) {
+      case METADATA:
+        metadataTGWErrorsGauge.incrementAndGet();
+        break;
+      case ROOT:
+        rootTGWErrorsGauge.incrementAndGet();
+        break;
+      case USER:
+        userTGWErrorsGauge.incrementAndGet();
+        break;
+      default:
+        throw new IllegalStateException("Unhandled DataLevel: " + level);
+    }
+  }
+
+  public void setCompactionServiceConfigurationError() {
+    this.compactionConfigurationError.set(1);
+  }
+
+  public void clearCompactionServiceConfigurationError() {
+    this.compactionConfigurationError.set(0);
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    fateMetrics.forEach(fm -> fm.registerMetrics(registry));
+    Gauge.builder(MANAGER_ROOT_TGW_ERRORS.getName(), rootTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_ROOT_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(MANAGER_META_TGW_ERRORS.getName(), metadataTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_META_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(MANAGER_USER_TGW_ERRORS.getName(), userTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_USER_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError, AtomicInteger::get)
+        .description(COMPACTION_SVC_ERRORS.getDescription()).register(registry);
+  }
+
+  public List<MetricsProducer> getProducers(Manager manager) {
     ArrayList<MetricsProducer> producers = new ArrayList<>();
-    producers.add(new FateMetrics(manager.getContext(),
-        conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+    producers.add(this);
+    producers.addAll(fateMetrics);
+    producers.add(manager.getCompactionCoordinator());
     return producers;
   }
 }

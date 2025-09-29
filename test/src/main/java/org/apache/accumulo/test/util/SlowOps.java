@@ -38,13 +38,15 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.ActiveCompaction;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -76,20 +78,6 @@ public class SlowOps {
     this.tableName = tableName;
     this.maxWaitMillis = maxWaitMillis;
     createData();
-  }
-
-  @SuppressWarnings("deprecation")
-  public static void setExpectedCompactions(AccumuloClient client, final int numParallelExpected) {
-    final int target = numParallelExpected + 1;
-    try {
-      client.instanceOperations().setProperty(
-          Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
-          "[{'name':'any','numThreads':" + target + "}]".replaceAll("'", "\""));
-      Thread.sleep(3_000); // give it time to propagate
-    } catch (AccumuloException | AccumuloSecurityException | InterruptedException
-        | NumberFormatException ex) {
-      throw new IllegalStateException("Could not set parallel compaction limit to " + target, ex);
-    }
   }
 
   public String getTableName() {
@@ -234,28 +222,12 @@ public class SlowOps {
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
      * that used to block a subsequent online command while the fate transaction lock was held.
      */
+    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     do {
-      List<String> tservers = client.instanceOperations().getTabletServers();
-      boolean tableFound = tservers.stream().flatMap(tserver -> {
-        // get active compactions from each server
-        try {
-          List<ActiveCompaction> ac = client.instanceOperations().getActiveCompactions(tserver);
-          log.trace("tserver {}, running compactions {}", tserver, ac.size());
-          return ac.stream();
-        } catch (AccumuloException | AccumuloSecurityException e) {
-          throw new IllegalStateException("failed to get active compactions, test fails.", e);
-        }
-      }).map(activeCompaction -> {
-        // emit table being compacted
-        try {
-          String compactionTable = activeCompaction.getTable();
-          log.debug("Compaction running for {}", compactionTable);
-          return compactionTable;
-        } catch (TableNotFoundException ex) {
-          log.trace("Compaction found for unknown table {}", activeCompaction);
-          return null;
-        }
-      }).anyMatch(tableName::equals);
+      boolean tableFound =
+          ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).stream()
+              .map(rc -> KeyExtent.fromThrift(rc.getJob().getExtent()).tableId())
+              .anyMatch(tableId::equals);
 
       if (tableFound) {
         return true;

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -40,6 +41,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -84,7 +86,7 @@ public class ChaoticLoadBalancerTest {
         if (tabletId.getTable().equals(table)) {
           KeyExtent extent =
               new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
-          TabletStats tstats = new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0);
+          TabletStats tstats = new TabletStats(extent.toThrift(), null, 0L, 0., 0.);
           result.add(new TabletStatisticsImpl(tstats));
         }
       }
@@ -115,10 +117,18 @@ public class ChaoticLoadBalancerTest {
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
 
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    balancer.getAssignments(
-        new AssignmentParamsImpl(getAssignments(servers), metadataTable, assignments));
+    Map<TabletId,TabletServerId> unassigned = new HashMap<>(metadataTable);
 
-    assertEquals(assignments.size(), metadataTable.size());
+    while (!unassigned.isEmpty()) {
+      balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
+          Map.of(ResourceGroupId.DEFAULT, servers.keySet()), unassigned, assignments));
+      assignments.forEach((tablet, tserver) -> {
+        servers.get(tserver).tablets.add(tablet);
+        assertTrue(unassigned.containsKey(tablet));
+        unassigned.remove(tablet);
+      });
+      assignments.clear();
+    }
   }
 
   SortedMap<TabletServerId,TServerStatus> getAssignments(Map<TabletServerId,FakeTServer> servers) {
@@ -157,7 +167,10 @@ public class ChaoticLoadBalancerTest {
     // amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut));
+      SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
+      balancer
+          .balance(new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+              migrations, migrationsOut, DataLevel.USER, Map.of()));
     }
   }
 

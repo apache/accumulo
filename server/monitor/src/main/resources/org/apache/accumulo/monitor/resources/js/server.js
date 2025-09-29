@@ -44,7 +44,7 @@ function refresh() {
  */
 function initServerTables(serv) {
 
-  const url = '/rest/tservers/' + serv;
+  const url = contextPath + 'rest/tservers/' + serv;
   console.debug('REST url used to fetch data for server.js DataTables: ' + url);
 
   // Create a table for details on the current server
@@ -84,12 +84,6 @@ function initServerTables(serv) {
       },
       {
         "data": "minors"
-      },
-      {
-        "data": "majors"
-      },
-      {
-        "data": "splits"
       }
     ]
   });
@@ -211,12 +205,6 @@ function initServerTables(serv) {
       },
       {
         "data": "currentMinorStdDev"
-      },
-      {
-        "data": "currentMajorAvg"
-      },
-      {
-        "data": "currentMajorStdDev"
       }
     ]
   });
@@ -253,7 +241,7 @@ function initServerTables(serv) {
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = `<a href="/tables/${row.tableID}">${data}</a>`;
+            data = `<a href="tables/${row.tableID}">${data}</a>`;
           }
           return data;
         }
@@ -285,15 +273,6 @@ function initServerTables(serv) {
       },
       {
         "data": "minorAvgES"
-      },
-      {
-        "data": "majorAvg"
-      },
-      {
-        "data": "majorStdDev"
-      },
-      {
-        "data": "majorAvgES"
       }
     ]
   });

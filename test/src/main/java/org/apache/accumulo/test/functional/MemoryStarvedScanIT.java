@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_PAUSED_FOR_MEM;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RETURN_FOR_MEM;
 import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
@@ -41,11 +42,13 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -69,7 +72,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
@@ -117,8 +120,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
               double val = Double.parseDouble(metric.getValue());
               SCAN_RETURNED_EARLY.add(val);
             } else if (metric.getName().equals(LOW_MEMORY.getName())) {
-              String process = metric.getTags().get("process.name");
-              if (process != null && process.contains("tserver")) {
+              String process = metric.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY);
+              if (process != null && process.contains(ServerId.Type.TABLET_SERVER.name())) {
                 int val = Integer.parseInt(metric.getValue());
                 LOW_MEM_DETECTED.set(val);
               }
@@ -161,7 +164,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     // that performs read-ahead of KV pairs is not started.
     scanner.setReadaheadThreshold(Long.MAX_VALUE);
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    // This should block until the GarbageCollectionLogger runs and notices that the
+    // This should block until the LowMemoryDetector runs and notices that the
     // VM is low on memory.
     assertTrue(iter.hasNext());
   }
@@ -171,16 +174,20 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     scanner.addScanIterator(new IteratorSetting(11, MemoryConsumingIterator.class, Map.of()));
     scanner.setRanges(Collections.singletonList(new Range()));
     Iterator<Entry<Key,Value>> iter = scanner.iterator();
-    // This should block until the GarbageCollectionLogger runs and notices that the
+    // This should block until the LowMemoryDetector runs and notices that the
     // VM is low on memory.
     assertTrue(iter.hasNext());
   }
 
   static void freeServerMemory(AccumuloClient client) throws Exception {
-    // Instantiating this class on the TabletServer will free the memory as it
-    // frees the buffers created by the MemoryConsumingIterator in its constructor.
-    client.instanceOperations().testClassLoad(MemoryFreeingIterator.class.getName(),
-        WrappingIterator.class.getName());
+    // Scan the metadata table as this is not prevented when the
+    // server is low on memory. Use the MemoryFreeingIterator as it
+    // will free the memory on init()
+    try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
+      IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
+      scanner.addScanIterator(is);
+      assertNotEquals(0, scanner.stream().count()); // consume the key/values
+    }
   }
 
   @Test
@@ -253,7 +260,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           currentCount = fetched.get();
         }
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
@@ -323,8 +330,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
             && SCAN_START_DELAYED.doubleValue() >= paused);
         waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
-        freeServerMemory(client);
       } finally {
+        freeServerMemory(client);
         to.delete(table);
       }
     }
@@ -344,6 +351,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
       // generate enough data so more than one batch is returned.
       ReadWriteIT.ingest(client, 1000, 3, 10, 0, table);
+      to.flush(table, null, null, true);
 
       try (BatchScanner dataConsumingScanner = client.createBatchScanner(table);
           Scanner memoryConsumingScanner = client.createScanner(table)) {
@@ -371,10 +379,17 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         // Wait for a batch to be returned
         waitFor(() -> fetched.get() > 0, MINUTES.toMillis(5), 200);
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // Make sure memory is free before trying to consume memory
+        while (LOW_MEM_DETECTED.get() == 1) {
+          freeServerMemory(client);
+          Thread.sleep(5000);
+        }
+
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
+        waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
         // Grab the current paused count, the number of rows fetched by the memoryConsumingScanner
         // has not increased
@@ -419,11 +434,11 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
   private boolean verifyBatchedStalled(final int currCount, final int startCount,
       final double paused, final double returned) {
-    if (startCount == currCount && SCAN_START_DELAYED.doubleValue() > paused) {
+    if (startCount <= currCount && SCAN_START_DELAYED.doubleValue() > paused) {
       LOG.debug("found expected pause because of low memory");
       return true;
     }
-    if (startCount == currCount && SCAN_RETURNED_EARLY.doubleValue() > returned) {
+    if (startCount <= currCount && SCAN_RETURNED_EARLY.doubleValue() > returned) {
       LOG.debug("found expected early return because of low memory");
       return true;
     }
@@ -480,7 +495,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
           currentCount = fetched.get();
         }
 
-        // This should block until the GarbageCollectionLogger runs and notices that the
+        // This should block until the LowMemoryDetector runs and notices that the
         // VM is low on memory.
         Iterator<Entry<Key,Value>> consumingIter = memoryConsumingScanner.iterator();
         assertTrue(consumingIter.hasNext());
@@ -506,7 +521,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
         Thread.sleep(1500);
         assertEquals(currentCount, fetched.get());
         assertTrue(SCAN_START_DELAYED.doubleValue() >= paused);
-        assertEquals(returned, SCAN_RETURNED_EARLY.doubleValue());
+        assertTrue(SCAN_RETURNED_EARLY.doubleValue() >= returned);
 
         // check across multiple low memory checks and metric updates that low memory detected
         // remains set

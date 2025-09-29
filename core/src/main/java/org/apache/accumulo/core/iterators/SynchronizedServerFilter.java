@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Value;
  * {@link #init(SortedKeyValueIterator, Map, IteratorEnvironment)} method is also not supported
  * since the source can only be assigned in the constructor.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public abstract class SynchronizedServerFilter implements SortedKeyValueIterator<Key,Value> {
 

@@ -70,6 +70,7 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
@@ -96,6 +97,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
   static final Text cf = new Text("cf");
   static final Text cq = new Text("cq");
   static final Value value = new Value("value");
+  static TabletServer server;
   static ServerContext context;
   static LogSorter logSorter;
 
@@ -104,6 +106,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
 
   @BeforeEach
   public void setup() {
+    server = EasyMock.createMock(TabletServer.class);
     context = EasyMock.createMock(ServerContext.class);
   }
 
@@ -135,26 +138,26 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private static KeyValue createKeyValue(LogEvents type, long seq, int tid,
       Object fileExtentMutation) {
     KeyValue result = new KeyValue();
-    result.key.event = type;
-    result.key.seq = seq;
-    result.key.tabletId = tid;
+    result.key.setEvent(type);
+    result.key.setSeq(seq);
+    result.key.setTabletId(tid);
     switch (type) {
       case OPEN:
-        result.key.tserverSession = (String) fileExtentMutation;
+        result.key.setTserverSession((String) fileExtentMutation);
         break;
       case COMPACTION_FINISH:
         break;
       case COMPACTION_START:
-        result.key.filename = (String) fileExtentMutation;
+        result.key.setFilename((String) fileExtentMutation);
         break;
       case DEFINE_TABLET:
-        result.key.tablet = (KeyExtent) fileExtentMutation;
+        result.key.setTablet((KeyExtent) fileExtentMutation);
         break;
       case MUTATION:
-        result.value.mutations = List.of((Mutation) fileExtentMutation);
+        result.value.setMutations(List.of((Mutation) fileExtentMutation));
         break;
       case MANY_MUTATIONS:
-        result.value.mutations = Arrays.asList((Mutation[]) fileExtentMutation);
+        result.value.setMutations(Arrays.asList((Mutation[]) fileExtentMutation));
     }
     return result;
   }
@@ -183,15 +186,15 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toAbsolutePath().toString();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
-
+      expect(server.getContext()).andReturn(context).anyTimes();
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-      replay(context);
-      logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
+      replay(server, context);
+      logSorter = new LogSorter(server);
 
       final Path workdirPath = new Path("file://" + workdir);
       fs.deleteRecursively(workdirPath);
@@ -223,7 +226,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
       SortedLogRecovery recovery = new SortedLogRecovery(context, fileLenCache, cacheProvider);
       CaptureMutations capture = new CaptureMutations();
       recovery.recover(extent, dirs, files, capture);
-      verify(context);
+      verify(server, context);
       return capture.result;
     }
   }
@@ -809,7 +812,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     assertEquals(1, mutations1.size());
     assertEquals(m2, mutations1.get(0));
 
-    reset(context);
+    reset(server, context);
     List<Mutation> mutations2 = recover(logs, e2);
     assertEquals(2, mutations2.size());
     assertEquals(m3, mutations2.get(0));
@@ -820,7 +823,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     Arrays.sort(entries2);
     logs.put("entries2", entries2);
 
-    reset(context);
+    reset(server, context);
     mutations2 = recover(logs, e2);
     assertEquals(1, mutations2.size());
     assertEquals(m4, mutations2.get(0));
@@ -860,7 +863,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     // test having different paths for the same file. This can happen as a result of upgrade or user
     // changing configuration
     runPathTest(false, "/t1/f1", "/t1/f0");
-    reset(context);
+    reset(server, context);
     runPathTest(true, "/t1/f1", "/t1/f0", "/t1/f1");
 
     String[] aliases = {"/t1/f1", "hdfs://nn1/accumulo/tables/8/t1/f1",
@@ -871,12 +874,12 @@ public class SortedLogRecoveryTest extends WithTestNames {
 
     for (String alias1 : aliases) {
       for (String alias2 : aliases) {
-        reset(context);
+        reset(server, context);
         runPathTest(true, alias1, alias2);
         for (String other : others) {
-          reset(context);
+          reset(server, context);
           runPathTest(true, alias1, other, alias2);
-          reset(context);
+          reset(server, context);
           runPathTest(true, alias1, alias2, other);
         }
       }
@@ -884,7 +887,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
 
     for (String alias1 : aliases) {
       for (String other : others) {
-        reset(context);
+        reset(server, context);
         runPathTest(false, alias1, other);
       }
     }
@@ -1035,34 +1038,34 @@ public class SortedLogRecoveryTest extends WithTestNames {
 
     logs.put("entries2", entries2);
 
-    reset(context);
+    reset(server, context);
     mutations = recover(logs, extent);
     assertEquals(1, mutations.size());
     assertEquals(m1, mutations.get(0));
 
     logs.put("entries3", entries3);
 
-    reset(context);
+    reset(server, context);
     mutations = recover(logs, extent);
     assertEquals(1, mutations.size());
     assertEquals(m1, mutations.get(0));
 
     logs.put("entries4", entries4);
 
-    reset(context);
+    reset(server, context);
     mutations = recover(logs, extent);
     assertEquals(1, mutations.size());
     assertEquals(m1, mutations.get(0));
 
     logs.put("entries5", entries5);
 
-    reset(context);
+    reset(server, context);
     mutations = recover(logs, extent);
     assertEquals(0, mutations.size());
 
     logs.put("entries6", entries6);
 
-    reset(context);
+    reset(server, context);
     mutations = recover(logs, extent);
     assertEquals(1, mutations.size());
     assertEquals(m2, mutations.get(0));
@@ -1098,8 +1101,12 @@ public class SortedLogRecoveryTest extends WithTestNames {
     // test all the possible properties for tserver.sort.file. prefix
     String prop = Property.TSERV_WAL_SORT_FILE_PREFIX + "invalid";
     testConfig.set(prop, "snappy");
-    assertThrows(IllegalArgumentException.class, () -> new LogSorter(context, testConfig),
+    expect(server.getContext()).andReturn(context).anyTimes();
+    expect(context.getConfiguration()).andReturn(testConfig).anyTimes();
+    replay(server, context);
+    assertThrows(IllegalArgumentException.class, () -> new LogSorter(server),
         "Did not throw IllegalArgumentException for " + prop);
+    verify(server, context);
   }
 
   @Test
@@ -1118,15 +1125,16 @@ public class SortedLogRecoveryTest extends WithTestNames {
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toAbsolutePath().toString();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
+      expect(server.getContext()).andReturn(context).anyTimes();
       expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();
-      expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-      replay(context);
-      LogSorter sorter = new LogSorter(context, testConfig);
+      expect(context.getConfiguration()).andReturn(testConfig).anyTimes();
+      replay(server, context);
+      LogSorter sorter = new LogSorter(server);
 
       final Path workdirPath = new Path("file://" + workdir);
       vm.deleteRecursively(workdirPath);

@@ -41,7 +41,7 @@ import org.apache.hadoop.io.Text;
  * The builder is mutable and not thread safe.
  *
  * @see org.apache.accumulo.core.data.Key
- * @since 2.0
+ * @since 2.0.0
  */
 public class KeyBuilder {
 
@@ -49,7 +49,7 @@ public class KeyBuilder {
    * Base Builder interface which can be used to set the {@link Key} timestamp and delete marker and
    * to build the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface Build {
 
@@ -80,7 +80,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the row part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface RowStep extends Build {
 
@@ -99,6 +99,15 @@ public class KeyBuilder {
      * @return this builder
      */
     ColumnFamilyStep row(final byte[] row);
+
+    /**
+     * Set the row of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param row the row to use for the key
+     * @return this builder
+     * @since 4.0.0
+     */
+    ColumnFamilyStep row(final ByteSequence row);
 
     /**
      * Set the row of the {@link Key} that this builder will build to the parameter.
@@ -124,7 +133,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the columnFamily part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface ColumnFamilyStep extends ColumnVisibilityStep {
 
@@ -135,6 +144,15 @@ public class KeyBuilder {
      * @return this builder
      */
     ColumnQualifierStep family(final byte[] columnFamily);
+
+    /**
+     * Set the column family of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnFamily the column family to use for the {@link Key}
+     * @return this builder
+     * @since 4.0.0
+     */
+    ColumnQualifierStep family(final ByteSequence columnFamily);
 
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
@@ -168,7 +186,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the column qualifier part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface ColumnQualifierStep extends ColumnVisibilityStep {
 
@@ -179,6 +197,15 @@ public class KeyBuilder {
      * @return this builder
      */
     ColumnVisibilityStep qualifier(final byte[] columnQualifier);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnQualifier the column qualifier to use for the {@link Key}
+     * @return this builder
+     * @since 4.0.0
+     */
+    ColumnVisibilityStep qualifier(final ByteSequence columnQualifier);
 
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
@@ -213,7 +240,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the column visibility part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface ColumnVisibilityStep extends Build {
 
@@ -224,6 +251,15 @@ public class KeyBuilder {
      * @return this builder
      */
     Build visibility(final byte[] columnVisibility);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnVisibility the column visibility to use for the {@link Key}
+     * @return this builder
+     * @since 4.0.0
+     */
+    Build visibility(ByteSequence columnVisibility);
 
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
@@ -264,7 +300,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 2.0
+   * @since 2.0.0
    */
   static class KeyBuilderImpl
       implements RowStep, ColumnFamilyStep, ColumnQualifierStep, ColumnVisibilityStep {
@@ -313,6 +349,19 @@ public class KeyBuilder {
     }
 
     @Override
+    public ColumnFamilyStep row(ByteSequence row) {
+      if (row.isBackedByArray()) {
+        this.row = row.getBackingArray();
+        this.rowOffset = row.offset();
+      } else {
+        this.row = row.toArray();
+        this.rowOffset = 0;
+      }
+      this.rowLength = row.length();
+      return this;
+    }
+
+    @Override
     public ColumnFamilyStep row(final Text row) {
       return row(row.getBytes(), 0, row.getLength());
     }
@@ -333,6 +382,19 @@ public class KeyBuilder {
     @Override
     public ColumnQualifierStep family(final byte[] family) {
       return family(family, 0, family.length);
+    }
+
+    @Override
+    public ColumnQualifierStep family(ByteSequence columnFamily) {
+      if (columnFamily.isBackedByArray()) {
+        this.family = columnFamily.getBackingArray();
+        this.familyOffset = columnFamily.offset();
+      } else {
+        this.family = columnFamily.toArray();
+        this.familyOffset = 0;
+      }
+      this.familyLength = columnFamily.length();
+      return this;
     }
 
     @Override
@@ -359,6 +421,19 @@ public class KeyBuilder {
     }
 
     @Override
+    public ColumnVisibilityStep qualifier(ByteSequence columnQualifier) {
+      if (columnQualifier.isBackedByArray()) {
+        this.qualifier = columnQualifier.getBackingArray();
+        this.qualifierOffset = columnQualifier.offset();
+      } else {
+        this.qualifier = columnQualifier.toArray();
+        this.qualifierOffset = 0;
+      }
+      this.qualifierLength = columnQualifier.length();
+      return this;
+    }
+
+    @Override
     public ColumnVisibilityStep qualifier(Text qualifier) {
       return qualifier(qualifier.getBytes(), 0, qualifier.getLength());
     }
@@ -379,6 +454,19 @@ public class KeyBuilder {
     @Override
     public Build visibility(final byte[] visibility) {
       return visibility(visibility, 0, visibility.length);
+    }
+
+    @Override
+    public Build visibility(ByteSequence columnVisibility) {
+      if (columnVisibility.isBackedByArray()) {
+        this.visibility = columnVisibility.getBackingArray();
+        this.visibilityOffset = columnVisibility.offset();
+      } else {
+        this.visibility = columnVisibility.toArray();
+        this.visibilityOffset = 0;
+      }
+      this.visibilityLength = columnVisibility.length();
+      return this;
     }
 
     @Override

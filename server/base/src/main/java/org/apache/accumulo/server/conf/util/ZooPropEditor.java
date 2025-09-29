@@ -19,8 +19,6 @@
 package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getNamespaceIdToNameMap;
-import static org.apache.accumulo.server.conf.util.ZooPropUtils.getTableIdToName;
 
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -34,15 +32,16 @@ import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.IdBasedPropStoreKey;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -61,8 +60,7 @@ import com.google.auto.service.AutoService;
 public class ZooPropEditor implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditor.class);
-  private final NullWatcher nullWatcher =
-      new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  private NullWatcher nullWatcher;
 
   /**
    * No-op constructor - provided so ServiceLoader autoload does not consume resources.
@@ -82,17 +80,16 @@ public class ZooPropEditor implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+
     ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
     opts.parseArgs(ZooPropEditor.class.getName(), args);
 
-    ZooReaderWriter zrw = new ZooReaderWriter(opts.getSiteConfiguration());
-
     var siteConfig = opts.getSiteConfiguration();
-    try (ServerContext context = new ServerContext(siteConfig)) {
+    try (var context = new ServerContext(siteConfig)) {
+      var zrw = context.getZooSession().asReaderWriter();
 
-      InstanceId iid = context.getInstanceID();
-
-      PropStoreKey<?> propKey = getPropKey(iid, opts, zrw);
+      var propKey = getPropKey(context, opts);
       switch (opts.getCmdMode()) {
         case SET:
           setProperty(context, propKey, opts);
@@ -110,7 +107,7 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private void setProperty(final ServerContext context, final PropStoreKey<?> propKey,
+  private void setProperty(final ServerContext context, final PropStoreKey propKey,
       final Opts opts) {
     LOG.trace("set {}", propKey);
 
@@ -120,7 +117,7 @@ public class ZooPropEditor implements KeywordExecutable {
     }
     String targetName = "'invalid'";
     try {
-      targetName = getDisplayName(propKey, context.getInstanceID(), context.getZooReader());
+      targetName = getDisplayName(propKey, context);
 
       Map<String,String> prev = context.getPropStore().get(propKey).asMap();
       String[] tokens = opts.setOpt.split("=");
@@ -137,11 +134,11 @@ public class ZooPropEditor implements KeywordExecutable {
       }
     } catch (Exception ex) {
       throw new IllegalStateException(
-          "Failed to set property for " + targetName + " (id: " + propKey.getId() + ")", ex);
+          "Failed to set property for " + targetName + " (path: " + propKey.getPath() + ")", ex);
     }
   }
 
-  private void deleteProperty(final ServerContext context, final PropStoreKey<?> propKey,
+  private void deleteProperty(final ServerContext context, final PropStoreKey propKey,
       VersionedProperties versionedProperties, final Opts opts) {
     LOG.trace("delete {} - {}", propKey, opts.deleteOpt);
     String p = opts.deleteOpt.trim();
@@ -155,11 +152,11 @@ public class ZooPropEditor implements KeywordExecutable {
       return;
     }
     PropUtil.removeProperties(context, propKey, List.of(p));
-    String targetName = getDisplayName(propKey, context.getInstanceID(), context.getZooReader());
+    String targetName = getDisplayName(propKey, context);
     LOG.info("{}: deleted {}", targetName, p);
   }
 
-  private void printProperties(final ServerContext context, final PropStoreKey<?> propKey,
+  private void printProperties(final ServerContext context, final PropStoreKey propKey,
       final VersionedProperties props) {
     LOG.trace("print {}", propKey);
 
@@ -168,6 +165,8 @@ public class ZooPropEditor implements KeywordExecutable {
     String scope;
     if (propKey instanceof SystemPropKey) {
       scope = "SYSTEM";
+    } else if (propKey instanceof ResourceGroupPropKey) {
+      scope = "RESOURCE GROUP";
     } else if (propKey instanceof NamespacePropKey) {
       scope = "NAMESPACE";
     } else if (propKey instanceof TablePropKey) {
@@ -183,24 +182,24 @@ public class ZooPropEditor implements KeywordExecutable {
       writer.printf(": Instance Id: %s\n", context.getInstanceID());
       writer.printf(": Property scope: %s\n", scope);
       writer.printf(": ZooKeeper path: %s\n", propKey.getPath());
-      writer.printf(": Name: %s\n",
-          getDisplayName(propKey, context.getInstanceID(), context.getZooReader()));
-      writer.printf(": Id: %s\n", propKey.getId());
-      writer.printf(": Data version: %d\n", props.getDataVersion());
-      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
+      writer.printf(": Name: %s\n", getDisplayName(propKey, context));
+      writer.printf(": Id: %s\n", propKey instanceof IdBasedPropStoreKey
+          ? ((IdBasedPropStoreKey<?>) propKey).getId() : "N/A");
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
         return;
       }
 
+      writer.printf(": Data version: %d\n", props.getDataVersion());
+      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
+
       SortedMap<String,String> sortedMap = new TreeMap<>(props.asMap());
       sortedMap.forEach((name, value) -> writer.printf("%s=%s\n", name, value));
     }
   }
 
-  private VersionedProperties readPropNode(final PropStoreKey<?> propKey,
-      final ZooReader zooReader) {
+  private VersionedProperties readPropNode(final PropStoreKey propKey, final ZooReader zooReader) {
     try {
       return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
     } catch (IOException | KeeperException | InterruptedException ex) {
@@ -208,60 +207,64 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private PropStoreKey<?> getPropKey(final InstanceId iid, final ZooPropEditor.Opts opts,
-      final ZooReader zooReader) {
+  private PropStoreKey getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
 
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
-      TableId tid = getTableId(iid, opts, zooReader);
-      return TablePropKey.of(iid, tid);
+      TableId tid = getTableId(context, opts);
+      return TablePropKey.of(tid);
     }
 
     // either nid of namespace name provided, get the namespace id.
     if (!opts.namespaceOpt.isEmpty() || !opts.namespaceIdOpt.isEmpty()) {
-      NamespaceId nid = getNamespaceId(iid, opts, zooReader);
-      return NamespacePropKey.of(iid, nid);
+      NamespaceId nid = getNamespaceId(context, opts);
+      return NamespacePropKey.of(nid);
     }
 
-    // no table or namespace, assume system.
-    return SystemPropKey.of(iid);
+    if (!opts.resourceGroupOpt.isEmpty()) {
+      if (!context.resourceGroupOperations().exists(opts.resourceGroupOpt)) {
+        throw new IllegalArgumentException(
+            "Could not find resource group " + opts.resourceGroupOpt);
+      }
+      return ResourceGroupPropKey.of(ResourceGroupId.of(opts.resourceGroupOpt));
+    }
+
+    // no table, namespace or resource group, assume system.
+    return SystemPropKey.of();
   }
 
-  private TableId getTableId(final InstanceId iid, final ZooPropEditor.Opts opts,
-      final ZooReader zooReader) {
+  private TableId getTableId(final ServerContext context, final ZooPropEditor.Opts opts) {
     if (!opts.tableIdOpt.isEmpty()) {
       return TableId.of(opts.tableIdOpt);
     }
-    Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
-
-    Map<TableId,String> tids = getTableIdToName(iid, nids, zooReader);
+    Map<TableId,String> tids = context.createTableIdToQualifiedNameMap();
     return tids.entrySet().stream().filter(entry -> opts.tableOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny()
         .orElseThrow(() -> new IllegalArgumentException("Could not find table " + opts.tableOpt));
   }
 
-  private NamespaceId getNamespaceId(final InstanceId iid, final ZooPropEditor.Opts opts,
-      final ZooReader zooReader) {
+  private NamespaceId getNamespaceId(final ServerContext context, final ZooPropEditor.Opts opts) {
     if (!opts.namespaceIdOpt.isEmpty()) {
       return NamespaceId.of(opts.namespaceIdOpt);
     }
-    Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
+    Map<NamespaceId,String> nids = context.getNamespaceIdToNameMap();
     return nids.entrySet().stream().filter(entry -> opts.namespaceOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny().orElseThrow(
             () -> new IllegalArgumentException("Could not find namespace " + opts.namespaceOpt));
   }
 
-  private String getDisplayName(final PropStoreKey<?> propStoreKey, final InstanceId iid,
-      final ZooReader zooReader) {
+  private String getDisplayName(final PropStoreKey propStoreKey, final ServerContext context) {
 
     if (propStoreKey instanceof TablePropKey) {
-      Map<NamespaceId,String> nids = getNamespaceIdToNameMap(iid, zooReader);
-      return getTableIdToName(iid, nids, zooReader).getOrDefault((TableId) propStoreKey.getId(),
-          "unknown");
+      return context.createTableIdToQualifiedNameMap()
+          .getOrDefault(((TablePropKey) propStoreKey).getId(), "unknown");
     }
     if (propStoreKey instanceof NamespacePropKey) {
-      return getNamespaceIdToNameMap(iid, zooReader)
-          .getOrDefault((NamespaceId) propStoreKey.getId(), "unknown");
+      return context.getNamespaceIdToNameMap()
+          .getOrDefault(((NamespacePropKey) propStoreKey).getId(), "unknown");
+    }
+    if (propStoreKey instanceof ResourceGroupPropKey) {
+      return ((ResourceGroupPropKey) propStoreKey).getId().canonical();
     }
     if (propStoreKey instanceof SystemPropKey) {
       return "system";
@@ -289,6 +292,9 @@ public class ZooPropEditor implements KeywordExecutable {
     @Parameter(names = {"-tid", "--table-id"},
         description = "table id to display/set/delete properties for")
     public String tableIdOpt = "";
+    @Parameter(names = {"-r", "--resource-group"},
+        description = "resource group name to display/set/delete properties for")
+    private String resourceGroupOpt = "";
 
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {

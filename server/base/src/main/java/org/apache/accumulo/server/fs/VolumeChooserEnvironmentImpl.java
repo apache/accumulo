@@ -97,10 +97,9 @@ public class VolumeChooserEnvironmentImpl implements VolumeChooserEnvironment {
     if (obj == this) {
       return true;
     }
-    if (obj == null || !(obj instanceof VolumeChooserEnvironmentImpl)) {
+    if (obj == null || !(obj instanceof VolumeChooserEnvironmentImpl other)) {
       return false;
     }
-    VolumeChooserEnvironmentImpl other = (VolumeChooserEnvironmentImpl) obj;
     return getChooserScope() == other.getChooserScope()
         && Objects.equals(tableId.orElseThrow(), other.getTable().orElseThrow());
   }

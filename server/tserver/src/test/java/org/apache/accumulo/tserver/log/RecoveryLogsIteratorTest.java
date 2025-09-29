@@ -23,12 +23,12 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +48,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -64,32 +65,35 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RecoveryLogsIteratorTest extends WithTestNames {
 
   private VolumeManager fs;
-  private File workDir;
+  private java.nio.file.Path workDir;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
+  static TabletServer server;
   static ServerContext context;
   static LogSorter logSorter;
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-
-    workDir = new File(tempDir, testName());
-    String path = workDir.getAbsolutePath();
+    server = createMock(TabletServer.class);
+    workDir = tempDir.resolve(testName());
+    String path = workDir.toString();
     fs = VolumeManagerImpl.getLocalForTesting(path);
+    expect(server.getContext()).andReturn(context).anyTimes();
     expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-    replay(context);
+    replay(server, context);
 
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
+    logSorter = new LogSorter(server);
   }
 
   @AfterEach
   public void tearDown() throws Exception {
     fs.close();
+    verify(server, context);
   }
 
   static class KeyValue implements Comparable<KeyValue> {
@@ -120,10 +124,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testSimpleRLI() throws IOException {
     KeyValue keyValue = new KeyValue();
-    keyValue.key.event = DEFINE_TABLET;
-    keyValue.key.seq = 0;
-    keyValue.key.tabletId = 1;
-    keyValue.key.tablet = extent;
+    keyValue.key.setEvent(DEFINE_TABLET);
+    keyValue.key.setSeq(0);
+    keyValue.key.setTabletId(1);
+    keyValue.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue};
 
@@ -137,8 +141,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
-        assertEquals(1, entry.getKey().tabletId, "TabletId does not match");
-        assertEquals(DEFINE_TABLET, entry.getKey().event, "Event does not match");
+        assertEquals(1, entry.getKey().getTabletId(), "TabletId does not match");
+        assertEquals(DEFINE_TABLET, entry.getKey().getEvent(), "Event does not match");
       }
     }
   }
@@ -146,10 +150,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testFinishMarker() throws IOException {
     KeyValue keyValue = new KeyValue();
-    keyValue.key.event = DEFINE_TABLET;
-    keyValue.key.seq = 0;
-    keyValue.key.tabletId = 1;
-    keyValue.key.tablet = extent;
+    keyValue.key.setEvent(DEFINE_TABLET);
+    keyValue.key.setSeq(0);
+    keyValue.key.setTabletId(1);
+    keyValue.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue};
 
@@ -166,10 +170,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testCheckFirstKeyFailed() throws IOException {
     KeyValue keyValue = new KeyValue();
-    keyValue.key.event = DEFINE_TABLET;
-    keyValue.key.seq = 0;
-    keyValue.key.tabletId = 1;
-    keyValue.key.tablet = extent;
+    keyValue.key.setEvent(DEFINE_TABLET);
+    keyValue.key.setSeq(0);
+    keyValue.key.setTabletId(1);
+    keyValue.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue};
 
@@ -188,16 +192,16 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testCheckFirstKeyPass() throws IOException {
     KeyValue keyValue1 = new KeyValue();
-    keyValue1.key.event = OPEN;
-    keyValue1.key.seq = 0;
-    keyValue1.key.tabletId = -1;
-    keyValue1.key.tserverSession = "1";
+    keyValue1.key.setEvent(OPEN);
+    keyValue1.key.setSeq(0);
+    keyValue1.key.setTabletId(-1);
+    keyValue1.key.setTserverSession("1");
 
     KeyValue keyValue2 = new KeyValue();
-    keyValue2.key.event = DEFINE_TABLET;
-    keyValue2.key.seq = 0;
-    keyValue2.key.tabletId = 1;
-    keyValue2.key.tablet = extent;
+    keyValue2.key.setEvent(DEFINE_TABLET);
+    keyValue2.key.setSeq(0);
+    keyValue2.key.setTabletId(1);
+    keyValue2.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue1, keyValue2};
 

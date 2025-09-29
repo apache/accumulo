@@ -22,23 +22,31 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.Compressor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.base.Preconditions;
+import com.google.gson.JsonParser;
 
 /**
  * Types of {@link Property} values. Each type has a short name, a description, and a regex which
@@ -112,6 +120,9 @@ public enum PropertyType {
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
+  DROP_CACHE_SELECTION("drop cache option", in(false, "NONE", "ALL", "NON-IMPORT"),
+      "One of 'ALL', 'NONE', or 'NON-IMPORT'"),
+
   ABSOLUTEPATH("absolute path",
       x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
       "An absolute filesystem path. The filesystem depends on the property."
@@ -125,22 +136,22 @@ public enum PropertyType {
       "A list of fully qualified java class names representing classes on the classpath.\n"
           + "An example is 'java.lang.String', rather than 'String'"),
 
+  COMPRESSION_TYPE("compression type name", new ValidCompressionType(),
+      "One of the configured compression types."),
+
   DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
 
   GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
       "One of 'none', 'flush', or 'compact'."),
 
-  LAST_LOCATION_MODE("last_location_mode", in(true, null, "assignment", "compaction"),
-      "Defines how to update the last location.  One of 'assignment', or 'compaction'."),
-
   STRING("string", x -> true,
       "An arbitrary string of characters whose format is unspecified and"
           + " interpreted based on the context of the property to which it applies."),
 
   JSON("json", new ValidJson(),
-      "An arbitrary string that is represents a valid, parsable generic json object."
-          + "The validity of the json object in the context of the property usage is not checked by this type."),
+      "An arbitrary string that represents a valid, parsable generic json object. The validity "
+          + "of the json object in the context of the property usage is not checked by this type."),
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
@@ -148,7 +159,15 @@ public enum PropertyType {
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
-          + "Currently, only " + RFile.EXTENSION + " is supported.");
+          + "Currently, only " + RFile.EXTENSION + " is supported."),
+  VOLUMES("volumes", new ValidVolumes(), "See instance.volumes documentation"),
+  FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(), ValidUserFateConfig.DESC),
+  FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(), ValidMetaFateConfig.DESC),
+  FATE_THREADPOOL_SIZE("(deprecated) Manager FATE thread pool size", new FateThreadPoolSize(),
+      "No format check. Allows any value to be set but will warn the user that the"
+          + " property is no longer used."),
+  EC("erasurecode", in(false, "enable", "disable", "inherit"),
+      "One of 'enable','disable','inherit'.");
 
   private final String shortname;
   private final String format;
@@ -215,13 +234,32 @@ public enum PropertyType {
     public boolean test(String value) {
       try {
         if (value.length() > ONE_MILLION) {
-          log.info("provided json string length {} is greater than limit of {} for parsing",
+          log.error("provided json string length {} is greater than limit of {} for parsing",
               value.length(), ONE_MILLION);
           return false;
         }
         jsonMapper.readTree(value);
         return true;
-      } catch (IOException ex) {
+      } catch (IOException e) {
+        log.error("provided json string resulted in an error", e);
+        return false;
+      }
+    }
+  }
+
+  private static class ValidVolumes implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidVolumes.class);
+
+    @Override
+    public boolean test(String volumes) {
+      if (volumes == null) {
+        return false;
+      }
+      try {
+        ConfigurationTypeHelper.getVolumeUris(volumes);
+        return true;
+      } catch (IllegalArgumentException e) {
+        log.error("provided volume string is not valid", e);
         return false;
       }
     }
@@ -243,6 +281,32 @@ public enum PropertyType {
     Predicate<String> suffixCheck = new HasSuffix(caseSensitive, suffixes);
     return x -> x == null
         || (suffixCheck.test(x) && new Bounds(lowerBound, upperBound).test(stripUnits.apply(x)));
+  }
+
+  private static class ValidCompressionType implements Predicate<String> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ValidCompressionType.class);
+
+    @Override
+    public boolean test(String type) {
+      if (!Compression.getSupportedAlgorithms().contains(type)) {
+        return false;
+      }
+      CompressionAlgorithm ca = Compression.getCompressionAlgorithmByName(type);
+      Compressor c = null;
+      try {
+        c = ca.getCompressor();
+        return true;
+      } catch (RuntimeException e) {
+        LOG.error("Error creating compressor for type {}", type, e);
+        return false;
+      } finally {
+        if (c != null) {
+          ca.returnCompressor(c);
+        }
+      }
+    }
+
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("\\D*$"); // match non-digits at end
@@ -294,8 +358,10 @@ public enum PropertyType {
 
   private static class Bounds implements Predicate<String> {
 
-    private final long lowerBound, upperBound;
-    private final boolean lowerInclusive, upperInclusive;
+    private final long lowerBound;
+    private final long upperBound;
+    private final boolean lowerInclusive;
+    private final boolean upperInclusive;
 
     public Bounds(final long lowerBound, final long upperBound) {
       this(lowerBound, true, upperBound, true);
@@ -394,6 +460,121 @@ public enum PropertyType {
           "Invalid port range specification, must use M-N notation.");
     }
 
+  }
+
+  private static class ValidFateConfig implements Predicate<String> {
+    private static final String DESC = """
+        A string that:
+        1. Represents a valid, parsable JSON object.
+        2. Each key is a string which represents a name for the value/pool.
+        3. Each value is a JSON with a single key/value: key = comma-separated string list of FATE
+        operations, value = integer for the number of threads assigned to run those FATE operations.
+        4. All possible %s FATE operations are present in the JSON.
+        5. No FATE operations are repeated.
+        """;
+    private static final Logger log = LoggerFactory.getLogger(ValidFateConfig.class);
+    private final Set<Fate.FateOperation> allFateOps;
+    private final String name;
+
+    private ValidFateConfig(Set<Fate.FateOperation> allFateOps, String name) {
+      this.allFateOps = allFateOps;
+      this.name = name;
+    }
+
+    @Override
+    public boolean test(String s) {
+      final Set<Fate.FateOperation> seenFateOps = new HashSet<>();
+      final int maxPoolNameLen = 64;
+
+      try {
+        final var json = JsonParser.parseString(s).getAsJsonObject();
+
+        for (var entry : json.entrySet()) {
+          var poolName = entry.getKey();
+
+          if (poolName.length() > maxPoolNameLen) {
+            log.warn(
+                "Unexpected property value {} for {}. Configured name {} is too long (> {} characters). Property was unchanged",
+                s, name, poolName, maxPoolNameLen);
+            return false;
+          }
+
+          var poolConfigSet = entry.getValue().getAsJsonObject().entrySet();
+          if (poolConfigSet.size() != 1) {
+            log.warn(
+                "Unexpected property value {} for {}. Expected one entry for {} but saw {}. Property was unchanged",
+                s, name, poolName, poolConfigSet.size());
+            return false;
+          }
+
+          var poolConfig = poolConfigSet.iterator().next();
+
+          var poolSize = poolConfig.getValue().getAsInt();
+          if (poolSize <= 0) {
+            log.warn(
+                "Unexpected property value {} for {}. Must be a valid thread pool size (>0), saw {}. Property was unchanged",
+                s, name, poolSize);
+            return false;
+          }
+
+          var fateOpsStrArr = poolConfig.getKey().split(",");
+          for (String fateOpStr : fateOpsStrArr) {
+            Fate.FateOperation fateOp = Fate.FateOperation.valueOf(fateOpStr);
+            if (!seenFateOps.add(fateOp)) {
+              log.warn(
+                  "Unexpected property value {} for {}. Duplicate fate operation {} seen. Property was unchanged",
+                  s, name, fateOp);
+              return false;
+            }
+          }
+        }
+      } catch (Exception e) {
+        log.warn("Unexpected property value {} for {}. Exception occurred. Property was unchanged",
+            s, name, e);
+        return false;
+      }
+
+      if (!allFateOps.equals(seenFateOps)) {
+        log.warn(
+            "Unexpected property value {} for {}. Not all fate operations found. Expected to see {} but saw {}. Property was unchanged",
+            s, name, allFateOps.stream().sorted().collect(Collectors.toList()),
+            seenFateOps.stream().sorted().collect(Collectors.toList()));
+        return false;
+      }
+
+      return true;
+    }
+  }
+
+  private static class ValidUserFateConfig extends ValidFateConfig {
+    private static final String DESC = String.format(ValidFateConfig.DESC, "user");
+    private static final String NAME = "fate user config";
+
+    private ValidUserFateConfig() {
+      super(Fate.FateOperation.getAllUserFateOps(), NAME);
+    }
+  }
+
+  private static class ValidMetaFateConfig extends ValidFateConfig {
+    private static final String DESC = String.format(ValidFateConfig.DESC, "meta");
+    private static final String NAME = "fate meta config";
+
+    private ValidMetaFateConfig() {
+      super(Fate.FateOperation.getAllMetaFateOps(), NAME);
+    }
+  }
+
+  private static class FateThreadPoolSize implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(FateThreadPoolSize.class);
+
+    @Override
+    public boolean test(String s) {
+      log.warn(
+          "The manager fate thread pool size property is no longer used. See the {} and {} for "
+              + "the replacements to this property.",
+          ValidUserFateConfig.NAME, ValidMetaFateConfig.NAME);
+      return true;
+    }
   }
 
 }

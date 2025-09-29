@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
 
 import com.google.common.base.Preconditions;
@@ -179,7 +180,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
       + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
 
-  private Supplier<Map<String,List<String>>> orderedScanServersSupplier;
+  private Supplier<Map<ResourceGroupId,List<String>>> orderedScanServersSupplier;
 
   private Map<String,Profile> profiles;
   private Profile defaultProfile;
@@ -237,6 +238,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedBusyTimeout;
     }
+
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
@@ -330,7 +332,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     // avoid constantly resorting the scan servers, just do it periodically in case they change
     orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
       Collection<ScanServerInfo> scanServers = params.getScanServers().get();
-      Map<String,List<String>> groupedServers = new HashMap<>();
+      Map<ResourceGroupId,List<String>> groupedServers = new HashMap<>();
       scanServers.forEach(sserver -> groupedServers
           .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
       groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
@@ -362,7 +364,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     // only get this once and use it for the entire method so that the method uses a consistent
     // snapshot
     List<String> orderedScanServers =
-        orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
+        orderedScanServersSupplier.get().getOrDefault(ResourceGroupId.of(profile.group), List.of());
 
     Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
 
@@ -370,7 +372,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     if (orderedScanServers.isEmpty() && !scanServerWaitTime.isZero()) {
       // Wait for scan servers in the configured group to be present.
       orderedScanServers = params.waitUntil(
-          () -> Optional.ofNullable(orderedScanServersSupplier.get().get(finalProfile.group)),
+          () -> Optional.ofNullable(
+              orderedScanServersSupplier.get().get(ResourceGroupId.of(finalProfile.group))),
           scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
       // at this point the list should be non empty unless there is a bug
       Preconditions.checkState(!orderedScanServers.isEmpty());

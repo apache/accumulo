@@ -39,7 +39,8 @@ public class HelpCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws ShellCommandException, IOException {
-    int numColumns = shellState.getTerminal().getWidth();
+    int numColumns =
+        (shellState.getTerminal().getWidth() == 0) ? 80 : shellState.getTerminal().getWidth();
     if (cl.hasOption(noWrapOpt.getOpt())) {
       numColumns = Integer.MAX_VALUE;
     }

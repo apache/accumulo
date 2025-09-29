@@ -38,12 +38,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -94,8 +95,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * SortedKeyValueIterator.
    */
   public static class ValueIterator implements Iterator<Value> {
-    Key topKey;
-    SortedKeyValueIterator<Key,Value> source;
+    final Key topKey;
+    final SortedKeyValueIterator<Key,Value> source;
     boolean hasNext;
 
     /**
@@ -186,7 +187,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =
-      Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
+      Caches.getInstance().createNewBuilder(CacheName.COMBINER_LOGGED_MSGS, true)
+          .expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly
@@ -427,11 +429,13 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * logged more than once an hour per Combiner, regardless of how many deletes are seen.
    *
    * <p>
-   * This method was added in 1.6.4 and 1.7.1. If you want your code to work in earlier versions of
+   * This method was added in 1.6.5 and 1.7.1. If you want your code to work in earlier versions of
    * 1.6 and 1.7 then do not call this method. If not set this property defaults to false in order
    * to maintain compatibility.
    *
-   * @since 1.6.5 1.7.1 1.8.0
+   * @since 1.6.5
+   * @since 1.7.1
+   * @since 1.8.0
    */
 
   public static void setReduceOnFullCompactionOnly(IteratorSetting is,

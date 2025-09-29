@@ -30,8 +30,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public class CancelFlagFuture<T> implements Future<T> {
 
-  private final Future<T> wrappedFuture;
-  private final AtomicBoolean cancelFlag;
+  private Future<T> wrappedFuture;
+  private AtomicBoolean cancelFlag;
 
   public CancelFlagFuture(Future<T> wrappedFuture, AtomicBoolean cancelFlag) {
     this.wrappedFuture = wrappedFuture;

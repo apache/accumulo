@@ -19,8 +19,6 @@
 package org.apache.accumulo.test.conf.store;
 
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -32,15 +30,14 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
@@ -51,11 +48,8 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
-import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,9 +66,7 @@ public class PropStoreZooKeeperIT {
   private static final Logger log = LoggerFactory.getLogger(PropStoreZooKeeperIT.class);
   private static final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
   private static ZooKeeperTestingServer testZk = null;
-  private static ZooKeeper zooKeeper;
-  private ServerContext context;
-  private InstanceId instanceId = null;
+  private static ZooSession zk;
   private PropStore propStore = null;
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
@@ -83,58 +75,46 @@ public class PropStoreZooKeeperIT {
   private static File tempDir;
 
   @BeforeAll
-  public static void setupZk() {
-    // using default zookeeper port - we don't have a full configuration
+  public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.getZooKeeper();
-    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
+    // prop store uses a chrooted ZK, so it is relocatable, but create a convenient empty node to
+    // work in for the test, so we can easily clean it up after each test
+    try (var zkInit = testZk.newClient()) {
+      zkInit.create("/instanceRoot", null, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+    }
+    // create a chrooted client for the tests to use
+    zk = testZk.newClient("/instanceRoot");
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
-    testZk.close();
+    try {
+      zk.close();
+    } finally {
+      testZk.close();
+    }
   }
 
   @BeforeEach
-  public void setupZnodes() {
-    instanceId = InstanceId.of(UUID.randomUUID());
-    context = EasyMock.createNiceMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(testZk.getZooReaderWriter()).anyTimes();
+  public void setupZnodes() throws Exception {
+    zk.asReaderWriter().mkdirs(Constants.ZCONFIG);
+    zk.create(Constants.ZTABLES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(Constants.ZTABLES + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
+    zk.create(Constants.ZTABLES + "/" + tIdA.canonical() + "/conf", new byte[0],
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    replay(context);
-
-    testZk.initPaths(ZooUtil.getRoot(instanceId) + Constants.ZCONFIG);
-    try {
-      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES, new byte[0],
-          ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdA.canonical() + "/conf",
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-      zooKeeper.create(ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tIdB.canonical() + "/conf",
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    } catch (KeeperException ex) {
-      log.trace("Issue during zk initialization, skipping", ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
-    }
-    propStore = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
+    zk.create(Constants.ZTABLES + "/" + tIdB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
+    zk.create(Constants.ZTABLES + "/" + tIdB.canonical() + "/conf", new byte[0],
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    propStore = ZooPropStore.initialize(zk);
   }
 
   @AfterEach
-  public void cleanupZnodes() {
-    try {
-      ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
+  public void cleanupZnodes() throws Exception {
+    for (var child : zk.getChildren("/", null)) {
+      ZKUtil.deleteRecursive(zk, "/" + child);
     }
   }
 
@@ -143,23 +123,23 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void createNoProps() throws InterruptedException, KeeperException {
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
 
     // read from ZK, after delete no node and node not created.
-    assertNull(zooKeeper.exists(propKey.getPath(), false));
+    assertNull(zk.exists(propKey.getPath(), null));
     assertThrows(IllegalStateException.class, () -> propStore.get(propKey));
   }
 
   @Test
   public void failOnDuplicate() throws InterruptedException, KeeperException {
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
 
-    assertNull(zooKeeper.exists(propKey.getPath(), false)); // check node does not exist in ZK
+    assertNull(zk.exists(propKey.getPath(), null)); // check node does not exist in ZK
 
     propStore.create(propKey, Map.of());
     Thread.sleep(25); // yield.
 
-    assertNotNull(zooKeeper.exists(propKey.getPath(), false)); // check not created
+    assertNotNull(zk.exists(propKey.getPath(), null)); // check not created
     assertThrows(IllegalStateException.class, () -> propStore.create(propKey, null));
 
     assertNotNull(propStore.get(propKey));
@@ -167,7 +147,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void createWithProps() throws InterruptedException, KeeperException, IOException {
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     propStore.create(propKey, initialProps);
@@ -177,7 +157,7 @@ public class PropStoreZooKeeperIT {
     assertEquals("true", vProps.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // check using direct read from ZK
-    byte[] bytes = zooKeeper.getData(propKey.getPath(), false, new Stat());
+    byte[] bytes = zk.getData(propKey.getPath(), null, new Stat());
     var readFromZk = propCodec.fromBytes(0, bytes);
     var propsA = propStore.get(propKey);
     assertEquals(readFromZk.asMap(), propsA.asMap());
@@ -187,7 +167,7 @@ public class PropStoreZooKeeperIT {
   public void update() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
     propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
@@ -257,8 +237,8 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void deleteTest() {
-    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA);
+    var tableBPropKey = TablePropKey.of(tIdB);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -283,8 +263,8 @@ public class PropStoreZooKeeperIT {
   public void deleteThroughWatcher() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA);
+    var tableBPropKey = TablePropKey.of(tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -299,7 +279,7 @@ public class PropStoreZooKeeperIT {
     assertEquals("true", propsA.asMap().get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
     // use alternate prop store - change will propagate via ZooKeeper
-    PropStore propStore2 = ZooPropStore.initialize(instanceId, context.getZooReaderWriter());
+    PropStore propStore2 = ZooPropStore.initialize(zk);
 
     propStore2.delete(tableAPropKey);
 
@@ -328,8 +308,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA);
+    var tableBPropKey = TablePropKey.of(tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -357,7 +337,7 @@ public class PropStoreZooKeeperIT {
 
     byte[] updatedBytes = propCodec.toBytes(pendingProps);
     // force external write to ZooKeeper
-    context.getZooReaderWriter().overwritePersistentData(tableAPropKey.getPath(), updatedBytes,
+    zk.asReaderWriter().overwritePersistentData(tableAPropKey.getPath(), updatedBytes,
         (int) firstRead.getDataVersion());
 
     Thread.sleep(150);
@@ -382,21 +362,21 @@ public class PropStoreZooKeeperIT {
 
   private static class TestChangeListener implements PropChangeListener {
 
-    private final Map<PropStoreKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
-    private final Map<PropStoreKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey,Integer> changeCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey,Integer> deleteCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       deleteCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
@@ -405,11 +385,11 @@ public class PropStoreZooKeeperIT {
 
     }
 
-    public Map<PropStoreKey<?>,Integer> getChangeCounts() {
+    public Map<PropStoreKey,Integer> getChangeCounts() {
       return changeCounts;
     }
 
-    public Map<PropStoreKey<?>,Integer> getDeleteCounts() {
+    public Map<PropStoreKey,Integer> getDeleteCounts() {
       return deleteCounts;
     }
   }

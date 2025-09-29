@@ -42,6 +42,7 @@ public class Bulk {
     private Collection<FileInfo> files;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private Mapping() {}
 
     public Mapping(KeyExtent tablet, Files files) {
@@ -71,6 +72,7 @@ public class Bulk {
     private byte[] prevEndRow;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private Tablet() {}
 
     public Tablet(Text endRow, Text prevEndRow) {
@@ -111,6 +113,7 @@ public class Bulk {
     long estEntries;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private FileInfo() {}
 
     public FileInfo(String fileName, long estFileSize, long estNumEntries) {
@@ -150,10 +153,9 @@ public class Bulk {
       if (o == this) {
         return true;
       }
-      if (!(o instanceof FileInfo)) {
+      if (!(o instanceof FileInfo other)) {
         return false;
       }
-      FileInfo other = (FileInfo) o;
       return this.name.equals(other.name) && this.estSize == other.estSize
           && this.estEntries == other.estEntries;
     }
@@ -165,7 +167,7 @@ public class Bulk {
   }
 
   public static class Files implements Iterable<FileInfo> {
-    Map<String,FileInfo> files = new HashMap<>();
+    final Map<String,FileInfo> files = new HashMap<>();
 
     public Files(Collection<FileInfo> files) {
       files.forEach(this::add);
@@ -215,10 +217,9 @@ public class Bulk {
       if (o == this) {
         return true;
       }
-      if (!(o instanceof Files)) {
+      if (!(o instanceof Files other)) {
         return false;
       }
-      Files other = (Files) o;
       return this.files.equals(other.files);
     }
 

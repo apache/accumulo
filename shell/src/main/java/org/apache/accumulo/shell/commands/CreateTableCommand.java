@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+import static org.apache.accumulo.shell.ShellUtil.readPropertiesFromFile;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
@@ -66,9 +68,11 @@ public class CreateTableCommand extends Command {
   private Option base64Opt;
   private Option createTableOptFormatter;
   private Option createTableOptInitProp;
+  private Option createTableOptInitPropFile;
   private Option createTableOptLocalityProps;
   private Option createTableOptIteratorProps;
   private Option createTableOptOffline;
+  private Option createTableOptInitialTabletAvailability;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -115,13 +119,33 @@ public class CreateTableCommand extends Command {
       }
     }
 
+    // set initial tablet availability, if argument supplied.
+    // CreateTable will default to ONDEMAND if argument not supplied
+    if (cl.hasOption(createTableOptInitialTabletAvailability.getOpt())) {
+      String tabletAvailability =
+          cl.getOptionValue(createTableOptInitialTabletAvailability.getOpt()).toUpperCase();
+      TabletAvailability initialTabletAvailability = switch (tabletAvailability) {
+        case "HOSTED" -> TabletAvailability.HOSTED;
+        case "UNHOSTED" -> TabletAvailability.UNHOSTED;
+        default -> TabletAvailability.ONDEMAND;
+      };
+      ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
+    }
+
     TimeType timeType = TimeType.MILLIS;
     if (cl.hasOption(createTableOptTimeLogical.getOpt())) {
       timeType = TimeType.LOGICAL;
     }
 
-    Map<String,String> initProperties =
-        new HashMap<>(ShellUtil.parseMapOpt(cl, createTableOptInitProp));
+    Map<String,String> initProperties;
+    String filename = cl.getOptionValue(createTableOptInitPropFile.getOpt());
+    if (filename != null) {
+      initProperties = readPropertiesFromFile(filename);
+    } else {
+      initProperties = new HashMap<>();
+    }
+
+    initProperties.putAll(ShellUtil.parseMapOpt(cl, createTableOptInitProp));
 
     // Set iterator if supplied
     if (cl.hasOption(createTableOptIteratorProps.getOpt())) {
@@ -325,13 +349,19 @@ public class CreateTableCommand extends Command {
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    createTableOptInitProp =
-        new Option("prop", "init-properties", true, "user defined initial properties");
+    createTableOptInitProp = new Option("prop", "init-properties", true,
+        "comma-separated user-defined initial key=value pairs");
+    createTableOptInitPropFile =
+        new Option("pf", "propFile", true, "user-defined initial properties file");
+    createTableOptInitialTabletAvailability =
+        new Option("a", "availability", true, "initial tablet availability (defaults to ONDEMAND)");
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
     createTableOptInitProp.setArgName("properties");
+    createTableOptInitPropFile.setArgName("properties-file");
+    createTableOptInitialTabletAvailability.setArgName("availability");
 
     createTableOptLocalityProps =
         new Option("l", "locality", true, "create locality groups at table creation");
@@ -368,9 +398,11 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
     o.addOption(createTableOptInitProp);
+    o.addOption(createTableOptInitPropFile);
     o.addOption(createTableOptLocalityProps);
     o.addOption(createTableOptIteratorProps);
     o.addOption(createTableOptOffline);
+    o.addOption(createTableOptInitialTabletAvailability);
 
     return o;
   }

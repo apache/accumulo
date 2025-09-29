@@ -24,7 +24,10 @@ import java.util.Map.Entry;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 
 /**
  * This interface exposes Accumulo system level information to plugins in a stable manner. The
@@ -131,6 +134,20 @@ public interface PluginEnvironment {
      * reflected in the returned value.
      */
     <T> Supplier<T> getDerived(Function<Configuration,T> computeDerivedValue);
+
+    /**
+     * Creates a configuration object from a map of properties, this is useful for testing.
+     *
+     * @param includeDefaults If true will include accumulo's default properties and layer the
+     *        passed in map on top of these.
+     * @since 4.0.0
+     */
+    static Configuration from(Map<String,String> properties, boolean includeDefaults) {
+      ConfigurationCopy config = includeDefaults
+          ? new ConfigurationCopy(DefaultConfiguration.getInstance()) : new ConfigurationCopy();
+      properties.forEach(config::set);
+      return new ConfigurationImpl(config);
+    }
   }
 
   /**

@@ -26,19 +26,18 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
@@ -57,7 +56,8 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(1);
+
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
 
       // Timeout scan sessions after being idle for 3 seconds
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
@@ -65,6 +65,9 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       // Configure the scan server to only have 1 scan executor thread. This means
       // that the scan server will run scans serially, not concurrently.
       cfg.setProperty(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
+
+      // Set our custom implementation that shuts down after 3 batch scans
+      cfg.setServerClass(ServerType.SCAN_SERVER, rg -> SelfStoppingScanServer.class);
     }
   }
 
@@ -83,19 +86,9 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
   public void testRefRemovalOnShutdown() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
-    String zooRoot = ctx.getZooKeeperRoot();
-    ZooReaderWriter zrw = ctx.getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 0);
-
-    // Stop normal ScanServers so that we can start our custom implementation
-    // that shuts down after 3 batch scans
-    getCluster().getClusterControl().startScanServer(SelfStoppingScanServer.class, 1,
-        ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME);
-
-    // Wait for the ScanServer to register in ZK
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 1);
+    Wait.waitFor(() -> !ctx.getServerPaths()
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -124,7 +117,8 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       }
 
       // ScanServer should stop after the 3rd batch scan closes
-      Wait.waitFor(() -> ((ClientContext) client).getScanServers().size() == 0);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
 
       // The ScanServer should clean up the references on normal shutdown
       Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().count() == 0);

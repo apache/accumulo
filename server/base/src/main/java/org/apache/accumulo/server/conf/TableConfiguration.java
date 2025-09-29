@@ -44,7 +44,6 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +60,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, TablePropKey.of(context, tableId), parent);
+    super(log, context, TablePropKey.of(tableId), parent);
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
@@ -79,28 +78,6 @@ public class TableConfiguration extends ZooBasedConfiguration {
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
     cryptoServiceDeriver =
         newDeriver(conf -> createCryptoService(conf, tableId, context.getCryptoFactory()));
-  }
-
-  @Override
-  public String get(Property property) {
-    String value = _get(property);
-    if (value != null) {
-      return value;
-    }
-    AccumuloConfiguration parent = getParent();
-    if (parent != null) {
-      return parent.get(property);
-    }
-    return null;
-  }
-
-  @Nullable
-  private String _get(Property property) {
-    Map<String,String> propMap = getSnapshot();
-    if (propMap == null) {
-      return null;
-    }
-    return propMap.get(property.getKey());
   }
 
   public TableId getTableId() {

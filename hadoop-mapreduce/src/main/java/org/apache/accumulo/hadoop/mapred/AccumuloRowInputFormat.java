@@ -38,7 +38,7 @@ import org.apache.hadoop.mapred.Reporter;
 /**
  * @see org.apache.accumulo.hadoop.mapreduce.AccumuloRowInputFormat
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloRowInputFormat implements InputFormat<Text,PeekingIterator<Entry<Key,Value>>> {
   private static final Class<AccumuloRowInputFormat> CLASS = AccumuloRowInputFormat.class;

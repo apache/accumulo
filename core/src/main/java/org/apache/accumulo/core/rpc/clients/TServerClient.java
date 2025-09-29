@@ -23,26 +23,33 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -54,6 +61,8 @@ import com.google.common.net.HostAndPort;
 
 public interface TServerClient<C extends TServiceClient> {
 
+  static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
+
   Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
 
@@ -62,61 +71,76 @@ public interface TServerClient<C extends TServiceClient> {
       ThriftService service) throws TTransportException {
     checkArgument(context != null, "context is null");
 
-    if (preferCachedConnections) {
+    final String debugHost = System.getProperty(DEBUG_HOST, null);
+    final boolean debugHostSpecified = debugHost != null;
+
+    if (preferCachedConnections && !debugHostSpecified) {
       Pair<String,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type);
       if (cachedTransport != null) {
-        C client = ThriftUtil.createClient(type, cachedTransport.getSecond());
+        C client =
+            ThriftUtil.createClient(type, cachedTransport.getSecond(), context.getInstanceID());
         warned.set(false);
         return new Pair<String,C>(cachedTransport.getFirst(), client);
       }
     }
 
     final long rpcTimeout = context.getClientTimeoutInMillis();
-    final String tserverZooPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    final String sserverZooPath = context.getZooKeeperRoot() + Constants.ZSSERVERS;
-    final String compactorZooPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
     final ZooCache zc = context.getZooCache();
+    final ServiceLockPaths sp = context.getServerPaths();
+    final List<ServiceLockPath> serverPaths = new ArrayList<>();
+    final ResourceGroupPredicate rgp = ResourceGroupPredicate.ANY;
 
-    final List<String> serverPaths = new ArrayList<>();
-    zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
-      serverPaths.add(tserverZooPath + "/" + tserverAddress);
-    });
-    if (type == ThriftClientTypes.CLIENT) {
-      zc.getChildren(sserverZooPath).forEach(sserverAddress -> {
-        serverPaths.add(sserverZooPath + "/" + sserverAddress);
-      });
-      zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-        zc.getChildren(compactorZooPath + "/" + compactorGroup).forEach(compactorAddress -> {
-          serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + compactorAddress);
-        });
-      });
-    }
-
-    if (serverPaths.isEmpty()) {
-      if (warned.compareAndSet(false, true)) {
-        LOG.warn(
-            "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
-            type);
+    if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
+      // add all three paths to the set even though they may not be correct.
+      // The entire set will be checked in the code below to validate
+      // that the path is correct and the lock is held and will return the
+      // correct one.
+      HostAndPort hp = HostAndPort.fromString(debugHost);
+      serverPaths.addAll(sp.getCompactor(rgp, AddressSelector.exact(hp), true));
+      serverPaths.addAll(sp.getScanServer(rgp, AddressSelector.exact(hp), true));
+      serverPaths.addAll(sp.getTabletServer(rgp, AddressSelector.exact(hp), true));
+    } else {
+      serverPaths.addAll(sp.getTabletServer(rgp, AddressSelector.all(), false));
+      if (type == ThriftClientTypes.CLIENT) {
+        serverPaths.addAll(sp.getCompactor(rgp, AddressSelector.all(), false));
+        serverPaths.addAll(sp.getScanServer(rgp, AddressSelector.all(), false));
       }
-      throw new TTransportException("There are no servers for type: " + type);
+      if (serverPaths.isEmpty()) {
+        if (warned.compareAndSet(false, true)) {
+          LOG.warn(
+              "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
+              type);
+        }
+        throw new TTransportException("There are no servers for type: " + type);
+      }
     }
+
     Collections.shuffle(serverPaths, RANDOM.get());
 
-    for (String serverPath : serverPaths) {
-      var zLocPath = ServiceLock.path(serverPath);
-      Optional<ServiceLockData> data = zc.getLockData(zLocPath);
+    for (ServiceLockPath path : serverPaths) {
+      Optional<ServiceLockData> data = zc.getLockData(path);
       if (data != null && data.isPresent()) {
         HostAndPort tserverClientAddress = data.orElseThrow().getAddress(service);
         if (tserverClientAddress != null) {
           try {
             TTransport transport = context.getTransportPool().getTransport(type,
                 tserverClientAddress, rpcTimeout, context, preferCachedConnections);
-            C client = ThriftUtil.createClient(type, transport);
+            C client = ThriftUtil.createClient(type, transport, context.getInstanceID());
+            if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
+              LOG.info("Connecting to debug host: {}", debugHost);
+            }
             warned.set(false);
             return new Pair<String,C>(tserverClientAddress.toString(), client);
           } catch (TTransportException e) {
-            LOG.trace("Error creating transport to {}", tserverClientAddress);
+            if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
+              LOG.error(
+                  "Error creating transport to debug host: {}. If this server is"
+                      + " down, then you will need to remove or change the system property {}.",
+                  debugHost, DEBUG_HOST);
+            } else {
+              LOG.trace("Error creating transport to {}", tserverClientAddress);
+            }
             continue;
           }
         }
@@ -127,7 +151,15 @@ public interface TServerClient<C extends TServiceClient> {
       LOG.warn("Failed to find an available server in the list of servers: {} for API type: {}",
           serverPaths, type);
     }
-    throw new TTransportException("Failed to connect to any server for API type " + type);
+    // Need to throw a different exception, when a TTransportException is
+    // thrown below, then the operation will be retried endlessly.
+    if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
+      throw new UncheckedIOException("Error creating transport to debug host: " + debugHost
+          + ". If this server is down, then you will need to remove or change the system property "
+          + DEBUG_HOST + ".", new IOException(""));
+    } else {
+      throw new TTransportException("Failed to connect to any server for API type " + type);
+    }
   }
 
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)
@@ -147,6 +179,19 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
+      } catch (ThriftTableOperationException ttoe) {
+        TableNotFoundException tnfe;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe);
+            throw new AccumuloException(tnfe);
+          case NAMESPACE_NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe.getTableName(),
+                new NamespaceNotFoundException(ttoe));
+            throw new AccumuloException(tnfe);
+          default:
+            throw new AccumuloException(ttoe);
+        }
       } catch (TException e) {
         throw new AccumuloException(e);
       } finally {
@@ -175,6 +220,19 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
+      } catch (ThriftTableOperationException ttoe) {
+        TableNotFoundException tnfe;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe);
+            throw new AccumuloException(tnfe);
+          case NAMESPACE_NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe.getTableName(),
+                new NamespaceNotFoundException(ttoe));
+            throw new AccumuloException(tnfe);
+          default:
+            throw new AccumuloException(ttoe);
+        }
       } catch (TException e) {
         throw new AccumuloException(e);
       } finally {

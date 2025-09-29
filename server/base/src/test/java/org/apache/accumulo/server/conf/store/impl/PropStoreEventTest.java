@@ -34,12 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
@@ -56,36 +54,33 @@ import org.junit.jupiter.api.Test;
 
 public class PropStoreEventTest {
   private final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
-  private InstanceId instanceId;
 
   // mocks
-  private ServerContext context;
+  private ZooSession zk;
   private ZooReaderWriter zrw;
   private ReadyMonitor readyMonitor;
 
   @BeforeEach
   public void initCommonMocks() throws Exception {
-    instanceId = InstanceId.of(UUID.randomUUID());
-    context = createMock(ServerContext.class);
+    zk = createMock(ZooSession.class);
     zrw = createMock(ZooReaderWriter.class);
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(500).anyTimes();
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
 
-    expect(zrw.exists(eq("/accumulo/" + instanceId), anyObject())).andReturn(true).anyTimes();
+    expect(zrw.exists(eq("/"), anyObject())).andReturn(true).anyTimes();
 
     readyMonitor = createMock(ReadyMonitor.class);
+
   }
 
   @AfterEach
   public void verifyMocks() {
-    verify(context, zrw, readyMonitor);
+    verify(zk, zrw, readyMonitor);
   }
 
   @Test
   public void zkChangeEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -95,9 +90,9 @@ public class PropStoreEventTest {
     readyMonitor.setReady();
     expectLastCall().once();
 
-    replay(context, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
     StoreTestListener listener = new StoreTestListener();
 
     propStore.registerAsListener(tablePropKey, listener);
@@ -114,7 +109,7 @@ public class PropStoreEventTest {
   @Test
   public void deleteEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -125,9 +120,9 @@ public class PropStoreEventTest {
     readyMonitor.setReady();
     expectLastCall().once();
 
-    replay(context, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -144,7 +139,7 @@ public class PropStoreEventTest {
   @Test
   public void disconnectEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -157,9 +152,9 @@ public class PropStoreEventTest {
     readyMonitor.clearReady();
     expectLastCall();
 
-    replay(context, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -176,7 +171,7 @@ public class PropStoreEventTest {
   @Test
   public void closedEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -191,9 +186,9 @@ public class PropStoreEventTest {
     readyMonitor.setClosed();
     expectLastCall();
 
-    replay(context, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -209,15 +204,15 @@ public class PropStoreEventTest {
   @Test
   public void cacheChangeEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
     readyMonitor.setReady();
     expectLastCall().once();
 
-    replay(context, zrw, readyMonitor);
+    replay(zk, zrw, readyMonitor);
 
-    PropStore propStore = new ZooPropStore(instanceId, zrw, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -231,7 +226,7 @@ public class PropStoreEventTest {
 
   @Test
   public void validateWatcherSetTest() throws Exception {
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     Map<String,String> props1 =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
@@ -252,9 +247,9 @@ public class PropStoreEventTest {
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
-    replay(context, zrw, readyMonitor);
+    replay(zk, zrw, readyMonitor);
 
-    ZooPropLoader loader = new ZooPropLoader(zrw, propCodec, watcher);
+    ZooPropLoader loader = new ZooPropLoader(zk, propCodec, watcher);
 
     PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(loader).build();
 
@@ -277,17 +272,17 @@ public class PropStoreEventTest {
     private int connectionEventCount = 0;
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       zkChangeEventCount++;
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       cacheChangeEventCount++;
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       deleteEventCount++;
     }
 

@@ -79,15 +79,12 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 
 public class RFile {
 
@@ -376,8 +373,8 @@ public class RFile {
   }
 
   private static class SampleEntry {
-    Key key;
-    Value val;
+    final Key key;
+    final Value val;
 
     SampleEntry(Key key, Value val) {
       this.key = new Key(key);
@@ -1107,16 +1104,13 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() {
-      return firstKey != null ? firstKey.getRow() : null;
-    }
-
-    @Override
-    public Text getLastRow() {
-      if (index.size() == 0) {
-        return null;
+    public FileRange getFileRange() {
+      if (firstKey == null) {
+        Preconditions.checkState(index.size() == 0);
+        return FileRange.EMPTY;
+      } else {
+        return new FileRange(firstKey.getRow(), index.getLastKey().getRow());
       }
-      return index.getLastKey().getRow();
     }
 
     @Override
@@ -1185,14 +1179,14 @@ public class RFile {
     private final LocalityGroupContext lgContext;
     private LocalityGroupSeekCache lgCache;
 
-    private final List<Reader> deepCopies;
+    private List<Reader> deepCopies;
     private boolean deepCopy = false;
 
     private AtomicBoolean interruptFlag;
 
     private SamplerConfigurationImpl samplerConfig = null;
 
-    private final int rfileVersion;
+    private int rfileVersion;
 
     public Reader(CachableBlockFile.Reader rdr) throws IOException {
       this.reader = rdr;
@@ -1294,24 +1288,32 @@ public class RFile {
       this(new CachableBlockFile.Reader(b));
     }
 
-    private void closeLocalityGroupReaders() {
+    private void closeLocalityGroupReaders(boolean ignoreIOExceptions) throws IOException {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
-          log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          if (ignoreIOExceptions) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          } else {
+            throw e;
+          }
         }
       }
     }
 
     @Override
-    public void closeDeepCopies() {
+    public void closeDeepCopies() throws IOException {
+      closeDeepCopies(false);
+    }
+
+    private void closeDeepCopies(boolean ignoreIOExceptions) throws IOException {
       if (deepCopy) {
         throw new IllegalStateException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
-        deepCopy.closeLocalityGroupReaders();
+        deepCopy.closeLocalityGroupReaders(ignoreIOExceptions);
       }
 
       deepCopies.clear();
@@ -1323,8 +1325,9 @@ public class RFile {
         throw new IllegalStateException("Calling close on a deep copy is not supported");
       }
 
-      closeDeepCopies();
-      closeLocalityGroupReaders();
+      // Closes as much as possible igoring and logging exceptions along the way
+      closeDeepCopies(true);
+      closeLocalityGroupReaders(true);
 
       if (sampleReaders != null) {
         for (LocalityGroupReader lgr : sampleReaders) {
@@ -1346,47 +1349,14 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Text minRow = null;
+    public FileRange getFileRange() {
+      FileRange range = FileRange.EMPTY;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        if (minRow == null) {
-          minRow = currentReader.getFirstRow();
-        } else {
-          Text firstRow = currentReader.getFirstRow();
-          if (firstRow != null && firstRow.compareTo(minRow) < 0) {
-            minRow = firstRow;
-          }
-        }
+        range = currentReader.getFileRange().union(range);
       }
 
-      return minRow;
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Text maxRow = null;
-
-      for (LocalityGroupReader currentReader : currentReaders) {
-        if (maxRow == null) {
-          maxRow = currentReader.getLastRow();
-        } else {
-          Text lastRow = currentReader.getLastRow();
-          if (lastRow != null && lastRow.compareTo(maxRow) > 0) {
-            maxRow = lastRow;
-          }
-        }
-      }
-
-      return maxRow;
+      return range;
     }
 
     @Override
@@ -1616,14 +1586,10 @@ public class RFile {
 
     private final FileSKVIterator reader;
     protected final Range fence;
-    private final Key fencedStartKey;
-    private final Supplier<Key> fencedEndKey;
 
     public FencedFileSKVIterator(FileSKVIterator reader, Range fence) {
       this.reader = Objects.requireNonNull(reader);
       this.fence = Objects.requireNonNull(fence);
-      this.fencedStartKey = fence.getStartKey();
-      this.fencedEndKey = Suppliers.memoize(() -> getEndKey(fence.getEndKey()));
     }
 
     @Override
@@ -1653,23 +1619,8 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      var row = reader.getFirstRow();
-      if (row != null && fence.beforeStartKey(new Key(row))) {
-        return fencedStartKey.getRow();
-      } else {
-        return row;
-      }
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      var row = reader.getLastRow();
-      if (row != null && fence.afterEndKey(new Key(row))) {
-        return fencedEndKey.get().getRow();
-      } else {
-        return row;
-      }
+    public FileRange getFileRange() {
+      return reader.getFileRange().intersect(fence);
     }
 
     @Override
@@ -1700,23 +1651,6 @@ public class RFile {
     @Override
     public void close() throws IOException {
       reader.close();
-    }
-
-    private Key getEndKey(Key key) {
-      // If they key is infinite it will be null or if inclusive we can just use it as is
-      // as it would be the correct value for getLastKey()
-      if (fence.isInfiniteStopKey() || fence.isEndKeyInclusive()) {
-        return key;
-      }
-
-      // If exclusive we need to strip the last byte to get the last key that is part of the
-      // actual range to return
-      final byte[] ba = key.getRowData().toArray();
-      Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
-      byte[] fba = new byte[ba.length - 1];
-      System.arraycopy(ba, 0, fba, 0, ba.length - 1);
-
-      return new Key(fba);
     }
 
   }

@@ -18,16 +18,11 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.rename;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -41,8 +36,8 @@ public class RenameNamespace extends ManagerRepo {
   private final String newName;
 
   @Override
-  public long isReady(long id, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, id, LockType.WRITE, true,
+  public long isReady(FateId fateId, Manager environment) throws Exception {
+    return Utils.reserveNamespace(environment, namespaceId, fateId, LockType.WRITE, true,
         TableOperation.RENAME);
   }
 
@@ -53,33 +48,13 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
-
-    Utils.getTableNameLock().lock();
     try {
-      Utils.checkNamespaceDoesNotExist(manager.getContext(), newName, namespaceId,
-          TableOperation.RENAME);
-
-      final String tap = manager.getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId
-          + Constants.ZNAMESPACE_NAME;
-
-      zoo.mutateExisting(tap, current -> {
-        final String currentName = new String(current, UTF_8);
-        if (currentName.equals(newName)) {
-          return null; // assume in this case the operation is running again, so we are done
-        }
-        if (!currentName.equals(oldName)) {
-          throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "Name changed while processing");
-        }
-        return newName.getBytes(UTF_8);
-      });
+      manager.getContext().getNamespaceMapping().rename(namespaceId, oldName, newName);
       manager.getContext().clearTableListCache();
     } finally {
-      Utils.getTableNameLock().unlock();
-      Utils.unreserveNamespace(manager, namespaceId, id, LockType.WRITE);
+      Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.WRITE);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,
@@ -89,8 +64,8 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, tid, LockType.WRITE);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.WRITE);
   }
 
 }

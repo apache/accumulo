@@ -23,27 +23,27 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -77,11 +77,11 @@ public class ExistingMacIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private void createEmptyConfig(File confFile) throws IOException {
+  private void createEmptyConfig(Path confFile) throws IOException {
     Configuration conf = new Configuration(false);
-    OutputStream hcOut = new FileOutputStream(confFile);
-    conf.writeXml(hcOut);
-    hcOut.close();
+    try (OutputStream hcOut = Files.newOutputStream(confFile)) {
+      conf.writeXml(hcOut);
+    }
   }
 
   @Test
@@ -102,8 +102,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     }
 
     client.tableOperations().flush(table, null, null, true);
-    client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-    client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+    client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+    client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
     Set<Entry<ServerType,Collection<ProcessReference>>> procs =
         getCluster().getProcesses().entrySet();
@@ -116,10 +116,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
       }
     }
 
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    final String zInstanceRoot =
-        Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
-    while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
+    while (!AccumuloStatus.isAccumuloOffline((ClientContext) client)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
     }
@@ -127,15 +124,16 @@ public class ExistingMacIT extends ConfigurableMacBase {
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");
     FileUtils.deleteQuietly(hadoopConfDir);
     assertTrue(hadoopConfDir.mkdirs());
-    createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
-    createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
+    createEmptyConfig(hadoopConfDir.toPath().resolve("core-site.xml"));
+    createEmptyConfig(hadoopConfDir.toPath().resolve("hdfs-site.xml"));
 
     File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_2");
     FileUtils.deleteQuietly(testDir2);
 
     MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
     macConfig2.useExistingInstance(
-        new File(getCluster().getConfig().getConfDir(), "accumulo.properties"), hadoopConfDir);
+        getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties").toFile(),
+        hadoopConfDir);
 
     MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
     accumulo2.start();
@@ -168,18 +166,19 @@ public class ExistingMacIT extends ConfigurableMacBase {
       File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
       FileUtils.deleteQuietly(hadoopConfDir);
       assertTrue(hadoopConfDir.mkdirs());
-      createEmptyConfig(new File(hadoopConfDir, "core-site.xml"));
-      createEmptyConfig(new File(hadoopConfDir, "hdfs-site.xml"));
+      createEmptyConfig(hadoopConfDir.toPath().resolve("core-site.xml"));
+      createEmptyConfig(hadoopConfDir.toPath().resolve("hdfs-site.xml"));
 
       File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_3");
       FileUtils.deleteQuietly(testDir2);
 
       MiniAccumuloConfigImpl macConfig2 = new MiniAccumuloConfigImpl(testDir2, "notused");
       macConfig2.useExistingInstance(
-          new File(getCluster().getConfig().getConfDir(), "accumulo.properties"), hadoopConfDir);
+          getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties").toFile(),
+          hadoopConfDir);
 
       System.out.println(
-          "conf " + new File(getCluster().getConfig().getConfDir(), "accumulo.properties"));
+          "conf " + getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties"));
 
       MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
 

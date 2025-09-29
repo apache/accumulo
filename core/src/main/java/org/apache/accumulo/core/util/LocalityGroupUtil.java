@@ -246,8 +246,8 @@ public class LocalityGroupUtil {
   }
 
   public static class PartitionedMutation extends Mutation {
-    private final byte[] row;
-    private final List<ColumnUpdate> updates;
+    private byte[] row;
+    private List<ColumnUpdate> updates;
 
     public PartitionedMutation(byte[] row, List<ColumnUpdate> updates) {
       this.row = row;
@@ -289,8 +289,8 @@ public class LocalityGroupUtil {
 
   public static class Partitioner {
 
-    private final Map<ByteSequence,Integer> colfamToLgidMap;
-    private final PreAllocatedArray<Map<ByteSequence,MutableLong>> groups;
+    private Map<ByteSequence,Integer> colfamToLgidMap;
+    private PreAllocatedArray<Map<ByteSequence,MutableLong>> groups;
 
     public Partitioner(PreAllocatedArray<Map<ByteSequence,MutableLong>> groups) {
       this.groups = groups;

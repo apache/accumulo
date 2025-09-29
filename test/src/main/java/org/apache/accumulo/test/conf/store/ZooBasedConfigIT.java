@@ -46,6 +46,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
@@ -59,10 +61,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
-import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZKUtil;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -83,7 +82,7 @@ public class ZooBasedConfigIT {
   private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;
-  private static ZooKeeper zooKeeper;
+  private static ZooSession zk;
   private ServerContext context;
 
   // fake ids
@@ -99,46 +98,43 @@ public class ZooBasedConfigIT {
   private static File tempDir;
 
   @BeforeAll
-  public static void setupZk() {
-
-    // using default zookeeper port - we don't have a full configuration
+  public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
-    zooKeeper = testZk.getZooKeeper();
-    ZooUtil.digestAuth(zooKeeper, ZooKeeperTestingServer.SECRET);
-    zrw = testZk.getZooReaderWriter();
+    // prop store uses a chrooted ZK, so it is relocatable, but create a convenient empty node to
+    // work in for the test, so we can easily clean it up after each test
+    try (var zkInit = testZk.newClient()) {
+      zkInit.create("/instanceRoot", null, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+    }
+    // create a chrooted client for the tests to use
+    zk = testZk.newClient("/instanceRoot");
+    zrw = zk.asReaderWriter();
   }
 
   @AfterAll
   public static void shutdownZK() throws Exception {
-    testZk.close();
+    try {
+      zk.close();
+    } finally {
+      testZk.close();
+    }
   }
 
   @BeforeEach
-  public void initPaths() {
+  public void initPaths() throws Exception {
     context = createMock(ServerContext.class);
-    testZk.initPaths(ZooUtil.getRoot(INSTANCE_ID));
+    expect(context.getZooSession()).andReturn(zk);
 
-    try {
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES, new byte[0],
-          ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(Constants.ZTABLES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidA.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZTABLES + "/" + tidB.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(Constants.ZTABLES + "/" + tidA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
+    zk.create(Constants.ZTABLES + "/" + tidB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
 
-      zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES, new byte[0],
-          ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-      zooKeeper.create(
-          ZooUtil.getRoot(INSTANCE_ID) + Constants.ZNAMESPACES + "/" + nsId.canonical(),
-          new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    } catch (KeeperException ex) {
-      log.trace("Issue during zk initialization, skipping", ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted during zookeeper path initialization", ex);
-    }
+    zk.create(Constants.ZNAMESPACES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
+    zk.create(Constants.ZNAMESPACES + "/" + nsId.canonical(), new byte[0],
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     ticker = new TestTicker();
 
@@ -146,12 +142,10 @@ public class ZooBasedConfigIT {
 
     // setup context mock with enough to create prop store
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zrw.getSessionTimeout()).anyTimes();
 
     replay(context);
 
-    propStore = ZooPropStore.initialize(context.getInstanceID(), zrw);
+    propStore = ZooPropStore.initialize(zk);
 
     reset(context);
 
@@ -160,20 +154,16 @@ public class ZooBasedConfigIT {
 
     // setup context mock with prop store and the rest of the env needed.
     expect(context.getInstanceID()).andReturn(INSTANCE_ID).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(zooKeeper.getSessionTimeout())
-        .anyTimes();
+    expect(context.getZooKeepersSessionTimeOut()).andReturn(zk.getSessionTimeout()).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getSiteConfiguration()).andReturn(SiteConfiguration.empty().build()).anyTimes();
 
   }
 
   @AfterEach
-  public void cleanupZnodes() {
-    try {
-      ZKUtil.deleteRecursive(zooKeeper, "/accumulo");
-    } catch (KeeperException | InterruptedException ex) {
-      throw new IllegalStateException("Failed to clean-up test zooKeeper nodes.", ex);
+  public void cleanupZnodes() throws Exception {
+    for (var child : zk.getChildren("/", null)) {
+      ZKUtil.deleteRecursive(zk, "/" + child);
     }
     verify(context);
   }
@@ -186,9 +176,8 @@ public class ZooBasedConfigIT {
   public void upgradeSysTestNoProps() throws Exception {
     replay(context);
     // force create empty sys config node.
-    zooKeeper.create(ZooUtil.getRoot(INSTANCE_ID) + Constants.ZCONFIG, new byte[0],
-        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    var propKey = SystemPropKey.of(INSTANCE_ID);
+    zk.create(Constants.ZCONFIG, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    var propKey = SystemPropKey.of();
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
     assertNotNull(zbc);
   }
@@ -198,10 +187,9 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    propStore.create(SystemPropKey.of(context),
-        Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+    propStore.create(SystemPropKey.of(), Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
 
@@ -215,18 +203,18 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     propStore.create(sysPropKey, Map.of());
     assertThrows(IllegalStateException.class, () -> propStore.create(sysPropKey, Map.of()));
 
-    propStore.create(NamespacePropKey.of(context, nsId), Map.of());
+    propStore.create(NamespacePropKey.of(nsId), Map.of());
     assertThrows(IllegalStateException.class,
-        () -> propStore.create(NamespacePropKey.of(context, nsId), Map.of()));
+        () -> propStore.create(NamespacePropKey.of(nsId), Map.of()));
 
-    propStore.create(TablePropKey.of(context, tidA), Map.of());
+    propStore.create(TablePropKey.of(tidA), Map.of());
     assertThrows(IllegalStateException.class,
-        () -> propStore.create(TablePropKey.of(context, tidA), Map.of()));
+        () -> propStore.create(TablePropKey.of(tidA), Map.of()));
   }
 
   @Test
@@ -234,11 +222,11 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     propStore.create(sysPropKey, Map.of());
 
-    propStore.create(NamespacePropKey.of(context, nsId), Map.of());
+    propStore.create(NamespacePropKey.of(nsId), Map.of());
 
     ZooBasedConfiguration zbc = new NamespaceConfiguration(context, nsId, parent);
 
@@ -259,10 +247,9 @@ public class ZooBasedConfigIT {
     // expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
     replay(context);
 
-    propStore.create(SystemPropKey.of(context),
-        Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+    propStore.create(SystemPropKey.of(), Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     TestListener testListener = new TestListener();
     propStore.registerAsListener(sysPropKey, testListener);
@@ -277,7 +264,7 @@ public class ZooBasedConfigIT {
     // advance well past unload period.
     ticker.advance(2, TimeUnit.HOURS);
 
-    var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
+    var tableBPropKey = TablePropKey.of(tidB);
     propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);
 
@@ -334,19 +321,19 @@ public class ZooBasedConfigIT {
     }
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       log.debug("Received zkChangeEvent for {}", propStoreKey);
       zkChangeCount.incrementAndGet();
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       log.debug("Received cacheChangeEvent for {}", propStoreKey);
       cacheChangeCount.incrementAndGet();
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       log.debug("Received deleteEvent for: {}", propStoreKey);
       deleteCount.incrementAndGet();
     }

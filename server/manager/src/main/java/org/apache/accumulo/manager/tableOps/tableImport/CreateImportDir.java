@@ -19,9 +19,11 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -41,7 +43,7 @@ class CreateImportDir extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     Set<String> tableDirs = manager.getContext().getTablesDirs();
 
@@ -62,6 +64,7 @@ class CreateImportDir extends ManagerRepo {
    */
   void create(Set<String> tableDirs, Manager manager) throws IOException {
     UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
+    Iterator<String> names = namer.getNextNames(tableInfo.directories.size());
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path exportDir = new Path(dm.exportDir);
@@ -75,7 +78,7 @@ class CreateImportDir extends ManagerRepo {
       log.info("Chose base table directory of {}", base);
       Path directory = new Path(base, tableInfo.tableId.canonical());
 
-      Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + namer.getNextName());
+      Path newBulkDir = new Path(directory, Constants.BULK_PREFIX + names.next());
 
       dm.importDir = newBulkDir.toString();
 

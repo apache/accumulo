@@ -29,36 +29,27 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TabletStats");
 
   private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-  private static final org.apache.thrift.protocol.TField MAJORS_FIELD_DESC = new org.apache.thrift.protocol.TField("majors", org.apache.thrift.protocol.TType.STRUCT, (short)2);
   private static final org.apache.thrift.protocol.TField MINORS_FIELD_DESC = new org.apache.thrift.protocol.TField("minors", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-  private static final org.apache.thrift.protocol.TField SPLITS_FIELD_DESC = new org.apache.thrift.protocol.TField("splits", org.apache.thrift.protocol.TType.STRUCT, (short)4);
   private static final org.apache.thrift.protocol.TField NUM_ENTRIES_FIELD_DESC = new org.apache.thrift.protocol.TField("numEntries", org.apache.thrift.protocol.TType.I64, (short)5);
   private static final org.apache.thrift.protocol.TField INGEST_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("ingestRate", org.apache.thrift.protocol.TType.DOUBLE, (short)6);
   private static final org.apache.thrift.protocol.TField QUERY_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryRate", org.apache.thrift.protocol.TType.DOUBLE, (short)7);
-  private static final org.apache.thrift.protocol.TField SPLIT_CREATION_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("splitCreationTime", org.apache.thrift.protocol.TType.I64, (short)8);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TabletStatsStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TabletStatsTupleSchemeFactory();
 
   public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
-  public @org.apache.thrift.annotation.Nullable ActionStats majors; // required
   public @org.apache.thrift.annotation.Nullable ActionStats minors; // required
-  public @org.apache.thrift.annotation.Nullable ActionStats splits; // required
   public long numEntries; // required
   public double ingestRate; // required
   public double queryRate; // required
-  public long splitCreationTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     EXTENT((short)1, "extent"),
-    MAJORS((short)2, "majors"),
     MINORS((short)3, "minors"),
-    SPLITS((short)4, "splits"),
     NUM_ENTRIES((short)5, "numEntries"),
     INGEST_RATE((short)6, "ingestRate"),
-    QUERY_RATE((short)7, "queryRate"),
-    SPLIT_CREATION_TIME((short)8, "splitCreationTime");
+    QUERY_RATE((short)7, "queryRate");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -76,20 +67,14 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       switch(fieldId) {
         case 1: // EXTENT
           return EXTENT;
-        case 2: // MAJORS
-          return MAJORS;
         case 3: // MINORS
           return MINORS;
-        case 4: // SPLITS
-          return SPLITS;
         case 5: // NUM_ENTRIES
           return NUM_ENTRIES;
         case 6: // INGEST_RATE
           return INGEST_RATE;
         case 7: // QUERY_RATE
           return QUERY_RATE;
-        case 8: // SPLIT_CREATION_TIME
-          return SPLIT_CREATION_TIME;
         default:
           return null;
       }
@@ -136,18 +121,13 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   private static final int __NUMENTRIES_ISSET_ID = 0;
   private static final int __INGESTRATE_ISSET_ID = 1;
   private static final int __QUERYRATE_ISSET_ID = 2;
-  private static final int __SPLITCREATIONTIME_ISSET_ID = 3;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
     tmpMap.put(_Fields.EXTENT, new org.apache.thrift.meta_data.FieldMetaData("extent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
-    tmpMap.put(_Fields.MAJORS, new org.apache.thrift.meta_data.FieldMetaData("majors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
     tmpMap.put(_Fields.MINORS, new org.apache.thrift.meta_data.FieldMetaData("minors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
-    tmpMap.put(_Fields.SPLITS, new org.apache.thrift.meta_data.FieldMetaData("splits", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ActionStats.class)));
     tmpMap.put(_Fields.NUM_ENTRIES, new org.apache.thrift.meta_data.FieldMetaData("numEntries", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
@@ -155,8 +135,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.QUERY_RATE, new org.apache.thrift.meta_data.FieldMetaData("queryRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
-    tmpMap.put(_Fields.SPLIT_CREATION_TIME, new org.apache.thrift.meta_data.FieldMetaData("splitCreationTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TabletStats.class, metaDataMap);
   }
@@ -166,27 +144,20 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
 
   public TabletStats(
     org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
-    ActionStats majors,
     ActionStats minors,
-    ActionStats splits,
     long numEntries,
     double ingestRate,
-    double queryRate,
-    long splitCreationTime)
+    double queryRate)
   {
     this();
     this.extent = extent;
-    this.majors = majors;
     this.minors = minors;
-    this.splits = splits;
     this.numEntries = numEntries;
     setNumEntriesIsSet(true);
     this.ingestRate = ingestRate;
     setIngestRateIsSet(true);
     this.queryRate = queryRate;
     setQueryRateIsSet(true);
-    this.splitCreationTime = splitCreationTime;
-    setSplitCreationTimeIsSet(true);
   }
 
   /**
@@ -197,19 +168,12 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     if (other.isSetExtent()) {
       this.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.extent);
     }
-    if (other.isSetMajors()) {
-      this.majors = new ActionStats(other.majors);
-    }
     if (other.isSetMinors()) {
       this.minors = new ActionStats(other.minors);
-    }
-    if (other.isSetSplits()) {
-      this.splits = new ActionStats(other.splits);
     }
     this.numEntries = other.numEntries;
     this.ingestRate = other.ingestRate;
     this.queryRate = other.queryRate;
-    this.splitCreationTime = other.splitCreationTime;
   }
 
   @Override
@@ -220,17 +184,13 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   @Override
   public void clear() {
     this.extent = null;
-    this.majors = null;
     this.minors = null;
-    this.splits = null;
     setNumEntriesIsSet(false);
     this.numEntries = 0;
     setIngestRateIsSet(false);
     this.ingestRate = 0.0;
     setQueryRateIsSet(false);
     this.queryRate = 0.0;
-    setSplitCreationTimeIsSet(false);
-    this.splitCreationTime = 0;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -259,31 +219,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   }
 
   @org.apache.thrift.annotation.Nullable
-  public ActionStats getMajors() {
-    return this.majors;
-  }
-
-  public TabletStats setMajors(@org.apache.thrift.annotation.Nullable ActionStats majors) {
-    this.majors = majors;
-    return this;
-  }
-
-  public void unsetMajors() {
-    this.majors = null;
-  }
-
-  /** Returns true if field majors is set (has been assigned a value) and false otherwise */
-  public boolean isSetMajors() {
-    return this.majors != null;
-  }
-
-  public void setMajorsIsSet(boolean value) {
-    if (!value) {
-      this.majors = null;
-    }
-  }
-
-  @org.apache.thrift.annotation.Nullable
   public ActionStats getMinors() {
     return this.minors;
   }
@@ -305,31 +240,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
   public void setMinorsIsSet(boolean value) {
     if (!value) {
       this.minors = null;
-    }
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public ActionStats getSplits() {
-    return this.splits;
-  }
-
-  public TabletStats setSplits(@org.apache.thrift.annotation.Nullable ActionStats splits) {
-    this.splits = splits;
-    return this;
-  }
-
-  public void unsetSplits() {
-    this.splits = null;
-  }
-
-  /** Returns true if field splits is set (has been assigned a value) and false otherwise */
-  public boolean isSetSplits() {
-    return this.splits != null;
-  }
-
-  public void setSplitsIsSet(boolean value) {
-    if (!value) {
-      this.splits = null;
     }
   }
 
@@ -402,29 +312,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __QUERYRATE_ISSET_ID, value);
   }
 
-  public long getSplitCreationTime() {
-    return this.splitCreationTime;
-  }
-
-  public TabletStats setSplitCreationTime(long splitCreationTime) {
-    this.splitCreationTime = splitCreationTime;
-    setSplitCreationTimeIsSet(true);
-    return this;
-  }
-
-  public void unsetSplitCreationTime() {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SPLITCREATIONTIME_ISSET_ID);
-  }
-
-  /** Returns true if field splitCreationTime is set (has been assigned a value) and false otherwise */
-  public boolean isSetSplitCreationTime() {
-    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SPLITCREATIONTIME_ISSET_ID);
-  }
-
-  public void setSplitCreationTimeIsSet(boolean value) {
-    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SPLITCREATIONTIME_ISSET_ID, value);
-  }
-
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -436,27 +323,11 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       }
       break;
 
-    case MAJORS:
-      if (value == null) {
-        unsetMajors();
-      } else {
-        setMajors((ActionStats)value);
-      }
-      break;
-
     case MINORS:
       if (value == null) {
         unsetMinors();
       } else {
         setMinors((ActionStats)value);
-      }
-      break;
-
-    case SPLITS:
-      if (value == null) {
-        unsetSplits();
-      } else {
-        setSplits((ActionStats)value);
       }
       break;
 
@@ -484,14 +355,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       }
       break;
 
-    case SPLIT_CREATION_TIME:
-      if (value == null) {
-        unsetSplitCreationTime();
-      } else {
-        setSplitCreationTime((java.lang.Long)value);
-      }
-      break;
-
     }
   }
 
@@ -502,14 +365,8 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     case EXTENT:
       return getExtent();
 
-    case MAJORS:
-      return getMajors();
-
     case MINORS:
       return getMinors();
-
-    case SPLITS:
-      return getSplits();
 
     case NUM_ENTRIES:
       return getNumEntries();
@@ -519,9 +376,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
 
     case QUERY_RATE:
       return getQueryRate();
-
-    case SPLIT_CREATION_TIME:
-      return getSplitCreationTime();
 
     }
     throw new java.lang.IllegalStateException();
@@ -537,20 +391,14 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     switch (field) {
     case EXTENT:
       return isSetExtent();
-    case MAJORS:
-      return isSetMajors();
     case MINORS:
       return isSetMinors();
-    case SPLITS:
-      return isSetSplits();
     case NUM_ENTRIES:
       return isSetNumEntries();
     case INGEST_RATE:
       return isSetIngestRate();
     case QUERY_RATE:
       return isSetQueryRate();
-    case SPLIT_CREATION_TIME:
-      return isSetSplitCreationTime();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -577,30 +425,12 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
         return false;
     }
 
-    boolean this_present_majors = true && this.isSetMajors();
-    boolean that_present_majors = true && that.isSetMajors();
-    if (this_present_majors || that_present_majors) {
-      if (!(this_present_majors && that_present_majors))
-        return false;
-      if (!this.majors.equals(that.majors))
-        return false;
-    }
-
     boolean this_present_minors = true && this.isSetMinors();
     boolean that_present_minors = true && that.isSetMinors();
     if (this_present_minors || that_present_minors) {
       if (!(this_present_minors && that_present_minors))
         return false;
       if (!this.minors.equals(that.minors))
-        return false;
-    }
-
-    boolean this_present_splits = true && this.isSetSplits();
-    boolean that_present_splits = true && that.isSetSplits();
-    if (this_present_splits || that_present_splits) {
-      if (!(this_present_splits && that_present_splits))
-        return false;
-      if (!this.splits.equals(that.splits))
         return false;
     }
 
@@ -631,15 +461,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
         return false;
     }
 
-    boolean this_present_splitCreationTime = true;
-    boolean that_present_splitCreationTime = true;
-    if (this_present_splitCreationTime || that_present_splitCreationTime) {
-      if (!(this_present_splitCreationTime && that_present_splitCreationTime))
-        return false;
-      if (this.splitCreationTime != that.splitCreationTime)
-        return false;
-    }
-
     return true;
   }
 
@@ -651,25 +472,15 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     if (isSetExtent())
       hashCode = hashCode * 8191 + extent.hashCode();
 
-    hashCode = hashCode * 8191 + ((isSetMajors()) ? 131071 : 524287);
-    if (isSetMajors())
-      hashCode = hashCode * 8191 + majors.hashCode();
-
     hashCode = hashCode * 8191 + ((isSetMinors()) ? 131071 : 524287);
     if (isSetMinors())
       hashCode = hashCode * 8191 + minors.hashCode();
-
-    hashCode = hashCode * 8191 + ((isSetSplits()) ? 131071 : 524287);
-    if (isSetSplits())
-      hashCode = hashCode * 8191 + splits.hashCode();
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(numEntries);
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(ingestRate);
 
     hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(queryRate);
-
-    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(splitCreationTime);
 
     return hashCode;
   }
@@ -692,32 +503,12 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetMajors(), other.isSetMajors());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetMajors()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.majors, other.majors);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = java.lang.Boolean.compare(isSetMinors(), other.isSetMinors());
     if (lastComparison != 0) {
       return lastComparison;
     }
     if (isSetMinors()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.minors, other.minors);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetSplits(), other.isSetSplits());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetSplits()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.splits, other.splits);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -748,16 +539,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     }
     if (isSetQueryRate()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queryRate, other.queryRate);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
-    lastComparison = java.lang.Boolean.compare(isSetSplitCreationTime(), other.isSetSplitCreationTime());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetSplitCreationTime()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.splitCreationTime, other.splitCreationTime);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -794,27 +575,11 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("majors:");
-    if (this.majors == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.majors);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("minors:");
     if (this.minors == null) {
       sb.append("null");
     } else {
       sb.append(this.minors);
-    }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("splits:");
-    if (this.splits == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.splits);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -829,10 +594,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     sb.append("queryRate:");
     sb.append(this.queryRate);
     first = false;
-    if (!first) sb.append(", ");
-    sb.append("splitCreationTime:");
-    sb.append(this.splitCreationTime);
-    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -843,14 +604,8 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
     if (extent != null) {
       extent.validate();
     }
-    if (majors != null) {
-      majors.validate();
-    }
     if (minors != null) {
       minors.validate();
-    }
-    if (splits != null) {
-      splits.validate();
     }
   }
 
@@ -901,29 +656,11 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 2: // MAJORS
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.majors = new ActionStats();
-              struct.majors.read(iprot);
-              struct.setMajorsIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           case 3: // MINORS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
               struct.minors = new ActionStats();
               struct.minors.read(iprot);
               struct.setMinorsIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
-          case 4: // SPLITS
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.splits = new ActionStats();
-              struct.splits.read(iprot);
-              struct.setSplitsIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -952,14 +689,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 8: // SPLIT_CREATION_TIME
-            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-              struct.splitCreationTime = iprot.readI64();
-              struct.setSplitCreationTimeIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -981,19 +710,9 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
         struct.extent.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.majors != null) {
-        oprot.writeFieldBegin(MAJORS_FIELD_DESC);
-        struct.majors.write(oprot);
-        oprot.writeFieldEnd();
-      }
       if (struct.minors != null) {
         oprot.writeFieldBegin(MINORS_FIELD_DESC);
         struct.minors.write(oprot);
-        oprot.writeFieldEnd();
-      }
-      if (struct.splits != null) {
-        oprot.writeFieldBegin(SPLITS_FIELD_DESC);
-        struct.splits.write(oprot);
         oprot.writeFieldEnd();
       }
       oprot.writeFieldBegin(NUM_ENTRIES_FIELD_DESC);
@@ -1004,9 +723,6 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       oprot.writeFieldEnd();
       oprot.writeFieldBegin(QUERY_RATE_FIELD_DESC);
       oprot.writeDouble(struct.queryRate);
-      oprot.writeFieldEnd();
-      oprot.writeFieldBegin(SPLIT_CREATION_TIME_FIELD_DESC);
-      oprot.writeI64(struct.splitCreationTime);
       oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
@@ -1030,39 +746,24 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       if (struct.isSetExtent()) {
         optionals.set(0);
       }
-      if (struct.isSetMajors()) {
+      if (struct.isSetMinors()) {
         optionals.set(1);
       }
-      if (struct.isSetMinors()) {
+      if (struct.isSetNumEntries()) {
         optionals.set(2);
       }
-      if (struct.isSetSplits()) {
+      if (struct.isSetIngestRate()) {
         optionals.set(3);
       }
-      if (struct.isSetNumEntries()) {
+      if (struct.isSetQueryRate()) {
         optionals.set(4);
       }
-      if (struct.isSetIngestRate()) {
-        optionals.set(5);
-      }
-      if (struct.isSetQueryRate()) {
-        optionals.set(6);
-      }
-      if (struct.isSetSplitCreationTime()) {
-        optionals.set(7);
-      }
-      oprot.writeBitSet(optionals, 8);
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetExtent()) {
         struct.extent.write(oprot);
       }
-      if (struct.isSetMajors()) {
-        struct.majors.write(oprot);
-      }
       if (struct.isSetMinors()) {
         struct.minors.write(oprot);
-      }
-      if (struct.isSetSplits()) {
-        struct.splits.write(oprot);
       }
       if (struct.isSetNumEntries()) {
         oprot.writeI64(struct.numEntries);
@@ -1073,50 +774,33 @@ public class TabletStats implements org.apache.thrift.TBase<TabletStats, TabletS
       if (struct.isSetQueryRate()) {
         oprot.writeDouble(struct.queryRate);
       }
-      if (struct.isSetSplitCreationTime()) {
-        oprot.writeI64(struct.splitCreationTime);
-      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TabletStats struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(8);
+      java.util.BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.extent.read(iprot);
         struct.setExtentIsSet(true);
       }
       if (incoming.get(1)) {
-        struct.majors = new ActionStats();
-        struct.majors.read(iprot);
-        struct.setMajorsIsSet(true);
-      }
-      if (incoming.get(2)) {
         struct.minors = new ActionStats();
         struct.minors.read(iprot);
         struct.setMinorsIsSet(true);
       }
-      if (incoming.get(3)) {
-        struct.splits = new ActionStats();
-        struct.splits.read(iprot);
-        struct.setSplitsIsSet(true);
-      }
-      if (incoming.get(4)) {
+      if (incoming.get(2)) {
         struct.numEntries = iprot.readI64();
         struct.setNumEntriesIsSet(true);
       }
-      if (incoming.get(5)) {
+      if (incoming.get(3)) {
         struct.ingestRate = iprot.readDouble();
         struct.setIngestRateIsSet(true);
       }
-      if (incoming.get(6)) {
+      if (incoming.get(4)) {
         struct.queryRate = iprot.readDouble();
         struct.setQueryRateIsSet(true);
-      }
-      if (incoming.get(7)) {
-        struct.splitCreationTime = iprot.readI64();
-        struct.setSplitCreationTimeIsSet(true);
       }
     }
   }

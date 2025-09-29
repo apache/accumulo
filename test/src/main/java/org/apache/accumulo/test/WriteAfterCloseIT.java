@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -141,12 +142,26 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
       c.tableOperations().create(table, ntc);
 
-      List<Future<?>> futures = new ArrayList<>();
+      int numTasks = 100;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      // synchronize start of a portion of the tasks
+      CountDownLatch startLatch = new CountDownLatch(32);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-      for (int i = 0; i < 100; i++) {
-        futures.add(
-            executor.submit(createWriteTask(i * 1000, c, table, timeout, useConditionalWriter)));
+      for (int i = 0; i < numTasks; i++) {
+        final int row = i * 1000;
+        futures.add(executor.submit(() -> {
+          try {
+            startLatch.countDown();
+            startLatch.await();
+            createWriteTask(row, c, table, timeout, useConditionalWriter).call();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }));
       }
+      assertEquals(numTasks, futures.size());
 
       if (killTservers) {
         Thread.sleep(250);

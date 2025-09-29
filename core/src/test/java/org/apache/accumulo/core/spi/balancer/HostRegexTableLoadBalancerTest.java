@@ -39,8 +39,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -48,15 +47,16 @@ import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.util.ConfigurationImpl;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
   public void init(Map<String,String> tableProperties) {
@@ -65,9 +65,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     tables.put(BAR.getTableName(), BAR.getId());
     tables.put(BAZ.getTableName(), BAZ.getId());
 
-    ConfigurationCopy config = new ConfigurationCopy(SiteConfiguration.empty().build());
-    tableProperties.forEach(config::set);
-    ConfigurationImpl configImpl = new ConfigurationImpl(config);
+    var configImpl = ServiceEnvironment.Configuration.from(tableProperties, false);
     BalancerEnvironment environment = createMock(BalancerEnvironment.class);
     expect(environment.getConfiguration()).andReturn(configImpl).anyTimes();
     expect(environment.getTableIdMap()).andReturn(tables).anyTimes();
@@ -96,9 +94,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(DEFAULT_TABLE_PROPERTIES);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    long wait =
-        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    long wait = this
+        .balance(new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -108,8 +107,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current2 = createCurrent(15);
+    wait = this
+        .balance(new BalanceParamsImpl(current2, Map.of(ResourceGroupId.DEFAULT, current2.keySet()),
+            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -119,8 +120,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current3 = createCurrent(15);
+    wait = this
+        .balance(new BalanceParamsImpl(current3, Map.of(ResourceGroupId.DEFAULT, current3.keySet()),
+            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -130,8 +133,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current4 = createCurrent(15);
+    wait = this
+        .balance(new BalanceParamsImpl(current4, Map.of(ResourceGroupId.DEFAULT, current4.keySet()),
+            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // no more balancing to do
     assertEquals(0, migrationsOut.size());
@@ -146,9 +151,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Set<TabletId> migrations = new HashSet<>();
     migrations.addAll(tableTablets.get(FOO.getTableName()));
     migrations.addAll(tableTablets.get(BAR.getTableName()));
-    long wait =
-        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    long wait = this
+        .balance(new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // no migrations should have occurred as 10 is the maxOutstandingMigrations
     assertEquals(0, migrationsOut.size());
@@ -157,6 +163,179 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   @Test
   public void testSplitCurrentByRegexUsingHostname() {
     init(DEFAULT_TABLE_PROPERTIES);
+    Map<String,SortedMap<TabletServerId,TServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
+    assertEquals(3, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(FOO.getTableName());
+    assertEquals(5, fooHosts.size());
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(BAR.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
+    assertEquals(5, barHosts.size());
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    // confirms that the default pool contains un-assigned tservers
+    assertTrue(groups.containsKey(DEFAULT_POOL));
+    SortedMap<TabletServerId,TServerStatus> defHosts = groups.get(DEFAULT_POOL);
+    assertEquals(5, defHosts.size());
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+  }
+
+  @Test
+  public void testDefaultPoolAll() {
+    // If all tservers are included in regular expressions, the the default pool
+    // contains all tservers
+    HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAZ.getTableName(), "r03.*");
+    init(props);
+    Map<String,SortedMap<TabletServerId,TServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
+    assertEquals(4, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(FOO.getTableName());
+    assertEquals(5, fooHosts.size());
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(BAR.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
+    assertEquals(5, barHosts.size());
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(BAZ.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> bazHosts = groups.get(BAZ.getTableName());
+    assertEquals(5, bazHosts.size());
+    assertTrue(
+        bazHosts.containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
+    assertTrue(
+        bazHosts.containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
+    assertTrue(
+        bazHosts.containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
+    assertTrue(
+        bazHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
+    assertTrue(
+        bazHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(DEFAULT_POOL));
+    SortedMap<TabletServerId,TServerStatus> defHosts = groups.get(DEFAULT_POOL);
+    assertEquals(15, defHosts.size());
+  }
+
+  @Test
+  public void testSplitCurrentByRegexDefineDefaultPoolOverlapping() {
+    HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
+    // Normally the DEFAULT pool would be comprised of the hosts not included in a regex.
+    // Here we are going to define it as also being on rack1
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + DEFAULT_POOL, "r01.*");
+    init(props);
+    Map<String,SortedMap<TabletServerId,TServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
+    assertEquals(3, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(FOO.getTableName());
+    assertEquals(5, fooHosts.size());
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(BAR.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
+    assertEquals(5, barHosts.size());
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(DEFAULT_POOL));
+    SortedMap<TabletServerId,TServerStatus> defHosts = groups.get(DEFAULT_POOL);
+    assertEquals(10, defHosts.size());
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+  }
+
+  @Test
+  public void testSplitCurrentByRegexDefineDefaultPoolNonOverlapping() {
+    HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
+    // Normally the DEFAULT pool would be comprised of the hosts not included in a regex.
+    // Here we are going to define it as also being on rack3
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + DEFAULT_POOL, "r03.*");
+    init(props);
     Map<String,SortedMap<TabletServerId,TServerStatus>> groups =
         this.splitCurrentByRegex(createCurrent(15));
     assertEquals(3, groups.size());
@@ -199,6 +378,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
         defHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
     assertTrue(
         defHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+
   }
 
   @Test
@@ -342,6 +522,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(ResourceGroupId.DEFAULT, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(15, assignments.size());
     // Ensure unique tservers
@@ -367,8 +548,9 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   public void testAllAssigned() {
     init(DEFAULT_TABLE_PROPERTIES);
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    this.getAssignments(new AssignmentParamsImpl(
-        Collections.unmodifiableSortedMap(allTabletServers), Map.of(), assignments));
+    this.getAssignments(
+        new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(ResourceGroupId.DEFAULT, allTabletServers.keySet()), Map.of(), assignments));
     assertEquals(0, assignments.size());
   }
 
@@ -388,6 +570,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(ResourceGroupId.DEFAULT, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
     // Ensure unique tservers
@@ -432,6 +615,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       current.remove(r);
     }
     this.getAssignments(new AssignmentParamsImpl(Collections.unmodifiableSortedMap(current),
+        Map.of(ResourceGroupId.DEFAULT, allTabletServers.keySet()),
         Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
     // Ensure assignments are correct
@@ -474,6 +658,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
 
     this.getAssignments(new AssignmentParamsImpl(Collections.unmodifiableSortedMap(current),
+        Map.of(ResourceGroupId.DEFAULT, allTabletServers.keySet()),
         Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
 
@@ -487,13 +672,17 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
 
   @Test
   public void testOutOfBoundsTablets() {
+    // calls to balance will clear the lastOOBCheckTimes map
+    // in the HostRegexTableLoadBalancer. For this test we want
+    // to get into the out of bounds checking code, so we need to
+    // populate the map with an older time value
+    this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
     init(DEFAULT_TABLE_PROPERTIES);
-    // Wait to trigger the out of bounds check which will call our version of
-    // getOnlineTabletsForTable
-    UtilWaitThread.sleep(11000);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    this.balance(new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    this.balance(new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+        migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
     assertEquals(2, migrationsOut.size());
   }
 

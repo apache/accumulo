@@ -47,7 +47,8 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -100,7 +101,6 @@ class ScanDataSource implements DataSource {
       } finally {
         try {
           if (fileManager != null) {
-            tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
             fileManager.releaseOpenFiles(false);
           }
         } catch (Exception e) {
@@ -125,12 +125,17 @@ class ScanDataSource implements DataSource {
   @Override
   public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
     if (iter == null) {
-      iter = createIterator();
+      try {
+        iter = createIterator();
+      } catch (ReflectiveOperationException e) {
+        throw new IOException("Error creating iterator", e);
+      }
     }
     return iter;
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
+  private SortedKeyValueIterator<Key,Value> createIterator()
+      throws IOException, ReflectiveOperationException {
 
     Map<StoredTabletFile,DataFileValue> files;
 
@@ -154,7 +159,6 @@ class ScanDataSource implements DataSource {
       // only acquire the file manager when we know the tablet is open
       if (fileManager == null) {
         fileManager = tablet.getTabletResources().newScanFileManager(scanParams.getScanDispatch());
-        tablet.getScanMetrics().incrementOpenFiles(fileManager.getNumOpenFiles());
         log.trace("Adding active scan for  {}, scanId:{}", tablet.getExtent(), scanDataSourceId);
         tablet.addActiveScans(this);
       }
@@ -186,9 +190,15 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
-        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
-        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
+    var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
+        .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)
+        .withTableId(tablet.getExtent().tableId())
+        .withAuthorizations(scanParams.getAuthorizations());
+    if (samplerConfig != null) {
+      builder.withSamplingEnabled();
+      builder.withSamplerConfiguration(samplerConfig.toSamplerConfiguration());
+    }
+    SystemIteratorEnvironment iterEnv = (SystemIteratorEnvironment) builder.build();
 
     statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
         tablet.getScanMetrics().getScannedCounter());
@@ -225,8 +235,7 @@ class ScanDataSource implements DataSource {
       } else {
         context = pic.getServiceEnv();
         if (context != null) {
-          log.trace("Loading iterators for scan with table context: {}",
-              scanParams.getClassLoaderContext());
+          log.trace("Loading iterators for scan with table context: {}", context);
         } else {
           log.trace("Loading iterators for scan");
         }
@@ -274,7 +283,6 @@ class ScanDataSource implements DataSource {
       }
       try {
         if (fileManager != null) {
-          tablet.getScanMetrics().decrementOpenFiles(fileManager.getNumOpenFiles());
           fileManager.releaseOpenFiles(sawErrors);
         }
       } finally {

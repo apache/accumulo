@@ -22,18 +22,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.tserver.ScanServer;
-import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.thrift.TException;
 
 /**
  * ScanServer implementation that will stop itself after the the 3rd scan batch scan
  *
  */
-public class SelfStoppingScanServer extends ScanServer
-    implements TabletScanClientService.Iface, TabletHostingServer {
+public class SelfStoppingScanServer extends ScanServer {
 
   private final AtomicInteger scanCount = new AtomicInteger(0);
 
@@ -46,7 +43,7 @@ public class SelfStoppingScanServer extends ScanServer
     scanCount.incrementAndGet();
     super.closeMultiScan(tinfo, scanID);
     if (scanCount.get() == 3) {
-      serverStopRequested = true;
+      gracefulShutdown(getContext().rpcCreds());
     }
   }
 

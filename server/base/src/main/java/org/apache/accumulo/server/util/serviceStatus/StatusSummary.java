@@ -24,17 +24,25 @@ import java.util.Set;
 
 public class StatusSummary {
 
-  private ServiceStatusReport.ReportKey serviceType;
-  private Set<String> resourceGroups;
-  private Map<String,Set<String>> serviceByGroups;
-  private int serviceCount;
-  private int errorCount;
+  private final ServiceStatusReport.ReportKey serviceType;
+  private final Map<String,Integer> resourceGroups;
+  private final Map<String,Set<String>> serviceByGroups;
+  private final int serviceCount;
+  private final int errorCount;
 
   // Default constructor required for Gson
-  private StatusSummary() {}
+  @SuppressWarnings("unused")
+  private StatusSummary() {
+    serviceType = null;
+    resourceGroups = Map.of();
+    serviceByGroups = Map.of();
+    serviceCount = 0;
+    errorCount = 0;
+  }
 
-  public StatusSummary(ServiceStatusReport.ReportKey serviceType, final Set<String> resourceGroups,
-      final Map<String,Set<String>> serviceByGroups, final int errorCount) {
+  public StatusSummary(ServiceStatusReport.ReportKey serviceType,
+      final Map<String,Integer> resourceGroups, final Map<String,Set<String>> serviceByGroups,
+      final int errorCount) {
     this.serviceType = serviceType;
     this.resourceGroups = resourceGroups;
     this.serviceByGroups = serviceByGroups;
@@ -51,7 +59,7 @@ public class StatusSummary {
     return serviceType.getDisplayName();
   }
 
-  public Set<String> getResourceGroups() {
+  public Map<String,Integer> getResourceGroups() {
     return resourceGroups;
   }
 
@@ -67,15 +75,18 @@ public class StatusSummary {
     return errorCount;
   }
 
+  public StatusSummary withoutHosts() {
+    return new StatusSummary(serviceType, resourceGroups, Map.of(), errorCount);
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StatusSummary)) {
+    if (!(o instanceof StatusSummary that)) {
       return false;
     }
-    StatusSummary that = (StatusSummary) o;
     return serviceCount == that.serviceCount && errorCount == that.errorCount
         && serviceType == that.serviceType && Objects.equals(resourceGroups, that.resourceGroups)
         && Objects.equals(serviceByGroups, that.serviceByGroups);

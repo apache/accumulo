@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -43,8 +42,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -77,9 +76,9 @@ public abstract class TabletBase {
   protected final ServerContext context;
   private final TabletHostingServer server;
 
-  protected AtomicLong lookupCount = new AtomicLong(0);
-  protected AtomicLong queryResultCount = new AtomicLong(0);
-  protected AtomicLong queryResultBytes = new AtomicLong(0);
+  protected final AtomicLong lookupCount = new AtomicLong(0);
+  protected final AtomicLong queryResultCount = new AtomicLong(0);
+  protected final AtomicLong queryResultBytes = new AtomicLong(0);
   protected final AtomicLong scannedCount = new AtomicLong(0);
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
@@ -94,7 +93,7 @@ public abstract class TabletBase {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
-    this.isUserTable = !AccumuloTable.allTableIds().contains(extent.tableId());
+    this.isUserTable = !SystemTables.containsTableId(extent.tableId());
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -125,7 +124,7 @@ public abstract class TabletBase {
 
   public abstract boolean isClosed();
 
-  public abstract SortedMap<StoredTabletFile,DataFileValue> getDatafiles();
+  public abstract Map<StoredTabletFile,DataFileValue> getDatafiles();
 
   public abstract void addToYieldMetric(int i);
 

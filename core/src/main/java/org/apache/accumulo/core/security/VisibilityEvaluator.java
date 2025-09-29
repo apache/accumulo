@@ -25,9 +25,9 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 /**
  * A class which evaluates visibility expressions against a set of authorizations.
  *
- * @deprecated since 3.1.0 Use Accumulo Access library instead
+ * @deprecated since 4.0.0 Use Accumulo Access library instead
  */
-@Deprecated(since = "3.1.0")
+@Deprecated(since = "4.0.0")
 public class VisibilityEvaluator {
   private final AccessEvaluator accessEvaluator;
 

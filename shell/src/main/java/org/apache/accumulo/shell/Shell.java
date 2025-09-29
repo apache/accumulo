@@ -24,11 +24,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,7 +69,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -87,6 +91,7 @@ import org.apache.accumulo.shell.commands.CompactCommand;
 import org.apache.accumulo.shell.commands.ConfigCommand;
 import org.apache.accumulo.shell.commands.ConstraintCommand;
 import org.apache.accumulo.shell.commands.CreateNamespaceCommand;
+import org.apache.accumulo.shell.commands.CreateResourceGroupCommand;
 import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
@@ -95,6 +100,7 @@ import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
+import org.apache.accumulo.shell.commands.DeleteResourceGroupCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
@@ -109,6 +115,7 @@ import org.apache.accumulo.shell.commands.ExtensionCommand;
 import org.apache.accumulo.shell.commands.FlushCommand;
 import org.apache.accumulo.shell.commands.FormatterCommand;
 import org.apache.accumulo.shell.commands.GetAuthsCommand;
+import org.apache.accumulo.shell.commands.GetAvailabilityCommand;
 import org.apache.accumulo.shell.commands.GetGroupsCommand;
 import org.apache.accumulo.shell.commands.GetSplitsCommand;
 import org.apache.accumulo.shell.commands.GrantCommand;
@@ -123,6 +130,7 @@ import org.apache.accumulo.shell.commands.InsertCommand;
 import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
+import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.shell.commands.ListTabletsCommand;
@@ -144,6 +152,7 @@ import org.apache.accumulo.shell.commands.RenameTableCommand;
 import org.apache.accumulo.shell.commands.RevokeCommand;
 import org.apache.accumulo.shell.commands.ScanCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
+import org.apache.accumulo.shell.commands.SetAvailabilityCommand;
 import org.apache.accumulo.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.shell.commands.SetIterCommand;
 import org.apache.accumulo.shell.commands.SetShellIterCommand;
@@ -174,6 +183,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.TerminalBuilder.SystemOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -182,6 +192,8 @@ import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help,
@@ -227,6 +239,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected String execCommand = null;
   protected boolean verbose = true;
 
+  private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private long authTimeout;
@@ -298,10 +311,11 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    */
   public boolean config(String... args) throws IOException {
     if (this.terminal == null) {
-      this.terminal = TerminalBuilder.builder().jansi(false).build();
+      this.terminal =
+          TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
-      this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
+      this.reader = newLineReaderBuilder().terminal(this.terminal).build();
     }
     this.writer = this.terminal.writer();
 
@@ -376,6 +390,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
     }
 
+    canPaginate = terminal.getSize().getRows() > 0;
+
     // decide whether to execute commands from a file and quit
     if (options.getExecFile() != null) {
       execFile = options.getExecFile();
@@ -408,13 +424,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
+    Command[] resourceGroupCommands = {new CreateResourceGroupCommand(),
+        new DeleteResourceGroupCommand(), new ListResourceGroupsCommand()};
     Command[] stateCommands =
         {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
             new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
         new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
         new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
-        new OnlineCommand(), new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
+        new SetAvailabilityCommand(), new GetAvailabilityCommand(), new OnlineCommand(),
+        new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
         new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
         new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
@@ -430,6 +449,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     commandGrouping.put("-- Help Commands ------------------------", helpCommands);
     commandGrouping.put("-- Iterator Configuration ---------------", iteratorCommands);
     commandGrouping.put("-- Permissions Administration Commands --", permissionsCommands);
+    commandGrouping.put("-- Resource Group Commands --------------", resourceGroupCommands);
     commandGrouping.put("-- Shell State Commands -----------------", stateCommands);
     commandGrouping.put("-- Table Administration Commands --------", tableCommands);
     commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);
@@ -451,7 +471,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      ContextClassLoaderException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
@@ -510,8 +531,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
+  private static LineReaderBuilder newLineReaderBuilder() {
+    var builder = LineReaderBuilder.builder();
+    // workaround for https://github.com/jline/jline3/pull/1413
+    if ("on".equals(System.getProperty("org.jline.reader.props.disable-event-expansion"))) {
+      builder.option(LineReader.Option.DISABLE_EVENT_EXPANSION, true);
+    }
+    return builder;
+  }
+
   public static void main(String[] args) throws IOException {
-    LineReader reader = LineReaderBuilder.builder().build();
+    LineReader reader = newLineReaderBuilder().build();
     new Shell(reader).execute(args);
   }
 
@@ -525,13 +555,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     String home = System.getProperty("HOME");
     if (home == null) {
-      home = System.getenv("HOME");
+      home = System.getProperty("user.home");
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
-      log.warn("Unable to make directory for history at {}", accumuloDir);
+    Path accumuloDir = Path.of(configDir);
+    if (Files.notExists(accumuloDir)) {
+      try {
+        Files.createDirectories(accumuloDir);
+      } catch (IOException e) {
+        log.warn("Unable to make directory for history at {}", accumuloDir, e);
+      }
     }
 
     // Disable shell highlighting
@@ -544,7 +578,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
     // Set history file
-    reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.setVariable(LineReader.HISTORY_FILE, Path.of(historyPath));
 
     // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
@@ -759,9 +793,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               expectedArgLen == 1 ? "" : "s", actualArgLen == 1 ? "was" : "were", actualArgLen)));
           sc.printHelp(this);
         } else {
-          int tmpCode = sc.execute(input, cl, this);
-          exitCode += tmpCode;
-          writer.flush();
+          Span span = TraceUtil.startSpan(this.getClass(), "command::" + command);
+          span.setAttribute("shell.commandLine", input);
+          try (Scope scope = span.makeCurrent()) {
+            int tmpCode = sc.execute(input, cl, this);
+            exitCode += tmpCode;
+            writer.flush();
+          } finally {
+            span.end();
+          }
         }
 
       } catch (ConstraintViolationException e) {
@@ -990,8 +1030,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
         justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      try {
+        writer = new PrintWriter(new BufferedWriter(
+            new OutputStreamWriter(Files.newOutputStream(Path.of(filename)), UTF_8)));
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error creating output stream for file: " + filename, e);
+      }
     }
 
     @Override
@@ -1027,7 +1071,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         if (out == null) {
           if (peek != null) {
             writer.println(peek);
-            if (paginate) {
+            if (canPaginate && paginate) {
               linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
               // check if displaying the next line would result in
@@ -1093,7 +1137,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
-    int COL1 = 50, COL2 = 14;
+    int COL1 = 50;
+    int COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, terminal.getWidth() - COL1 - COL2 - 6));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));

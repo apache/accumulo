@@ -23,8 +23,10 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.slf4j.LoggerFactory;
@@ -50,31 +52,31 @@ public class ChangeTableState extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
+  public long isReady(FateId fateId, Manager env) throws Exception {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
-    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true, top)
-        + Utils.reserveTable(env, tableId, tid, LockType.WRITE, true, top);
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true, top)
+        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, top, LockRange.infinite());
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
+  public Repo<Manager> call(FateId fateId, Manager env) {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE) {
       ts = TableState.OFFLINE;
     }
 
     env.getTableManager().transitionTableState(tableId, ts, expectedCurrStates);
-    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
-    Utils.unreserveTable(env, tableId, tid, LockType.WRITE);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
-    env.getEventCoordinator().event("Set table state of %s to %s", tableId, ts);
+    env.getEventCoordinator().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
-    Utils.unreserveTable(env, tableId, tid, LockType.WRITE);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
   }
 }

@@ -24,11 +24,12 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -50,7 +51,6 @@ import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,8 +110,7 @@ public class ZombieTServer {
   public static void main(String[] args) throws Exception {
     int port = RANDOM.get().nextInt(30000) + 2000;
     var context = new ServerContext(SiteConfiguration.auto());
-    final ClientServiceHandler csh =
-        new ClientServiceHandler(context, new TransactionWatcher(context));
+    final ClientServiceHandler csh = new ClientServiceHandler(context);
     final ZombieTServerThriftClientHandler tch = new ZombieTServerThriftClientHandler();
 
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
@@ -125,24 +124,25 @@ public class ZombieTServer {
         ThriftProcessorTypes.TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tch, context));
 
-    ServerAddress serverPort = TServerUtils.startTServer(context.getConfiguration(),
-        ThriftServerType.CUSTOM_HS_HA, muxProcessor, "ZombieTServer", "walking dead", 2,
+    ServerAddress serverPort = TServerUtils.createThriftServer(context.getConfiguration(),
+        ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "ZombieTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
         context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
-        HostAndPort.fromParts("0.0.0.0", port));
+        HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, port));
+    serverPort.startThriftServer("walking dead");
 
     String addressString = serverPort.address.toString();
 
-    var zLockPath =
-        ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString);
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    var zLockPath = context.getServerPaths().createTabletServerPath(ResourceGroupId.DEFAULT,
+        serverPort.address);
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ServiceLock zlock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
+    ServiceLock zlock = new ServiceLock(context.getZooSession(), zLockPath, UUID.randomUUID());
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
-    metricsInfo.addServiceTags("zombie.server", serverPort.address);
-    metricsInfo.init();
+    metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
+        serverPort.address, ResourceGroupId.DEFAULT));
 
     LockWatcher lw = new LockWatcher() {
 
@@ -172,7 +172,7 @@ public class ZombieTServer {
     };
 
     if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
-        ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME))) {
+        ResourceGroupId.DEFAULT))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

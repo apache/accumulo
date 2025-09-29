@@ -73,21 +73,26 @@ public class TestStatsDSink implements Closeable {
   }
 
   public static Metric parseStatsDMetric(String line) {
-    int idx = line.indexOf(':');
-    String name = line.substring(0, idx);
-    int idx2 = line.indexOf('|');
-    String value = line.substring(idx + 1, idx2);
-    int idx3 = line.indexOf('|', idx2 + 1);
-    String type = line.substring(idx2 + 1, idx3);
-    int idx4 = line.indexOf('#');
-    String tags = line.substring(idx4 + 1);
-    Metric m = new Metric(name, value, type);
-    String[] tag = tags.split(",");
-    for (String t : tag) {
-      String[] p = t.split(":");
-      m.getTags().put(p[0], p[1]);
+    try {
+      int idx = line.indexOf(':');
+      String name = line.substring(0, idx);
+      int idx2 = line.indexOf('|');
+      String value = line.substring(idx + 1, idx2);
+      int idx3 = line.indexOf('|', idx2 + 1);
+      String type = line.substring(idx2 + 1, idx3);
+      int idx4 = line.indexOf('#');
+      String tags = line.substring(idx4 + 1);
+      Metric m = new Metric(name, value, type);
+      String[] tag = tags.split(",");
+      for (String t : tag) {
+        String[] p = t.split(":");
+        m.getTags().put(p[0], p[1]);
+      }
+      return m;
+    } catch (Exception e) {
+      throw new IllegalArgumentException("failed to parse : " + line, e);
     }
-    return m;
+
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(TestStatsDSink.class);
@@ -98,7 +103,7 @@ public class TestStatsDSink implements Closeable {
   public TestStatsDSink() throws SocketException {
     sock = new DatagramSocket();
     int len = sock.getReceiveBufferSize();
-    Threads.createThread("test-server-thread", () -> {
+    Threads.createNonCriticalThread("test-server-thread", () -> {
       while (!sock.isClosed()) {
         byte[] buf = new byte[len];
         DatagramPacket packet = new DatagramPacket(buf, len);

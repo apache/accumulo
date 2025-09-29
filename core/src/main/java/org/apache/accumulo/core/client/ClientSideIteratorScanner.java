@@ -35,7 +35,6 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -87,70 +87,12 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
   private final Supplier<ClientContext> context;
   private final Supplier<TableId> tableId;
 
-  private class ClientSideIteratorEnvironment implements IteratorEnvironment {
-
-    private final SamplerConfiguration samplerConfig;
-    private final boolean sampleEnabled;
-
-    ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
-      this.sampleEnabled = sampleEnabled;
-      this.samplerConfig = samplerConfig;
-    }
-
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      // The javadocs state this method will throw an ISE when scope is not majc
-      throw new IllegalStateException(
-          "Asked about major compaction type when scope is " + getIteratorScope());
-    }
-
-    @Override
-    public boolean isUserCompaction() {
-      return false;
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return ClientSideIteratorScanner.this.getAuthorizations();
-    }
-
-    @Override
-    public IteratorEnvironment cloneWithSamplingEnabled() {
-      return new ClientSideIteratorEnvironment(true, samplerConfig);
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return sampleEnabled;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return samplerConfig;
-    }
-
-    @Override
-    public PluginEnvironment getPluginEnv() {
-      return new ClientServiceEnvironmentImpl(context.get());
-    }
-
-    @Override
-    public TableId getTableId() {
-      return tableId.get();
-    }
-  }
-
   /**
    * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can
    * use it as a source.
    */
   private class ScannerTranslatorImpl implements SortedKeyValueIterator<Key,Value> {
-    protected Scanner scanner;
+    protected final Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
     private SamplerConfiguration samplerConfig;
@@ -243,8 +185,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       setSamplerConfiguration(samplerConfig);
     }
 
-    if (scanner instanceof ScannerImpl) {
-      var scannerImpl = (ScannerImpl) scanner;
+    if (scanner instanceof ScannerImpl scannerImpl) {
       this.context = () -> scannerImpl.getClientContext();
       this.tableId = () -> scannerImpl.getTableId();
     } else {
@@ -289,15 +230,20 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      IteratorEnvironment iterEnv = new ClientSideIteratorEnvironment(
-          getSamplerConfiguration() != null, getIteratorSamplerConfigurationInternal());
-
+      ClientIteratorEnvironment.Builder builder = new ClientIteratorEnvironment.Builder()
+          .withClient(context.get()).withAuthorizations(getAuthorizations())
+          .withScope(IteratorScope.scan).withTableId(tableId.get())
+          .withSamplerConfiguration(getIteratorSamplerConfigurationInternal());
+      if (getSamplerConfiguration() != null) {
+        builder.withSamplingEnabled();
+      }
+      IteratorEnvironment iterEnv = builder.build();
       IteratorBuilder ib =
           IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
 
       skvi = IteratorConfigUtil.loadIterators(smi, ib);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
+    } catch (IOException | ReflectiveOperationException e) {
+      throw new RuntimeException(e);
     }
 
     final Set<ByteSequence> colfs = new TreeSet<>();

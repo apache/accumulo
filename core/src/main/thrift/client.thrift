@@ -39,6 +39,8 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
+  SET_TABLET_AVAILABILITY
+  SPLIT
 }
 
 enum TableOperationExceptionType {
@@ -57,7 +59,8 @@ enum TableOperationExceptionType {
 }
 
 enum ConfigurationType {
-  CURRENT
+  PROCESS
+  SYSTEM
   SITE
   DEFAULT
 }
@@ -97,6 +100,10 @@ exception ThriftTableOperationException {
   5:string description
 }
 
+exception ThriftResourceGroupNotExistsException {
+  1:string resourceGroupName
+}
+
 exception ThriftNotActiveServiceException {
   1:string serv
   2:string description
@@ -120,18 +127,13 @@ struct TInfo {
   1:map<string,string> headers
 }
 
+enum TTabletAvailability {
+  HOSTED
+  UNHOSTED
+  ONDEMAND
+}
+
 service ClientService {
-
-  // system management methods
-  string getRootTabletLocation()
-  string getInstanceId()
-  string getZooKeepers()
-
-  // ensures that nobody is working on the transaction id above
-  bool isActive(
-    1:TInfo tinfo
-    2:i64 tid
-  )
 
   void ping(
     2:security.TCredentials credentials
@@ -330,6 +332,15 @@ service ClientService {
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
+  )
+
+  TVersionedProperties getVersionedResourceGroupProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftResourceGroupNotExistsException rgne
   )
 
   map<string, string> getTableConfiguration(

@@ -18,42 +18,42 @@
  */
 package org.apache.accumulo.manager.tableOps.compact;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.clientImpl.UserCompactionUtils.isDefault;
 
 import java.util.Optional;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.commons.codec.binary.Hex;
-import org.apache.zookeeper.KeeperException.NoNodeException;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class CompactRange extends ManagerRepo {
+
   private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
   private final NamespaceId namespaceId;
-  private final byte[] startRow;
-  private final byte[] endRow;
-  private byte[] config;
+  private byte[] startRow;
+  private byte[] endRow;
+  private final byte[] config;
 
   public CompactRange(NamespaceId namespaceId, TableId tableId, CompactionConfig compactionConfig)
       throws AcceptableThriftTableOperationException {
@@ -64,16 +64,7 @@ public class CompactRange extends ManagerRepo {
 
     this.tableId = tableId;
     this.namespaceId = namespaceId;
-
-    if (!compactionConfig.getIterators().isEmpty()
-        || !compactionConfig.getExecutionHints().isEmpty()
-        || !isDefault(compactionConfig.getConfigurer())
-        || !isDefault(compactionConfig.getSelector())) {
-      this.config = UserCompactionUtils.encode(compactionConfig);
-    } else {
-      log.debug(
-          "Using default compaction config. No user iterators or compaction config provided.");
-    }
+    this.config = CompactionConfigStorage.encodeConfig(compactionConfig, tableId);
 
     if (compactionConfig.getStartRow() != null && compactionConfig.getEndRow() != null
         && compactionConfig.getStartRow().compareTo(compactionConfig.getEndRow()) >= 0) {
@@ -89,100 +80,38 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true,
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, tid, LockType.READ, true, TableOperation.COMPACT);
+        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.COMPACT,
+            LockRange.of(startRow, endRow));
   }
 
   @Override
-  public Repo<Manager> call(final long tid, Manager env) throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + env.getInstanceID() + Constants.ZTABLES + "/"
-        + tableId + Constants.ZTABLE_COMPACT_ID;
+  public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
+    CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
+    var extent = new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
+        startRow == null ? null : new Text(startRow));
+    var widenedRange = LockRange.of(Utils.widen(env.getContext().getAmple(), extent));
+    log.debug("{} Widened compact range from {} to {}", fateId, LockRange.of(extent), widenedRange);
 
-    ZooReaderWriter zoo = env.getContext().getZooReaderWriter();
-    byte[] cid;
-    try {
-      cid = zoo.mutateExisting(zTablePath, currentValue -> {
-        String cvs = new String(currentValue, UTF_8);
-        String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(tokens[0]) + 1;
+    // expecting the lock code should widen the range of the lock, make sure this happened
+    var myLock = Utils.getReadLock(env, tableId, fateId, LockRange.infinite());
+    Preconditions.checkState(myLock.getRange().contains(widenedRange), "%s does not contain %s",
+        myLock.getRange(), widenedRange);
 
-        String txidString = FastFormat.toHexString(tid);
-
-        for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString)) {
-            continue; // skip self
-          }
-
-          log.debug("txidString : {}", txidString);
-          log.debug("tokens[{}] : {}", i, tokens[i]);
-
-          throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-              TableOperation.COMPACT, TableOperationExceptionType.OTHER,
-              "Another compaction with iterators and/or a compaction strategy is running");
-        }
-
-        StringBuilder encodedIterators = new StringBuilder();
-
-        if (config != null) {
-          Hex hex = new Hex();
-          encodedIterators.append(",");
-          encodedIterators.append(txidString);
-          encodedIterators.append("=");
-          encodedIterators.append(new String(hex.encode(config), UTF_8));
-        }
-
-        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
-      });
-
-      return new CompactionDriver(Long.parseLong(new String(cid, UTF_8).split(",")[0]), namespaceId,
-          tableId, startRow, endRow);
-    } catch (NoNodeException nne) {
-      throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
-    }
-
-  }
-
-  static void removeIterators(Manager environment, final long txid, TableId tableId)
-      throws Exception {
-    String zTablePath = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
-        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
-
-    try {
-      zoo.mutateExisting(zTablePath, currentValue -> {
-        String cvs = new String(currentValue, UTF_8);
-        String[] tokens = cvs.split(",");
-        long flushID = Long.parseLong(tokens[0]);
-
-        String txidString = FastFormat.toHexString(txid);
-
-        StringBuilder encodedIterators = new StringBuilder();
-        for (int i = 1; i < tokens.length; i++) {
-          if (tokens[i].startsWith(txidString)) {
-            continue;
-          }
-          encodedIterators.append(",");
-          encodedIterators.append(tokens[i]);
-        }
-
-        return (Long.toString(flushID) + encodedIterators).getBytes(UTF_8);
-      });
-    } catch (NoNodeException ke) {
-      log.debug("Node for {} no longer exists.", tableId, ke);
-    }
+    return new CompactionDriver(namespaceId, tableId,
+        widenedRange.getStartRow() == null ? null : TextUtil.getBytes(widenedRange.getStartRow()),
+        widenedRange.getEndRow() == null ? null : TextUtil.getBytes(widenedRange.getEndRow()));
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, Manager env) throws Exception {
     try {
-      removeIterators(env, tid, tableId);
+      CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
-      Utils.unreserveTable(env, tableId, tid, LockType.READ);
+      Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(env, tableId, fateId, LockType.READ);
     }
   }
 

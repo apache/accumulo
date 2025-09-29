@@ -26,9 +26,10 @@ package org.apache.accumulo.core.clientImpl.thrift;
 
 
 public enum ConfigurationType implements org.apache.thrift.TEnum {
-  CURRENT(0),
-  SITE(1),
-  DEFAULT(2);
+  PROCESS(0),
+  SYSTEM(1),
+  SITE(2),
+  DEFAULT(3);
 
   private final int value;
 
@@ -52,10 +53,12 @@ public enum ConfigurationType implements org.apache.thrift.TEnum {
   public static ConfigurationType findByValue(int value) { 
     switch (value) {
       case 0:
-        return CURRENT;
+        return PROCESS;
       case 1:
-        return SITE;
+        return SYSTEM;
       case 2:
+        return SITE;
+      case 3:
         return DEFAULT;
       default:
         return null;

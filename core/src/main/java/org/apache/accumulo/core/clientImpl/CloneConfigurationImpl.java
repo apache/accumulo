@@ -29,7 +29,8 @@ import com.google.common.base.Preconditions;
 /**
  * A {@link CloneConfiguration} implementation which also implements the builder thereof
  *
- * @since 1.10 and 2.1
+ * @since 1.10.0
+ * @since 2.1.0
  */
 public class CloneConfigurationImpl implements CloneConfiguration, CloneConfiguration.Builder {
 

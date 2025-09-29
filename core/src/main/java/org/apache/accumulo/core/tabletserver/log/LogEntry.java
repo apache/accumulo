@@ -158,8 +158,7 @@ public final class LogEntry {
   /**
    * Get the Text that should be used as the column qualifier to store this as a metadata entry.
    */
-  @VisibleForTesting
-  Text getColumnQualifier() {
+  public Text getColumnQualifier() {
     return columnQualifier == null ? newCQ() : new Text(columnQualifier);
   }
 

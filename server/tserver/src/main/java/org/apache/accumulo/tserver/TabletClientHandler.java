@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
@@ -33,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -41,11 +40,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletType;
@@ -73,12 +70,10 @@ import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -87,46 +82,40 @@ import org.apache.accumulo.core.summary.Gatherer.FileSystemResolver;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
-import org.apache.accumulo.core.tabletingest.thrift.DataFileInfo;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.data.ServerConditionalMutation;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
-import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.tablets.ConditionCheckerContext;
+import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
-import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.accumulo.tserver.session.ConditionalSession;
 import org.apache.accumulo.tserver.session.SummarySession;
 import org.apache.accumulo.tserver.session.UpdateSession;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.accumulo.tserver.tablet.PreparedMutations;
 import org.apache.accumulo.tserver.tablet.Tablet;
+import org.apache.accumulo.tserver.tablet.Tablet.RefreshPurpose;
 import org.apache.accumulo.tserver.tablet.TabletClosedException;
 import org.apache.hadoop.fs.FSError;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -143,65 +132,20 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private static final Logger log = LoggerFactory.getLogger(TabletClientHandler.class);
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
-  private static final long RECENTLY_SPLIT_MILLIS = MINUTES.toMillis(1);
   private final TabletServer server;
-  protected final TransactionWatcher watcher;
   protected final ServerContext context;
-  protected final SecurityOperation security;
+  protected final AuditedSecurityOperation security;
   private final WriteTracker writeTracker;
   private final RowLocks rowLocks = new RowLocks();
 
-  public TabletClientHandler(TabletServer server, TransactionWatcher watcher,
-      WriteTracker writeTracker) {
+  public TabletClientHandler(TabletServer server, WriteTracker writeTracker) {
     this.context = server.getContext();
-    this.watcher = watcher;
     this.writeTracker = writeTracker;
     this.security = context.getSecurityOperation();
     this.server = server;
     MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS = server.getContext().getConfiguration()
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
     log.debug("{} created", TabletClientHandler.class.getName());
-  }
-
-  @Override
-  public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-      Map<TKeyExtent,Map<String,DataFileInfo>> tabletImports, boolean setTime)
-      throws ThriftSecurityException {
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
-      tabletImports.forEach((tke, fileMap) -> {
-        Map<ReferencedTabletFile,DataFileInfo> newFileMap = new HashMap<>();
-
-        for (Entry<String,DataFileInfo> mapping : fileMap.entrySet()) {
-          Path path = new Path(dir, mapping.getKey());
-          FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
-          path = ns.makeQualified(path);
-          newFileMap.put(new ReferencedTabletFile(path), mapping.getValue());
-        }
-        var files = newFileMap.keySet().stream().map(ReferencedTabletFile::getNormalizedPathStr)
-            .collect(toList());
-        server.updateBulkImportState(files, BulkImportState.INITIAL);
-
-        Tablet importTablet = server.getOnlineTablet(KeyExtent.fromThrift(tke));
-
-        if (importTablet != null) {
-          try {
-            server.updateBulkImportState(files, BulkImportState.PROCESSING);
-            importTablet.importDataFiles(tid, newFileMap, setTime);
-          } catch (IOException ioe) {
-            log.debug("files {} not imported to {}: {}", fileMap.keySet(),
-                KeyExtent.fromThrift(tke), ioe.getMessage());
-          } finally {
-            server.removeBulkImportState(files);
-          }
-        }
-      });
-    });
-
   }
 
   @Override
@@ -212,9 +156,22 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     security.authenticateUser(credentials, credentials);
     server.updateMetrics.addPermissionErrors(0);
 
-    UpdateSession us =
-        new UpdateSession(new TservConstraintEnv(server.getContext(), security, credentials),
-            credentials, durability);
+    UpdateSession us = new UpdateSession(new TservConstraintEnv(server.getContext(), credentials),
+        credentials, durability) {
+      @Override
+      public boolean cleanup() {
+        // This is called when a client abandons a session. When this happens need to decrement
+        // any queued mutations.
+        if (queuedMutationSize > 0) {
+          log.trace(
+              "cleaning up abandoned update session, decrementing totalQueuedMutationSize by {}",
+              queuedMutationSize);
+          server.updateTotalQueuedMutationSize(-queuedMutationSize);
+          queuedMutationSize = 0;
+        }
+        return true;
+      }
+    };
     return server.sessionManager.createSession(us, false);
   }
 
@@ -223,8 +180,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent)) {
       return;
     }
-    if (us.currentTablet == null
-        && (us.failures.containsKey(keyExtent) || us.authFailures.containsKey(keyExtent))) {
+    if (us.currentTablet == null && (us.failures.containsKey(keyExtent)
+        || us.authFailures.containsKey(keyExtent) || us.unhandledException != null)) {
       // if there were previous failures, then do not accept additional writes
       return;
     }
@@ -247,7 +204,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           // not serving tablet, so report all mutations as
           // failures
           us.failures.put(keyExtent, 0L);
-          server.updateMetrics.addUnknownTabletErrors(0);
+          server.updateMetrics.addUnknownTabletErrors(1);
         }
       } else {
         log.warn("Denying access to table {} for user {}", keyExtent.tableId(), us.getUser());
@@ -255,7 +212,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
-        server.updateMetrics.addPermissionErrors(0);
+        server.updateMetrics.addPermissionErrors(1);
       }
     } catch (TableNotFoundException tnfe) {
       log.error("Table " + tableId + " not found ", tnfe);
@@ -263,7 +220,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      server.updateMetrics.addUnknownTabletErrors(0);
+      server.updateMetrics.addUnknownTabletErrors(1);
     } catch (ThriftSecurityException e) {
       log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
           e);
@@ -271,7 +228,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, e.getCode());
-      server.updateMetrics.addPermissionErrors(0);
+      server.updateMetrics.addPermissionErrors(1);
     }
   }
 
@@ -293,6 +250,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
         for (TMutation tmutation : tmutations) {
           Mutation mutation = new ServerMutation(tmutation);
+          // Deserialize the mutation in an attempt to check for data corruption that happened on
+          // the network. This will avoid writing a corrupt mutation to the write ahead log and
+          // failing after its written to the write ahead log when it is deserialized to update the
+          // in memory map.
+          mutation.getUpdates();
           mutations.add(mutation);
           additionalMutationSize += mutation.numBytes();
         }
@@ -312,6 +274,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           }
         }
       }
+    } catch (RuntimeException e) {
+      // This method is a thrift oneway method so an exception from it will not make it back to the
+      // client. Need to record the exception and set the session such that any future updates to
+      // the session are ignored.
+      us.unhandledException = e;
+      us.currentTablet = null;
+
+      // Rethrowing it will cause logging from thrift, so not adding logging here.
+      throw e;
     } finally {
       if (reserved) {
         server.sessionManager.unreserveSession(us);
@@ -339,6 +310,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       server.resourceManager.waitUntilCommitsAreEnabled();
     }
 
+    int preppedMutations = 0;
+    int sendableMutations = 0;
+
     Span span = TraceUtil.startSpan(this.getClass(), "flush::prep");
     try (Scope scope = span.makeCurrent()) {
       for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
@@ -348,6 +322,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
             DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
         List<Mutation> mutations = entry.getValue();
         if (!mutations.isEmpty()) {
+          preppedMutations += mutations.size();
           try {
             server.updateMetrics.addMutationArraySize(mutations.size());
 
@@ -366,11 +341,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
                   loggables.put(session, new TabletMutations(session, validMutations, durability));
                 }
                 sendables.put(session, validMutations);
+                sendableMutations += validMutations.size();
               }
 
               if (!prepared.getViolations().isEmpty()) {
                 us.violations.add(prepared.getViolations());
-                server.updateMetrics.addConstraintViolations(0);
+                server.updateMetrics.addConstraintViolations(1);
               }
               // Use the size of the original mutation list, regardless of how many mutations
               // did not violate constraints.
@@ -394,7 +370,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     long pt2 = System.currentTimeMillis();
     us.prepareTimes.addStat(pt2 - pt1);
-    updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
+    updateAvgPrepTime(pt2 - pt1, preppedMutations);
 
     if (error != null) {
       sendables.forEach((commitSession, value) -> commitSession.abortCommit());
@@ -423,6 +399,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         }
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
+        log.error("Error logging mutations sent from {}", TServerUtils.clientAddress.get(), e);
         throw e;
       } finally {
         span2.end();
@@ -449,7 +426,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.flushTime += (t2 - pt1);
         us.commitTimes.addStat(t2 - t1);
 
-        updateAvgCommitTime(t2 - t1, sendables.size());
+        updateAvgCommitTime(t2 - t1, sendableMutations);
+      } catch (Exception e) {
+        TraceUtil.setException(span3, e, true);
+        log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
+        throw e;
       } finally {
         span3.end();
       }
@@ -462,6 +443,18 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.queuedMutationSize = 0;
     }
     us.totalUpdates += mutationCount;
+  }
+
+  private void updateAverageLockTime(long time, TimeUnit unit, int size) {
+    if (size > 0) {
+      server.updateMetrics.addLockTime((long) (time / (double) size), unit);
+    }
+  }
+
+  private void updateAverageCheckTime(long time, TimeUnit unit, int size) {
+    if (size > 0) {
+      server.updateMetrics.addCheckTime((long) (time / (double) size), unit);
+    }
   }
 
   private void updateWalogWriteTime(long time) {
@@ -490,6 +483,20 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
 
     try {
+      if (us.unhandledException != null) {
+        // Since flush() is not being called, any memory added to the global queued mutations
+        // counter will not be decremented. So do that here before throwing an exception.
+        server.updateTotalQueuedMutationSize(-us.queuedMutationSize);
+        us.queuedMutationSize = 0;
+        // make this memory available for GC
+        us.queuedMutations.clear();
+
+        // Something unexpected happened during this write session, so throw an exception here to
+        // cause a TApplicationException on the client side.
+        throw new IllegalStateException(
+            "Write session " + updateID + " saw an unexpected exception", us.unhandledException);
+      }
+
       // clients may or may not see data from an update session while
       // it is in progress, however when the update session is closed
       // want to ensure that reads wait for the write to finish
@@ -562,7 +569,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private void checkConditions(Map<KeyExtent,List<ServerConditionalMutation>> updates,
       ArrayList<TCMResult> results, ConditionalSession cs, List<String> symbols)
-      throws IOException {
+      throws IOException, ReflectiveOperationException {
     Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
 
     final CompressedIterators compressedIters = new CompressedIterators(symbols);
@@ -616,6 +623,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     boolean sessionCanceled = sess.interruptFlag.get();
 
     Span span = TraceUtil.startSpan(this.getClass(), "writeConditionalMutations::prep");
+    int preppedMutions = 0;
+    int sendableMutations = 0;
     try (Scope scope = span.makeCurrent()) {
       long t1 = System.currentTimeMillis();
       for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
@@ -627,10 +636,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
               DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
 
           List<Mutation> mutations = Collections.unmodifiableList(entry.getValue());
+          preppedMutions += mutations.size();
           if (!mutations.isEmpty()) {
 
             PreparedMutations prepared = tablet.prepareMutationsForCommit(
-                new TservConstraintEnv(server.getContext(), security, sess.credentials), mutations);
+                new TservConstraintEnv(server.getContext(), sess.credentials), mutations);
 
             if (prepared.tabletClosed()) {
               addMutationsAsTCMResults(results, mutations, TCMStatus.IGNORED);
@@ -644,6 +654,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
                   loggables.put(session, new TabletMutations(session, validMutations, durability));
                 }
                 sendables.put(session, validMutations);
+                sendableMutations += validMutations.size();
               }
 
               if (!prepared.getViolators().isEmpty()) {
@@ -655,7 +666,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       }
 
       long t2 = System.currentTimeMillis();
-      updateAvgPrepTime(t2 - t1, es.size());
+      updateAvgPrepTime(t2 - t1, preppedMutions);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;
@@ -693,9 +704,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       long t1 = System.currentTimeMillis();
       sendables.forEach(CommitSession::commit);
       long t2 = System.currentTimeMillis();
-      updateAvgCommitTime(t2 - t1, sendables.size());
+      updateAvgCommitTime(t2 - t1, sendableMutations);
     } catch (Exception e) {
       TraceUtil.setException(span3, e, true);
+      log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
       throw e;
     } finally {
       span3.end();
@@ -715,10 +727,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs,
       Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results,
-      List<String> symbols) throws IOException {
+      List<String> symbols) throws IOException, ReflectiveOperationException {
     // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is
     // more efficient and detect duplicate rows.
-    ConditionalMutationSet.sortConditionalMutations(updates);
+    int numMutations = ConditionalMutationSet.sortConditionalMutations(updates);
 
     Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<>();
 
@@ -727,11 +739,17 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
 
     // get as many locks as possible w/o blocking... defer any rows that are locked
+    long lt1 = System.nanoTime();
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
+    long lt2 = System.nanoTime();
+    updateAverageLockTime(lt2 - lt1, TimeUnit.NANOSECONDS, numMutations);
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "conditionalUpdate::Check conditions");
       try (Scope scope = span.makeCurrent()) {
+        long t1 = System.nanoTime();
         checkConditions(updates, results, cs, symbols);
+        long t2 = System.nanoTime();
+        updateAverageCheckTime(t2 - t1, TimeUnit.NANOSECONDS, numMutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;
@@ -780,7 +798,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         tableId, DurabilityImpl.fromThrift(tdurabilty));
 
     long sid = server.sessionManager.createSession(cs, false);
-    return new TConditionalSession(sid, server.getLockID(), server.sessionManager.getMaxIdleTime());
+    return new TConditionalSession(sid, server.getLockID().serialize(),
+        server.sessionManager.getMaxIdleTime());
   }
 
   @Override
@@ -797,8 +816,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         throw new NoSuchScanIDException();
       }
 
-      if (!cs.tableId.equals(AccumuloTable.METADATA.tableId())
-          && !cs.tableId.equals(AccumuloTable.ROOT.tableId())) {
+      if (!cs.tableId.equals(SystemTables.METADATA.tableId())
+          && !cs.tableId.equals(SystemTables.ROOT.tableId())) {
         try {
           server.resourceManager.waitUntilCommitsAreEnabled();
         } catch (HoldTimeoutException hte) {
@@ -824,19 +843,30 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         }
       }
 
-      ArrayList<TCMResult> results = new ArrayList<>();
+      var lambdaCs = cs;
+      // Conditional updates read data into memory, examine it, and then make an update. This can be
+      // CPU, I/O, and memory intensive. Using a thread pool directly limits CPU usage and
+      // indirectly limits memory and I/O usage.
+      Future<ArrayList<TCMResult>> future =
+          server.resourceManager.executeConditionalUpdate(cs.tableId, () -> {
+            ArrayList<TCMResult> results = new ArrayList<>();
 
-      Map<KeyExtent,List<ServerConditionalMutation>> deferred =
-          conditionalUpdate(cs, updates, results, symbols);
+            Map<KeyExtent,List<ServerConditionalMutation>> deferred =
+                conditionalUpdate(lambdaCs, updates, results, symbols);
 
-      while (!deferred.isEmpty()) {
-        deferred = conditionalUpdate(cs, deferred, results, symbols);
-      }
+            while (!deferred.isEmpty()) {
+              deferred = conditionalUpdate(lambdaCs, deferred, results, symbols);
+            }
 
-      return results;
-    } catch (IOException ioe) {
-      throw new TException(ioe);
-    } catch (Exception e) {
+            return results;
+          });
+
+      return future.get();
+    } catch (ExecutionException | InterruptedException e) {
+      log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
+          cs == null ? null : cs.tableId, opid, e);
+      throw new TException(e);
+    } catch (RuntimeException e) {
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw e;
@@ -844,6 +874,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       if (opid != null) {
         writeTracker.finishWrite(opid);
       }
+
       if (cs != null) {
         server.sessionManager.unreserveSession(sessID);
       }
@@ -877,41 +908,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent tkeyExtent,
-      ByteBuffer splitPoint) throws NotServingTabletException, ThriftSecurityException {
-
-    TableId tableId = TableId.of(new String(ByteBufferUtil.toBytes(tkeyExtent.table), UTF_8));
-    NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-
-    if (!security.canSplitTablet(credentials, tableId, namespaceId)) {
-      throw new ThriftSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    KeyExtent keyExtent = KeyExtent.fromThrift(tkeyExtent);
-
-    Tablet tablet = server.getOnlineTablet(keyExtent);
-    if (tablet == null) {
-      throw new NotServingTabletException(tkeyExtent);
-    }
-
-    if (keyExtent.endRow() == null
-        || !keyExtent.endRow().equals(ByteBufferUtil.toText(splitPoint))) {
-      try {
-        if (server.splitTablet(tablet, ByteBufferUtil.toBytes(splitPoint)) == null) {
-          throw new NotServingTabletException(tkeyExtent);
-        }
-      } catch (IOException e) {
-        log.warn("Failed to split " + keyExtent, e);
-        throw new RuntimeException(e);
-      } catch (RuntimeException re) {
-        log.warn("Failed to split " + keyExtent, re);
-        throw re;
-      }
-    }
-  }
-
-  @Override
   public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
     return server.getStats(server.sessionManager.getActiveScansPerTable());
   }
@@ -929,7 +925,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         stats.extent = ke.toThrift();
         stats.ingestRate = tablet.ingestRate();
         stats.queryRate = tablet.queryRate();
-        stats.splitCreationTime = tablet.getSplitCreationTime();
         stats.numEntries = tablet.getNumEntries();
         result.add(stats);
       }
@@ -937,16 +932,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     return result;
   }
 
-  static void checkPermission(SecurityOperation security, ServerContext context,
-      TabletHostingServer server, TCredentials credentials, String lock, final String request)
-      throws ThriftSecurityException {
+  static void checkPermission(ServerContext context, TabletHostingServer server,
+      TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
+    boolean canPerformSystemActions = false;
     try {
-      log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
-      if (!security.canPerformSystemActions(credentials)) {
-        log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      canPerformSystemActions = context.getSecurityOperation().canPerformSystemActions(credentials);
     } catch (ThriftSecurityException e) {
       log.warn("Got {} message from unauthenticatable user: {}", request, e.getUser());
       if (context.getCredentials().getToken().getClass().getName()
@@ -957,30 +947,36 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       throw e;
     }
 
+    if (!canPerformSystemActions) {
+      log.warn("Denied {} request from user: {}", request, credentials.getPrincipal());
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
     if (server.getLock() == null || !server.getLock().wasLockAcquired()) {
-      log.debug("Got {} message before my lock was acquired, ignoring...", request);
+      log.debug("Got {} message from user {} before my lock was acquired, ignoring...", request,
+          credentials.getPrincipal());
       throw new RuntimeException("Lock not acquired");
     }
 
+    log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
     if (server.getLock() != null && server.getLock().wasLockAcquired()
         && !server.getLock().isLocked()) {
-      Halt.halt(1, () -> {
-        log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
-            request);
-        context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
-      });
+      Halt.halt(1,
+          "Tablet server no longer holds lock during checkPermission() : " + request + ", exiting",
+          () -> context.getLowMemoryDetector().logGCInfo(server.getConfiguration()));
     }
 
     if (lock != null) {
-      ZooUtil.LockID lid =
-          new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK, lock);
+      ZooUtil.LockID lid = ZooUtil.LockID.deserialize(lock);
 
       try {
-        if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
+        if (!ServiceLock.isLockHeld(server.getContext().getZooCache(), lid)) {
           // maybe the cache is out of date and a new manager holds the
           // lock?
-          server.getManagerLockCache().clear();
-          if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
+          server.getContext().getZooCache().clear(
+              (path) -> path.equals(ServiceLockPaths.parse(Optional.empty(), lid.path).toString()));
+          if (!ServiceLock.isLockHeld(server.getContext().getZooCache(), lid)) {
             log.warn("Got {} message from a manager that does not hold the current lock {}",
                 request, lock);
             throw new RuntimeException("bad manager lock");
@@ -997,7 +993,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       final TKeyExtent textent) {
 
     try {
-      checkPermission(security, context, server, credentials, lock, "loadTablet");
+      checkPermission(context, server, credentials, lock, "loadTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to load a tablet", e);
       throw new RuntimeException(e);
@@ -1026,15 +1022,6 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
           if (!all.isEmpty()) {
 
-            // ignore any tablets that have recently split, for error logging
-            for (KeyExtent e2 : onlineOverlapping) {
-              Tablet tablet = server.getOnlineTablet(e2);
-              if (System.currentTimeMillis() - tablet.getSplitCreationTime()
-                  < RECENTLY_SPLIT_MILLIS) {
-                all.remove(e2);
-              }
-            }
-
             // ignore self, for error logging
             all.remove(extent);
 
@@ -1055,11 +1042,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     TabletLogger.loading(extent, server.getTabletSession());
 
     final AssignmentHandler ah = new AssignmentHandler(server, extent);
-    // final Runnable ah = new LoggingRunnable(log, );
     // Root tablet assignment must take place immediately
 
     if (extent.isRootTablet()) {
-      Threads.createThread("Root Tablet Assignment", () -> {
+      Threads.createNonCriticalThread("Root Tablet Assignment", () -> {
         ah.run();
         if (server.getOnlineTablets().containsKey(extent)) {
           log.info("Root tablet loaded: {}", extent);
@@ -1067,12 +1053,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           log.info("Root tablet failed to load");
         }
       }).start();
+    } else if (extent.isMeta()) {
+      server.resourceManager.addMetaDataAssignment(extent, log, ah);
     } else {
-      if (extent.isMeta()) {
-        server.resourceManager.addMetaDataAssignment(extent, log, ah);
-      } else {
-        server.resourceManager.addAssignment(extent, log, ah);
-      }
+      server.resourceManager.addAssignment(extent, log, ah);
     }
   }
 
@@ -1080,7 +1064,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent,
       TUnloadTabletGoal goal, long requestTime) {
     try {
-      checkPermission(security, context, server, credentials, lock, "unloadTablet");
+      checkPermission(context, server, credentials, lock, "unloadTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to unload a tablet", e);
       throw new RuntimeException(e);
@@ -1096,7 +1080,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {
-      checkPermission(security, context, server, credentials, lock, "flush");
+      checkPermission(context, server, credentials, lock, "flush");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to flush a table", e);
       throw new RuntimeException(e);
@@ -1129,7 +1113,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   @Override
   public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
     try {
-      checkPermission(security, context, server, credentials, lock, "flushTablet");
+      checkPermission(context, server, credentials, lock, "flushTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to flush a tablet", e);
       throw new RuntimeException(e);
@@ -1151,10 +1135,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   public void halt(TInfo tinfo, TCredentials credentials, String lock)
       throws ThriftSecurityException {
 
-    checkPermission(security, context, server, credentials, lock, "halt");
+    checkPermission(context, server, credentials, lock, "halt");
 
-    Halt.halt(0, () -> {
-      log.info("Manager requested tablet server halt");
+    Halt.halt(0, "Manager requested tablet server halt", () -> {
       context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       server.requestStop();
       try {
@@ -1180,42 +1163,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-      ByteBuffer startRow, ByteBuffer endRow) {
-    try {
-      checkPermission(security, context, server, credentials, lock, "compact");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to compact a table", e);
-      throw new RuntimeException(e);
-    }
-
-    KeyExtent ke = new KeyExtent(TableId.of(tableId), ByteBufferUtil.toText(endRow),
-        ByteBufferUtil.toText(startRow));
-
-    Pair<Long,CompactionConfig> compactionInfo = null;
-
-    for (Tablet tablet : server.getOnlineTablets().values()) {
-      if (ke.overlaps(tablet.getExtent())) {
-        // all for the same table id, so only need to read
-        // compaction id once
-        if (compactionInfo == null) {
-          try {
-            compactionInfo = tablet.getCompactionID();
-          } catch (NoNodeException e) {
-            log.info("Asked to compact table with no compaction id {} {}", ke, e.getMessage());
-            return;
-          }
-        }
-        tablet.compactAll(compactionInfo.getFirst(), compactionInfo.getSecond());
-      }
-    }
-  }
-
-  @Override
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     try {
-      checkPermission(security, context, server, credentials, null, "getActiveCompactions");
+      checkPermission(context, server, credentials, null, "getActiveCompactions");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to get active compactions", e);
       throw e;
@@ -1232,65 +1183,81 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException, TException {
-
+  public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
+      List<TKeyExtent> refreshes) throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    return server.getCompactionManager().getCompactionQueueSummaries();
+    // get a snapshot of the current online tablets, may miss some that are loading but will only
+    // handle that more expensive case if needed.
+    var tabletsSnapshot = server.getOnlineTablets();
+
+    Map<KeyExtent,Tablet.RefreshSession> refreshSessions = new HashMap<>();
+
+    // Created this as synchronized list because it's passed to a lambda that could possibly run in
+    // another thread.
+    List<TKeyExtent> unableToRefresh = Collections.synchronizedList(new ArrayList<>());
+
+    for (var tkextent : refreshes) {
+      var extent = KeyExtent.fromThrift(tkextent);
+      var tablet = tabletsSnapshot.get(extent);
+      if (tablet != null) {
+        refreshSessions.put(extent, tablet.startRefresh());
+      } else {
+        unableToRefresh.add(extent.toThrift());
+      }
+    }
+
+    // Read the metadata for all of the tablets that need to be refreshed. Its very important that
+    // this metadata read is done after calling Tablet.startRefresh, this is because the refresh
+    // session can detect changes that may necessitate rereading the tablet metadata. The refresh
+    // session assumes the metadata was read after the session was created in order to determine if
+    // its still valid.
+    try (var tabletsMeta = context.getAmple().readTablets()
+        .forTablets(refreshSessions.keySet(), Optional.of(e -> unableToRefresh.add(e.toThrift())))
+        .build()) {
+      for (var tabletMeta : tabletsMeta) {
+        var refreshSession = refreshSessions.get(tabletMeta.getExtent());
+        if (!refreshSession.refreshMetadata(RefreshPurpose.REFRESH_RPC, tabletMeta)) {
+          unableToRefresh.add(tabletMeta.getExtent().toThrift());
+        }
+      }
+    }
+
+    if (log.isDebugEnabled()) {
+      for (var extent : unableToRefresh) {
+        // these tablet could hold up bulk import, lets logs the specific tablet in case it stays
+        // like this
+        log.debug("Unable to refresh tablet : {}", KeyExtent.fromThrift(extent));
+      }
+    }
+
+    return unableToRefresh;
   }
 
   @Override
-  public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-      String queueName, long priority, String compactor, String externalCompactionId)
-      throws ThriftSecurityException, TException {
-
+  public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
+      List<TKeyExtent> extents) throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    ExternalCompactionId eci = ExternalCompactionId.of(externalCompactionId);
+    var tabletsSnapshot = server.getOnlineTablets();
 
-    var extCompaction = server.getCompactionManager().reserveExternalCompaction(queueName, priority,
-        compactor, eci);
+    Map<TKeyExtent,Long> timestamps = new HashMap<>();
 
-    if (extCompaction != null) {
-      return extCompaction.toThrift();
+    for (var textent : extents) {
+      var extent = KeyExtent.fromThrift(textent);
+      Tablet tablet = tabletsSnapshot.get(extent);
+      if (tablet != null) {
+        tablet.allocateTimestamp().ifPresent(timestamp -> timestamps.put(textent, timestamp));
+      }
     }
 
-    return new TExternalCompactionJob();
-  }
-
-  @Override
-  public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-      throws ThriftSecurityException, TException {
-
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    server.getCompactionManager().commitExternalCompaction(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets(), fileSize, entries);
-  }
-
-  @Override
-  public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent extent) throws TException {
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    server.getCompactionManager().externalCompactionFailed(
-        ExternalCompactionId.of(externalCompactionId), KeyExtent.fromThrift(extent),
-        server.getOnlineTablets());
+    return timestamps;
   }
 
   @Override

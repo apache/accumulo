@@ -51,16 +51,9 @@ jobs:
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        distribution: adopt
+        distribution: temurin
         java-version: 17
-    - name: Cache local maven repository
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository/
-          !~/.m2/repository/org/apache/accumulo
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven (Fast Build)
@@ -95,16 +88,9 @@ jobs:
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
-        distribution: adopt
+        distribution: temurin
         java-version: 17
-    - name: Cache local maven repository
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository/
-          !~/.m2/repository/org/apache/accumulo
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
     - name: Override DNS to fix IP address for hostname
       run: |
         ip -br addr

@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
@@ -57,27 +59,39 @@ public class DistributedWorkQueue {
 
   private static final Logger log = LoggerFactory.getLogger(DistributedWorkQueue.class);
 
-  private ThreadPoolExecutor threadPool;
   private final ZooReaderWriter zoo;
   private final String path;
-  private final ServerContext context;
+  private final AbstractServer server;
   private final long timerInitialDelay;
   private final long timerPeriod;
 
   private final AtomicInteger numTask = new AtomicInteger(0);
 
-  private void lookForWork(final Processor processor, List<String> children) {
+  /**
+   * Finds a child in {@code children} that is not currently being processed and adds a Runnable to
+   * the {@code executor} that invokes the {@code processor}. The Runnable will recursively call
+   * {@code lookForWork} after it invokes the {@code processor} such that it will continue to look
+   * for children that need work until that condition is exhausted. This method will return early if
+   * the number of currently running tasks is larger than {@code maxThreads}.
+   */
+  private void lookForWork(final Processor processor, final List<String> children,
+      final ExecutorService executor, final int maxThreads) {
     if (children.isEmpty()) {
       return;
     }
 
-    if (numTask.get() >= threadPool.getCorePoolSize()) {
+    if (numTask.get() >= maxThreads) {
       return;
     }
 
     Collections.shuffle(children, RANDOM.get());
     try {
       for (final String child : children) {
+
+        // Don't accept work if the server is shutting down
+        if (server.isShutdownRequested()) {
+          return;
+        }
 
         if (child.equals(LOCKS_NODE)) {
           continue;
@@ -103,7 +117,7 @@ public class DistributedWorkQueue {
         }
 
         // Great... we got the lock, but maybe we're too busy
-        if (numTask.get() >= threadPool.getCorePoolSize()) {
+        if (numTask.get() >= maxThreads) {
           zoo.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
           break;
         }
@@ -144,7 +158,7 @@ public class DistributedWorkQueue {
 
             try {
               // its important that this is called after numTask is decremented
-              lookForWork(processor, zoo.getChildren(path));
+              lookForWork(processor, zoo.getChildren(path), executor, maxThreads);
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
@@ -154,7 +168,7 @@ public class DistributedWorkQueue {
         };
 
         numTask.incrementAndGet();
-        threadPool.execute(task);
+        executor.execute(task);
 
       }
     } catch (Exception t) {
@@ -168,68 +182,95 @@ public class DistributedWorkQueue {
     void process(String workID, byte[] data);
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context) {
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, AbstractServer server) {
     // Preserve the old delay and period
-    this(path, config, context, RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
+    this(path, config, server, RANDOM.get().nextInt(toIntExact(MINUTES.toMillis(1))),
         MINUTES.toMillis(1));
   }
 
-  public DistributedWorkQueue(String path, AccumuloConfiguration config, ServerContext context,
+  public DistributedWorkQueue(String path, AccumuloConfiguration config, AbstractServer server,
       long timerInitialDelay, long timerPeriod) {
     this.path = path;
-    this.context = context;
+    this.server = server;
     this.timerInitialDelay = timerInitialDelay;
     this.timerPeriod = timerPeriod;
-    zoo = context.getZooReaderWriter();
+    zoo = server.getContext().getZooSession().asReaderWriter();
   }
 
   public ServerContext getContext() {
-    return context;
+    return server.getContext();
   }
 
-  public void startProcessing(final Processor processor, ThreadPoolExecutor executorService)
-      throws KeeperException, InterruptedException {
+  public AbstractServer getServer() {
+    return server;
+  }
 
-    threadPool = executorService;
+  public long getCheckInterval() {
+    return this.timerPeriod;
+  }
+
+  /**
+   * Finds the children at the path passed in the constructor and calls {@code lookForWork} which
+   * will attempt to process all of the currently available work
+   */
+  public void processExistingWork(final Processor processor, ExecutorService executor,
+      final int maxThreads, boolean setWatch) throws KeeperException, InterruptedException {
 
     zoo.mkdirs(path);
     zoo.mkdirs(path + "/" + LOCKS_NODE);
 
-    List<String> children = zoo.getChildren(path, new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        switch (event.getType()) {
-          case NodeChildrenChanged:
-            if (event.getPath().equals(path)) {
-              try {
-                lookForWork(processor, zoo.getChildren(path, this));
-              } catch (KeeperException e) {
-                log.error("Failed to look for work at path {}; {}", path, event, e);
-              } catch (InterruptedException e) {
-                log.info("Interrupted looking for work at path {}; {}", path, event, e);
+    List<String> children = null;
+    if (setWatch) {
+      children = zoo.getChildren(path, new Watcher() {
+        @Override
+        public void process(WatchedEvent event) {
+          switch (event.getType()) {
+            case NodeChildrenChanged:
+              if (event.getPath().equals(path)) {
+                try {
+                  lookForWork(processor, zoo.getChildren(path, this), executor, maxThreads);
+                } catch (KeeperException e) {
+                  log.error("Failed to look for work at path {}; {}", path, event, e);
+                } catch (InterruptedException e) {
+                  log.info("Interrupted looking for work at path {}; {}", path, event, e);
+                }
+              } else {
+                log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
+                    event);
               }
-            } else {
-              log.info("Unexpected path for NodeChildrenChanged event watching path {}; {}", path,
-                  event);
-            }
-            break;
-          default:
-            log.info("Unexpected event watching path {}; {}", path, event);
-            break;
+              break;
+            default:
+              log.info("Unexpected event watching path {}; {}", path, event);
+              break;
+          }
         }
-      }
-    });
+      });
+    } else {
+      children = zoo.getChildren(path);
+    }
 
-    lookForWork(processor, children);
+    lookForWork(processor, children, executor, maxThreads);
+
+  }
+
+  /**
+   * Calls {@code runOne} to attempt to process all currently available work, then adds a background
+   * thread that looks for work in the future.
+   */
+  public void processExistingAndFuture(final Processor processor,
+      ThreadPoolExecutor executorService) throws KeeperException, InterruptedException {
+
+    processExistingWork(processor, executorService, executorService.getCorePoolSize(), true);
 
     // Add a little jitter to avoid all the tservers slamming zookeeper at once
     ThreadPools.watchCriticalScheduledTask(
-        context.getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
+        server.getContext().getScheduledExecutor().scheduleWithFixedDelay(new Runnable() {
           @Override
           public void run() {
             log.debug("Looking for work in {}", path);
             try {
-              lookForWork(processor, zoo.getChildren(path));
+              lookForWork(processor, zoo.getChildren(path), executorService,
+                  executorService.getCorePoolSize());
             } catch (KeeperException e) {
               log.error("Failed to look for work", e);
             } catch (InterruptedException e) {
