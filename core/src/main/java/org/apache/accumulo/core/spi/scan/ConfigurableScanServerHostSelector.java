@@ -47,8 +47,6 @@ import org.apache.accumulo.core.util.HostAndPort;
  * that to determine how many host to choose from. Second it will only consider an attempt plan as
  * failed when servers on all host have failed.
  *
- * <p>
- *
  * <pre>
  *       "attemptPlans":[
  *           {"servers":"1", "busyTimeout":"10s"},
@@ -60,7 +58,6 @@ import org.apache.accumulo.core.util.HostAndPort;
  * For example given the above attempt plan configuration, the following sequence of events could
  * happen a tablet.
  *
- * <p>
  * <ol>
  * <li>host32 is chosen and it has 2 severs [host32:1000,host32:1001]. host32:1001 is randomly
  * chosen.</li>
