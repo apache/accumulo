@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.RowRangeUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +118,8 @@ public class UpdateTablets extends ManagerRepo {
 
     // Only update the original tablet after successfully creating the new tablets, this is
     // important for failure cases where this operation partially runs a then runs again.
-    updateExistingTablet(fateId, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
+    updateExistingTablet(fateId, manager.getContext(), tabletMetadata, opid, newTablets,
+        newTabletsFiles);
 
     return new DeleteOperationIds(splitInfo);
   }
@@ -262,10 +264,10 @@ public class UpdateTablets extends ManagerRepo {
     }
   }
 
-  private void updateExistingTablet(FateId fateId, Manager manager, TabletMetadata tabletMetadata,
+  private void updateExistingTablet(FateId fateId, ServerContext ctx, TabletMetadata tabletMetadata,
       TabletOperationId opid, NavigableMap<KeyExtent,TabletMergeability> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
-    try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+    try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       var newExtent = newTablets.navigableKeySet().last();
 
       var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)

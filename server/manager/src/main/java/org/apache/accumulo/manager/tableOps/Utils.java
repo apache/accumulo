@@ -333,9 +333,9 @@ public class Utils {
     return data;
   }
 
-  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(Manager manager,
+  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(ServerContext ctx,
       Path path) throws IOException {
-    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(ctx.getHadoopConf());
     var data = new TreeMap<Text,TabletMergeability>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {
