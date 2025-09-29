@@ -169,12 +169,12 @@ under the License.
     <version.curator>5.8.0</version.curator>
     <version.errorprone>2.41.0</version.errorprone>
     <version.flatbuffers>24.3.25</version.flatbuffers>
-    <version.hadoop>3.4.0</version.hadoop>
+    <version.hadoop>3.4.2</version.hadoop>
     <version.log4j>2.25.1</version.log4j>
     <version.opentelemetry>1.48.0</version.opentelemetry>
     <version.slf4j>2.0.17</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
-    <version.zookeeper>3.9.3</version.zookeeper>
+    <version.zookeeper>3.9.4</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>
