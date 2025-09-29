@@ -150,11 +150,6 @@ public class ZombieTServer {
     AccumuloLockWatcher lw = new AccumuloLockWatcher() {
 
       @Override
-      public boolean isLocked() {
-        return acquiredLock.get();
-      }
-
-      @Override
       public void acquiredLock() {
 
       }

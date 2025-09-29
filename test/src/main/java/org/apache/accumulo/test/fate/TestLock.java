@@ -111,11 +111,6 @@ public class TestLock {
     }
 
     @Override
-    public boolean isLocked() {
-      return lockAcquired.get();
-    }
-
-    @Override
     public void failedToAcquireLock(Exception e) {
       log.warn("Failed to acquire ZooKeeper lock for test", e);
       lockAcquired.getAndSet(false);

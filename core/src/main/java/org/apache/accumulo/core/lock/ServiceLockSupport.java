@@ -104,11 +104,6 @@ public class ServiceLockSupport {
     }
 
     @Override
-    public boolean isLocked() {
-      return acquiredLock;
-    }
-
-    @Override
     public synchronized void failedToAcquireLock(Exception e) {
       LOG.warn("Failed to get {} lock", server, e);
 
@@ -165,11 +160,6 @@ public class ServiceLockSupport {
       this.server = server;
       this.shutdownComplete = shutdownComplete;
       this.lostLockAction = lostLockAction;
-    }
-
-    @Override
-    public boolean isLocked() {
-      return lockAcquired.get();
     }
 
     @Override

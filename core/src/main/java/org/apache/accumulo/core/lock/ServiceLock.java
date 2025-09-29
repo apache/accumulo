@@ -74,8 +74,6 @@ public class ServiceLock implements Watcher {
 
   public interface AccumuloLockWatcher {
 
-    boolean isLocked();
-
     void acquiredLock();
 
     void failedToAcquireLock(Exception e);
@@ -118,8 +116,7 @@ public class ServiceLock implements Watcher {
       throws KeeperException, InterruptedException {
 
     lock(lw, lockData);
-
-    if (lw.isLocked()) {
+    if (lockWasAcquired) {
       return true;
     }
 

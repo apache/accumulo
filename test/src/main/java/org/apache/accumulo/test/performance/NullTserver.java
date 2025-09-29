@@ -337,11 +337,6 @@ public class NullTserver {
       }
 
       @Override
-      public boolean isLocked() {
-        return acquiredLock.get();
-      }
-
-      @Override
       public void acquiredLock() {
         LOG.debug("Acquired ZooKeeper lock for NullTserver");
         acquiredLock.getAndSet(true);

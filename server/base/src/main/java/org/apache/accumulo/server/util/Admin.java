@@ -404,11 +404,6 @@ public class Admin implements KeywordExecutable {
     }
 
     @Override
-    public boolean isLocked() {
-      return lockAcquired.get();
-    }
-
-    @Override
     public void failedToAcquireLock(Exception e) {
       log.warn("Failed to acquire ZooKeeper lock for Admin, msg: " + e.getMessage());
       lockAcquired.getAndSet(false);
