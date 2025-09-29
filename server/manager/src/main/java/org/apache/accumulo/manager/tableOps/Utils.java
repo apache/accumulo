@@ -268,8 +268,10 @@ public class Utils {
 
     if (ZooReservation.attempt(zk, Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId, "")) {
+      log.trace("{} reserved bulk dir {}", fateId, directory);
       return 0;
     } else {
+      log.trace("{} could not reserve bulk dir {} that is already reserved", fateId, directory);
       return 50;
     }
   }
@@ -280,6 +282,7 @@ public class Utils {
         Constants.ZHDFS_RESERVATIONS + "/"
             + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)),
         fateId);
+    log.trace("{} unreserved bulk dir {}", fateId, directory);
   }
 
   private static DistributedLock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
