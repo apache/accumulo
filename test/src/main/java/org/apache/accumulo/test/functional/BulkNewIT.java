@@ -264,7 +264,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
             // Directory permissions changed by winner
                 || message.contains("not writable")
             // Permission test file conflicts
-                || message.contains(".isWritable")
+                || message.contains("isWritable")
             // FATE operation layer conflicts
                 || message.contains("Internal error processing waitForFateOperation")) {
               LOG.debug("Concurrent import attempt ({}) failed with expected message: {}",
