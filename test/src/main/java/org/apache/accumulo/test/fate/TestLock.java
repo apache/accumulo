@@ -20,7 +20,6 @@ package org.apache.accumulo.test.fate;
 
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.user.UserFateStore;
@@ -89,8 +88,6 @@ public class TestLock {
     return lock;
   }
 
-  private final AtomicBoolean lockAcquired = new AtomicBoolean(false);
-
   class TestLockWatcher implements ServiceLock.AccumuloLockWatcher {
 
     @Override
@@ -107,13 +104,11 @@ public class TestLock {
     public void acquiredLock() {
       lockAcquiredLatch.countDown();
       log.debug("Acquired ZooKeeper lock for test");
-      lockAcquired.getAndSet(true);
     }
 
     @Override
     public void failedToAcquireLock(Exception e) {
       log.warn("Failed to acquire ZooKeeper lock for test", e);
-      lockAcquired.getAndSet(false);
     }
   }
 }

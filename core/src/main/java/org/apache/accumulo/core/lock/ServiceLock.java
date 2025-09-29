@@ -116,7 +116,7 @@ public class ServiceLock implements Watcher {
       throws KeeperException, InterruptedException {
 
     lock(lw, lockData);
-    if (lockWasAcquired) {
+    if (isLocked()) {
       return true;
     }
 

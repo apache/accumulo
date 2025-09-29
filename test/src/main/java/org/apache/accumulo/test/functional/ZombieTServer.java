@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.HashMap;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -144,8 +143,6 @@ public class ZombieTServer {
     MetricsInfo metricsInfo = context.getMetricsInfo();
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
         serverPort.address, ResourceGroupId.DEFAULT));
-
-    final AtomicBoolean acquiredLock = new AtomicBoolean(false);
 
     AccumuloLockWatcher lw = new AccumuloLockWatcher() {
 
