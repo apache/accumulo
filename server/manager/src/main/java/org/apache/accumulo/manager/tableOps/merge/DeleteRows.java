@@ -45,8 +45,9 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
-public class DeleteRows extends ManagerRepo {
+public class DeleteRows extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -69,25 +70,24 @@ public class DeleteRows extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // delete or fence files within the deletion range
-    var mergeRange = deleteTabletFiles(manager, fateId);
+    var mergeRange = deleteTabletFiles(env.getContext(), fateId);
 
     // merge away empty tablets in the deletion range
     return new MergeTablets(mergeRange.map(mre -> data.useMergeRange(mre)).orElse(data));
   }
 
-  private Optional<KeyExtent> deleteTabletFiles(Manager manager, FateId fateId) {
+  private Optional<KeyExtent> deleteTabletFiles(ServerContext ctx, FateId fateId) {
     // Only delete data within the original extent specified by the user
     KeyExtent range = data.getOriginalExtent();
     log.debug("{} deleting tablet files in range {}", fateId, range);
     var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     try (
-        var tabletsMetadata =
-            manager.getContext().getAmple().readTablets().forTable(range.tableId())
-                .overlapping(range.prevEndRow(), range.endRow()).checkConsistency().build();
-        var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+        var tabletsMetadata = ctx.getAmple().readTablets().forTable(range.tableId())
+            .overlapping(range.prevEndRow(), range.endRow()).checkConsistency().build();
+        var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
 
       KeyExtent firstCompleteContained = null;
       KeyExtent lastCompletelyContained = null;

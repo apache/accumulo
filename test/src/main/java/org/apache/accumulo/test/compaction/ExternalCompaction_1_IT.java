@@ -108,8 +108,8 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
@@ -265,7 +265,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     var ctx = getCluster().getServerContext();
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
-        FateStore<Manager> metaFateStore =
+        FateStore<FateEnv> metaFateStore =
             new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null)) {
       var tableId = ctx.getTableId(SystemTables.ROOT.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
@@ -284,7 +284,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     var ctx = getCluster().getServerContext();
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
-        FateStore<Manager> metaFateStore =
+        FateStore<FateEnv> metaFateStore =
             new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null)) {
       // Metadata table by default already has 2 tablets
       var tableId = ctx.getTableId(SystemTables.METADATA.tableName());
@@ -305,7 +305,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String tableName = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
-        UserFateStore<Manager> userFateStore =
+        UserFateStore<FateEnv> userFateStore =
             new UserFateStore<>(ctx, SystemTables.FATE.tableName(), testLock.getLockID(), null)) {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
@@ -329,9 +329,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     final String userTable = getUniqueNames(1)[0];
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
-        FateStore<Manager> userFateStore =
+        FateStore<FateEnv> userFateStore =
             new UserFateStore<>(ctx, SystemTables.FATE.tableName(), testLock.getLockID(), null);
-        FateStore<Manager> metaFateStore =
+        FateStore<FateEnv> metaFateStore =
             new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null)) {
 
       SortedSet<Text> splits = new TreeSet<>();
@@ -363,23 +363,23 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     }
   }
 
-  public static class FakeRepo extends ManagerRepo {
+  public static class FakeRepo extends AbstractRepo {
 
     private static final long serialVersionUID = 1234L;
 
     @Override
-    public long isReady(FateId fateId, Manager environment) throws Exception {
+    public long isReady(FateId fateId, FateEnv environment) throws Exception {
       return 1000;
     }
 
     @Override
-    public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+    public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
       return null;
     }
   }
 
   private FateId createCompactionCommitAndDeadMetadata(AccumuloClient c,
-      FateStore<Manager> fateStore, String tableName,
+      FateStore<FateEnv> fateStore, String tableName,
       Map<TableId,List<ExternalCompactionId>> allCids) throws Exception {
     var ctx = getCluster().getServerContext();
     c.tableOperations().flush(tableName, null, null, true);
@@ -391,7 +391,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // Create a fate transaction for one of the compaction ids that is in the new state, it
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
-    Repo<Manager> repo = new FakeRepo();
+    Repo<FateEnv> repo = new FakeRepo();
     var fateId = seedTransaction(fateStore, Fate.FateOperation.COMMIT_COMPACTION,
         FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 
@@ -425,7 +425,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     return fateId;
   }
 
-  private void verifyCompactionCommitAndDead(FateStore<Manager> fateStore, TableId tableId,
+  private void verifyCompactionCommitAndDead(FateStore<FateEnv> fateStore, TableId tableId,
       FateId fateId, List<ExternalCompactionId> cids) {
     var ctx = getCluster().getServerContext();
 

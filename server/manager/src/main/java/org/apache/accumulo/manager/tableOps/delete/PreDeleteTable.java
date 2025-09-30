@@ -28,14 +28,14 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
 
-public class PreDeleteTable extends ManagerRepo {
+public class PreDeleteTable extends AbstractRepo {
 
   public static String createDeleteMarkerPath(InstanceId instanceId, TableId tableId) {
     return Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_DELETE_MARKER;
@@ -52,7 +52,7 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.DELETE)
         + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
@@ -67,7 +67,7 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     try {
       preventFutureCompactions(environment.getContext());
 
@@ -85,7 +85,7 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
+  public void undo(FateId fateId, FateEnv env) {
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.READ);
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }

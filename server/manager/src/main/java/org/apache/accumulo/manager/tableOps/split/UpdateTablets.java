@@ -42,8 +42,8 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.RowRangeUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -53,7 +53,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Predicate;
 
-public class UpdateTablets extends ManagerRepo {
+public class UpdateTablets extends AbstractRepo {
   private static final Logger log = LoggerFactory.getLogger(UpdateTablets.class);
   private static final long serialVersionUID = 1L;
   private final SplitInfo splitInfo;
@@ -65,16 +65,15 @@ public class UpdateTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    TabletMetadata tabletMetadata =
-        manager.getContext().getAmple().readTablet(splitInfo.getOriginal());
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    TabletMetadata tabletMetadata = env.getContext().getAmple().readTablet(splitInfo.getOriginal());
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     if (tabletMetadata == null) {
       // check to see if this operation has already succeeded.
-      TabletMetadata newTabletMetadata = manager.getContext().getAmple()
-          .readTablet(splitInfo.getTablets().navigableKeySet().last());
+      TabletMetadata newTabletMetadata =
+          env.getContext().getAmple().readTablet(splitInfo.getTablets().navigableKeySet().last());
 
       if (newTabletMetadata != null && opid.equals(newTabletMetadata.getOperationId())) {
         // have already created the new tablet and failed before we could return the next step, so
@@ -112,13 +111,13 @@ public class UpdateTablets extends ManagerRepo {
     var newTablets = splitInfo.getTablets();
 
     var newTabletsFiles = getNewTabletFiles(fateId, newTablets, tabletMetadata,
-        file -> manager.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
+        file -> env.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
 
-    addNewTablets(fateId, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
+    addNewTablets(fateId, env, tabletMetadata, opid, newTablets, newTabletsFiles);
 
     // Only update the original tablet after successfully creating the new tablets, this is
     // important for failure cases where this operation partially runs a then runs again.
-    updateExistingTablet(fateId, manager.getContext(), tabletMetadata, opid, newTablets,
+    updateExistingTablet(fateId, env.getContext(), tabletMetadata, opid, newTablets,
         newTabletsFiles);
 
     return new DeleteOperationIds(splitInfo);
@@ -212,12 +211,12 @@ public class UpdateTablets extends ManagerRepo {
     return tabletsFiles;
   }
 
-  private void addNewTablets(FateId fateId, Manager manager, TabletMetadata tabletMetadata,
+  private void addNewTablets(FateId fateId, FateEnv env, TabletMetadata tabletMetadata,
       TabletOperationId opid, NavigableMap<KeyExtent,TabletMergeability> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
     Iterator<String> dirNameIter = dirNames.iterator();
 
-    try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+    try (var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets()) {
       for (var entry : newTablets.entrySet()) {
         var newExtent = entry.getKey();
         var mergeability = entry.getValue();
@@ -246,7 +245,7 @@ public class UpdateTablets extends ManagerRepo {
         Preconditions.checkState(mergeability != null,
             "Null TabletMergeability for extent %s is unexpected", newExtent);
         mutator.putTabletMergeability(
-            TabletMergeabilityMetadata.toMetadata(mergeability, manager.getSteadyTime()));
+            TabletMergeabilityMetadata.toMetadata(mergeability, env.getSteadyTime()));
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);

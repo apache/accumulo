@@ -26,8 +26,8 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
@@ -36,7 +36,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class FinishCreateTable extends ManagerRepo {
+class FinishCreateTable extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(FinishCreateTable.class);
@@ -48,12 +48,12 @@ class FinishCreateTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
 
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
@@ -67,8 +67,7 @@ class FinishCreateTable extends ManagerRepo {
     Utils.unreserveNamespace(env.getContext(), tableInfo.getNamespaceId(), fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
 
-    env.getEventCoordinator().event(tableInfo.getTableId(), "Created table %s ",
-        tableInfo.getTableName());
+    env.getEvents().event(tableInfo.getTableId(), "Created table %s ", tableInfo.getTableName());
 
     if (tableInfo.getInitialSplitSize() > 0) {
       cleanupSplitFiles(env.getContext());
@@ -95,6 +94,6 @@ class FinishCreateTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {}
+  public void undo(FateId fateId, FateEnv env) {}
 
 }

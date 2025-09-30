@@ -61,8 +61,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
@@ -71,7 +71,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.Path;
 
-class WriteExportFiles extends ManagerRepo {
+class WriteExportFiles extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
   private final ExportInfo tableInfo;
@@ -92,19 +92,19 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
 
-    long reserved = Utils.reserveNamespace(manager.getContext(), tableInfo.namespaceID, fateId,
+    long reserved = Utils.reserveNamespace(env.getContext(), tableInfo.namespaceID, fateId,
         LockType.READ, true, TableOperation.EXPORT)
-        + Utils.reserveTable(manager.getContext(), tableInfo.tableID, fateId, LockType.READ, true,
+        + Utils.reserveTable(env.getContext(), tableInfo.tableID, fateId, LockType.READ, true,
             TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
     }
 
-    AccumuloClient client = manager.getContext();
+    AccumuloClient client = env.getContext();
 
-    checkOffline(manager.getContext());
+    checkOffline(env.getContext());
 
     Scanner metaScanner =
         client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
@@ -135,24 +135,24 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     try {
-      exportTable(manager.getVolumeManager(), manager.getContext(), tableInfo.tableName,
-          tableInfo.tableID, tableInfo.exportDir);
+      exportTable(env.getVolumeManager(), env.getContext(), tableInfo.tableName, tableInfo.tableID,
+          tableInfo.exportDir);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(manager.getContext(), tableInfo.namespaceID, fateId, LockType.READ);
-    Utils.unreserveTable(manager.getContext(), tableInfo.tableID, fateId, LockType.READ);
-    Utils.unreserveHdfsDirectory(manager.getContext(), new Path(tableInfo.exportDir).toString(),
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableID, fateId, LockType.READ);
+    Utils.unreserveHdfsDirectory(env.getContext(), new Path(tableInfo.exportDir).toString(),
         fateId);
     return null;
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
+  public void undo(FateId fateId, FateEnv env) {
     Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceID, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableInfo.tableID, fateId, LockType.READ);
   }

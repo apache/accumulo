@@ -31,13 +31,13 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AllocateDirsAndEnsureOnline extends ManagerRepo {
+public class AllocateDirsAndEnsureOnline extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(PreSplit.class);
@@ -49,7 +49,7 @@ public class AllocateDirsAndEnsureOnline extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // This check of table state is done after setting the operation id to avoid a race condition
     // with the client code that waits for a table to go offline. That client code sets the table
     // state and then scans the metadata table looking for split operations ids. If split checks
@@ -57,13 +57,12 @@ public class AllocateDirsAndEnsureOnline extends ManagerRepo {
     // after ensures that in the case when the client does not see any split op id in the metadata
     // table that it knows that any splits starting after that point in time will not complete. This
     // order is needed because the split fate operation does not acquire a table lock in zookeeper.
-    if (manager.getContext().getTableState(splitInfo.getOriginal().tableId())
-        != TableState.ONLINE) {
+    if (env.getContext().getTableState(splitInfo.getOriginal().tableId()) != TableState.ONLINE) {
 
       var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
       // attempt to delete the operation id
-      try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      try (var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets()) {
 
         Ample.RejectionHandler rejectionHandler = new Ample.RejectionHandler() {
 
@@ -100,7 +99,7 @@ public class AllocateDirsAndEnsureOnline extends ManagerRepo {
       List<String> dirs = new ArrayList<>();
 
       splitInfo.getSplits().keySet().forEach(split -> {
-        String dirName = TabletNameGenerator.createTabletDirectoryName(manager.getContext(), split);
+        String dirName = TabletNameGenerator.createTabletDirectoryName(env.getContext(), split);
         dirs.add(dirName);
         log.trace("{} allocated dir name {}", fateId, dirName);
       });

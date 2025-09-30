@@ -61,9 +61,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -100,6 +97,7 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -116,6 +114,7 @@ import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
@@ -161,7 +160,7 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer implements LiveTServerSet.Listener {
+public class Manager extends AbstractServer implements LiveTServerSet.Listener, FateEnv {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -205,7 +204,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   // should already have been set; ConcurrentHashMap will guarantee that all threads will see
   // the initialized fate references after the latch is ready
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
-  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateRefs =
+  private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
 
   static class TServerStatus {
@@ -303,7 +302,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
    *
    * @return the Fate object, only after the fate components are running and ready
    */
-  public Fate<Manager> fate(FateInstanceType type) {
+  public Fate<FateEnv> fate(FateInstanceType type) {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -465,15 +464,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     return result;
   }
 
-  public void mustBeOnline(final TableId tableId) throws ThriftTableOperationException {
-    ServerContext context = getContext();
-    context.clearTableListCache();
-    if (context.getTableState(tableId) != TableState.ONLINE) {
-      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
-          TableOperationExceptionType.OFFLINE, "table is not online");
-    }
-  }
-
   public TableManager getTableManager() {
     return getContext().getTableManager();
   }
@@ -569,6 +559,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   public CompactionCoordinator getCompactionCoordinator() {
     return compactionCoordinator;
+  }
+
+  @Override
+  public void recordCompletion(ExternalCompactionId ecid) {
+    getCompactionCoordinator().recordCompletion(ecid);
   }
 
   public void hostOndemand(List<KeyExtent> extents) {
@@ -1263,9 +1258,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Thread.sleep(500);
   }
 
-  protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
+  protected Fate<FateEnv> initializeFateInstance(ServerContext context, FateStore<FateEnv> store) {
 
-    final Fate<Manager> fateInstance = new Fate<>(this, store, true, TraceRepo::toLogString,
+    final Fate<FateEnv> fateInstance = new Fate<>(this, store, true, TraceRepo::toLogString,
         getConfiguration(), context.getScheduledExecutor());
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
@@ -1525,6 +1520,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     return nextEvent;
   }
 
+  @Override
+  public Events getEvents() {
+    return nextEvent;
+  }
+
   public VolumeManager getVolumeManager() {
     return getContext().getVolumeManager();
   }
@@ -1614,7 +1614,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     compactionCoordinator.registerMetrics(registry);
   }
 
-  private Map<FateInstanceType,Fate<Manager>> getFateRefs() {
+  private Map<FateInstanceType,Fate<FateEnv>> getFateRefs() {
     var fateRefs = this.fateRefs.get();
     Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
     return fateRefs;

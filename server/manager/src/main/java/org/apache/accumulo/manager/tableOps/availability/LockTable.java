@@ -26,11 +26,11 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class LockTable extends ManagerRepo {
+public class LockTable extends AbstractRepo {
   private static final long serialVersionUID = 1L;
 
   private final TableId tableId;
@@ -47,23 +47,23 @@ public class LockTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
-    return Utils.reserveNamespace(manager.getContext(), namespaceId, fateId,
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId,
         DistributedReadWriteLock.LockType.READ, true, TableOperation.SET_TABLET_AVAILABILITY)
-        + Utils.reserveTable(manager.getContext(), tableId, fateId,
+        + Utils.reserveTable(env.getContext(), tableId, fateId,
             DistributedReadWriteLock.LockType.WRITE, true, TableOperation.SET_TABLET_AVAILABILITY);
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     return new SetTabletAvailability(tableId, namespaceId, tRange, tabletAvailability);
   }
 
   @Override
-  public void undo(FateId fateId, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId,
+  public void undo(FateId fateId, FateEnv env) throws Exception {
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId,
         DistributedReadWriteLock.LockType.READ);
-    Utils.unreserveTable(manager.getContext(), tableId, fateId,
+    Utils.unreserveTable(env.getContext(), tableId, fateId,
         DistributedReadWriteLock.LockType.WRITE);
   }
 }

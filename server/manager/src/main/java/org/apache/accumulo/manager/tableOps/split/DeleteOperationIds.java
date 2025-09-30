@@ -28,10 +28,10 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 
-public class DeleteOperationIds extends ManagerRepo {
+public class DeleteOperationIds extends AbstractRepo {
   private static final long serialVersionUID = 1L;
   private final SplitInfo splitInfo;
 
@@ -40,11 +40,11 @@ public class DeleteOperationIds extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
-    try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+    try (var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets()) {
 
       // As long as the operation is not our operation id, then this step can be considered
       // successful in the case of rejection. If this repo is running for a second time and has
@@ -69,7 +69,7 @@ public class DeleteOperationIds extends ManagerRepo {
       }
 
       // Get the tablets hosted ASAP if necessary.
-      manager.getEventCoordinator().event(splitInfo.getOriginal(), "Added %d splits to %s",
+      env.getEvents().event(splitInfo.getOriginal(), "Added %d splits to %s",
           splitInfo.getSplits().size(), splitInfo.getOriginal());
 
       TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits().navigableKeySet());

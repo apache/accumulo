@@ -39,15 +39,15 @@ import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class PreSplit extends ManagerRepo {
+public class PreSplit extends AbstractRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(PreSplit.class);
 
@@ -68,11 +68,11 @@ public class PreSplit extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
-    var tabletMetadata = manager.getContext().getAmple().readTablet(splitInfo.getOriginal(),
-        PREV_ROW, LOCATION, OPID, LOGS);
+    var tabletMetadata = env.getContext().getAmple().readTablet(splitInfo.getOriginal(), PREV_ROW,
+        LOCATION, OPID, LOGS);
 
     log.trace("Attempting tablet split {} {} {}", fateId, splitInfo.getOriginal(),
         tabletMetadata == null ? null : tabletMetadata.getLocation());
@@ -91,7 +91,7 @@ public class PreSplit extends ManagerRepo {
         return 1000;
       }
     } else {
-      try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      try (var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets()) {
 
         tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireAbsentOperation()
             .requireSame(tabletMetadata, LOCATION, LOGS).putOperation(opid)
@@ -106,7 +106,7 @@ public class PreSplit extends ManagerRepo {
           } else {
             // now that the operation id set, generate an event to unload the tablet or recover the
             // logs
-            manager.getEventCoordinator().event(splitInfo.getOriginal(),
+            env.getEvents().event(splitInfo.getOriginal(),
                 "Set operation id %s on tablet for split", fateId);
             // the operation id was set, but a location is also set wait for it be unset
             return 1000;
@@ -121,10 +121,10 @@ public class PreSplit extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
-    TabletMetadata tabletMetadata = manager.getContext().getAmple()
-        .readTablet(splitInfo.getOriginal(), PREV_ROW, LOCATION, OPID, LOGS);
+    TabletMetadata tabletMetadata = env.getContext().getAmple().readTablet(splitInfo.getOriginal(),
+        PREV_ROW, LOCATION, OPID, LOGS);
 
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
@@ -152,5 +152,5 @@ public class PreSplit extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager manager) throws Exception {}
+  public void undo(FateId fateId, FateEnv manager) throws Exception {}
 }

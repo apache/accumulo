@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,14 +58,14 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   protected final ServerContext context;
   protected final ReadOnlyFateStore<FateMetrics<T>> readOnlyFateStore;
   protected final long refreshDelay;
-  private final Set<FateExecutor<Manager>> fateExecutors;
+  private final Set<FateExecutor<FateEnv>> fateExecutors;
   private MeterRegistry registry;
 
   protected final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
   private final EnumMap<TStatus,AtomicLong> txStatusCounters = new EnumMap<>(TStatus.class);
 
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay,
-      Set<FateExecutor<Manager>> fateExecutors) {
+      Set<FateExecutor<FateEnv>> fateExecutors) {
     this.context = context;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
     this.readOnlyFateStore = Objects.requireNonNull(buildReadOnlyStore(context));

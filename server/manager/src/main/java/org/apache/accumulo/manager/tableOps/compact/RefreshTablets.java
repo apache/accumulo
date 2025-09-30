@@ -23,11 +23,11 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 
-public class RefreshTablets extends ManagerRepo {
+public class RefreshTablets extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -44,8 +44,8 @@ public class RefreshTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    TabletRefresher.refresh(manager, fateId, tableId, startRow, endRow, tabletMetadata -> true);
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    TabletRefresher.refresh(env, fateId, tableId, startRow, endRow, tabletMetadata -> true);
 
     return new CleanUp(tableId, namespaceId, startRow, endRow);
   }

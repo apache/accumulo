@@ -20,19 +20,16 @@ package org.apache.accumulo.manager.tableOps;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
 
-public abstract class ManagerRepo implements Repo<Manager> {
+public abstract class AbstractRepo implements Repo<FateEnv> {
 
   private static final long serialVersionUID = 1L;
 
-  @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     return 0;
   }
 
-  @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {}
+  public void undo(FateId fateId, FateEnv environment) throws Exception {}
 
   @Override
   public String getName() {
@@ -44,7 +41,6 @@ public abstract class ManagerRepo implements Repo<Manager> {
     return null;
   }
 
-  @Override
-  public abstract Repo<Manager> call(FateId fateId, Manager environment) throws Exception;
+  public abstract Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception;
 
 }

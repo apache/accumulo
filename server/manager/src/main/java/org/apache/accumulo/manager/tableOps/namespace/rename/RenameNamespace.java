@@ -23,12 +23,12 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-public class RenameNamespace extends ManagerRepo {
+public class RenameNamespace extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
   private final NamespaceId namespaceId;
@@ -36,10 +36,9 @@ public class RenameNamespace extends ManagerRepo {
   private final String newName;
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     return Utils.reserveNamespace(environment.getContext(), namespaceId, fateId, LockType.WRITE,
         true, TableOperation.RENAME);
-
   }
 
   public RenameNamespace(NamespaceId namespaceId, String oldName, String newName) {
@@ -49,13 +48,13 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     try {
-      manager.getContext().getNamespaceMapping().rename(namespaceId, oldName, newName);
-      manager.getContext().clearTableListCache();
+      env.getContext().getNamespaceMapping().rename(namespaceId, oldName, newName);
+      env.getContext().clearTableListCache();
     } finally {
-      Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.WRITE);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,
@@ -65,7 +64,7 @@ public class RenameNamespace extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
+  public void undo(FateId fateId, FateEnv env) {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.WRITE);
   }
 

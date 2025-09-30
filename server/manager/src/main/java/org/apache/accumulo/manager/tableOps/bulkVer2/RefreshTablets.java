@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 
 /**
  * This Repo asks hosted tablets that were bulk loaded into to refresh their metadata. It works by
@@ -30,7 +30,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
  * location its ok. That means the tablet either unloaded before of after the snapshot. In either
  * case the tablet will see the bulk files the next time its hosted somewhere.
  */
-public class RefreshTablets extends ManagerRepo {
+public class RefreshTablets extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -41,15 +41,15 @@ public class RefreshTablets extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
-    TabletRefresher.refresh(manager, fateId, bulkInfo.tableId, bulkInfo.firstSplit,
-        bulkInfo.lastSplit, tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
+    TabletRefresher.refresh(env, fateId, bulkInfo.tableId, bulkInfo.firstSplit, bulkInfo.lastSplit,
+        tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
 
     return new CleanUpBulkImport(bulkInfo);
   }

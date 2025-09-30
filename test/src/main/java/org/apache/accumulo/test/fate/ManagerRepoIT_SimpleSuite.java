@@ -77,7 +77,7 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
 import org.apache.accumulo.manager.tableOps.compact.CompactionDriver;
 import org.apache.accumulo.manager.tableOps.merge.DeleteRows;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo;
@@ -149,10 +149,10 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       // condition
       final MergeInfo mergeInfo = new MergeInfo(tableId,
           manager.getContext().getNamespaceId(tableId), null, null, operation);
-      final ManagerRepo repo =
+      final AbstractRepo repo =
           operation == Operation.MERGE ? new MergeTablets(mergeInfo) : new DeleteRows(mergeInfo);
       // Also test ReserveTablets isReady()
-      final ManagerRepo reserve = new ReserveTablets(mergeInfo);
+      final AbstractRepo reserve = new ReserveTablets(mergeInfo);
 
       // First, check no errors with the default case
       assertEquals(0, reserve.isReady(fateId, manager));
@@ -466,7 +466,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       var ctx = manager.getContext();
 
       // Create the CompactionDriver to test with the given range passed into the method
-      final ManagerRepo repo = new CompactionDriver(ctx.getNamespaceId(tableId), tableId,
+      final AbstractRepo repo = new CompactionDriver(ctx.getNamespaceId(tableId), tableId,
           !range.isInfiniteStartKey() ? range.getStartKey().getRow().getBytes() : null,
           !range.isInfiniteStopKey() ? range.getEndKey().getRow().getBytes() : null);
 

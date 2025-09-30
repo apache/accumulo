@@ -29,7 +29,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -92,7 +91,7 @@ public class ShutdownTServerTest {
     wait = op.isReady(fateId, manager);
     assertEquals(0, wait, "Expected wait to be 0");
 
-    Repo<Manager> op2 = op.call(fateId, manager);
+    var op2 = op.call(fateId, manager);
     assertNull(op2, "Expected no follow on step");
 
     EasyMock.verify(tserverCnxn, manager);

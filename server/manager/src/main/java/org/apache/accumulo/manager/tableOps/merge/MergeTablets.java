@@ -42,8 +42,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.slf4j.Logger;
@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class MergeTablets extends ManagerRepo {
+public class MergeTablets extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -64,7 +64,7 @@ public class MergeTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     KeyExtent range = data.getMergeExtent();
     log.debug("{} Merging metadata for {}", fateId, range);
 
@@ -76,8 +76,8 @@ public class MergeTablets extends ManagerRepo {
     TabletMetadata firstTabletMeta = null;
     TabletMetadata lastTabletMeta = null;
 
-    try (var tabletsMetadata = manager.getContext().getAmple().readTablets()
-        .forTable(range.tableId()).overlapping(range.prevEndRow(), range.endRow()).build()) {
+    try (var tabletsMetadata = env.getContext().getAmple().readTablets().forTable(range.tableId())
+        .overlapping(range.prevEndRow(), range.endRow()).build()) {
 
       int tabletsSeen = 0;
 
@@ -137,7 +137,7 @@ public class MergeTablets extends ManagerRepo {
           dirs.add(new AllVolumesDirectory(range.tableId(), tabletMeta.getDirName()));
           if (dirs.size() > 1000) {
             Preconditions.checkState(tabletsSeen > 1);
-            manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
+            env.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
             dirs.clear();
           }
         }
@@ -163,7 +163,7 @@ public class MergeTablets extends ManagerRepo {
     // the merged marker should not exist
     if (!lastTabletMeta.hasMerged()) {
       // update the last tablet
-      try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
+      try (var tabletsMutator = env.getContext().getAmple().conditionallyMutateTablets()) {
         var lastExtent = lastTabletMeta.getExtent();
         var tabletMutator = tabletsMutator.mutateTablet(lastExtent).requireOperation(opid)
             .requireAbsentLocation().requireAbsentLogs();
@@ -232,7 +232,7 @@ public class MergeTablets extends ManagerRepo {
 
     // add gc candidates for the tablet dirs that being merged away, once these dirs are empty the
     // Accumulo GC will delete the dir
-    manager.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
+    env.getContext().getAmple().putGcFileAndDirCandidates(range.tableId(), dirs);
 
     return new DeleteTablets(data, lastTabletMeta.getEndRow());
   }

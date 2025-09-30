@@ -137,6 +137,7 @@ import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactio
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
@@ -270,7 +271,7 @@ public class CompactionCoordinator
   private final ServerContext ctx;
   private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
-  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
+  private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances;
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
@@ -290,7 +291,7 @@ public class CompactionCoordinator
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
   public CompactionCoordinator(Manager manager,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+      AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances) {
     this.ctx = manager.getContext();
     this.security = ctx.getSecurityOperation();
     this.manager = Objects.requireNonNull(manager);

@@ -29,13 +29,13 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class RefreshTablet extends ManagerRepo {
+public class RefreshTablet extends AbstractRepo {
   private static final long serialVersionUID = 1L;
   private final TKeyExtent extent;
   private final String tserverInstance;
@@ -48,7 +48,7 @@ public class RefreshTablet extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     TServerInstance tsi = new TServerInstance(tserverInstance);
 
@@ -57,13 +57,13 @@ public class RefreshTablet extends ManagerRepo {
     ExecutorService executorService = MoreExecutors.newDirectExecutorService();
     try {
       TabletRefresher.refreshTablets(executorService, "compaction:" + KeyExtent.fromThrift(extent),
-          manager.getContext(), manager::onlineTabletServers,
+          env.getContext(), env::onlineTabletServers,
           Map.of(TabletMetadata.Location.current(tsi), List.of(extent)));
     } finally {
       executorService.shutdownNow();
     }
 
-    manager.getCompactionCoordinator().recordCompletion(ExternalCompactionId.of(compactionId));
+    env.recordCompletion(ExternalCompactionId.of(compactionId));
 
     return null;
   }

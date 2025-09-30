@@ -28,8 +28,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -37,7 +37,7 @@ import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-class ImportPopulateZookeeper extends ManagerRepo {
+class ImportPopulateZookeeper extends AbstractRepo {
 
   private static final long serialVersionUID = 1L;
 
@@ -48,7 +48,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     return Utils.reserveTable(environment.getContext(), tableInfo.tableId, fateId, LockType.WRITE,
         false, TableOperation.IMPORT);
   }
@@ -68,7 +68,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     var context = env.getContext();
     // write tableName & tableId, first to Table Mapping and then to Zookeeper
@@ -92,7 +92,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     var context = env.getContext();
     env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
     Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);

@@ -21,10 +21,10 @@ package org.apache.accumulo.manager.compaction.coordinator.commit;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 
-public class PutGcCandidates extends ManagerRepo {
+public class PutGcCandidates extends AbstractRepo {
   private static final long serialVersionUID = 1L;
   private final CompactionCommitData commitData;
   private final String refreshLocation;
@@ -35,14 +35,13 @@ public class PutGcCandidates extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     // add the GC candidates
-    manager.getContext().getAmple().putGcCandidates(commitData.getTableId(),
-        commitData.getJobFiles());
+    env.getContext().getAmple().putGcCandidates(commitData.getTableId(), commitData.getJobFiles());
 
     if (refreshLocation == null) {
-      manager.getCompactionCoordinator().recordCompletion(ExternalCompactionId.of(commitData.ecid));
+      env.recordCompletion(ExternalCompactionId.of(commitData.ecid));
       return null;
     }
 

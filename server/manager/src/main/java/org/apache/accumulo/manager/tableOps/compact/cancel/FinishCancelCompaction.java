@@ -23,11 +23,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-class FinishCancelCompaction extends ManagerRepo {
+class FinishCancelCompaction extends AbstractRepo {
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
   private final NamespaceId namespaceId;
@@ -38,14 +38,14 @@ class FinishCancelCompaction extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) {
     Utils.unreserveTable(environment.getContext(), tableId, fateId, LockType.READ);
     Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.READ);
     return null;
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) {
+  public void undo(FateId fateId, FateEnv environment) {
 
   }
 }
