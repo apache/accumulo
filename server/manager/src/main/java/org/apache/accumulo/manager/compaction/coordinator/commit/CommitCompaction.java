@@ -88,7 +88,7 @@ public class CommitCompaction extends AbstractFateOperation {
 
     // This will causes the tablet to be reexamined to see if it needs any more compactions.
     var extent = KeyExtent.fromThrift(commitData.textent);
-    env.getEvents().event(extent, "Compaction completed %s", extent);
+    env.getEventPublisher().event(extent, "Compaction completed %s", extent);
 
     return new PutGcCandidates(commitData, loc);
   }

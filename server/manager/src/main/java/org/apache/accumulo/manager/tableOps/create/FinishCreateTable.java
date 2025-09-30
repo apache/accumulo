@@ -67,7 +67,8 @@ class FinishCreateTable extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), tableInfo.getNamespaceId(), fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
 
-    env.getEvents().event(tableInfo.getTableId(), "Created table %s ", tableInfo.getTableName());
+    env.getEventPublisher().event(tableInfo.getTableId(), "Created table %s ",
+        tableInfo.getTableName());
 
     if (tableInfo.getInitialSplitSize() > 0) {
       cleanupSplitFiles(env.getContext());

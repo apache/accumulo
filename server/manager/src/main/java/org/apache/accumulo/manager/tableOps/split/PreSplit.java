@@ -106,7 +106,7 @@ public class PreSplit extends AbstractFateOperation {
           } else {
             // now that the operation id set, generate an event to unload the tablet or recover the
             // logs
-            env.getEvents().event(splitInfo.getOriginal(),
+            env.getEventPublisher().event(splitInfo.getOriginal(),
                 "Set operation id %s on tablet for split", fateId);
             // the operation id was set, but a location is also set wait for it be unset
             return 1000;

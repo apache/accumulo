@@ -67,7 +67,7 @@ class FinishImportTable extends AbstractFateOperation {
       Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }
 
-    env.getEvents().event(tableInfo.tableId, "Imported table %s ", tableInfo.tableName);
+    env.getEventPublisher().event(tableInfo.tableId, "Imported table %s ", tableInfo.tableName);
 
     LoggerFactory.getLogger(FinishImportTable.class)
         .debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);

@@ -69,7 +69,7 @@ public class DeleteOperationIds extends AbstractFateOperation {
       }
 
       // Get the tablets hosted ASAP if necessary.
-      env.getEvents().event(splitInfo.getOriginal(), "Added %d splits to %s",
+      env.getEventPublisher().event(splitInfo.getOriginal(), "Added %d splits to %s",
           splitInfo.getSplits().size(), splitInfo.getOriginal());
 
       TabletLogger.split(splitInfo.getOriginal(), splitInfo.getSplits().navigableKeySet());

@@ -45,7 +45,7 @@ public class DeleteNamespace extends AbstractFateOperation {
 
   @Override
   public Repo<FateEnv> call(FateId fateId, FateEnv environment) {
-    environment.getEvents().event("deleting namespace %s ", namespaceId);
+    environment.getEventPublisher().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }
 

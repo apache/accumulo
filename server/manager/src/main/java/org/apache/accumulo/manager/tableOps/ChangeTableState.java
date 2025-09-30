@@ -70,7 +70,7 @@ public class ChangeTableState extends AbstractFateOperation {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
-    env.getEvents().event(tableId, "Set table state of %s to %s", tableId, ts);
+    env.getEventPublisher().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
   }
 

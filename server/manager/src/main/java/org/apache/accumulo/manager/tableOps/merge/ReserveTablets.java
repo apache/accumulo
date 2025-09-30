@@ -115,8 +115,8 @@ public class ReserveTablets extends AbstractFateOperation {
     if (locations > 0 && opsAccepted.get() > 0) {
       // operation ids were set and tablets have locations, so lets send a signal to get them
       // unassigned
-      env.getEvents().event(range, "Tablets %d were reserved for merge %s", opsAccepted.get(),
-          fateId);
+      env.getEventPublisher().event(range, "Tablets %d were reserved for merge %s",
+          opsAccepted.get(), fateId);
     }
 
     long sleepTime = Math.min(Math.max(1000, count), maxSleepTime);

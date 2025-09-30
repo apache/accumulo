@@ -72,7 +72,7 @@ class FinishCloneTable extends AbstractFateOperation {
         LockType.READ);
     Utils.unreserveTable(environment.getContext(), cloneInfo.getTableId(), fateId, LockType.WRITE);
 
-    environment.getEvents().event(cloneInfo.getTableId(), "Cloned table %s from %s",
+    environment.getEventPublisher().event(cloneInfo.getTableId(), "Cloned table %s from %s",
         cloneInfo.getTableName(), cloneInfo.getSrcTableId());
 
     LoggerFactory.getLogger(FinishCloneTable.class)

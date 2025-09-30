@@ -334,7 +334,8 @@ public class CompactionDriver extends AbstractFateOperation {
         userCompactionRequested, userCompactionWaiting, opidsSeen, t2 - t1);
 
     if (selected > 0) {
-      env.getEvents().event(new KeyExtent(tableId, maxSelected.endRow(), minSelected.prevEndRow()),
+      env.getEventPublisher().event(
+          new KeyExtent(tableId, maxSelected.endRow(), minSelected.prevEndRow()),
           "%s selected files for compaction for %d tablets", fateId, selected);
     }
 

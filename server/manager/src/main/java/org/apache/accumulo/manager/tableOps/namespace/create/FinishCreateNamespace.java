@@ -46,7 +46,7 @@ class FinishCreateNamespace extends AbstractFateOperation {
 
     Utils.unreserveNamespace(env.getContext(), namespaceInfo.namespaceId, fateId, LockType.WRITE);
 
-    env.getEvents().event("Created namespace %s ", namespaceInfo.namespaceName);
+    env.getEventPublisher().event("Created namespace %s ", namespaceInfo.namespaceName);
 
     LoggerFactory.getLogger(FinishCreateNamespace.class)
         .debug("Created table " + namespaceInfo.namespaceId + " " + namespaceInfo.namespaceName);

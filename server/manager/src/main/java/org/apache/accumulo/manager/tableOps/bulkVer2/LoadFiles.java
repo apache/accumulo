@@ -351,7 +351,7 @@ class LoadFiles extends AbstractFateOperation {
         if (condResult.getStatus() == Status.ACCEPTED) {
           loadingFiles.get(extent).forEach(file -> TabletLogger.bulkImported(extent, file));
           // Trigger a check for compaction now that new files were added via bulk load
-          env.getEvents().event(extent, "Bulk load completed on tablet %s", extent);
+          env.getEventPublisher().event(extent, "Bulk load completed on tablet %s", extent);
         } else {
           seenFailure.set(true);
           var metadata = condResult.readMetadata();

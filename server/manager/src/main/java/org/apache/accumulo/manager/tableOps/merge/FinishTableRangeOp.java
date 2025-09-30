@@ -100,7 +100,7 @@ class FinishTableRangeOp extends AbstractFateOperation {
     log.debug("{} deleted {}/{} opids out of {} tablets", fateId, acceptedCount.get(), submitted,
         count);
 
-    env.getEvents().event(range, "Merge or deleterows completed %s", fateId);
+    env.getEventPublisher().event(range, "Merge or deleterows completed %s", fateId);
 
     Preconditions.checkState(acceptedCount.get() == submitted && rejectedCount.get() == 0,
         "Failed to delete tablets accepted:%s != %s rejected:%s", acceptedCount.get(), submitted,

@@ -35,7 +35,7 @@ import org.apache.accumulo.server.tables.TableManager;
 public interface FateEnv {
   ServerContext getContext();
 
-  EventPublisher getEvents();
+  EventPublisher getEventPublisher();
 
   void recordCompactionCompletion(ExternalCompactionId ecid);
 
