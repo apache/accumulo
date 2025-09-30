@@ -130,7 +130,7 @@ public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
 
-  @Deprecated
+  @Deprecated(since = "4.0.0")
   private static final String LOCKS_COMMAND = "locks";
 
   private static class SubCommandOpts {
