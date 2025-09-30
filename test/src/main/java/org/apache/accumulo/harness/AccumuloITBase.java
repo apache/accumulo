@@ -93,9 +93,11 @@ public class AccumuloITBase extends WithTestNames {
       return baseDir;
     }
 
-    String uniqueName = System.getProperty(UNIQUE_TEST_DIR_SYS_PROPERTY).equalsIgnoreCase("false")
-        ? name : String.format("%s-%d-%d", name, System.currentTimeMillis(),
-            RANDOM.get().nextInt(Short.MAX_VALUE));
+    String uniqueName =
+        System.getProperty(UNIQUE_TEST_DIR_SYS_PROPERTY, "").equalsIgnoreCase("true")
+            ? String.format("%s-%d-%d", name, System.currentTimeMillis(),
+                RANDOM.get().nextInt(Short.MAX_VALUE))
+            : name;
     File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());

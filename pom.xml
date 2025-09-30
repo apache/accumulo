@@ -134,6 +134,7 @@ under the License.
     <!-- used for filtering the java source with the current version -->
     <accumulo.build.release.version>${project.version}</accumulo.build.release.version>
     <accumulo.build.unitTestMemSize>-Xmx1G</accumulo.build.unitTestMemSize>
+    <accumulo.it.uniq.test.dir>false</accumulo.it.uniq.test.dir>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
@@ -141,7 +142,6 @@ under the License.
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
-    <failsafe.unique.accumulo.test.dirs>false</failsafe.unique.accumulo.test.dirs>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
     <maven.compiler.target>17</maven.compiler.target>
@@ -851,7 +851,7 @@ under the License.
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables combine.children="append">
-              <accumulo.it.uniq.test.dir>${failsafe.unique.accumulo.test.dirs}</accumulo.it.uniq.test.dir>
+              <accumulo.it.uniq.test.dir>${accumulo.it.uniq.test.dir}</accumulo.it.uniq.test.dir>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
             <argLine>${accumulo.build.extraTestArgs}</argLine>
@@ -1755,7 +1755,7 @@ under the License.
         </property>
       </activation>
       <properties>
-        <failsafe.unique.accumulo.test.dirs>true</failsafe.unique.accumulo.test.dirs>
+        <accumulo.it.uniq.test.dir>true</accumulo.it.uniq.test.dir>
       </properties>
     </profile>
   </profiles>
