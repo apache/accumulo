@@ -49,8 +49,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, fateId, LockType.WRITE, false,
-        TableOperation.IMPORT);
+    return Utils.reserveTable(environment.getContext(), tableInfo.tableId, fateId, LockType.WRITE,
+        false, TableOperation.IMPORT);
   }
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
@@ -95,7 +95,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   public void undo(FateId fateId, Manager env) throws Exception {
     var context = env.getContext();
     env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
-    Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);
     context.clearTableListCache();
   }
 }

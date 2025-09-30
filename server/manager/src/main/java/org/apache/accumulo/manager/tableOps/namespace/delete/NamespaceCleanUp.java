@@ -65,7 +65,7 @@ class NamespaceCleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId, LockType.WRITE);
 
     log.debug("Deleted namespace " + namespaceId);
 

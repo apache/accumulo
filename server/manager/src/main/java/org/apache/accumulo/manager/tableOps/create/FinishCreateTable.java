@@ -64,8 +64,8 @@ class FinishCreateTable extends ManagerRepo {
           TableState.ONLINE, expectedCurrStates);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);
-    Utils.unreserveTable(env, tableInfo.getTableId(), fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.getNamespaceId(), fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
 
     env.getEventCoordinator().event(tableInfo.getTableId(), "Created table %s ",
         tableInfo.getTableName());
