@@ -25,10 +25,12 @@ public abstract class AbstractRepo implements Repo<FateEnv> {
 
   private static final long serialVersionUID = 1L;
 
+  @Override
   public long isReady(FateId fateId, FateEnv environment) throws Exception {
     return 0;
   }
 
+  @Override
   public void undo(FateId fateId, FateEnv environment) throws Exception {}
 
   @Override
@@ -41,6 +43,7 @@ public abstract class AbstractRepo implements Repo<FateEnv> {
     return null;
   }
 
+  @Override
   public abstract Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception;
 
 }
