@@ -349,7 +349,7 @@ public class CompactionDriver extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    cleanupTabletMetadata(fateId, env);
+    cleanupTabletMetadata(fateId, env.getContext());
 
     // For any compactions that may have happened before this operation failed, attempt to refresh
     // tablets.
@@ -359,8 +359,8 @@ public class CompactionDriver extends ManagerRepo {
   /**
    * Cleans up any tablet metadata that may have been added as part of this compaction operation.
    */
-  private void cleanupTabletMetadata(FateId fateId, Manager manager) throws Exception {
-    var ample = manager.getContext().getAmple();
+  private void cleanupTabletMetadata(FateId fateId, ServerContext ctx) throws Exception {
+    var ample = ctx.getAmple();
 
     boolean allCleanedUp = false;
 

@@ -34,6 +34,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -60,7 +61,7 @@ class ChooseDir extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     if (tableInfo.getInitialSplitSize() > 0) {
-      createTableDirectoriesInfo(manager);
+      createTableDirectoriesInfo(manager.getContext());
     }
     return new PopulateMetadata(tableInfo);
   }
@@ -85,20 +86,20 @@ class ChooseDir extends ManagerRepo {
    * Create unique table directory names that will be associated with split values. Then write these
    * to the file system for later use during this FATE operation.
    */
-  private void createTableDirectoriesInfo(Manager manager) throws IOException {
+  private void createTableDirectoriesInfo(ServerContext ctx) throws IOException {
     SortedMap<Text,TabletMergeability> splits =
-        Utils.getSortedSplitsFromFile(manager.getContext(), tableInfo.getSplitPath());
-    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(manager, splits.size());
-    writeTabletDirectoriesToFileSystem(manager, tabletDirectoryInfo);
+        Utils.getSortedSplitsFromFile(ctx, tableInfo.getSplitPath());
+    SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(ctx, splits.size());
+    writeTabletDirectoriesToFileSystem(ctx, tabletDirectoryInfo);
   }
 
   /**
    * Create a set of unique table directories. These will be associated with splits in a follow-on
    * FATE step.
    */
-  private static SortedSet<Text> createTabletDirectoriesSet(Manager manager, int num) {
+  private static SortedSet<Text> createTabletDirectoriesSet(ServerContext ctx, int num) {
     String tabletDir;
-    UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
+    UniqueNameAllocator namer = ctx.getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
     Iterator<String> names = namer.getNextNames(num);
     for (int i = 0; i < num; i++) {
@@ -112,10 +113,10 @@ class ChooseDir extends ManagerRepo {
    * Write the SortedSet of Tablet Directory names to the file system for use in the next phase of
    * the FATE operation.
    */
-  private void writeTabletDirectoriesToFileSystem(Manager manager, SortedSet<Text> dirs)
+  private void writeTabletDirectoriesToFileSystem(ServerContext ctx, SortedSet<Text> dirs)
       throws IOException {
     Path p = tableInfo.getSplitDirsPath();
-    FileSystem fs = p.getFileSystem(manager.getContext().getHadoopConf());
+    FileSystem fs = p.getFileSystem(ctx.getHadoopConf());
     if (fs.exists(p)) {
       fs.delete(p, true);
     }

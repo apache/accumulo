@@ -30,6 +30,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -70,18 +71,18 @@ class FinishCreateTable extends ManagerRepo {
         tableInfo.getTableName());
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      cleanupSplitFiles(env);
+      cleanupSplitFiles(env.getContext());
     }
     return null;
   }
 
-  private void cleanupSplitFiles(Manager env) throws IOException {
+  private void cleanupSplitFiles(ServerContext ctx) throws IOException {
     // it is sufficient to delete from the parent, because both files are in the same directory, and
     // we want to delete the directory also
     Path p = null;
     try {
       p = tableInfo.getSplitPath().getParent();
-      FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
+      FileSystem fs = p.getFileSystem(ctx.getHadoopConf());
       fs.delete(p, true);
     } catch (IOException e) {
       log.error("Table was created, but failed to clean up temporary splits files at {}", p, e);
