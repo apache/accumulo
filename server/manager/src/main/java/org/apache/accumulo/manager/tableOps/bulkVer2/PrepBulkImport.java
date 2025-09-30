@@ -50,7 +50,7 @@ import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
@@ -74,7 +74,7 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-public class PrepBulkImport extends AbstractRepo {
+public class PrepBulkImport extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 

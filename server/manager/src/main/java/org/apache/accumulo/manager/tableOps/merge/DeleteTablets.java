@@ -29,7 +29,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ import com.google.common.base.Preconditions;
 /**
  * Delete tablets that were merged into another tablet.
  */
-public class DeleteTablets extends AbstractRepo {
+public class DeleteTablets extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 

@@ -28,10 +28,10 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 
-public class DeleteOperationIds extends AbstractRepo {
+public class DeleteOperationIds extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private final SplitInfo splitInfo;
 

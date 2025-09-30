@@ -23,12 +23,12 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnreserveAndError extends AbstractRepo {
+public class UnreserveAndError extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(UnreserveAndError.class);
   private final MergeInfo mergeInfo;

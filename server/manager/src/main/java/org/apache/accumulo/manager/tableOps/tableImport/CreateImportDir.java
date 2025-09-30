@@ -25,7 +25,7 @@ import java.util.Set;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -33,7 +33,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class CreateImportDir extends AbstractRepo {
+class CreateImportDir extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(CreateImportDir.class);
   private static final long serialVersionUID = 1L;
 

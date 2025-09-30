@@ -22,12 +22,12 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.slf4j.LoggerFactory;
 
-class SetupPermissions extends AbstractRepo {
+class SetupPermissions extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 

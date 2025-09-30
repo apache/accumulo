@@ -28,14 +28,14 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
 
-public class PreDeleteTable extends AbstractRepo {
+public class PreDeleteTable extends AbstractFateOperation {
 
   public static String createDeleteMarkerPath(InstanceId instanceId, TableId tableId) {
     return Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_DELETE_MARKER;

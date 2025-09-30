@@ -20,7 +20,7 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 
 /**
@@ -30,7 +30,7 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
  * location its ok. That means the tablet either unloaded before of after the snapshot. In either
  * case the tablet will see the bulk files the next time its hosted somewhere.
  */
-public class RefreshTablets extends AbstractRepo {
+public class RefreshTablets extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 

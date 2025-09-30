@@ -32,7 +32,7 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-class FinishTableRangeOp extends AbstractRepo {
+class FinishTableRangeOp extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(FinishTableRangeOp.class);
 
   private static final long serialVersionUID = 1L;

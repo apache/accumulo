@@ -29,13 +29,13 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.TabletRefresher;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class RefreshTablet extends AbstractRepo {
+public class RefreshTablet extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private final TKeyExtent extent;
   private final String tserverInstance;
@@ -63,7 +63,7 @@ public class RefreshTablet extends AbstractRepo {
       executorService.shutdownNow();
     }
 
-    env.recordCompletion(ExternalCompactionId.of(compactionId));
+    env.recordCompactionCompletion(ExternalCompactionId.of(compactionId));
 
     return null;
   }

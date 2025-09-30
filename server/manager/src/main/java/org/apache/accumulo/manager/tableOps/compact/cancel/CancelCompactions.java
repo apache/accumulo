@@ -24,14 +24,14 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CancelCompactions extends AbstractRepo {
+public class CancelCompactions extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;

@@ -108,7 +108,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -363,7 +363,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     }
   }
 
-  public static class FakeRepo extends AbstractRepo {
+  public static class FakeFateOperation extends AbstractFateOperation {
 
     private static final long serialVersionUID = 1234L;
 
@@ -391,7 +391,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // Create a fate transaction for one of the compaction ids that is in the new state, it
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
-    Repo<FateEnv> repo = new FakeRepo();
+    Repo<FateEnv> repo = new FakeFateOperation();
     var fateId = seedTransaction(fateStore, Fate.FateOperation.COMMIT_COMPACTION,
         FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 

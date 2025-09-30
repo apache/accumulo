@@ -34,14 +34,14 @@ import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CleanUp extends AbstractRepo {
+public class CleanUp extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 

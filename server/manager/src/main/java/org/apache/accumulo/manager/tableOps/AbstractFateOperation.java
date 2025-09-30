@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.tableOps;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 
-public abstract class AbstractRepo implements Repo<FateEnv> {
+public abstract class AbstractFateOperation implements Repo<FateEnv> {
 
   private static final long serialVersionUID = 1L;
 

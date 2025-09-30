@@ -31,13 +31,13 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class AllocateDirsAndEnsureOnline extends AbstractRepo {
+public class AllocateDirsAndEnsureOnline extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(PreSplit.class);

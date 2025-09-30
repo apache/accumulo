@@ -32,12 +32,12 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReserveTablets extends AbstractRepo {
+public class ReserveTablets extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(ReserveTablets.class);
 

@@ -30,7 +30,7 @@ import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.slf4j.LoggerFactory;
 
-public class ChangeTableState extends AbstractRepo {
+public class ChangeTableState extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;

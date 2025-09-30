@@ -23,14 +23,14 @@ import java.io.IOException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RenameCompactionFile extends AbstractRepo {
+public class RenameCompactionFile extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(RenameCompactionFile.class);
   private static final long serialVersionUID = 1L;
   private final CompactionCommitData commitData;

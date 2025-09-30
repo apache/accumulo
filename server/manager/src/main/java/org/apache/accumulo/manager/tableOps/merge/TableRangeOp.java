@@ -29,14 +29,14 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableRangeOp extends AbstractRepo {
+public class TableRangeOp extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOp.class);
 
   private static final long serialVersionUID = 1L;

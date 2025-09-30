@@ -23,13 +23,13 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class NamespaceCleanUp extends AbstractRepo {
+class NamespaceCleanUp extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(NamespaceCleanUp.class);
 

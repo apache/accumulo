@@ -37,7 +37,7 @@ public interface FateEnv {
 
   Events getEvents();
 
-  void recordCompletion(ExternalCompactionId ecid);
+  void recordCompactionCompletion(ExternalCompactionId ecid);
 
   Set<TServerInstance> onlineTabletServers();
 

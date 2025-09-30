@@ -33,7 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-class MoveExportedFiles extends AbstractRepo {
+class MoveExportedFiles extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(MoveExportedFiles.class);
 
   private static final long serialVersionUID = 1L;

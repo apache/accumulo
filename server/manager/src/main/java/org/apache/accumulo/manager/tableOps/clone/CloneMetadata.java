@@ -20,12 +20,12 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.slf4j.LoggerFactory;
 
-class CloneMetadata extends AbstractRepo {
+class CloneMetadata extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final CloneInfo cloneInfo;

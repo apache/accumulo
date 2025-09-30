@@ -23,11 +23,11 @@ import java.util.Map;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class CreateNamespace extends AbstractRepo {
+public class CreateNamespace extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
 
   private final NamespaceInfo namespaceInfo;

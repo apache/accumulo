@@ -66,7 +66,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.TabletTime;
@@ -83,7 +83,7 @@ import com.google.common.net.HostAndPort;
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
  * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
-class LoadFiles extends AbstractRepo {
+class LoadFiles extends AbstractFateOperation {
 
   // visible for testing
   interface TabletsMetadataFactory {

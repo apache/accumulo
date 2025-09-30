@@ -565,7 +565,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   @Override
-  public void recordCompletion(ExternalCompactionId ecid) {
+  public void recordCompactionCompletion(ExternalCompactionId ecid) {
     getCompactionCoordinator().recordCompletion(ecid);
   }
 

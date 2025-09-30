@@ -29,7 +29,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.thrift.transport.TTransportException;
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
-public class ShutdownTServer extends AbstractRepo {
+public class ShutdownTServer extends AbstractFateOperation {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);

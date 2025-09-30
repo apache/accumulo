@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
@@ -57,7 +57,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Serialization updated for supporting multiple volumes in import table from 1L to 2L.
  */
-public class ImportTable extends AbstractRepo {
+public class ImportTable extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
   private static final long serialVersionUID = 2L;

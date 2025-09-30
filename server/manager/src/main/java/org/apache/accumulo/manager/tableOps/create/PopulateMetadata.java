@@ -36,7 +36,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.tableOps.AbstractRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -46,7 +46,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class PopulateMetadata extends AbstractRepo {
+class PopulateMetadata extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
