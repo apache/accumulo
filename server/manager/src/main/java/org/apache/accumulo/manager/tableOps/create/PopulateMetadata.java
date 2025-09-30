@@ -67,7 +67,7 @@ class PopulateMetadata extends ManagerRepo {
     Map<Text,Text> splitDirMap;
 
     if (tableInfo.getInitialSplitSize() > 0) {
-      splits = Utils.getSortedSplitsFromFile(env, tableInfo.getSplitPath());
+      splits = Utils.getSortedSplitsFromFile(env.getContext(), tableInfo.getSplitPath());
       SortedSet<Text> dirs = Utils.getSortedSetFromFile(env, tableInfo.getSplitDirsPath(), false);
       splitDirMap = createSplitDirectoryMap(splits, dirs);
     } else {

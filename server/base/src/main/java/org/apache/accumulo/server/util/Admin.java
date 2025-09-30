@@ -113,6 +113,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
+import com.beust.jcommander.MissingCommandException;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
@@ -128,6 +129,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
+
+  @Deprecated(since = "4.0.0")
+  private static final String LOCKS_COMMAND = "locks";
 
   private static class SubCommandOpts {
     @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
@@ -305,13 +309,6 @@ public class Admin implements KeywordExecutable {
       commandDescription = "Changes the unique secret given to the instance that all servers must know.")
   static class ChangeSecretCommand {}
 
-  @Parameters(commandNames = "locks",
-      commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
-  static class TabletServerLocksCommand extends SubCommandOpts {
-    @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
-    String delete = null;
-  }
-
   @Parameters(commandNames = "deleteZooInstance",
       commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
   static class DeleteZooInstanceCommand extends SubCommandOpts {
@@ -462,9 +459,6 @@ public class Admin implements KeywordExecutable {
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand(listInstancesOpts);
 
-    TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
-    cl.addCommand(tServerLocksOpts);
-
     PingCommand pingCommand = new PingCommand();
     cl.addCommand(pingCommand);
 
@@ -487,7 +481,29 @@ public class Admin implements KeywordExecutable {
     VolumesCommand volumesCommand = new VolumesCommand();
     cl.addCommand(volumesCommand);
 
-    cl.parse(args);
+    try {
+      cl.parse(args);
+    } catch (MissingCommandException e) {
+      // Process removed commands to provide alternate approach
+      boolean foundRemovedCommand = false;
+      for (String arg : args) {
+        switch (arg) {
+          case LOCKS_COMMAND:
+            foundRemovedCommand = true;
+            System.out.println("'locks' command has been removed. Use 'serviceStatus' command"
+                + " to list processes and 'stop -f' command to remove their locks.");
+            break;
+          default:
+            break;
+        }
+      }
+      if (foundRemovedCommand) {
+        return;
+      } else {
+        cl.usage();
+        return;
+      }
+    }
 
     if (cl.getParsedCommand() == null) {
       cl.usage();
@@ -536,9 +552,6 @@ public class Admin implements KeywordExecutable {
             deleteZooInstOpts.auth);
       } else if (cl.getParsedCommand().equals("restoreZoo")) {
         RestoreZookeeper.execute(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
-      } else if (cl.getParsedCommand().equals("locks")) {
-        TabletServerLocks.execute(context, args.length > 2 ? args[2] : null,
-            tServerLocksOpts.delete);
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {

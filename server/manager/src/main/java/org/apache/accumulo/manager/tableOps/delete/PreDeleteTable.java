@@ -31,6 +31,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
 
@@ -57,18 +58,17 @@ public class PreDeleteTable extends ManagerRepo {
         + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.DELETE);
   }
 
-  private void preventFutureCompactions(Manager environment)
+  private void preventFutureCompactions(ServerContext ctx)
       throws KeeperException, InterruptedException {
-    String deleteMarkerPath =
-        createDeleteMarkerPath(environment.getContext().getInstanceID(), tableId);
-    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
+    String deleteMarkerPath = createDeleteMarkerPath(ctx.getInstanceID(), tableId);
+    ZooReaderWriter zoo = ctx.getZooSession().asReaderWriter();
     zoo.putPersistentData(deleteMarkerPath, new byte[] {}, NodeExistsPolicy.SKIP);
   }
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     try {
-      preventFutureCompactions(environment);
+      preventFutureCompactions(environment.getContext());
 
       var idsToCancel =
           CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
