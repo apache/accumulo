@@ -47,7 +47,7 @@ class CloneMetadata extends AbstractRepo {
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
     MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
     MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.getSrcTableId(),
         cloneInfo.getTableId());
     return new FinishCloneTable(cloneInfo);
@@ -56,7 +56,7 @@ class CloneMetadata extends AbstractRepo {
   @Override
   public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
   }
 
 }

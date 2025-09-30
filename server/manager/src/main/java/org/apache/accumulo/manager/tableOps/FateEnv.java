@@ -49,8 +49,7 @@ public interface FateEnv {
 
   void removeBulkImportStatus(String sourceDir);
 
-  // TODO rename
-  ServiceLock getManagerLock();
+  ServiceLock getServiceLock();
 
   SteadyTime getSteadyTime();
 

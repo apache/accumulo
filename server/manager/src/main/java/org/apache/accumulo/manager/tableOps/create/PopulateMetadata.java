@@ -115,7 +115,7 @@ class PopulateMetadata extends AbstractRepo {
   @Override
   public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
   }
 
   /**

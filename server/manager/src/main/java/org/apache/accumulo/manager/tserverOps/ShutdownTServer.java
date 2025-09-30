@@ -63,7 +63,7 @@ public class ShutdownTServer extends AbstractRepo {
     }
 
     // Inform the manager that we want this server to shutdown
-    Manager manager = (Manager) env; // TODO
+    Manager manager = (Manager) env;
     manager.shutdownTServer(server);
 
     if (manager.onlineTabletServers().contains(server)) {
@@ -73,7 +73,7 @@ public class ShutdownTServer extends AbstractRepo {
           TabletServerStatus status = connection.getTableMap(false);
           if (status.tableMap != null && status.tableMap.isEmpty()) {
             log.info("tablet server hosts no tablets {}", server);
-            connection.halt(manager.getManagerLock());
+            connection.halt(manager.getServiceLock());
             log.info("tablet server asked to halt {}", server);
             return 0;
           } else {

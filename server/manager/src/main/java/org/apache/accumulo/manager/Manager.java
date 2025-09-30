@@ -1362,7 +1362,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return Math.max(1, deadline - System.currentTimeMillis());
   }
 
-  public ServiceLock getManagerLock() {
+  public ServiceLock getServiceLock() {
     return managerLock;
   }
 
@@ -1405,7 +1405,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
-    this.getContext().setServiceLock(getManagerLock());
+    this.getContext().setServiceLock(getServiceLock());
     return sld;
   }
 
