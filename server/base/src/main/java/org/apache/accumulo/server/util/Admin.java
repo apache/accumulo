@@ -130,6 +130,9 @@ public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
 
+  @Deprecated
+  private static final String LOCKS_COMMAND = "locks";
+
   private static class SubCommandOpts {
     @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
     public boolean help = false;
@@ -484,10 +487,14 @@ public class Admin implements KeywordExecutable {
       // Process removed commands to provide alternate approach
       boolean foundRemovedCommand = false;
       for (String arg : args) {
-        if (arg.equals("locks")) {
-          foundRemovedCommand = true;
-          System.out.println("'locks' command has been removed. Use 'serviceStatus' command"
-              + " to list processes and 'stop -f' command to remove their locks.");
+        switch (arg) {
+          case LOCKS_COMMAND:
+            foundRemovedCommand = true;
+            System.out.println("'locks' command has been removed. Use 'serviceStatus' command"
+                + " to list processes and 'stop -f' command to remove their locks.");
+            break;
+          default:
+            break;
         }
       }
       if (foundRemovedCommand) {
