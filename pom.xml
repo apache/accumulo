@@ -134,6 +134,7 @@ under the License.
     <!-- used for filtering the java source with the current version -->
     <accumulo.build.release.version>${project.version}</accumulo.build.release.version>
     <accumulo.build.unitTestMemSize>-Xmx1G</accumulo.build.unitTestMemSize>
+    <accumulo.it.uniq.test.dir>false</accumulo.it.uniq.test.dir>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
     <failsafe.excludedGroups />
@@ -850,6 +851,7 @@ under the License.
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables combine.children="append">
+              <accumulo.it.uniq.test.dir>${accumulo.it.uniq.test.dir}</accumulo.it.uniq.test.dir>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
             <argLine>${accumulo.build.extraTestArgs}</argLine>
@@ -1744,6 +1746,17 @@ under the License.
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>uniq-test-dirs</id>
+      <activation>
+        <property>
+          <name>uniq-test-dirs</name>
+        </property>
+      </activation>
+      <properties>
+        <accumulo.it.uniq.test.dir>true</accumulo.it.uniq.test.dir>
+      </properties>
     </profile>
   </profiles>
 </project>
