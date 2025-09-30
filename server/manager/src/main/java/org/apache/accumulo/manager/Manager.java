@@ -464,10 +464,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return result;
   }
 
+  @Override
   public TableManager getTableManager() {
     return getContext().getTableManager();
   }
 
+  @Override
   public ThreadPoolExecutor getTabletRefreshThreadPool() {
     return tabletRefreshThreadPool;
   }
@@ -549,6 +551,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   private Splitter splitter;
 
+  @Override
   public Splitter getSplitter() {
     return splitter;
   }
@@ -1362,6 +1365,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return Math.max(1, deadline - System.currentTimeMillis());
   }
 
+  @Override
   public ServiceLock getServiceLock() {
     return managerLock;
   }
@@ -1499,6 +1503,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return result;
   }
 
+  @Override
   public Set<TServerInstance> onlineTabletServers() {
     return tserverSet.getSnapshot().getTservers();
   }
@@ -1525,6 +1530,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return nextEvent;
   }
 
+  @Override
   public VolumeManager getVolumeManager() {
     return getContext().getVolumeManager();
   }
@@ -1587,10 +1593,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
+  @Override
   public void updateBulkImportStatus(String directory, BulkImportState state) {
     bulkImportStatus.updateBulkImportStatus(Collections.singletonList(directory), state);
   }
 
+  @Override
   public void removeBulkImportStatus(String directory) {
     bulkImportStatus.removeBulkImportStatus(Collections.singletonList(directory));
   }
@@ -1600,6 +1608,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
    * monotonic clock, which will be approximately consistent between different managers or different
    * runs of the same manager. SteadyTime supports both nanoseconds and milliseconds.
    */
+  @Override
   public SteadyTime getSteadyTime() {
     return timeKeeper.getTime();
   }
@@ -1630,6 +1639,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
    *
    * @return {@link ExecutorService}
    */
+  @Override
   public ExecutorService getRenamePool() {
     return this.renamePool;
   }
