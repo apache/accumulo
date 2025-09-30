@@ -122,10 +122,6 @@ public class EmbeddedWebServer {
     }
   }
 
-  public ServletContextHandler getContextHandler() {
-    return handler;
-  }
-
   public void addServlet(ServletHolder restServlet, String where) {
     handler.addServlet(restServlet, where);
   }

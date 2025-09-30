@@ -87,7 +87,6 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.ee10.servlet.ResourceServlet;
-import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.ConnectionStatistics;
@@ -365,7 +364,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       try {
         log.debug("Trying monitor on port {}", port);
         server = new EmbeddedWebServer(this, port);
-        server.addServlet(getDefaultServlet(server.getContextHandler()), "/resources/*");
+        server.addServlet(getResourcesServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getRestV2Servlet(), "/rest-v2/*");
         server.addServlet(getViewServlet(), "/*");
@@ -460,11 +459,12 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     log.info("stop requested. exiting ... ");
   }
 
-  private ServletHolder getDefaultServlet(ServletContextHandler context) {
-    context.setInitParameter("dirAllowed", "false");
-    context.setInitParameter("baseResource",
-        Monitor.class.getClassLoader().getResource("org/apache/accumulo/monitor").toExternalForm());
-    return new ServletHolder("default", ResourceServlet.class);
+  private ServletHolder getResourcesServlet() {
+    ServletHolder holder = new ServletHolder("resources", ResourceServlet.class);
+    holder.setInitParameter("dirAllowed", "false");
+    holder.setInitParameter("baseResource", Monitor.class.getClassLoader()
+        .getResource("org/apache/accumulo/monitor/resources").toExternalForm());
+    return holder;
   }
 
   public static class MonitorFactory extends AbstractBinder implements Factory<Monitor> {
