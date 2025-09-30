@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class EventCoordinator implements Events {
+public class EventCoordinator implements EventPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(EventCoordinator.class);
 

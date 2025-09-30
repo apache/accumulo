@@ -1526,7 +1526,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   @Override
-  public Events getEvents() {
+  public EventPublisher getEvents() {
     return nextEvent;
   }
 

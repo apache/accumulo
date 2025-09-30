@@ -24,7 +24,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 
-public interface Events {
+public interface EventPublisher {
   void event(String msg, Object... args);
 
   void event(Ample.DataLevel level, String msg, Object... args);

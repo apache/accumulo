@@ -26,7 +26,7 @@ import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.Events;
+import org.apache.accumulo.manager.EventPublisher;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -35,7 +35,7 @@ import org.apache.accumulo.server.tables.TableManager;
 public interface FateEnv {
   ServerContext getContext();
 
-  Events getEvents();
+  EventPublisher getEvents();
 
   void recordCompactionCompletion(ExternalCompactionId ecid);
 
