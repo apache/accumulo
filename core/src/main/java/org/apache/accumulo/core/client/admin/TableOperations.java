@@ -278,6 +278,7 @@ public interface TableOperations {
    * @param range the range of rows to search
    *
    * @return The max row in the range, or null if there is no visible data in the range.
+   * @since 4.0.0
    */
   Text getMaxRow(String tableName, Authorizations auths, RowRange range)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;

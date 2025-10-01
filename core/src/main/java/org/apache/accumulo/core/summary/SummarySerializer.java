@@ -98,8 +98,8 @@ class SummarySerializer {
   }
 
   public boolean exceedsRange(List<RowRange> ranges) {
-    return Arrays.stream(allSummaries).anyMatch(lgs -> ranges.stream()
-        .anyMatch(range -> lgs.exceedsRange(range.getLowerBound(), range.getUpperBound())));
+    ranges.forEach(SummarySerializer::validateSummaryRange);
+    return Arrays.stream(allSummaries).anyMatch(lgs -> ranges.stream().anyMatch(lgs::exceedsRange));
   }
 
   public boolean exceededMaxSize() {
@@ -423,7 +423,10 @@ class SummarySerializer {
       this.lgroupName = lgroupName;
     }
 
-    boolean exceedsRange(Text startRow, Text endRow) {
+    boolean exceedsRange(RowRange range) {
+
+      Text startRow = range.getLowerBound();
+      Text endRow = range.getUpperBound();
 
       if (summaries.length == 0) {
         return false;
@@ -456,6 +459,7 @@ class SummarySerializer {
       boolean[] summariesThatOverlap = new boolean[summaries.length];
 
       for (RowRange rowRange : ranges) {
+        validateSummaryRange(rowRange);
         Text lowerBound = rowRange.getLowerBound();
         Text upperBound = rowRange.getUpperBound();
 
@@ -502,6 +506,20 @@ class SummarySerializer {
           combiner.merge(summary, summaries[i].summary);
         }
       }
+    }
+  }
+
+  /**
+   * Ensures that the lower bound is exclusive and the upper bound is inclusive
+   */
+  private static void validateSummaryRange(RowRange rowRange) {
+    if (rowRange.getLowerBound() != null) {
+      Preconditions.checkState(!rowRange.isLowerBoundInclusive(),
+          "Summary row range lower bound must be exclusive: %s", rowRange);
+    }
+    if (rowRange.getUpperBound() != null) {
+      Preconditions.checkState(rowRange.isUpperBoundInclusive(),
+          "Summary row range upper bound must be inclusive: %s", rowRange);
     }
   }
 
