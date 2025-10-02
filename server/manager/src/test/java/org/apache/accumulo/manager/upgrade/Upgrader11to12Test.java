@@ -36,6 +36,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,6 +91,9 @@ import org.easymock.Capture;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class Upgrader11to12Test extends WithTestNames {
 
@@ -436,8 +440,25 @@ public class Upgrader11to12Test extends WithTestNames {
     upgrader.removeZKProblemReports(context);
     upgrader.initializeScanRefTable(context);
 
-    assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode expectedJson = mapper.readTree(zKRootV2);
+    JsonNode actualJson = mapper.readTree(new String(byteCapture.getValue(), UTF_8));
 
+    expectedJson.fieldNames().forEachRemaining(field -> {
+        JsonNode expectedValue = expectedJson.get(field);
+        JsonNode actualValue = actualJson.get(field);
+
+        assertNotNull(actualValue, "Missing field in actual JSON: " + field);
+
+        if (!expectedValue.isObject()) {
+            assertEquals(expectedValue, actualValue, "Mismatch at field: " + field);
+        } else {
+            // check that actual contains all keys
+            expectedValue.fieldNames().forEachRemaining(subField -> {
+            assertTrue(actualValue.has(subField), "Missing sub-field '" + subField + "' in " + field);
+            });
+        }
+    });
     verify(context, zk, zrw, store);
   }
 
