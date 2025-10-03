@@ -21,11 +21,14 @@ package org.apache.accumulo.manager.tableOps.availability;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -48,10 +51,18 @@ public class LockTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
+    final Range range = new Range(tRange);
+    final RowRange rowRange = RowRange.range(
+        range.isInfiniteStartKey() ? null : range.getStartKey().getRow(),
+        range.isStartKeyInclusive(), range.isInfiniteStopKey() ? null : range.getEndKey().getRow(),
+        range.isEndKeyInclusive());
+    final LockRange lockRange = LockRange.of(rowRange);
+
     return Utils.reserveNamespace(manager.getContext(), namespaceId, fateId,
         DistributedReadWriteLock.LockType.READ, true, TableOperation.SET_TABLET_AVAILABILITY)
         + Utils.reserveTable(manager.getContext(), tableId, fateId,
-            DistributedReadWriteLock.LockType.WRITE, true, TableOperation.SET_TABLET_AVAILABILITY);
+            DistributedReadWriteLock.LockType.WRITE, true, TableOperation.SET_TABLET_AVAILABILITY,
+            lockRange);
   }
 
   @Override
