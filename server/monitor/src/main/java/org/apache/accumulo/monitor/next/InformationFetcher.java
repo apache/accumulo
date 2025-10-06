@@ -45,7 +45,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
@@ -157,7 +157,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       try {
         final String tableName = ctx.getQualifiedTableName(tableId);
         try (Stream<TabletInformation> tablets =
-            this.ctx.tableOperations().getTabletInformation(tableName, new Range())) {
+            this.ctx.tableOperations().getTabletInformation(tableName, RowRange.all())) {
           tablets.forEach(t -> summary.processTabletInformation(tableId, tableName, t));
         }
       } catch (TableNotFoundException e) {

@@ -57,6 +57,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -176,9 +177,9 @@ public abstract class MergeTabletsITBase extends SharedMiniClusterBase {
           bw.addMutation(m);
         }
       }
-      c.tableOperations().setTabletAvailability(tableName, new Range("d", "e"),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.closed("d", "e"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("e", "f"),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.closed("e", "f"),
           TabletAvailability.UNHOSTED);
       c.tableOperations().flush(tableName, null, null, true);
       c.tableOperations().merge(tableName, new Text("c1"), new Text("f1"));

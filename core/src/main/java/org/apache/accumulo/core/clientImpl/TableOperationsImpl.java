@@ -2221,15 +2221,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setTabletAvailability(String tableName, Range range, TabletAvailability availability)
-      throws AccumuloSecurityException, AccumuloException {
+  public void setTabletAvailability(String tableName, RowRange rowRange,
+      TabletAvailability availability) throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
     if (SystemTables.containsTableName(tableName)) {
       throw new AccumuloException("Cannot set set tablet availability for table " + tableName);
     }
 
-    checkArgument(range != null, "range is null");
+    checkArgument(rowRange != null, "rowRange is null");
     checkArgument(availability != null, "tabletAvailability is null");
+
+    Range range = rowRange.asRange();
 
     byte[] bRange;
     try {
@@ -2255,10 +2257,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
-      TabletInformation.Field... fields) throws TableNotFoundException {
+  public Stream<TabletInformation> getTabletInformation(final String tableName,
+      final RowRange rowRange, TabletInformation.Field... fields) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
+    final Range range = rowRange.asRange();
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
     TableId tableId = context.getTableId(tableName);
 

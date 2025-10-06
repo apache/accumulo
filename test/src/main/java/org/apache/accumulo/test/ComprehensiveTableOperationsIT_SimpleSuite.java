@@ -741,9 +741,9 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     for (var sysTable : SystemTables.tableNames()) {
       // should not be able to unhost any system table
       assertThrows(AccumuloException.class,
-          () -> ops.setTabletAvailability(sysTable, new Range(), TabletAvailability.UNHOSTED));
-      assertTrue(ops.getTabletInformation(sysTable, new Range()).findAny().isPresent());
-      ops.getTabletInformation(sysTable, new Range())
+          () -> ops.setTabletAvailability(sysTable, RowRange.all(), TabletAvailability.UNHOSTED));
+      assertTrue(ops.getTabletInformation(sysTable, RowRange.all()).findAny().isPresent());
+      ops.getTabletInformation(sysTable, RowRange.all())
           .forEach(ti -> assertEquals(TabletAvailability.HOSTED, ti.getTabletAvailability()));
     }
   }
