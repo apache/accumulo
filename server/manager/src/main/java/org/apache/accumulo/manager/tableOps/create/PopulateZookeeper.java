@@ -43,8 +43,8 @@ class PopulateZookeeper extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.getTableId(), fateId, LockType.WRITE, false,
-        TableOperation.CREATE);
+    return Utils.reserveTable(environment.getContext(), tableInfo.getTableId(), fateId,
+        LockType.WRITE, false, TableOperation.CREATE);
   }
 
   @Override
@@ -74,7 +74,7 @@ class PopulateZookeeper extends ManagerRepo {
   @Override
   public void undo(FateId fateId, Manager manager) throws Exception {
     manager.getTableManager().removeTable(tableInfo.getTableId(), tableInfo.getNamespaceId());
-    Utils.unreserveTable(manager, tableInfo.getTableId(), fateId, LockType.WRITE);
+    Utils.unreserveTable(manager.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
     manager.getContext().clearTableListCache();
   }
 

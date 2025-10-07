@@ -57,12 +57,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -217,15 +216,16 @@ public class Gatherer {
         location = tservers.get(idx).toHostPortString();
       }
 
+      Function<RowRange,TRowRange> toTRowRange =
+          r -> new TRowRange(TextUtil.getByteBuffer(r.getLowerBound()),
+              TextUtil.getByteBuffer(r.getUpperBound()));
+
       // merge contiguous ranges
       List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
           .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
+      // clip ranges to queried range
       List<TRowRange> ranges =
-          merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
-                                                                                                // ranges
-                                                                                                // to
-                                                                                                // queried
-                                                                                                // range
+          merged.stream().map(this::toClippedExtent).map(toTRowRange).collect(Collectors.toList());
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -435,11 +435,15 @@ public class Gatherer {
   public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
+    Function<TRowRange,RowRange> fromThrift = tRowRange -> {
+      Text lowerBound = ByteBufferUtil.toText(tRowRange.startRow);
+      Text upperBound = ByteBufferUtil.toText(tRowRange.endRow);
+      return RowRange.range(lowerBound, false, upperBound, true);
+    };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl =
-            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
+        List<RowRange> rrl = entry.getValue().stream().map(fromThrift).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
@@ -483,7 +487,7 @@ public class Gatherer {
             tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
           }
           return tsr;
-        }, ResourceGroupPredicate.ANY);
+        });
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }
@@ -538,51 +542,10 @@ public class Gatherer {
   private RowRange toClippedExtent(Range r) {
     r = clipRange.clip(r);
 
-    Text startRow = removeTrailingZeroFromRow(r.getStartKey());
-    Text endRow = removeTrailingZeroFromRow(r.getEndKey());
+    final Text lowerBound = removeTrailingZeroFromRow(r.getStartKey());
+    final Text upperBound = removeTrailingZeroFromRow(r.getEndKey());
 
-    return new RowRange(startRow, endRow);
-  }
-
-  public static class RowRange {
-    private final Text startRow;
-    private final Text endRow;
-
-    public RowRange(KeyExtent ke) {
-      this.startRow = ke.prevEndRow();
-      this.endRow = ke.endRow();
-    }
-
-    public RowRange(TRowRange trr) {
-      this.startRow = ByteBufferUtil.toText(trr.startRow);
-      this.endRow = ByteBufferUtil.toText(trr.endRow);
-    }
-
-    public RowRange(Text startRow, Text endRow) {
-      this.startRow = startRow;
-      this.endRow = endRow;
-    }
-
-    public Range toRange() {
-      return new Range(startRow, false, endRow, true);
-    }
-
-    public TRowRange toThrift() {
-      return new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
-    }
-
-    public Text getStartRow() {
-      return startRow;
-    }
-
-    public Text getEndRow() {
-      return endRow;
-    }
-
-    @Override
-    public String toString() {
-      return startRow + " " + endRow;
-    }
+    return RowRange.range(lowerBound, false, upperBound, true);
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,

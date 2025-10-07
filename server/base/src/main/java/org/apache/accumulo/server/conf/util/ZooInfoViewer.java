@@ -48,6 +48,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -149,6 +150,10 @@ public class ZooInfoViewer implements KeywordExecutable {
         printInstanceIds(instanceMap, writer);
       }
 
+      if (opts.printResourceGroups) {
+        printResourceGroups(context, writer);
+      }
+
       if (opts.printIdMap) {
         printIdMapping(context, writer);
       }
@@ -160,6 +165,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       if (opts.printAcls) {
         printAcls(context, opts, writer);
       }
+
       writer.println("-----------------------------------------------");
     }
   }
@@ -328,6 +334,14 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println();
   }
 
+  private void printResourceGroups(ServerContext context, PrintWriter writer) {
+    Set<String> groups = new TreeSet<>();
+    context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS).forEach(groups::add);
+    String rgs = String.join(" ", groups.toArray(new String[] {}));
+    writer.println("Resource Groups: " + rgs);
+    writer.println();
+  }
+
   private Map<String,VersionedProperties> fetchResourceGroupProps(InstanceId iid,
       ZooReader zooReader, List<String> groups) {
 
@@ -474,6 +488,10 @@ public class ZooInfoViewer implements KeywordExecutable {
             + " nodes that it uses. PRIVATE | NOT_PRIVATE - other than configuration, most nodes are world read-able "
             + "(NOT_PRIVATE) to permit client access")
     public boolean printAcls = false;
+
+    @Parameter(names = {"--print-resource-groups"},
+        description = "print the names of the resource groups")
+    public boolean printResourceGroups = false;
 
     @Parameter(names = {"--print-id-map"},
         description = "print the namespace and table id, name mappings stored in ZooKeeper")

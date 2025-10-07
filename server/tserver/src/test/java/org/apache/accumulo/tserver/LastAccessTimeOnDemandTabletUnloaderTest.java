@@ -34,7 +34,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
+import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderParams;
 import org.apache.accumulo.core.tabletserver.UnloaderParamsImpl;
 import org.apache.accumulo.core.util.cache.Caches;
@@ -44,7 +44,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class DefaultOnDemandTabletUnloaderTest {
+public class LastAccessTimeOnDemandTabletUnloaderTest {
 
   @Test
   public void evaluationTest() {
@@ -59,7 +59,7 @@ public class DefaultOnDemandTabletUnloaderTest {
     expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     expect(context.getConfiguration()).andReturn(tconf);
     expect(context.getTableConfiguration(tid)).andReturn(tconf);
-    expect(tconf.get(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD))
+    expect(tconf.get(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD))
         .andReturn(inactivityTimeSeconds);
     expect(tconf.newDeriver(anyObject())).andReturn(Map::of).anyTimes();
     Map<KeyExtent,Long> online = new HashMap<>();
@@ -75,7 +75,7 @@ public class DefaultOnDemandTabletUnloaderTest {
     ServiceEnvironmentImpl env = new ServiceEnvironmentImpl(context);
     UnloaderParams params = new UnloaderParamsImpl(tid, env, online, onDemandTabletsToUnload);
 
-    DefaultOnDemandTabletUnloader unloader = new DefaultOnDemandTabletUnloader() {
+    LastAccessTimeOnDemandTabletUnloader unloader = new LastAccessTimeOnDemandTabletUnloader() {
       @Override
       protected long getCurrentTime() {
         return currentTime;

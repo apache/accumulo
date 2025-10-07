@@ -61,6 +61,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
@@ -326,7 +327,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createFateTableRow(userTable);
     createScanRefTableRow();
     for (var sysTable : SystemTables.tableNames()) {
-      var maxRow = ops.getMaxRow(sysTable, Authorizations.EMPTY, null, true, null, true);
+      var maxRow = ops.getMaxRow(sysTable, Authorizations.EMPTY, RowRange.all());
       log.info("Max row of {} : {}", sysTable, maxRow);
       assertNotNull(maxRow);
     }

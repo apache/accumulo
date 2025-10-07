@@ -60,11 +60,11 @@ class FinishImportTable extends ManagerRepo {
     final TableState newState = tableInfo.keepOffline ? TableState.OFFLINE : TableState.ONLINE;
     env.getTableManager().transitionTableState(tableInfo.tableId, newState, expectedCurrStates);
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), fateId);
+      Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }
 
     env.getEventCoordinator().event(tableInfo.tableId, "Imported table %s ", tableInfo.tableName);

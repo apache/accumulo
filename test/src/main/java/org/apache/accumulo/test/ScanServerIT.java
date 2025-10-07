@@ -103,7 +103,6 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10");
-      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
     }
   }
 

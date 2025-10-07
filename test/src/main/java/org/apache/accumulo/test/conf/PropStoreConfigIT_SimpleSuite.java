@@ -29,11 +29,13 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -49,7 +51,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -488,9 +489,10 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
   private Map<String,String> getStoredConfiguration() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
-    return ThriftClientTypes.CLIENT.execute(ctx,
-        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()),
-        ResourceGroupPredicate.ANY).getProperties();
+    return ThriftClientTypes.CLIENT
+        .execute(ctx,
+            client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()))
+        .getProperties();
   }
 
   interface PropertyShim {
@@ -574,11 +576,18 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
    * if any single modification is lost it can be detected.
    */
   private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    final int numTasks = 4;
+    ExecutorService executor = Executors.newFixedThreadPool(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks/threads to satisfy latch count - deadlock risk");
+    var tasks = new ArrayList<Callable<Void>>(numTasks);
 
     final int iterations = 151;
 
-    Callable<Void> task1 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
 
         Map<String,String> prevProps = null;
@@ -619,9 +628,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         }
       }
       return null;
-    };
+    });
 
-    Callable<Void> task2 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
@@ -632,9 +643,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
 
-    Callable<Void> task3 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
@@ -643,9 +656,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
 
-    Callable<Void> task4 = () -> {
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));
@@ -653,10 +668,12 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
+
+    assertEquals(numTasks, tasks.size());
 
     // run all of the above task concurrently
-    for (Future<Void> future : executor.invokeAll(List.of(task1, task2, task3, task4))) {
+    for (Future<Void> future : executor.invokeAll(tasks)) {
       // see if there were any exceptions in the background thread and wait for it to finish
       future.get();
     }
@@ -715,10 +732,13 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testTablePropInSystemConfigFails() {
+  public void testTablePropInSystemConfigFails() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+
+      assertFalse(defaultProperties.isEmpty());
+
       for (Entry<String,String> e : defaultProperties.entrySet()) {
         AccumuloException ae = assertThrows(AccumuloException.class,
             () -> client.instanceOperations().setProperty(e.getKey(), e.getValue()));
@@ -727,23 +747,44 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
                 + " cannot be set at the system or resource group level."
                 + " Set table properties at the namespace or table level."));
       }
+
+      assertEquals(Map.of(), client.instanceOperations().getSystemProperties());
     }
   }
 
   @Test
-  public void testTablePropInResourceGroupConfigFails() {
+  public void testTablePropInResourceGroupConfigFails() throws Exception {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+
+      assertFalse(defaultProperties.isEmpty());
+
+      var rgid = ResourceGroupId.of("tabpt");
+      client.resourceGroupOperations().create(rgid);
+      client.resourceGroupOperations().setProperty(rgid,
+          Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123");
+
+      assertEquals(Map.of(),
+          client.resourceGroupOperations().getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Map.of(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123"),
+          client.resourceGroupOperations().getProperties(rgid));
+
       for (Entry<String,String> e : defaultProperties.entrySet()) {
-        AccumuloException ae =
-            assertThrows(AccumuloException.class, () -> client.resourceGroupOperations()
-                .setProperty(ResourceGroupId.DEFAULT, e.getKey(), e.getValue()));
-        assertTrue(ae.getMessage()
-            .contains("Table property " + e.getKey()
-                + " cannot be set at the system or resource group level."
-                + " Set table properties at the namespace or table level."));
+        for (var testRG : List.of(rgid, ResourceGroupId.DEFAULT)) {
+          AccumuloException ae = assertThrows(AccumuloException.class,
+              () -> client.resourceGroupOperations().setProperty(testRG, e.getKey(), e.getValue()));
+          assertTrue(ae.getMessage()
+              .contains("Table property " + e.getKey()
+                  + " cannot be set at the system or resource group level."
+                  + " Set table properties at the namespace or table level."));
+        }
       }
+
+      assertEquals(Map.of(),
+          client.resourceGroupOperations().getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Map.of(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123"),
+          client.resourceGroupOperations().getProperties(rgid));
     }
   }
 

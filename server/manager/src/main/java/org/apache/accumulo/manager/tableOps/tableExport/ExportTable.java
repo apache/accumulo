@@ -42,8 +42,8 @@ public class ExportTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(),
-        fateId);
+    return Utils.reserveHdfsDirectory(environment.getContext(),
+        new Path(tableInfo.exportDir).toString(), fateId);
   }
 
   @Override
@@ -53,7 +53,8 @@ public class ExportTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), fateId);
+    String directory = new Path(tableInfo.exportDir).toString();
+    Utils.unreserveHdfsDirectory(env.getContext(), directory, fateId);
   }
 
   /**
