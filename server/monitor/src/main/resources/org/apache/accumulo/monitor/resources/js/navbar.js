@@ -128,7 +128,6 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  updateSystemAlerts();
 }
 
 /**

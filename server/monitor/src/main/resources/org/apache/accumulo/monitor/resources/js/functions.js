@@ -26,6 +26,7 @@
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const REST_V2_PREFIX = contextPath + 'rest-v2';
 
 /**
  * Initializes Auto Refresh to false if it is not set,
@@ -461,8 +462,6 @@ function clearAllTableCells(tableId) {
 }
 
 // NEW REST CALLS
-
-const REST_V2_PREFIX = contextPath + 'rest-v2';
 
 /**
  * REST GET call for /problems,
