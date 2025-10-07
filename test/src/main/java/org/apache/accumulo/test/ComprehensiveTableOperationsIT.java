@@ -431,6 +431,9 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
       }
     } finally {
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultCompactors(1);
+      getCluster().getClusterControl().startAllServers(ServerType.COMPACTOR);
     }
   }
 

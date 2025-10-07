@@ -33,7 +33,6 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
@@ -90,11 +89,6 @@ public class FunctionalTestUtils {
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       return Iterators.size(scanner.iterator());
     }
-  }
-
-  public static List<String> getRFilePaths(ServerContext context, String tableName) {
-    return getStoredTabletFiles(context, tableName).stream().map(StoredTabletFile::getMetadataPath)
-        .collect(Collectors.toList());
   }
 
   public static Set<StoredTabletFile> getStoredTabletFiles(ServerContext context,
