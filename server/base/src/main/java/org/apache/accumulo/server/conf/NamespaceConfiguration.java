@@ -28,7 +28,6 @@ import org.slf4j.LoggerFactory;
 public class NamespaceConfiguration extends ZooBasedConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(NamespaceConfiguration.class);
-  protected ServerContext context;
 
   public NamespaceConfiguration(ServerContext context, NamespaceId namespaceId,
       AccumuloConfiguration parent) {

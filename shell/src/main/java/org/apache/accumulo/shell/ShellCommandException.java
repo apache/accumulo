@@ -22,11 +22,8 @@ public class ShellCommandException extends Exception {
   private static final long serialVersionUID = 1L;
 
   public enum ErrorCode {
-    UNKNOWN_ERROR("Unknown error"),
-    UNSUPPORTED_LANGUAGE("Programming language used is not supported"),
     UNRECOGNIZED_COMMAND("Command is not supported"),
-    INITIALIZATION_FAILURE("Command could not be initialized"),
-    XML_PARSING_ERROR("Failed to parse the XML file");
+    INITIALIZATION_FAILURE("Command could not be initialized");
 
     private String description;
 

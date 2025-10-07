@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -50,7 +49,6 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -116,7 +114,6 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
-import org.apache.accumulo.server.TabletLevel;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
@@ -959,10 +956,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     return resourceManager.holdTime();
   }
 
-  // avoid unnecessary redundant markings to meta
-  final ConcurrentHashMap<DfsLogger,EnumSet<TabletLevel>> metadataTableLogs =
-      new ConcurrentHashMap<>();
-
   // This is a set of WALs that are closed but may still be referenced by tablets. A LinkedHashSet
   // is used because its very import to know the order in which WALs were closed when deciding if a
   // WAL is eligible for removal. Maintaining the order that logs were used in is currently a simple
@@ -1039,7 +1032,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public void walogClosed(DfsLogger currentLog) throws WalMarkerException {
-    metadataTableLogs.remove(currentLog);
 
     if (currentLog.getWrites() > 0) {
       int clSize;

@@ -149,17 +149,6 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return metadataEntry;
   }
 
-  /**
-   * Validates that the provided metadata string for the StoredTabletFile is valid.
-   */
-  public static void validate(String metadataEntry) {
-    final TabletFileCq tabletFileCq = deserialize(metadataEntry);
-    // Validate the path
-    ReferencedTabletFile.parsePath(deserialize(metadataEntry).path);
-    // Validate the range
-    requireKeyExtentDataRange(tabletFileCq.range);
-  }
-
   public static StoredTabletFile of(final Text metadataEntry) {
     return new StoredTabletFile(Objects.requireNonNull(metadataEntry).toString());
   }

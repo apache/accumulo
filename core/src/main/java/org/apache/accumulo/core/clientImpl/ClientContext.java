@@ -1143,10 +1143,6 @@ public class ClientContext implements AccumuloClient {
       properties.setProperty(property.getKey(), value.toString());
     }
 
-    public void setProperty(ClientProperty property, Long value) {
-      setProperty(property, Long.toString(value));
-    }
-
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }

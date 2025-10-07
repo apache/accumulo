@@ -88,10 +88,6 @@ public abstract class OptUtil {
     return tableOpt;
   }
 
-  public static Option ignoreEmptyDirOpt() {
-    return ignoreEmptyDirOpt("ignoreEmptyDir");
-  }
-
   public static Option ignoreEmptyDirOpt(final String description) {
     final Option ignoreEmptyDirOpt = new Option("i", "ignore", false, description);
     ignoreEmptyDirOpt.setArgName("ignore");
