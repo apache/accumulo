@@ -1447,6 +1447,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
+    ts.exec("addsplits -t " + table + " a\0test", true);
     ts.exec(
         "config -t " + table
             + " -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator",
@@ -1460,8 +1461,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("sleep 0.2", true);
     ts.exec("listcompactions", true, "default_tablet");
     String[] lines = ts.output.get().split("\n");
-    String last = lines[lines.length - 1];
-    String[] parts = last.split("\\|");
+    String compaction = Arrays.stream(lines).filter(line -> line.contains("default_tablet"))
+        .findFirst().orElseThrow();
+    assertTrue(compaction.contains("\\x00"),
+        "Expected tablet to display \\x00 for null byte: " + compaction);
+    String[] parts = compaction.split("\\|");
     assertEquals(12, parts.length);
     ts.exec("deletetable -f " + table, true);
   }

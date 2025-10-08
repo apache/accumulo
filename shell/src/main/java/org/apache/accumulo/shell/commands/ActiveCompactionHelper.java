@@ -31,8 +31,11 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.util.DurationFormat;
+import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.shell.Shell;
+import org.apache.hadoop.io.Text;
 
 class ActiveCompactionHelper {
 
@@ -96,10 +99,60 @@ class ActiveCompactionHelper {
       return String.format(
           "%21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s", host, dur,
           ac.getType(), ac.getReason(), shortenCount(ac.getEntriesRead()),
-          shortenCount(ac.getEntriesWritten()), ac.getTable(), ac.getTablet(),
+          shortenCount(ac.getEntriesWritten()), ac.getTable(), formatTablet(ac.getTablet()),
           ac.getInputFiles().size(), output, iterList, iterOpts);
     } catch (TableNotFoundException e) {
       return "ERROR " + e.getMessage();
+    }
+  }
+
+  private static String formatTablet(TabletId tabletId) {
+    if (tabletId == null) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    appendEscapedTableId(sb, tabletId.getTable().canonical());
+    appendTabletRow(sb, tabletId.getEndRow());
+    appendTabletRow(sb, tabletId.getPrevEndRow());
+    return sb.toString();
+  }
+
+  private static void appendEscapedTableId(StringBuilder sb, String tableId) {
+    for (int i = 0; i < tableId.length(); i++) {
+      char c = tableId.charAt(i);
+      if (c == '\\') {
+        sb.append("\\\\");
+      } else if (c == ';') {
+        sb.append("\\;");
+      } else {
+        sb.append(c);
+      }
+    }
+  }
+
+  private static void appendTabletRow(StringBuilder sb, Text row) {
+    if (row == null) {
+      sb.append("<");
+      return;
+    }
+    sb.append(';');
+    Text truncated = TextUtil.truncate(row);
+    byte[] bytes = TextUtil.getBytes(truncated);
+    appendEscapedBytes(sb, bytes);
+  }
+
+  private static void appendEscapedBytes(StringBuilder sb, byte[] bytes) {
+    for (byte b : bytes) {
+      int c = b & 0xFF;
+      if (c == '\\') {
+        sb.append("\\\\");
+      } else if (c == ';') {
+        sb.append("\\;");
+      } else if (c >= 32 && c <= 126) {
+        sb.append((char) c);
+      } else {
+        sb.append("\\x").append(String.format("%02X", c));
+      }
     }
   }
 
