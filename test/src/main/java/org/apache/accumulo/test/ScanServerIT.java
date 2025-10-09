@@ -56,6 +56,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -254,7 +255,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
 
       // Unload all tablets
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      client.tableOperations().setTabletAvailability(tableName, new Range((Text) null, (Text) null),
+      client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
           TabletAvailability.ONDEMAND);
 
       // Wait for the tablets to be unloaded
@@ -373,14 +374,14 @@ public class ScanServerIT extends SharedMiniClusterBase {
     String tableId = client.tableOperations().tableIdMap().get(tableName);
 
     // row 1 -> 3 are HOSTED
-    client.tableOperations().setTabletAvailability(tableName,
-        new Range(null, true, "row_0000000003", true), TabletAvailability.HOSTED);
+    client.tableOperations().setTabletAvailability(tableName, RowRange.atMost("row_0000000003"),
+        TabletAvailability.HOSTED);
     // row 4 -> 7 are UNHOSTED
     client.tableOperations().setTabletAvailability(tableName,
-        new Range("row_0000000004", true, "row_0000000007", true), TabletAvailability.UNHOSTED);
+        RowRange.closed("row_0000000004", "row_0000000007"), TabletAvailability.UNHOSTED);
     // row 8 and 9 are ondemand
-    client.tableOperations().setTabletAvailability(tableName,
-        new Range("row_0000000008", true, null, true), TabletAvailability.ONDEMAND);
+    client.tableOperations().setTabletAvailability(tableName, RowRange.atLeast("row_0000000008"),
+        TabletAvailability.ONDEMAND);
 
     // Wait for the UNHOSTED and ONDEMAND tablets to be unloaded due to inactivity
     Wait.waitFor(() -> ScanServerIT.getNumHostedTablets(client, tableId) == 3, 30_000, 1_000);
