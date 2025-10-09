@@ -37,15 +37,15 @@ import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.Retry;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CleanUpBulkImport extends ManagerRepo {
+public class CleanUpBulkImport extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -58,10 +58,10 @@ public class CleanUpBulkImport extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    env.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
     log.debug("{} removing the bulkDir processing flag file in {}", fateId, info.bulkDir);
-    Ample ample = manager.getContext().getAmple();
+    Ample ample = env.getContext().getAmple();
     Path bulkDir = new Path(info.bulkDir);
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
@@ -75,20 +75,20 @@ public class CleanUpBulkImport extends ManagerRepo {
         firstSplit, lastSplit);
     removeBulkLoadEntries(ample, info.tableId, fateId, firstSplit, lastSplit);
 
-    Utils.unreserveHdfsDirectory(manager.getContext(), info.sourceDir, fateId);
-    Utils.getReadLock(manager.getContext(), info.tableId, fateId, LockRange.infinite()).unlock();
+    Utils.unreserveHdfsDirectory(env.getContext(), info.sourceDir, fateId);
+    Utils.getReadLock(env.getContext(), info.tableId, fateId, LockRange.infinite()).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
     try {
-      manager.getVolumeManager().delete(renamingFile);
-      manager.getVolumeManager().delete(mappingFile);
+      env.getVolumeManager().delete(renamingFile);
+      env.getVolumeManager().delete(mappingFile);
     } catch (IOException ioe) {
       log.debug("{} Failed to delete renames and/or loadmap", fateId, ioe);
     }
 
     log.debug("completing bulkDir import transaction " + fateId);
-    manager.removeBulkImportStatus(info.sourceDir);
+    env.removeBulkImportStatus(info.sourceDir);
     return null;
   }
 

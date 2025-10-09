@@ -40,6 +40,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
 import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -54,7 +55,7 @@ public class ManagerMetrics implements MetricsProducer {
   private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
 
   public void configureFateMetrics(final AccumuloConfiguration conf, final Manager manager,
-      Map<FateInstanceType,Fate<Manager>> fateRefs) {
+      Map<FateInstanceType,Fate<FateEnv>> fateRefs) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
     requireNonNull(conf, "Manager must not be null");
     fateMetrics = List.of(

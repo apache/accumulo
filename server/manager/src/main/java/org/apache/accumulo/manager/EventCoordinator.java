@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class EventCoordinator {
+public class EventCoordinator implements EventPublisher {
 
   private static final Logger log = LoggerFactory.getLogger(EventCoordinator.class);
 
@@ -108,26 +108,31 @@ public class EventCoordinator {
     }
   }
 
+  @Override
   public void event(String msg, Object... args) {
     log.info(String.format(msg, args));
     publish(new Event());
   }
 
+  @Override
   public void event(Ample.DataLevel level, String msg, Object... args) {
     log.info(String.format(msg, args));
     publish(new Event(EventScope.DATA_LEVEL, level));
   }
 
+  @Override
   public void event(TableId tableId, String msg, Object... args) {
     log.info(String.format(msg, args));
     publish(new Event(EventScope.TABLE, tableId));
   }
 
+  @Override
   public void event(KeyExtent extent, String msg, Object... args) {
     log.debug(String.format(msg, args));
     publish(new Event(EventScope.TABLE_RANGE, extent));
   }
 
+  @Override
   public void event(Collection<KeyExtent> extents, String msg, Object... args) {
     if (!extents.isEmpty()) {
       log.debug(String.format(msg, args));
