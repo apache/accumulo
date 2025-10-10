@@ -268,7 +268,7 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testDuplicateTimestampScanLosesKeys() throws Exception {
+  public void testDuplicateScanLosesKeys() throws Exception {
     ClientContext context = (ClientContext) client;
     final int numRows = 100;
     final int mutationsPerRow = 10;
