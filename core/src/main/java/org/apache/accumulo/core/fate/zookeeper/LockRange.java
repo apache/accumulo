@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
@@ -71,6 +72,13 @@ public class LockRange {
     }
 
     return new LockRange(startRow, endRow);
+  }
+
+  public static LockRange of(RowRange rowRange) {
+    if (rowRange == null) {
+      return infinite();
+    }
+    return of(rowRange.getLowerBound(), rowRange.getUpperBound());
   }
 
   public static LockRange infinite() {
