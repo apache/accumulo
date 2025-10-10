@@ -58,7 +58,6 @@
       <script src="resources/js/${js}"></script>
     </#if>
     <script src="resources/js/navbar.js"></script>
-    <script src="resources/js/systemAlert.js"></script>
     <script src="resources/js/modals.js"></script>
   </head>
 
@@ -66,7 +65,6 @@
     <#include "navbar.ftl">
 
     <div id="main" class="container-fluid">
-      <#include "systemAlert.ftl">
       <#include "${template}">
     </div>
 
