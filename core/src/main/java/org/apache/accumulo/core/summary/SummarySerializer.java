@@ -84,9 +84,9 @@ record SummarySerializer(SummarizerConfiguration summarizerConfiguration,
   }
 
   public boolean exceedsRange(List<RowRange> ranges) {
-    ranges.forEach(SummarySerializer::validateSummaryRange);
     Preconditions.checkState(allSummaries != null,
         "Summaries were not stored because they exceeded the maximum size");
+    ranges.forEach(SummarySerializer::validateSummaryRange);
     return Arrays.stream(allSummaries).anyMatch(lgs -> ranges.stream().anyMatch(lgs::exceedsRange));
   }
 
@@ -110,6 +110,7 @@ record SummarySerializer(SummarizerConfiguration summarizerConfiguration,
     private Collector collector;
 
     private static final int MAX_SUMMARIES = 10;
+
     private int cutoff = 1000;
     private int count = 0;
 
