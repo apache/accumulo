@@ -116,6 +116,14 @@ public class RowRangeTest {
     }
 
     @Test
+    void testExclusiveLowerBoundEqualityIsAfter() {
+      RowRange range = RowRange.open("a", "c");
+
+      assertTrue(range.isAfter(new Text("a")));
+      assertFalse(range.isAfter(new Text("b")));
+    }
+
+    @Test
     public void testAfterupperBoundWithupperBoundInclusive() {
       RowRange range = RowRange.closed(new Text("a"), new Text("c"));
       assertFalse(range.isBefore(new Text("c")));
