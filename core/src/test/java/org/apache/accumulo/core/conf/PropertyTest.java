@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
@@ -56,7 +57,6 @@ public class PropertyTest {
 
     HashSet<String> propertyNames = new HashSet<>();
     for (Property prop : Property.values()) {
-      // make sure properties default values match their type
       if (prop.getType() == PropertyType.PREFIX) {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
@@ -83,9 +83,22 @@ public class PropertyTest {
       assertFalse(prop.getDescription() == null || prop.getDescription().isEmpty(),
           "Description not set for " + prop);
 
+      // make sure property description doesn't have extra whitespace
+      assertEquals(prop.getDescription().strip(), prop.getDescription(),
+          "Property: %s has extraneous whitespace".formatted(prop.name()));
+
       // make sure property description ends with a period
-      assertTrue(prop.getDescription().trim().endsWith("."), "Property: " + prop.getKey()
-          + " description does not end with period. Description = " + prop.getDescription());
+      assertTrue(prop.getDescription().endsWith(".") || prop.getDescription().endsWith("\n```"),
+          "Property: " + prop.getKey()
+              + " description does not end with period or example block. Description = "
+              + prop.getDescription());
+
+      if (EnumSet
+          .of(PropertyType.JSON, PropertyType.FATE_META_CONFIG, PropertyType.FATE_USER_CONFIG)
+          .contains(prop.getType())) {
+        assertFalse(prop.getDefaultValue().contains("'"),
+            "json prop %s contains single quotes".formatted(prop.name()));
+      }
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
@@ -103,6 +116,7 @@ public class PropertyTest {
       propertyNames.add(prop.getKey());
 
     }
+
   }
 
   @Test

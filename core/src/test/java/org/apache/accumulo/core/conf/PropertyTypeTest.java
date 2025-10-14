@@ -21,6 +21,8 @@ package org.apache.accumulo.core.conf;
 import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
@@ -56,9 +58,19 @@ public class PropertyTypeTest extends WithTestNames {
   @Test
   public void testGetFormatDescription() {
     assertEquals(
-        "An arbitrary string of characters whose format is unspecified"
-            + " and interpreted based on the context of the property to which it applies.",
+        "An arbitrary string of characters whose format is unspecified and\n"
+            + "interpreted based on the context of the property to which it applies.",
         PropertyType.STRING.getFormatDescription());
+    for (PropertyType type : PropertyType.values()) {
+      if (type == PropertyType.PREFIX) {
+        assertNull(type.getFormatDescription());
+        continue;
+      }
+      assertNotNull(type.getFormatDescription(),
+          "format description for %s is null".formatted(type.name()));
+      assertEquals(type.getFormatDescription(), type.getFormatDescription().strip(),
+          "format description for %s contains extraneous whitespace".formatted(type.name()));
+    }
   }
 
   @Test

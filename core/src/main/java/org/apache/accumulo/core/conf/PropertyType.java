@@ -55,119 +55,134 @@ import com.google.gson.JsonParser;
 public enum PropertyType {
   PREFIX(null, x -> false, null),
 
-  TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"),
-      "A non-negative integer optionally followed by a unit of time (whitespace"
-          + " disallowed), as in 30s.\n"
-          + "If no unit of time is specified, seconds are assumed. Valid units"
-          + " are 'ms', 's', 'm', 'h' for milliseconds, seconds, minutes, and hours.\n"
-          + "Examples of valid durations are '600', '30s', '45m', '30000ms', '3d', and '1h'.\n"
-          + "Examples of invalid durations are '1w', '1h30m', '1s 200ms', 'ms', '',"
-          + " and 'a'.\nUnless otherwise stated, the max value for the duration"
-          + " represented in milliseconds is " + Long.MAX_VALUE),
+  TIMEDURATION("duration", boundedUnits(0, Long.MAX_VALUE, true, "", "ms", "s", "m", "h", "d"), """
+      A non-negative integer, optionally followed by a unit of time (whitespace disallowed),
+      as in `30s`. If no unit of time is specified, seconds are assumed. Valid units
+      are `ms`, `s`, `m`, and `h`, for milliseconds, seconds, minutes, and hours,
+      respectively.
+
+      Examples of valid durations are `600`, `30s`, `45m`, `30000ms`, `3d`, and `1h`.<br>
+      Examples of invalid durations are `1w`, `1h30m`, `1s 200ms`, `ms`, `a`, and an empty
+      string.
+
+      Unless otherwise stated, the max value for the duration represented in milliseconds is
+      `%d`.""".formatted(Long.MAX_VALUE)),
 
   BYTES("bytes", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G"),
-      "A positive integer optionally followed by a unit of memory (whitespace disallowed).\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B',"
-          + " 'K', 'M' or 'G' for bytes, kilobytes, megabytes, gigabytes.\n"
-          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
-          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
-          + " '1,024K', '', and 'a'.\n"
-          + "Unless otherwise stated, the max value for the memory represented in bytes is "
-          + Long.MAX_VALUE),
+      """
+          A positive integer, optionally followed by a unit of memory (whitespace disallowed),
+          as in `1G`. If no unit is specified, bytes are assumed. Valid units are `B`, `K`, `M`
+          and `G`, for bytes, kilobytes, megabytes, and gigabytes, respectively.
+
+          Examples of valid memories are `1024`, `20B`, `100K`, `1500M`, `2G`, `20%%`.<br>
+          Examples of invalid memories are `1M500K`, `1M 2K`, `1MB`, `1.5G`, `1,024K`, `a`, and
+          an empty string.
+
+          Unless otherwise stated, the max value for the memory represented in bytes is `%d`."""
+          .formatted(Long.MAX_VALUE)),
 
   MEMORY("memory", boundedUnits(0, Long.MAX_VALUE, false, "", "B", "K", "M", "G", "%"),
-      "A positive integer optionally followed by a unit of memory or a"
-          + " percentage (whitespace disallowed).\n"
-          + "If a percentage is specified, memory will be a percentage of the"
-          + " max memory allocated to a Java process (set by the JVM option -Xmx).\n"
-          + "If no unit is specified, bytes are assumed. Valid units are 'B',"
-          + " 'K', 'M', 'G', '%' for bytes, kilobytes, megabytes, gigabytes, and percentage.\n"
-          + "Examples of valid memories are '1024', '20B', '100K', '1500M', '2G', '20%'.\n"
-          + "Examples of invalid memories are '1M500K', '1M 2K', '1MB', '1.5G',"
-          + " '1,024K', '', and 'a'.\n"
-          + "Unless otherwise stated, the max value for the memory represented in bytes is "
-          + Long.MAX_VALUE),
+      """
+          A positive integer, optionally followed by a unit of memory or a percentage
+          (whitespace disallowed). If a percentage is specified, memory will be a percentage of the
+          max memory allocated to a Java process (set by the JVM option `-Xmx`). If no unit is
+          specified, bytes are assumed. Valid units are `B`, `K`, `M`, `G`, `%%` for bytes,
+          kilobytes, megabytes, gigabytes, and percentage, respectively.
+
+          Examples of valid memories are `1024`, `20B`, `100K`, `1500M`, `2G`, `20%%`.<br>
+          Examples of invalid memories are `1M500K`, `1M 2K`, `1MB`, `1.5G`, `1,024K`, `a`,
+          and an empty string.
+
+          Unless otherwise stated, the max value for the memory represented in bytes is `%d`."""
+          .formatted(Long.MAX_VALUE)),
 
   HOSTLIST("host list",
       new Matches(
           "[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?(?:,[\\w-]+(?:\\.[\\w-]+)*(?:\\:\\d{1,5})?)*"),
-      "A comma-separated list of hostnames or ip addresses, with optional port numbers.\n"
-          + "Examples of valid host lists are"
-          + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
-          + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
+      """
+          A comma-separated list of hostnames or ip addresses, with optional port numbers.
+
+          Examples of valid host lists are `localhost:2000,www.example.com,10.10.1.1:500` and
+          `localhost`.<br>
+          Examples of invalid host lists are `:1000`, `localhost:80000`, and an empty string."""),
 
   PORT("port",
       x -> Stream.of(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}"))
           .anyMatch(y -> y.test(x)),
-      "An positive integer in the range 1024-65535 (not already in use or"
-          + " specified elsewhere in the configuration),\n"
-          + "zero to indicate any open ephemeral port, or a range of positive"
-          + " integers specified as M-N"),
+      """
+          A positive integer in the range `1024-65535` (not already in use or specified elsewhere
+          in the configuration), `0` to indicate any open ephemeral port, or a range of positive
+          integers specified as `M-N`."""),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE),
-      "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
+      "A non-negative integer in the range of `0-" + Integer.MAX_VALUE + "`."),
 
-  FRACTION("fraction/percentage", new FractionPredicate(),
-      "A floating point number that represents either a fraction or, if"
-          + " suffixed with the '%' character, a percentage.\n"
-          + "Examples of valid fractions/percentages are '10', '1000%', '0.05',"
-          + " '5%', '0.2%', '0.0005'.\n"
-          + "Examples of invalid fractions/percentages are '', '10 percent', 'Hulk Hogan'"),
+  FRACTION("fraction/percentage", new FractionPredicate(), """
+      A floating point number that represents either a fraction or, if suffixed with the `%`
+      character, a percentage.
 
-  PATH("path", x -> true,
-      "A string that represents a filesystem path, which can be either relative"
-          + " or absolute to some directory. The filesystem depends on the property. "
-          + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
-          + "config file using '${env:ACCUMULO_HOME}' or similar."),
+      Examples of valid fractions/percentages are `10`, `1000%`, `0.05`, `5%`, `0.2%`, and
+      `0.0005`.<br>
+      Examples of invalid fractions/percentages are `10 percent`, `Hulk Hogan`, and an empty
+      string."""),
+
+  PATH("path", x -> true, """
+      A string that represents a filesystem path, which can be either relative
+      or absolute to some directory. The filesystem depends on the property.
+      Substitutions of the ACCUMULO_HOME environment variable can be done in the system
+      config file using `${env:ACCUMULO_HOME}` or similar."""),
 
   DROP_CACHE_SELECTION("drop cache option", in(false, "NONE", "ALL", "NON-IMPORT"),
-      "One of 'ALL', 'NONE', or 'NON-IMPORT'"),
+      "One of `ALL`, `NONE`, or `NON-IMPORT`."),
 
   ABSOLUTEPATH("absolute path",
-      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
-      "An absolute filesystem path. The filesystem depends on the property."
-          + " This is the same as path, but enforces that its root is explicitly specified."),
+      x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(), """
+          An absolute filesystem path. The filesystem depends on the property.
+          This is the same as path, but enforces that its root is explicitly specified."""),
 
-  CLASSNAME("java class", new Matches("[\\w$.]*"),
-      "A fully qualified java class name representing a class on the classpath.\n"
-          + "An example is 'java.lang.String', rather than 'String'"),
+  CLASSNAME("java class", new Matches("[\\w$.]*"), """
+      A fully qualified java class name representing a class on the classpath.
 
-  CLASSNAMELIST("java class list", new Matches("[\\w$.,]*"),
-      "A list of fully qualified java class names representing classes on the classpath.\n"
-          + "An example is 'java.lang.String', rather than 'String'"),
+      An example is `java.lang.String`, rather than `String`."""),
+
+  CLASSNAMELIST("java class list", new Matches("[\\w$.,]*"), """
+      A list of fully qualified java class names representing classes on the classpath.
+
+      An example is `java.lang.String,java.lang.Integer`."""),
 
   COMPRESSION_TYPE("compression type name", new ValidCompressionType(),
       "One of the configured compression types."),
 
   DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
-      "One of 'none', 'log', 'flush' or 'sync'."),
+      "One of `none`, `log`, `flush` or `sync`."),
 
   GC_POST_ACTION("gc_post_action", in(true, null, "none", "flush", "compact"),
-      "One of 'none', 'flush', or 'compact'."),
+      "One of `none`, `flush`, or `compact`."),
 
-  STRING("string", x -> true,
-      "An arbitrary string of characters whose format is unspecified and"
-          + " interpreted based on the context of the property to which it applies."),
+  STRING("string", x -> true, """
+      An arbitrary string of characters whose format is unspecified and
+      interpreted based on the context of the property to which it applies."""),
 
-  JSON("json", new ValidJson(),
-      "An arbitrary string that represents a valid, parsable generic json object. The validity "
-          + "of the json object in the context of the property usage is not checked by this type."),
+  JSON("json", new ValidJson(), """
+      An arbitrary string that represents a valid, parsable generic json object. The validity
+      of the json object in the context of the property usage is not checked by this type."""),
   BOOLEAN("boolean", in(false, null, "true", "false"),
-      "Has a value of either 'true' or 'false' (case-insensitive)"),
+      "Has a value of either `true` or `false` (case-insensitive)."),
 
-  URI("uri", x -> true, "A valid URI"),
+  URI("uri", x -> true, "A valid URI."),
 
-  FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
-      "One of the currently supported filename extensions for storing table data files. "
-          + "Currently, only " + RFile.EXTENSION + " is supported."),
-  VOLUMES("volumes", new ValidVolumes(), "See instance.volumes documentation"),
+  FILENAME_EXT("file name extension", in(true, RFile.EXTENSION), """
+      One of the currently supported filename extensions for storing table data files.
+      Currently, only `%s` is supported.""".formatted(RFile.EXTENSION)),
+  VOLUMES("volumes", new ValidVolumes(),
+      "See [instance.volumes](#instance_volumes) documentation."),
   FATE_USER_CONFIG(ValidUserFateConfig.NAME, new ValidUserFateConfig(), ValidUserFateConfig.DESC),
   FATE_META_CONFIG(ValidMetaFateConfig.NAME, new ValidMetaFateConfig(), ValidMetaFateConfig.DESC),
   FATE_THREADPOOL_SIZE("(deprecated) Manager FATE thread pool size", new FateThreadPoolSize(),
       "No format check. Allows any value to be set but will warn the user that the"
           + " property is no longer used."),
   EC("erasurecode", in(false, "enable", "disable", "inherit"),
-      "One of 'enable','disable','inherit'.");
+      "One of `enable`, `disable`, or `inherit`.");
 
   private final String shortname;
   private final String format;
@@ -213,7 +228,7 @@ public enum PropertyType {
 
   /**
    * Validate that the provided string can be parsed into a json object. This implementation uses
-   * jackson databind because it is less permissive that GSON for what is considered valid. This
+   * jackson databind because it is less permissive than GSON for what is considered valid. This
    * implementation cannot guarantee that the json is valid for the target usage. That would require
    * something like a json schema or a check specific to the use-case. This is only trying to
    * provide a generic, minimal check that at least the json is valid.
@@ -467,11 +482,11 @@ public enum PropertyType {
         A string that:
         1. Represents a valid, parsable JSON object.
         2. Each key is a string which represents a name for the value/pool.
-        3. Each value is a JSON with a single key/value: key = comma-separated string list of FATE
-        operations, value = integer for the number of threads assigned to run those FATE operations.
-        4. All possible %s FATE operations are present in the JSON.
-        5. No FATE operations are repeated.
-        """;
+        3. Each value is a JSON with a single `key`/`value`:
+           1. `key` = comma-separated string list of FATE operations,
+           2. `value` = integer for the number of threads assigned to run those FATE operations.
+        4. All possible `%s` FATE operations are present in the JSON.
+        5. No FATE operations are repeated.""";
     private static final Logger log = LoggerFactory.getLogger(ValidFateConfig.class);
     private final Set<Fate.FateOperation> allFateOps;
     private final String name;
@@ -547,7 +562,7 @@ public enum PropertyType {
   }
 
   private static class ValidUserFateConfig extends ValidFateConfig {
-    private static final String DESC = String.format(ValidFateConfig.DESC, "user");
+    private static final String DESC = ValidFateConfig.DESC.formatted("user");
     private static final String NAME = "fate user config";
 
     private ValidUserFateConfig() {
@@ -556,7 +571,7 @@ public enum PropertyType {
   }
 
   private static class ValidMetaFateConfig extends ValidFateConfig {
-    private static final String DESC = String.format(ValidFateConfig.DESC, "meta");
+    private static final String DESC = ValidFateConfig.DESC.formatted("meta");
     private static final String NAME = "fate meta config";
 
     private ValidMetaFateConfig() {
