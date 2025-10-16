@@ -42,11 +42,14 @@ function refreshManagerBanners() {
  * Populates tables with the new information
  */
 function refreshManagerTables() {
-  refreshManagerBanners();
-  if (managerStatus !== 'ERROR') {
-    ajaxReloadTable(managerStatusTable);
-  }
-  ajaxReloadTable(recoveryListTable);
+  getStatus().then(function () {
+    managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    refreshManagerBanners();
+    if (managerStatus !== 'ERROR') {
+      ajaxReloadTable(managerStatusTable);
+    }
+    ajaxReloadTable(recoveryListTable);
+  });
 }
 
 /*

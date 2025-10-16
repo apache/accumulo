@@ -43,6 +43,13 @@ function refreshOverview() {
 }
 
 /**
+ * Used to redraw the page
+ */
+function refresh() {
+  refreshOverview();
+}
+
+/**
  * Refreshes the manager table
  */
 function refreshManagerTable() {
