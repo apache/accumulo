@@ -821,4 +821,88 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("getsplits -m 0", true,
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
   }
+
+  @Test
+  public void testScanKeyRange() throws IOException {
+    final String tableName = getUniqueNames(1)[0];
+    exec("setauths -s vis0,vis1", true);
+    exec("createtable " + tableName, true);
+    exec("config -t " + tableName + " -s table.iterator.scan.vers.opt.maxVersions=10", true);
+    final String scan = "scan -np -st ";
+
+    String[] rows = new String[] {"r0", "r1"};
+    String[] cfs = new String[] {"cf0", "cf1"};
+    String[] cqs = new String[] {"cq0", "cq1"};
+    String[] cvs = new String[] {"vis0", "vis1"};
+    int[] tss = new int[] {0, 1};
+
+    for (String row : rows) {
+      for (String cf : cfs) {
+        for (String cq : cqs) {
+          for (String cv : cvs) {
+            for (int ts : tss) {
+              exec(String.format("insert %s %s %s -l %s -ts %s val", row, cf, cq, cv, ts), true);
+            }
+          }
+        }
+      }
+    }
+
+    // incorrect usage
+    exec(scan + "-bkr r0 -r r0", false, "mutually exclusive");
+    exec(scan + "-bkcf cf0 -ekcf cf1", false, "-bkr is required when using -bkcf");
+    exec(scan + "-ekcf cf1", false, "-ekr is required when using -ekcf");
+    exec(scan + "-bkr r0 -bkcq cq0 -ekr r0 -ekcq cq1", false,
+        "-bkr and -bkcf are required when using -bkcq");
+    exec(scan + "-ekr r0 -ekcq cq1", false, "-ekr and -ekcf are required when using -ekcq");
+    exec(scan + "-bkr r0 -bkcf cf1 -bkcv vis0 -ekr r1 -ekcf cf1 -ekcv vis0", false,
+        "-bkr -bkcf -bkcq are all required when using -bkcv");
+    exec(scan + "-ekr r1 -ekcf cf1 -ekcv vis0", false,
+        "-ekr -ekcf -ekcq are all required when using -ekcv");
+    exec(scan + "-bkr r0 -bkcf cf0 -bkcq cq0 -bkts 0 -ekr r1 -ekcf cf0 -ekcq cq0 -ekts 0", false,
+        "-bkr -bkcf -bkcq -bkcv are all required when using -bkts");
+    exec(scan + "-ekr r1 -ekcf cf0 -ekcq cq0 -ekts 0", false,
+        "-ekr -ekcf -ekcq -ekcv are all required when using -ekts");
+
+    // correct usage
+    // range by timestamp
+    exec(scan
+        + "-bkr r0 -bkcf cf0 -bkcq cq0 -bkcv vis0 -bkts 1 -ekr r0 -ekcf cf0 -ekcq cq0 -ekcv vis0 -ekts 0",
+        true, "r0 cf0:cq0 [vis0] 1\tval\nr0 cf0:cq0 [vis0] 0\tval");
+    // range by visibility
+    exec(scan + "-bkr r0 -bkcf cf0 -bkcq cq0 -bkcv vis0 -ekr r0 -ekcf cf0 -ekcq cq0 -ekcv vis1",
+        true, "r0 cf0:cq0 [vis0] 1\tval\nr0 cf0:cq0 [vis0] 0\tval");
+    // range by CQ
+    exec(scan + "-bkr r0 -bkcf cf0 -bkcq cq0 -ekr r0 -ekcf cf0 -ekcq cq1", true,
+        "r0 cf0:cq0 [vis0] 1\tval\nr0 cf0:cq0 [vis0] 0\tval\n"
+            + "r0 cf0:cq0 [vis1] 1\tval\nr0 cf0:cq0 [vis1] 0\tval");
+    // range by CF
+    exec(scan + "-bkr r0 -bkcf cf0 -ekr r0 -ekcf cf1", true,
+        "r0 cf0:cq0 [vis0] 1\tval\nr0 cf0:cq0 [vis0] 0\tval\nr0 cf0:cq0 [vis1] 1\tval\n"
+            + "r0 cf0:cq0 [vis1] 0\tval\nr0 cf0:cq1 [vis0] 1\tval\nr0 cf0:cq1 [vis0] 0\tval\n"
+            + "r0 cf0:cq1 [vis1] 1\tval\nr0 cf0:cq1 [vis1] 0\tval");
+    // range by row
+    exec(scan + "-bkr r0 -ekr r1", true,
+        "r0 cf0:cq0 [vis0] 1\tval\nr0 cf0:cq0 [vis0] 0\tval\nr0 cf0:cq0 [vis1] 1\tval\n"
+            + "r0 cf0:cq0 [vis1] 0\tval\nr0 cf0:cq1 [vis0] 1\tval\nr0 cf0:cq1 [vis0] 0\tval\n"
+            + "r0 cf0:cq1 [vis1] 1\tval\nr0 cf0:cq1 [vis1] 0\tval\nr0 cf1:cq0 [vis0] 1\tval\n"
+            + "r0 cf1:cq0 [vis0] 0\tval\nr0 cf1:cq0 [vis1] 1\tval\nr0 cf1:cq0 [vis1] 0\tval\n"
+            + "r0 cf1:cq1 [vis0] 1\tval\nr0 cf1:cq1 [vis0] 0\tval\nr0 cf1:cq1 [vis1] 1\tval\n"
+            + "r0 cf1:cq1 [vis1] 0\tval");
+    // only provide start options
+    exec(scan + "-bkr r1 -bkcf cf1 -bkcq cq1", true,
+        "r1 cf1:cq1 [vis0] 1\tval\nr1 cf1:cq1 [vis0] 0\tval\nr1 cf1:cq1 [vis1] 1\tval\n"
+            + "r1 cf1:cq1 [vis1] 0\tval");
+    // only provide end options
+    exec(scan + "-ekr r0 -ekcf cf0 -ekcq cq1", true,
+        "r0 cf0:cq0 [vis0] 1\tval\nr0 cf0:cq0 [vis0] 0\tval\nr0 cf0:cq0 [vis1] 1\tval\n"
+            + "r0 cf0:cq0 [vis1] 0\tval");
+    // test exclusivity
+    exec(scan
+        + "-bke -bkr r0 -bkcf cf0 -bkcq cq0 -bkcv vis0 -bkts 1 -ekr r0 -ekcf cf0 -ekcq cq0 -ekcv vis0 -ekts 0",
+        true, "r0 cf0:cq0 [vis0] 0\tval");
+    exec(scan
+        + "-eke -bkr r0 -bkcf cf0 -bkcq cq0 -bkcv vis0 -bkts 1 -ekr r0 -ekcf cf0 -ekcq cq0 -ekcv vis0 -ekts 0",
+        true, "r0 cf0:cq0 [vis0] 1\tval");
+  }
 }
