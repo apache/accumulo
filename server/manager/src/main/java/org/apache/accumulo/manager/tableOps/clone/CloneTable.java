@@ -27,11 +27,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class CloneTable extends ManagerRepo {
+public class CloneTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final CloneInfo cloneInfo;
@@ -44,7 +44,7 @@ public class CloneTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     long val = Utils.reserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
         LockType.READ, true, TableOperation.CLONE);
     val += Utils.reserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
@@ -53,7 +53,7 @@ public class CloneTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
 
     cloneInfo.setTableId(
         Utils.getNextId(cloneInfo.getTableName(), environment.getContext(), TableId::of));
@@ -61,7 +61,7 @@ public class CloneTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) {
+  public void undo(FateId fateId, FateEnv environment) {
     Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
         LockType.READ);
     Utils.unreserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,

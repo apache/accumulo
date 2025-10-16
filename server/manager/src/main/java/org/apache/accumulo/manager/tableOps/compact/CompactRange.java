@@ -34,8 +34,8 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.hadoop.io.Text;
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class CompactRange extends ManagerRepo {
+public class CompactRange extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
@@ -80,7 +80,7 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT)
         + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
@@ -88,7 +88,7 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(final FateId fateId, FateEnv env) throws Exception {
     CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
     var extent = new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
         startRow == null ? null : new Text(startRow));
@@ -106,7 +106,7 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     try {
       CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {

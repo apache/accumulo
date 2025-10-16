@@ -28,10 +28,9 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.manager.Manager;
 import org.slf4j.LoggerFactory;
 
-public class ChangeTableState extends ManagerRepo {
+public class ChangeTableState extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
@@ -52,7 +51,7 @@ public class ChangeTableState extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
     return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true, top)
@@ -61,7 +60,7 @@ public class ChangeTableState extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) {
     TableState ts = TableState.ONLINE;
     if (top == TableOperation.OFFLINE) {
       ts = TableState.OFFLINE;
@@ -71,12 +70,12 @@ public class ChangeTableState extends ManagerRepo {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
-    env.getEventCoordinator().event(tableId, "Set table state of %s to %s", tableId, ts);
+    env.getEventPublisher().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
+  public void undo(FateId fateId, FateEnv env) {
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
   }

@@ -48,7 +48,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -60,10 +60,10 @@ public class TabletRefresher {
 
   private static final Logger log = LoggerFactory.getLogger(TabletRefresher.class);
 
-  public static void refresh(Manager manager, FateId fateId, TableId tableId, byte[] startRow,
+  public static void refresh(FateEnv env, FateId fateId, TableId tableId, byte[] startRow,
       byte[] endRow, Predicate<TabletMetadata> needsRefresh) {
 
-    try (var tablets = manager.getContext().getAmple().readTablets().forTable(tableId)
+    try (var tablets = env.getContext().getAmple().readTablets().forTable(tableId)
         .overlapping(startRow, endRow).checkConsistency()
         .fetch(ColumnType.LOADED, ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
 
@@ -81,8 +81,8 @@ public class TabletRefresher {
         var refreshesNeeded = batch.stream().collect(groupingBy(TabletMetadata::getLocation,
             mapping(tabletMetadata -> tabletMetadata.getExtent().toThrift(), toList())));
 
-        refreshTablets(manager.getTabletRefreshThreadPool(), fateId.canonical(),
-            manager.getContext(), () -> manager.onlineTabletServers(), refreshesNeeded);
+        refreshTablets(env.getTabletRefreshThreadPool(), fateId.canonical(), env.getContext(),
+            () -> env.onlineTabletServers(), refreshesNeeded);
       });
 
     }

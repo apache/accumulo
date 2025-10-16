@@ -22,7 +22,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.manager.Manager;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -111,9 +110,9 @@ public class TraceRepo<T> implements Repo<T> {
   /**
    * @return string version of Repo that is suitable for logging
    */
-  public static String toLogString(Repo<Manager> repo) {
+  public static String toLogString(Repo<FateEnv> repo) {
     if (repo instanceof TraceRepo) {
-      repo = ((TraceRepo<Manager>) repo).repo;
+      repo = ((TraceRepo<FateEnv>) repo).repo;
     }
 
     return repo.getClass() + " " + repo.getName();

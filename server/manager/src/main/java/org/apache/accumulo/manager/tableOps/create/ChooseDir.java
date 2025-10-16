@@ -30,8 +30,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
@@ -43,7 +43,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class ChooseDir extends ManagerRepo {
+class ChooseDir extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
 
   private final TableInfo tableInfo;
@@ -54,26 +54,26 @@ class ChooseDir extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     if (tableInfo.getInitialSplitSize() > 0) {
-      createTableDirectoriesInfo(manager.getContext());
+      createTableDirectoriesInfo(env.getContext());
     }
     return new PopulateMetadata(tableInfo);
   }
 
   @Override
-  public void undo(FateId fateId, Manager manager) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     // Clean up split files if ChooseDir operation fails
     Path p = null;
     try {
       if (tableInfo.getInitialSplitSize() > 0) {
         p = tableInfo.getSplitDirsPath();
-        FileSystem fs = p.getFileSystem(manager.getContext().getHadoopConf());
+        FileSystem fs = p.getFileSystem(env.getContext().getHadoopConf());
         fs.delete(p, true);
       }
     } catch (IOException e) {
