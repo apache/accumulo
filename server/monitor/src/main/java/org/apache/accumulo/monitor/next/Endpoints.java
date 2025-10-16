@@ -156,9 +156,9 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metrics for the Manager")
   public List<FMetric> getManagerMetrics() {
-    if (getManager().getMetrics() != null) {
-      return getManager().getMetrics().stream().map(FMetric::getRootAsFMetric)
-          .collect(Collectors.toList());
+    var managerMetrics = getManager().getMetrics();
+    if (managerMetrics != null) {
+      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
     }
     return List.of();
   }
