@@ -202,9 +202,10 @@ public class SplitUtils {
     }
 
     if (tabletMetadata.getFiles().size() >= maxFilesToOpen) {
-      log.warn("Tablet {} has {} files which exceeds the max to open for split, so can not split.",
+      log.warn("Tablet {} has {} files, using batched approach to compute splits.",
           tabletMetadata.getExtent(), tabletMetadata.getFiles().size());
-      return new TreeSet<>();
+      return findSplitsWithBatching(context, tableConf, tabletMetadata, estimatedSize, threshold,
+          maxEndRowSize, maxFilesToOpen);
     }
 
     try (var indexIterable = new IndexIterable(context, tableConf, tabletMetadata.getFiles(),
@@ -222,6 +223,63 @@ public class SplitUtils {
 
       return findSplits(indexIterable, calculateDesiredSplits(estimatedSize, threshold),
           splitPredicate);
+    }
+  }
+
+  private static SortedSet<Text> findSplitsWithBatching(ServerContext context,
+      TableConfiguration tableConf, TabletMetadata tabletMetadata, long estimatedSize,
+      long threshold, long maxEndRowSize, int maxFilesToOpen) {
+
+    final int BATCH_SIZE = Math.min(200, maxFilesToOpen);
+    var allFiles = new ArrayList<>(tabletMetadata.getFiles());
+
+    log.info("Computing splits for {} with {} files using batch size {}",
+        tabletMetadata.getExtent(), allFiles.size(), BATCH_SIZE);
+
+    try {
+      // Collect all index keys from batches
+      List<Key> allIndexKeys = new ArrayList<>();
+
+      for (int i = 0; i < allFiles.size(); i += BATCH_SIZE) {
+        int endIdx = Math.min(i + BATCH_SIZE, allFiles.size());
+        var batch = allFiles.subList(i, endIdx);
+
+        log.debug("Processing batch {}-{} of {} for tablet {}", i, endIdx, allFiles.size(),
+            tabletMetadata.getExtent());
+
+        // Read index keys from this batch
+        try (var indexIterable = new IndexIterable(context, tableConf, batch,
+            tabletMetadata.getEndRow(), tabletMetadata.getPrevEndRow())) {
+
+          for (Key key : indexIterable) {
+            allIndexKeys.add(new Key(key)); // Create defensive copy
+          }
+        }
+      }
+
+      log.info("Collected {} index keys from {} files for tablet {}", allIndexKeys.size(),
+          allFiles.size(), tabletMetadata.getExtent());
+
+      // Sort all collected keys
+      allIndexKeys.sort(Key::compareTo);
+
+      // Now compute splits from the merged view
+      Predicate<ByteSequence> splitPredicate = splitCandidate -> {
+        if (splitCandidate.length() >= maxEndRowSize) {
+          log.warn("Ignoring split point for {} of length {}", tabletMetadata.getExtent(),
+              splitCandidate.length());
+          return false;
+        }
+        return true;
+      };
+
+      int desiredSplits = calculateDesiredSplits(estimatedSize, threshold);
+      return findSplits(allIndexKeys, desiredSplits, splitPredicate);
+
+    } catch (Exception e) {
+      log.error("Error computing splits with batching for tablet {}", tabletMetadata.getExtent(),
+          e);
+      return new TreeSet<>();
     }
   }
 
@@ -291,11 +349,22 @@ public class SplitUtils {
   public static boolean needsSplit(ServerContext context, TabletMetadata tabletMetadata) {
     var tableConf = context.getTableConfiguration(tabletMetadata.getTableId());
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-    return needsSplit(splitThreshold, tabletMetadata);
+    int maxFilesBeforeSplit = tableConf.getCount(Property.TABLE_MAX_FILES_BEFORE_SPLIT);
+    return needsSplit(splitThreshold, maxFilesBeforeSplit, tabletMetadata);
   }
 
-  public static boolean needsSplit(long splitThreshold, TabletMetadata tabletMetadata) {
-    return tabletMetadata.getFileSize() > splitThreshold;
+  public static boolean needsSplit(long splitThreshold, int maxFilesBeforeSplit,
+      TabletMetadata tabletMetadata) {
+    if (tabletMetadata.getFileSize() > splitThreshold) {
+      return true;
+    }
+    int fileCount = tabletMetadata.getFiles().size();
+    if (maxFilesBeforeSplit > 0 && fileCount > maxFilesBeforeSplit) {
+      log.info("Tablet {} needs split due to file count: {} > {}", tabletMetadata.getExtent(),
+          fileCount, maxFilesBeforeSplit);
+      return true;
+    }
+    return false;
   }
 
   public static UnSplittableMetadata toUnSplittable(ServerContext context,
@@ -304,9 +373,11 @@ public class SplitUtils {
     var splitThreshold = tableConf.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
     var maxEndRowSize = tableConf.getAsBytes(Property.TABLE_MAX_END_ROW_SIZE);
     int maxFilesToOpen = tableConf.getCount(Property.SPLIT_MAXOPEN);
+    int maxFilesBeforeSplit = tableConf.getCount(Property.TABLE_MAX_FILES_BEFORE_SPLIT);
 
-    var unSplittableMetadata = UnSplittableMetadata.toUnSplittable(tabletMetadata.getExtent(),
-        splitThreshold, maxEndRowSize, maxFilesToOpen, tabletMetadata.getFiles());
+    var unSplittableMetadata =
+        UnSplittableMetadata.toUnSplittable(tabletMetadata.getExtent(), splitThreshold,
+            maxEndRowSize, maxFilesToOpen, maxFilesBeforeSplit, tabletMetadata.getFiles());
 
     log.trace(
         "Created unsplittable metadata for tablet {}. splitThreshold: {}, maxEndRowSize:{}, maxFilesToOpen: {}, hashCode: {}",

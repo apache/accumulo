@@ -1569,7 +1569,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
     var tabletMeta1 = TabletMetadata.builder(e1).build(UNSPLITTABLE);
     // require the UNSPLITTABLE column to be absent when it is absent
-    var usm1 = UnSplittableMetadata.toUnSplittable(e1, 1000, 100000, 32, Set.of());
+    var usm1 = UnSplittableMetadata.toUnSplittable(e1, 1000, 100000, 32, 1000, Set.of());
 
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
       ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
@@ -1587,7 +1587,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
     }
     assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
 
-    var usm2 = UnSplittableMetadata.toUnSplittable(e1, 1001, 100001, 33, Set.of());
+    var usm2 = UnSplittableMetadata.toUnSplittable(e1, 1001, 100001, 33, 1000, Set.of());
     var tabletMeta3 = TabletMetadata.builder(e1).setUnSplittable(usm2).build(UNSPLITTABLE);
     // require the UNSPLITTABLE column to be usm2 when it is actually usm1
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {

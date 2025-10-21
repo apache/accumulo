@@ -279,8 +279,8 @@ public class UpdateTabletsTest {
     EasyMock.expect(tabletMeta.getHostingRequested()).andReturn(true).atLeastOnce();
     EasyMock.expect(tabletMeta.getSuspend()).andReturn(suspendingTServer).atLeastOnce();
     EasyMock.expect(tabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();
-    UnSplittableMetadata usm =
-        UnSplittableMetadata.toUnSplittable(origExtent, 1000, 1001, 1002, tabletFiles.keySet());
+    UnSplittableMetadata usm = UnSplittableMetadata.toUnSplittable(origExtent, 1000, 1001, 1002,
+        10000, tabletFiles.keySet());
     EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(usm).atLeastOnce();
     EasyMock.expect(tabletMeta.getMigration()).andReturn(migration).atLeastOnce();
 

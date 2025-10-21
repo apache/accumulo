@@ -22,7 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
-import static org.apache.accumulo.server.tablets.TabletNameGenerator.createTabletDirectoryName;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -76,7 +75,6 @@ import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletsMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -89,7 +87,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.ConditionCheckerContext.ConditionChecker;
@@ -109,7 +106,6 @@ import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
@@ -413,11 +409,6 @@ public class Tablet extends TabletBase {
         bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId, mincReason);
-        try {
-          maybeSplitTablet();
-        } catch (IOException e) {
-          log.error("Error while attempting to split tablet after minor compaction", e);
-        }
       } catch (Exception e) {
         final ServiceLock tserverLock = tabletServer.getLock();
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
@@ -1132,102 +1123,6 @@ public class Tablet extends TabletBase {
   @Override
   public Map<StoredTabletFile,DataFileValue> getDatafiles() {
     return getMetadata().getFilesMap();
-  }
-
-  public long estimateTabletSize() {
-    long size = 0L;
-
-    for (DataFileValue sz : getDatafiles().values()) {
-      size += sz.getSize();
-    }
-
-    return size;
-  }
-
-  private boolean isSplitPossible() {
-
-    long splitThreshold = tableConfiguration.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-
-    return !extent.isRootTablet() && !isFindSplitsSuppressed()
-        && estimateTabletSize() > splitThreshold;
-  }
-
-  public boolean needsSplit() {
-    var files = getDatafiles().keySet();
-    return files.size() > 1 && !supressFindSplits;
-  }
-
-  private boolean supressFindSplits = false;
-  private long timeOfLastMinCWhenFindSplitsWasSupressed = 0;
-
-  private boolean isFindSplitsSuppressed() {
-    if (supressFindSplits) {
-      if (timeOfLastMinCWhenFindSplitsWasSupressed != lastMinorCompactionFinishTime) {
-        supressFindSplits = false;
-      } else {
-        // nothing changed, do not split
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  private void suppressFindSplits() {
-    supressFindSplits = true;
-    timeOfLastMinCWhenFindSplitsWasSupressed = lastMinorCompactionFinishTime;
-  }
-
-  public void maybeSplitTablet() throws IOException {
-    if (!isSplitPossible() || !needsSplit()) {
-      return;
-    }
-
-    Optional<Key> optSplit = computeSplitPoint();
-    if (optSplit.isEmpty()) {
-      suppressFindSplits();
-      return;
-    }
-
-    Text midRow = optSplit
-        .orElseThrow(() -> new IllegalStateException("Split point should be present")).getRow();
-    KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
-    KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
-
-    ServerContext context = tabletServer.getContext();
-    Ample.TabletsMutator mutator = context.getAmple().mutateTablets();
-
-    String lowDir = createTabletDirectoryName(context, midRow);
-    String highDir = getMetadata().getDirName();
-    MetadataTime time = tabletTime.getMetadataTime();
-
-    mutator.mutateTablet(low).putDirName(lowDir).putTime(time);
-
-    mutator.mutateTablet(high).putDirName(highDir).putTime(time);
-
-    mutator.close();
-
-    log.info("Split tablet {} at {} into {} and {}", extent, midRow, low, high);
-  }
-
-  public Optional<Key> computeSplitPoint() {
-    try {
-      List<StoredTabletFile> files = new ArrayList<>(getDatafiles().keySet());
-      if (files.isEmpty()) {
-        return Optional.empty();
-      }
-
-      var context = tabletServer.getContext();
-      var fs = context.getVolumeManager().getFileSystemByPath(files.get(0).getPath());
-      var conf = context.getHadoopConf();
-      var maxOpen = tableConfiguration.getCount(Property.SPLIT_MAXOPEN);
-
-      return SplitPointUtil.findSplitPoint(files, maxOpen, fs, conf, tableConfiguration);
-
-    } catch (IOException e) {
-      log.warn("Error computing split point for tablet {}", extent, e);
-      return Optional.empty();
-    }
   }
 
   @Override
