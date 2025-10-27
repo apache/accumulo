@@ -33,7 +33,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
@@ -78,7 +78,7 @@ public class ListTabletsCommand extends Command {
       lines.add("TABLE: " + name);
 
       try (Stream<TabletInformation> tabletInfoStream =
-          shellState.getContext().tableOperations().getTabletInformation(name, new Range())) {
+          shellState.getContext().tableOperations().getTabletInformation(name, RowRange.all())) {
         final AtomicInteger counter = new AtomicInteger(1);
         tabletInfoStream.forEach(tabletInfo -> {
           int i = counter.getAndIncrement();

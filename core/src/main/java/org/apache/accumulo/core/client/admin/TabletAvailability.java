@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import org.apache.accumulo.core.data.RowRange;
+
 /**
- * @see TableOperations#setTabletAvailability(String, org.apache.accumulo.core.data.Range,
- *      TabletAvailability)
+ * @see TableOperations#setTabletAvailability(String, RowRange, TabletAvailability)
  * @since 4.0.0
  */
 public enum TabletAvailability {
