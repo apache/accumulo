@@ -277,6 +277,11 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       c.tableOperations().setProperty(table1, Property.TABLE_ERASURE_CODE_POLICY.getKey(), policy2);
       assertEquals(policy2, c.tableOperations().getConfiguration(table1)
           .get(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
+      // should be able to set it to the default value
+      c.tableOperations().setProperty(table1, Property.TABLE_ERASURE_CODE_POLICY.getKey(),
+          Property.TABLE_ERASURE_CODE_POLICY.getDefaultValue());
+      assertEquals(Property.TABLE_ERASURE_CODE_POLICY.getDefaultValue(), c.tableOperations()
+          .getConfiguration(table1).get(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
     }
   }
 }
