@@ -76,21 +76,27 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
     String tableName = level.metaTable();
+    int numThreads;
     try {
-      var numThreads =
+      numThreads =
           context.getConfiguration().getCount(Property.MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS);
       mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, numThreads);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
     cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
-    configureScanner(context.getConfiguration(), mdScanner, state, level);
+    configureScanner(context.getConfiguration(), mdScanner, state, level, numThreads);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();
   }
 
   public static void configureScanner(AccumuloConfiguration aconf, ScannerBase scanner,
       CurrentState state, DataLevel dataLevel) {
+    configureScanner(aconf, scanner, state, dataLevel, 1);
+  }
+
+  public static void configureScanner(AccumuloConfiguration aconf, ScannerBase scanner,
+      CurrentState state, DataLevel dataLevel, int numThreads) {
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
@@ -113,11 +119,11 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
       TabletStateChangeIterator.setShuttingDown(aconf, tabletChange, state.shutdownServers());
       log.debug(
-          "{} configured meta scanner opts, online servers:{} tables:{} migrations:{} options_size:{} create_time:{}ms",
+          "{} configured meta scanner opts, online servers:{} tables:{} migrations:{} options_size:{} scanner threads:{} create_time:{}ms",
           dataLevel, servers.size(), tables.size(), migrations.size(),
           tabletChange.getOptions().entrySet().stream()
               .mapToLong(e -> e.getKey().length() + e.getValue().length()).sum(),
-          timer.elapsed(TimeUnit.MILLISECONDS));
+          numThreads, timer.elapsed(TimeUnit.MILLISECONDS));
     }
     scanner.addScanIterator(tabletChange);
   }
