@@ -36,6 +36,9 @@ import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class LoadPlanTest {
   @Test
   public void testBadRange1() {
@@ -112,7 +115,7 @@ public class LoadPlanTest {
   }
 
   @Test
-  public void testJson() {
+  public void testJson() throws Exception {
     var loadPlan = LoadPlan.builder().build();
     assertEquals(0, loadPlan.getDestinations().size());
     assertEquals("{\"destinations\":[]}", loadPlan.toJson());
@@ -137,7 +140,11 @@ public class LoadPlanTest {
         + "','endRow':'" + b64006 + "','rangeType':'TABLE'},{'fileName':'f3.rf','startRow':'"
         + b64binary + "','endRow':null,'rangeType':'TABLE'}]}";
 
-    assertEquals(expected.replace("'", "\""), json);
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode node1 = mapper.readTree(expected.replace("'", "\""));
+    JsonNode node2 = mapper.readTree(json);
+
+    assertEquals(node1, node2);
   }
 
   @Test
