@@ -43,6 +43,7 @@ public class FlakyFate<T> extends Fate<T> {
       fateExecutors.add(new FlakyFateExecutor<>(this, environment, poolConfig.getKey(),
           poolConfig.getValue().getValue(), poolConfig.getValue().getKey()));
     }
+    start();
   }
 
   private static class FlakyFateExecutor<T> extends FateExecutor<T> {
