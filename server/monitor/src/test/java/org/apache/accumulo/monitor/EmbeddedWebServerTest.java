@@ -78,21 +78,18 @@ public class EmbeddedWebServerTest {
   @Test
   public void testContextPath() {
     // Test removal of trailing slash
-    EmbeddedWebServer ews = new EmbeddedWebServer(monitor.get(),
-        Integer.parseInt(Property.MONITOR_PORT.getDefaultValue()));
+    EmbeddedWebServer ews = new EmbeddedWebServer(monitor.get(), 0);
     assertEquals("/test", ews.getContextPath(),
         "Context path of " + ews.getContextPath() + " does not match");
     // Test redirect URL
     configuration.get().set(Property.MONITOR_ROOT_CONTEXT, "/../test");
     IllegalArgumentException exception =
-        assertThrows(IllegalArgumentException.class, () -> new EmbeddedWebServer(monitor.get(),
-            Integer.parseInt(Property.MONITOR_PORT.getDefaultValue())));
+        assertThrows(IllegalArgumentException.class, () -> new EmbeddedWebServer(monitor.get(), 0));
     assertEquals("Root context: \"/../test\" is not a valid URL", exception.getMessage());
     // Test whitespace in URL
     configuration.get().set(Property.MONITOR_ROOT_CONTEXT, "/whitespace /test");
     exception =
-        assertThrows(IllegalArgumentException.class, () -> new EmbeddedWebServer(monitor.get(),
-            Integer.parseInt(Property.MONITOR_PORT.getDefaultValue())));
+        assertThrows(IllegalArgumentException.class, () -> new EmbeddedWebServer(monitor.get(), 0));
     assertEquals("Root context: \"/whitespace /test\" is not a valid URL", exception.getMessage());
   }
 }

@@ -268,9 +268,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
         HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
         log.info("Restarting " + restartedServer);
         ((MiniAccumuloClusterImpl) getCluster())._exec(TabletServer.class, ServerType.TABLET_SERVER,
-            Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
-                Property.TSERV_PORTSEARCH.getKey(), "false"),
-            "-o", Property.TSERV_GROUP_NAME.getKey() + "=" + TEST_GROUP_NAME);
+            Map.of(Property.RPC_BIND_PORT.getKey(), "" + restartedServer.getPort()), "-o",
+            Property.TSERV_GROUP_NAME.getKey() + "=" + TEST_GROUP_NAME);
 
         // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
         log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);

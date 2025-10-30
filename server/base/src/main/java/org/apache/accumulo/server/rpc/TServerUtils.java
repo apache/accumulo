@@ -28,13 +28,10 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.net.ssl.SSLServerSocket;
@@ -42,14 +39,12 @@ import javax.net.ssl.SSLServerSocket;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.security.SaslRpcServer;
@@ -79,6 +74,7 @@ import com.google.common.primitives.Ints;
  */
 public class TServerUtils {
   private static final Logger log = LoggerFactory.getLogger(TServerUtils.class);
+  private static final int SINGLE_PORT_FALLBACK_RANGE = 1000;
 
   /**
    * Static instance, passed to {@link ClientInfoProcessorFactory}, which will contain the client
@@ -93,47 +89,48 @@ public class TServerUtils {
    * @return array of HostAndPort objects
    */
   public static HostAndPort[] getHostAndPorts(String hostname, IntStream ports) {
-    return ports.mapToObj(port -> HostAndPort.fromParts(hostname, port))
+    int[] configuredPorts = ports.toArray();
+    if (configuredPorts.length == 0) {
+      return new HostAndPort[0];
+    }
+
+    IntStream candidates;
+    if (configuredPorts.length == 1 && configuredPorts[0] > 0) {
+      int basePort = configuredPorts[0];
+      int maxPort = PortRange.VALID_RANGE.getMaximum();
+      int searchUpperBound = Math.min(maxPort, basePort + SINGLE_PORT_FALLBACK_RANGE);
+      IntStream fallback = basePort < searchUpperBound
+          ? IntStream.rangeClosed(basePort + 1, searchUpperBound) : IntStream.empty();
+      candidates = IntStream.concat(IntStream.of(basePort), fallback);
+    } else {
+      candidates = Arrays.stream(configuredPorts);
+    }
+
+    return candidates.mapToObj(port -> HostAndPort.fromParts(hostname, port))
         .toArray(HostAndPort[]::new);
   }
 
   /**
-   *
-   * @param config Accumulo configuration
-   * @return A Map object with reserved port numbers as keys and Property objects as values
-   */
-  static Map<Integer,Property> getReservedPorts(AccumuloConfiguration config,
-      Property portProperty) {
-    return EnumSet.allOf(Property.class).stream()
-        .filter(p -> p.getType() == PropertyType.PORT && p != portProperty)
-        .flatMap(rp -> config.getPortStream(rp).mapToObj(portNum -> new Pair<>(portNum, rp)))
-        .filter(p -> p.getFirst() != 0).collect(Collectors.toMap(Pair::getFirst, Pair::getSecond));
-  }
-
-  /**
-   * Create a ServerAddress, at the given port, or higher, if that port is not available. Callers
-   * must start the ThriftServer after calling this method using
-   * {@code ServerAddress#startThriftServer(String)}
+   * Create a ServerAddress bound to one of the ports configured by {@code rpc.bind.port}. Callers
+   * must start the returned ThriftServer after calling this method using
+   * {@link ServerAddress#startThriftServer(String)}.
    *
    * @param context RPC configuration
-   * @param portHintProperty the port to attempt to open, can be zero, meaning "any available port"
+   * @param hostname host name to bind
    * @param processor the service to be started
    * @param serverName the name of the class that is providing the service
-   * @param portSearchProperty A boolean Property to control if port-search should be used, or null
-   *        to disable
    * @param minThreadProperty A Property to control the minimum number of threads in the pool
+   * @param threadTimeOutProperty A Property to control thread timeout
    * @param timeBetweenThreadChecksProperty A Property to control the amount of time between checks
    *        to resize the thread pool
    * @return the server object created, and the port actually used
-   * @throws UnknownHostException when we don't know our own address
+   * @throws UnknownHostException when no configured port could be bound or the host is unknown
    */
   public static ServerAddress createThriftServer(ServerContext context, String hostname,
-      Property portHintProperty, TProcessor processor, String serverName,
-      Property portSearchProperty, Property minThreadProperty, Property threadTimeOutProperty,
-      Property timeBetweenThreadChecksProperty) throws UnknownHostException {
+      TProcessor processor, String serverName, Property minThreadProperty,
+      Property threadTimeOutProperty, Property timeBetweenThreadChecksProperty)
+      throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
-
-    final IntStream portHint = config.getPortStream(portHintProperty);
 
     int minThreads = 2;
     if (minThreadProperty != null) {
@@ -152,11 +149,6 @@ public class TServerUtils {
 
     long maxMessageSize = config.getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
 
-    boolean portSearch = false;
-    if (portSearchProperty != null) {
-      portSearch = config.getBoolean(portSearchProperty);
-    }
-
     int backlog = config.getCount(Property.RPC_BACKLOG);
 
     final ThriftServerType serverType = context.getThriftServerType();
@@ -170,48 +162,21 @@ public class TServerUtils {
     // metrics mbean more than once
     TimedProcessor timedProcessor = new TimedProcessor(processor, context.getMetricsInfo());
 
-    HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
+    HostAndPort[] addresses =
+        getHostAndPorts(hostname, config.getPortStream(Property.RPC_BIND_PORT));
+    if (addresses.length == 0) {
+      throw new UnknownHostException("No candidate ports defined by rpc.bind.port");
+    }
+
     try {
       return TServerUtils.createThriftServer(serverType, timedProcessor, context.getInstanceID(),
           serverName, minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
           context.getServerSslParams(), context.getSaslParams(), context.getClientTimeoutInMillis(),
-          backlog, portSearch, addresses);
+          backlog, addresses);
     } catch (TTransportException e) {
-      if (portSearch) {
-        // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
-        Map<Integer,Property> reservedPorts = getReservedPorts(config, portHintProperty);
-
-        HostAndPort last = addresses[addresses.length - 1];
-        // Attempt to allocate a port outside of the specified port property
-        // Search sequentially over the next 1000 ports
-        for (int port = last.getPort() + 1; port < last.getPort() + 1001; port++) {
-          if (reservedPorts.containsKey(port)) {
-            log.debug("During port search, skipping reserved port {} - property {} ({})", port,
-                reservedPorts.get(port).getKey(), reservedPorts.get(port).getDescription());
-
-            continue;
-          }
-
-          if (PortRange.VALID_RANGE.isBefore(port)) {
-            break;
-          }
-          try {
-            HostAndPort addr = HostAndPort.fromParts(hostname, port);
-            return TServerUtils.createThriftServer(serverType, timedProcessor,
-                context.getInstanceID(), serverName, minThreads, threadTimeOut, config,
-                timeBetweenThreadChecks, maxMessageSize, context.getServerSslParams(),
-                context.getSaslParams(), context.getClientTimeoutInMillis(), backlog, portSearch,
-                addr);
-          } catch (TTransportException tte) {
-            log.info("Unable to use port {}, retrying.", port);
-          }
-        }
-        log.error("Unable to start TServer", e);
-        throw new UnknownHostException("Unable to find a listen port");
-      } else {
-        log.error("Unable to start TServer", e);
-        throw new UnknownHostException("Unable to find a listen port");
-      }
+      log.error("Unable to start {} on {} using rpc.bind.port={}", serverName, hostname,
+          config.get(Property.RPC_BIND_PORT), e);
+      throw new UnknownHostException("Unable to bind to any configured rpc.bind.port values");
     }
   }
 
@@ -570,8 +535,7 @@ public class TServerUtils {
       ThriftServerType serverType, TProcessor processor, InstanceId instanceId, String serverName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, boolean portSearch,
-      HostAndPort... addresses) {
+      long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
@@ -580,7 +544,7 @@ public class TServerUtils {
     try {
       return createThriftServer(serverType, new TimedProcessor(processor, metricsInfo), instanceId,
           serverName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
-          sslParams, saslParams, serverSocketTimeout, backlog, portSearch, addresses);
+          sslParams, saslParams, serverSocketTimeout, backlog, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }
@@ -597,8 +561,7 @@ public class TServerUtils {
       TimedProcessor processor, InstanceId instanceId, String serverName, int numThreads,
       long threadTimeOut, final AccumuloConfiguration conf, long timeBetweenThreadChecks,
       long maxMessageSize, SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, boolean portSearch, HostAndPort... addresses)
-      throws TTransportException {
+      long serverSocketTimeout, int backlog, HostAndPort... addresses) throws TTransportException {
     TProtocolFactory protocolFactory = ThriftUtil.serverProtocolFactory(instanceId);
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it
     // would require changes in how the transports
@@ -641,11 +604,7 @@ public class TServerUtils {
         };
         break;
       } catch (TTransportException e) {
-        if (portSearch) {
-          log.debug("Failed attempting to create server at {}. {}", address, e.getMessage());
-        } else {
-          log.warn("Error attempting to create server at {}. Error: {}", address, e.getMessage());
-        }
+        log.debug("Failed attempting to create server at {}. {}", address, e.getMessage());
       }
     }
     if (serverAddress == null) {
