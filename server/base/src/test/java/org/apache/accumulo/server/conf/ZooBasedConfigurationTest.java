@@ -19,8 +19,8 @@
 package org.apache.accumulo.server.conf;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.core.conf.Property.GC_PORT;
 import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TIMEOUT;
+import static org.apache.accumulo.core.conf.Property.RPC_BIND_PORT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
@@ -46,6 +46,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -167,7 +168,7 @@ public class ZooBasedConfigurationTest {
     // TABLE_SPLIT_THRESHOLD
 
     // read a fixed property from the system config
-    assertEquals("9998", zbc.get(GC_PORT));
+    assertEquals(Property.RPC_BIND_PORT.getDefaultValue(), zbc.get(RPC_BIND_PORT));
 
     // read a property from the sysconfig
     assertEquals(MINUTES.toMillis(5), zbc.getTimeInMillis(MANAGER_BULK_TIMEOUT));

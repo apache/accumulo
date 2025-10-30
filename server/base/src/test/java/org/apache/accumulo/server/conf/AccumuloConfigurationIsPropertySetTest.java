@@ -20,10 +20,10 @@ package org.apache.accumulo.server.conf;
 
 import static java.util.stream.Collectors.toMap;
 import static java.util.stream.Collectors.toSet;
-import static org.apache.accumulo.core.conf.Property.GC_PORT;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_SECRET;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_ZK_HOST;
 import static org.apache.accumulo.core.conf.Property.MANAGER_BULK_TIMEOUT;
+import static org.apache.accumulo.core.conf.Property.RPC_BIND_PORT;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TABLE_BLOOM_SIZE;
 import static org.apache.accumulo.core.conf.Property.TABLE_DURABILITY;
@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -135,7 +136,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
   @Test
   public void testConfigurationCopy() {
-    var shouldBeSet = Set.of(TABLE_BLOOM_SIZE, GC_PORT);
+    var shouldBeSet = Set.of(TABLE_BLOOM_SIZE, RPC_BIND_PORT);
     var shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
     assertFalse(shouldNotBeSet.isEmpty());
 
@@ -208,7 +209,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
   @Test
   public void testSystemConfiguration() {
-    var setOnSystem = Set.of(GC_PORT, TSERV_SCAN_MAX_OPENFILES);
+    var setOnSystem = Set.of(RPC_BIND_PORT, TSERV_SCAN_MAX_OPENFILES);
     var sysProps = new VersionedProperties(1, Instant.now(), setToMap(setOnSystem));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
 
@@ -233,13 +234,16 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     // now set a few fixed properties on the parent to simulate a user setting a fixed property that
     // requires a restart
     var shouldBeSetMore = new HashSet<Property>(shouldBeSet);
-    Property.FIXED_PROPERTIES.stream().limit(5).forEach(p -> {
+    var additionalFixed = Property.FIXED_PROPERTIES.stream().filter(p -> !shouldBeSet.contains(p))
+        .limit(5).collect(Collectors.toList());
+    assertEquals(5, additionalFixed.size());
+    additionalFixed.forEach(p -> {
       // use the default value so we can verify it's actually set, and not just looks set because it
       // has the same value as the default
       parent.set(p.getKey(), p.getDefaultValue());
       shouldBeSetMore.add(p);
     });
-    // make sure we actually added some
+    // make sure we actually added the expected number of new entries
     assertEquals(5, Sets.symmetricDifference(shouldBeSet, shouldBeSetMore).size());
 
     // verify that the view of the configuration now includes the fixed properties, because we added
@@ -293,7 +297,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
 
   @Test
   public void testZooBasedConfiguration() {
-    var setOnSystem = Set.of(GC_PORT);
+    var setOnSystem = Set.of(RPC_BIND_PORT);
     var sysProps = new VersionedProperties(1, Instant.now(), setToMap(setOnSystem));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
 

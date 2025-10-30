@@ -31,7 +31,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -96,13 +95,11 @@ public enum PropertyType {
           + " 'localhost:2000,www.example.com,10.10.1.1:500' and 'localhost'.\n"
           + "Examples of invalid host lists are '', ':1000', and 'localhost:80000'"),
 
-  PORT("port",
-      x -> Stream.of(new Bounds(1024, 65535), in(true, "0"), new PortRange("\\d{4,5}-\\d{4,5}"))
-          .anyMatch(y -> y.test(x)),
-      "An positive integer in the range 1024-65535 (not already in use or"
-          + " specified elsewhere in the configuration),\n"
-          + "zero to indicate any open ephemeral port, or a range of positive"
-          + " integers specified as M-N"),
+  PORT("port", new PortPredicate(),
+      "A positive integer in the range 1024-65535 (not already in use or specified elsewhere in the"
+          + " configuration), zero to indicate any open ephemeral port, or a range of positive"
+          + " integers expressed as M-N (inclusive) or using interval notation such as [M,N) or"
+          + " [M,N]."),
 
   COUNT("count", new Bounds(0, Integer.MAX_VALUE),
       "A non-negative integer in the range of 0-" + Integer.MAX_VALUE),
@@ -423,43 +420,71 @@ public enum PropertyType {
 
   }
 
-  public static class PortRange extends Matches {
-
-    public static final Range<Integer> VALID_RANGE = Range.of(1024, 65535);
-
-    public PortRange(final String pattern) {
-      super(pattern);
-    }
+  private static class PortPredicate implements Predicate<String> {
 
     @Override
     public boolean test(final String input) {
-      if (super.test(input)) {
-        try {
-          PortRange.parse(input);
-          return true;
-        } catch (IllegalArgumentException e) {
-          return false;
-        }
-      } else {
+      if (input == null) {
+        return true;
+      }
+      final String trimmed = input.trim();
+      if (trimmed.isEmpty()) {
         return false;
       }
-    }
-
-    public static IntStream parse(String portRange) {
-      int idx = portRange.indexOf('-');
-      if (idx != -1) {
-        int low = Integer.parseInt(portRange.substring(0, idx));
-        int high = Integer.parseInt(portRange.substring(idx + 1));
-        if (!VALID_RANGE.contains(low) || !VALID_RANGE.contains(high) || low > high) {
-          throw new IllegalArgumentException(
-              "Invalid port range specified, only 1024 to 65535 supported.");
-        }
-        return IntStream.rangeClosed(low, high);
+      if ("0".equals(trimmed)) {
+        return true;
       }
-      throw new IllegalArgumentException(
-          "Invalid port range specification, must use M-N notation.");
-    }
 
+      try {
+        int port = Integer.parseInt(trimmed);
+        return PortRange.VALID_RANGE.contains(port);
+      } catch (NumberFormatException e) {
+        try {
+          PortRange.parse(trimmed);
+          return true;
+        } catch (IllegalArgumentException ex) {
+          return false;
+        }
+      }
+    }
+  }
+
+  public static class PortRange {
+
+    public static final Range<Integer> VALID_RANGE = Range.of(1024, 65535);
+
+    private PortRange() {}
+
+    public static IntStream parse(String value) {
+      Objects.requireNonNull(value, "Port range cannot be null.");
+      value = value.trim();
+      Preconditions.checkArgument(!value.isEmpty(), "Port range cannot be empty.");
+      Preconditions.checkArgument(value.contains("-"),
+          "Invalid port range, expected format like M-N.");
+      String[] parts = value.split("-", 2);
+      Preconditions.checkArgument(parts.length == 2, "Invalid port range, must use M-N notation.");
+
+      int low;
+      int high;
+      try {
+        low = Integer.parseInt(parts[0].trim());
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Invalid port value: " + parts[0], e);
+      }
+      try {
+        high = Integer.parseInt(parts[1].trim());
+      } catch (NumberFormatException e) {
+        throw new IllegalArgumentException("Invalid port value: " + parts[1], e);
+      }
+
+      Preconditions.checkArgument(VALID_RANGE.contains(low),
+          "Port range bounds must be 1024 to 65535. Got " + low);
+      Preconditions.checkArgument(VALID_RANGE.contains(high),
+          "Port range bounds must be 1024 to 65535 Got " + high);
+      Preconditions.checkArgument(high > low, "Upper bound must be >= lower bound.");
+
+      return IntStream.rangeClosed(low, high);
+    }
   }
 
   private static class ValidFateConfig implements Predicate<String> {

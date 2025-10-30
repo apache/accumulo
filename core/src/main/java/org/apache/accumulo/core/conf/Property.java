@@ -95,6 +95,14 @@ public enum Property {
       The local IP address to which this server should bind for sending \
       and receiving network traffic. If not set then the process binds to all addresses.
       """, "2.1.4"),
+  RPC_BIND_PORT("rpc.bind.port", "19000-19999", PropertyType.PORT,
+      """
+          The port or range of ports servers attempt to bind for RPC traffic. Provide a single \
+          value to target an exact port (will attempt higher ports if given port is already in use, \
+          up to 1000 additional checks), or a range using formats like '19000-19999' to allow searching for \
+          the first available port within that range.
+          """,
+      "4.0.0"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
       PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
       "2.1.3"),
@@ -395,8 +403,6 @@ public enum Property {
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
-  MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
-      "The port used for handling client connections on the manager.", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "
@@ -585,11 +591,6 @@ public enum Property {
           expiration time, will trigger a background refresh for future hits. \
           Value must be less than 100%. Set to 0 will disable refresh.
           """, "2.1.3"),
-  SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the sserver.port.client ports are in use, search higher ports until one is available.",
-      "2.1.0"),
-  SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
-      "The port used for handling client connections on the tablet servers.", "2.1.0"),
   SSERV_MINTHREADS("sserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -637,11 +638,6 @@ public enum Property {
       "Specifies the size of the cache for RFile index blocks.", "1.3.5"),
   TSERV_SUMMARYCACHE_SIZE("tserver.cache.summary.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for summary data on each tablet server.", "2.0.0"),
-  TSERV_PORTSEARCH("tserver.port.search", "true", PropertyType.BOOLEAN,
-      "if the tserver.port.client ports are in use, search higher ports until one is available.",
-      "1.3.5"),
-  TSERV_CLIENTPORT("tserver.port.client", "9997", PropertyType.PORT,
-      "The port used for handling client connections on the tablet servers.", "1.3.5"),
   TSERV_TOTAL_MUTATION_QUEUE_MAX("tserver.total.mutation.queue.max", "5%", PropertyType.MEMORY,
       "The amount of memory used to store write-ahead-log mutations before flushing them.",
       "1.7.0"),
@@ -846,8 +842,6 @@ public enum Property {
       "Time between garbage collection cycles. In each cycle, old RFiles or write-ahead logs "
           + "no longer in use are removed from the filesystem.",
       "1.3.5"),
-  GC_PORT("gc.port.client", "9998", PropertyType.PORT,
-      "The listening port for the garbage collector's monitor service.", "1.3.5"),
   GC_DELETE_WAL_THREADS("gc.threads.delete.wal", "4", PropertyType.COUNT,
       "The number of threads used to delete write-ahead logs and recovery files.", "2.1.4"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
@@ -864,8 +858,6 @@ public enum Property {
   // properties that are specific to the monitor server behavior
   MONITOR_PREFIX("monitor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the monitor web server.", "1.3.5"),
-  MONITOR_PORT("monitor.port.client", "9995", PropertyType.PORT,
-      "The listening port for the monitor's http service.", "1.3.5"),
   MONITOR_SSL_KEYSTORE("monitor.ssl.keyStore", "", PropertyType.PATH,
       "The keystore for enabling monitor SSL.", "1.5.0"),
   @Sensitive
@@ -1285,11 +1277,6 @@ public enum Property {
           + " should be cancelled. This checks for situations like was the tablet deleted (split "
           + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
       "2.1.4"),
-  COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
-      "If the compactor.port.client ports are in use, search higher ports until one is available.",
-      "2.1.0"),
-  COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
-      "The port used for handling client connections on the compactor servers.", "2.1.0"),
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
           + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
@@ -1626,6 +1613,7 @@ public enum Property {
       // RPC options
       RPC_BACKLOG, RPC_SSL_KEYSTORE_TYPE, RPC_SSL_TRUSTSTORE_TYPE, RPC_USE_JSSE,
       RPC_SSL_ENABLED_PROTOCOLS, RPC_SSL_CLIENT_PROTOCOL, RPC_SASL_QOP, RPC_MAX_MESSAGE_SIZE,
+      RPC_BIND_PORT,
 
       // INSTANCE options
       INSTANCE_ZK_HOST, INSTANCE_ZK_TIMEOUT, INSTANCE_SECRET, INSTANCE_SECURITY_AUTHENTICATOR,
@@ -1644,17 +1632,16 @@ public enum Property {
       // MANAGER options
       MANAGER_THREADCHECK, MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, MANAGER_METADATA_SUSPENDABLE,
       MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT,
-      MANAGER_CLIENTPORT, MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT,
-      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME, MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
-      MANAGER_TABLET_REFRESH_MINTHREADS, MANAGER_TABLET_REFRESH_MAXTHREADS,
-      MANAGER_TABLET_MERGEABILITY_INTERVAL, MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX,
+      MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
+      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE, MANAGER_TABLET_REFRESH_MINTHREADS,
+      MANAGER_TABLET_REFRESH_MAXTHREADS, MANAGER_TABLET_MERGEABILITY_INTERVAL,
+      MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX,
 
       // SSERV options
-      SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_CLIENTPORT,
-      SSERV_PORTSEARCH, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
-      SSERV_DEFAULT_BLOCKSIZE, SSERV_SCAN_REFERENCE_EXPIRATION_TIME,
-      SSERV_CACHED_TABLET_METADATA_EXPIRATION, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
-      SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
+      SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_DATACACHE_SIZE,
+      SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE, SSERV_DEFAULT_BLOCKSIZE,
+      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+      SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT, SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
 
       // TSERV options
       TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
@@ -1662,22 +1649,21 @@ public enum Property {
       TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
       TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
       TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
-      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_PORTSEARCH,
-      TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE,
-      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM,
-      TSERV_SCAN_MAX_OPENFILES, TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
+      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_DATACACHE_SIZE,
+      TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE, TSERV_MINTHREADS,
+      TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
+      TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
       // GC options
-      GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START, GC_PORT,
+      GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START,
 
       // MONITOR options
-      MONITOR_PORT, MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE,
-      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL, MONITOR_ROOT_CONTEXT,
+      MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE, MONITOR_SSL_INCLUDE_PROTOCOLS,
+      MONITOR_LOCK_CHECK_INTERVAL, MONITOR_ROOT_CONTEXT,
 
       // COMPACTOR options
-      COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_CLIENTPORT, COMPACTOR_THREADCHECK,
-      COMPACTOR_PORTSEARCH, COMPACTOR_MINTHREADS, COMPACTOR_MINTHREADS_TIMEOUT,
-      COMPACTOR_GROUP_NAME,
+      COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_THREADCHECK, COMPACTOR_MINTHREADS,
+      COMPACTOR_MINTHREADS_TIMEOUT, COMPACTOR_GROUP_NAME,
 
       // COMPACTION_COORDINATOR options
       COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL,

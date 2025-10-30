@@ -57,7 +57,7 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
 
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
-    cfg.setProperty(Property.GC_PORT, "0");
+    cfg.setProperty(Property.RPC_BIND_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
   }
 
