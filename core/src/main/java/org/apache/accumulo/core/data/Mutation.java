@@ -41,6 +41,8 @@ import org.apache.hadoop.io.WritableUtils;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Mutation represents an action that manipulates a row in a table. A mutation holds a list of
  * column/value pairs that represent an atomic set of modifications to make to a row.
@@ -69,6 +71,8 @@ import com.google.common.base.Preconditions;
  * support different subset of fields and types. The functionality of all of these {@code put}
  * methods and more is provided by the new fluent {@link #at()} method added in 2.0.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Mutation implements Writable {
 
   /**
