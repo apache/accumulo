@@ -141,7 +141,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
           } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_FAILURES_CONSECUTIVE)) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
             LOG.info("{}", m);
-            consecutive.set(Long.parseLong(m.getValue()));
+            consecutive.getAndUpdate(prev -> Math.max(prev, Long.parseLong(m.getValue())));
           }
 
         }
