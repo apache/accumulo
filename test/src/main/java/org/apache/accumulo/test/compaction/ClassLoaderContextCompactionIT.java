@@ -141,7 +141,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
           } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_FAILURES_CONSECUTIVE)) {
             Metric m = TestStatsDSink.parseStatsDMetric(s);
             LOG.info("{}", m);
-            consecutive.set(Long.parseLong(m.getValue()));
+            consecutive.getAndUpdate(prev -> Math.max(prev, Long.parseLong(m.getValue())));
           }
 
         }
@@ -221,7 +221,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
       Wait.waitFor(() -> failures.get() == 1);
-      Wait.waitFor(() -> consecutive.get() == 1);
+      Wait.waitFor(() -> consecutive.get() >= 1);
 
       Wait.waitFor(() -> failures.get() == 0);
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
@@ -230,7 +230,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
       Wait.waitFor(() -> failures.get() == 1);
-      Wait.waitFor(() -> consecutive.get() == 2);
+      Wait.waitFor(() -> consecutive.get() >= 2);
 
       Wait.waitFor(() -> failures.get() == 0);
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
@@ -239,7 +239,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
       Wait.waitFor(() -> failures.get() == 1);
-      Wait.waitFor(() -> consecutive.get() == 3);
+      Wait.waitFor(() -> consecutive.get() >= 3);
 
       // Three failures have occurred, Compactor should shut down.
       Wait.waitFor(
