@@ -2082,7 +2082,7 @@ public enum Property {
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey())
-        || key.startsWith(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey())
+        || key.equals(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey())
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
         || key.startsWith(REPLICATION_PREFIX.getKey());
   }
