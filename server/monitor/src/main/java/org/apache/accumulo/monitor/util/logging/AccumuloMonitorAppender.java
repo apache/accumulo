@@ -146,7 +146,9 @@ public class AccumuloMonitorAppender extends AbstractAppender {
     this.queueSize = queueSize;
     this.async = async;
 
-    final var stat = new ZcStat();
+    // Avoids object allocations in the lambda
+    ThreadLocal<ZcStat> threadLocalStat = ThreadLocal.withInitial(ZcStat::new);
+
     this.monitorLocator = () -> {
       // lazily set up context/path
       if (context == null) {
@@ -154,7 +156,12 @@ public class AccumuloMonitorAppender extends AbstractAppender {
         path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       }
       // get the current location from the cache
+      var stat = threadLocalStat.get();
+      stat.clear();
       byte[] loc = context.getZooCache().get(path, stat);
+      if (loc == null) {
+        return Optional.empty();
+      }
       Pair<Long,Optional<URI>> last = lastResult;
       if (stat.getMzxid() != last.getFirst()) {
         // only create new objects if there's a change
