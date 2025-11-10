@@ -78,6 +78,7 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
+import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -495,6 +496,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         continue;
       }
 
+      RecoveryManager.RecoverySession recoverySession =
+          manager.recoveryManager.newRecoverySession();
+
       final TabletMetadata tm = mti.getTabletMetadata();
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
@@ -650,7 +654,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // have been sorted so that recovery can occur. Delay the hosting of
           // the Tablet until the sorting is finished.
           if ((state != TabletState.HOSTED && actions.contains(ManagementAction.NEEDS_RECOVERY))
-              && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
+              && recoverySession.recoverLogs(tm.getLogs())) {
             LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
                 tm.getLogs().size());
             continue;
