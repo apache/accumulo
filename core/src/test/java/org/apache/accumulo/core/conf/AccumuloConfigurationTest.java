@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.conf;
 
 import static org.apache.accumulo.core.conf.Property.TABLE_ITERATOR_MINC_PREFIX;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -59,80 +60,59 @@ public class AccumuloConfigurationTest {
 
   @Test
   public void testGetSinglePort() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "9997");
-    int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    int expected = 25000;
+    cc.set(Property.RPC_BIND_PORT, Integer.toString(expected));
+    int[] ports = cc.getPort(Property.RPC_BIND_PORT);
     assertEquals(1, ports.length);
-    assertEquals(9997, ports[0]);
+    assertEquals(expected, ports[0]);
   }
 
   @Test
   public void testGetAnyPort() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "0");
-    int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    int expected = 0;
+    cc.set(Property.RPC_BIND_PORT, Integer.toString(expected));
+    int[] ports = cc.getPort(Property.RPC_BIND_PORT);
     assertEquals(1, ports.length);
-    assertEquals(0, ports[0]);
+    assertEquals(expected, ports[0]);
   }
 
   @Test
-  public void testGetInvalidPort() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "1020");
-    int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-    assertEquals(1, ports.length);
-    assertEquals(Integer.parseInt(Property.TSERV_CLIENTPORT.getDefaultValue()), ports[0]);
+  public void testGetInvalidPortFallsBackToDefaultRange() {
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    cc.set(Property.RPC_BIND_PORT, "1020");
+    int[] ports = cc.getPort(Property.RPC_BIND_PORT);
+    int[] defaultPorts = DefaultConfiguration.getInstance().getPort(Property.RPC_BIND_PORT);
+    assertArrayEquals(defaultPorts, ports);
   }
 
   @Test
   public void testGetPortRange() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "9997-9999");
-    int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-    assertEquals(3, ports.length);
-    assertEquals(9997, ports[0]);
-    assertEquals(9998, ports[1]);
-    assertEquals(9999, ports[2]);
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    cc.set(Property.RPC_BIND_PORT, "36000-36002");
+    int[] ports = cc.getPort(Property.RPC_BIND_PORT);
+    assertArrayEquals(new int[] {36000, 36001, 36002}, ports);
   }
 
   @Test
-  public void testGetPortRangeInvalidLow() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "1020-1026");
-    assertThrows(IllegalArgumentException.class, () -> {
-      int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-      assertEquals(3, ports.length);
-      assertEquals(1024, ports[0]);
-      assertEquals(1025, ports[1]);
-      assertEquals(1026, ports[2]);
-    });
-  }
+  public void testGetPortRangeInvalid() {
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    cc.set(Property.RPC_BIND_PORT, "1020-1026");
+    var msg =
+        assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.RPC_BIND_PORT));
+    assertTrue(msg.getMessage().startsWith("Port range bounds must be 1024 to 65535"));
 
-  @Test
-  public void testGetPortRangeInvalidHigh() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "65533-65538");
-    assertThrows(IllegalArgumentException.class, () -> {
-      int[] ports = cc.getPort(Property.TSERV_CLIENTPORT);
-      assertEquals(3, ports.length);
-      assertEquals(65533, ports[0]);
-      assertEquals(65534, ports[1]);
-      assertEquals(65535, ports[2]);
-    });
+    cc.set(Property.RPC_BIND_PORT, "65533-65538");
+    msg = assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.RPC_BIND_PORT));
+    assertTrue(msg.getMessage().startsWith("Port range bounds must be 1024 to 65535"));
   }
 
   @Test
   public void testGetPortInvalidSyntax() {
-    AccumuloConfiguration c = DefaultConfiguration.getInstance();
-    ConfigurationCopy cc = new ConfigurationCopy(c);
-    cc.set(Property.TSERV_CLIENTPORT, "[65533,65538]");
-    assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.TSERV_CLIENTPORT));
+    ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    cc.set(Property.RPC_BIND_PORT, "bad-port");
+    assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.RPC_BIND_PORT));
   }
 
   private static class TestConfiguration extends AccumuloConfiguration {

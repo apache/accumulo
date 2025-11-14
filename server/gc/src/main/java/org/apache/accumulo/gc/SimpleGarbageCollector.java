@@ -421,7 +421,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private void startStatsService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getGcTProcessor(this, this, getContext());
-    IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
+    IntStream port = getConfiguration().getPortStream(Property.RPC_BIND_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getBindAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
     updateThriftServer(() -> {
@@ -429,7 +429,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           processor, getContext().getInstanceID(), this.getClass().getSimpleName(), 2,
           ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
           getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
+          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
           addresses);
     }, true);
   }
