@@ -121,8 +121,8 @@ public class CleanUp extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     CompactionConfigStorage.deleteConfig(manager.getContext(), fateId);
-    Utils.getReadLock(manager, tableId, fateId, LockRange.infinite()).unlock();
-    Utils.getReadLock(manager, namespaceId, fateId, LockRange.infinite()).unlock();
+    Utils.getReadLock(manager.getContext(), tableId, fateId, LockRange.infinite()).unlock();
+    Utils.getReadLock(manager.getContext(), namespaceId, fateId, LockRange.infinite()).unlock();
     return null;
   }
 }

@@ -47,6 +47,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.server.AccumuloDataVersion;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,16 +79,17 @@ public class ImportTable extends ManagerRepo {
   public long isReady(FateId fateId, Manager environment) throws Exception {
     long result = 0;
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), fateId);
+      result += Utils.reserveHdfsDirectory(environment.getContext(),
+          new Path(dm.exportDir).toString(), fateId);
     }
-    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, fateId, LockType.READ,
-        true, TableOperation.IMPORT);
+    result += Utils.reserveNamespace(environment.getContext(), tableInfo.namespaceId, fateId,
+        LockType.READ, true, TableOperation.IMPORT);
     return result;
   }
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
-    checkVersions(env);
+    checkVersions(env.getContext());
 
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
@@ -102,7 +104,7 @@ public class ImportTable extends ManagerRepo {
 
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
-  public void checkVersions(Manager env) throws AcceptableThriftTableOperationException {
+  public void checkVersions(ServerContext ctx) throws AcceptableThriftTableOperationException {
     Set<String> exportDirs =
         tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toSet());
 
@@ -112,11 +114,11 @@ public class ImportTable extends ManagerRepo {
     Integer dataVersion = null;
 
     try {
-      Path exportFilePath = TableOperationsImpl.findExportFile(env.getContext(), exportDirs);
+      Path exportFilePath = TableOperationsImpl.findExportFile(ctx, exportDirs);
       tableInfo.exportFile = exportFilePath.toString();
       log.info("Export file is {}", tableInfo.exportFile);
 
-      ZipInputStream zis = new ZipInputStream(env.getVolumeManager().open(exportFilePath));
+      ZipInputStream zis = new ZipInputStream(ctx.getVolumeManager().open(exportFilePath));
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -156,10 +158,10 @@ public class ImportTable extends ManagerRepo {
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), fateId);
+      Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceId, fateId, LockType.READ);
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {

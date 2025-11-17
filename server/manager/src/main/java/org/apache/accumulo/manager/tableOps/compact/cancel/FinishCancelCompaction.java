@@ -39,8 +39,8 @@ class FinishCancelCompaction extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) {
-    Utils.unreserveTable(environment, tableId, fateId, LockType.READ);
-    Utils.unreserveNamespace(environment, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(environment.getContext(), tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.READ);
     return null;
   }
 

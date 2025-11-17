@@ -39,8 +39,9 @@ public class DeleteNamespace extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, fateId, LockType.WRITE, true,
-        TableOperation.DELETE);
+    return Utils.reserveNamespace(environment.getContext(), namespaceId, fateId, LockType.WRITE,
+        true, TableOperation.DELETE);
+
   }
 
   @Override
@@ -51,7 +52,7 @@ public class DeleteNamespace extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager environment) {
-    Utils.unreserveNamespace(environment, namespaceId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.WRITE);
   }
 
 }

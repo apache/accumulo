@@ -218,22 +218,26 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void addGetSplitsTest() throws IOException {
+    String table = getUniqueNames(1)[0];
     Shell.log.debug("Starting addGetSplits test ----------------------------");
     exec("addsplits arg", false, "java.lang.IllegalStateException: Not in a table context");
-    exec("createtable test", true);
+    exec("createtable " + table, true);
     exec("addsplits 1 \\x80", true);
     exec("getsplits", true, "1\n\\x80");
     exec("getsplits -m 1", true, "1");
     exec("getsplits -b64", true, "MQ==\ngA==");
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
   public void insertDeleteScanTest() throws IOException {
+    String[] tables = getUniqueNames(2);
+    String table1 = tables[0];
+    String table2 = tables[1];
     Shell.log.debug("Starting insertDeleteScan test ------------------------");
     exec("insert r f q v", false, "java.lang.IllegalStateException: Not in a table context");
     exec("delete r f q", false, "java.lang.IllegalStateException: Not in a table context");
-    exec("createtable test", true);
+    exec("createtable " + table1, true);
     exec("insert r f q v", true);
     exec("scan", true, "r f:q []\tv");
     exec("delete r f q", true);
@@ -250,49 +254,54 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("scan -e \\x8f", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
     exec("delete \\x90 \\xa0 \\xb0", true);
     exec("scan", true, "\\x90 \\xA0:\\xB0 []\t\\xC0", false);
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + table1 + " -f", true, "Table: [" + table1 + "] has been deleted");
     // Add tests to verify use of --table parameter
-    exec("createtable test2", true);
+    exec("createtable " + table2, true);
     exec("notable", true);
     exec("insert r f q v", false, "java.lang.IllegalStateException: Not in a table context");
-    exec("insert r1 f1 q1 v1 -t test2", true);
-    exec("insert r2 f2 q2 v2 --table test2", true);
+    exec("insert r1 f1 q1 v1 -t " + table2, true);
+    exec("insert r2 f2 q2 v2 --table " + table2, true);
     exec("delete r1 f1 q1 -t", false,
         "org.apache.commons.cli.MissingArgumentException: Missing argument for option:");
     exec("delete r1 f1 q1 -t  test3", false,
         "org.apache.accumulo.core.client.TableNotFoundException:");
-    exec("scan -t test2", true, "r1 f1:q1 []\tv1\nr2 f2:q2 []\tv2");
-    exec("delete r1 f1 q1 -t test2", true);
-    exec("scan -t test2", true, "r1 f1:q1 []\tv1", false);
-    exec("scan -t test2", true, "r2 f2:q2 []\tv2", true);
-    exec("delete r2 f2 q2 --table test2", true);
-    exec("scan -t test2", true, "r1 f1:q1 []\tv1", false);
-    exec("scan -t test2", true, "r2 f2:q2 []\tv2", false);
-    exec("deletetable test2 -f", true, "Table: [test2] has been deleted");
+    exec("scan -t " + table2, true, "r1 f1:q1 []\tv1\nr2 f2:q2 []\tv2");
+    exec("delete r1 f1 q1 -t " + table2, true);
+    exec("scan -t " + table2, true, "r1 f1:q1 []\tv1", false);
+    exec("scan -t " + table2, true, "r2 f2:q2 []\tv2", true);
+    exec("delete r2 f2 q2 --table " + table2, true);
+    exec("scan -t " + table2, true, "r1 f1:q1 []\tv1", false);
+    exec("scan -t " + table2, true, "r2 f2:q2 []\tv2", false);
+    exec("deletetable " + table2 + " -f", true, "Table: [" + table2 + "] has been deleted");
   }
 
   @Test
   public void insertIntoSpecifiedTableTest() throws IOException {
+    String[] tables = getUniqueNames(3);
+    String table1 = tables[0];
+    String table2 = tables[1];
+    String table3 = tables[2];
     Shell.log.debug("Starting insertIntoSpecifiedTableTest -----------------");
     // create two tables for insertion tests
-    exec("createtable tab1", true);
-    exec("createtable tab2", true);
-    // insert data into tab2 while in tab2 context
-    exec("insert row1 f q tab2", true);
+    exec("createtable " + table1, true);
+    exec("createtable " + table2, true);
+    // insert data into table2 while in table2 context
+    exec("insert row1 f q " + table2, true);
     // insert another with the table and t argument to verify also works
-    exec("insert row2 f q tab2 --table tab2", true);
-    exec("insert row3 f q tab2 -t tab2", true);
+    exec("insert row2 f q " + table2 + " --table " + table2, true);
+    exec("insert row3 f q " + table2 + " -t " + table2, true);
     // leave all table contexts
     exec("notable", true);
     // without option cannot insert when not in a table context, also cannot add to a table
     // using 'accumulo shell -e "insert ...." fron command line due to no table context being set.
-    exec("insert row1 f q tab1", false, "java.lang.IllegalStateException: Not in a table context");
-    // but using option can insert to a table with tablename option without being in a table context
-    exec("insert row1 f q tab1 --table tab1", true);
-    exec("insert row4 f q tab2 -t tab2", true);
-    exec("table tab2", true);
+    exec("insert row1 f q " + table1, false,
+        "java.lang.IllegalStateException: Not in a table context");
+    // but using option can insert to a table with tablename option while out of context
+    exec("insert row1 f q " + table1 + " --table " + table1, true);
+    exec("insert row4 f q " + table2 + " -t " + table2, true);
+    exec("table " + table2, true);
     // can also insert into another table even if a different table context
-    exec("insert row2 f q tab1 -t tab1", true);
+    exec("insert row2 f q " + table1 + " -t " + table1, true);
     exec("notable", true);
     // must supply a tablename if option is used
     exec("insert row5 f q tab5 --table", false,
@@ -300,30 +309,31 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("insert row5 f q tab5 --t", false,
         "org.apache.commons.cli.AmbiguousOptionException: Ambiguous option: '--t'");
     // verify expected data is in both tables
-    exec("scan -t tab1", true, "row1 f:q []\ttab1\nrow2 f:q []\ttab1");
-    exec("scan -t tab2", true,
-        "row1 f:q []\ttab2\nrow2 f:q []\ttab2\nrow3 f:q []\ttab2\nrow4 f:q []\ttab2");
+    exec("scan -t " + table1, true, "row1 f:q []\t" + table1 + "\nrow2 f:q []\t" + table1);
+    exec("scan -t " + table2, true, "row1 f:q []\t" + table2 + "\nrow2 f:q []\t" + table2
+        + "\nrow3 f:q []\t" + table2 + "\nrow4 f:q []\t" + table2);
     // check that if in table context, inserting into a non-existent table does not change context
-    exec("createtable tab3", true);
-    exec("table tab3", true);
-    exec("insert row1 f1 q1 tab3", true);
-    exec("insert row2 f2 q2 tab3 --table idontexist", false,
+    exec("createtable " + table3, true);
+    exec("table " + table3, true);
+    exec("insert row1 f1 q1 " + table3, true);
+    exec("insert row2 f2 q2 " + table3 + " --table idontexist", false,
         "org.apache.accumulo.core.client.TableNotFoundException:");
-    exec("insert row2 f2 q2 tab3 -t idontexist", false,
+    exec("insert row2 f2 q2 " + table3 + " -t idontexist", false,
         "org.apache.accumulo.core.client.TableNotFoundException:");
-    exec("insert row3 f3 q3 tab3", true); // should be able to insert w/o changing tables
-    // verify expected data is in tab3
-    exec("scan", true, "row1 f1:q1 []\ttab3\nrow3 f3:q3 []\ttab3");
+    exec("insert row3 f3 q3 " + table3, true); // should be able to insert w/o changing tables
+    // verify expected data is in table3
+    exec("scan", true, "row1 f1:q1 []\t" + table3 + "\nrow3 f3:q3 []\t" + table3);
     // cleanup
-    exec("deletetable tab1 -f", true, "Table: [tab1] has been deleted");
-    exec("deletetable tab2 -f", true, "Table: [tab2] has been deleted");
-    exec("deletetable tab3 -f", true, "Table: [tab3] has been deleted");
+    exec("deletetable " + table1 + " -f", true, "Table: [" + table1 + "] has been deleted");
+    exec("deletetable " + table2 + " -f", true, "Table: [" + table2 + "] has been deleted");
+    exec("deletetable " + table3 + " -f", true, "Table: [" + table3 + "] has been deleted");
   }
 
   @Test
   public void deleteManyTest() throws IOException {
+    String table = getUniqueNames(1)[0];
     exec("deletemany", false, "java.lang.IllegalStateException: Not in a table context");
-    exec("createtable test", true);
+    exec("createtable " + table, true);
     exec("deletemany", true, "\n");
 
     exec("insert 0 0 0 0 -ts 0");
@@ -345,7 +355,7 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("deletemany -r 2 -f -st", true, "[DELETED] 2 2:2 [] 2");
 
     exec("setauths -c ", true);
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
@@ -376,46 +386,51 @@ public class ShellIT extends SharedMiniClusterBase {
   @Test
   public void duContextTest() throws Exception {
     Shell.log.debug("Starting du context test --------------------------");
-    exec("createtable t", true);
-    exec("du", true, "0 [t]");
-    exec("deletetable t -f", true, "Table: [t] has been deleted");
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table, true);
+    exec("du", true, "0 [" + table + "]");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
   public void duTest() throws IOException {
     Shell.log.debug("Starting DU test --------------------------");
-    exec("createtable t", true);
-    exec("du t", true, "0 [t]");
-    exec("deletetable t -f", true, "Table: [t] has been deleted");
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table, true);
+    exec("du " + table, true, "0 [" + table + "]");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
   public void duPatternTest() throws IOException {
     Shell.log.debug("Starting DU with pattern test --------------------------");
-    exec("createtable t", true);
-    exec("createtable tt", true);
-    exec("du -p t.*", true, "0 [t, tt]");
-    exec("deletetable t -f", true, "Table: [t] has been deleted");
-    exec("deletetable tt -f", true, "Table: [tt] has been deleted");
+    String tableBase = getUniqueNames(1)[0];
+    String table1 = tableBase + "_1";
+    String table2 = tableBase + "_2";
+    exec("createtable " + table1, true);
+    exec("createtable " + table2, true);
+    exec("du -p " + tableBase + ".*", true, "0 [" + table1 + ", " + table2 + "]");
+    exec("deletetable " + table1 + " -f", true, "Table: [" + table1 + "] has been deleted");
+    exec("deletetable " + table2 + " -f", true, "Table: [" + table2 + "] has been deleted");
   }
 
   @Test
   public void scanTimestampTest() throws IOException {
-    String name = getUniqueNames(1)[0];
+    String table = getUniqueNames(1)[0];
     Shell.log.debug("Starting scanTimestamp test ------------------------");
-    exec("createtable " + name, true);
+    exec("createtable " + table, true);
     exec("insert r f q v -ts 0", true);
     exec("scan -st", true, "r f:q [] 0\tv");
     exec("scan -st -f 0", true, " : [] 0\t");
     exec("deletemany -f", true);
-    exec("deletetable " + name + " -f", true, "Table: [" + name + "] has been deleted");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
   public void scanFewTest() throws IOException {
     Shell.log.debug("Starting scanFew test ------------------------");
-    String name = getUniqueNames(1)[0];
-    exec("createtable " + name, true);
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table, true);
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
     exec("setauths -s 12345678", true);
@@ -424,14 +439,15 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("scan -st", true, expected);
     exec("scan -st -f 5", true, expectedFew);
     exec("setauths -c", true);
-    exec("deletetable " + name + " -f", true, "Table: [" + name + "] has been deleted");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
   public void grepTest() throws IOException {
     Shell.log.debug("Starting grep test --------------------------");
     exec("grep", false, "java.lang.IllegalStateException: Not in a table context");
-    exec("createtable t", true);
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table, true);
     exec("setauths -s vis", true);
     exec("insert r f q v -ts 0 -l vis", true);
 
@@ -446,12 +462,12 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("grep r -st", true, expectedTimestamp);
     exec("grep r -st -f 1", true, expectedTimestamp);
     exec("setauths -c", true);
-    exec("deletetable t -f", true, "Table: [t] has been deleted");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   @Test
   void configPropertyTest() throws IOException {
-    final String table = "testtable";
+    final String table = getUniqueNames(1)[0];
     final String filterProperty = "config -t " + table + " -f ";
     final String setProperty = "config -t " + table + " -s ";
     List<String> expectedStrings = new ArrayList<>();
@@ -501,7 +517,7 @@ public class ShellIT extends SharedMiniClusterBase {
   void configTest() throws IOException {
     Shell.log.debug("Starting config property type test -------------------------");
 
-    String testTable = "testConfig";
+    String testTable = getUniqueNames(1)[0];
     exec("createtable " + testTable, true);
 
     for (Property property : Property.values()) {
@@ -625,7 +641,6 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void propFileNotFoundTest() throws IOException {
-
     Path fileName = Path.of(tempDir.getPath(), "propFile.shellit");
 
     Shell.log.debug("Starting prop file not found test --------------------------");
@@ -643,20 +658,20 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void createTableWithPropsFile() throws Exception {
-    String tableName = "testProps";
     File file = File.createTempFile("propFile", ".conf", tempDir);
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
     writer.println("table.custom.test1=true");
     writer.println("table.custom.test2=false");
     writer.close();
-    exec("createtable " + tableName + " --propFile " + file.getAbsolutePath()
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table + " --propFile " + file.getAbsolutePath()
         + " -prop table.custom.test3=optional", true);
 
-    assertTrue(shell.getAccumuloClient().tableOperations().exists(tableName));
+    assertTrue(shell.getAccumuloClient().tableOperations().exists(table));
     Map<String,String> tableIds = shell.getAccumuloClient().tableOperations().tableIdMap();
 
     TableConfiguration tableConf =
-        getCluster().getServerContext().getTableConfiguration(TableId.of(tableIds.get(tableName)));
+        getCluster().getServerContext().getTableConfiguration(TableId.of(tableIds.get(table)));
     assertEquals("true", tableConf.get("table.custom.test1"));
     assertEquals("false", tableConf.get("table.custom.test2"));
     assertEquals("optional", tableConf.get("table.custom.test3"));
@@ -675,7 +690,8 @@ public class ShellIT extends SharedMiniClusterBase {
   @Test
   public void setIterTest() throws IOException {
     Shell.log.debug("Starting setiter test --------------------------");
-    exec("createtable t", true);
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table, true);
 
     String cmdJustClass = "setiter -class VersioningIterator -p 1";
     exec(cmdJustClass, false, "java.lang.IllegalArgumentException", false);
@@ -700,7 +716,7 @@ public class ShellIT extends SharedMiniClusterBase {
 
     // TODO can't verify this as config -t fails, functionality verified in ShellServerIT
 
-    exec("deletetable t -f", true, "Table: [t] has been deleted");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
   // This test addresses a bug (#2356) where if a table with a tableId of character length 1
@@ -779,7 +795,8 @@ public class ShellIT extends SharedMiniClusterBase {
   @Test
   public void testMaxSplitsOption() throws Exception {
     Shell.log.debug("Starting testMaxSplits test ------------------");
-    exec("createtable maxtab", true);
+    String table = getUniqueNames(1)[0];
+    exec("createtable " + table, true);
     exec("addsplits 0 1 2 3 4 5 6 7 8 9 a b c d e f g h i j k l m n o p q r s t", true);
     exec("getsplits -m 31", true,
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
@@ -796,5 +813,6 @@ public class ShellIT extends SharedMiniClusterBase {
     // are returned.
     exec("getsplits -m 0", true,
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
+    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 }

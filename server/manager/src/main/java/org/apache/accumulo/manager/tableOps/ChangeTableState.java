@@ -55,8 +55,9 @@ public class ChangeTableState extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true, top)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, top, LockRange.infinite());
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true, top)
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.WRITE, true, top,
+            LockRange.infinite());
   }
 
   @Override
@@ -67,8 +68,8 @@ public class ChangeTableState extends ManagerRepo {
     }
 
     env.getTableManager().transitionTableState(tableId, ts, expectedCurrStates);
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);
     env.getEventCoordinator().event(tableId, "Set table state of %s to %s", tableId, ts);
     return null;
@@ -76,7 +77,7 @@ public class ChangeTableState extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
   }
 }

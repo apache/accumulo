@@ -42,9 +42,10 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.RENAME);
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.WRITE, true,
+            TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
@@ -68,8 +69,8 @@ public class RenameTable extends ManagerRepo {
 
       context.clearTableListCache();
     } finally {
-      Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
-      Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(manager.getContext(), tableId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId, LockType.READ);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -80,8 +81,8 @@ public class RenameTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 
 }

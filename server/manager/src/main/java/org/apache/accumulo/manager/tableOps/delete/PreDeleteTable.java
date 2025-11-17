@@ -31,6 +31,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
 
@@ -52,23 +53,23 @@ public class PreDeleteTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.DELETE);
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
+            TableOperation.DELETE);
   }
 
-  private void preventFutureCompactions(Manager environment)
+  private void preventFutureCompactions(ServerContext ctx)
       throws KeeperException, InterruptedException {
-    String deleteMarkerPath =
-        createDeleteMarkerPath(environment.getContext().getInstanceID(), tableId);
-    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
+    String deleteMarkerPath = createDeleteMarkerPath(ctx.getInstanceID(), tableId);
+    ZooReaderWriter zoo = ctx.getZooSession().asReaderWriter();
     zoo.putPersistentData(deleteMarkerPath, new byte[] {}, NodeExistsPolicy.SKIP);
   }
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     try {
-      preventFutureCompactions(environment);
+      preventFutureCompactions(environment.getContext());
 
       var idsToCancel =
           CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
@@ -78,15 +79,15 @@ public class PreDeleteTable extends ManagerRepo {
       }
       return new DeleteTable(namespaceId, tableId);
     } finally {
-      Utils.unreserveTable(environment, tableId, fateId, LockType.READ);
-      Utils.unreserveNamespace(environment, namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(environment.getContext(), tableId, fateId, LockType.READ);
+      Utils.unreserveNamespace(environment.getContext(), namespaceId, fateId, LockType.READ);
     }
   }
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveTable(env, tableId, fateId, LockType.READ);
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 
 }

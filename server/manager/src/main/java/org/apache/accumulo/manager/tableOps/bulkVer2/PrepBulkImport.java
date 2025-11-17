@@ -88,7 +88,7 @@ public class PrepBulkImport extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    long wait = Utils.reserveTable(manager, bulkInfo.tableId, fateId,
+    long wait = Utils.reserveTable(manager.getContext(), bulkInfo.tableId, fateId,
         DistributedReadWriteLock.LockType.READ, true, TableOperation.BULK_IMPORT,
         LockRange.of(bulkInfo.firstSplit, bulkInfo.lastSplit));
     if (wait > 0) {
@@ -99,7 +99,7 @@ public class PrepBulkImport extends ManagerRepo {
       return 500;
     }
 
-    return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, fateId);
+    return Utils.reserveHdfsDirectory(manager.getContext(), bulkInfo.sourceDir, fateId);
   }
 
   @VisibleForTesting
@@ -319,8 +319,9 @@ public class PrepBulkImport extends ManagerRepo {
   @Override
   public void undo(FateId fateId, Manager environment) throws Exception {
     // unreserve sourceDir/error directories
-    Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, fateId);
-    Utils.getReadLock(environment, bulkInfo.tableId, fateId, LockRange.infinite()).unlock();
+    Utils.unreserveHdfsDirectory(environment.getContext(), bulkInfo.sourceDir, fateId);
+    Utils.getReadLock(environment.getContext(), bulkInfo.tableId, fateId, LockRange.infinite())
+        .unlock();
     environment.removeBulkImportStatus(bulkInfo.sourceDir);
   }
 }
