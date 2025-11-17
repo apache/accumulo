@@ -43,10 +43,10 @@ public class TableRangeOp extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, data.namespaceId, fateId, LockType.READ, true,
+    return Utils.reserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ, true,
         TableOperation.MERGE)
-        + Utils.reserveTable(env, data.tableId, fateId, LockType.WRITE, true, TableOperation.MERGE,
-            LockRange.of(data.getReserveExtent()));
+        + Utils.reserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE, true,
+            TableOperation.MERGE, LockRange.of(data.getReserveExtent()));
   }
 
   public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,
@@ -73,7 +73,7 @@ public class TableRangeOp extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    Utils.unreserveNamespace(env, data.namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(env, data.tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE);
   }
 }

@@ -48,10 +48,10 @@ public class LockTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    return Utils.reserveNamespace(manager, namespaceId, fateId,
+    return Utils.reserveNamespace(manager.getContext(), namespaceId, fateId,
         DistributedReadWriteLock.LockType.READ, true, TableOperation.SET_TABLET_AVAILABILITY)
-        + Utils.reserveTable(manager, tableId, fateId, DistributedReadWriteLock.LockType.WRITE,
-            true, TableOperation.SET_TABLET_AVAILABILITY);
+        + Utils.reserveTable(manager.getContext(), tableId, fateId,
+            DistributedReadWriteLock.LockType.WRITE, true, TableOperation.SET_TABLET_AVAILABILITY);
   }
 
   @Override
@@ -61,7 +61,9 @@ public class LockTable extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, fateId, DistributedReadWriteLock.LockType.READ);
-    Utils.unreserveTable(manager, tableId, fateId, DistributedReadWriteLock.LockType.WRITE);
+    Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId,
+        DistributedReadWriteLock.LockType.READ);
+    Utils.unreserveTable(manager.getContext(), tableId, fateId,
+        DistributedReadWriteLock.LockType.WRITE);
   }
 }

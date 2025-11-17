@@ -44,7 +44,7 @@ class FinishCreateNamespace extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) {
 
-    Utils.unreserveNamespace(env, namespaceInfo.namespaceId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceInfo.namespaceId, fateId, LockType.WRITE);
 
     env.getEventCoordinator().event("Created namespace %s ", namespaceInfo.namespaceName);
 

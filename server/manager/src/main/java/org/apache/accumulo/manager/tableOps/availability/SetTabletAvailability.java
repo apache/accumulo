@@ -150,8 +150,8 @@ public class SetTabletAvailability extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(manager.getContext(), tableId, fateId, LockType.WRITE);
     return null;
   }
 }

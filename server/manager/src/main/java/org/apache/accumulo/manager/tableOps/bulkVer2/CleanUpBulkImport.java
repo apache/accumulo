@@ -75,8 +75,8 @@ public class CleanUpBulkImport extends ManagerRepo {
         firstSplit, lastSplit);
     removeBulkLoadEntries(ample, info.tableId, fateId, firstSplit, lastSplit);
 
-    Utils.unreserveHdfsDirectory(manager, info.sourceDir, fateId);
-    Utils.getReadLock(manager, info.tableId, fateId, LockRange.infinite()).unlock();
+    Utils.unreserveHdfsDirectory(manager.getContext(), info.sourceDir, fateId);
+    Utils.getReadLock(manager.getContext(), info.tableId, fateId, LockRange.infinite()).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);

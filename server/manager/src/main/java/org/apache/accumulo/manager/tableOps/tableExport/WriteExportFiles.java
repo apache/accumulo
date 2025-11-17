@@ -94,9 +94,9 @@ class WriteExportFiles extends ManagerRepo {
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ,
-        true, TableOperation.EXPORT)
-        + Utils.reserveTable(manager, tableInfo.tableID, fateId, LockType.READ, true,
+    long reserved = Utils.reserveNamespace(manager.getContext(), tableInfo.namespaceID, fateId,
+        LockType.READ, true, TableOperation.EXPORT)
+        + Utils.reserveTable(manager.getContext(), tableInfo.tableID, fateId, LockType.READ, true,
             TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
@@ -144,16 +144,17 @@ class WriteExportFiles extends ManagerRepo {
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ);
-    Utils.unreserveTable(manager, tableInfo.tableID, fateId, LockType.READ);
-    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), fateId);
+    Utils.unreserveNamespace(manager.getContext(), tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(manager.getContext(), tableInfo.tableID, fateId, LockType.READ);
+    Utils.unreserveHdfsDirectory(manager.getContext(), new Path(tableInfo.exportDir).toString(),
+        fateId);
     return null;
   }
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveNamespace(env, tableInfo.namespaceID, fateId, LockType.READ);
-    Utils.unreserveTable(env, tableInfo.tableID, fateId, LockType.READ);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableID, fateId, LockType.READ);
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,

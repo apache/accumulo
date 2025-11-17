@@ -79,10 +79,11 @@ public class ImportTable extends ManagerRepo {
   public long isReady(FateId fateId, Manager environment) throws Exception {
     long result = 0;
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), fateId);
+      result += Utils.reserveHdfsDirectory(environment.getContext(),
+          new Path(dm.exportDir).toString(), fateId);
     }
-    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, fateId, LockType.READ,
-        true, TableOperation.IMPORT);
+    result += Utils.reserveNamespace(environment.getContext(), tableInfo.namespaceId, fateId,
+        LockType.READ, true, TableOperation.IMPORT);
     return result;
   }
 
@@ -157,10 +158,10 @@ public class ImportTable extends ManagerRepo {
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), fateId);
+      Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceId, fateId, LockType.READ);
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {
