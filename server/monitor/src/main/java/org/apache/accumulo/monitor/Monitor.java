@@ -462,8 +462,8 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private ServletHolder getResourcesServlet() {
     ServletHolder holder = new ServletHolder("resources", ResourceServlet.class);
     holder.setInitParameter("dirAllowed", "false");
-    holder.setInitParameter("baseResource", Monitor.class.getClassLoader()
-        .getResource("org/apache/accumulo/monitor/resources").toExternalForm());
+    holder.setInitParameter("baseResource",
+        Monitor.class.getResource("resources").toExternalForm());
     return holder;
   }
 
