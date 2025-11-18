@@ -1125,6 +1125,13 @@ public enum Property {
           + " when regular compactions are not running. Idle compactions only take"
           + " place for tablets that have one or more RFiles.",
       "1.3.5"),
+  TABLE_SPLIT_METASPLIT("table.split.meta", "", PropertyType.STRING,"Controls the number of " +
+          "metadata tablets a table has. When this property is set metadata tablets will automatically be added " +
+          "based on the number of user tablets. When not set, no metadata tablets are created or removed. The " +
+          "value of this property is a range like 1000-3000. This range determines when metadata tablets should be " +
+          "added or removed based on the number of user tablets a metadata tablet contains. For example for the " +
+          "range 1000-3000 when a metadata tablet contains less than 1000 user tablets its merged away" +
+          "when it contains more than 3000 splits are added to the metadata table.", "2.1.5"),
   TABLE_SPLIT_THRESHOLD("table.split.threshold", "1G", PropertyType.BYTES,
       "A tablet is split when the combined size of RFiles exceeds this amount.", "1.3.5"),
   TABLE_MAX_END_ROW_SIZE("table.split.endrow.size.max", "10k", PropertyType.BYTES,
