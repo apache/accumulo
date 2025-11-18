@@ -96,13 +96,19 @@ public class LoadPlan {
      * row and end row can be null. The start row is exclusive and the end row is inclusive (like
      * Accumulo tablets). A common use case for this would be when files were partitioned using a
      * table's splits. When using this range type, the start and end row must exist as splits in the
-     * table or an exception will be thrown at load time.
+     * table or an exception will be thrown at load time. This RangeType is the most efficient for
+     * accumulo to load, and it enables only loading files to tablets that overlap data in the file.
      */
     TABLE,
     /**
-     * Range that correspond to known rows in a file. For this range type, the start row and end row
-     * must be non-null. The start row and end row are both considered inclusive. At load time,
-     * these data ranges will be mapped to table ranges.
+     * Range that corresponds to the minimum and maximum rows in a file. For this range type, the
+     * start row and end row must be non-null. The start row and end row are both considered
+     * inclusive. At load time, these data ranges will be mapped to table ranges. For this RangeType
+     * accumulo has to do more work at load to map the file range to tablets. Also, this will map a
+     * file to all tablets in the range even if the file has no data for that tablet. For example if
+     * a range overlapped 10 tablets but the file only had data for 8 of those tablets, the file
+     * would still be loaded to all 10. This will not cause problems for scans or compactions other
+     * than the unnecessary work of opening a file and finding it has no data for the tablet.
      */
     FILE
   }
