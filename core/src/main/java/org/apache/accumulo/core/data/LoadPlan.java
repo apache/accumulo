@@ -38,7 +38,13 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
+import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
+import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
@@ -459,6 +465,7 @@ public class LoadPlan {
    * Computes a load plan for a given rfile. This will open the rfile and find every
    * {@link TableSplits} that overlaps rows in the file and add those to the returned load plan.
    *
+   * @return a load plan of type {@link RangeType#TABLE}
    * @since 2.1.4
    */
   public static LoadPlan compute(URI file, SplitResolver splitResolver) throws IOException {
@@ -475,6 +482,7 @@ public class LoadPlan {
    *
    * @param properties used when opening the rfile, see
    *        {@link org.apache.accumulo.core.client.rfile.RFile.ScannerOptions#withTableProperties(Map)}
+   * @return a load plan of type {@link RangeType#TABLE}
    * @since 2.1.4
    */
   public static LoadPlan compute(URI file, Map<String,String> properties,
@@ -509,5 +517,42 @@ public class LoadPlan {
       }
       return builder.build();
     }
+  }
+
+  /**
+   * Computes a load plan for a rfile based on the minimum and maximum row present across all
+   * locality groups.
+   *
+   * @param properties used when opening the rfile, see
+   *        {@link org.apache.accumulo.core.client.rfile.RFile.ScannerOptions#withTableProperties(Map)}
+   *
+   * @return a load plan of type {@link RangeType#FILE}
+   * @since 2.1.5
+   */
+  public static LoadPlan compute(URI file, Map<String,String> properties) throws IOException {
+    var path = new Path(file);
+    var conf = new Configuration();
+    var fs = FileSystem.get(path.toUri(), conf);
+    CryptoService cs =
+        CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, properties);
+    CachableBlockFile.CachableBuilder cb =
+        new CachableBlockFile.CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
+    try (var reader = new org.apache.accumulo.core.file.rfile.RFile.Reader(cb)) {
+      var firstRow = reader.getFirstKey().getRow();
+      var lastRow = reader.getLastKey().getRow();
+      return LoadPlan.builder().loadFileTo(path.getName(), RangeType.FILE, firstRow, lastRow)
+          .build();
+    }
+  }
+
+  /**
+   * Computes a load plan for a rfile based on the minimum and maximum row present across all
+   * locality groups.
+   *
+   * @return a load plan of type {@link RangeType#FILE}
+   * @since 2.1.5
+   */
+  public static LoadPlan compute(URI file) throws IOException {
+    return compute(file, Map.of());
   }
 }

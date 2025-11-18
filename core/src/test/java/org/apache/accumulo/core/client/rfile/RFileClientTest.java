@@ -948,6 +948,47 @@ public class RFileClientTest {
     var expectedLoadPlan =
         LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "001", "009").build();
     assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+    assertEquals(expectedLoadPlan.toJson(), LoadPlan.compute(new URI(testFile)).toJson());
+
+    // put the first row in the default LG and last row in the first LG
+    testFile = createTmpTestFile();
+    var writer2 = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer2) {
+      writer2.startNewLocalityGroup("LG1", "F1");
+      writer2.append(new Key("007", "F1"), "V1");
+      writer2.append(new Key("009", "F1"), "V2");
+      writer2.startNewLocalityGroup("LG2", "F3");
+      writer2.append(new Key("003", "F3"), "V3");
+      writer2.append(new Key("004", "F3"), "V4");
+      writer2.startDefaultLocalityGroup();
+      writer2.append(new Key("002", "F4"), "V5");
+      writer2.append(new Key("008", "F4"), "V6");
+    }
+
+    filename = new Path(testFile).getName();
+    loadPlan = writer2.getLoadPlan(filename);
+    assertEquals(1, loadPlan.getDestinations().size());
+    expectedLoadPlan =
+        LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "002", "009").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+    assertEquals(expectedLoadPlan.toJson(), LoadPlan.compute(new URI(testFile)).toJson());
+
+    // create a file w/ a single LG
+    testFile = createTmpTestFile();
+    var writer3 = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer3) {
+      writer3.startDefaultLocalityGroup();
+      writer3.append(new Key("003", "F4"), "V5");
+      writer3.append(new Key("008", "F4"), "V6");
+    }
+
+    filename = new Path(testFile).getName();
+    loadPlan = writer3.getLoadPlan(filename);
+    assertEquals(1, loadPlan.getDestinations().size());
+    expectedLoadPlan =
+        LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "003", "008").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+    assertEquals(expectedLoadPlan.toJson(), LoadPlan.compute(new URI(testFile)).toJson());
   }
 
   @Test
