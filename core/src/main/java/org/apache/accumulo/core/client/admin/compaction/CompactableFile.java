@@ -20,7 +20,6 @@ package org.apache.accumulo.core.client.admin.compaction;
 
 import java.net.URI;
 
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 
@@ -43,7 +42,7 @@ public interface CompactableFile {
    *
    * @since 4.0.0
    */
-  public Range getRange();
+  public RowRange getRange();
 
   public long getEstimatedSize();
 
@@ -66,6 +65,6 @@ public interface CompactableFile {
    */
   static CompactableFile create(URI uri, RowRange range, long estimatedSize,
       long estimatedEntries) {
-    return new CompactableFileImpl(uri, range.asRange(), estimatedSize, estimatedEntries);
+    return new CompactableFileImpl(uri, range, estimatedSize, estimatedEntries);
   }
 }

@@ -64,7 +64,7 @@ class CompactableFileTest {
     assertEquals(new URI(prefix + "F1.rf"), cf7.getUri());
     assertEquals(100, cf7.getEstimatedSize());
     assertEquals(10, cf7.getEstimatedEntries());
-    assertEquals(RowRange.openClosed("c", "f").asRange(), cf7.getRange());
+    assertEquals(RowRange.openClosed("c", "f"), cf7.getRange());
 
     var cf8 =
         CompactableFile.create(new URI(prefix + "F1.rf"), RowRange.openClosed("x", "z"), 100, 10);
