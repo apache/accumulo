@@ -146,8 +146,8 @@ public class GetSplitsCommand extends Command {
     base64Opt = new Option("b64", "base64encoded", false, "encode the split points");
 
     verboseOpt =
-        new Option("v", "verbose", false, "print out the tablet information with start/end rows, "
-            + "will limit output to matching extents if match arguments are supplied");
+        new Option("v", "verbose", false, "print out the obscured tablets with start/end rows, "
+            + "will limit output to matching obscured extents if match arguments are supplied");
     verboseOpt.setOptionalArg(true);
     verboseOpt.setArgs(Option.UNLIMITED_VALUES);
     verboseOpt.setArgName("match");
