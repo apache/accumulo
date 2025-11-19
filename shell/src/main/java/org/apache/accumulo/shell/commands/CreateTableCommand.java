@@ -99,8 +99,10 @@ public class CreateTableCommand extends Command {
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
-      ntc.withSplits(
-          new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
+      var splits = shellState.getAccumuloClient().tableOperations().listSplits(oldTable);
+      if (!splits.isEmpty()) {
+        ntc.withSplits(new TreeSet<>(splits));
+      }
     }
 
     // exclude parent properties; only valid with copy config

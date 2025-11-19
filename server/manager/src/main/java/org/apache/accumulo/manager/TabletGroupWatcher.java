@@ -84,6 +84,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
+import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.MergeStats;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
@@ -227,6 +228,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
         TabletLists tLists = new TabletLists(manager, currentTServers);
 
+        RecoveryManager.RecoverySession recoverySession =
+            manager.recoveryManager.newRecoverySession();
+
         ManagerState managerState = manager.getManagerState();
         int[] counts = new int[TabletState.values().length];
         stats.begin();
@@ -321,7 +325,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
           if (goal == TabletGoalState.HOSTED) {
             if ((state != TabletState.HOSTED && !tls.walogs.isEmpty())
-                && manager.recoveryManager.recoverLogs(tls.extent, tls.walogs)) {
+                && recoverySession.recoverLogs(tls.walogs)) {
               continue;
             }
             switch (state) {

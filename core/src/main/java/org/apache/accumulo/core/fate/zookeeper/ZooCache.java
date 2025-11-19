@@ -82,6 +82,11 @@ public class ZooCache {
       return ephemeralOwner;
     }
 
+    public void clear() {
+      this.ephemeralOwner = 0;
+      this.mzxid = 0;
+    }
+
     private void set(ZcStat cachedStat) {
       this.ephemeralOwner = cachedStat.ephemeralOwner;
       this.mzxid = cachedStat.mzxid;
