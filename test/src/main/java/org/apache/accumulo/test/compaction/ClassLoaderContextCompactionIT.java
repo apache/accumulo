@@ -161,7 +161,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
             if (m.getTags().containsKey("resource.group")
                 && m.getTags().get("resource.group").equals(GROUP1)) {
               LOG.info("{}", m);
-              consecutive.set(Long.parseLong(m.getValue()));
+              consecutive.getAndUpdate(prev -> Math.max(prev, Long.parseLong(m.getValue())));
             }
           }
 
