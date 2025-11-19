@@ -1065,11 +1065,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     var deadLogs = tLists.logsForDeadServers;
 
     if (!deadTablets.isEmpty()) {
-      Manager.log.debug("{} tablets assigned to dead servers", deadTablets.size());
+      Manager.log.debug("[{}] {} tablets assigned to dead servers", store.name(),
+          deadTablets.size());
       if (Manager.log.isTraceEnabled()) {
-        Manager.log.trace("logs for dead servers: {}", deadLogs);
+        deadLogs.forEach((server, logs) -> Manager.log.trace("[{}] dead server: {} logs: {}",
+            store.name(), server, logs));
       } else {
-        Manager.log.debug("{} logs exist for dead servers", deadLogs.size());
+        Manager.log.debug("[{}] {} logs exist for dead servers", store.name(), deadLogs.size());
       }
       if (canSuspendTablets()) {
         store.suspend(deadTablets, deadLogs, manager.getSteadyTime());
@@ -1083,8 +1085,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     if (!tLists.suspendedToGoneServers.isEmpty()) {
       int maxServersToShow = min(deadTablets.size(), 100);
-      Manager.log.debug("{} suspended to gone servers: {} ...", deadTablets.size(),
-          deadTablets.subList(0, maxServersToShow));
+      Manager.log.debug("[{}] {} suspended to gone servers: {} ...", store.name(),
+          deadTablets.size(), deadTablets.subList(0, maxServersToShow));
       store.unsuspend(tLists.suspendedToGoneServers);
     }
   }
