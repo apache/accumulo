@@ -25,6 +25,63 @@
 
 var managerStatusTable, recoveryListTable, managerStatus;
 
+function createManagerTable() {
+  // Generates the manager table
+  managerStatusTable = $('#managerStatusTable').DataTable({
+    "ajax": function (data, callback, settings) {
+      $.ajax({
+        url: contextPath + 'rest-v2/manager',
+        method: 'GET'
+      }).done(function (json) {
+        callback({
+          "data": [json]
+        });
+      }).fail(function (jqXHR, textStatus, errorThrown) {
+        // This is needed if the url is not yet available, but the manager is up. E.g., Short
+        // window where a 404 could occur, which would lead to DataTables error/alert w/out fail()
+        console.error("DataTables Ajax error :", errorThrown);
+        callback({
+          "data": []
+        });
+      });
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+        "targets": "timestamp",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = dateFormat(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "metrics",
+        "orderable": false,
+        "render": function () {
+          return "<a href=\"rest-v2/manager/metrics\">Metrics</a>";
+        }
+      }
+    ],
+    "columns": [{
+        "data": "host"
+      },
+      {
+        "data": "resourceGroup"
+      },
+      {
+        "data": "timestamp"
+      },
+      {
+        "data": "metrics"
+      }
+    ]
+  });
+}
+
 function refreshManagerBanners() {
   // If manager status is error
   if (managerStatus === 'ERROR') {
@@ -45,7 +102,11 @@ function refreshManagerTables() {
   getStatus().then(function () {
     managerStatus = JSON.parse(sessionStorage.status).managerStatus;
     refreshManagerBanners();
-    if (managerStatus !== 'ERROR') {
+    if (managerStatusTable === undefined && managerStatus !== 'ERROR') {
+      // Can happen if the manager is dead on first loading the page, but later comes back online
+      // while using auto-refresh
+      createManagerTable();
+    } else if (managerStatus !== 'ERROR') {
       ajaxReloadTable(managerStatusTable);
     }
     ajaxReloadTable(recoveryListTable);
@@ -71,51 +132,7 @@ $(function () {
   getStatus().then(function () {
     managerStatus = JSON.parse(sessionStorage.status).managerStatus;
     if (managerStatus !== 'ERROR') {
-      // Generates the manager table
-      managerStatusTable = $('#managerStatusTable').DataTable({
-        "ajax": {
-          "url": contextPath + 'rest-v2/manager',
-          "dataSrc": function (json) {
-            // the data needs to be in an array to work with DataTables
-            var arr = [json];
-            return arr;
-          }
-        },
-        "stateSave": true,
-        "searching": false,
-        "paging": false,
-        "info": false,
-        "columnDefs": [{
-            "targets": "timestamp",
-            "render": function (data, type) {
-              if (type === 'display') {
-                data = dateFormat(data);
-              }
-              return data;
-            }
-          },
-          {
-            "targets": "metrics",
-            "orderable": false,
-            "render": function () {
-              return "<a href=\"rest-v2/manager/metrics\">Metrics</a>";
-            }
-          }
-        ],
-        "columns": [{
-            "data": "host"
-          },
-          {
-            "data": "resourceGroup"
-          },
-          {
-            "data": "timestamp"
-          },
-          {
-            "data": "metrics"
-          }
-        ]
-      });
+      createManagerTable();
     }
 
     // Generates the recovery table
