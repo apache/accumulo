@@ -152,5 +152,5 @@ public class PreSplit extends AbstractFateOperation {
   }
 
   @Override
-  public void undo(FateId fateId, FateEnv manager) throws Exception {}
+  public void undo(FateId fateId, FateEnv env) throws Exception {}
 }
