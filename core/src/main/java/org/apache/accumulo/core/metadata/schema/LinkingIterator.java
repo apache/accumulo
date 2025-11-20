@@ -124,7 +124,8 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
       // ensure the previous tablet still exists in the metadata table
       if (Iterators.size(iteratorFactory.apply(new Range(prevMetaRow))) == 0) {
-        throw new TabletDeletedException("Tablet " + prevMetaRow + " was deleted while iterating");
+        throw new TabletDeletedException("Tablet " + prevMetaRow + " was deleted while iterating",
+            prevTablet.getTableId(), prevTablet.getEndRow());
       }
 
       // start scanning at next possible row in metadata table
