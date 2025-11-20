@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.session.SingleScanSession;
@@ -46,6 +47,18 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     if (interruptFlag.get()) {
       cancel(true);
     }
+  }
+
+  private void recordException(SingleScanSession scanSession) {
+    if (scanSession != null && server.getScanMetrics() != null) {
+      String executorName = getExecutorName(scanSession);
+      server.getScanMetrics().incrementExecutorExceptions(executorName);
+    }
+  }
+
+  private String getExecutorName(SingleScanSession scanSession) {
+    String executorName = scanSession.getExecutionHints().get("scan_type");
+    return executorName != null ? executorName : SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME;
   }
 
   @Override
@@ -93,10 +106,12 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
+      recordException(scanSession);
       addResult(e);
     } catch (IOException | RuntimeException e) {
       log.warn("exception while scanning tablet {} for {}", scanSession.extent, scanSession.client,
           e);
+      recordException(scanSession);
       addResult(e);
     } finally {
       transitionFromRunning();
