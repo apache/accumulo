@@ -143,7 +143,6 @@
         <directory>src/test/resources</directory>
       </testResource>
     </testResources>
-    <plugins />
   </build>
   <profiles>
     <profile>

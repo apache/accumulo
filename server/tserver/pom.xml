@@ -165,7 +165,6 @@
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins />
   </build>
   <profiles>
     <profile>

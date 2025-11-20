@@ -91,6 +91,5 @@
         </plugin>
       </plugins>
     </pluginManagement>
-    <plugins />
   </build>
 </project>
