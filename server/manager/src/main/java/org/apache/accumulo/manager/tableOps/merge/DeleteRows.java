@@ -78,7 +78,7 @@ public class DeleteRows extends AbstractFateOperation {
     return new MergeTablets(mergeRange.map(mre -> data.useMergeRange(mre)).orElse(data));
   }
 
-  private Optional<KeyExtent> deleteTabletFiles(ServerContext ctx, FateId fateId) {
+  private Optional<KeyExtent> deleteTabletFiles(Ample ample, FateId fateId) {
     // Only delete data within the original extent specified by the user
     KeyExtent range = data.getOriginalExtent();
     log.debug("{} deleting tablet files in range {}", fateId, range);
