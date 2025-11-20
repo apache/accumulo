@@ -225,10 +225,11 @@ public class PrepBulkImport extends AbstractFateOperation {
     VolumeManager fs = ctx.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
+    var tableConfig = ctx.getTableConfiguration(bulkInfo.tableId);
     int maxTablets =
-        ctx.getTableConfiguration(bulkInfo.tableId).getCount(Property.TABLE_BULK_MAX_TABLETS);
+        tableConfig.getCount(Property.TABLE_BULK_MAX_TABLETS);
     int maxFilesPerTablet =
-        ctx.getTableConfiguration(bulkInfo.tableId).getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
+        tableConfig.getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
 
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
