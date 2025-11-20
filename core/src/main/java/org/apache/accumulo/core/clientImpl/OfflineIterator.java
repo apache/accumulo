@@ -72,11 +72,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
-    justification = "Constructor validation is required for proper initialization")
-class OfflineIterator implements Iterator<Entry<Key,Value>> {
+final class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;

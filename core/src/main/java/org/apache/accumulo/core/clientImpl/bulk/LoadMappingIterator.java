@@ -37,14 +37,10 @@ import com.google.gson.Gson;
 import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 /**
  * Iterator for reading the Bulk Load Mapping JSON.
  */
-@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
-    justification = "Constructor validation is required for proper initialization")
-public class LoadMappingIterator
+public final class LoadMappingIterator
     implements Iterator<Map.Entry<KeyExtent,Bulk.Files>>, AutoCloseable {
   private final TableId tableId;
   private final JsonReader reader;
