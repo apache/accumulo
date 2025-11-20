@@ -49,8 +49,8 @@ public interface CompactableFile {
   public long getEstimatedEntries();
 
   /**
-   * Create a compactable file object that implements equals and hash code based on the file uri and
-   * an infinite range.
+   * Creates a new CompactableFile object that implements this interface. The returned object
+   * implements equals() and hashCode() based only on the file uri and an infinite range.
    */
   static CompactableFile create(URI uri, long estimatedSize, long estimatedEntries) {
     return new CompactableFileImpl(uri, estimatedSize, estimatedEntries);

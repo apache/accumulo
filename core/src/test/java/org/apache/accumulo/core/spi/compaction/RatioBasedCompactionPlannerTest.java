@@ -871,7 +871,7 @@ public class RatioBasedCompactionPlannerTest {
     String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
         + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
 
-    var systemConf = Map.of(prefix + "cs1.planner.opts.maxOpen", "15");
+    var systemConf = Map.<String,String>of();
     var tableConf = Map.<String,String>of();
     var senv = createMockServiceEnvironment(systemConf, tableConf);
 
