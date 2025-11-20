@@ -122,7 +122,7 @@ public class RowRangeUtil {
     boolean endInclusive;
 
     // This code reverses the transformations done by the Range row constructor. Like when that
-    // constructor adds a trailing zero to a row, this code strips it recover the original row
+    // constructor adds a trailing zero to a row, this code strips it to recover the original row
     // passed to the constructor.
 
     if (range.isInfiniteStartKey()) {
