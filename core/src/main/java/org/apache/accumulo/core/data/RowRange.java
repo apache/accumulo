@@ -29,11 +29,15 @@ import java.util.List;
 import org.apache.hadoop.io.BinaryComparable;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is used to specify a range of rows.
  *
  * @since 4.0.0
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class RowRange implements Comparable<RowRange> {
 
   private static final Comparator<Text> LOWER_BOUND_COMPARATOR =
