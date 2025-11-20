@@ -1064,8 +1064,7 @@ public interface TableOperations {
   /**
    * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
    * for the tablets to reach this availability state. The supplied row range is compared against
-   * the tablets' start/end rows using its lower/upper bounds and inclusivity flags; any non-row
-   * portions of the keys are ignored.
+   * the tablets' start/end rows using its lower/upper bounds and inclusivity flags.
    *
    * @param tableName table name
    * @param rowRange tablet row range
