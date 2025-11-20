@@ -40,7 +40,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.ImportTimingStats;
 import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.TabletsMetadataFactory;
 import org.apache.accumulo.server.ServerContext;
@@ -63,8 +63,8 @@ public class LoadFilesTest {
 
   private static class CaptureLoader extends LoadFiles.Loader {
 
-    public CaptureLoader(Manager manager, TableId tableId) {
-      super(manager, tableId);
+    public CaptureLoader(FateEnv env, TableId tableId) {
+      super(env, tableId);
     }
 
     private static class LoadResult {
@@ -90,8 +90,7 @@ public class LoadFilesTest {
     private final List<LoadResult> results = new ArrayList<>();
 
     @Override
-    void start(Path bulkDir, Manager manager, TableId tableId, FateId fateId, boolean setTime)
-        throws Exception {
+    void start(Path bulkDir, TableId tableId, FateId fateId, boolean setTime) throws Exception {
       // override to do nothing
     }
 
@@ -166,27 +165,27 @@ public class LoadFilesTest {
   private Map<String,HashSet<KeyExtent>> runLoadFilesLoad(Map<KeyExtent,String> loadRanges)
       throws Exception {
 
-    Manager manager = EasyMock.createMock(Manager.class);
+    FateEnv env = EasyMock.createMock(FateEnv.class);
     ServerContext ctx = EasyMock.createMock(ServerContext.class);
     TableConfiguration tconf = EasyMock.createMock(TableConfiguration.class);
 
-    EasyMock.expect(manager.getContext()).andReturn(ctx).anyTimes();
+    EasyMock.expect(env.getContext()).andReturn(ctx).anyTimes();
     EasyMock.expect(ctx.getTableConfiguration(tid)).andReturn(tconf).anyTimes();
     EasyMock.expect(tconf.getCount(Property.TABLE_FILE_PAUSE))
         .andReturn(Integer.parseInt(Property.TABLE_FILE_PAUSE.getDefaultValue())).anyTimes();
 
     Path bulkDir = EasyMock.createMock(Path.class);
-    EasyMock.replay(manager, ctx, tconf, bulkDir);
+    EasyMock.replay(env, ctx, tconf, bulkDir);
 
     TabletsMetadata tabletMeta = new TestTabletsMetadata(null, tm);
     LoadMappingIterator lmi = PrepBulkImportTest.createLoadMappingIter(loadRanges);
-    CaptureLoader cl = new CaptureLoader(manager, tid);
+    CaptureLoader cl = new CaptureLoader(env, tid);
     BulkInfo info = new BulkInfo();
     TabletsMetadataFactory tmf = (startRow) -> tabletMeta;
     FateId txid = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
-    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, manager, txid, 0);
-    EasyMock.verify(manager, ctx, tconf, bulkDir);
+    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, txid, 0);
+    EasyMock.verify(env, ctx, tconf, bulkDir);
     List<CaptureLoader.LoadResult> results = cl.getLoadResults();
     assertEquals(loadRanges.size(), results.size());
 

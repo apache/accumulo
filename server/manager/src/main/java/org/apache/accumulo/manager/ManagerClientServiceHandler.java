@@ -60,6 +60,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -78,6 +79,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.ServerContext;
@@ -326,7 +328,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
     }
 
-    Fate<Manager> fate = manager.fate(FateInstanceType.META);
+    Fate<FateEnv> fate = manager.fate(FateInstanceType.META);
     FateId fateId = fate.startTransaction();
 
     String msg = "Shutdown tserver " + tabletServer;
@@ -354,7 +356,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     if (manager.shutdownTServer(tserver)) {
       // If there is an exception seeding the fate tx this should cause the RPC to fail which should
       // cause the tserver to halt. Because of that not making an attempt to handle failure here.
-      Fate<Manager> fate = manager.fate(FateInstanceType.META);
+      Fate<FateEnv> fate = manager.fate(FateInstanceType.META);
       var tid = fate.startTransaction();
       String msg = "Shutdown tserver " + tabletServer;
 
@@ -714,6 +716,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
+  public static void mustBeOnline(ServerContext context, final TableId tableId)
+      throws ThriftTableOperationException {
+    context.clearTableListCache();
+    if (context.getTableState(tableId) != TableState.ONLINE) {
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
+          TableOperationExceptionType.OFFLINE, "table is not online");
+    }
+  }
+
   @Override
   public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableIdStr,
       List<TKeyExtent> extents) throws ThriftSecurityException, ThriftTableOperationException {
@@ -725,7 +736,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    manager.mustBeOnline(tableId);
+    mustBeOnline(manager.getContext(), tableId);
 
     manager.hostOndemand(Lists.transform(extents, KeyExtent::fromThrift));
   }

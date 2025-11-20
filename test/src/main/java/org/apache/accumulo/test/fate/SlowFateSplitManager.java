@@ -24,6 +24,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
@@ -44,7 +45,7 @@ public class SlowFateSplitManager extends Manager {
   }
 
   @Override
-  protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
+  protected Fate<FateEnv> initializeFateInstance(ServerContext context, FateStore<FateEnv> store) {
     log.info("Creating Slow Split Fate for {}", store.type());
     return new SlowFateSplit<>(this, store, TraceRepo::toLogString, getConfiguration());
   }

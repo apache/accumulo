@@ -78,6 +78,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -93,7 +94,7 @@ import com.google.common.net.HostAndPort;
 public class CompactionCoordinatorTest {
 
   // Need a non-null fateInstances reference for CompactionCoordinator.compactionCompleted
-  private static final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances =
+  private static final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances =
       new AtomicReference<>(Map.of());
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
