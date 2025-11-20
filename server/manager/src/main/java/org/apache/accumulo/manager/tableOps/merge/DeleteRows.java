@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -72,10 +71,10 @@ public class DeleteRows extends AbstractFateOperation {
   @Override
   public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // delete or fence files within the deletion range
-    var mergeRange = deleteTabletFiles(env.getContext(), fateId);
+    var mergeRange = deleteTabletFiles(env.getContext().getAmple(), fateId);
 
     // merge away empty tablets in the deletion range
-    return new MergeTablets(mergeRange.map(mre -> data.useMergeRange(mre)).orElse(data));
+    return new MergeTablets(mergeRange.map(data::useMergeRange).orElse(data));
   }
 
   private Optional<KeyExtent> deleteTabletFiles(Ample ample, FateId fateId) {
@@ -85,9 +84,9 @@ public class DeleteRows extends AbstractFateOperation {
     var opid = TabletOperationId.from(TabletOperationType.MERGING, fateId);
 
     try (
-        var tabletsMetadata = ctx.getAmple().readTablets().forTable(range.tableId())
+        var tabletsMetadata = ample.readTablets().forTable(range.tableId())
             .overlapping(range.prevEndRow(), range.endRow()).checkConsistency().build();
-        var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
+        var tabletsMutator = ample.conditionallyMutateTablets()) {
 
       KeyExtent firstCompleteContained = null;
       KeyExtent lastCompletelyContained = null;

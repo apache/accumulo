@@ -226,10 +226,8 @@ public class PrepBulkImport extends AbstractFateOperation {
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
     var tableConfig = ctx.getTableConfiguration(bulkInfo.tableId);
-    int maxTablets =
-        tableConfig.getCount(Property.TABLE_BULK_MAX_TABLETS);
-    int maxFilesPerTablet =
-        tableConfig.getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
+    int maxTablets = tableConfig.getCount(Property.TABLE_BULK_MAX_TABLETS);
+    int maxFilesPerTablet = tableConfig.getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
 
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
@@ -253,8 +251,7 @@ public class PrepBulkImport extends AbstractFateOperation {
         }
       };
 
-      int skip =
-          tableConfig.getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      int skip = tableConfig.getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
       validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
           maxFilesPerTablet, fateId, skip);
     }
