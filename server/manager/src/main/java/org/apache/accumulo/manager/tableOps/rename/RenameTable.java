@@ -69,8 +69,8 @@ public class RenameTable extends AbstractFateOperation {
 
       context.clearTableListCache();
     } finally {
-      Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
-      Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(context, tableId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(context, namespaceId, fateId, LockType.READ);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
