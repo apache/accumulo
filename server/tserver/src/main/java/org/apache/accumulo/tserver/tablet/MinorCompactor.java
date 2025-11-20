@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +57,8 @@ public class MinorCompactor extends FileCompactor {
       TableConfiguration tableConfig) {
     super(tabletServer.getContext(), tablet.getExtent(), Collections.emptyMap(), outputFile, true,
         new MinCEnv(mincReason, imm.compactionIterator()), Collections.emptyList(), tableConfig,
-        tableConfig.getCryptoService(), tabletServer.getPausedCompactionMetrics());
+        tableConfig.getCryptoService(), tabletServer.getPausedCompactionMetrics(),
+        Optional.empty());
     this.tabletServer = tabletServer;
     this.mincReason = mincReason;
   }

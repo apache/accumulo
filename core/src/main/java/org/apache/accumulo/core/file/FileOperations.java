@@ -189,12 +189,14 @@ public abstract class FileOperations {
     public final Set<ByteSequence> columnFamilies;
     public final boolean inclusive;
     public final boolean dropCacheBehind;
+    public final int prefetchBlocks;
 
     protected FileOptions(AccumuloConfiguration tableConfiguration, TabletFile file, FileSystem fs,
         Configuration fsConf, String compression, FSDataOutputStream outputStream,
         boolean enableAccumuloStart, CacheProvider cacheProvider, Cache<String,Long> fileLenCache,
         boolean seekToBeginning, CryptoService cryptoService, Range range,
-        Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
+        Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind,
+        int prefetchBlocks) {
       this.tableConfiguration = tableConfiguration;
       this.file = Objects.requireNonNull(file);
       this.fs = fs;
@@ -210,6 +212,7 @@ public abstract class FileOperations {
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
       this.dropCacheBehind = dropCacheBehind;
+      this.prefetchBlocks = prefetchBlocks;
     }
 
     public AccumuloConfiguration getTableConfiguration() {
@@ -279,6 +282,7 @@ public abstract class FileOperations {
     private Configuration fsConf;
     private CryptoService cryptoService;
     private boolean dropCacheBehind = false;
+    private int prefetchBlocks = 0;
 
     protected FileHelper fs(FileSystem fs) {
       this.fs = Objects.requireNonNull(fs);
@@ -292,6 +296,11 @@ public abstract class FileOperations {
 
     protected FileHelper file(TabletFile file) {
       this.file = Objects.requireNonNull(file);
+      return this;
+    }
+
+    protected FileHelper prefetchBlocks(int blocks) {
+      this.prefetchBlocks = blocks;
       return this;
     }
 
@@ -314,25 +323,26 @@ public abstract class FileOperations {
         FSDataOutputStream outputStream, boolean startEnabled) {
       return new FileOptions(tableConfiguration, file, fs, fsConf, compression, outputStream,
           startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true,
-          dropCacheBehind);
+          dropCacheBehind, 0);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning) {
       return new FileOptions(tableConfiguration, file, fs, fsConf, null, null, false,
           cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache, seekToBeginning,
-          cryptoService, null, null, true, dropCacheBehind);
+          cryptoService, null, null, true, dropCacheBehind, prefetchBlocks);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
       return new FileOptions(tableConfiguration, file, fs, fsConf, null, null, false, NULL_PROVIDER,
-          fileLenCache, false, cryptoService, null, null, true, dropCacheBehind);
+          fileLenCache, false, cryptoService, null, null, true, dropCacheBehind, 0);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
       return new FileOptions(tableConfiguration, file, fs, fsConf, null, null, false, NULL_PROVIDER,
-          null, false, cryptoService, range, columnFamilies, inclusive, dropCacheBehind);
+          null, false, cryptoService, range, columnFamilies, inclusive, dropCacheBehind,
+          prefetchBlocks);
     }
 
     protected AccumuloConfiguration getTableConfiguration() {
@@ -404,6 +414,14 @@ public abstract class FileOperations {
     public ReaderTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
       file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
+      return this;
+    }
+
+    /**
+     * As the file is read, prefetch the next N blocks
+     */
+    public ReaderBuilder prefetch(int blocks) {
+      this.prefetchBlocks(blocks);
       return this;
     }
 

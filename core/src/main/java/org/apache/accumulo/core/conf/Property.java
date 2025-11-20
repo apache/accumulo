@@ -1279,6 +1279,14 @@ public enum Property {
   // Compactor properties
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
+  COMPACTOR_RFILE_BLOCK_PREFETCH_COUNT("compactor.prefetch.rfile.blocks", "0", PropertyType.COUNT,
+      "Number of RFile blocks to prefetch and load into the data block cache. Requires"
+          + " compactor.cache.data.size to be greater than zero.",
+      "4.0.0"),
+  COMPACTOR_DATACACHE_SIZE("compactor.cache.data.size", "0", PropertyType.MEMORY,
+      "Specifies the size of the cache for RFile data blocks on each compactor.", "4.0.0"),
+  COMPACTOR_DEFAULT_BLOCKSIZE("compactor.default.blocksize", "1M", PropertyType.BYTES,
+      "Specifies a default blocksize for the compactor caches.", "4.0.0"),
   COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
       PropertyType.TIMEDURATION,
       "Interval at which Compactors will check to see if the currently executing compaction"

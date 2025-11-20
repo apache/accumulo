@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -81,6 +82,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
+import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
@@ -103,6 +106,9 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.cache.BlockCacheManager;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
@@ -128,6 +134,7 @@ import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
+import org.apache.accumulo.tserver.BlockCacheMetrics;
 import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -226,9 +233,42 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicLong failed = new AtomicLong(0);
   private final AtomicLong terminated = new AtomicLong(0);
 
+  private BlockCache _dCache;
+
   @VisibleForTesting
   protected Compactor(ConfigOpts opts, String[] args) {
     super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
+
+    int prefetch = getConfiguration().getCount(Property.COMPACTOR_RFILE_BLOCK_PREFETCH_COUNT);
+    long dataBlockCacheSize = getConfiguration().getAsBytes(Property.COMPACTOR_DATACACHE_SIZE);
+
+    if (prefetch > 0) {
+      Preconditions.checkArgument(dataBlockCacheSize > 0,
+          "property %s must be greater than zero when %s is greater than zero",
+          Property.COMPACTOR_DATACACHE_SIZE.getKey(),
+          Property.COMPACTOR_RFILE_BLOCK_PREFETCH_COUNT.getKey());
+
+      BlockCacheManager cacheManager;
+      try {
+        cacheManager = BlockCacheManagerFactory.getInstance(getConfiguration());
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalStateException("Error creating BlockCacheManager", e);
+      }
+
+      BlockCacheConfiguration cacheConf = BlockCacheConfiguration.forCompactor(getConfiguration());
+      cacheManager.start(cacheConf);
+      _dCache = cacheManager.getBlockCache(CacheType.DATA);
+
+      final long dCacheSize = _dCache.getMaxHeapSize();
+      final Runtime runtime = Runtime.getRuntime();
+      if (dCacheSize > runtime.maxMemory()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Maximum compactor data block cache size %,d is"
+                    + " too large for this JVM configuration %,d",
+                dCacheSize, runtime.maxMemory()));
+      }
+    }
   }
 
   @Override
@@ -639,9 +679,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
         final ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, getResourceGroup());
-        compactor.set(
-            new FileCompactor(getContext(), extent, files, outputFile, job.isPropagateDeletes(),
-                cenv, iters, aConfig, tConfig.getCryptoService(), pausedMetrics));
+        compactor.set(new FileCompactor(getContext(), extent, files, outputFile,
+            job.isPropagateDeletes(), cenv, iters, aConfig, tConfig.getCryptoService(),
+            pausedMetrics, Optional.ofNullable(_dCache)));
 
       }
 
@@ -819,7 +859,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    metricsInfo.addMetricsProducers(this, pausedMetrics);
+    BlockCacheMetrics blockCacheMetrics = new BlockCacheMetrics(null, _dCache, null);
+    metricsInfo.addMetricsProducers(this, pausedMetrics, blockCacheMetrics);
     metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
@@ -1141,4 +1182,5 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   public ServiceLock getLock() {
     return compactorLock;
   }
+
 }

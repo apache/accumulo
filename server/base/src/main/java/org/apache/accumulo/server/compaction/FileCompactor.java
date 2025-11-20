@@ -33,6 +33,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -69,6 +71,7 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -150,6 +153,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   private final ServerContext context;
 
   private final AtomicBoolean interruptFlag = new AtomicBoolean(false);
+  private final BlockCache dBlockCache;
 
   public synchronized void interrupt() {
     interruptFlag.set(true);
@@ -277,7 +281,8 @@ public class FileCompactor implements Callable<CompactionStats> {
   public FileCompactor(ServerContext context, KeyExtent extent,
       Map<StoredTabletFile,DataFileValue> files, ReferencedTabletFile outputFile,
       boolean propagateDeletes, CompactionEnv env, List<IteratorSetting> iterators,
-      AccumuloConfiguration tableConfiguation, CryptoService cs, PausedCompactionMetrics metrics) {
+      AccumuloConfiguration tableConfiguation, CryptoService cs, PausedCompactionMetrics metrics,
+      Optional<BlockCache> dataBlockCache) {
     this.context = context;
     this.extent = extent;
     this.fs = context.getVolumeManager();
@@ -289,6 +294,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.iterators = iterators;
     this.cryptoService = cs;
     this.metrics = metrics;
+    this.dBlockCache = dataBlockCache.orElse(null);
   }
 
   public VolumeManager getVolumeManager() {
@@ -493,11 +499,17 @@ public class FileCompactor implements Callable<CompactionStats> {
           }
         }
 
+        int blocksToPrefetch = env.getIteratorScope() == IteratorUtil.IteratorScope.majc
+            ? context.getConfiguration().getCount(Property.COMPACTOR_RFILE_BLOCK_PREFETCH_COUNT)
+            : 0;
         ReaderBuilder readerBuilder =
             fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
-                .withTableConfiguration(acuTableConf);
+                .withTableConfiguration(acuTableConf).prefetch(blocksToPrefetch);
         if (dropCacheBehindCompactionInputFile) {
           readerBuilder.dropCachesBehind();
+        }
+        if (dBlockCache != null) {
+          readerBuilder.withCacheProvider(new BasicCacheProvider(null, dBlockCache));
         }
         reader = readerBuilder.build();
 

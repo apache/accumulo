@@ -21,6 +21,7 @@ package org.apache.accumulo.test.compaction;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.time.Duration;
+import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicReference;
@@ -122,7 +123,7 @@ public class ExternalDoNothingCompactor extends Compactor {
       public void initialize() throws RetriesExceededException {
         // This isn't used, just need to create and return something
         ref.set(new FileCompactor(getContext(), KeyExtent.fromThrift(job.getExtent()), null, null,
-            false, null, null, null, null, null));
+            false, null, null, null, null, null, Optional.empty()));
       }
 
     };

@@ -890,13 +890,7 @@ public class RFile {
         throw new IterationInterruptedException();
       }
 
-      if (version == RINDEX_VER_3 || version == RINDEX_VER_4) {
-        return reader.getDataBlock(startBlock + iiter.previousIndex());
-      } else {
-        return reader.getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
-            indexEntry.getRawSize());
-      }
-
+      return reader.getDataBlock(version, startBlock, iiter, indexEntry);
     }
 
     @Override
