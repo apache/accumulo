@@ -45,7 +45,7 @@ class CompactableFileTest {
     assertEquals(cf1, cf3);
     assertEquals(cf1.hashCode(), cf3.hashCode());
     assertEquals(cf1, cf4);
-    assertEquals(cf1.hashCode(), cf3.hashCode());
+    assertEquals(cf1.hashCode(), cf4.hashCode());
 
     var cf5 = CompactableFile.create(new URI(prefix + "F1.rf"), 100, 11);
     assertEquals(cf1, cf5);
