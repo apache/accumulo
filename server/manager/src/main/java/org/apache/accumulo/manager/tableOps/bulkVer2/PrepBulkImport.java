@@ -254,7 +254,7 @@ public class PrepBulkImport extends AbstractFateOperation {
       };
 
       int skip =
-          ctx.getTableConfiguration(bulkInfo.tableId).getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+          tableConfig.getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
       validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
           maxFilesPerTablet, fateId, skip);
     }
