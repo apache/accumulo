@@ -18,12 +18,7 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.util.Map;
-import java.util.function.Predicate;
-
-import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -40,47 +35,6 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
     super(log, context, NamespacePropKey.of(namespaceId), parent);
   }
 
-  @Override
-  public String get(Property property) {
-
-    String key = property.getKey();
-
-    var namespaceId = ((NamespacePropKey) getPropStoreKey()).getId();
-    if (namespaceId != null && namespaceId.equals(Namespace.ACCUMULO.id())
-        && isIteratorOrConstraint(key)) {
-      // ignore iterators from parent if system namespace
-      return null;
-    }
-
-    Map<String,String> theseProps = getSnapshot();
-    String value = theseProps.get(key);
-
-    if (value != null) {
-      return value;
-    }
-
-    return getParent().get(property);
-  }
-
-  /**
-   * exclude system iterators/constraints from the system namespace so that they don't affect the
-   * metadata or root tables.
-   */
-  @Override
-  public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    Predicate<String> parentFilter = filter;
-    // exclude system iterators/constraints from the system namespace
-    // so they don't affect the metadata or root tables.
-    if (getNamespaceId().equals(Namespace.ACCUMULO.id())) {
-      parentFilter = key -> !isIteratorOrConstraint(key) && filter.test(key);
-    }
-
-    getParent().getProperties(props, parentFilter);
-
-    getSnapshot().entrySet().stream().filter(e -> filter.test(e.getKey()) && e.getValue() != null)
-        .forEach(e -> props.put(e.getKey(), e.getValue()));
-  }
-
   protected NamespaceId getNamespaceId() {
     var id = ((NamespacePropKey) getPropStoreKey()).getId();
     if (id == null) {
@@ -90,8 +44,4 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
     return id;
   }
 
-  static boolean isIteratorOrConstraint(String key) {
-    return key.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
-        || key.startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey());
-  }
 }

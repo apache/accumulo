@@ -101,8 +101,10 @@ public class CreateTableCommand extends Command {
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
-      ntc.withSplits(
-          new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
+      var splits = shellState.getAccumuloClient().tableOperations().listSplits(oldTable);
+      if (!splits.isEmpty()) {
+        ntc.withSplits(new TreeSet<>(splits));
+      }
     }
 
     // exclude parent properties; only valid with copy config
@@ -124,17 +126,11 @@ public class CreateTableCommand extends Command {
     if (cl.hasOption(createTableOptInitialTabletAvailability.getOpt())) {
       String tabletAvailability =
           cl.getOptionValue(createTableOptInitialTabletAvailability.getOpt()).toUpperCase();
-      TabletAvailability initialTabletAvailability;
-      switch (tabletAvailability) {
-        case "HOSTED":
-          initialTabletAvailability = TabletAvailability.HOSTED;
-          break;
-        case "UNHOSTED":
-          initialTabletAvailability = TabletAvailability.UNHOSTED;
-          break;
-        default:
-          initialTabletAvailability = TabletAvailability.ONDEMAND;
-      }
+      TabletAvailability initialTabletAvailability = switch (tabletAvailability) {
+        case "HOSTED" -> TabletAvailability.HOSTED;
+        case "UNHOSTED" -> TabletAvailability.UNHOSTED;
+        default -> TabletAvailability.ONDEMAND;
+      };
       ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
     }
 

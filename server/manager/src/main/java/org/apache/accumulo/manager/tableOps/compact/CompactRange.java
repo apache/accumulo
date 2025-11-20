@@ -81,10 +81,10 @@ public class CompactRange extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.COMPACT,
-            LockRange.of(startRow, endRow));
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
+            TableOperation.COMPACT, LockRange.of(startRow, endRow));
   }
 
   @Override
@@ -96,7 +96,7 @@ public class CompactRange extends ManagerRepo {
     log.debug("{} Widened compact range from {} to {}", fateId, LockRange.of(extent), widenedRange);
 
     // expecting the lock code should widen the range of the lock, make sure this happened
-    var myLock = Utils.getReadLock(env, tableId, fateId, LockRange.infinite());
+    var myLock = Utils.getReadLock(env.getContext(), tableId, fateId, LockRange.infinite());
     Preconditions.checkState(myLock.getRange().contains(widenedRange), "%s does not contain %s",
         myLock.getRange(), widenedRange);
 
@@ -110,8 +110,8 @@ public class CompactRange extends ManagerRepo {
     try {
       CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
-      Utils.unreserveTable(env, tableId, fateId, LockType.READ);
+      Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.READ);
     }
   }
 

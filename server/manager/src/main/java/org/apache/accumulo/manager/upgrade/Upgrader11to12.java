@@ -39,8 +39,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -918,45 +916,52 @@ public class Upgrader11to12 implements Upgrader {
   }
 
   void moveTableProperties(ServerContext context) {
-    try {
-      final SystemPropKey spk = SystemPropKey.of();
-      final VersionedProperties sysProps = context.getPropStore().get(spk);
-      final Map<String,String> sysTableProps = new HashMap<>();
-      sysProps.asMap().entrySet().stream()
-          .filter(e -> e.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
-          .forEach(e -> sysTableProps.put(e.getKey(), e.getValue()));
-      LOG.info("Adding the following table properties to namespaces unless overridden:");
-      sysTableProps.forEach((k, v) -> LOG.info("{} -> {}", k, v));
+    final SystemPropKey spk = SystemPropKey.of();
+    final VersionedProperties sysProps = context.getPropStore().get(spk);
+    final Map<String,String> sysTableProps = new HashMap<>();
+    sysProps.asMap().entrySet().stream()
+        .filter(e -> e.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
+        .forEach(e -> sysTableProps.put(e.getKey(), e.getValue()));
+    LOG.info("Adding the following table properties to namespaces unless overridden:");
+    sysTableProps.forEach((k, v) -> LOG.info("{} -> {}", k, v));
 
-      for (String ns : context.namespaceOperations().list()) {
-        final NamespacePropKey nsk = NamespacePropKey.of(NamespaceId.of(ns));
-        final Map<String,String> nsProps = context.getPropStore().get(nsk).asMap();
-        final Map<String,String> nsPropAdditions = new HashMap<>();
+    context.getNamespaceMapping().getIdToNameMap().forEach((nsid, ns) -> {
+      final NamespacePropKey nsk = NamespacePropKey.of(nsid);
+      final Map<String,String> nsProps = context.getPropStore().get(nsk).asMap();
+      final Map<String,String> nsPropAdditions = new HashMap<>();
 
-        for (Entry<String,String> e : sysTableProps.entrySet()) {
-          final String nsVal = nsProps.get(e.getKey());
-          // If it's not set, then add the system table property
-          // to the namespace. If it is set, then it doesnt matter
-          // what the value is, we can ignore it.
-          if (nsVal == null) {
-            nsPropAdditions.put(e.getKey(), e.getValue());
-          }
+      for (Entry<String,String> e : sysTableProps.entrySet()) {
+
+        // Don't move iterators or constraints from the system configuration
+        // to the system namespace. This will affect the root and metadata
+        // tables.
+        if (ns.equals(Namespace.ACCUMULO.name())
+            && (e.getKey().startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())
+                || e.getKey().startsWith(Property.TABLE_CONSTRAINT_PREFIX.getKey()))) {
+          LOG.debug(
+              "Not moving property {} to 'accumulo' namespace, iterator and constraint properties are ignored on purpose.",
+              e.getKey());
+          continue;
         }
-        context.getPropStore().putAll(nsk, nsPropAdditions);
-        LOG.debug("Added table properties to namespace {}:", ns);
-        nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
-        LOG.info("Namespace '{}' completed.", ns);
+
+        final String nsVal = nsProps.get(e.getKey());
+        // If it's not set, then add the system table property
+        // to the namespace. If it is set, then it doesnt matter
+        // what the value is, we can ignore it.
+        if (nsVal == null) {
+          nsPropAdditions.put(e.getKey(), e.getValue());
+        }
       }
+      context.getPropStore().putAll(nsk, nsPropAdditions);
+      LOG.debug("Added table properties to namespace '{}' id:{}:", ns, nsid);
+      nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
+      LOG.info("Namespace '{}' id:{} completed.", ns, nsid);
+    });
 
-      LOG.info("Removing table properties from system configuration.");
-      context.getPropStore().removeProperties(spk, sysTableProps.keySet());
+    LOG.info("Removing table properties from system configuration.");
+    context.getPropStore().removeProperties(spk, sysTableProps.keySet());
 
-      LOG.info(
-          "Moving table properties from system configuration to namespace configurations complete.");
-
-    } catch (AccumuloException | AccumuloSecurityException e) {
-      throw new IllegalStateException(
-          "Error trying to move table properties from system to namespace", e);
-    }
+    LOG.info(
+        "Moving table properties from system configuration to namespace configurations complete.");
   }
 }

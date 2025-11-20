@@ -53,6 +53,10 @@ public class ResourceGroupPropKey extends IdBasedPropStoreKey<ResourceGroupId> {
 
   public void createZNode(ZooReaderWriter zrw) throws KeeperException, InterruptedException {
 
+    if (getId().equals(ResourceGroupId.DEFAULT)) {
+      return;
+    }
+
     zrw.mkdirs(Constants.ZRESOURCEGROUPS + "/" + getId().canonical());
 
     var rgPropPath = getPath();

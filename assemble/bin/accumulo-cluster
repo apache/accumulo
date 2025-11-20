@@ -34,7 +34,6 @@ $(cyan Options):
   $(cyan General options):
     $(green --dry-run)                Prints information and commands, but does not execute them
     $(green --local)                  Operates on matching local services only (no SSH)
-    $(green --create-missing-rg)      Creates resource groups defined in cluster.yaml that don't yet exist.
 
   $(cyan 'Service type selection options (if none are used, all service types are selected)'):
     $(green --manager)                Selects the manager service (oversees cluster operations)
@@ -66,7 +65,6 @@ $(cyan Examples):
   $(purple 'accumulo-cluster start --local --manager --tservers')                $(blue '# Start the local manager and local tservers')
   $(purple 'accumulo-cluster prune --compactors')                                $(blue '# prune all extra compactors across all groups')
   $(purple 'accumulo-cluster prune --compactors="group1"')                       $(blue '# prune extra compactors running in group1')
-  $(purple 'accumulo-cluster start --compactors="group1" --create-missing-rg')   $(blue '# start compactors running in group1, create group1 if missing')  
 
 EOF
 }
@@ -107,7 +105,6 @@ function white() { colorize 37 "$@"; }
 function parse_args() {
   local originalArgs=("$@")
 
-  ARG_CREATE_MISSING_RG="false"
   DEBUG=0
   ARG_LOCAL=0
   ARG_ALL=1
@@ -128,7 +125,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "create-missing-rg,dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
@@ -137,10 +134,6 @@ function parse_args() {
 
   while true; do
     case "$1" in
-      --create-missing-rg)
-        ARG_CREATE_MISSING_RG="true"
-        shift 1
-        ;;
       --dry-run)
         DEBUG=1
         debug "original args: $(quote "${originalArgs[@]}")"
@@ -284,6 +277,14 @@ function canRunOnHost() {
   [[ $found == 1 ]]
 }
 
+function arrayContains() {
+  local m=$1
+  shift
+  local x
+  for x in "$@"; do [[ $x == "$m" ]] && return 0; done
+  return 1
+}
+
 function parse_config() {
 
   local manager1
@@ -305,8 +306,14 @@ function parse_config() {
     trap 'rm -rf -- "$AC_TMP_DIR"' EXIT
   fi
 
+  RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
+  debug "Printing resource groups to $RG_FILE"
+  "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || exit 1
+  read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
+  debug "All resource groups: ${all_resource_groups[*]}"
+
   CONFIG_FILE="$AC_TMP_DIR/ClusterConfigParser.out"
-  "$accumulo_cmd" org.apache.accumulo.server.conf.cluster.ClusterConfigParser "$ARG_CREATE_MISSING_RG" "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
+  "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
   debug "Parsed config from $(white "$conf/cluster.yaml")"
@@ -316,7 +323,6 @@ function parse_config() {
       debug "$(white "$line")"
     done <"$CONFIG_FILE"
   fi
-  rm -f "$CONFIG_FILE"
 
   # this might not be possible, since the ClusterConfigParser would probably fail instead
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -328,6 +334,10 @@ function parse_config() {
     echo "$(yellow WARN): No compactor groups configured"
   else
     for group in $COMPACTOR_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="COMPACTOR_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): External compactor group $(yellow "$group") configured, but no compactors configured for it"
@@ -340,6 +350,10 @@ function parse_config() {
     echo "$(yellow WARN): No tablet server groups configured"
   else
     for group in $TSERVER_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="TSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): tablet server group $(yellow "$group") configured, but no hosts configured for it"
@@ -356,6 +370,10 @@ function parse_config() {
 
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="SSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): scan server group $(yellow "$group") configured, but no hosts configured for it"

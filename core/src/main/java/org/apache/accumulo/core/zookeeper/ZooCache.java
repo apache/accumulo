@@ -68,7 +68,7 @@ public class ZooCache {
   private final NavigableSet<String> watchedPaths;
 
   // visible for tests
-  protected final ZCacheWatcher watcher = new ZCacheWatcher();
+  public final ZCacheWatcher watcher = new ZCacheWatcher();
   private final List<ZooCacheWatcher> externalWatchers =
       Collections.synchronizedList(new ArrayList<>());
 
@@ -89,7 +89,7 @@ public class ZooCache {
 
   private final AtomicLong zkClientTracker = new AtomicLong();
 
-  class ZCacheWatcher implements Watcher {
+  public class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {

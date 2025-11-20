@@ -149,13 +149,13 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully deleted namespace configuration option.");
       } else if (rgid != null) {
         shellState.getAccumuloClient().resourceGroupOperations().removeProperty(rgid, property);
-        Shell.log.debug("Successfully deleted resource group configuration option.");
+        logPropChanged(Property.getPropertyByKey(property), "resource group", "deleted");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().instanceOperations().removeProperty(property);
-        logSysPropChanged(Property.getPropertyByKey(property), "deleted");
+        logPropChanged(Property.getPropertyByKey(property), "system", "deleted");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
       // set property on table, namespace, or system
@@ -203,16 +203,22 @@ public class ConfigCommand extends Command {
         Shell.log.debug("Successfully set table configuration option.");
       } else if (rgid != null) {
         shellState.getAccumuloClient().resourceGroupOperations().setProperty(rgid, property, value);
-        Shell.log.debug("Successfully set resource group configuration option.");
+        logPropChanged(theProp, "resource group", "set");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
               fullCommand.indexOf(property));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        logSysPropChanged(theProp, "set");
+        logPropChanged(theProp, "system", "set");
       }
     } else {
+
+      if (rgid != null) {
+        throw new IllegalArgumentException(
+            "resource group argument must be accompanied by -s or -d argument.");
+      }
+
       boolean warned = false;
       // display properties
       final TreeMap<String,String> systemConfig = new TreeMap<>();
@@ -546,12 +552,12 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
-  private void logSysPropChanged(Property prop, String setOrDeleted) {
+  private void logPropChanged(Property prop, String scope, String setOrDeleted) {
     if (Property.isFixedZooPropertyKey(prop)) {
-      Shell.log.warn("Successfully {} a fixed system configuration option. Change will not "
-          + "take effect until related processes are restarted.", setOrDeleted);
+      Shell.log.warn("Successfully {} a fixed {} configuration option. Change will not "
+          + "take effect until related processes are restarted.", setOrDeleted, scope);
     } else {
-      Shell.log.debug("Successfully {} system configuration option.", setOrDeleted);
+      Shell.log.debug("Successfully {} {} configuration option.", setOrDeleted, scope);
     }
   }
 

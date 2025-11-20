@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.test.functional.FunctionalTestUtils.getStoredTabletFiles;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,7 +59,9 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
@@ -71,6 +74,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.functional.BasicSummarizer;
 import org.apache.accumulo.test.functional.BulkNewIT;
 import org.apache.accumulo.test.functional.CloneTestIT_SimpleSuite;
@@ -104,9 +108,8 @@ import com.google.common.net.HostAndPort;
  * avoiding duplicating existing testing. This does not test for edge cases, but rather tests for
  * basic expected functionality of all table operations against user tables and all system tables.
  */
-public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniClusterBase {
-  private static final Logger log =
-      LoggerFactory.getLogger(ComprehensiveTableOperationsIT_SimpleSuite.class);
+public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveTableOperationsIT.class);
   private static final String SLOW_ITER_NAME = "CustomSlowIter";
   private AccumuloClient client;
   private TableOperations ops;
@@ -150,9 +153,8 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
   public void testAllTested() {
     var allTableOps =
         Arrays.stream(TableOperations.class.getDeclaredMethods()).map(Method::getName);
-    var testMethodNames =
-        Arrays.stream(ComprehensiveTableOperationsIT_SimpleSuite.class.getDeclaredMethods())
-            .map(Method::getName).collect(Collectors.toSet());
+    var testMethodNames = Arrays.stream(ComprehensiveTableOperationsIT.class.getDeclaredMethods())
+        .map(Method::getName).collect(Collectors.toSet());
     var untestedOps =
         allTableOps.filter(op -> testMethodNames.stream().noneMatch(test -> test.contains(op)))
             .collect(Collectors.toSet());
@@ -325,7 +327,7 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     createFateTableRow(userTable);
     createScanRefTableRow();
     for (var sysTable : SystemTables.tableNames()) {
-      var maxRow = ops.getMaxRow(sysTable, Authorizations.EMPTY, null, true, null, true);
+      var maxRow = ops.getMaxRow(sysTable, Authorizations.EMPTY, RowRange.all());
       log.info("Max row of {} : {}", sysTable, maxRow);
       assertNotNull(maxRow);
     }
@@ -373,7 +375,66 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
 
   @Test
   public void test_compact() throws Exception {
-    // TODO see issue#5679
+    // compact for user tables is tested in various ITs. One example is CompactionIT. Ensure test
+    // exists
+    assertDoesNotThrow(() -> Class.forName(CompactionIT.class.getName()));
+    // disable the GC to prevent automatic compactions on METADATA and ROOT tables
+    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    // set num compactors to 2 to ensure we can compact the system tables while having a slow Fate
+    // operation
+    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+    getCluster().getConfig().getClusterServerConfiguration().setNumDefaultCompactors(2);
+    getCluster().getClusterControl().startAllServers(ServerType.COMPACTOR);
+    try {
+      userTable = getUniqueNames(1)[0];
+      ops.create(userTable);
+
+      // create some RFiles for the METADATA and ROOT tables by creating some data in the user
+      // table, flushing that table, then the METADATA table, then the ROOT table
+      for (int i = 0; i < 3; i++) {
+        try (var bw = client.createBatchWriter(userTable)) {
+          var mut = new Mutation("r" + i);
+          mut.put("cf", "cq", "v");
+          bw.addMutation(mut);
+        }
+        ops.flush(userTable, null, null, true);
+        ops.flush(SystemTables.METADATA.tableName(), null, null, true);
+        ops.flush(SystemTables.ROOT.tableName(), null, null, true);
+      }
+
+      // Create a file for the scan ref and Fate tables
+      createScanRefTableRow();
+      ops.flush(SystemTables.SCAN_REF.tableName(), null, null, true);
+      createFateTableRow(userTable);
+      ops.flush(SystemTables.FATE.tableName(), null, null, true);
+
+      for (var sysTable : SystemTables.tableNames()) {
+        Set<StoredTabletFile> stfsBeforeCompact =
+            getStoredTabletFiles(getCluster().getServerContext(), sysTable);
+
+        log.info("Compacting {} with files: {}", sysTable, stfsBeforeCompact);
+        ops.compact(sysTable, null, null, true, true);
+        log.info("Completed compaction for " + sysTable);
+
+        // RFiles resulting from a compaction begin with 'A'. Wait until we see an RFile beginning
+        // with 'A' that was not present before the compaction.
+        Wait.waitFor(() -> {
+          var stfsAfterCompact = getStoredTabletFiles(getCluster().getServerContext(), sysTable);
+          log.info("Completed compaction for {} with new files {}", sysTable, stfsAfterCompact);
+          String regex = "^A.*\\.rf$";
+          var aStfsBeforeCompaction = stfsBeforeCompact.stream()
+              .filter(stf -> stf.getFileName().matches(regex)).collect(Collectors.toSet());
+          var aStfsAfterCompaction = stfsAfterCompact.stream()
+              .filter(stf -> stf.getFileName().matches(regex)).collect(Collectors.toSet());
+          return !Sets.difference(aStfsAfterCompaction, aStfsBeforeCompaction).isEmpty();
+        });
+      }
+    } finally {
+      getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+      getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultCompactors(1);
+      getCluster().getClusterControl().startAllServers(ServerType.COMPACTOR);
+    }
   }
 
   @Test

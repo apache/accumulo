@@ -80,6 +80,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.thrift.TApplicationException;
@@ -262,7 +263,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     ScanServerData ssd;
 
-    Timer startTime = Timer.startNew();
+    CountDownTimer retryCountDownTimer = CountDownTimer.startNew(retryTimeout, MILLISECONDS);
 
     while (true) {
 
@@ -274,7 +275,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         failures = clientTabletCache.binRanges(context, ranges, binnedRanges);
         ssd = new ScanServerData();
       } else if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-        ssd = binRangesForScanServers(clientTabletCache, ranges, binnedRanges, startTime);
+        ssd = binRangesForScanServers(clientTabletCache, ranges, binnedRanges, retryCountDownTimer);
         failures = ssd.failures;
       } else {
         throw new IllegalStateException();
@@ -299,7 +300,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
               failures.size(), tableId);
         }
 
-        if (startTime.elapsed(MILLISECONDS) > retryTimeout) {
+        if (retryCountDownTimer.isExpired()) {
           // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
@@ -650,10 +651,9 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
   }
 
   private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
-      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, Timer startTime)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      InvalidTabletHostingRequestException {
-
+      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
+      CountDownTimer retryCountDownTimer) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, InvalidTabletHostingRequestException {
     ScanServerSelector ecsm = context.getScanServerSelector();
 
     Map<KeyExtent,String> extentToTserverMap = new HashMap<>();
@@ -697,7 +697,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
       @Override
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {
-        Duration timeoutLeft = Duration.ofMillis(retryTimeout - startTime.elapsed(MILLISECONDS));
+        Duration timeoutLeft = retryCountDownTimer.timeLeft();
         return ThriftScanner.waitUntil(condition, maxWaitTime, description, timeoutLeft, context,
             tableId, log);
       }
@@ -800,8 +800,8 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     String server;
     Set<String> badServers;
     final long timeOut;
-    long activityTime;
-    Long firstErrorTime = null;
+    CountDownTimer timeoutCountDownTimer;
+    CountDownTimer errorTimer;
 
     TimeoutTracker(String server, Set<String> badServers, long timeOut) {
       this(timeOut);
@@ -811,29 +811,29 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     TimeoutTracker(long timeOut) {
       this.timeOut = timeOut;
+      this.timeoutCountDownTimer = CountDownTimer.startNew(timeOut, MILLISECONDS);
     }
 
     void startingScan() {
-      activityTime = System.currentTimeMillis();
+      timeoutCountDownTimer.restart();
     }
 
     void check() throws IOException {
-      if (System.currentTimeMillis() - activityTime > timeOut) {
+      if (timeoutCountDownTimer.isExpired()) {
         badServers.add(server);
-        throw new IOException(
-            "Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
+        throw new IOException("Time exceeded " + timeOut + " ms for server " + server);
       }
     }
 
     void madeProgress() {
-      activityTime = System.currentTimeMillis();
-      firstErrorTime = null;
+      timeoutCountDownTimer.restart();
+      errorTimer = null;
     }
 
     void errorOccured() {
-      if (firstErrorTime == null) {
-        firstErrorTime = activityTime;
-      } else if (System.currentTimeMillis() - firstErrorTime > timeOut) {
+      if (errorTimer == null) {
+        errorTimer = CountDownTimer.startNew(timeOut, MILLISECONDS);
+      } else if (errorTimer.isExpired()) {
         badServers.add(server);
       }
     }

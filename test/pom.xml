@@ -246,7 +246,7 @@
             </mapping>
             <licenseSets>
               <licenseSet>
-                <header>${rootlocation}/src/build/license-header.txt</header>
+                <inlineHeader>${accumulo.build.license.header}</inlineHeader>
                 <excludes>
                   <exclude>src/main/resources/v2_import_test/data/distcp.txt</exclude>
                 </excludes>

@@ -37,8 +37,9 @@ public class RenameNamespace extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, fateId, LockType.WRITE, true,
-        TableOperation.RENAME);
+    return Utils.reserveNamespace(environment.getContext(), namespaceId, fateId, LockType.WRITE,
+        true, TableOperation.RENAME);
+
   }
 
   public RenameNamespace(NamespaceId namespaceId, String oldName, String newName) {
@@ -54,7 +55,7 @@ public class RenameNamespace extends ManagerRepo {
       manager.getContext().getNamespaceMapping().rename(namespaceId, oldName, newName);
       manager.getContext().clearTableListCache();
     } finally {
-      Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(manager.getContext(), namespaceId, fateId, LockType.WRITE);
     }
 
     LoggerFactory.getLogger(RenameNamespace.class).debug("Renamed namespace {} {} {}", namespaceId,
@@ -65,7 +66,7 @@ public class RenameNamespace extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) {
-    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.WRITE);
   }
 
 }

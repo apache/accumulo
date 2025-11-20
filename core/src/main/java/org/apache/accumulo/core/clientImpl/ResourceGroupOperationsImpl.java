@@ -22,7 +22,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.time.Duration;
 import java.util.ConcurrentModificationException;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
@@ -34,12 +33,10 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
-import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
@@ -80,24 +77,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   public void create(ResourceGroupId group) throws AccumuloException, AccumuloSecurityException {
     checkArgument(group != null, "group argument must be supplied");
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .createResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()),
-        ResourceGroupPredicate.DEFAULT_RG_ONLY);
-  }
-
-  @Override
-  public Map<String,String> getConfiguration(ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
-    checkArgument(group != null, "group argument must be supplied");
-    checkResourceGroupId(group.canonical());
-    Map<String,String> config = new HashMap<>();
-    config
-        .putAll(
-            ThriftClientTypes.CLIENT.execute(
-                context, client -> client.getConfiguration(TraceUtil.traceInfo(),
-                    context.rpcCreds(), ConfigurationType.PROCESS),
-                ResourceGroupPredicate.exact(group)));
-    config.putAll(getProperties(group));
-    return Map.copyOf(config);
+        .createResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
   }
 
   @Override
@@ -108,8 +88,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     try {
       TVersionedProperties rgProps = ThriftClientTypes.CLIENT.execute(context,
           client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
-              context.rpcCreds(), group.canonical()),
-          ResourceGroupPredicate.exact(group));
+              context.rpcCreds(), group.canonical()));
       if (rgProps != null && rgProps.getPropertiesSize() > 0) {
         return Map.copyOf(rgProps.getProperties());
       } else {
@@ -137,10 +116,9 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           + " setting its replacement {} instead", property, replacement);
     });
     try {
-      ThriftClientTypes.MANAGER.executeVoid(
-          context, client -> client.setResourceGroupProperty(TraceUtil.traceInfo(),
-              context.rpcCreds(), group.canonical(), property, value),
-          ResourceGroupPredicate.DEFAULT_RG_ONLY);
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.setResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+              group.canonical(), property, value));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException te) {
@@ -159,8 +137,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     try {
       vProperties = ThriftClientTypes.CLIENT.execute(context,
           client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
-              context.rpcCreds(), group.canonical()),
-          ResourceGroupPredicate.exact(group));
+              context.rpcCreds(), group.canonical()));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException te) {
@@ -191,10 +168,9 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
     // Send to server
     try {
-      ThriftClientTypes.MANAGER.executeVoid(
-          context, client -> client.modifyResourceGroupProperties(TraceUtil.traceInfo(),
-              context.rpcCreds(), group.canonical(), vProperties),
-          ResourceGroupPredicate.DEFAULT_RG_ONLY);
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.modifyResourceGroupProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+              group.canonical(), vProperties));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException te) {
@@ -252,10 +228,9 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
           + " its replacement {} and will remove that instead", property, replacement);
     });
     try {
-      ThriftClientTypes.MANAGER.executeVoid(
-          context, client -> client.removeResourceGroupProperty(TraceUtil.traceInfo(),
-              context.rpcCreds(), group.canonical(), property),
-          ResourceGroupPredicate.DEFAULT_RG_ONLY);
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.removeResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+              group.canonical(), property));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException te) {
@@ -272,8 +247,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     checkArgument(group != null, "group argument must be supplied");
     try {
       ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-          .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()),
-          ResourceGroupPredicate.DEFAULT_RG_ONLY);
+          .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException te) {
