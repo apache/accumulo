@@ -211,7 +211,7 @@ under the License.
       <dependency>
         <groupId>jakarta.platform</groupId>
         <artifactId>jakarta.jakartaee-bom</artifactId>
-        <version>9.1.0</version>
+        <version>10.0.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -225,7 +225,14 @@ under the License.
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.23</version>
+        <version>12.1.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-bom</artifactId>
+        <version>12.1.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -246,8 +253,7 @@ under the License.
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
-        <!-- 3.1.0 would require jakarta.ws.rs-api 3.1.0, jakartaee 9 uses 3.0.0 -->
-        <version>3.0.9</version>
+        <version>3.1.11</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>

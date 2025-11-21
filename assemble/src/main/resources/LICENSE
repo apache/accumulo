@@ -730,8 +730,9 @@ to the terms and conditions of the following licenses.
 * org.eclipse.jetty:jetty-io
 * org.eclipse.jetty:jetty-security
 * org.eclipse.jetty:jetty-server
-* org.eclipse.jetty:jetty-servlet
+* org.eclipse.jetty:jetty-session
 * org.eclipse.jetty:jetty-util
+* org.eclipse.jetty.ee10:jetty-ee10-servlet
 * org.glassfish.hk2:hk2-api
 * org.glassfish.hk2:hk2-locator
 * org.glassfish.hk2:hk2-utils

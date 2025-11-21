@@ -66,8 +66,8 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
@@ -83,7 +83,7 @@ import com.google.common.net.HostAndPort;
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
  * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
-class LoadFiles extends ManagerRepo {
+class LoadFiles extends AbstractFateOperation {
 
   // visible for testing
   interface TabletsMetadataFactory {
@@ -103,44 +103,44 @@ class LoadFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
-    if (manager.onlineTabletServers().isEmpty()) {
+    if (env.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
           + ")");
       return 100;
     }
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
+    env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
-      Loader loader = new Loader(manager, bulkInfo.tableId);
+      Loader loader = new Loader(env, bulkInfo.tableId);
 
       List<ColumnType> fetchCols = new ArrayList<>(List.of(PREV_ROW, LOCATION, LOADED, TIME));
       if (loader.pauseLimit > 0) {
         fetchCols.add(FILES);
       }
 
-      TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(manager.getContext())
+      TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(env.getContext())
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
           .fetch(fetchCols.toArray(new ColumnType[0])).build();
 
-      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+      int skip = env.getContext().getTableConfiguration(bulkInfo.tableId)
           .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, fateId, skip);
+      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, fateId, skip);
     }
   }
 
   @Override
-  public Repo<Manager> call(final FateId fateId, final Manager manager) {
+  public Repo<FateEnv> call(final FateId fateId, final FateEnv env) {
     return new RefreshTablets(bulkInfo);
   }
 
   // visible for testing
   public static class Loader {
-    private final Manager manager;
+    private final FateEnv env;
     private final long pauseLimit;
 
     private Path bulkDir;
@@ -150,20 +150,19 @@ class LoadFiles extends ManagerRepo {
     private Map<KeyExtent,List<TabletFile>> loadingFiles;
     private long skipped = 0;
 
-    public Loader(Manager manager, TableId tableId) {
-      Objects.requireNonNull(manager, "Manager must be supplied");
+    public Loader(FateEnv env, TableId tableId) {
+      Objects.requireNonNull(env, "Fate env must be supplied");
       Objects.requireNonNull(tableId, "Table ID must be supplied");
-      this.manager = manager;
+      this.env = env;
       this.pauseLimit =
-          manager.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
+          env.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
     }
 
-    void start(Path bulkDir, Manager manager, TableId tableId, FateId fateId, boolean setTime)
-        throws Exception {
+    void start(Path bulkDir, TableId tableId, FateId fateId, boolean setTime) throws Exception {
       this.bulkDir = bulkDir;
       this.fateId = fateId;
       this.setTime = setTime;
-      conditionalMutator = manager.getContext().getAmple().conditionallyMutateTablets();
+      conditionalMutator = env.getContext().getAmple().conditionallyMutateTablets();
       this.skipped = 0;
       this.loadingFiles = new HashMap<>();
     }
@@ -315,7 +314,7 @@ class LoadFiles extends ManagerRepo {
     private Map<KeyExtent,Long> allocateTimestamps(HostAndPort server, List<TKeyExtent> extents,
         int numStamps) {
       TabletServerClientService.Client client = null;
-      var context = manager.getContext();
+      var context = env.getContext();
       try {
 
         log.trace("{} sending allocate timestamps request to {} for {} extents", fateId, server,
@@ -352,7 +351,7 @@ class LoadFiles extends ManagerRepo {
         if (condResult.getStatus() == Status.ACCEPTED) {
           loadingFiles.get(extent).forEach(file -> TabletLogger.bulkImported(extent, file));
           // Trigger a check for compaction now that new files were added via bulk load
-          manager.getEventCoordinator().event(extent, "Bulk load completed on tablet %s", extent);
+          env.getEventPublisher().event(extent, "Bulk load completed on tablet %s", extent);
         } else {
           seenFailure.set(true);
           var metadata = condResult.readMetadata();
@@ -393,8 +392,8 @@ class LoadFiles extends ManagerRepo {
    */
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
-      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager,
-      FateId fateId, int skipDistance) throws Exception {
+      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, FateId fateId,
+      int skipDistance) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
@@ -403,7 +402,7 @@ class LoadFiles extends ManagerRepo {
     String fmtTid = fateId.getTxUUIDStr();
     log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
-    loader.start(bulkDir, manager, bulkInfo.tableId, fateId, bulkInfo.setTime);
+    loader.start(bulkDir, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();

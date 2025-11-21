@@ -45,7 +45,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.filters.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
@@ -62,11 +62,11 @@ public class DeadCompactionDetector {
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
   private final Set<TableId> tablesWithUnreferencedTmpFiles = new HashSet<>();
-  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
+  private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances;
 
   public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
       ScheduledThreadPoolExecutor stpe,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+      AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances) {
     this.context = context;
     this.coordinator = coordinator;
     this.schedExecutor = stpe;

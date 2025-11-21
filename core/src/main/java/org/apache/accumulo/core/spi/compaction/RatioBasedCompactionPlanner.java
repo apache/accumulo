@@ -127,7 +127,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 4.0.0
  * @see org.apache.accumulo.core.spi.compaction
  */
-
 public class RatioBasedCompactionPlanner implements CompactionPlanner {
 
   private final static Logger log = LoggerFactory.getLogger(RatioBasedCompactionPlanner.class);

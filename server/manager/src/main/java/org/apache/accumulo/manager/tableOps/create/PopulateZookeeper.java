@@ -24,14 +24,14 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
 
-class PopulateZookeeper extends ManagerRepo {
+class PopulateZookeeper extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -42,20 +42,20 @@ class PopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     return Utils.reserveTable(environment.getContext(), tableInfo.getTableId(), fateId,
         LockType.WRITE, false, TableOperation.CREATE);
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // reserve the table name in zookeeper or fail
 
-    var context = manager.getContext();
+    var context = env.getContext();
     // write tableName & tableId, first to Table Mapping and then to Zookeeper
     context.getTableMapping(tableInfo.getNamespaceId()).put(tableInfo.getTableId(),
         tableInfo.getTableName(), TableOperation.CREATE);
-    manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
+    env.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
         tableInfo.getTableName());
 
     try {
@@ -72,10 +72,10 @@ class PopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager manager) throws Exception {
-    manager.getTableManager().removeTable(tableInfo.getTableId(), tableInfo.getNamespaceId());
-    Utils.unreserveTable(manager.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
-    manager.getContext().clearTableListCache();
+  public void undo(FateId fateId, FateEnv env) throws Exception {
+    env.getTableManager().removeTable(tableInfo.getTableId(), tableInfo.getNamespaceId());
+    Utils.unreserveTable(env.getContext(), tableInfo.getTableId(), fateId, LockType.WRITE);
+    env.getContext().clearTableListCache();
   }
 
 }

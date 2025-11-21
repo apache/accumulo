@@ -472,6 +472,16 @@ public class RowRange implements Comparable<RowRange> {
    * @param row row to check
    * @return true if the row is contained in the row range, otherwise false
    */
+  public boolean contains(String row) {
+    return contains(new Text(row));
+  }
+
+  /**
+   * Determines if this row range contains the given row.
+   *
+   * @param row row to check
+   * @return true if the row is contained in the row range, otherwise false
+   */
   public boolean contains(Text row) {
     if (infiniteLowerBound) {
       return !isBefore(row);

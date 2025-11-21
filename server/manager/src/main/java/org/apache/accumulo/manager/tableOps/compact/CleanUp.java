@@ -34,14 +34,14 @@ import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CleanUp extends ManagerRepo {
+public class CleanUp extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
@@ -60,9 +60,9 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
 
-    var ample = manager.getContext().getAmple();
+    var ample = env.getContext().getAmple();
 
     AtomicLong rejectedCount = new AtomicLong(0);
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
@@ -119,10 +119,10 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    CompactionConfigStorage.deleteConfig(manager.getContext(), fateId);
-    Utils.getReadLock(manager.getContext(), tableId, fateId, LockRange.infinite()).unlock();
-    Utils.getReadLock(manager.getContext(), namespaceId, fateId, LockRange.infinite()).unlock();
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
+    Utils.getReadLock(env.getContext(), tableId, fateId, LockRange.infinite()).unlock();
+    Utils.getReadLock(env.getContext(), namespaceId, fateId, LockRange.infinite()).unlock();
     return null;
   }
 }
