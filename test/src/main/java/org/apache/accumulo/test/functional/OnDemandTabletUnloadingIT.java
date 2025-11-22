@@ -47,6 +47,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
@@ -197,7 +198,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       // transition all tablets to ondemand. Since no tablets have a hosting requested column set
       // the manager should unassign all tablets.
-      c.tableOperations().setTabletAvailability(tableName, new Range(),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.all(),
           TabletAvailability.ONDEMAND);
 
       Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 0);

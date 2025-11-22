@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -126,7 +127,8 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       });
 
       // Host all tablets
-      c.tableOperations().setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      c.tableOperations().setTabletAvailability(tableName, RowRange.all(),
+          TabletAvailability.HOSTED);
       // Wait for all tablets to be hosted
       Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, tableId) == 3);
 

@@ -39,7 +39,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -193,7 +193,7 @@ public class ListTabletsCommandTest {
     EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
     EasyMock.expect(context.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(tableOps.getTabletInformation(tableName, new Range()))
+    EasyMock.expect(tableOps.getTabletInformation(tableName, RowRange.all()))
         .andReturn(Stream.of(tabletInformation));
 
     Map<String,String> idMap = new TreeMap<>();
