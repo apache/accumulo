@@ -27,7 +27,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 /**
  * The Micrometer metrics allows for different monitoring systems. and can be enabled within
  * Accumulo with properties and are initialized by implementing this interface and providing the
- * factory implementation clas name as a property. Metrics are specified with the following
+ * factory implementation class name as a property. Metrics are specified with the following
  * properties:
  * <p>
  * Property.GENERAL_MICROMETER_ENABLED = true
