@@ -1883,7 +1883,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return sci.toSamplerConfiguration();
   }
 
-  private static class LocationsImpl implements Locations {
+  private static final class LocationsImpl implements Locations {
 
     private Map<Range,List<TabletId>> groupedByRanges;
     private Map<TabletId,List<Range>> groupedByTablets;

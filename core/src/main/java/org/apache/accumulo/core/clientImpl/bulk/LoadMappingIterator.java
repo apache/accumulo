@@ -40,7 +40,7 @@ import com.google.gson.stream.JsonReader;
 /**
  * Iterator for reading the Bulk Load Mapping JSON.
  */
-public class LoadMappingIterator
+public final class LoadMappingIterator
     implements Iterator<Map.Entry<KeyExtent,Bulk.Files>>, AutoCloseable {
   private final TableId tableId;
   private final JsonReader reader;

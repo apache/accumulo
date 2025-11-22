@@ -35,7 +35,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 /**
  * An iterator capable of iterating over other iterators in sorted order.
  */
-public class MultiIterator extends HeapIterator {
+public final class MultiIterator extends HeapIterator {
 
   private List<SortedKeyValueIterator<Key,Value>> iters;
   private Range fence;

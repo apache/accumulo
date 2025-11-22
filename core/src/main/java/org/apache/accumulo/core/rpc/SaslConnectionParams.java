@@ -44,9 +44,13 @@ import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Connection parameters for setting up a TSaslTransportFactory
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SaslConnectionParams {
   private static final Logger log = LoggerFactory.getLogger(SaslConnectionParams.class);
 

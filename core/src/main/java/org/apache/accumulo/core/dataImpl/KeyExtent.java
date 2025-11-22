@@ -64,7 +64,7 @@ import org.apache.hadoop.io.Text;
 /**
  * keeps track of information needed to identify a tablet
  */
-public class KeyExtent implements Comparable<KeyExtent> {
+public final class KeyExtent implements Comparable<KeyExtent> {
 
   private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
 
