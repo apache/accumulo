@@ -36,8 +36,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
@@ -46,7 +46,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class PopulateMetadata extends ManagerRepo {
+class PopulateMetadata extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -57,12 +57,12 @@ class PopulateMetadata extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     SortedMap<Text,TabletMergeability> splits;
     Map<Text,Text> splitDirMap;
 
@@ -113,9 +113,9 @@ class PopulateMetadata extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.getTableId(), false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
   }
 
   /**

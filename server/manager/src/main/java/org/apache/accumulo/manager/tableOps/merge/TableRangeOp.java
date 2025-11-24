@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
+import static org.apache.accumulo.manager.ManagerClientServiceHandler.mustBeOnline;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -27,14 +29,14 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableRangeOp extends ManagerRepo {
+public class TableRangeOp extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOp.class);
 
   private static final long serialVersionUID = 1L;
@@ -42,7 +44,7 @@ public class TableRangeOp extends ManagerRepo {
   private final MergeInfo data;
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     return Utils.reserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ, true,
         TableOperation.MERGE)
         + Utils.reserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE, true,
@@ -57,14 +59,14 @@ public class TableRangeOp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     if (SystemTables.ROOT.tableId().equals(data.tableId) && data.op.isMergeOp()) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
           SystemTables.ROOT.tableName());
     }
 
-    env.mustBeOnline(data.tableId);
+    mustBeOnline(env.getContext(), data.tableId);
 
     data.validate();
 
@@ -72,7 +74,7 @@ public class TableRangeOp extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     Utils.unreserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE);
   }

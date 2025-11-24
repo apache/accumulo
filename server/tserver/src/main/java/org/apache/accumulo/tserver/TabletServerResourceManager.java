@@ -786,6 +786,11 @@ public class TabletServerResourceManager {
     }
   }
 
+  private static final ScanDispatch ROOT_SCAN_DISPATCH =
+      ScanDispatch.builder().setExecutorName("root").build();
+  private static final ScanDispatch META_SCAN_DISPATCH =
+      ScanDispatch.builder().setExecutorName("meta").build();
+
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession<?> scanInfo,
       Runnable task) {
 
@@ -793,12 +798,12 @@ public class TabletServerResourceManager {
 
     if (tablet.isRootTablet()) {
       // TODO make meta dispatch??
-      scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
+      scanInfo.scanParams.setScanDispatch(ROOT_SCAN_DISPATCH);
       task.run();
     } else if (tablet.isMeta()) {
       // TODO make meta dispatch??
-      scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
-      scanExecutors.get("meta").execute(task);
+      scanInfo.scanParams.setScanDispatch(META_SCAN_DISPATCH);
+      scanExecutors.get(META_SCAN_DISPATCH.getExecutorName()).execute(task);
     } else {
       DispatchParameters params = new DispatchParameters() {
 
