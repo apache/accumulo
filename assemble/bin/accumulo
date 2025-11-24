@@ -92,7 +92,8 @@ function main() {
   else
     declare_output=$(declare -p ACCUMULO_MAIN_ARGS 2>/dev/null)
     if [[ $declare_output != declare\ -a* ]]; then
-      read -r -a ACCUMULO_MAIN_ARGS <<<"${ACCUMULO_MAIN_ARGS}"
+      ACCUMULO_MAIN_ARGS_RAW=${ACCUMULO_MAIN_ARGS[*]}
+      read -r -a ACCUMULO_MAIN_ARGS <<<"${ACCUMULO_MAIN_ARGS_RAW}"
     fi
   fi
 
