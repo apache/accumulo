@@ -190,7 +190,7 @@ public class CompactionCoordinator extends AbstractServer implements
     startRunningCleaner();
     compactorCounts = Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS)
         .build(queue -> ExternalCompactionUtil.countCompactors(queue, getContext()));
-    summaryLogger = new CoordinatorSummaryLogger(getContext(), compactorCounts);
+    summaryLogger = new CoordinatorSummaryLogger(super.getContext(), compactorCounts);
   }
 
   @Override
