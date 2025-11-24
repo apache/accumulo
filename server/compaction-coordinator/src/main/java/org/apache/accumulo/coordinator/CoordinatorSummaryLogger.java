@@ -60,9 +60,16 @@ public class CoordinatorSummaryLogger {
     });
 
     perQueueRunningCount.forEach((q, count) -> {
-      LOG.info("Queue {}: compactors: {}, queued majc: {}, running majc: {}", q,
-          compactorCounts.asMap().getOrDefault(q, 0),
-          CompactionCoordinator.QUEUE_SUMMARIES.QUEUES.getOrDefault(q, EMPTY).size(), count.get());
+      LOG.info(
+          "Queue {}: compactors: {}, queued majc (minimum, possibly higher): {}, running majc: {}",
+          q, compactorCounts.asMap().getOrDefault(q, 0),
+          // This map only contains the highest priority for each tserver. So when tservers have
+          // other priorities that need to compact or have more than one compaction for a
+          // priority level this count will be lower than the actual number of queued.
+          CompactionCoordinator.QUEUE_SUMMARIES.QUEUES.getOrDefault(q, EMPTY).values().stream()
+              .mapToLong(TreeSet::size).sum(),
+          count.get());
+
     });
     perTableRunningCount.forEach((t, count) -> {
       LOG.info("Running compactions for table {}: {}", t, count);
