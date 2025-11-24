@@ -517,6 +517,38 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testIteratorConflictsWithDefault() throws Exception {
+    String[] tableNames = getUniqueNames(2);
+    String table1 = tableNames[0];
+    String table2 = tableNames[1];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      // add an iterator with same priority as the default iterator
+      var iterator1 = new IteratorSetting(20, "foo", "foo.bar");
+      client.tableOperations().create(table1,
+          new NewTableConfiguration().attachIterator(iterator1));
+      System.out.println(client.tableOperations().listIterators(table1));
+      // {foo=[majc, minc, scan], vers=[majc, minc, scan]}
+      System.out
+          .println(client.tableOperations().getIteratorSetting(table1, "foo", IteratorScope.scan));
+      // name:foo, priority:20, class:foo.bar, properties:{}
+      System.out
+          .println(client.tableOperations().getIteratorSetting(table1, "vers", IteratorScope.scan));
+      // name:vers, priority:20, class:org.apache.accumulo.core.iterators.user.VersioningIterator,
+      // properties:{maxVersions=1}
+
+      // add an iterator with same name as the default iterator
+      var iterator2 = new IteratorSetting(10, "vers", "foo.bar");
+      client.tableOperations().create(table2,
+          new NewTableConfiguration().attachIterator(iterator2));
+      System.out.println(client.tableOperations().listIterators(table2));
+      // {vers=[majc, minc, scan]}
+      System.out
+          .println(client.tableOperations().getIteratorSetting(table2, "vers", IteratorScope.scan));
+      // name:vers, priority:10, class:foo.bar, properties:{maxVersions=1}
+    }
+  }
+
   /**
    * Verify the expected iterator properties exist.
    */

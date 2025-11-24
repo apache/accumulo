@@ -53,6 +53,8 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
+
 public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
   // copies configuration (property hierarchy: system, namespace, table) into table properties
@@ -150,29 +152,30 @@ public class CreateTableCommand extends Command {
     }
 
     // Copy configuration options if flag was set
+    Map<String,String> srcTableConfig = null;
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
       if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
         // copy properties, excludes parent properties in configuration
-        Map<String,String> tableProps =
+        srcTableConfig =
             shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
-        tableProps.entrySet().stream()
-            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
       } else {
         // copy configuration (include parent properties)
-        final Map<String,String> configuration =
+        srcTableConfig =
             shellState.getAccumuloClient().tableOperations().getConfiguration(srcTable);
-        configuration.entrySet().stream()
-            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
       }
+      srcTableConfig.entrySet().stream()
+          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+          .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
     }
 
     // if no defaults selected, remove, even if copied from configuration or properties
     if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
+      // handles if default props were copied over
+      Set<String> initialProps = IteratorConfigUtil.getInitialTableProperties().keySet();
       initialProps.forEach(initProperties::remove);
+      // prevents default props from being added in create table call
+      ntc = ntc.withoutDefaultIterators();
     }
 
     // Load custom formatter if set
@@ -184,6 +187,18 @@ public class CreateTableCommand extends Command {
     // create table.
     shellState.getAccumuloClient().tableOperations().create(tableName,
         ntc.setTimeType(timeType).setProperties(initProperties));
+
+    // any default properties not in the src table should also not be in the dest table.
+    // Need to remove these after table creation.
+    if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
+      var defaultProps = IteratorConfigUtil.getInitialTableProperties().keySet();
+      Preconditions.checkState(srcTableConfig != null);
+      for (var defaultProp : defaultProps) {
+        if (srcTableConfig.get(defaultProp) == null) {
+          shellState.getAccumuloClient().tableOperations().removeProperty(tableName, defaultProp);
+        }
+      }
+    }
 
     shellState.setTableName(tableName); // switch shell to new table context
 

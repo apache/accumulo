@@ -168,7 +168,7 @@ public class NewTableConfiguration {
     Map<String,String> propertyMap = new HashMap<>();
 
     if (limitVersion) {
-      propertyMap.putAll(IteratorConfigUtil.generateInitialTableProperties(limitVersion));
+      propertyMap.putAll(IteratorConfigUtil.getInitialTableProperties());
     }
 
     propertyMap.putAll(summarizerProps);
