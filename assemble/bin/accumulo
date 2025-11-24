@@ -86,7 +86,17 @@ function main() {
     JAVA=("${ACCUMULO_JAVA_PREFIX[@]}" "$JAVA")
   fi
 
-  exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"
+  # Allow users to supply extra Accumulo arguments via ACCUMULO_MAIN_ARGS
+  if ! declare -p ACCUMULO_MAIN_ARGS &>/dev/null; then
+    ACCUMULO_MAIN_ARGS=()
+  else
+    declare_output=$(declare -p ACCUMULO_MAIN_ARGS 2>/dev/null)
+    if [[ $declare_output != declare\ -a* ]]; then
+      read -r -a ACCUMULO_MAIN_ARGS <<<"${ACCUMULO_MAIN_ARGS}"
+    fi
+  fi
+
+  exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@" "${ACCUMULO_MAIN_ARGS[@]}"
 }
 
 main "$@"
