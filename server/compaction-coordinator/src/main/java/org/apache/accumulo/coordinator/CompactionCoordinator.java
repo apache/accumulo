@@ -168,6 +168,7 @@ public class CompactionCoordinator extends AbstractServer implements
   protected final AccumuloConfiguration aconf;
   protected CompactionFinalizer compactionFinalizer;
   protected LiveTServerSet tserverSet;
+  private final CoordinatorSummaryLogger summaryLogger;
 
   private ServiceLock coordinatorLock;
 
@@ -187,8 +188,9 @@ public class CompactionCoordinator extends AbstractServer implements
     printStartupMsg();
     startCompactionCleaner();
     startRunningCleaner();
-    compactorCounts = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS)
+    compactorCounts = Caffeine.newBuilder().expireAfterWrite(120, TimeUnit.SECONDS)
         .build(queue -> ExternalCompactionUtil.countCompactors(queue, getContext()));
+    summaryLogger = new CoordinatorSummaryLogger(getContext(), compactorCounts);
   }
 
   @Override
@@ -345,6 +347,7 @@ public class CompactionCoordinator extends AbstractServer implements
 
     tserverSet.startListeningForTabletServerChanges();
     startDeadCompactionDetector();
+    startQueueRunningSummaryLogging();
     startFailureSummaryLogging();
 
     LOG.info("Starting loop to check tservers for compaction summaries");
@@ -683,6 +686,12 @@ public class CompactionCoordinator extends AbstractServer implements
       failingCompactors.compute(compactor, FailureCounts::incrementFailure);
     }
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
+  }
+
+  protected void startQueueRunningSummaryLogging() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 60, TimeUnit.SECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startFailureSummaryLogging() {
