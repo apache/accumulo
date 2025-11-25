@@ -127,6 +127,9 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
+    protected void startQueueRunningSummaryLogging() {}
+
+    @Override
     protected void startFailureSummaryLogging() {}
 
     @Override
