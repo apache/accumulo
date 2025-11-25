@@ -56,7 +56,7 @@ import org.apache.accumulo.core.util.HostAndPort;
  *
  * <p>
  * For example given the above attempt plan configuration, the following sequence of events could
- * happen a tablet.
+ * happen for a tablet.
  *
  * <ol>
  * <li>host32 is chosen and it has 2 severs [host32:1000,host32:1001]. host32:1001 is randomly
