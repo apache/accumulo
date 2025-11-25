@@ -129,13 +129,13 @@ class CompactionDriver extends ManagerRepo {
     manager.getContext().clearTableListCache();
     if (tabletCount == 0 && !manager.getContext().tableNodeExists(tableId)) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
+          TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, "Table not found");
     }
 
     if (serversToFlush.size() == 0
         && manager.getContext().getTableState(tableId) == TableState.OFFLINE) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, null);
+          TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, "Table is offline");
     }
 
     if (tabletsToWaitFor == 0) {
