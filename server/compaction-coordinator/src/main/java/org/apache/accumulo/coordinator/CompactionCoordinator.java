@@ -690,7 +690,7 @@ public class CompactionCoordinator extends AbstractServer implements
 
   protected void startQueueRunningSummaryLogging() {
     ScheduledFuture<?> future = getContext().getScheduledExecutor()
-        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 60, TimeUnit.SECONDS);
+        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 1, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
