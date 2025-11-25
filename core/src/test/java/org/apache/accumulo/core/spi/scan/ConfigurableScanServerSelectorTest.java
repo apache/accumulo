@@ -20,6 +20,7 @@ package org.apache.accumulo.core.spi.scan;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -528,5 +529,114 @@ public class ConfigurableScanServerSelectorTest {
 
     assertTrue(Set.of("ss1:1", "ss2:2", "ss3:3").contains(actions.getScanServer(tabletId)));
     assertFalse(scanServers.get().isEmpty());
+  }
+
+  @Test
+  public void testServerSetChanges() throws Exception {
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
+            + "'attemptPlans':[{'servers':3, 'busyTimeout':'60s'}]}";
+
+    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
+
+    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    // start off w/ one scan server
+    AtomicReference<Map<String,String>> scanServers =
+        new AtomicReference<>(Map.of("localhost:8000", dg));
+
+    selector.init(new InitParams(scanServers::get, opts));
+
+    for (int i = 0; i < 50; i++) {
+      var tabletId = nti("" + i, "m");
+      assertEquals("localhost:8000",
+          selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId));
+      assertEquals("localhost:8000",
+          selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId));
+    }
+
+    // add some new scan servers, the selector should eventually pick these up and start making
+    // different decisions
+    HashMap<String,String> newServers = new HashMap<>();
+    for (int i = 0; i < 30; i++) {
+      newServers.put(String.format("localhost:%d", 8000 + i), dg);
+    }
+    // add some servers in another RG, these should be ignored
+    for (int i = 0; i < 30; i++) {
+      newServers.put(String.format("localhost:%d", 9000 + i), "other");
+    }
+    scanServers.set(newServers);
+
+    // wait until the new scan servers are noticed
+    var tabletId = nti("1", "m");
+    while ("localhost:8000"
+        .equals(selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId))) {
+      Thread.sleep(100);
+    }
+
+    // now should see tablet spread across the new scan servers servers
+    HashSet<String> allServersSeen = new HashSet<>();
+    for (int i = 0; i < 100; i++) {
+      tabletId = nti("" + i, "m");
+      HashSet<String> serversSeen = new HashSet<>();
+      for (int j = 0; j < 30; j++) {
+        var server = selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId);
+        serversSeen.add(server);
+        allServersSeen.add(server);
+      }
+      // each tablet should spread across three servers
+      assertEquals(3, serversSeen.size());
+    }
+    // all tablets should spread across all scan servers
+    assertEquals(30, allServersSeen.size());
+  }
+
+  /**
+   * Test that previous failures are not used again unless all servers have failed
+   */
+  @Test
+  public void testPreviousFailures() {
+    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    HashMap<String,String> servers = new HashMap<>();
+    for (int i = 0; i < 30; i++) {
+      servers.put(String.format("localhost:%d", 8000 + i), dg);
+    }
+
+    String defaultProfile =
+        "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
+            + "'attemptPlans':[{'servers':3, 'busyTimeout':'60s'}]}";
+    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
+    selector.init(new InitParams(() -> servers, opts));
+
+    var tabletId = nti("1", "m");
+    var selected = selector.selectServers(new SelectorParams(tabletId)).getScanServer(tabletId);
+    assertTrue(servers.containsKey(selected));
+
+    // try selecting again, should pick a different server
+    var attempts = new HashSet<ScanServerAttempt>();
+    attempts.add(new TestScanServerAttempt(selected, ScanServerAttempt.Result.BUSY));
+    var selected2 =
+        selector.selectServers(new SelectorParams(tabletId, Map.of(tabletId, attempts), Map.of()))
+            .getScanServer(tabletId);
+    assertTrue(servers.containsKey(selected2));
+    assertNotEquals(selected, selected2);
+
+    // try selecting again, should pick a different server
+    attempts.add(new TestScanServerAttempt(selected2, ScanServerAttempt.Result.BUSY));
+    var selected3 =
+        selector.selectServers(new SelectorParams(tabletId, Map.of(tabletId, attempts), Map.of()))
+            .getScanServer(tabletId);
+    assertTrue(servers.containsKey(selected3));
+    assertNotEquals(selected, selected3);
+    assertNotEquals(selected2, selected3);
+
+    // try selecting again, at this point all servers failed so should try any one of them
+    attempts.add(new TestScanServerAttempt(selected3, ScanServerAttempt.Result.BUSY));
+    var selected4 =
+        selector.selectServers(new SelectorParams(tabletId, Map.of(tabletId, attempts), Map.of()))
+            .getScanServer(tabletId);
+    assertTrue(Set.of(selected, selected2, selected3).contains(selected4));
   }
 }
