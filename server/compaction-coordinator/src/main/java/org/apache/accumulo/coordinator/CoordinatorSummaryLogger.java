@@ -71,9 +71,7 @@ public class CoordinatorSummaryLogger {
           count.get());
 
     });
-    perTableRunningCount.forEach((t, count) -> {
-      LOG.info("Running compactions for table {}: {}", t, count);
-    });
+    perTableRunningCount.forEach((t, count) -> LOG.info("Running compactions for table {}: {}", t, count));
   }
 
 }
