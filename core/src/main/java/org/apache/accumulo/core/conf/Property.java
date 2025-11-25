@@ -98,9 +98,9 @@ public enum Property {
   RPC_BIND_PORT("rpc.bind.port", "19000-19999", PropertyType.PORT,
       """
           The port or range of ports servers attempt to bind for RPC traffic. Provide a single \
-          value to target an exact port (will attempt higher ports if given port is already in use, \
-          up to 1000 additional checks), or a range using formats like '19000-19999' to allow searching for \
-          the first available port within that range.
+          value to target an exact port, or a range using formats like '19000-19999' to allow searching for \
+          the first available port within that range. A value of '0' is also allowed and will have the \
+          OS assign an ephemeral port at bind time.
           """,
       "4.0.0"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),

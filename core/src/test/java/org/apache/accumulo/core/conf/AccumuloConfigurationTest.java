@@ -95,24 +95,29 @@ public class AccumuloConfigurationTest {
     assertArrayEquals(new int[] {36000, 36001, 36002}, ports);
   }
 
+  /**
+   * Test that when an invalid range is supplied, the default value is used as fallback
+   */
   @Test
   public void testGetPortRangeInvalid() {
     ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    cc.set(Property.RPC_BIND_PORT, "1020-1026");
-    var msg =
-        assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.RPC_BIND_PORT));
-    assertTrue(msg.getMessage().startsWith("Port range bounds must be 1024 to 65535"));
+    cc.set(Property.RPC_BIND_PORT, "1020-1026"); // some ports below min
+    int[] defaultPorts = DefaultConfiguration.getInstance().getPort(Property.RPC_BIND_PORT);
+    assertArrayEquals(defaultPorts, cc.getPort(Property.RPC_BIND_PORT));
 
-    cc.set(Property.RPC_BIND_PORT, "65533-65538");
-    msg = assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.RPC_BIND_PORT));
-    assertTrue(msg.getMessage().startsWith("Port range bounds must be 1024 to 65535"));
+    cc.set(Property.RPC_BIND_PORT, "65533-65538"); // some ports over max
+    assertArrayEquals(defaultPorts, cc.getPort(Property.RPC_BIND_PORT));
   }
 
+  /**
+   * When an invalid port value is provided, we should fallback to default
+   */
   @Test
   public void testGetPortInvalidSyntax() {
     ConfigurationCopy cc = new ConfigurationCopy(DefaultConfiguration.getInstance());
     cc.set(Property.RPC_BIND_PORT, "bad-port");
-    assertThrows(IllegalArgumentException.class, () -> cc.getPort(Property.RPC_BIND_PORT));
+    int[] defaultPorts = DefaultConfiguration.getInstance().getPort(Property.RPC_BIND_PORT);
+    assertArrayEquals(defaultPorts, cc.getPort(Property.RPC_BIND_PORT));
   }
 
   private static class TestConfiguration extends AccumuloConfiguration {

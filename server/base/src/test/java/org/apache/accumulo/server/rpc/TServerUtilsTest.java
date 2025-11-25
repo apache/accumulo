@@ -26,6 +26,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -126,23 +127,14 @@ public class TServerUtilsTest {
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   @Test
-  public void testStartServerUsedPortFallsBack() throws Exception {
-    TServer server = null;
+  public void testStartServerUsedPortFails() throws Exception {
     InetAddress addr = InetAddress.getByName("localhost");
-    int[] port = findTwoFreeSequentialPorts(1024);
+    int port = getFreePort(1024);
     // Bind to the port
-    conf.set(Property.RPC_BIND_PORT, Integer.toString(port[0]));
-    try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
+    conf.set(Property.RPC_BIND_PORT, Integer.toString(port));
+    try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
-      ServerAddress address = startServer();
-      assertNotNull(address);
-      server = address.getServer();
-      assertNotNull(server);
-      assertEquals(port[1], address.getAddress().getPort());
-    } finally {
-      if (server != null) {
-        server.stop();
-      }
+      assertThrows(UnknownHostException.class, this::startServer);
     }
   }
 
@@ -166,6 +158,24 @@ public class TServerUtilsTest {
         server.stop();
       }
 
+    }
+  }
+
+  /**
+   * Make sure an exception is thrown if the given port range has no available ports in it
+   */
+  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
+  @Test
+  public void testStartServerPortRangeAllUsedFails() throws Exception {
+    InetAddress addr = InetAddress.getByName("localhost");
+    int[] port = findTwoFreeSequentialPorts(1024);
+    String portRange = port[0] + "-" + port[1];
+    conf.set(Property.RPC_BIND_PORT, portRange);
+    try (ServerSocket s1 = new ServerSocket(port[0], 50, addr);
+        ServerSocket s2 = new ServerSocket(port[1], 50, addr)) {
+      assertNotNull(s1);
+      assertNotNull(s2);
+      assertThrows(UnknownHostException.class, this::startServer);
     }
   }
 

@@ -39,7 +39,6 @@ import javax.net.ssl.SSLServerSocket;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType.PortRange;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -74,7 +73,6 @@ import com.google.common.primitives.Ints;
  */
 public class TServerUtils {
   private static final Logger log = LoggerFactory.getLogger(TServerUtils.class);
-  private static final int SINGLE_PORT_FALLBACK_RANGE = 1000;
 
   /**
    * Static instance, passed to {@link ClientInfoProcessorFactory}, which will contain the client
@@ -94,17 +92,7 @@ public class TServerUtils {
       return new HostAndPort[0];
     }
 
-    IntStream candidates;
-    if (configuredPorts.length == 1 && configuredPorts[0] > 0) {
-      int basePort = configuredPorts[0];
-      int maxPort = PortRange.VALID_RANGE.getMaximum();
-      int searchUpperBound = Math.min(maxPort, basePort + SINGLE_PORT_FALLBACK_RANGE);
-      IntStream fallback = basePort < searchUpperBound
-          ? IntStream.rangeClosed(basePort + 1, searchUpperBound) : IntStream.empty();
-      candidates = IntStream.concat(IntStream.of(basePort), fallback);
-    } else {
-      candidates = Arrays.stream(configuredPorts);
-    }
+    IntStream candidates = Arrays.stream(configuredPorts);
 
     return candidates.mapToObj(port -> HostAndPort.fromParts(hostname, port))
         .toArray(HostAndPort[]::new);
