@@ -37,9 +37,9 @@ import org.apache.accumulo.core.util.HostAndPort;
  * sending scans for the same tablet to the same host may provide a better experience.
  *
  * <p>
- * This implementation will use rendezvous hashing to map a tablet to one or more hosts. Then it will
- * randomly pick one of those hosts and then randomly pick a scan server on that host. Scan servers
- * that have not had previous failures are chosen first.
+ * This implementation will use rendezvous hashing to map a tablet to one or more hosts. Then it
+ * will randomly pick one of those hosts and then randomly pick a scan server on that host. Scan
+ * servers that have not had previous failures are chosen first.
  *
  * <p>
  * This implementation uses the same configuration as {@link ConfigurableScanServerSelector} but
@@ -66,8 +66,8 @@ import org.apache.accumulo.core.util.HostAndPort;
  * chosen because host32:1001 failed.
  * <li>Scan on host32:1000 has a busy timeout.</li>
  * <li>Because all servers on host32 have failed, move to the next attemptPlan and choose from three
- * hosts. host32, host40, and host09 are candidates and host09 is randomly picked, then a server from
- * host09:1000 is randomly picked
+ * hosts. host32, host40, and host09 are candidates and host09 is randomly picked, then a server
+ * from host09:1000 is randomly picked
  * <li>The scan on host09:1000 succeeds.
  * </ol>
  *
