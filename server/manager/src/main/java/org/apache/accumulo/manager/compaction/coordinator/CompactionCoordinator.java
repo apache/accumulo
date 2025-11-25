@@ -341,7 +341,7 @@ public class CompactionCoordinator
         metaReservationPool, Ample.DataLevel.USER, userReservationPool);
 
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
-        .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
+        .expireAfterWrite(2, TimeUnit.MINUTES).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
@@ -426,6 +426,7 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
+    startQueueRunningSummaryLogging();
     startFailureSummaryLogging();
     startInternalStateCleaner(ctx.getScheduledExecutor());
 
@@ -858,6 +859,15 @@ public class CompactionCoordinator
       failingCompactors.compute(compactor, FailureCounts::incrementFailure);
     }
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
+  }
+
+  protected void startQueueRunningSummaryLogging() {
+    CoordinatorSummaryLogger summaryLogger =
+        new CoordinatorSummaryLogger(ctx, this.jobQueues, this.RUNNING_CACHE, compactorCounts);
+
+    ScheduledFuture<?> future = ctx.getScheduledExecutor()
+        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 1, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startFailureSummaryLogging() {
