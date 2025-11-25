@@ -31,10 +31,6 @@ public class SummarizerFactory {
     this.classloader = SummarizerFactory.class.getClassLoader();
   }
 
-  public SummarizerFactory(ClassLoader classloader) {
-    this.classloader = classloader;
-  }
-
   public SummarizerFactory(AccumuloConfiguration tableConfig) {
     this.context = ClassLoaderUtil.tableContext(tableConfig);
   }

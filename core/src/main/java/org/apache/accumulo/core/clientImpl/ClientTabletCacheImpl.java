@@ -612,11 +612,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   @VisibleForTesting
-  public void resetTabletHostingRequestCount() {
-    tabletHostingRequestCount.set(0);
-  }
-
-  @VisibleForTesting
   public void enableTabletHostingRequests(boolean enabled) {
     HOSTING_ENABLED.set(enabled);
   }

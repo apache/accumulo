@@ -44,8 +44,6 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 class ActiveCompactionHelper {
 
   private static final Logger LOG = LoggerFactory.getLogger(ActiveCompactionHelper.class);
@@ -165,28 +163,6 @@ class ActiveCompactionHelper {
         "GROUP", "SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT",
         "OUTPUT", "ITERATORS", "ITERATOR OPTIONS"));
     return Stream.concat(header, stream);
-  }
-
-  public static Stream<String> activeCompactionsForServer(String tserver,
-      InstanceOperations instanceOps) {
-    final HostAndPort hp = HostAndPort.fromString(tserver);
-    ServerId server =
-        instanceOps.getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
-    if (server == null) {
-      server = instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
-    }
-    if (server == null) {
-      return Stream.of();
-    } else {
-      try {
-        return instanceOps.getActiveCompactions(List.of(server)).stream()
-            .sorted(COMPACTION_AGE_DESCENDING)
-            .map(ActiveCompactionHelper::formatActiveCompactionLine);
-      } catch (Exception e) {
-        LOG.debug("Failed to list active compactions for server {}", tserver, e);
-        return Stream.of(tserver + " ERROR " + e.getMessage());
-      }
-    }
   }
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps,

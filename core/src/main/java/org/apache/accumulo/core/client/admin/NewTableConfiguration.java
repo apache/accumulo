@@ -272,7 +272,6 @@ public class NewTableConfiguration {
    *
    * @since 2.0.0
    */
-  @SuppressWarnings("unchecked")
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
     checkArgument(!splits.isEmpty(), "splits set is empty");

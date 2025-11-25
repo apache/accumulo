@@ -42,11 +42,6 @@ public class ColumnToClassMapping<K> {
     objectsCol = new HashMap<>();
   }
 
-  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c)
-      throws ReflectiveOperationException {
-    this(objectStrings, c, null);
-  }
-
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c,
       String context) throws ReflectiveOperationException {
     this();
