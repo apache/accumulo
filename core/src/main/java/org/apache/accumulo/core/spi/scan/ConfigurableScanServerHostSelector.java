@@ -37,7 +37,7 @@ import org.apache.accumulo.core.util.HostAndPort;
  * sending scans for the same tablet to the same host may provide a better experience.
  *
  * <p>
- * This implementation will use rendezvous hashing to map a tablet to one or more host. Then it will
+ * This implementation will use rendezvous hashing to map a tablet to one or more hosts. Then it will
  * randomly pick one of those host and then randomly pick a scan server on that host. Scan servers
  * that have not had previous failures are chosen first.
  *
