@@ -66,7 +66,7 @@ import org.apache.accumulo.core.util.HostAndPort;
  * chosen because host32:1001 failed.
  * <li>Scan on host32:1000 has a busy timeout.</li>
  * <li>Because all servers on host32 have failed, move to the next attemptPlan and choose from three
- * host. host32,host40, and host09 are candidates and host09 is randomly picked, then a server from
+ * hosts. host32, host40, and host09 are candidates and host09 is randomly picked, then a server from
  * host09:1000 is randomly picked
  * <li>The scan on host09:1000 succeeds.
  * </ol>
