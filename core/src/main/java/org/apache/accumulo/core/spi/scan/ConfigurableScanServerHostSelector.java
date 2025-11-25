@@ -44,7 +44,7 @@ import org.apache.accumulo.core.util.HostAndPort;
  * <p>
  * This implementation uses the same configuration as {@link ConfigurableScanServerSelector} but
  * interprets {@code attemptPlans} differently in two ways. First for the server count it will use
- * that to determine how many host to choose from. Second it will only consider an attempt plan as
+ * that to determine how many hosts to choose from. Second it will only consider an attempt plan as
  * failed when servers on all host have failed.
  *
  * <pre>
