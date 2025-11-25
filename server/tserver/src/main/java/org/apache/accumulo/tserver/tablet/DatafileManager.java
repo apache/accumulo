@@ -344,6 +344,7 @@ class DatafileManager {
           }
           attemptedRename = true;
           rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+          TabletLogger.renamed(tablet.getExtent(), tmpDatafile, newDatafile);
         }
         break;
       } catch (IOException ioe) {
@@ -484,7 +485,7 @@ class DatafileManager {
     TabletFile newDatafile = CompactableUtils.computeCompactionFileDest(tmpDatafile);
 
     if (vm.exists(newDatafile.getPath())) {
-      log.error("Target map file already exist " + newDatafile, new Exception());
+      log.error("Target map file already exists {}", newDatafile, new Exception());
       throw new IllegalStateException("Target map file already exist " + newDatafile);
     }
 
@@ -494,6 +495,7 @@ class DatafileManager {
       // rename before putting in metadata table, so files in metadata table should
       // always exist
       rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+      TabletLogger.renamed(tablet.getExtent(), tmpDatafile, newDatafile);
     }
 
     Location lastLocation = null;
