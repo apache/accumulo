@@ -159,13 +159,3 @@ esac
 ## environment, that will override what is set here, rather than some mangled
 ## merged result. You can set the variable any way you like.
 #declare -p 'ACCUMULO_JAVA_PREFIX' &>/dev/null || ACCUMULO_JAVA_PREFIX=''
-
-## ACCUMULO_MAIN_ARGS can be used to pass extra arguments directly to
-## org.apache.accumulo.start.Main (after the JVM options). Declare as an array
-## to avoid issues with spaces in values.
-#case "$cmd" in
-#  monitor) ACCUMULO_MAIN_ARGS=(-o "rpc.bind.port=9995") ;;
-#  tserver)   ACCUMULO_MAIN_ARGS=(-o "rpc.bind.port=20000-20049") ;;
-#  compactor) ACCUMULO_MAIN_ARGS=(-o "rpc.bind.port=20050-20099") ;;
-#  sserver) ACCUMULO_MAIN_ARGS=(-o "rpc.bind.port=20100-20149") ;;
-#esac
