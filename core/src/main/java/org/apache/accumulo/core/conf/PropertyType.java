@@ -427,20 +427,22 @@ public enum PropertyType {
       if (input == null) {
         return true;
       }
-      final String trimmed = input.trim();
-      if (trimmed.isEmpty()) {
+      if (input.isEmpty()) {
         return false;
       }
-      if ("0".equals(trimmed)) {
+      if (input.chars().anyMatch(Character::isWhitespace)) {
+        return false;
+      }
+      if ("0".equals(input)) {
         return true;
       }
 
       try {
-        int port = Integer.parseInt(trimmed);
+        int port = Integer.parseInt(input);
         return PortRange.VALID_RANGE.contains(port);
       } catch (NumberFormatException e) {
         try {
-          PortRange.parse(trimmed);
+          PortRange.parse(input);
           return true;
         } catch (IllegalArgumentException ex) {
           return false;
@@ -457,7 +459,6 @@ public enum PropertyType {
 
     public static IntStream parse(String value) {
       Objects.requireNonNull(value, "Port range cannot be null.");
-      value = value.trim();
       Preconditions.checkArgument(!value.isEmpty(), "Port range cannot be empty.");
       Preconditions.checkArgument(value.contains("-"),
           "Invalid port range, expected format like M-N.");

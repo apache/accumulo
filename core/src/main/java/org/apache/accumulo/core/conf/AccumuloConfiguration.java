@@ -346,10 +346,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public IntStream getPortStream(Property property) {
     checkType(property, PropertyType.PORT);
 
-    String portString = get(property);
-    Preconditions.checkArgument(portString != null, "Port cannot be null.");
-    portString = portString.trim();
-    Preconditions.checkArgument(!portString.isEmpty(), "Port cannot be empty.");
+    String portString = Objects.requireNonNull(get(property), "Port cannot be null.");
+    if (!PropertyType.PORT.isValidFormat(portString)) {
+      log.error("Invalid port syntax for {}: '{}'. Using default value instead: {}",
+          property.getKey(), portString, property.getDefaultValue());
+      return PortRange.parse(property.getDefaultValue());
+    }
 
     if (portString.contains("-")) {
       // value is a range, parse it as such
@@ -364,7 +366,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
       }
       log.error("Invalid port number: {}. Using default instead: {}", port,
           property.getDefaultValue());
-      return PortRange.parse(property.getDefaultValue().trim());
+      return PortRange.parse(property.getDefaultValue());
     } catch (NumberFormatException e) {
       throw new IllegalArgumentException(
           "Invalid port syntax. Must be a single positive integer or a range M-N.", e);
