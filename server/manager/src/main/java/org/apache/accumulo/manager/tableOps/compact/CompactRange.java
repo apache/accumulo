@@ -140,7 +140,7 @@ public class CompactRange extends ManagerRepo {
           tableId, startRow, endRow);
     } catch (NoNodeException nne) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-          TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, null);
+          TableOperation.COMPACT, TableOperationExceptionType.NOTFOUND, "Table not found");
     }
 
   }

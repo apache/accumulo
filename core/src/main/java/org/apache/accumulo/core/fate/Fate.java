@@ -174,7 +174,8 @@ public class Fate<T> {
       // as a warning. They're a normal, handled failure condition.
       if (e instanceof AcceptableException) {
         var tableOpEx = (AcceptableThriftTableOperationException) e;
-        log.debug(msg + " for {}({}) {}", tableOpEx.getTableName(), tableOpEx.getTableId(),
+        log.debug("{} for {}({}) op:{} exception-type:{} desc:{}", msg, tableOpEx.getTableName(),
+            tableOpEx.getTableId(), tableOpEx.getOp(), tableOpEx.getType(),
             tableOpEx.getDescription());
       } else {
         log.warn(msg, e);
