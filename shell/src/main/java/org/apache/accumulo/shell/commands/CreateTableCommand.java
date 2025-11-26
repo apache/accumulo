@@ -62,7 +62,9 @@ public class CreateTableCommand extends Command {
   private Option createTableOptSplit;
   private Option createTableOptTimeLogical;
   private Option createTableOptTimeMillis;
+  @Deprecated(since = "2.1.4")
   private Option createTableNoDefaultIters;
+  private Option createTableNoDefaultTableProps;
   private Option createTableOptEVC;
   private Option base64Opt;
   private Option createTableOptFormatter;
@@ -171,7 +173,12 @@ public class CreateTableCommand extends Command {
     }
 
     // if no defaults selected, remove, even if copied from configuration or properties
-    if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
+    final boolean noDefaultIters = cl.hasOption(createTableNoDefaultIters.getOpt());
+    if (noDefaultIters || cl.hasOption(createTableNoDefaultTableProps.getOpt())) {
+      if (noDefaultIters) {
+        Shell.log.warn("{} ({}) option is deprecated and will be removed in a future version.",
+            createTableNoDefaultIters.getLongOpt(), createTableNoDefaultIters.getOpt());
+      }
       // handles if default props were copied over
       Set<String> initialProps = IteratorConfigUtil.getInitialTableProperties().keySet();
       initialProps.forEach(initProperties::remove);
@@ -335,7 +342,9 @@ public class CreateTableCommand extends Command {
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
     createTableOptTimeMillis = new Option("tm", "time-millis", false, "use time in milliseconds");
     createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false,
-        "prevent creation of the normal default iterator set");
+        "deprecated; use --no-default-table-props (-ndtp) instead. Prevent creation of the normal default iterator set");
+    createTableNoDefaultTableProps = new Option("ndtp", "no-default-table-props", false,
+        "prevent creation of the default iterator and default key size limit");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
@@ -383,6 +392,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptCopyConfig);
     o.addOption(createTableOptExcludeParentProps);
     o.addOption(createTableNoDefaultIters);
+    o.addOption(createTableNoDefaultTableProps);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
     o.addOption(createTableOptInitProp);
