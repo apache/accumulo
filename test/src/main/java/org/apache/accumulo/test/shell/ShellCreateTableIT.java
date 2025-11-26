@@ -921,21 +921,27 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   @Test
   public void testCreateTableNoDefaultIterators2() throws Exception {
     // tests the no default iterators setting
-    final String[] tableNames = getUniqueNames(2);
+    final String[] tableNames = getUniqueNames(3);
     final String table1 = tableNames[0];
     final String table2 = tableNames[1];
+    final String table3 = tableNames[2];
 
     // create table1 with default iterators, create table2 without default iterators but copying
     // table1 config... Expect no default iterators
     ts.exec("createtable " + table1, true);
+    // make sure order doesn't matter
     ts.exec("createtable " + table2 + " -ndi -cc " + table1);
+    ts.exec("createtable " + table3 + " -cc " + table1 + " -ndi");
     for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
       var res = ts.exec(
           "config -t " + table1 + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
-      // verify default iterator props for table1 but not table2
+      // verify default iterator props for table1 but not table2 or table3
       assertTrue(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers"));
       res = ts.exec(
           "config -t " + table2 + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
+      assertFalse(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers"));
+      res = ts.exec(
+          "config -t " + table3 + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
       assertFalse(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers"));
     }
   }

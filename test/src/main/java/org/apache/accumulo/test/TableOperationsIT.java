@@ -460,8 +460,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   public void testTablePropsEqual() throws Exception {
     // Want to ensure users can somehow create a table via the Java API that has exactly
     // the same properties of another table (including changes to default properties), similar to
-    // the copy config option of the create table Shell command. Cloning the table is expected to
-    // be one way and modifying the properties after creation is expected to be another way.
+    // the copy config option of the create table Shell command.
 
     // default iterator property which is automatically set on creation of all tables; want to
     // ensure removal and changing this type of prop is retained on copying to another table
@@ -502,16 +501,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
             && table1Props.get(defaultScanIterPropMaxVers).equals(defaultScanIterPropMaxVersNew);
       });
 
-      client.tableOperations().create(table2);
-      client.tableOperations().modifyProperties(table2, props -> {
-        try {
-          props.clear();
-          props.putAll(client.tableOperations().getTableProperties(table1));
-        } catch (AccumuloException | TableNotFoundException e) {
-          throw new RuntimeException(e);
-        }
-      });
-
+      // one option to create a table with the same config, including default prop changes
+      client.tableOperations().create(table2, new NewTableConfiguration().withoutDefaults()
+          .setProperties(client.tableOperations().getTableProperties(table1)));
+      // another option is cloning the table
       client.tableOperations().clone(table1, table3, CloneConfiguration.empty());
 
       Wait.waitFor(() -> {

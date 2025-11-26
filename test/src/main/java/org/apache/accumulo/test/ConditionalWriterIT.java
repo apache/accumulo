@@ -521,8 +521,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName,
-          new NewTableConfiguration().withoutDefaultIterators());
+      client.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaults());
 
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
 

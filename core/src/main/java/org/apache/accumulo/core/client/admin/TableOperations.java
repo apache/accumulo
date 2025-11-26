@@ -102,7 +102,7 @@ public interface TableOperations {
     if (limitVersion) {
       create(tableName);
     } else {
-      create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+      create(tableName, new NewTableConfiguration().withoutDefaults());
     }
   }
 
@@ -124,7 +124,7 @@ public interface TableOperations {
     if (versioningIter) {
       create(tableName, ntc);
     } else {
-      create(tableName, ntc.withoutDefaultIterators());
+      create(tableName, ntc.withoutDefaults());
     }
   }
 

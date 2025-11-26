@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -199,7 +200,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       AccumuloException, TableExistsException, TableNotFoundException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(2)[0];
-      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaults();
 
       Map<String,Set<Text>> lgroups = new HashMap<>();
       lgroups.put("lg1", Set.of(new Text("colF")));
@@ -336,7 +337,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(2)[0];
 
-      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaults();
       IteratorSetting setting = new IteratorSetting(10, "myIterator", "my.class");
       ntc.attachIterator(setting);
       client.tableOperations().create(tableName, ntc);
@@ -482,7 +483,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       Map<String,Set<Text>> lgroups = new HashMap<>();
       lgroups.put("lgp", Set.of(new Text("col")));
 
-      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators()
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaults()
           .attachIterator(setting, EnumSet.of(IteratorScope.scan)).setLocalityGroups(lgroups);
 
       client.tableOperations().create(tableName, ntc);
@@ -525,27 +526,12 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // add an iterator with same priority as the default iterator
       var iterator1 = new IteratorSetting(20, "foo", "foo.bar");
-      client.tableOperations().create(table1,
-          new NewTableConfiguration().attachIterator(iterator1));
-      System.out.println(client.tableOperations().listIterators(table1));
-      // {foo=[majc, minc, scan], vers=[majc, minc, scan]}
-      System.out
-          .println(client.tableOperations().getIteratorSetting(table1, "foo", IteratorScope.scan));
-      // name:foo, priority:20, class:foo.bar, properties:{}
-      System.out
-          .println(client.tableOperations().getIteratorSetting(table1, "vers", IteratorScope.scan));
-      // name:vers, priority:20, class:org.apache.accumulo.core.iterators.user.VersioningIterator,
-      // properties:{maxVersions=1}
-
+      assertThrows(IllegalArgumentException.class, () -> client.tableOperations().create(table1,
+          new NewTableConfiguration().attachIterator(iterator1)));
       // add an iterator with same name as the default iterator
       var iterator2 = new IteratorSetting(10, "vers", "foo.bar");
-      client.tableOperations().create(table2,
-          new NewTableConfiguration().attachIterator(iterator2));
-      System.out.println(client.tableOperations().listIterators(table2));
-      // {vers=[majc, minc, scan]}
-      System.out
-          .println(client.tableOperations().getIteratorSetting(table2, "vers", IteratorScope.scan));
-      // name:vers, priority:10, class:foo.bar, properties:{maxVersions=1}
+      assertThrows(IllegalArgumentException.class, () -> client.tableOperations().create(table2,
+          new NewTableConfiguration().attachIterator(iterator2)));
     }
   }
 

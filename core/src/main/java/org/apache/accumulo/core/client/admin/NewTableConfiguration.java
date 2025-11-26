@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -64,13 +65,14 @@ public class NewTableConfiguration {
   private static final InitialTableState DEFAULT_CREATION_MODE = InitialTableState.ONLINE;
   private InitialTableState initialTableState = DEFAULT_CREATION_MODE;
 
-  private boolean limitVersion = true;
+  private boolean includeDefaults = true;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
+  private final Map<IteratorSetting,EnumSet<IteratorScope>> iteratorSettings = new HashMap<>();
   private SortedSet<Text> splitProps = Collections.emptySortedSet();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
@@ -105,10 +107,29 @@ public class NewTableConfiguration {
    * the table to be created without that iterator, or any others which may become defaults in the
    * future.
    *
+   * @deprecated since 2.1.4. This method prevents all default table properties from being set. This
+   *             includes the default iterator properties as well as the default key size constraint
+   *             ({@link DefaultKeySizeConstraint}). Replaced by {@link #withoutDefaults()} to match
+   *             name with functionality.
    * @return this
    */
+  @Deprecated(since = "2.1.4")
   public NewTableConfiguration withoutDefaultIterators() {
-    this.limitVersion = false;
+    this.includeDefaults = false;
+    return this;
+  }
+
+  /**
+   * Currently, the default table properties include the default iterator
+   * ({@link VersioningIterator}) and the constraint {@link DefaultKeySizeConstraint}. This method
+   * will cause the table to be created without this iterator or constraint, and any others which
+   * may become defaults in the future.
+   *
+   * @since 2.1.4
+   * @return this
+   */
+  public NewTableConfiguration withoutDefaults() {
+    this.includeDefaults = false;
     return this;
   }
 
@@ -167,7 +188,8 @@ public class NewTableConfiguration {
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
-    if (limitVersion) {
+    if (includeDefaults) {
+      checkIteratorConflictsWithDefaults();
       propertyMap.putAll(IteratorConfigUtil.getInitialTableProperties());
     }
 
@@ -177,6 +199,19 @@ public class NewTableConfiguration {
     propertyMap.putAll(iteratorProps);
     propertyMap.putAll(localityProps);
     return Collections.unmodifiableMap(propertyMap);
+  }
+
+  private void checkIteratorConflictsWithDefaults() {
+    var defaultIterProps = IteratorConfigUtil.getInitialTableIterators();
+    for (var userIterSetting : iteratorSettings.entrySet()) {
+      try {
+        TableOperationsHelper.checkIteratorConflicts(defaultIterProps, userIterSetting.getKey(),
+            userIterSetting.getValue());
+      } catch (AccumuloException e) {
+        throw new IllegalArgumentException("The specified IteratorSetting"
+            + " conflicts with an iterator already defined on this NewTableConfiguration", e);
+      }
+    }
   }
 
   /**
@@ -312,6 +347,7 @@ public class NewTableConfiguration {
       // verify that the iteratorProps assigned and the properties do not share any keys.
       checkDisjoint(properties, iteratorProps, "iterator");
     }
+    iteratorSettings.put(setting, scopes);
     return this;
   }
 

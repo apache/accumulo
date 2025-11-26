@@ -53,8 +53,6 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Preconditions;
-
 public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
   // copies configuration (property hierarchy: system, namespace, table) into table properties
@@ -167,6 +165,9 @@ public class CreateTableCommand extends Command {
       srcTableConfig.entrySet().stream()
           .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
           .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
+      // we want to copy the config exactly, specify no defaults so default settings copied from
+      // src (above) are all that are added to dest (if any)
+      ntc = ntc.withoutDefaults();
     }
 
     // if no defaults selected, remove, even if copied from configuration or properties
@@ -175,7 +176,7 @@ public class CreateTableCommand extends Command {
       Set<String> initialProps = IteratorConfigUtil.getInitialTableProperties().keySet();
       initialProps.forEach(initProperties::remove);
       // prevents default props from being added in create table call
-      ntc = ntc.withoutDefaultIterators();
+      ntc = ntc.withoutDefaults();
     }
 
     // Load custom formatter if set
@@ -187,18 +188,6 @@ public class CreateTableCommand extends Command {
     // create table.
     shellState.getAccumuloClient().tableOperations().create(tableName,
         ntc.setTimeType(timeType).setProperties(initProperties));
-
-    // any default properties not in the src table should also not be in the dest table.
-    // Need to remove these after table creation.
-    if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      var defaultProps = IteratorConfigUtil.getInitialTableProperties().keySet();
-      Preconditions.checkState(srcTableConfig != null);
-      for (var defaultProp : defaultProps) {
-        if (srcTableConfig.get(defaultProp) == null) {
-          shellState.getAccumuloClient().tableOperations().removeProperty(tableName, defaultProp);
-        }
-      }
-    }
 
     shellState.setTableName(tableName); // switch shell to new table context
 
