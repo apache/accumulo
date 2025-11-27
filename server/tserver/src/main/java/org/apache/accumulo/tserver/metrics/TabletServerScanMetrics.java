@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.metrics;
 
 import java.time.Duration;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.IntSupplier;
@@ -28,6 +29,7 @@ import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -47,6 +49,9 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private final LongAdder queryResultCount = new LongAdder();
   private final LongAdder queryResultBytes = new LongAdder();
   private final LongAdder scannedCount = new LongAdder();
+  private final ConcurrentHashMap<String,AtomicLong> executorExceptionCounts =
+      new ConcurrentHashMap<>();
+  private volatile MeterRegistry registry = null;
 
   public void incrementLookupCount(long amount) {
     this.lookupCount.add(amount);
@@ -124,8 +129,28 @@ public class TabletServerScanMetrics implements MetricsProducer {
     openFiles = openFileSupplier;
   }
 
+  public void incrementExecutorExceptions(String executorName) {
+    executorExceptionCounts.computeIfAbsent(executorName, k -> {
+      AtomicLong counter = new AtomicLong(0);
+      // Register the counter if the registry is already available
+      if (registry != null) {
+        registerExecutorExceptionCounter(executorName, counter);
+      }
+      return counter;
+    }).incrementAndGet();
+  }
+
+  private void registerExecutorExceptionCounter(String executorName, AtomicLong counter) {
+    FunctionCounter.builder(METRICS_SCAN_EXECUTOR_EXCEPTIONS, counter, AtomicLong::get)
+        .tags("executor", executorName)
+        .description(
+            "Number of exceptions thrown from the iterator stack during scan execution, tagged by executor name")
+        .register(registry);
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    this.registry = registry;
     Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::getAsInt)
         .description("Number of files open for scans").register(registry);
     scans = Timer.builder(METRICS_SCAN_TIMES).description("Scans").register(registry);
@@ -156,6 +181,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
     Gauge.builder(METRICS_SCAN_ZOMBIE_THREADS, this, TabletServerScanMetrics::getZombieThreadsCount)
         .description("Number of scan threads that have no associated client session")
         .register(registry);
+    executorExceptionCounts.forEach(this::registerExecutorExceptionCounter);
   }
 
 }
