@@ -75,24 +75,33 @@ public class IteratorConfigUtil {
   }
 
   /**
-   * Generate the initial (default) properties for a table
+   * Get the initial (default) properties for a table. This includes
+   * {@link #getInitialTableIterators()} and a constraint {@link DefaultKeySizeConstraint}
    *
-   * @param limitVersion include a VersioningIterator at priority 20 that retains a single version
-   *        of a given K/V pair.
-   * @return A map of Table properties
+   * @return A map of default Table properties
    */
-  public static Map<String,String> generateInitialTableProperties(boolean limitVersion) {
-    TreeMap<String,String> props = new TreeMap<>();
-
-    if (limitVersion) {
-      for (IteratorScope iterScope : IteratorScope.values()) {
-        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers",
-            "20," + VersioningIterator.class.getName());
-        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
-      }
-    }
+  public static Map<String,String> getInitialTableProperties() {
+    TreeMap<String,String> props = new TreeMap<>(getInitialTableIterators());
 
     props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", DefaultKeySizeConstraint.class.getName());
+
+    return props;
+  }
+
+  /**
+   * For all iterator scopes, includes a {@link VersioningIterator} at priority 20 that retains a
+   * single version of a given K/V pair.
+   *
+   * @return a map of default Table iterator properties
+   */
+  public static Map<String,String> getInitialTableIterators() {
+    TreeMap<String,String> props = new TreeMap<>();
+
+    for (IteratorScope iterScope : IteratorScope.values()) {
+      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers",
+          "20," + VersioningIterator.class.getName());
+      props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions", "1");
+    }
 
     return props;
   }

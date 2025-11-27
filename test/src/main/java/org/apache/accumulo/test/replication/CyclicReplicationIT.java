@@ -263,12 +263,12 @@ public class CyclicReplicationIT extends AccumuloITBase {
                   manager1Cluster.getZooKeepers())));
 
       clientManager1.tableOperations().create(manager1Table,
-          new NewTableConfiguration().withoutDefaultIterators());
+          new NewTableConfiguration().withoutDefaults());
       String manager1TableId = clientManager1.tableOperations().tableIdMap().get(manager1Table);
       assertNotNull(manager1TableId);
 
       clientManager2.tableOperations().create(manager2Table,
-          new NewTableConfiguration().withoutDefaultIterators());
+          new NewTableConfiguration().withoutDefaults());
       String manager2TableId = clientManager2.tableOperations().tableIdMap().get(manager2Table);
       assertNotNull(manager2TableId);
 

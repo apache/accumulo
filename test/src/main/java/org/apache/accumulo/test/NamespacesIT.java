@@ -554,7 +554,7 @@ public class NamespacesIT extends SharedMiniClusterBase {
   public void verifyConstraintInheritance() throws Exception {
     String t1 = namespace + ".1";
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaultIterators());
+    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaults());
     String constraintClassName = NumericValueConstraint.class.getName();
 
     assertFalse(
