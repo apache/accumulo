@@ -36,7 +36,7 @@ public class ConfigCheckUtilTest {
 
   @Test
   public void testPass() {
-    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.RPC_BIND_PORT.getKey(), "19000");
     m.put(Property.MANAGER_TABLET_BALANCER.getKey(),
         "org.apache.accumulo.server.manager.balancer.TableLoadBalancer");
     m.put(Property.MANAGER_BULK_TIMEOUT.getKey(), "5m");
@@ -50,21 +50,21 @@ public class ConfigCheckUtilTest {
 
   @Test
   public void testPass_UnrecognizedValidProperty() {
-    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.RPC_BIND_PORT.getKey(), "19000");
     m.put(Property.MANAGER_PREFIX.getKey() + "something", "abcdefg");
     ConfigCheckUtil.validate(m.entrySet(), "test");
   }
 
   @Test
   public void testPass_UnrecognizedProperty() {
-    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.RPC_BIND_PORT.getKey(), "19000");
     m.put("invalid.prefix.value", "abcdefg");
     ConfigCheckUtil.validate(m.entrySet(), "test");
   }
 
   @Test
   public void testFail_Prefix() {
-    m.put(Property.MANAGER_CLIENTPORT.getKey(), "9999");
+    m.put(Property.RPC_BIND_PORT.getKey(), "19000");
     m.put(Property.MANAGER_PREFIX.getKey(), "oops");
     assertThrows(ConfigCheckException.class, () -> ConfigCheckUtil.validate(m.entrySet(), "test"));
   }

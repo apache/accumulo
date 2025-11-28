@@ -25,7 +25,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
@@ -60,10 +58,11 @@ public class TServerUtilsTest {
   private ServerContext context;
   private ZooSession zk;
   private MetricsInfo metricsInfo;
-  private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+  private ConfigurationCopy conf;
 
   @BeforeEach
   public void createMockServerContext() {
+    conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
     context = createMock(ServerContext.class);
     zk = createMock(ZooSession.class);
     expect(context.getZooSession()).andReturn(zk).anyTimes();
@@ -94,8 +93,7 @@ public class TServerUtilsTest {
   @Test
   public void testStartServerZeroPort() throws Exception {
     TServer server = null;
-    conf.set(Property.TSERV_CLIENTPORT, "0");
-    conf.set(Property.TSERV_PORTSEARCH, "false");
+    conf.set(Property.RPC_BIND_PORT, "0");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -113,8 +111,7 @@ public class TServerUtilsTest {
   public void testStartServerFreePort() throws Exception {
     TServer server = null;
     int port = getFreePort(1024);
-    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
-    conf.set(Property.TSERV_PORTSEARCH, "false");
+    conf.set(Property.RPC_BIND_PORT, Integer.toString(port));
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -130,12 +127,11 @@ public class TServerUtilsTest {
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   @Test
-  public void testStartServerUsedPort() throws Exception {
-    int port = getFreePort(1024);
+  public void testStartServerUsedPortFails() throws Exception {
     InetAddress addr = InetAddress.getByName("localhost");
+    int port = getFreePort(1024);
     // Bind to the port
-    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
-    conf.set(Property.TSERV_PORTSEARCH, "false");
+    conf.set(Property.RPC_BIND_PORT, Integer.toString(port));
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
       assertThrows(UnknownHostException.class, this::startServer);
@@ -149,7 +145,7 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
-    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
+    conf.set(Property.RPC_BIND_PORT, port[0] + "-" + port[1]);
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -165,58 +161,21 @@ public class TServerUtilsTest {
     }
   }
 
+  /**
+   * Make sure an exception is thrown if the given port range has no available ports in it
+   */
   @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
   @Test
-  public void testStartServerNonDefaultPorts() throws Exception {
-    TServer server = null;
-
-    // This test finds 5 free ports in more-or-less a contiguous way and then
-    // uses those port numbers to Accumulo services in the below (ascending) sequence
-    // 0. TServer default client port (this test binds to this port to force a port search)
-    // 1. GC
-    // 2. Manager
-    // 3. Monitor
-    // 4. One free port - this is the one that we expect the TServer to finally use
-    int[] ports = findTwoFreeSequentialPorts(1024);
-    int tserverDefaultPort = ports[0];
-    conf.set(Property.TSERV_CLIENTPORT, Integer.toString(tserverDefaultPort));
-    int gcPort = ports[1];
-    conf.set(Property.GC_PORT, Integer.toString(gcPort));
-
-    ports = findTwoFreeSequentialPorts(gcPort + 1);
-    int managerPort = ports[0];
-    conf.set(Property.MANAGER_CLIENTPORT, Integer.toString(managerPort));
-    int monitorPort = ports[1];
-    conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
-
-    ports = findTwoFreeSequentialPorts(monitorPort + 1);
-    int tserverFinalPort = ports[0];
-
-    // Ensure that the TServer client port we set above is NOT in the reserved ports
-    Map<Integer,Property> reservedPorts =
-        TServerUtils.getReservedPorts(conf, Property.TSERV_CLIENTPORT);
-    assertFalse(reservedPorts.containsKey(tserverDefaultPort));
-
-    // Ensure that all the ports we assigned (GC, Manager, Monitor) are included in the reserved
-    // ports as returned by TServerUtils
-    assertTrue(reservedPorts.containsKey(gcPort));
-    assertTrue(reservedPorts.containsKey(managerPort));
-    assertTrue(reservedPorts.containsKey(monitorPort));
-
+  public void testStartServerPortRangeAllUsedFails() throws Exception {
     InetAddress addr = InetAddress.getByName("localhost");
-    try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {
-      ServerAddress address = startServer();
-      assertNotNull(address);
-      server = address.getServer();
-      assertNotNull(server);
-
-      // Finally ensure that the TServer is using the last port (i.e. port search worked)
-      assertEquals(address.getAddress().getPort(), tserverFinalPort);
-    } finally {
-      if (server != null) {
-        server.stop();
-      }
-
+    int[] port = findTwoFreeSequentialPorts(1024);
+    String portRange = port[0] + "-" + port[1];
+    conf.set(Property.RPC_BIND_PORT, portRange);
+    try (ServerSocket s1 = new ServerSocket(port[0], 50, addr);
+        ServerSocket s2 = new ServerSocket(port[1], 50, addr)) {
+      assertNotNull(s1);
+      assertNotNull(s2);
+      assertThrows(UnknownHostException.class, this::startServer);
     }
   }
 
@@ -225,8 +184,7 @@ public class TServerUtilsTest {
     TServer server = null;
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = port[0] + "-" + port[1];
-    conf.set(Property.TSERV_CLIENTPORT, portRange);
-    conf.set(Property.TSERV_PORTSEARCH, "false");
+    conf.set(Property.RPC_BIND_PORT, portRange);
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -249,8 +207,7 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = port[0] + "-" + port[1];
     // Bind to the port
-    conf.set(Property.TSERV_CLIENTPORT, portRange);
-    conf.set(Property.TSERV_PORTSEARCH, "false");
+    conf.set(Property.RPC_BIND_PORT, portRange);
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -301,9 +258,9 @@ public class TServerUtilsTest {
     // misconfiguration)
     String hostname = "localhost";
 
-    ServerAddress sa = TServerUtils.createThriftServer(context, hostname, Property.TSERV_CLIENTPORT,
-        processor, "TServerUtilsTest", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    ServerAddress sa = TServerUtils.createThriftServer(context, hostname, processor,
+        "TServerUtilsTest", Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
+        Property.TSERV_THREADCHECK);
     sa.startThriftServer("TServerUtilsTestThread");
     return sa;
   }

@@ -355,7 +355,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   @Override
   public void run() {
     ServerContext context = getContext();
-    int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
+    int[] ports = getConfiguration().getPort(Property.RPC_BIND_PORT);
     String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
     // Needs leading slash in order to property create rest endpoint requests
     Preconditions.checkArgument(rootContext.startsWith("/"),
