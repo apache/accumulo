@@ -23,7 +23,9 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.sample.Sampler;
+import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -96,15 +98,20 @@ public class RFileOperations extends FileOperations {
 
     AccumuloConfiguration acuconf = options.getTableConfiguration();
 
-    long blockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
+    final long blockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE);
     Preconditions.checkArgument((blockSize < Integer.MAX_VALUE && blockSize > 0),
         "table.file.compress.blocksize must be greater than 0 and less than " + Integer.MAX_VALUE);
-    long indexBlockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
+    final long indexBlockSize = acuconf.getAsBytes(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX);
     Preconditions.checkArgument((indexBlockSize < Integer.MAX_VALUE && indexBlockSize > 0),
         "table.file.compress.blocksize.index must be greater than 0 and less than "
             + Integer.MAX_VALUE);
+    // If the user has set the table durability to sync, then set the SYNC_BLOCK flag
+    // on the RFiles so that each block is sync'd to disk when it's closed.
+    final boolean syncBlocks =
+        DurabilityImpl.fromString(acuconf.get(Property.TABLE_DURABILITY)) == Durability.SYNC;
 
-    SamplerConfigurationImpl samplerConfig = SamplerConfigurationImpl.newSamplerConfig(acuconf);
+    final SamplerConfigurationImpl samplerConfig =
+        SamplerConfigurationImpl.newSamplerConfig(acuconf);
     Sampler sampler = null;
 
     if (samplerConfig != null) {
@@ -117,7 +124,7 @@ public class RFileOperations extends FileOperations {
 
     FSDataOutputStream outputStream = options.getOutputStream();
 
-    Configuration conf = options.getConfiguration();
+    final Configuration conf = options.getConfiguration();
 
     if (outputStream == null) {
       int hrep = conf.getInt("dfs.replication", 3);
@@ -144,7 +151,7 @@ public class RFileOperations extends FileOperations {
         var builder = ((DistributedFileSystem) fs).createFile(new Path(file)).bufferSize(bufferSize)
             .blockSize(block).overwrite(false);
 
-        if (options.dropCacheBehind) {
+        if (options.dropCacheBehind || syncBlocks) {
           builder = builder.syncBlock();
         }
 
@@ -174,7 +181,7 @@ public class RFileOperations extends FileOperations {
         }
 
         outputStream = builder.build();
-      } else if (options.dropCacheBehind) {
+      } else if (options.dropCacheBehind || syncBlocks) {
         EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
         outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
             (short) rep, block, null);

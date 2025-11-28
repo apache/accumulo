@@ -1280,7 +1280,9 @@ public enum Property {
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
           + " write-ahead log, but does nothing to make it durable; flush, which pushes"
-          + " data to the file system; and sync, which ensures the data is written to disk.",
+          + " data to the file system; and sync, which ensures the data is written to disk."
+          + " As of version 2.1.5 the value of sync will also cause RFile blocks to be"
+          + " synced to disk when they are closed.",
       "1.7.0"),
 
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
