@@ -1581,7 +1581,7 @@ public class Tablet extends TabletBase {
           }
           attemptedRename = true;
           ScanfileManager.rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
-          TabletLogger.renamed(getExtent(), tmpDatafile, newDatafile);
+          TabletLogger.renamed(getExtent().tableId(), tmpDatafile.getPath(), newDatafile.getPath());
         }
         break;
       } catch (IOException ioe) {

@@ -25,7 +25,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
@@ -74,9 +73,8 @@ public class RenameCompactionFile extends AbstractFateOperation {
         if (!ctx.getVolumeManager().rename(tmpPath, newDatafile.getPath())) {
           throw new IOException("rename returned false for " + tmpPath);
         }
-        TabletLogger.renamed(KeyExtent.fromThrift(commitData.textent),
-            UnreferencedTabletFile.of(ctx.getVolumeManager().getFileSystemByPath(tmpPath), tmpPath),
-            newDatafile);
+        TabletLogger.renamed(KeyExtent.fromThrift(commitData.textent).tableId(), tmpPath,
+            newDatafile.getPath());
       } catch (IOException ioe) {
         // Log something in case there is an exception while doing the check, will have the original
         // exception.

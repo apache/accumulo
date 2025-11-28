@@ -33,6 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -109,6 +110,8 @@ class MoveExportedFiles extends AbstractFateOperation {
     }
     try {
       fs.bulkRename(oldToNewPaths, env.getRenamePool(), fateId);
+      oldToNewPaths
+          .forEach((srcDir, destDir) -> TabletLogger.renamed(tableInfo.tableId, srcDir, destDir));
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

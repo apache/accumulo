@@ -41,6 +41,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,8 +141,8 @@ public class TabletLogger {
         cf -> CompactableFileImpl.toStoredTabletFile(cf).toMinimalString());
   }
 
-  public static void renamed(KeyExtent extent, TabletFile src, TabletFile dest) {
-    fileLog.debug("{} renamed {} to {}", extent, src.getFileName(), dest.getFileName());
+  public static void renamed(TableId tableId, Path src, Path dest) {
+    fileLog.debug("{} renamed {} to {}", tableId, src.getName(), dest.getName());
   }
 
   public static void selected(FateId fateId, KeyExtent extent,
