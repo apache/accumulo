@@ -140,6 +140,10 @@ public class TabletLogger {
         cf -> CompactableFileImpl.toStoredTabletFile(cf).toMinimalString());
   }
 
+  public static void renamed(KeyExtent extent, TabletFile src, TabletFile dest) {
+    fileLog.debug("{} renamed {} to {}", extent, src.getFileName(), dest.getFileName());
+  }
+
   public static void selected(FateId fateId, KeyExtent extent,
       Collection<StoredTabletFile> inputs) {
     fileLog.trace("Selected files {} {} {}", extent, fateId,
