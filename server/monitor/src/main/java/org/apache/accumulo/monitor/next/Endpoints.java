@@ -152,6 +152,18 @@ public class Endpoints {
   }
 
   @GET
+  @Path("manager/metrics")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns the metrics for the Manager")
+  public List<FMetric> getManagerMetrics() {
+    var managerMetrics = getManager().getMetrics();
+    if (managerMetrics != null) {
+      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
+    }
+    return List.of();
+  }
+
+  @GET
   @Path("gc")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metric response for the Garbage Collector")
