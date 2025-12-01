@@ -510,9 +510,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Wait.waitFor(() -> {
         var table1Props = client.tableOperations().getTableProperties(table1);
         var table2Props = client.tableOperations().getTableProperties(table2);
-        var table3Props = client.tableOperations().getTableProperties(table2);
-        return table1Props.entrySet().equals(table2Props.entrySet())
-            && table1Props.entrySet().equals(table3Props.entrySet());
+        var table3Props = client.tableOperations().getTableProperties(table3);
+        return table1Props.equals(table2Props) && table1Props.equals(table3Props);
       });
     }
   }

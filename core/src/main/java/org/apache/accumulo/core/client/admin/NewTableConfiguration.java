@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
 /**
@@ -72,7 +73,6 @@ public class NewTableConfiguration {
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
-  private final Map<IteratorSetting,EnumSet<IteratorScope>> iteratorSettings = new HashMap<>();
   private SortedSet<Text> splitProps = Collections.emptySortedSet();
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
@@ -188,30 +188,22 @@ public class NewTableConfiguration {
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
-    if (includeDefaults) {
-      checkIteratorConflictsWithDefaults();
-      propertyMap.putAll(IteratorConfigUtil.getInitialTableProperties());
-    }
-
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
     propertyMap.putAll(iteratorProps);
     propertyMap.putAll(localityProps);
-    return Collections.unmodifiableMap(propertyMap);
-  }
 
-  private void checkIteratorConflictsWithDefaults() {
-    var defaultIterProps = IteratorConfigUtil.getInitialTableIterators();
-    for (var userIterSetting : iteratorSettings.entrySet()) {
-      try {
-        TableOperationsHelper.checkIteratorConflicts(defaultIterProps, userIterSetting.getKey(),
-            userIterSetting.getValue());
-      } catch (AccumuloException e) {
-        throw new IllegalArgumentException("The specified IteratorSetting"
-            + " conflicts with an iterator already defined on this NewTableConfiguration", e);
-      }
+    if (includeDefaults) {
+      var defaultTableProps = IteratorConfigUtil.getInitialTableProperties();
+      // check for conflicts with default table properties
+      defaultTableProps.forEach((dk, dv) -> {
+        var valInPropMap = propertyMap.get(dk);
+        Preconditions.checkState(valInPropMap == null || valInPropMap.equals(dv));
+      });
+      propertyMap.putAll(defaultTableProps);
     }
+    return Collections.unmodifiableMap(propertyMap);
   }
 
   /**
@@ -347,7 +339,6 @@ public class NewTableConfiguration {
       // verify that the iteratorProps assigned and the properties do not share any keys.
       checkDisjoint(properties, iteratorProps, "iterator");
     }
-    iteratorSettings.put(setting, scopes);
     return this;
   }
 
