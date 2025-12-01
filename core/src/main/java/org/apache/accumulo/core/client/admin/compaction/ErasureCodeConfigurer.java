@@ -85,9 +85,12 @@ public class ErasureCodeConfigurer extends CompressionConfigurer {
       long inputsSum =
           params.getInputFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum();
       if (inputsSum >= this.ecSize) {
-        overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
-        if (ecPolicyName != null) {
-          overs.put(Property.TABLE_ERASURE_CODE_POLICY.getKey(), ecPolicyName);
+        if (!params.getEnvironment().getConfiguration(params.getTableId())
+            .get(Property.TABLE_ENABLE_ERASURE_CODES.getKey()).equals("inherit")) {
+          overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
+          if (ecPolicyName != null) {
+            overs.put(Property.TABLE_ERASURE_CODE_POLICY.getKey(), ecPolicyName);
+          }
         }
       } else {
         overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
