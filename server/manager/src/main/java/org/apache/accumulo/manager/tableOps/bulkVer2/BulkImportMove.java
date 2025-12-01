@@ -33,6 +33,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.manager.Manager;
@@ -75,10 +76,6 @@ class BulkImportMove extends ManagerRepo {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
-    String fmtTid = FateTxId.formatTid(tid);
-
-    log.debug("{} sourceDir {}", fmtTid, sourceDir);
-
     VolumeManager fs = manager.getVolumeManager();
 
     if (bulkInfo.tableState == TableState.ONLINE) {
@@ -120,6 +117,7 @@ class BulkImportMove extends ManagerRepo {
     }
     try {
       fs.bulkRename(oldToNewMap, workerCount, BULK_IMPORT_DIR_MOVE_POOL.poolName, fmtTid);
+      oldToNewMap.forEach((oldPath, newPath) -> BulkLogger.renamed(fmtTid, oldPath, newPath));
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,

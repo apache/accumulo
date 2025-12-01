@@ -48,6 +48,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -199,7 +200,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
         log.trace("Looking at entry {} with tid {}", entry, tid);
         long entryTid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
         if (tid == entryTid) {
-          log.trace("deleting entry {}", entry);
+          BulkLogger.deletingLoadEntry(entry);
           Key key = entry.getKey();
           Mutation m = new Mutation(key.getRow());
           m.putDelete(key.getColumnFamily(), key.getColumnQualifier());
