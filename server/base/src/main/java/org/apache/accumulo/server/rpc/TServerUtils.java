@@ -87,14 +87,7 @@ public class TServerUtils {
    * @return array of HostAndPort objects
    */
   public static HostAndPort[] getHostAndPorts(String hostname, IntStream ports) {
-    int[] configuredPorts = ports.toArray();
-    if (configuredPorts.length == 0) {
-      return new HostAndPort[0];
-    }
-
-    IntStream candidates = Arrays.stream(configuredPorts);
-
-    return candidates.mapToObj(port -> HostAndPort.fromParts(hostname, port))
+    return ports.mapToObj(port -> HostAndPort.fromParts(hostname, port))
         .toArray(HostAndPort[]::new);
   }
 
