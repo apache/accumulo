@@ -127,14 +127,15 @@ class FileSystemInitializer {
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
     Tablet replicationTablet =
         new Tablet(REPL_TABLE_ID, replicationTableDefaultTabletDirName, null, null);
-    createMetadataFile(fs, metadataFileName, siteConfig, replicationTablet);
+    createMetadataFile(fs, metadataFileName, siteConfig, REPL_TABLE_ID, replicationTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     Tablet tablesTablet = new Tablet(MetadataTable.ID, tableMetadataTabletDirName, null, splitPoint,
         metadataFileName);
     Tablet defaultTablet =
         new Tablet(MetadataTable.ID, defaultMetadataTabletDirName, splitPoint, null);
-    createMetadataFile(fs, rootTabletFileUri, siteConfig, tablesTablet, defaultTablet);
+    createMetadataFile(fs, rootTabletFileUri, siteConfig, MetadataTable.ID, tablesTablet,
+        defaultTablet);
   }
 
   private void createDirectories(VolumeManager fs, String... dirs) throws IOException {
@@ -177,7 +178,7 @@ class FileSystemInitializer {
   }
 
   private void createMetadataFile(VolumeManager volmanager, String fileName,
-      AccumuloConfiguration conf, Tablet... tablets) throws IOException {
+      AccumuloConfiguration conf, TableId tid, Tablet... tablets) throws IOException {
     // sort file contents in memory, then play back to the file
     TreeMap<Key,Value> sorted = new TreeMap<>();
     for (Tablet tablet : tablets) {
@@ -187,7 +188,7 @@ class FileSystemInitializer {
 
     CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);
 
-    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
+    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder().forTable(tid)
         .forFile(fileName, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 
