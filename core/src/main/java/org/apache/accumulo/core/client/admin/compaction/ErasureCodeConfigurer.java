@@ -85,12 +85,16 @@ public class ErasureCodeConfigurer extends CompressionConfigurer {
       long inputsSum =
           params.getInputFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum();
       if (inputsSum >= this.ecSize) {
-        if (!params.getEnvironment().getConfiguration(params.getTableId())
-            .get(Property.TABLE_ENABLE_ERASURE_CODES.getKey()).equals("inherit")) {
+        var tableConfig = params.getEnvironment().getConfiguration(params.getTableId());
+        if(ecPolicyName != null){
           overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
-          if (ecPolicyName != null) {
-            overs.put(Property.TABLE_ERASURE_CODE_POLICY.getKey(), ecPolicyName);
-          }
+          overs.put(Property.TABLE_ERASURE_CODE_POLICY.getKey(), ecPolicyName);
+        } else if(tableConfig.get(Property.TABLE_ERASURE_CODE_POLICY.getKey()) == null) { // TODO maybe check for blank string in addition to null?
+          // Assume EC is configured at the DFS directory level, because no policy was set in plugin or table config
+          overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "inherit");
+        } else {
+          // enable and use the policy set on the table
+          overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
         }
       } else {
         overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
