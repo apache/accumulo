@@ -82,7 +82,7 @@ public class Utils {
             if (destNamespaceId.canonical().equals(new String(nId, UTF_8))
                 && !tableId.canonical().equals(tid)) {
               throw new AcceptableThriftTableOperationException(tid, tableName, operation,
-                  TableOperationExceptionType.EXISTS, null);
+                  TableOperationExceptionType.EXISTS, "Table already exists");
             }
 
           }
@@ -230,7 +230,7 @@ public class Utils {
 
     if (n != null && !n.equals(namespaceId)) {
       throw new AcceptableThriftTableOperationException(null, namespace, operation,
-          TableOperationExceptionType.NAMESPACE_EXISTS, null);
+          TableOperationExceptionType.NAMESPACE_EXISTS, "Namespace already exists");
     }
   }
 

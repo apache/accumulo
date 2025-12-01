@@ -118,6 +118,9 @@ public class CompactionCoordinatorTest {
     protected void startDeadCompactionDetector() {}
 
     @Override
+    protected void startQueueRunningSummaryLogging() {}
+
+    @Override
     protected void startFailureSummaryLogging() {}
 
     @Override
