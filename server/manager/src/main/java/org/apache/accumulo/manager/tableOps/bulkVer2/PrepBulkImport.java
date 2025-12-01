@@ -47,6 +47,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
@@ -268,6 +269,10 @@ public class PrepBulkImport extends AbstractFateOperation {
     List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
     Path bulkDir = createNewBulkDir(env.getContext(), fs, bulkInfo.tableId);
+
+    BulkLogger.initiating(fateId, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
+        bulkDir.toString());
+
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
