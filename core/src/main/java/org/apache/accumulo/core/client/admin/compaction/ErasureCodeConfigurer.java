@@ -23,6 +23,8 @@ import java.util.Map;
 
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -46,12 +48,13 @@ import com.google.common.base.Preconditions;
  * @since 2.1.4
  */
 public class ErasureCodeConfigurer extends CompressionConfigurer {
+  public static final Logger LOG = LoggerFactory.getLogger(ErasureCodeConfigurer.class);
   public static final String ERASURE_CODE_SIZE = "erasure.code.size.conversion";
   public static final String BYPASS_ERASURE_CODES = "erasure.code.bypass";
   public static final String ERASURE_CODE_POLICY = "erasure.code.policy";
   private String ecPolicyName = null;
   private Long ecSize;
-  private Boolean byPassEC = false;
+  private Boolean disableEC = false;
 
   @Override
   public void init(InitParameters iparams) {
@@ -60,14 +63,14 @@ public class ErasureCodeConfigurer extends CompressionConfigurer {
     this.ecSize =
         ConfigurationTypeHelper.getFixedMemoryAsBytes(options.getOrDefault(ERASURE_CODE_SIZE, "0"));
     this.ecPolicyName = options.get(ERASURE_CODE_POLICY);
-    this.byPassEC = Boolean.parseBoolean(options.getOrDefault(BYPASS_ERASURE_CODES, "false"));
+    this.disableEC = Boolean.parseBoolean(options.getOrDefault(BYPASS_ERASURE_CODES, "false"));
 
-    if (ecSize == 0 && !byPassEC) {
+    if (ecSize == 0 && !disableEC) {
       throw new IllegalArgumentException(
           "Must set either " + ERASURE_CODE_SIZE + " or " + BYPASS_ERASURE_CODES);
     }
 
-    if (!byPassEC) {
+    if (!disableEC) {
       Preconditions.checkArgument(this.ecSize > 0,
           "Must set " + ERASURE_CODE_SIZE + " to a positive integer");
     }
@@ -78,15 +81,26 @@ public class ErasureCodeConfigurer extends CompressionConfigurer {
   @Override
   public Overrides override(InputParameters params) {
     Map<String,String> overs = new HashMap<>(super.override(params).getOverrides());
-    if (this.byPassEC) {
+    if (this.disableEC) {
       // Allow for user initiated compactions to pass an options to bypass EC.
       overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
     } else {
       long inputsSum =
           params.getInputFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum();
       if (inputsSum >= this.ecSize) {
-        overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
-        if (ecPolicyName != null) {
+        String ecPolicy = ecPolicyName;
+        if (ecPolicy == null) {
+          // User did not provide the ec policy property in the configuration
+          // Use the value from the table
+          ecPolicy = params.getEnvironment().getConfiguration(params.getTableId())
+              .get(Property.TABLE_ERASURE_CODE_POLICY.getKey());
+        }
+        if (ecPolicy == null || ecPolicy.isBlank()) {
+          LOG.warn("Cannot enable EC because ec policy not specified in "
+              + "ErasureCodeConfigurer or table configuration");
+          overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
+        } else {
+          overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
           overs.put(Property.TABLE_ERASURE_CODE_POLICY.getKey(), ecPolicyName);
         }
       } else {
