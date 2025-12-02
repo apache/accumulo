@@ -121,6 +121,10 @@ public class TabletLogger {
     return Collections2.transform(files, CompactableFile::getFileName);
   }
 
+  public static void renamed(KeyExtent extent, TabletFile src, TabletFile dest) {
+    fileLog.debug("{} renamed {} to {}", extent, src.getFileName(), dest.getFileName());
+  }
+
   public static void selected(KeyExtent extent, CompactionKind kind,
       Collection<? extends TabletFile> inputs) {
     fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
