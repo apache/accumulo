@@ -108,7 +108,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
-    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, FateTxId.formatTid(tid));
+    log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, FateTxId.formatTid(tid));
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
@@ -293,10 +293,10 @@ class LoadFiles extends ManagerRepo {
               fmtTid, outdatedTservers);
         }
 
-        if (log.isDebugEnabled()) {
+        if (log.isTraceEnabled()) {
           var recvTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
           var tabletStats = queue.values().stream().mapToInt(Map::size).summaryStatistics();
-          log.debug(
+          log.trace(
               "{} sent {} messages to {} tablet servers for {} tablets (min:{} max:{} avg:{} "
                   + "tablets per tserver), send time:{}ms recv time:{}ms {}:{}",
               fmtTid, clients.size(), queue.size(), tabletStats.getSum(), tabletStats.getMin(),
@@ -521,7 +521,7 @@ class LoadFiles extends ManagerRepo {
           if (!pi.findWithin(
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
-            log.debug(
+            log.trace(
                 "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
                 fmtTid, loadMapKey.prevEndRow(), skipDistance);
             tabletsMetadata.close();
@@ -540,8 +540,8 @@ class LoadFiles extends ManagerRepo {
 
     log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
 
-    if (importTimingStats.callCount > 0) {
-      log.debug(
+    if (importTimingStats.callCount > 0 && log.isTraceEnabled()) {
+      log.trace(
           "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, FateTxId.formatTid(tid), importTimingStats.tabletCount,
           importTimingStats.callCount, totalProcessingTime.toMillis(),
