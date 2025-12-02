@@ -123,8 +123,9 @@ public class ErasureCodeIT extends ConfigurableMacBase {
           Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
       c.tableOperations().create(table1, new NewTableConfiguration().setProperties(options));
 
-      // defaults to "inherit"
+      // default should be to inherit
       c.tableOperations().create(table2);
+      assertEquals("inherit", Property.TABLE_ENABLE_ERASURE_CODES.getDefaultValue());
 
       var options2 = Map.of(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
       c.tableOperations().create(table3, new NewTableConfiguration().setProperties(options2));
