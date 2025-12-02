@@ -47,6 +47,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
@@ -287,6 +288,10 @@ public class PrepBulkImport extends AbstractFateOperation {
     BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), fs::create);
 
     bulkInfo.bulkDir = bulkDir.toString();
+
+    BulkLogger.initiating(fateId, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
+        bulkInfo.bulkDir);
+
     // return the next step, which will move files
     return new BulkImportMove(bulkInfo);
   }

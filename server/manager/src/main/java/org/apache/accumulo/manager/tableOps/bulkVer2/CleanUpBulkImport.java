@@ -31,6 +31,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.gc.ReferenceFile;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -111,6 +112,7 @@ public class CleanUpBulkImport extends AbstractFateOperation {
             var tabletMutator =
                 tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
             tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
+                .peek(entry -> BulkLogger.deletingLoadEntry(tablet.getExtent(), entry))
                 .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
             tabletMutator.submit(tm -> false, () -> "remove bulk load entries " + fateId);
           }
