@@ -975,7 +975,7 @@ under the License.
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
                 <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
-                <unused>org.lz4:lz4-java:jar:*</unused>
+                <unused>at.yawk.lz4:lz4-java:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
