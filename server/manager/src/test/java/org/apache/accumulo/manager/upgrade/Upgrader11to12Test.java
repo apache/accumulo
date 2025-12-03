@@ -444,21 +444,7 @@ public class Upgrader11to12Test extends WithTestNames {
     JsonNode expectedJson = mapper.readTree(zKRootV2);
     JsonNode actualJson = mapper.readTree(new String(byteCapture.getValue(), UTF_8));
 
-    expectedJson.fieldNames().forEachRemaining(field -> {
-      JsonNode expectedValue = expectedJson.get(field);
-      JsonNode actualValue = actualJson.get(field);
-
-      assertNotNull(actualValue, "Missing field in actual JSON: " + field);
-
-      if (!expectedValue.isObject()) {
-        assertEquals(expectedValue, actualValue, "Mismatch at field: " + field);
-      } else {
-        // check that actual contains all keys
-        expectedValue.fieldNames().forEachRemaining(subField -> {
-          assertTrue(actualValue.has(subField), "Missing sub-field '" + subField + "' in " + field);
-        });
-      }
-    });
+    assertEquals(expectedJson, actualJson);
     verify(context, zk, zrw, store);
   }
 
