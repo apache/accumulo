@@ -88,8 +88,8 @@ public class MiniAccumuloConfigImpl {
           MONITOR, Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
           TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
   private boolean jdwpEnabled = false;
-  private Map<String,String> systemProperties = new HashMap<>();
-  private Set<String> jvmOptions = new HashSet<>();
+  private final Map<String,String> systemProperties = new HashMap<>();
+  private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -137,6 +137,8 @@ public class MiniAccumuloConfigImpl {
     // Set default options
     this.jvmOptions.add("-XX:+PerfDisableSharedMem");
     this.jvmOptions.add("-XX:+AlwaysPreTouch");
+    this.systemProperties.put("-Dapple.awt.UIElement", "true");
+    this.systemProperties.put("-Djava.net.preferIPv4Stack", "true");
   }
 
   /**
@@ -675,7 +677,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public void setSystemProperties(Map<String,String> systemProperties) {
-    this.systemProperties = new HashMap<>(systemProperties);
+    this.systemProperties.putAll(systemProperties);
   }
 
   /**
@@ -699,7 +701,8 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Remove an option from the set of JVM options
+   * Remove an option from the set of JVM options. Only options that match the {@code option}
+   * exactly will be removed.
    *
    * @param option JVM option
    * @return true if removed, false if not removed
