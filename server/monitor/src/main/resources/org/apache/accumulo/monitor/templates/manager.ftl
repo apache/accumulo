@@ -26,25 +26,14 @@
     <div id="managerRunningBanner" style="display: none;">
         <div class="alert alert-danger" role="alert">Manager Server Not Running</div>
     </div>
-    <div id="managerStateBanner" style="display: none;">
-        <div id="manager-banner-message" class="alert alert-warning" role="alert"></div>
-    </div>
-    <table id="managerStatus" class="table caption-top table-bordered table-striped table-condensed">
+    <table id="managerStatusTable" class="table caption-top table-bordered table-striped table-condensed">
         <caption><span class="table-caption">${title}</span><br /></caption>
         <thead>
             <tr>
-                <th class="firstcell" title="The hostname of the manager server">Hostname</th>
-                <th title="Number of tablet servers currently available">Online TServers&nbsp;</th>
-                <th title="The total number of tablet servers configured">TotalTServers&nbsp;</th>
-                <th title="The last time files were cleaned-up from HDFS.">Last&nbsp;GC</th>
-                <th class="big-num" title="Tables are broken down into ranges of rows called tablets.">Tablets</th>
-                <th class="big-num">Unassigned Tablets&nbsp;</th>
-                <th class="big-num" title="The total number of key/value pairs in Accumulo">Entries</th>
-                <th class="big-num-rounded" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest</th>
-                <th class="big-num-rounded" title="The total number of Key/Value pairs read on the server side.  Not all may be returned because of filtering.">Entries Read</th>
-                <th class="big-num-rounded" title="The total number of Key/Value pairs returned as a result of scans.">Entries Returned</th>
-                <th class="duration" title="The maximum amount of time that ingest has been held across all servers due to a lack of memory to store the records">Hold&nbsp;Time</th>
-                <th class="big-num" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load</th>
+                <th class="host" title="The hostname:port of the manager server">Server</th>
+                <th class="resourceGroup" title="The resource group of the manager server">Resource&nbsp;Group</th>
+                <th class="timestamp" title="The last time data was retrieved from the manager server">Last&nbsp;Contact</th>
+                <th class="metrics" title="The metrics of the manager server">Metrics</th>
             </tr>
         </thead>
         <tbody></tbody>
