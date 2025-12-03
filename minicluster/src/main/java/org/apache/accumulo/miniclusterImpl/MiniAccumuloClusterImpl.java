@@ -348,6 +348,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
     var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
+    var jvmOptions = config.getJvmOptions().stream();
     var jvmArgs = extraJvmOpts.stream();
     var propsArgs = config.getSystemProperties().entrySet().stream()
         .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
@@ -356,14 +357,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     var hardcodedArgs = Stream.of(
         "-Dapple.awt.UIElement=true",
         "-Djava.net.preferIPv4Stack=true",
-        "-XX:+PerfDisableSharedMem",
-        "-XX:+AlwaysPreTouch",
         Main.class.getName(), clazz.getName());
     // @formatter:on
 
     // concatenate all the args sources into a single list of args
-    var argList = Stream.of(basicArgs, jvmArgs, propsArgs, hardcodedArgs, Stream.of(args))
-        .flatMap(Function.identity()).collect(toList());
+    var argList =
+        Stream.of(basicArgs, jvmOptions, jvmArgs, propsArgs, hardcodedArgs, Stream.of(args))
+            .flatMap(Function.identity()).collect(toList());
     ProcessBuilder builder = new ProcessBuilder(argList);
 
     final String classpath = getClasspath();

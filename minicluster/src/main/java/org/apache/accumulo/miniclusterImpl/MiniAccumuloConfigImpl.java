@@ -30,10 +30,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.compactor.Compactor;
@@ -87,6 +89,7 @@ public class MiniAccumuloConfigImpl {
           TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
+  private Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -131,6 +134,9 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
+    // Set default options
+    this.jvmOptions.add("-XX:+PerfDisableSharedMem");
+    this.jvmOptions.add("-XX:+AlwaysPreTouch");
   }
 
   /**
@@ -679,6 +685,38 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<>(systemProperties);
+  }
+
+  /**
+   * Add a JVM option to the spawned JVM processes. The default set of JVM options contains
+   * '-XX:+PerfDisableSharedMem' and '-XX:+AlwaysPreTouch'
+   *
+   * @param option JVM option
+   * @since 2.1.5
+   */
+  public void addJvmOption(String option) {
+    this.jvmOptions.add(option);
+  }
+
+  /**
+   * Remove an option from the set of JVM options
+   *
+   * @param option JVM option
+   * @return true if removed, false if not removed
+   * @since 2.1.5
+   */
+  public boolean removeJvmOption(String option) {
+    return this.jvmOptions.remove(option);
+  }
+
+  /**
+   * Get the set of JVM options
+   *
+   * @return set of options
+   * @since 2.1.5
+   */
+  public Set<String> getJvmOptions() {
+    return new HashSet<>(jvmOptions);
   }
 
   /**
