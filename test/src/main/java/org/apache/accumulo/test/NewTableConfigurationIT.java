@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -523,7 +524,10 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testConflictsWithDefaults() throws Exception {
     // tests trying to add properties that conflict with the default table properties
-    String table = getUniqueNames(1)[0];
+    String[] tableNames = getUniqueNames(3);
+    String table = tableNames[0];
+    String table2 = tableNames[1];
+    String table3 = tableNames[2];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       /*
        * conflicts from iterators set via attachIterator()
@@ -538,12 +542,15 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
           .create(table, new NewTableConfiguration().attachIterator(iterator2)));
       assertTrue(exception.getMessage().contains("iterator name conflict"));
-      // try to attach the exact default iterators
+      // try to attach the exact default iterators, should not present a conflict as they are
+      // equivalent to what would be added
       IteratorConfigUtil.getInitialTableIteratorSettings().forEach((setting, scopes) -> {
-        var exception1 = assertThrows(IllegalStateException.class, () -> client.tableOperations()
-            .create(table, new NewTableConfiguration().attachIterator(setting, scopes)));
-        assertTrue(exception1.getMessage().contains("iterator name conflict")
-            || exception1.getMessage().contains("iterator priority conflict"));
+        try {
+          client.tableOperations().create(table,
+              new NewTableConfiguration().attachIterator(setting, scopes));
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
       });
 
       /*
@@ -555,7 +562,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
         props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".foo", "20,foo.bar");
       }
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
-          .create(table, new NewTableConfiguration().setProperties(props)));
+          .create(table2, new NewTableConfiguration().setProperties(props)));
       assertTrue(exception.getMessage().contains("iterator priority conflict"));
       props.clear();
       // add an iterator with same name as the default iterator
@@ -563,24 +570,27 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
         props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "10,foo.bar");
       }
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
-          .create(table, new NewTableConfiguration().setProperties(props)));
+          .create(table2, new NewTableConfiguration().setProperties(props)));
       assertTrue(exception.getMessage().contains("iterator name conflict"));
       props.clear();
-      // try to attach the exact default iterators
-      exception = assertThrows(IllegalStateException.class,
-          () -> client.tableOperations().create(table, new NewTableConfiguration()
-              .setProperties(IteratorConfigUtil.getInitialTableIterators())));
-      assertTrue(exception.getMessage().contains("iterator name conflict")
-          || exception.getMessage().contains("iterator priority conflict"));
+      // try to attach the exact default iterators, should not present a conflict as they are
+      // equivalent to what would be added
+      client.tableOperations().create(table2,
+          new NewTableConfiguration().setProperties(IteratorConfigUtil.getInitialTableIterators()));
 
       /*
        * conflicts with default, non-iterator properties
        */
+      // setting a value different from default should throw
       props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", "foo");
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
-          .create(table, new NewTableConfiguration().setProperties(props)));
+          .create(table3, new NewTableConfiguration().setProperties(props)));
       assertTrue(exception.getMessage()
           .contains("conflict for property " + Property.TABLE_CONSTRAINT_PREFIX + "1"));
+      props.clear();
+      // setting a value equal to default should be fine
+      props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", DefaultKeySizeConstraint.class.getName());
+      client.tableOperations().create(table3, new NewTableConfiguration().setProperties(props));
     }
   }
 

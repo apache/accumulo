@@ -195,11 +195,16 @@ public class NewTableConfiguration {
     propertyMap.putAll(localityProps);
 
     if (includeDefaults) {
+      var initTableProps = IteratorConfigUtil.getInitialTableProperties();
       // check the properties for conflicts with default iterators
       var defaultIterSettings = IteratorConfigUtil.getInitialTableIteratorSettings();
+      // if a default prop already exists, don't want to consider that a conflict
+      var noDefaultsPropMap = new HashMap<>(propertyMap);
+      noDefaultsPropMap.entrySet().removeIf(entry -> initTableProps.get(entry.getKey()) != null
+          && initTableProps.get(entry.getKey()).equals(entry.getValue()));
       defaultIterSettings.forEach((setting, scopes) -> {
         try {
-          TableOperationsHelper.checkIteratorConflicts(propertyMap, setting, scopes);
+          TableOperationsHelper.checkIteratorConflicts(noDefaultsPropMap, setting, scopes);
         } catch (AccumuloException e) {
           throw new IllegalStateException(e);
         }
@@ -214,7 +219,7 @@ public class NewTableConfiguration {
             "conflict for property %s : %s (default val) != %s (set val)", dk, dv, valInPropMap));
       });
 
-      propertyMap.putAll(IteratorConfigUtil.getInitialTableProperties());
+      propertyMap.putAll(initTableProps);
     }
     return Collections.unmodifiableMap(propertyMap);
   }
