@@ -278,8 +278,12 @@ public abstract class TabletBase {
 
     skipReturnedDuplicates(iter, duplicatesToSkip, range);
 
-    Key lastKey = null;
-    int duplicatesSeenForLastKey = 0;
+    Key rangeStartKey = range.getStartKey();
+
+    Key startKey = null;
+    boolean resumingOnSameKey =
+        iter.hasTop() && rangeStartKey != null && rangeStartKey.equals(iter.getTopKey());
+    int duplicatesReturnedForStartKey = resumingOnSameKey ? duplicatesToSkip : 0;
 
     while (iter.hasTop()) {
       if (yield.hasYielded()) {
@@ -288,18 +292,25 @@ public abstract class TabletBase {
       }
       value = iter.getTopValue();
       key = iter.getTopKey();
+      if (startKey == null) {
+        startKey = copyResumeKey(key);
+      }
+
+      if (!key.equals(startKey)) {
+        // Batch limit reached before finishing duplicates for start key
+        // resume on the start key and skip what we have already returned
+        continueKey = copyResumeKey(startKey);
+        resumeOnSameKey = true;
+        skipContinueKey = false;
+        break;
+      }
 
       KVEntry kvEntry = new KVEntry(key, value); // copies key and value
       results.add(kvEntry);
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      if (key.equals(lastKey)) {
-        duplicatesSeenForLastKey++;
-      } else {
-        lastKey = copyResumeKey(key);
-        duplicatesSeenForLastKey = 1;
-      }
+      duplicatesReturnedForStartKey++;
 
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
@@ -338,7 +349,7 @@ public abstract class TabletBase {
       }
     }
 
-    int duplicatesToSkipForNextBatch = resumeOnSameKey ? 1 : 0;
+    int duplicatesToSkipForNextBatch = resumeOnSameKey ? duplicatesReturnedForStartKey : 0;
     return new Batch(skipContinueKey, results, continueKey, resultBytes,
         duplicatesToSkipForNextBatch);
   }
