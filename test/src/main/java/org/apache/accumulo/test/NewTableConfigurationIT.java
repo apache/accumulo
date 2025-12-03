@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -519,19 +521,66 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testIteratorConflictsWithDefault() throws Exception {
-    String[] tableNames = getUniqueNames(2);
-    String table1 = tableNames[0];
-    String table2 = tableNames[1];
+  public void testConflictsWithDefaults() throws Exception {
+    // tests trying to add properties that conflict with the default table properties
+    String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      /*
+       * conflicts from iterators set via attachIterator()
+       */
       // add an iterator with same priority as the default iterator
       var iterator1 = new IteratorSetting(20, "foo", "foo.bar");
-      assertThrows(IllegalArgumentException.class, () -> client.tableOperations().create(table1,
-          new NewTableConfiguration().attachIterator(iterator1)));
+      var exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().attachIterator(iterator1)));
+      assertTrue(exception.getMessage().contains("iterator priority conflict"));
       // add an iterator with same name as the default iterator
       var iterator2 = new IteratorSetting(10, "vers", "foo.bar");
-      assertThrows(IllegalArgumentException.class, () -> client.tableOperations().create(table2,
-          new NewTableConfiguration().attachIterator(iterator2)));
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().attachIterator(iterator2)));
+      assertTrue(exception.getMessage().contains("iterator name conflict"));
+      // try to attach the exact default iterators
+      IteratorConfigUtil.getInitialTableIteratorSettings().forEach((setting, scopes) -> {
+        var exception1 = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+            .create(table, new NewTableConfiguration().attachIterator(setting, scopes)));
+        assertTrue(exception1.getMessage().contains("iterator name conflict")
+            || exception1.getMessage().contains("iterator priority conflict"));
+      });
+
+      /*
+       * conflicts from iterators set via properties
+       */
+      // add an iterator with same priority as the default iterator
+      Map<String,String> props = new HashMap<>();
+      for (IteratorScope iterScope : IteratorScope.values()) {
+        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".foo", "20,foo.bar");
+      }
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().setProperties(props)));
+      assertTrue(exception.getMessage().contains("iterator priority conflict"));
+      props.clear();
+      // add an iterator with same name as the default iterator
+      for (IteratorScope iterScope : IteratorScope.values()) {
+        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "10,foo.bar");
+      }
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().setProperties(props)));
+      assertTrue(exception.getMessage().contains("iterator name conflict"));
+      props.clear();
+      // try to attach the exact default iterators
+      exception = assertThrows(IllegalStateException.class,
+          () -> client.tableOperations().create(table, new NewTableConfiguration()
+              .setProperties(IteratorConfigUtil.getInitialTableIterators())));
+      assertTrue(exception.getMessage().contains("iterator name conflict")
+          || exception.getMessage().contains("iterator priority conflict"));
+
+      /*
+       * conflicts with default, non-iterator properties
+       */
+      props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", "foo");
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().setProperties(props)));
+      assertTrue(exception.getMessage()
+          .contains("conflict for property " + Property.TABLE_CONSTRAINT_PREFIX + "1"));
     }
   }
 

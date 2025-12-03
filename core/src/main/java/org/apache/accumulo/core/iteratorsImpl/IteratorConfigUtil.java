@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -93,6 +94,7 @@ public class IteratorConfigUtil {
    * single version of a given K/V pair.
    *
    * @return a map of default Table iterator properties
+   * @see #getInitialTableIteratorSettings
    */
   public static Map<String,String> getInitialTableIterators() {
     TreeMap<String,String> props = new TreeMap<>();
@@ -104,6 +106,16 @@ public class IteratorConfigUtil {
     }
 
     return props;
+  }
+
+  /**
+   *
+   * @return a map of the default Table iterator settings
+   * @see #getInitialTableIterators
+   */
+  public static Map<IteratorSetting,EnumSet<IteratorScope>> getInitialTableIteratorSettings() {
+    return Map.of(new IteratorSetting(20, "vers", VersioningIterator.class.getName(),
+        Map.of("maxVersions", "1")), EnumSet.allOf(IteratorScope.class));
   }
 
   public static List<IterInfo> parseIterConf(IteratorScope scope, List<IterInfo> iters,
