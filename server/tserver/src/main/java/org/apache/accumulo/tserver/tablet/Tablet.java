@@ -1581,11 +1581,12 @@ public class Tablet extends TabletBase {
           }
           attemptedRename = true;
           ScanfileManager.rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+          TabletLogger.renamed(getExtent(), tmpDatafile, newDatafile);
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet " + getExtent() + " failed to rename " + newDatafile
-            + " after MinC, will retry in 60 secs...", ioe);
+        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", getExtent(),
+            newDatafile, ioe);
         sleepUninterruptibly(1, TimeUnit.MINUTES);
       }
     } while (true);
@@ -1630,7 +1631,7 @@ public class Tablet extends TabletBase {
               commitSession.getWALogSeq() + 2);
           break;
         } catch (IOException e) {
-          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          log.error("Failed to write to write-ahead log {} will retry", e.getMessage(), e);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } while (true);
