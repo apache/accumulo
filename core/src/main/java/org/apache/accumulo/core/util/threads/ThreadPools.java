@@ -317,6 +317,7 @@ public class ThreadPools {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
+      case MANAGER_BULK_RENAME_THREADS:
       case MANAGER_RENAME_THREADS:
         builder = getPoolBuilder(MANAGER_RENAME_POOL).numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
