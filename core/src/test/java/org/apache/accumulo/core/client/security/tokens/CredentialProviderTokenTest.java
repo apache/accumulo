@@ -51,7 +51,8 @@ public class CredentialProviderTokenTest {
       justification = "keystoreUrl location isn't provided by user input")
   @BeforeAll
   public static void setup() throws Exception {
-    URL keystoreUrl = CredentialProviderTokenTest.class.getResource("/passwords.jceks");
+    URL keystoreUrl =
+        CredentialProviderTokenTest.class.getResource("/org/apache/accumulo/core/passwords.jceks");
     assertNotNull(keystoreUrl);
     keystorePath = "jceks://file/" + Path.of(keystoreUrl.toURI()).toAbsolutePath();
   }
