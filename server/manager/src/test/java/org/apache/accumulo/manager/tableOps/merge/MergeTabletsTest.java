@@ -170,7 +170,7 @@ public class MergeTabletsTest {
     var tabletFiles = Map.of(file1, dfv1, file2, dfv2);
 
     var unsplittableMeta =
-        UnSplittableMetadata.toUnSplittable(ke3, 1000, 1001, 10, tabletFiles.keySet());
+        UnSplittableMetadata.toUnSplittable(ke3, 1000, 1001, 10, 1000, tabletFiles.keySet());
 
     // Setup the metadata for the last tablet in the merge range, this is that tablet that merge
     // will modify.
