@@ -104,7 +104,7 @@ public class LoadPlan {
      * Range that corresponds to the minimum and maximum rows in a file. For this range type, the
      * start row and end row must be non-null. The start row and end row are both considered
      * inclusive. At load time, these data ranges will be mapped to table ranges. For this RangeType
-     * accumulo has to do more work at load to map the file range to tablets. Also, this will map a
+     * Accumulo has to do more work at load to map the file range to tablets. Also, this will map a
      * file to all tablets in the range even if the file has no data for that tablet. For example if
      * a range overlapped 10 tablets but the file only had data for 8 of those tablets, the file
      * would still be loaded to all 10. This will not cause problems for scans or compactions other
