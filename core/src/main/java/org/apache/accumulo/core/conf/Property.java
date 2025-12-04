@@ -285,8 +285,8 @@ public enum Property {
           + "a new id is started. When this property is false, RPC request that arrive at a process with tracing "
           + "set will still emit traces for all spans as long as OpenTelemetry is properly configured. For example "
           + "if this property is only set for the Accumulo GC server, then all RPCs initiated by the GC would emit "
-          + "trace data across the cluster. However actions initiated on the manager process would not cause any "
-          + "tracing activity.",
+          + "trace data across the cluster. However threads on non gc server processes with no active trace would "
+          + "not emit anything when they encounter a span.",
       "2.1.0"),
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
