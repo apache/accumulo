@@ -280,11 +280,13 @@ public enum Property {
       "The maximum size of a message that can be sent to a server.", "1.5.0"),
   @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
-      "Enables tracing of actions initiated by the process using OpenTelemetry (assuming OpenTelemetry is "
-          + "configured). When this property is false, RPC request that arrive at a process with tracing set will "
-          + "still emit traces as long as OpenTelemetry is properly configured. For example if this property is only "
-          + "set for the Accumulo GC server, then all RPCs initiated by the GC would emit trace data across the "
-          + "cluster. However actions initiated on the manager process would not cause any tracing activity.",
+      "Enables tracing for all spans in the process using OpenTelemetry (assuming OpenTelemetry is "
+          + "configured). When true, if a thread with no active trace encounters a span, then a new trace with "
+          + "a new id is started. When this property is false, RPC request that arrive at a process with tracing "
+          + "set will still emit traces for all spans as long as OpenTelemetry is properly configured. For example "
+          + "if this property is only set for the Accumulo GC server, then all RPCs initiated by the GC would emit "
+          + "trace data across the cluster. However actions initiated on the manager process would not cause any "
+          + "tracing activity.",
       "2.1.0"),
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
