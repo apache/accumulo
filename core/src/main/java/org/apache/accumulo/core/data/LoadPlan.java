@@ -38,9 +38,10 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.admin.TableOperations.ImportMappingOptions;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
@@ -541,9 +542,9 @@ public class LoadPlan {
     var fs = FileSystem.get(path.toUri(), conf);
     CryptoService cs =
         CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE, properties);
-    CachableBlockFile.CachableBuilder cb =
-        new CachableBlockFile.CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);
-    try (var reader = new org.apache.accumulo.core.file.rfile.RFile.Reader(cb)) {
+    var tableConf = SiteConfiguration.empty().withOverrides(properties).build();
+    try (var reader = FileOperations.getInstance().newReaderBuilder()
+        .forFile(file.toString(), fs, conf, cs).withTableConfiguration(tableConf).build();) {
       var firstRow = reader.getFirstKey().getRow();
       var lastRow = reader.getLastKey().getRow();
       return LoadPlan.builder().loadFileTo(path.getName(), RangeType.FILE, firstRow, lastRow)
