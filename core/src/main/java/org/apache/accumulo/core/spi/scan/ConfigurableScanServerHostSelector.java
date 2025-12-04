@@ -155,14 +155,13 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
   int selectServers(SelectorParameters params, Profile profile, RendezvousHasher rhasher,
       Map<TabletId,String> serversToUse) {
 
-    int maxAttempts = 0;
+    int maxHostAttempt = 0;
 
     for (TabletId tablet : params.getTablets()) {
-      int attempts = params.getAttempts(tablet).size();
-      maxAttempts = Math.max(attempts, maxAttempts);
       Map<String,Set<String>> prevFailures = computeFailuresByHost(tablet, params);
 
       for (int hostAttempt = 0; hostAttempt < profile.getAttemptPlans().size(); hostAttempt++) {
+        maxHostAttempt = Math.max(hostAttempt, maxHostAttempt);
         List<String> scanServers =
             getServersForHostAttempt(hostAttempt, tablet, profile, rhasher, prevFailures);
         if (!scanServers.isEmpty()) {
@@ -184,6 +183,6 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
       }
     }
 
-    return maxAttempts;
+    return maxHostAttempt;
   }
 }
