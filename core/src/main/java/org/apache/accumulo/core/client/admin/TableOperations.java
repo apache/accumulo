@@ -91,51 +91,8 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
-   * <<<<<<< HEAD =======
-   *
-   * @param tableName the name of the table
-   * @param limitVersion Enables/disables the versioning iterator, which will limit the number of
-   *        Key versions kept.
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws TableExistsException if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated(since = "1.7.0")
-  default void create(String tableName, boolean limitVersion)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    if (limitVersion) {
-      create(tableName);
-    } else {
-      create(tableName, new NewTableConfiguration().withoutDefaults());
-    }
-  }
-
-  /**
-   * @param tableName the name of the table
-   * @param versioningIter Enables/disables the versioning iterator, which will limit the number of
-   *        Key versions kept.
-   * @param timeType specifies logical or real-time based time recording for entries in the table
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws TableExistsException if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated(since = "1.7.0")
-  default void create(String tableName, boolean versioningIter, TimeType timeType)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
-
-    if (versioningIter) {
-      create(tableName, ntc);
-    } else {
-      create(tableName, ntc.withoutDefaults());
-    }
-  }
-
-  /**
-   * >>>>>>> 2.1 Create a table with specified configuration. A safe way to ignore tables that do
-   * exist would be to do something like the following:
+   * Create a table with specified configuration. A safe way to ignore tables that do exist would be
+   * to do something like the following:
    *
    * <pre>
    * try {
