@@ -1012,7 +1012,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().delete(tableName);
       // Create table without versioning iterator. This done to detect the same file being imported
       // more than once.
-      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaults());
 
       addSplits(c, tableName, "0999 1999 2999 3999 4999 5999 6999 7999 8999");
 

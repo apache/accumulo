@@ -63,7 +63,7 @@ public class CreateTableCommand extends Command {
   private Option createTableOptSplit;
   private Option createTableOptTimeLogical;
   private Option createTableOptTimeMillis;
-  private Option createTableNoDefaultIters;
+  private Option createTableNoDefaultTableProps;
   private Option createTableOptEVC;
   private Option base64Opt;
   private Option createTableOptFormatter;
@@ -165,29 +165,33 @@ public class CreateTableCommand extends Command {
     }
 
     // Copy configuration options if flag was set
+    Map<String,String> srcTableConfig = null;
     if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
       String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
       if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
         // copy properties, excludes parent properties in configuration
-        Map<String,String> tableProps =
+        srcTableConfig =
             shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
-        tableProps.entrySet().stream()
-            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
       } else {
         // copy configuration (include parent properties)
-        final Map<String,String> configuration =
+        srcTableConfig =
             shellState.getAccumuloClient().tableOperations().getConfiguration(srcTable);
-        configuration.entrySet().stream()
-            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
       }
+      srcTableConfig.entrySet().stream()
+          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+          .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
+      // we want to copy the config exactly, specify no defaults so default settings copied from
+      // src (above) are all that are added to dest (if any)
+      ntc = ntc.withoutDefaults();
     }
 
     // if no defaults selected, remove, even if copied from configuration or properties
-    if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
+    if (cl.hasOption(createTableNoDefaultTableProps.getOpt())) {
+      // handles if default props were copied over
+      Set<String> initialProps = IteratorConfigUtil.getInitialTableProperties().keySet();
       initialProps.forEach(initProperties::remove);
+      // prevents default props from being added in create table call
+      ntc = ntc.withoutDefaults();
     }
 
     // Load custom formatter if set
@@ -345,8 +349,8 @@ public class CreateTableCommand extends Command {
         "file with a newline-separated list of rows to split the table with");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
     createTableOptTimeMillis = new Option("tm", "time-millis", false, "use time in milliseconds");
-    createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false,
-        "prevent creation of the normal default iterator set");
+    createTableNoDefaultTableProps = new Option("ndtp", "no-default-table-props", false,
+        "prevent creation of the default iterator and default key size limit");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
@@ -396,7 +400,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptSplit);
     o.addOption(createTableOptCopyConfig);
     o.addOption(createTableOptExcludeParentProps);
-    o.addOption(createTableNoDefaultIters);
+    o.addOption(createTableNoDefaultTableProps);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
     o.addOption(createTableOptInitProp);

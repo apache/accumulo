@@ -71,7 +71,7 @@ public class FateTestUtil {
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(fateTableProps);
+        .withoutDefaults().setProperties(fateTableProps);
     client.tableOperations().create(table, newTableConf);
     var testFateTableProps = client.tableOperations().getTableProperties(table);
 

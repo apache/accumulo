@@ -306,7 +306,7 @@ public class TestAmple {
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(metadataTableProps);
+        .withoutDefaults().setProperties(metadataTableProps);
     client.tableOperations().create(table, newTableConf);
   }
 }
