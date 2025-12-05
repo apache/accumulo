@@ -20,7 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,8 +177,10 @@ class ScanDataSource implements DataSource {
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles =
+    List<InterruptibleIterator> mapfiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
+    // Randomize the ordering of files to avoid block cache contention on seeks
+    Collections.shuffle(mapfiles);
 
     List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
