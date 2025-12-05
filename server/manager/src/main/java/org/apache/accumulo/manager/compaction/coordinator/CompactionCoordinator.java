@@ -526,7 +526,7 @@ public class CompactionCoordinator
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
             new RunningCompaction(result, compactorAddress, groupId));
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
-            rcJob);
+            rcJob, ecm.getCompactTmpName());
         break;
       } else {
         LOG.debug(
