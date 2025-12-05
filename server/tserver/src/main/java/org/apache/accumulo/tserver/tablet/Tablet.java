@@ -440,14 +440,21 @@ public class Tablet extends TabletBase {
         for (FileStatus tmp : volume.getFileSystem().globStatus(new Path(dirUri, "*_tmp"))) {
 
           if (extCompactionFiles.contains(tmp.getPath())) {
+            log.debug("Not removing compaction temp file {}, it's in use by an external compaction",
+                tmp.getPath());
             continue;
           }
 
           try {
-            log.debug("Removing old temp file {}", tmp.getPath());
-            volume.getFileSystem().delete(tmp.getPath(), false);
+            if (volume.getFileSystem().delete(tmp.getPath(), false)) {
+              log.debug("Removed old temp file {}", tmp.getPath());
+            } else {
+              log.debug(
+                  "Unable to remove old temp file {}, operation returned false with no exception",
+                  tmp.getPath());
+            }
           } catch (IOException ex) {
-            log.error("Unable to remove old temp file " + tmp.getPath() + ": " + ex);
+            log.error("Error trying to remove old temp file {}", tmp.getPath(), ex);
           }
         }
       }
