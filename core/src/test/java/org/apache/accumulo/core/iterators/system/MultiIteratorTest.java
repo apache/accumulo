@@ -426,7 +426,7 @@ public class MultiIteratorTest {
   @Test
   public void testDeepCopy() throws IOException {
     // TEst setting an endKey
-    TreeMap<Key, Value> tm1 = new TreeMap<>();
+    TreeMap<Key,Value> tm1 = new TreeMap<>();
     newKeyValue(tm1, 0, 3, false, "1");
     newKeyValue(tm1, 0, 2, false, "2");
     newKeyValue(tm1, 0, 1, false, "3");
@@ -437,7 +437,7 @@ public class MultiIteratorTest {
     newKeyValue(tm1, 2, 1, false, "8");
     newKeyValue(tm1, 2, 0, false, "9");
 
-    List<SortedKeyValueIterator<Key, Value>> skvil = new ArrayList<>(1);
+    List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
