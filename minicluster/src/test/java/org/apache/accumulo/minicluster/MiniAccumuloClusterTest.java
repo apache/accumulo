@@ -205,12 +205,9 @@ public class MiniAccumuloClusterTest extends WithTestNames {
     try (var reader = Files.newBufferedReader(accumuloProps, UTF_8)) {
       config.read(reader);
     }
-    for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
-        Property.MANAGER_CLIENTPORT, Property.GC_PORT}) {
-      String value = config.getString(randomPortProp.getKey());
-      assertNotNull(value, "Found no value for " + randomPortProp);
-      assertEquals("0", value);
-    }
+    String value = config.getString(Property.RPC_BIND_PORT.getKey());
+    assertNotNull(value, "Found no value for " + Property.RPC_BIND_PORT);
+    assertEquals("0", value);
   }
 
   @AfterAll

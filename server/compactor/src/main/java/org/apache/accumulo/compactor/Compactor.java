@@ -417,9 +417,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     var processor = ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler,
         getCompactorThriftHandlerInterface(), getContext());
     updateThriftServer(() -> {
-      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
-          Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
-          Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
+      return TServerUtils.createThriftServer(getContext(), getBindAddress(), processor,
+          this.getClass().getSimpleName(), Property.COMPACTOR_MINTHREADS,
           Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
     }, true);
   }
