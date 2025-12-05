@@ -449,7 +449,7 @@ public class Tablet extends TabletBase {
             if (volume.getFileSystem().delete(tmp.getPath(), false)) {
               log.debug("Removed old temp file {}", tmp.getPath());
             } else {
-              log.debug(
+              log.error(
                   "Unable to remove old temp file {}, operation returned false with no exception",
                   tmp.getPath());
             }
