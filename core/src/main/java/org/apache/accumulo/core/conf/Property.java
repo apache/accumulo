@@ -1147,10 +1147,19 @@ public enum Property {
           """,
       "2.1.4"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY, """
-      The durability used to write to the write-ahead log. Legal values are: \
-      none, which skips the write-ahead log; log, which sends the data to the \
-      write-ahead log, but does nothing to make it durable; flush, which pushes \
-      data to the file system; and sync, which ensures the data is written to disk. \
+      The durability of writes to tables includes ensuring that mutations written \
+      by clients are persisted in the write-ahead log and that files written \
+      during a compaction are persisted to disk successfully. This property only \
+      configures the durability used to write to the write-ahead log. Legal \
+      values are: none, which skips the write-ahead log; log, which sends the \
+      data to the write-ahead log, but does nothing to make it durable; flush, \
+      which pushes data out of the JVM (likely to page cache); and sync, which \
+      ensures that each mutation is written to the physical disk. To configure \
+      the durability of files written during minor and major compactions, set the \
+      Hadoop property \"dfs.datanode.synconclose\" to \"true\". This will ensure \
+      that the blocks of the files in HDFS are written to the physical disk as \
+      the compaction output files are written (Note that this may only apply \
+      to replicated files in HDFS). \
       """, "1.7.0"),
 
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN, """
