@@ -131,15 +131,16 @@ public class TabletLogger {
         Collections2.transform(inputs, TabletFile::getFileName));
   }
 
-  public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
+  public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config,
+      TabletFile output) {
     if (fileLog.isDebugEnabled()) {
       if (config == null) {
-        fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getExecutor(),
-            job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()));
+        fileLog.debug("Compacting {} on {} for {} from {} to {} size {}", extent, job.getExecutor(),
+            job.getKind(), asFileNames(job.getFiles()), output, getSize(job.getFiles()));
       } else {
-        fileLog.debug("Compacting {} on {} for {} from {} size {} config {}", extent,
-            job.getExecutor(), job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()),
-            config);
+        fileLog.debug("Compacting {} on {} for {} from {} to {} size {} config {}", extent,
+            job.getExecutor(), job.getKind(), asFileNames(job.getFiles()), output,
+            getSize(job.getFiles()), config);
       }
     }
   }

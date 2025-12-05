@@ -1331,10 +1331,10 @@ public class CompactableImpl implements Compactable {
 
     boolean successful = false;
     try {
-      TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
       tablet.incrementStatusMajor();
       var check = new CompactionCheck(service, kind, keepRunning, cInfo.checkCompactionId);
       TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
+      TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg, tmpFileName);
       var compactEnv = new MajCEnv(kind, check, readLimiter, writeLimiter, cInfo.propagateDeletes);
 
       SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
@@ -1396,7 +1396,7 @@ public class CompactableImpl implements Compactable {
       HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
       cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
 
-      TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
+      TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg, compactTmpName);
 
       return new ExternalCompactionJob(compactFiles, cInfo.propagateDeletes, compactTmpName,
           getExtent(), externalCompactionId, job.getKind(), cInfo.iters, cInfo.checkCompactionId,
