@@ -175,12 +175,15 @@ public class LoadPlan {
 
     @Override
     public boolean equals(Object obj) {
-      if (this == obj)
+      if (this == obj) {
         return true;
-      if (obj == null)
+      }
+      if (obj == null) {
         return false;
-      if (getClass() != obj.getClass())
+      }
+      if (getClass() != obj.getClass()) {
         return false;
+      }
       Destination other = (Destination) obj;
       return Objects.equals(fileName, other.fileName) && rangeType == other.rangeType
           && Arrays.equals(endRow, other.endRow) && Arrays.equals(startRow, other.startRow);
@@ -541,12 +544,15 @@ public class LoadPlan {
 
   @Override
   public boolean equals(Object obj) {
-    if (this == obj)
+    if (this == obj) {
       return true;
-    if (obj == null)
+    }
+    if (obj == null) {
       return false;
-    if (getClass() != obj.getClass())
+    }
+    if (getClass() != obj.getClass()) {
       return false;
+    }
     LoadPlan other = (LoadPlan) obj;
     return Objects.equals(destinations, other.destinations);
   }
