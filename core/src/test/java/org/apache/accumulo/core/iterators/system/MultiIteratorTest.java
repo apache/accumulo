@@ -422,4 +422,53 @@ public class MultiIteratorTest {
     mi.seek(r7, EMPTY_COL_FAMS, false);
     assertFalse(mi.hasTop());
   }
+
+  @Test
+  public void testDeepCopy() throws IOException {
+    // TEst setting an endKey
+    TreeMap<Key, Value> tm1 = new TreeMap<>();
+    newKeyValue(tm1, 0, 3, false, "1");
+    newKeyValue(tm1, 0, 2, false, "2");
+    newKeyValue(tm1, 0, 1, false, "3");
+    newKeyValue(tm1, 0, 0, false, "4");
+    newKeyValue(tm1, 1, 2, false, "5");
+    newKeyValue(tm1, 1, 1, false, "6");
+    newKeyValue(tm1, 1, 0, false, "7");
+    newKeyValue(tm1, 2, 1, false, "8");
+    newKeyValue(tm1, 2, 0, false, "9");
+
+    List<SortedKeyValueIterator<Key, Value>> skvil = new ArrayList<>(1);
+    skvil.add(new SortedMapIterator(tm1));
+
+    KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
+
+    MultiIterator mi = new MultiIterator(skvil, extent);
+    MultiIterator miCopy = mi.deepCopy(null);
+
+    Range r1 = new Range((Text) null, (Text) null);
+    mi.seek(r1, EMPTY_COL_FAMS, false);
+    assertTrue(mi.hasTop());
+    assertEquals("5", mi.getTopValue().toString());
+    mi.next();
+    assertTrue(mi.hasTop());
+    assertEquals("6", mi.getTopValue().toString());
+    mi.next();
+    assertTrue(mi.hasTop());
+    assertEquals("7", mi.getTopValue().toString());
+    mi.next();
+    assertFalse(mi.hasTop());
+
+    miCopy.seek(r1, EMPTY_COL_FAMS, false);
+
+    assertTrue(miCopy.hasTop());
+    assertEquals("5", miCopy.getTopValue().toString());
+    miCopy.next();
+    assertTrue(miCopy.hasTop());
+    assertEquals("6", miCopy.getTopValue().toString());
+    miCopy.next();
+    assertTrue(miCopy.hasTop());
+    assertEquals("7", miCopy.getTopValue().toString());
+    miCopy.next();
+    assertFalse(miCopy.hasTop());
+  }
 }

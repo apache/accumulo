@@ -21,6 +21,7 @@ package org.apache.accumulo.core.iteratorsImpl.system;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -50,6 +51,7 @@ public class MultiIterator extends HeapIterator {
     super(other.iters.size());
     this.iters = new ArrayList<>();
     this.fence = other.fence;
+    Collections.shuffle(other.iters);
     for (SortedKeyValueIterator<Key,Value> iter : other.iters) {
       iters.add(iter.deepCopy(env));
     }
@@ -73,6 +75,7 @@ public class MultiIterator extends HeapIterator {
     }
 
     this.fence = seekFence;
+    Collections.shuffle(iters);
     this.iters = iters;
 
     if (init) {
