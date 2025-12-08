@@ -282,7 +282,7 @@ public class NullTserver {
     @Parameter(names = "--table", description = "table to adopt", required = true)
     String tableName = null;
     @Parameter(names = "--port", description = "port number to use")
-    int port = DefaultConfiguration.getInstance().getPort(Property.TSERV_CLIENTPORT)[0];
+    int port = DefaultConfiguration.getInstance().getPort(Property.RPC_BIND_PORT)[0];
   }
 
   public static void main(String[] args) throws Exception {
@@ -318,7 +318,7 @@ public class NullTserver {
     ServerAddress sa = TServerUtils.createThriftServer(context.getConfiguration(),
         ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "NullTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
-        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
+        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(),
         HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, opts.port));
     sa.startThriftServer("null tserver");
 
