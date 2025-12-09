@@ -84,6 +84,8 @@ public class Scanner {
     } catch (IOException | RuntimeException e) {
       span.recordException(e);
       throw e;
+    }finally {
+      span.end();
     }
   }
 
