@@ -47,6 +47,8 @@ import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.crypto.NoFileDecrypter;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
+import org.apache.accumulo.core.trace.ScanInstrumentation;
+import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -468,6 +470,7 @@ public final class BCFile {
       private final CompressionAlgorithm compressAlgo;
       private Decompressor decompressor;
       private final BlockRegion region;
+      private final InputStream rawInputStream;
       private final InputStream in;
       private volatile boolean closed;
 
@@ -481,9 +484,15 @@ public final class BCFile {
         BoundedRangeFileInputStream boundedRangeFileInputStream = new BoundedRangeFileInputStream(
             fsin, this.region.getOffset(), this.region.getCompressedSize());
 
+        var si = ScanInstrumentation.get();
+        if (si != null) {
+          rawInputStream = new CountingInputStream(boundedRangeFileInputStream);
+        } else {
+          rawInputStream = boundedRangeFileInputStream;
+        }
+
         try {
-          InputStream inputStreamToBeCompressed =
-              decrypter.decryptStream(boundedRangeFileInputStream);
+          InputStream inputStreamToBeCompressed = decrypter.decryptStream(rawInputStream);
           this.in = compressAlgo.createDecompressionStream(inputStreamToBeCompressed, decompressor,
               getFSInputBufferSize(conf));
         } catch (IOException e) {
@@ -506,11 +515,23 @@ public final class BCFile {
         return region;
       }
 
+      public void flushStats() {
+        if (rawInputStream instanceof CountingInputStream) {
+          var ci = (CountingInputStream) rawInputStream;
+          var si = ScanInstrumentation.get();
+          if (si != null) {
+            si.incrementFileBytesRead(ci.getCount());
+          }
+          ci.resetCount();
+        }
+      }
+
       public void finish() throws IOException {
         synchronized (in) {
           if (!closed) {
             try {
               in.close();
+              flushStats();
             } finally {
               closed = true;
               if (decompressor != null) {
@@ -536,6 +557,10 @@ public final class BCFile {
       BlockReader(RBlockState rbs) {
         super(rbs.getInputStream());
         rBlkState = rbs;
+      }
+
+      public void flushStats() {
+        rBlkState.flushStats();
       }
 
       /**

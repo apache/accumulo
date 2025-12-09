@@ -57,6 +57,9 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.common.AttributeKey;
+import io.opentelemetry.api.trace.Span;
+
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);
@@ -76,6 +79,9 @@ class ScanDataSource implements DataSource {
   private final byte[] defaultLabels;
   private final long scanDataSourceId;
 
+  private final AtomicLong scanSeekCounter;
+  private final AtomicLong scanCounter;
+
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
     this.tablet = tablet;
@@ -85,6 +91,8 @@ class ScanDataSource implements DataSource {
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
     this.scanDataSourceId = nextSourceId.incrementAndGet();
+    this.scanSeekCounter = new AtomicLong();
+    this.scanCounter = new AtomicLong();
     log.trace("new scan data source, scanId {}, tablet: {}, params: {}, loadIterators: {}",
         this.scanDataSourceId, this.tablet, this.scanParams, this.loadIters);
   }
@@ -111,6 +119,9 @@ class ScanDataSource implements DataSource {
         } finally {
           expectedDeletionCount = tablet.getDataSourceDeletions();
           iter = null;
+          if (statsIterator != null) {
+            statsIterator.report();
+          }
         }
       }
     }
@@ -200,8 +211,8 @@ class ScanDataSource implements DataSource {
     }
     SystemIteratorEnvironment iterEnv = (SystemIteratorEnvironment) builder.build();
 
-    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
-        tablet.getScanMetrics().getScannedCounter());
+    statsIterator = new StatsIterator(multiIter, scanSeekCounter, TabletServer.seekCount,
+        scanCounter, tablet.getScannedCounter(), tablet.getScanMetrics().getScannedCounter());
 
     SortedKeyValueIterator<Key,Value> visFilter =
         SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),
@@ -291,6 +302,18 @@ class ScanDataSource implements DataSource {
           statsIterator.report();
         }
       }
+    }
+  }
+
+  private static final AttributeKey<Long> ENTRIES_READ_KEY =
+      AttributeKey.longKey("accumulo.entries.read");
+  private static final AttributeKey<Long> SEEKS_KEY = AttributeKey.longKey("accumulo.seeks");
+
+  public void setAttributes(Span span) {
+    if (statsIterator != null && span.isRecording()) {
+      statsIterator.report();
+      span.setAttribute(ENTRIES_READ_KEY, scanCounter.get());
+      span.setAttribute(SEEKS_KEY, scanSeekCounter.get());
     }
   }
 

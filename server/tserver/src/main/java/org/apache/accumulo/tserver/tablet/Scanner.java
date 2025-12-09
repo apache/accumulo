@@ -117,7 +117,7 @@ public class Scanner {
         iter = new SourceSwitchingIterator(dataSource, false);
       }
 
-      results = tablet.nextBatch(iter, range, scanParams);
+      results = tablet.nextBatch(iter, range, scanParams, dataSource);
 
       if (results.getResults() == null) {
         range = null;
