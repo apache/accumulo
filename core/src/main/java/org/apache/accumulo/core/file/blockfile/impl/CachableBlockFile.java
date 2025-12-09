@@ -53,8 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.cache.Cache;
 
-import io.opentelemetry.api.GlobalOpenTelemetry;
-
 /**
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
  * and metadatablocks
@@ -416,7 +414,6 @@ public class CachableBlockFile {
 
     public CachedBlockRead getMetaBlock(long offset, long compressedSize, long rawSize)
         throws IOException {
-      GlobalOpenTelemetry.get();
       BlockCache _iCache = cacheProvider.getIndexCache();
       if (_iCache != null) {
         String _lookup = this.cacheId + "R" + offset;

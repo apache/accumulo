@@ -30,7 +30,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
+import org.apache.accumulo.core.trace.ScanInstrumentation;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,6 +72,22 @@ public class Scanner {
   }
 
   public ScanBatch read() throws IOException, TabletClosedException {
+    // TODO what is the fastest way to short circuit and do nothing is there is no trace?
+    var span = TraceUtil.startSpan(NextBatchTask.class, "scan-batch");
+    try (var scope = span.makeCurrent(); var scanScope = ScanInstrumentation.enable(span)) {
+      var batchAndSource = readInternal();
+      // This needs to be called after the ScanDataSource was closed inorder to make sure all
+      // statistics related to files reads are seen.
+      tablet.recordScanTrace(span, batchAndSource.getFirst().getResults(), scanParams,
+          batchAndSource.getSecond());
+      return batchAndSource.getFirst();
+    } catch (IOException | RuntimeException e) {
+      span.recordException(e);
+      throw e;
+    }
+  }
+
+  private Pair<ScanBatch,ScanDataSource> readInternal() throws IOException, TabletClosedException {
 
     ScanDataSource dataSource = null;
 
@@ -117,17 +137,17 @@ public class Scanner {
         iter = new SourceSwitchingIterator(dataSource, false);
       }
 
-      results = tablet.nextBatch(iter, range, scanParams, dataSource);
+      results = tablet.nextBatch(iter, range, scanParams);
 
       if (results.getResults() == null) {
         range = null;
-        return new ScanBatch(new ArrayList<>(), false);
+        return new Pair<>(new ScanBatch(new ArrayList<>(), false), dataSource);
       } else if (results.getContinueKey() == null) {
-        return new ScanBatch(results.getResults(), false);
+        return new Pair<>(new ScanBatch(results.getResults(), false), dataSource);
       } else {
         range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(),
             range.isEndKeyInclusive());
-        return new ScanBatch(results.getResults(), true);
+        return new Pair<>(new ScanBatch(results.getResults(), true), dataSource);
       }
 
     } catch (IterationInterruptedException iie) {

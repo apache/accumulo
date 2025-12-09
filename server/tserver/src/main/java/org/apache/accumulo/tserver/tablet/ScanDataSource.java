@@ -57,6 +57,8 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 
@@ -70,7 +72,7 @@ class ScanDataSource implements DataSource {
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
   private List<MemoryIterator> memIters = null;
-  private long fileReservationId;
+  private long fileReservationId = -1;
   private final AtomicBoolean interruptFlag;
   private StatsIterator statsIterator;
 
@@ -185,6 +187,7 @@ class ScanDataSource implements DataSource {
       memIters = tablet.getMemIterators(samplerConfig);
       Pair<Long,Map<TabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
+      Preconditions.checkState(fileReservationId >= 0);
       files = reservation.getSecond();
     }
 
@@ -268,9 +271,11 @@ class ScanDataSource implements DataSource {
       tablet.returnMemIterators(memIters);
       memIters = null;
       try {
-        log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
-            scanDataSourceId, fileReservationId);
-        tablet.returnFilesForScan(fileReservationId);
+        if (fileReservationId >= 0) {
+          log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
+              scanDataSourceId, fileReservationId);
+          tablet.returnFilesForScan(fileReservationId);
+        }
       } catch (Exception e) {
         log.warn("Error Returning file iterators for scan: {}, :{}", scanDataSourceId, e);
         // Continue bubbling the exception up for handling.
@@ -281,8 +286,16 @@ class ScanDataSource implements DataSource {
     }
   }
 
+  private boolean closed = false;
+
   @Override
   public void close(boolean sawErrors) {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+
     try {
       returnIterators();
     } finally {

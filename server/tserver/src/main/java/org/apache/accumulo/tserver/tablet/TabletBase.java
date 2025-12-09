@@ -62,7 +62,6 @@ import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
-import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,12 +218,13 @@ public abstract class TabletBase {
 
     boolean sawException = false;
     var span = TraceUtil.startSpan(TabletBase.class, "multiscan-batch");
-    try (var scope = span.makeCurrent()) {
-      ScanInstrumentation.enable(span);
+    try (var scope = span.makeCurrent(); var scanScope = ScanInstrumentation.enable(span)) {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
       this.server.getScanMetrics().incrementLookupCount(1);
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
+      // must close data source before recording scan trace in order to flush all file read stats
+      dataSource.close(false);
       recordScanTrace(span, results, scanParams, dataSource);
       return result;
     } catch (IOException | RuntimeException e) {
@@ -232,7 +232,6 @@ public abstract class TabletBase {
       span.recordException(e);
       throw e;
     } finally {
-      ScanInstrumentation.disable(span);
       // code in finally block because always want
       // to return mapfiles, even when exception is thrown
       dataSource.close(sawException);
@@ -276,7 +275,7 @@ public abstract class TabletBase {
       AttributeKey.longKey("accumulo.cache.data.bypasses");;
   private static final AttributeKey<String> SERVER_KEY = AttributeKey.stringKey("accumulo.server");
 
-  private void recordScanTrace(Span span, List<KVEntry> batch, ScanParameters scanParameters,
+  void recordScanTrace(Span span, List<KVEntry> batch, ScanParameters scanParameters,
       ScanDataSource dataSource) {
     if (span.isRecording()) {
       // TODO in testing could not get really large batches, even when increasing table and
@@ -292,6 +291,8 @@ public abstract class TabletBase {
       span.setAttribute(EXTENT_KEY, getExtent().toString());
       var si = ScanInstrumentation.get();
       if (si != null) {
+        // TODO this happens before the scan data source is closed, so not all counts may have been
+        // registered
         span.setAttribute(BYTES_READ_FILE_KEY, si.getFileBytesRead());
         span.setAttribute(BYTES_READ_KEY, si.getUncompressedBytesRead());
         span.setAttribute(INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
@@ -304,24 +305,6 @@ public abstract class TabletBase {
       span.setAttribute(SERVER_KEY, server.getAdvertiseAddress().toString());
 
       dataSource.setAttributes(span);
-    }
-  }
-
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams,
-      ScanDataSource dataSource) throws IOException {
-    // TODO what is the fastest way to short circuit and do nothing is there is no trace?
-    var span = TraceUtil.startSpan(NextBatchTask.class, "scan-batch");
-    try (var scope = span.makeCurrent()) {
-      ScanInstrumentation.enable(span);
-
-      var batch = nextBatch(iter, range, scanParams);
-      recordScanTrace(span, batch.getResults(), scanParams, dataSource);
-      return batch;
-    } catch (IOException | RuntimeException e) {
-      span.recordException(e);
-      throw e;
-    } finally {
-      ScanInstrumentation.disable(span);
     }
   }
 

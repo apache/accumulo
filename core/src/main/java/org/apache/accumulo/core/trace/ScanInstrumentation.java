@@ -107,9 +107,18 @@ public class ScanInstrumentation {
     return cacheBypasses[cacheType.ordinal()].get();
   }
 
-  public static void enable(Span span) {
+  public static interface ScanScope extends AutoCloseable {
+    @Override
+    void close();
+  }
+
+  public static ScanScope enable(Span span) {
     if (span.isRecording()) {
-      INSTRUMENTED_SCANS.put(span.getSpanContext().getTraceId(), new ScanInstrumentation());
+      var traceId = span.getSpanContext().getTraceId();
+      INSTRUMENTED_SCANS.put(traceId, new ScanInstrumentation());
+      return () -> INSTRUMENTED_SCANS.remove(traceId);
+    } else {
+      return () -> {};
     }
   }
 
@@ -119,11 +128,5 @@ public class ScanInstrumentation {
       return INSTRUMENTED_SCANS.get(span.getSpanContext().getTraceId());
     }
     return null;
-  }
-
-  public static void disable(Span span) {
-    if (span.isRecording()) {
-      INSTRUMENTED_SCANS.remove(span.getSpanContext().getTraceId());
-    }
   }
 }
