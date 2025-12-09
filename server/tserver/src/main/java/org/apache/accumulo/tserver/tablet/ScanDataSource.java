@@ -120,7 +120,7 @@ class ScanDataSource implements DataSource {
           expectedDeletionCount = tablet.getDataSourceDeletions();
           iter = null;
           if (statsIterator != null) {
-            statsIterator.report();
+            statsIterator.report(true);
           }
         }
       }
@@ -299,7 +299,7 @@ class ScanDataSource implements DataSource {
       } finally {
         fileManager = null;
         if (statsIterator != null) {
-          statsIterator.report();
+          statsIterator.report(true);
         }
       }
     }
@@ -311,7 +311,7 @@ class ScanDataSource implements DataSource {
 
   public void setAttributes(Span span) {
     if (statsIterator != null && span.isRecording()) {
-      statsIterator.report();
+      statsIterator.report(true);
       span.setAttribute(ENTRIES_READ_KEY, scanCounter.get());
       span.setAttribute(SEEKS_KEY, scanSeekCounter.get());
     }

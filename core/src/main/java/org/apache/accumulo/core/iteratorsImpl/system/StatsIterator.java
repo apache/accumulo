@@ -19,7 +19,10 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -39,6 +42,7 @@ public class StatsIterator extends ServerWrappingIterator {
   private final AtomicLong scanCounter;
   private final LongAdder tabletScanCounter;
   private final LongAdder serverScanCounter;
+  private final List<StatsIterator> deepCopies = Collections.synchronizedList(new ArrayList<>());
 
   public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong scanSeekCounter,
       LongAdder serverSeekCounter, AtomicLong scanCounter, LongAdder tabletScanCounter,
@@ -57,14 +61,17 @@ public class StatsIterator extends ServerWrappingIterator {
     numRead++;
 
     if (numRead % 1009 == 0) {
-      report();
+      // only report on self, do not force deep copies to report
+      report(false);
     }
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new StatsIterator(source.deepCopy(env), scanSeekCounter, serverSeekCounter, scanCounter,
-        tabletScanCounter, serverScanCounter);
+    var deepCopy = new StatsIterator(source.deepCopy(env), scanSeekCounter, serverSeekCounter,
+        scanCounter, tabletScanCounter, serverScanCounter);
+    deepCopies.add(deepCopy);
+    return deepCopy;
   }
 
   @Override
@@ -73,15 +80,23 @@ public class StatsIterator extends ServerWrappingIterator {
     source.seek(range, columnFamilies, inclusive);
     serverSeekCounter.increment();
     scanSeekCounter.incrementAndGet();
-    report();
+    // only report on self, do not force deep copies to report
+    report(false);
   }
 
-  public void report() {
+  public void report(boolean reportDeepCopies) {
     if (numRead > 0) {
       scanCounter.addAndGet(numRead);
       tabletScanCounter.add(numRead);
       serverScanCounter.add(numRead);
       numRead = 0;
+    }
+
+    if (reportDeepCopies) {
+      // recurse down the fat tree of deep copies forcing them to report
+      for (var deepCopy : deepCopies) {
+        deepCopy.report(true);
+      }
     }
   }
 }
