@@ -61,8 +61,6 @@ public class ScanInstrumentation {
   /**
    * Increments the uncompressed and decrypted bytes read by a scan. This will include all
    * uncompressed data read by a scan regardless of if the underlying data came from cache or DFS.
-   *
-   * @param amount
    */
   public void incrementUncompressedBytesRead(long amount) {
     uncompressedBytesRead.addAndGet(amount);
