@@ -55,6 +55,7 @@ import org.apache.hadoop.io.Text;
 public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
   // copies configuration (property hierarchy: system, namespace, table) into table properties
+  @Deprecated(since = "2.1.4")
   private Option createTableOptCopyConfig;
   // copies properties from target table, (omits system and namespace properties in configuration)
   @Deprecated(since = "2.1.4")
@@ -173,6 +174,8 @@ public class CreateTableCommand extends Command {
     var hasCopyPropsOpt = cl.hasOption(createTableOptCopyProps);
     if (hasCopyConfigOpt || hasCopyPropsOpt) {
       if (hasCopyConfigOpt) {
+        Shell.log.warn("{} is deprecated and will be removed in a future version. Use {} instead.",
+            createTableOptCopyConfig.getLongOpt(), createTableOptCopyProps.getLongOpt());
         String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
         if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
           Shell.log.warn(
