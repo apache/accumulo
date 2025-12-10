@@ -19,7 +19,10 @@
 package org.apache.accumulo.core.iteratorsImpl.system;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -34,15 +37,21 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 public class StatsIterator extends ServerWrappingIterator {
 
   private int numRead = 0;
-  private final AtomicLong seekCounter;
+  private final AtomicLong scanSeekCounter;
+  private final LongAdder serverSeekCounter;
   private final AtomicLong scanCounter;
+  private final LongAdder tabletScanCounter;
   private final LongAdder serverScanCounter;
+  private final List<StatsIterator> deepCopies = Collections.synchronizedList(new ArrayList<>());
 
-  public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong seekCounter,
-      AtomicLong tabletScanCounter, LongAdder serverScanCounter) {
+  public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong scanSeekCounter,
+      LongAdder serverSeekCounter, AtomicLong scanCounter, LongAdder tabletScanCounter,
+      LongAdder serverScanCounter) {
     super(source);
-    this.seekCounter = seekCounter;
-    this.scanCounter = tabletScanCounter;
+    this.scanSeekCounter = scanSeekCounter;
+    this.serverSeekCounter = serverSeekCounter;
+    this.scanCounter = scanCounter;
+    this.tabletScanCounter = tabletScanCounter;
     this.serverScanCounter = serverScanCounter;
   }
 
@@ -51,31 +60,43 @@ public class StatsIterator extends ServerWrappingIterator {
     source.next();
     numRead++;
 
-    if (numRead % 23 == 0) {
-      scanCounter.addAndGet(numRead);
-      serverScanCounter.add(numRead);
-      numRead = 0;
+    if (numRead % 1009 == 0) {
+      // only report on self, do not force deep copies to report
+      report(false);
     }
   }
 
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    return new StatsIterator(source.deepCopy(env), seekCounter, scanCounter, serverScanCounter);
+    var deepCopy = new StatsIterator(source.deepCopy(env), scanSeekCounter, serverSeekCounter,
+        scanCounter, tabletScanCounter, serverScanCounter);
+    deepCopies.add(deepCopy);
+    return deepCopy;
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
     source.seek(range, columnFamilies, inclusive);
-    seekCounter.incrementAndGet();
-    scanCounter.addAndGet(numRead);
-    serverScanCounter.add(numRead);
-    numRead = 0;
+    serverSeekCounter.increment();
+    scanSeekCounter.incrementAndGet();
+    // only report on self, do not force deep copies to report
+    report(false);
   }
 
-  public void report() {
-    scanCounter.addAndGet(numRead);
-    serverScanCounter.add(numRead);
-    numRead = 0;
+  public void report(boolean reportDeepCopies) {
+    if (numRead > 0) {
+      scanCounter.addAndGet(numRead);
+      tabletScanCounter.add(numRead);
+      serverScanCounter.add(numRead);
+      numRead = 0;
+    }
+
+    if (reportDeepCopies) {
+      // recurse down the fat tree of deep copies forcing them to report
+      for (var deepCopy : deepCopies) {
+        deepCopy.report(true);
+      }
+    }
   }
 }

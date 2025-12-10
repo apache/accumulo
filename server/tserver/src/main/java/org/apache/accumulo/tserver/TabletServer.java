@@ -60,6 +60,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -227,7 +228,7 @@ public class TabletServer extends AbstractServer
   private String lockID;
   private volatile long lockSessionId = -1;
 
-  public static final AtomicLong seekCount = new AtomicLong(0);
+  public static final LongAdder seekCount = new LongAdder();
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
 
@@ -1201,7 +1202,7 @@ public class TabletServer extends AbstractServer
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
     result.name = getClientAddressString();
     result.holdTime = resourceManager.holdTime();
-    result.lookups = seekCount.get();
+    result.lookups = seekCount.sum();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
     result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
     result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();

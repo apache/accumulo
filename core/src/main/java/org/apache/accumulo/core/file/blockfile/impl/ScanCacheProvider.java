@@ -20,7 +20,7 @@ package org.apache.accumulo.core.file.blockfile.impl;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.logging.LoggingBlockCache;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheUtil;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
@@ -33,8 +33,8 @@ public class ScanCacheProvider implements CacheProvider {
   public ScanCacheProvider(AccumuloConfiguration tableConfig, ScanDispatch dispatch,
       BlockCache indexCache, BlockCache dataCache) {
 
-    var loggingIndexCache = LoggingBlockCache.wrap(CacheType.INDEX, indexCache);
-    var loggingDataCache = LoggingBlockCache.wrap(CacheType.DATA, dataCache);
+    var loggingIndexCache = BlockCacheUtil.instrument(CacheType.INDEX, indexCache);
+    var loggingDataCache = BlockCacheUtil.instrument(CacheType.DATA, dataCache);
 
     switch (dispatch.getIndexCacheUsage()) {
       case ENABLED:

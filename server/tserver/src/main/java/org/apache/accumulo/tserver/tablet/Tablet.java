@@ -446,6 +446,7 @@ public class Tablet extends TabletBase {
           }
 
           try {
+            // TODO include extent
             if (volume.getFileSystem().delete(tmp.getPath(), false)) {
               log.debug("Removed old temp file {}", tmp.getPath());
             } else {
@@ -1793,7 +1794,7 @@ public class Tablet extends TabletBase {
   }
 
   public long totalScannedCount() {
-    return this.scannedCount.get();
+    return this.scannedCount.sum();
   }
 
   public long totalLookupCount() {
@@ -1806,7 +1807,7 @@ public class Tablet extends TabletBase {
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, this.scannedCount.get());
+    scannedRate.update(now, this.scannedCount.sum());
   }
 
   public long getSplitCreationTime() {
