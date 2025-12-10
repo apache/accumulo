@@ -62,11 +62,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -452,6 +454,66 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertThrows(TableNotFoundException.class,
         () -> accumuloClient.tableOperations().getTimeType("notatable"),
         "specified table does not exist");
+  }
+
+  @Test
+  public void testTablePropsEqual() throws Exception {
+    // Want to ensure users can somehow create a table via the Java API that has exactly
+    // the same properties of another table (including changes to default properties), similar to
+    // the copy config option of the create table Shell command.
+
+    // default iterator property which is automatically set on creation of all tables; want to
+    // ensure removal and changing this type of prop is retained on copying to another table
+    final String defaultScanIterProp = Property.TABLE_ITERATOR_PREFIX
+        + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".vers";
+    final String defaultScanIterPropMaxVers = Property.TABLE_ITERATOR_PREFIX
+        + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".vers.opt.maxVersions";
+    final String defaultScanIterPropMaxVersDefault = "1";
+    final String defaultScanIterPropMaxVersNew = "999";
+    final String customTableProp = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "foo";
+    final String customTablePropVal = "bar";
+    final String[] names = getUniqueNames(3);
+    final String table1 = names[0];
+    final String table2 = names[1];
+    final String table3 = names[2];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1,
+          new NewTableConfiguration().setProperties(Map.of(customTableProp, customTablePropVal)));
+
+      Wait.waitFor(() -> {
+        var table1Props = client.tableOperations().getTableProperties(table1);
+        return table1Props.get(customTableProp).equals(customTablePropVal)
+            && table1Props.get(defaultScanIterProp) != null && table1Props
+                .get(defaultScanIterPropMaxVers).equals(defaultScanIterPropMaxVersDefault);
+      });
+
+      // testing both modifying and deleting a default prop
+      client.tableOperations().modifyProperties(table1, props -> {
+        props.replace(defaultScanIterPropMaxVers, defaultScanIterPropMaxVersNew);
+        props.remove(defaultScanIterProp);
+      });
+
+      Wait.waitFor(() -> {
+        var table1Props = client.tableOperations().getTableProperties(table1);
+        return table1Props.get(customTableProp).equals(customTablePropVal)
+            && table1Props.get(defaultScanIterProp) == null
+            && table1Props.get(defaultScanIterPropMaxVers).equals(defaultScanIterPropMaxVersNew);
+      });
+
+      // one option to create a table with the same config, including default prop changes
+      client.tableOperations().create(table2, new NewTableConfiguration().withoutDefaults()
+          .setProperties(client.tableOperations().getTableProperties(table1)));
+      // another option is cloning the table
+      client.tableOperations().clone(table1, table3, CloneConfiguration.empty());
+
+      Wait.waitFor(() -> {
+        var table1Props = client.tableOperations().getTableProperties(table1);
+        var table2Props = client.tableOperations().getTableProperties(table2);
+        var table3Props = client.tableOperations().getTableProperties(table3);
+        return table1Props.equals(table2Props) && table1Props.equals(table3Props);
+      });
+    }
   }
 
 }

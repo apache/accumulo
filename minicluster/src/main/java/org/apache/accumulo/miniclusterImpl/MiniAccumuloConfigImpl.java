@@ -30,10 +30,12 @@ import java.io.File;
 import java.io.IOException;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.compactor.Compactor;
@@ -86,7 +88,8 @@ public class MiniAccumuloConfigImpl {
           MONITOR, Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
           TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
   private boolean jdwpEnabled = false;
-  private Map<String,String> systemProperties = new HashMap<>();
+  private final Map<String,String> systemProperties = new HashMap<>();
+  private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -131,6 +134,11 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
+    // Set default options
+    this.jvmOptions.add("-XX:+PerfDisableSharedMem");
+    this.jvmOptions.add("-XX:+AlwaysPreTouch");
+    this.systemProperties.put("-Dapple.awt.UIElement", "true");
+    this.systemProperties.put("-Djava.net.preferIPv4Stack", "true");
   }
 
   /**
@@ -669,7 +677,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public void setSystemProperties(Map<String,String> systemProperties) {
-    this.systemProperties = new HashMap<>(systemProperties);
+    this.systemProperties.putAll(systemProperties);
   }
 
   /**
@@ -679,6 +687,39 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<>(systemProperties);
+  }
+
+  /**
+   * Add a JVM option to the spawned JVM processes. The default set of JVM options contains
+   * '-XX:+PerfDisableSharedMem' and '-XX:+AlwaysPreTouch'
+   *
+   * @param option JVM option
+   * @since 2.1.5
+   */
+  public void addJvmOption(String option) {
+    this.jvmOptions.add(option);
+  }
+
+  /**
+   * Remove an option from the set of JVM options. Only options that match the {@code option}
+   * exactly will be removed.
+   *
+   * @param option JVM option
+   * @return true if removed, false if not removed
+   * @since 2.1.5
+   */
+  public boolean removeJvmOption(String option) {
+    return this.jvmOptions.remove(option);
+  }
+
+  /**
+   * Get the set of JVM options
+   *
+   * @return set of options
+   * @since 2.1.5
+   */
+  public Set<String> getJvmOptions() {
+    return new HashSet<>(jvmOptions);
   }
 
   /**
