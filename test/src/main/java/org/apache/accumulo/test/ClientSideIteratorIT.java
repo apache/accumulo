@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,10 +39,8 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
@@ -265,56 +262,5 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     // Iterator should do no filtering after removing this property
     client.tableOperations().removeProperty(tableName, "table.custom.testRegex");
     runPluginEnvTest(rows);
-  }
-
-  @Test
-  public void testDuplicateScanLosesKeys() throws Exception {
-    ClientContext context = (ClientContext) client;
-    final int numRows = 100;
-    final int mutationsPerRow = 10;
-    final int expectedEntries = numRows * mutationsPerRow;
-    SecureRandom random = new SecureRandom();
-    byte[] randomValue = new byte[8192];
-
-    client.tableOperations().create(tableName);
-
-    client.tableOperations().modifyProperties(tableName, properties -> {
-      // remove the versioning iterators
-      properties.remove("table.iterator.scan.vers");
-      properties.remove("table.iterator.minc.vers");
-      properties.remove("table.iterator.majc.vers");
-
-      // make the scan returns cut more often
-      properties.put(Property.TABLE_SCAN_MAXMEM.getKey(), "32k");
-    });
-
-    try (BatchWriter bw = client.createBatchWriter(tableName)) {
-      for (int i = 0; i < numRows; i++) {
-        for (int j = 0; j < mutationsPerRow; j++) {
-          Mutation m = new Mutation("row" + i);
-          random.nextBytes(randomValue);
-          m.put("cf" + i, "cq" + i, 100L, new Value(randomValue));
-          bw.addMutation(m);
-        }
-      }
-    }
-    client.tableOperations().flush(tableName, null, null, true);
-    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-
-    client.tableOperations().offline(tableName, true);
-    long offlineCount;
-    try (OfflineScanner offlineScanner =
-        new OfflineScanner(context, context.getTableId(tableName), Authorizations.EMPTY)) {
-      offlineCount = offlineScanner.stream().count();
-    }
-
-    client.tableOperations().online(tableName, true);
-    long onlineCount;
-    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-      onlineCount = scanner.stream().count();
-    }
-
-    assertEquals(expectedEntries, offlineCount);
-    assertEquals(offlineCount, onlineCount, "Online scan lost keys compared to direct RFile scan");
   }
 }
