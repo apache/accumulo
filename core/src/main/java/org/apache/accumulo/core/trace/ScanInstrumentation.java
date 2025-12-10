@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.trace;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.spi.cache.CacheType;
+
+import com.google.common.base.Preconditions;
 
 import io.opentelemetry.api.trace.Span;
 
@@ -37,8 +37,7 @@ public class ScanInstrumentation {
   private final AtomicInteger[] cacheMisses = new AtomicInteger[CacheType.values().length];
   private final AtomicInteger[] cacheBypasses = new AtomicInteger[CacheType.values().length];
 
-  private static final Map<String,ScanInstrumentation> INSTRUMENTED_SCANS =
-      new ConcurrentHashMap<>();
+  private static final ThreadLocal<ScanInstrumentation> INSTRUMENTED_SCANS = new ThreadLocal<>();
 
   private ScanInstrumentation() {
     for (int i = 0; i < CacheType.values().length; i++) {
@@ -107,26 +106,25 @@ public class ScanInstrumentation {
     return cacheBypasses[cacheType.ordinal()].get();
   }
 
-  public static interface ScanScope extends AutoCloseable {
+  public interface ScanScope extends AutoCloseable {
     @Override
     void close();
   }
 
   public static ScanScope enable(Span span) {
     if (span.isRecording()) {
-      var traceId = span.getSpanContext().getTraceId();
-      INSTRUMENTED_SCANS.put(traceId, new ScanInstrumentation());
-      return () -> INSTRUMENTED_SCANS.remove(traceId);
+      INSTRUMENTED_SCANS.set(new ScanInstrumentation());
+      var id = Thread.currentThread().getId();
+      return () -> {
+        Preconditions.checkState(id == Thread.currentThread().getId());
+        INSTRUMENTED_SCANS.remove();
+      };
     } else {
       return () -> {};
     }
   }
 
   public static ScanInstrumentation get() {
-    var span = Span.current();
-    if (span.isRecording()) {
-      return INSTRUMENTED_SCANS.get(span.getSpanContext().getTraceId());
-    }
-    return null;
+    return INSTRUMENTED_SCANS.get();
   }
 }
