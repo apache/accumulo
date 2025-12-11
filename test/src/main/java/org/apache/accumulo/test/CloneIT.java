@@ -101,7 +101,7 @@ public class CloneIT extends SharedMiniClusterBase {
   public void testFilesChange(Range range1, Range range2) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = generateTableName(range1, range2);
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
@@ -163,7 +163,7 @@ public class CloneIT extends SharedMiniClusterBase {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = generateTableName(range);
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -211,7 +211,7 @@ public class CloneIT extends SharedMiniClusterBase {
   public void testSplit2(Range range) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = generateTableName(range);
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -293,7 +293,7 @@ public class CloneIT extends SharedMiniClusterBase {
   public void testSplit3(Range range1, Range range2, Range range3) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = generateTableName(range1, range2, range3);
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -342,7 +342,7 @@ public class CloneIT extends SharedMiniClusterBase {
   @ArgumentsSource(RangeArgumentsProvider.class)
   public void testClonedMarker(Range range1, Range range2, Range range3) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = generateTableName(range1, range2, range3);
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
       String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
 
@@ -413,7 +413,7 @@ public class CloneIT extends SharedMiniClusterBase {
   public void testMerge(Range range1, Range range2) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = generateTableName(range1, range2);
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -458,16 +458,7 @@ public class CloneIT extends SharedMiniClusterBase {
   }
 
   // Append random text because of parameterized tests repeat same test name
-  private String generateTableName(Object... params) {
-    String baseName = getUniqueNames(1)[0];
-    // Include hashcode of parameters to ensure uniqueness across parameterized runs
-    if (params.length > 0) {
-      int hashCode = 0;
-      for (Object param : params) {
-        hashCode = 31 * hashCode + (param != null ? param.hashCode() : 0);
-      }
-      baseName = baseName + "_" + Math.abs(hashCode);
-    }
-    return baseName + "_" + UUID.randomUUID().toString().substring(0, 8);
+  private String generateTableName() {
+    return getUniqueNames(1)[0] + UUID.randomUUID().toString().substring(0, 8);
   }
 }
