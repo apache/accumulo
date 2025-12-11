@@ -35,7 +35,9 @@ import org.junit.platform.suite.api.Suite;
  * cluster for the entire IT.
  * <p>
  * 2) It does not start the cluster with any custom config (i.e., it does not use
- * {@link SharedMiniClusterBase#startMiniClusterWithConfig(MiniClusterConfigurationCallback)})
+ * {@link SharedMiniClusterBase#startMiniClusterWithConfig(MiniClusterConfigurationCallback)}).
+ * <p>
+ * 3) It does not modify the cluster state in a way that could interfere with subsequent tests.
  * <p>
  * An IT which meets this criteria should have the class name end with "IT_SimpleSuite" to be added
  * to the suite.
