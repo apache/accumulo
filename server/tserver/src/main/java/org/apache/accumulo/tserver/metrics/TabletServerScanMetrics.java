@@ -141,7 +141,7 @@ public class TabletServerScanMetrics implements MetricsProducer {
   }
 
   private void registerExecutorExceptionCounter(String executorName, AtomicLong counter) {
-    FunctionCounter.builder(METRICS_SCAN_EXECUTOR_EXCEPTIONS, counter, AtomicLong::get)
+    FunctionCounter.builder(METRICS_SCAN_EXCEPTIONS, counter, AtomicLong::get)
         .tags("executor", executorName)
         .description(
             "Number of exceptions thrown from the iterator stack during scan execution, tagged by executor name")

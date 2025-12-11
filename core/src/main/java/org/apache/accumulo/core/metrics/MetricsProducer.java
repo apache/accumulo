@@ -418,6 +418,13 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>Cache</td>
  * <td>scan server tablet cache metrics</td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_SCAN_EXCEPTIONS}</td>
+ * <td>Counter</td>
+ * <td>Count the number of exceptions that occur within scan executors</td>
+ * </tr>
  * <!-- scans -->
  * <tr>
  * <td>scan</td>
@@ -725,7 +732,7 @@ public interface MetricsProducer {
   String METRICS_SCAN_SCANNED_ENTRIES = METRICS_SCAN_PREFIX + "query.scanned.entries";
   String METRICS_SCAN_ZOMBIE_THREADS = METRICS_SCAN_PREFIX + "zombie.threads";
   String METRICS_SCAN_TABLET_METADATA_CACHE = METRICS_SCAN_PREFIX + "tablet.metadata.cache";
-  String METRICS_SCAN_EXECUTOR_EXCEPTIONS = METRICS_SCAN_PREFIX + "executor.exceptions";
+  String METRICS_SCAN_EXCEPTIONS = METRICS_SCAN_PREFIX + "exceptions";
 
   String METRICS_TSERVER_PREFIX = "accumulo.tserver.";
   String METRICS_TSERVER_ENTRIES = METRICS_TSERVER_PREFIX + "entries";
