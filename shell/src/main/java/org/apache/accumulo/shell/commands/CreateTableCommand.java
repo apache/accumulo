@@ -127,11 +127,10 @@ public class CreateTableCommand extends Command {
       }
     }
 
-    if (cl.hasOption(createTableOptCopyConfig.getOpt())
-        || cl.hasOption(createTableOptCopyProps.getOpt())) {
-      String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
+    if (cl.hasOption(createTableOptCopyConfig) || cl.hasOption(createTableOptCopyProps)) {
+      String oldTable = cl.getOptionValue(createTableOptCopyConfig);
       if (oldTable == null) {
-        oldTable = cl.getOptionValue(createTableOptCopyProps.getOpt());
+        oldTable = cl.getOptionValue(createTableOptCopyProps);
       }
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
@@ -176,8 +175,8 @@ public class CreateTableCommand extends Command {
       if (hasCopyConfigOpt) {
         Shell.log.warn("{} is deprecated and will be removed in a future version. Use {} instead.",
             createTableOptCopyConfig.getLongOpt(), createTableOptCopyProps.getLongOpt());
-        String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-        if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
+        String srcTable = cl.getOptionValue(createTableOptCopyConfig);
+        if (cl.hasOption(createTableOptExcludeParentProps)) {
           Shell.log.warn(
               "{} is deprecated and will be removed in a future version. Use {} instead.",
               createTableOptExcludeParentProps.getLongOpt(), createTableOptCopyProps.getLongOpt());
@@ -190,7 +189,7 @@ public class CreateTableCommand extends Command {
               shellState.getAccumuloClient().tableOperations().getConfiguration(srcTable);
         }
       } else {
-        String srcTable = cl.getOptionValue(createTableOptCopyProps.getOpt());
+        String srcTable = cl.getOptionValue(createTableOptCopyProps);
         // copy properties, excludes parent properties in configuration
         srcTableConfig =
             shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
@@ -203,11 +202,11 @@ public class CreateTableCommand extends Command {
       ntc = ntc.withoutDefaults();
     }
 
-    final boolean noDefaultIters = cl.hasOption(createTableNoDefaultIters.getOpt());
-    if (noDefaultIters || cl.hasOption(createTableNoDefaultTableProps.getOpt())) {
+    final boolean noDefaultIters = cl.hasOption(createTableNoDefaultIters);
+    if (noDefaultIters || cl.hasOption(createTableNoDefaultTableProps)) {
       if (noDefaultIters) {
         Shell.log.warn("{} is deprecated and will be removed in a future version. Use {} instead",
-            createTableNoDefaultIters.getLongOpt(), createTableNoDefaultTableProps.getOpt());
+            createTableNoDefaultIters.getLongOpt(), createTableNoDefaultTableProps.getLongOpt());
       }
       // prevents default props from being added in create table call
       ntc = ntc.withoutDefaults();
