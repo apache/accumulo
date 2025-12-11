@@ -57,7 +57,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
-public class CloneIT_SimpleSuite extends SharedMiniClusterBase {
+public class CloneIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
