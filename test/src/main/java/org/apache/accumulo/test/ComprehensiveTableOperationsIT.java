@@ -617,7 +617,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
         getCluster().getServerContext().getConfiguration(), 0, 5, 0);
 
     for (var sysTable : SystemTables.tableNames()) {
-      assertThrows(Exception.class, () -> ops.importDirectory(dir).to(sysTable).load());
+      assertThrows(AccumuloException.class, () -> ops.importDirectory(dir).to(sysTable).load());
     }
   }
 

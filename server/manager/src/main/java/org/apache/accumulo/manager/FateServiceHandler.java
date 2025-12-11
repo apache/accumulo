@@ -635,7 +635,8 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_BULK_IMPORT2: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         validateArgumentCount(arguments, tableOp, 3);
-        final var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID);
+        final var tableId =
+            validateTableIdArgument(arguments.get(0), tableOp, NOT_BUILTIN_TABLE_ID);
         String dir = ByteBufferUtil.toString(arguments.get(1));
 
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
