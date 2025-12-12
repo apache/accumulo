@@ -55,6 +55,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.tserver.InMemoryMap;
+import org.apache.accumulo.tserver.MemKey;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
@@ -236,8 +237,8 @@ public abstract class TabletBase {
     }
   }
 
-  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
-      throws IOException {
+  Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams,
+      int duplicatesToSkip) throws IOException {
 
     // log.info("In nextBatch..");
 
@@ -259,7 +260,8 @@ public abstract class TabletBase {
     long maxResultsSize = getTableConfiguration().getAsBytes(Property.TABLE_SCAN_MAXMEM);
 
     Key continueKey = null;
-    boolean skipContinueKey = false;
+    boolean skipContinueKey = true;
+    boolean resumeOnSameKey = false;
 
     YieldCallback<Key> yield = new YieldCallback<>();
 
@@ -274,6 +276,15 @@ public abstract class TabletBase {
       iter.seek(range, LocalityGroupUtil.families(scanParams.getColumnSet()), true);
     }
 
+    skipReturnedDuplicates(iter, duplicatesToSkip, range);
+
+    Key rangeStartKey = range.getStartKey();
+
+    Key startKey = null;
+    boolean resumingOnSameKey =
+        iter.hasTop() && rangeStartKey != null && rangeStartKey.equals(iter.getTopKey());
+    int duplicatesReturnedForStartKey = resumingOnSameKey ? duplicatesToSkip : 0;
+
     while (iter.hasTop()) {
       if (yield.hasYielded()) {
         throw new IOException(
@@ -281,17 +292,32 @@ public abstract class TabletBase {
       }
       value = iter.getTopValue();
       key = iter.getTopKey();
+      if (startKey == null) {
+        startKey = copyResumeKey(key);
+      }
+
+      if (!key.equals(startKey)) {
+        // Batch limit reached before finishing duplicates for start key
+        // resume on the start key and skip what we have already returned
+        continueKey = copyResumeKey(startKey);
+        resumeOnSameKey = true;
+        skipContinueKey = false;
+        break;
+      }
 
       KVEntry kvEntry = new KVEntry(key, value); // copies key and value
       results.add(kvEntry);
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
+      duplicatesReturnedForStartKey++;
+
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
       if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
-        continueKey = new Key(key);
-        skipContinueKey = true;
+        continueKey = copyResumeKey(key);
+        resumeOnSameKey = true;
+        skipContinueKey = false;
         break;
       }
 
@@ -299,7 +325,8 @@ public abstract class TabletBase {
     }
 
     if (yield.hasYielded()) {
-      continueKey = new Key(yield.getPositionAndReset());
+      continueKey = copyResumeKey(yield.getPositionAndReset());
+      resumeOnSameKey = false;
       skipContinueKey = true;
       if (!range.contains(continueKey)) {
         throw new IOException("Underlying iterator yielded to a position outside of its range: "
@@ -322,7 +349,9 @@ public abstract class TabletBase {
       }
     }
 
-    return new Batch(skipContinueKey, results, continueKey, resultBytes);
+    int duplicatesToSkipForNextBatch = resumeOnSameKey ? duplicatesReturnedForStartKey : 0;
+    return new Batch(skipContinueKey, results, continueKey, resultBytes,
+        duplicatesToSkipForNextBatch);
   }
 
   private Tablet.LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
@@ -475,7 +504,8 @@ public abstract class TabletBase {
 
   private void addUnfinishedRange(Tablet.LookupResult lookupResult, Range range, Key key) {
     if (range.getEndKey() == null || key.compareTo(range.getEndKey()) < 0) {
-      Range nlur = new Range(new Key(key), false, range.getEndKey(), range.isEndKeyInclusive());
+      Key copy = copyResumeKey(key);
+      Range nlur = new Range(copy, false, range.getEndKey(), range.isEndKeyInclusive());
       lookupResult.unfinishedRanges.add(nlur);
     }
   }
@@ -485,5 +515,31 @@ public abstract class TabletBase {
     this.server.getScanMetrics().incrementQueryResultCount(size);
     this.queryResultBytes.addAndGet(numBytes);
     this.server.getScanMetrics().incrementQueryResultBytes(numBytes);
+  }
+
+  private Key copyResumeKey(Key key) {
+    if (key instanceof MemKey) {
+      MemKey memKey = (MemKey) key;
+      return new MemKey(memKey, memKey.getKVCount());
+    }
+    return new Key(key);
+  }
+
+  private void skipReturnedDuplicates(SortedKeyValueIterator<Key,Value> iter, int duplicatesToSkip,
+      Range range) throws IOException {
+    if (duplicatesToSkip <= 0 || !range.isStartKeyInclusive()) {
+      return;
+    }
+
+    Key startKey = range.getStartKey();
+    if (startKey == null) {
+      return;
+    }
+
+    int skipped = 0;
+    while (skipped < duplicatesToSkip && iter.hasTop() && iter.getTopKey().equals(startKey)) {
+      iter.next();
+      skipped++;
+    }
   }
 }
