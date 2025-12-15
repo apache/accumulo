@@ -319,8 +319,8 @@ class ScanDataSource implements DataSource {
   }
 
   private static final AttributeKey<Long> ENTRIES_READ_KEY =
-      AttributeKey.longKey("accumulo.entries.read");
-  private static final AttributeKey<Long> SEEKS_KEY = AttributeKey.longKey("accumulo.seeks");
+      AttributeKey.longKey("accumulo.scan.entries.read");
+  private static final AttributeKey<Long> SEEKS_KEY = AttributeKey.longKey("accumulo.scan.seeks");
 
   public void setAttributes(Span span) {
     if (statsIterator != null && span.isRecording()) {

@@ -249,30 +249,30 @@ public abstract class TabletBase {
   }
 
   private static final AttributeKey<Long> ENTRIES_RETURNED_KEY =
-      AttributeKey.longKey("accumulo.entries.returned");
+      AttributeKey.longKey("accumulo.scan.entries.returned");
   private static final AttributeKey<Long> BYTES_RETURNED_KEY =
-      AttributeKey.longKey("accumulo.bytes.returned");
+      AttributeKey.longKey("accumulo.scan.bytes.returned");
   private static final AttributeKey<Long> BYTES_READ_KEY =
-      AttributeKey.longKey("accumulo.bytes.read");
+      AttributeKey.longKey("accumulo.scan.bytes.read");
   private static final AttributeKey<Long> BYTES_READ_FILE_KEY =
-      AttributeKey.longKey("accumulo.bytes.read.file");
+      AttributeKey.longKey("accumulo.scan.bytes.read.file");
   private static final AttributeKey<String> EXECUTOR_KEY =
-      AttributeKey.stringKey("accumulo.executor");
+      AttributeKey.stringKey("accumulo.scan.executor");
   private static final AttributeKey<String> TABLE_ID_KEY =
       AttributeKey.stringKey("accumulo.table.id");
   private static final AttributeKey<String> EXTENT_KEY = AttributeKey.stringKey("accumulo.extent");
   private static final AttributeKey<Long> INDEX_HITS_KEY =
-      AttributeKey.longKey("accumulo.cache.index.hits");
+      AttributeKey.longKey("accumulo.scan.cache.index.hits");
   private static final AttributeKey<Long> INDEX_MISSES_KEY =
-      AttributeKey.longKey("accumulo.cache.index.misses");
+      AttributeKey.longKey("accumulo.scan.cache.index.misses");
   private static final AttributeKey<Long> INDEX_BYPASSES_KEY =
-      AttributeKey.longKey("accumulo.cache.index.bypasses");
+      AttributeKey.longKey("accumulo.scan.cache.index.bypasses");
   private static final AttributeKey<Long> DATA_HITS_KEY =
-      AttributeKey.longKey("accumulo.cache.data.hits");
+      AttributeKey.longKey("accumulo.scan.cache.data.hits");
   private static final AttributeKey<Long> DATA_MISSES_KEY =
-      AttributeKey.longKey("accumulo.cache.data.misses");
+      AttributeKey.longKey("accumulo.scan.cache.data.misses");
   private static final AttributeKey<Long> DATA_BYPASSES_KEY =
-      AttributeKey.longKey("accumulo.cache.data.bypasses");;
+      AttributeKey.longKey("accumulo.scan.cache.data.bypasses");;
   private static final AttributeKey<String> SERVER_KEY = AttributeKey.stringKey("accumulo.server");
 
   void recordScanTrace(Span span, List<KVEntry> batch, ScanParameters scanParameters,

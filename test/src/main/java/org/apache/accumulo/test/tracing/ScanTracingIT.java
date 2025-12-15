@@ -64,6 +64,7 @@ class ScanTracingIT extends ConfigurableMacBase {
         "-Dotel.metrics.exporter=none", "-Dotel.logs.exporter=none", "-javaagent:" + javaAgent);
   }
 
+  @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     getJvmArgs().forEach(cfg::addJvmOption);
     // sized such that full table scans will not fit in the cache
@@ -153,7 +154,7 @@ class ScanTracingIT extends ConfigurableMacBase {
       var stats = ScanTraceStats.create(span);
       if (stats != null && span.stringAttributes.get("accumulo.table.id").equals(tableId)
           && (results.traceId1.equals(span.traceId) || results.traceId2.equals(span.traceId))) {
-        assertEquals("default", span.stringAttributes.get("accumulo.executor"));
+        assertEquals("default", span.stringAttributes.get("accumulo.scan.executor"));
         if (numSplits == 0) {
           assertEquals(tableId + "<<", span.stringAttributes.get("accumulo.extent"));
         } else {
@@ -287,52 +288,52 @@ class ScanTracingIT extends ConfigurableMacBase {
     }
 
     long getEntriesRead() {
-      return scanStats.getOrDefault("accumulo.entries.read", 0L);
+      return scanStats.getOrDefault("accumulo.scan.entries.read", 0L);
     }
 
     long getEntriesReturned() {
-      return scanStats.getOrDefault("accumulo.entries.returned", 0L);
+      return scanStats.getOrDefault("accumulo.scan.entries.returned", 0L);
 
     }
 
     long getFileBytesRead() {
-      return scanStats.getOrDefault("accumulo.bytes.read.file", 0L);
+      return scanStats.getOrDefault("accumulo.scan.bytes.read.file", 0L);
     }
 
     long getBytesRead() {
-      return scanStats.getOrDefault("accumulo.bytes.read", 0L);
+      return scanStats.getOrDefault("accumulo.scan.bytes.read", 0L);
     }
 
     long getBytesReturned() {
-      return scanStats.getOrDefault("accumulo.bytes.returned", 0L);
+      return scanStats.getOrDefault("accumulo.scan.bytes.returned", 0L);
     }
 
     long getDataCacheHits() {
-      return scanStats.getOrDefault("accumulo.cache.data.hits", 0L);
+      return scanStats.getOrDefault("accumulo.scan.cache.data.hits", 0L);
     }
 
     long getDataCacheMisses() {
-      return scanStats.getOrDefault("accumulo.cache.data.misses", 0L);
+      return scanStats.getOrDefault("accumulo.scan.cache.data.misses", 0L);
     }
 
     long getDataCacheBypasses() {
-      return scanStats.getOrDefault("accumulo.cache.data.bypasses", 0L);
+      return scanStats.getOrDefault("accumulo.scan.cache.data.bypasses", 0L);
     }
 
     long getIndexCacheHits() {
-      return scanStats.getOrDefault("accumulo.cache.index.hits", 0L);
+      return scanStats.getOrDefault("accumulo.scan.cache.index.hits", 0L);
     }
 
     long getIndexCacheMisses() {
-      return scanStats.getOrDefault("accumulo.cache.index.misses", 0L);
+      return scanStats.getOrDefault("accumulo.scan.cache.index.misses", 0L);
     }
 
     long getIndexCacheBypasses() {
-      return scanStats.getOrDefault("accumulo.cache.index.bypasses", 0L);
+      return scanStats.getOrDefault("accumulo.scan.cache.index.bypasses", 0L);
     }
 
     long getSeeks() {
-      return scanStats.getOrDefault("accumulo.seeks", 0L);
+      return scanStats.getOrDefault("accumulo.scan.seeks", 0L);
     }
 
     @Override
