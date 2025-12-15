@@ -72,7 +72,6 @@ public class Scanner {
   }
 
   public ScanBatch read() throws IOException, TabletClosedException {
-    // TODO what is the fastest way to short circuit and do nothing is there is no trace?
     var span = TraceUtil.startSpan(NextBatchTask.class, "scan-batch");
     try (var scope = span.makeCurrent(); var scanScope = ScanInstrumentation.enable(span)) {
       var batchAndSource = readInternal();
