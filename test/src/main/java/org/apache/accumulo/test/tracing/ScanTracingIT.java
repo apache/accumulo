@@ -48,7 +48,7 @@ import com.google.gson.Gson;
 
 class ScanTracingIT extends ConfigurableMacBase {
 
-  private static int OTLP_PORT = 12345;
+  private static int OTLP_PORT = PortUtils.getRandomFreePort();
 
   private static List<String> getJvmArgs() {
     String javaAgent = null;
