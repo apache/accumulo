@@ -32,11 +32,14 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.PortUtils;
@@ -156,6 +159,10 @@ class ScanTracingIT extends ConfigurableMacBase {
 
     var tableId = getServerContext().getTableId(tableName).canonical();
 
+    var expectedServers = getServerContext().getAmple().readTablets().forTable(TableId.of(tableId))
+        .fetch(TabletMetadata.ColumnType.LOCATION).build().stream()
+        .map(tm -> tm.getLocation().getHostAndPort().toString()).collect(Collectors.toSet());
+
     ScanTraceStats scanStats = new ScanTraceStats(false);
     ScanTraceStats batchScanStats = new ScanTraceStats(true);
     Set<String> extents1 = new TreeSet<>();
@@ -168,6 +175,10 @@ class ScanTracingIT extends ConfigurableMacBase {
       if (stats != null
           && span.stringAttributes.get(TraceAttributes.TABLE_ID_KEY.getKey()).equals(tableId)
           && (results.traceId1.equals(span.traceId) || results.traceId2.equals(span.traceId))) {
+        assertTrue(
+            expectedServers
+                .contains(span.stringAttributes.get(TraceAttributes.SERVER_KEY.getKey())),
+            () -> expectedServers + " " + span);
         if (stats.isBatchScan()) {
           assertEquals("pool1", span.stringAttributes.get(EXECUTOR_KEY.getKey()));
         } else {
