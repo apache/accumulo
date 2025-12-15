@@ -83,6 +83,18 @@
       <artifactId>opentelemetry-context</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.opentelemetry.javaagent</groupId>
+      <artifactId>opentelemetry-javaagent</artifactId>
+      <!-- This version was selected because it aligns with the version of open telemetry that Accumulo 2.1 is using. -->
+      <version>2.14.0</version>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry.proto</groupId>
+      <artifactId>opentelemetry-proto</artifactId>
+      <!-- This version was selected because it aligns with the version of protocol buffers that Accumulo 2.1 is using. -->
+      <version>1.3.2-alpha</version>
+    </dependency>
+    <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-compaction-coordinator</artifactId>
     </dependency>

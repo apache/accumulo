@@ -291,8 +291,6 @@ public abstract class TabletBase {
       span.setAttribute(EXTENT_KEY, getExtent().toString());
       var si = ScanInstrumentation.get();
       if (si != null) {
-        // TODO this happens before the scan data source is closed, so not all counts may have been
-        // registered
         span.setAttribute(BYTES_READ_FILE_KEY, si.getFileBytesRead());
         span.setAttribute(BYTES_READ_KEY, si.getUncompressedBytesRead());
         span.setAttribute(INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
