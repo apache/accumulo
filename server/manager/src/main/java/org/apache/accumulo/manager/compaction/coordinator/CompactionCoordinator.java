@@ -845,7 +845,7 @@ public class CompactionCoordinator
     LOG.info("Compaction failed: id: {}, extent: {}, compactor exception:{}", externalCompactionId,
         fromThriftExtent, exceptionClassName);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    if (exceptionClassName != null) {
+    if (!exceptionClassName.equals(InterruptedException.class.getName())) {
       captureFailure(ecid, fromThriftExtent);
     }
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
