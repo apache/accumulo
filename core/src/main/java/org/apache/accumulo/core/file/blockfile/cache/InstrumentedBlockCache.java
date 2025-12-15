@@ -98,7 +98,7 @@ public class InstrumentedBlockCache implements BlockCache {
 
   public static BlockCache wrap(CacheType cacheType, BlockCache cache) {
     var si = ScanInstrumentation.get();
-    if (cache != null && si != null) {
+    if (cache != null && si.enabled()) {
       return new InstrumentedBlockCache(cacheType, cache, si);
     } else {
       return cache;

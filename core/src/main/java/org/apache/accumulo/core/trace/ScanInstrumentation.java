@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.core.trace;
 
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
-
 import org.apache.accumulo.core.spi.cache.CacheType;
 
 import com.google.common.base.Preconditions;
@@ -30,81 +27,55 @@ import io.opentelemetry.api.trace.Span;
 /**
  * This class helps collect per scan information for the purposes of tracing.
  */
-public class ScanInstrumentation {
-  private final AtomicLong fileBytesRead = new AtomicLong();
-  private final AtomicLong uncompressedBytesRead = new AtomicLong();
-  private final AtomicInteger[] cacheHits = new AtomicInteger[CacheType.values().length];
-  private final AtomicInteger[] cacheMisses = new AtomicInteger[CacheType.values().length];
-  private final AtomicInteger[] cacheBypasses = new AtomicInteger[CacheType.values().length];
-
+public abstract class ScanInstrumentation {
   private static final ThreadLocal<ScanInstrumentation> INSTRUMENTED_SCANS = new ThreadLocal<>();
 
-  private ScanInstrumentation() {
-    for (int i = 0; i < CacheType.values().length; i++) {
-      cacheHits[i] = new AtomicInteger();
-      cacheMisses[i] = new AtomicInteger();
-      cacheBypasses[i] = new AtomicInteger();
+  private static final ScanInstrumentation NOOP_SI = new ScanInstrumentation() {
+    @Override
+    public boolean enabled() {
+      return false;
     }
-  }
 
-  /**
-   * Increments the raw bytes read directly from DFS by a scan.
-   *
-   * @param amount the amount of bytes read
-   */
-  public void incrementFileBytesRead(long amount) {
-    fileBytesRead.addAndGet(amount);
-  }
+    @Override
+    public void incrementFileBytesRead(long amount) {}
 
-  // TODO should it be an option to cache compressed data?
-  /**
-   * Increments the uncompressed and decrypted bytes read by a scan. This will include all
-   * uncompressed data read by a scan regardless of if the underlying data came from cache or DFS.
-   */
-  public void incrementUncompressedBytesRead(long amount) {
-    uncompressedBytesRead.addAndGet(amount);
-  }
+    @Override
+    public void incrementUncompressedBytesRead(long amount) {}
 
-  /**
-   * Increments the count of rfile blocks that were not already in the cache.
-   */
-  public void incrementCacheMiss(CacheType cacheType) {
-    cacheMisses[cacheType.ordinal()].incrementAndGet();
-  }
+    @Override
+    public void incrementCacheMiss(CacheType cacheType) {}
 
-  /**
-   * Increments the count of rfile blocks that were already in the cache.
-   */
-  public void incrementCacheHit(CacheType cacheType) {
-    cacheHits[cacheType.ordinal()].incrementAndGet();
-  }
+    @Override
+    public void incrementCacheHit(CacheType cacheType) {}
 
-  /**
-   * Increments the count of rfile blocks that were directly read from DFS bypassing the cache.
-   */
-  public void incrementCacheBypass(CacheType cacheType) {
-    cacheBypasses[cacheType.ordinal()].incrementAndGet();
-  }
+    @Override
+    public void incrementCacheBypass(CacheType cacheType) {}
 
-  public long getFileBytesRead() {
-    return fileBytesRead.get();
-  }
+    @Override
+    public long getFileBytesRead() {
+      return 0;
+    }
 
-  public long getUncompressedBytesRead() {
-    return uncompressedBytesRead.get();
-  }
+    @Override
+    public long getUncompressedBytesRead() {
+      return 0;
+    }
 
-  public int getCacheHits(CacheType cacheType) {
-    return cacheHits[cacheType.ordinal()].get();
-  }
+    @Override
+    public int getCacheHits(CacheType cacheType) {
+      return 0;
+    }
 
-  public int getCacheMisses(CacheType cacheType) {
-    return cacheMisses[cacheType.ordinal()].get();
-  }
+    @Override
+    public int getCacheMisses(CacheType cacheType) {
+      return 0;
+    }
 
-  public int getCacheBypasses(CacheType cacheType) {
-    return cacheBypasses[cacheType.ordinal()].get();
-  }
+    @Override
+    public int getCacheBypasses(CacheType cacheType) {
+      return 0;
+    }
+  };
 
   public interface ScanScope extends AutoCloseable {
     @Override
@@ -113,7 +84,7 @@ public class ScanInstrumentation {
 
   public static ScanScope enable(Span span) {
     if (span.isRecording()) {
-      INSTRUMENTED_SCANS.set(new ScanInstrumentation());
+      INSTRUMENTED_SCANS.set(new ScanInstrumentationImpl());
       var id = Thread.currentThread().getId();
       return () -> {
         Preconditions.checkState(id == Thread.currentThread().getId());
@@ -125,6 +96,50 @@ public class ScanInstrumentation {
   }
 
   public static ScanInstrumentation get() {
-    return INSTRUMENTED_SCANS.get();
+    var si = INSTRUMENTED_SCANS.get();
+    if (si == null) {
+      return NOOP_SI;
+    }
+    return si;
   }
+
+  public abstract boolean enabled();
+
+  /**
+   * Increments the raw bytes read directly from DFS by a scan.
+   *
+   * @param amount the amount of bytes read
+   */
+  public abstract void incrementFileBytesRead(long amount);
+
+  /**
+   * Increments the uncompressed and decrypted bytes read by a scan. This will include all
+   * uncompressed data read by a scan regardless of if the underlying data came from cache or DFS.
+   */
+  public abstract void incrementUncompressedBytesRead(long amount);
+
+  /**
+   * Increments the count of rfile blocks that were not already in the cache.
+   */
+  public abstract void incrementCacheMiss(CacheType cacheType);
+
+  /**
+   * Increments the count of rfile blocks that were already in the cache.
+   */
+  public abstract void incrementCacheHit(CacheType cacheType);
+
+  /**
+   * Increments the count of rfile blocks that were directly read from DFS bypassing the cache.
+   */
+  public abstract void incrementCacheBypass(CacheType cacheType);
+
+  public abstract long getFileBytesRead();
+
+  public abstract long getUncompressedBytesRead();
+
+  public abstract int getCacheHits(CacheType cacheType);
+
+  public abstract int getCacheMisses(CacheType cacheType);
+
+  public abstract int getCacheBypasses(CacheType cacheType);
 }

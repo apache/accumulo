@@ -470,10 +470,7 @@ public class CachableBlockFile {
     }
 
     private void incrementCacheBypass(CacheType cacheType) {
-      var si = ScanInstrumentation.get();
-      if (si != null) {
-        si.incrementCacheBypass(cacheType);
-      }
+      ScanInstrumentation.get().incrementCacheBypass(cacheType);
     }
 
     @Override
@@ -508,7 +505,7 @@ public class CachableBlockFile {
 
     private static InputStream wrapForTrace(InputStream inputStream) {
       var scanInstrumentation = ScanInstrumentation.get();
-      if (scanInstrumentation != null) {
+      if (scanInstrumentation.enabled()) {
         return new CountingInputStream(inputStream);
       } else {
         return inputStream;
@@ -564,10 +561,7 @@ public class CachableBlockFile {
     public void flushStats() {
       if (in instanceof CountingInputStream) {
         var cin = ((CountingInputStream) in);
-        var si = ScanInstrumentation.get();
-        if (si != null) {
-          si.incrementUncompressedBytesRead(cin.getCount());
-        }
+        ScanInstrumentation.get().incrementUncompressedBytesRead(cin.getCount());
         cin.resetCount();
         var src = cin.getWrappedStream();
         if (src instanceof BlockReader) {

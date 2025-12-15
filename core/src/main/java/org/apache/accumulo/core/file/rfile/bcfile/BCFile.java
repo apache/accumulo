@@ -484,8 +484,7 @@ public final class BCFile {
         BoundedRangeFileInputStream boundedRangeFileInputStream = new BoundedRangeFileInputStream(
             fsin, this.region.getOffset(), this.region.getCompressedSize());
 
-        var si = ScanInstrumentation.get();
-        if (si != null) {
+        if (ScanInstrumentation.get().enabled()) {
           rawInputStream = new CountingInputStream(boundedRangeFileInputStream);
         } else {
           rawInputStream = boundedRangeFileInputStream;
@@ -518,10 +517,7 @@ public final class BCFile {
       public void flushStats() {
         if (rawInputStream instanceof CountingInputStream) {
           var ci = (CountingInputStream) rawInputStream;
-          var si = ScanInstrumentation.get();
-          if (si != null) {
-            si.incrementFileBytesRead(ci.getCount());
-          }
+          ScanInstrumentation.get().incrementFileBytesRead(ci.getCount());
           ci.resetCount();
         }
       }

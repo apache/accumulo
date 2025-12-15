@@ -290,16 +290,14 @@ public abstract class TabletBase {
       span.setAttribute(TABLE_ID_KEY, getExtent().tableId().canonical());
       span.setAttribute(EXTENT_KEY, getExtent().toString());
       var si = ScanInstrumentation.get();
-      if (si != null) {
-        span.setAttribute(BYTES_READ_FILE_KEY, si.getFileBytesRead());
-        span.setAttribute(BYTES_READ_KEY, si.getUncompressedBytesRead());
-        span.setAttribute(INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
-        span.setAttribute(INDEX_MISSES_KEY, si.getCacheMisses(CacheType.INDEX));
-        span.setAttribute(INDEX_BYPASSES_KEY, si.getCacheBypasses(CacheType.INDEX));
-        span.setAttribute(DATA_HITS_KEY, si.getCacheHits(CacheType.DATA));
-        span.setAttribute(DATA_MISSES_KEY, si.getCacheMisses(CacheType.DATA));
-        span.setAttribute(DATA_BYPASSES_KEY, si.getCacheBypasses(CacheType.DATA));
-      }
+      span.setAttribute(BYTES_READ_FILE_KEY, si.getFileBytesRead());
+      span.setAttribute(BYTES_READ_KEY, si.getUncompressedBytesRead());
+      span.setAttribute(INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
+      span.setAttribute(INDEX_MISSES_KEY, si.getCacheMisses(CacheType.INDEX));
+      span.setAttribute(INDEX_BYPASSES_KEY, si.getCacheBypasses(CacheType.INDEX));
+      span.setAttribute(DATA_HITS_KEY, si.getCacheHits(CacheType.DATA));
+      span.setAttribute(DATA_MISSES_KEY, si.getCacheMisses(CacheType.DATA));
+      span.setAttribute(DATA_BYPASSES_KEY, si.getCacheBypasses(CacheType.DATA));
       span.setAttribute(SERVER_KEY, server.getAdvertiseAddress().toString());
 
       dataSource.setAttributes(span);
