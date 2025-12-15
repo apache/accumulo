@@ -89,8 +89,8 @@ public class ScanTraceClient {
 
     @Override
     public String toString() {
-      return "Results{" + "scanCount=" + scanCount + ", traceId1='" + traceId1 + '\''
-          + ", traceId2='" + traceId2 + '\'' + ", scanSize=" + scanSize + '}';
+      return "Results{scanCount=" + scanCount + ", traceId1='" + traceId1 + "', traceId2='"
+          + traceId2 + "', scanSize=" + scanSize + '}';
     }
 
   }

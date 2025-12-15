@@ -37,8 +37,7 @@ public class SpanData {
 
   @Override
   public String toString() {
-    return "SpanData{" + "traceId='" + traceId + '\'' + ", name='" + name + '\''
-        + ", stringAttributes=" + stringAttributes + ", integerAttributes=" + integerAttributes
-        + '}';
+    return "SpanData{traceId='" + traceId + "', name='" + name + "', stringAttributes="
+        + stringAttributes + ", integerAttributes=" + integerAttributes + '}';
   }
 }

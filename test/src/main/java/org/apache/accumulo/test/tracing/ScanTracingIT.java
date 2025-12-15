@@ -229,7 +229,7 @@ class ScanTracingIT extends ConfigurableMacBase {
   public void assertClose(long expected, long value, double e) {
     assertTrue(Math.abs(1 - (double) expected / (double) value) < e,
         () -> expected + " " + value + " " + e);
-  };
+  }
 
   /**
    * Runs ScanTraceClient in an external process so it can be instrumented with the open telemetry
@@ -337,7 +337,7 @@ class ScanTracingIT extends ConfigurableMacBase {
 
     @Override
     public String toString() {
-      return "ScanTraceStats{" + "isBatchScan=" + isBatchScan + ", scanStats=" + scanStats + '}';
+      return "ScanTraceStats{isBatchScan=" + isBatchScan + ", scanStats=" + scanStats + '}';
     }
   }
 }

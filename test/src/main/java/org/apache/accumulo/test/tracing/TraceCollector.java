@@ -88,7 +88,7 @@ public class TraceCollector {
       response.setStatus(200);
       response.getOutputStream().close();
     }
-  };
+  }
 
   TraceCollector(String host, int port) throws Exception {
     server = new Server(new InetSocketAddress(host, port));
