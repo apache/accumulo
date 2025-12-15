@@ -446,7 +446,6 @@ public class Tablet extends TabletBase {
           }
 
           try {
-            // TODO include extent
             if (volume.getFileSystem().delete(tmp.getPath(), false)) {
               log.debug("Removed old temp file {}", tmp.getPath());
             } else {
