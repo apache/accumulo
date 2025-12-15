@@ -238,7 +238,6 @@ class ScanTracingIT extends ConfigurableMacBase {
   public ScanTraceClient.Results run(ScanTraceClient.Options opts)
       throws IOException, InterruptedException {
     opts.clientPropsPath = getCluster().getClientPropsPath();
-    new Gson().toJson(opts);
     var proc = getCluster().exec(ScanTraceClient.class, getJvmArgs(), new Gson().toJson(opts));
     assertEquals(0, proc.getProcess().waitFor());
     var out = proc.readStdOut();
