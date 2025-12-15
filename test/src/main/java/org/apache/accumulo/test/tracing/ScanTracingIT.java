@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -69,6 +70,7 @@ class ScanTracingIT extends ConfigurableMacBase {
     getJvmArgs().forEach(cfg::addJvmOption);
     // sized such that full table scans will not fit in the cache
     cfg.setProperty(Property.TSERV_DATACACHE_SIZE.getKey(), "8M");
+    cfg.setProperty(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "pool1.threads", "8");
   }
 
   private TraceCollector collector;
@@ -110,9 +112,16 @@ class ScanTracingIT extends ConfigurableMacBase {
         ntc.withSplits(splits);
       }
 
+      var props = new HashMap<String,String>();
+
       if (cacheData) {
-        ntc.setProperties(Map.of(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true"));
+        props.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
       }
+
+      // use a different executor for batch scans
+      props.put("table.scan.dispatcher.opts.multi_executor", "pool1");
+
+      ntc.setProperties(props);
 
       client.tableOperations().create(tableName, ntc);
 
@@ -154,7 +163,11 @@ class ScanTracingIT extends ConfigurableMacBase {
       var stats = ScanTraceStats.create(span);
       if (stats != null && span.stringAttributes.get("accumulo.table.id").equals(tableId)
           && (results.traceId1.equals(span.traceId) || results.traceId2.equals(span.traceId))) {
-        assertEquals("default", span.stringAttributes.get("accumulo.scan.executor"));
+        if (stats.isBatchScan()) {
+          assertEquals("pool1", span.stringAttributes.get("accumulo.scan.executor"));
+        } else {
+          assertEquals("default", span.stringAttributes.get("accumulo.scan.executor"));
+        }
         if (numSplits == 0) {
           assertEquals(tableId + "<<", span.stringAttributes.get("accumulo.extent"));
         } else {
