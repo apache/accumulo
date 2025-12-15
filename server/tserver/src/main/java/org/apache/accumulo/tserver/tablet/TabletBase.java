@@ -51,6 +51,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.trace.ScanInstrumentation;
+import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
@@ -66,7 +67,6 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 
 /**
@@ -248,57 +248,31 @@ public abstract class TabletBase {
     }
   }
 
-  private static final AttributeKey<Long> ENTRIES_RETURNED_KEY =
-      AttributeKey.longKey("accumulo.scan.entries.returned");
-  private static final AttributeKey<Long> BYTES_RETURNED_KEY =
-      AttributeKey.longKey("accumulo.scan.bytes.returned");
-  private static final AttributeKey<Long> BYTES_READ_KEY =
-      AttributeKey.longKey("accumulo.scan.bytes.read");
-  private static final AttributeKey<Long> BYTES_READ_FILE_KEY =
-      AttributeKey.longKey("accumulo.scan.bytes.read.file");
-  private static final AttributeKey<String> EXECUTOR_KEY =
-      AttributeKey.stringKey("accumulo.scan.executor");
-  private static final AttributeKey<String> TABLE_ID_KEY =
-      AttributeKey.stringKey("accumulo.table.id");
-  private static final AttributeKey<String> EXTENT_KEY = AttributeKey.stringKey("accumulo.extent");
-  private static final AttributeKey<Long> INDEX_HITS_KEY =
-      AttributeKey.longKey("accumulo.scan.cache.index.hits");
-  private static final AttributeKey<Long> INDEX_MISSES_KEY =
-      AttributeKey.longKey("accumulo.scan.cache.index.misses");
-  private static final AttributeKey<Long> INDEX_BYPASSES_KEY =
-      AttributeKey.longKey("accumulo.scan.cache.index.bypasses");
-  private static final AttributeKey<Long> DATA_HITS_KEY =
-      AttributeKey.longKey("accumulo.scan.cache.data.hits");
-  private static final AttributeKey<Long> DATA_MISSES_KEY =
-      AttributeKey.longKey("accumulo.scan.cache.data.misses");
-  private static final AttributeKey<Long> DATA_BYPASSES_KEY =
-      AttributeKey.longKey("accumulo.scan.cache.data.bypasses");;
-  private static final AttributeKey<String> SERVER_KEY = AttributeKey.stringKey("accumulo.server");
-
   void recordScanTrace(Span span, List<KVEntry> batch, ScanParameters scanParameters,
       ScanDataSource dataSource) {
     if (span.isRecording()) {
       // TODO in testing could not get really large batches, even when increasing table and
       // client settings
-      span.setAttribute(ENTRIES_RETURNED_KEY, batch.size());
+      span.setAttribute(TraceAttributes.ENTRIES_RETURNED_KEY, batch.size());
       long bytesReturned = 0;
       for (var e : batch) {
         bytesReturned += e.getKey().getLength() + e.getValue().get().length;
       }
-      span.setAttribute(BYTES_RETURNED_KEY, bytesReturned);
-      span.setAttribute(EXECUTOR_KEY, scanParameters.getScanDispatch().getExecutorName());
-      span.setAttribute(TABLE_ID_KEY, getExtent().tableId().canonical());
-      span.setAttribute(EXTENT_KEY, getExtent().toString());
+      span.setAttribute(TraceAttributes.BYTES_RETURNED_KEY, bytesReturned);
+      span.setAttribute(TraceAttributes.EXECUTOR_KEY,
+          scanParameters.getScanDispatch().getExecutorName());
+      span.setAttribute(TraceAttributes.TABLE_ID_KEY, getExtent().tableId().canonical());
+      span.setAttribute(TraceAttributes.EXTENT_KEY, getExtent().toString());
       var si = ScanInstrumentation.get();
-      span.setAttribute(BYTES_READ_FILE_KEY, si.getFileBytesRead());
-      span.setAttribute(BYTES_READ_KEY, si.getUncompressedBytesRead());
-      span.setAttribute(INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
-      span.setAttribute(INDEX_MISSES_KEY, si.getCacheMisses(CacheType.INDEX));
-      span.setAttribute(INDEX_BYPASSES_KEY, si.getCacheBypasses(CacheType.INDEX));
-      span.setAttribute(DATA_HITS_KEY, si.getCacheHits(CacheType.DATA));
-      span.setAttribute(DATA_MISSES_KEY, si.getCacheMisses(CacheType.DATA));
-      span.setAttribute(DATA_BYPASSES_KEY, si.getCacheBypasses(CacheType.DATA));
-      span.setAttribute(SERVER_KEY, server.getAdvertiseAddress().toString());
+      span.setAttribute(TraceAttributes.BYTES_READ_FILE_KEY, si.getFileBytesRead());
+      span.setAttribute(TraceAttributes.BYTES_READ_KEY, si.getUncompressedBytesRead());
+      span.setAttribute(TraceAttributes.INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
+      span.setAttribute(TraceAttributes.INDEX_MISSES_KEY, si.getCacheMisses(CacheType.INDEX));
+      span.setAttribute(TraceAttributes.INDEX_BYPASSES_KEY, si.getCacheBypasses(CacheType.INDEX));
+      span.setAttribute(TraceAttributes.DATA_HITS_KEY, si.getCacheHits(CacheType.DATA));
+      span.setAttribute(TraceAttributes.DATA_MISSES_KEY, si.getCacheMisses(CacheType.DATA));
+      span.setAttribute(TraceAttributes.DATA_BYPASSES_KEY, si.getCacheBypasses(CacheType.DATA));
+      span.setAttribute(TraceAttributes.SERVER_KEY, server.getAdvertiseAddress().toString());
 
       dataSource.setAttributes(span);
     }

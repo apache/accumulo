@@ -44,6 +44,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
@@ -59,7 +60,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.trace.Span;
 
 class ScanDataSource implements DataSource {
@@ -318,15 +318,11 @@ class ScanDataSource implements DataSource {
     }
   }
 
-  private static final AttributeKey<Long> ENTRIES_READ_KEY =
-      AttributeKey.longKey("accumulo.scan.entries.read");
-  private static final AttributeKey<Long> SEEKS_KEY = AttributeKey.longKey("accumulo.scan.seeks");
-
   public void setAttributes(Span span) {
     if (statsIterator != null && span.isRecording()) {
       statsIterator.report(true);
-      span.setAttribute(ENTRIES_READ_KEY, scanCounter.get());
-      span.setAttribute(SEEKS_KEY, scanSeekCounter.get());
+      span.setAttribute(TraceAttributes.ENTRIES_READ_KEY, scanCounter.get());
+      span.setAttribute(TraceAttributes.SEEKS_KEY, scanSeekCounter.get());
     }
   }
 

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.tracing;
 
+import static org.apache.accumulo.core.trace.TraceAttributes.EXECUTOR_KEY;
+import static org.apache.accumulo.core.trace.TraceAttributes.EXTENT_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,6 +37,7 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.test.TestIngest;
@@ -49,7 +52,7 @@ import com.google.gson.Gson;
 
 class ScanTracingIT extends ConfigurableMacBase {
 
-  private static int OTLP_PORT = PortUtils.getRandomFreePort();
+  private static final int OTLP_PORT = PortUtils.getRandomFreePort();
 
   private static List<String> getJvmArgs() {
     String javaAgent = null;
@@ -162,26 +165,27 @@ class ScanTracingIT extends ConfigurableMacBase {
         || batchScanStats.getEntriesReturned() < expectedRows * expectedColumns) {
       var span = collector.take();
       var stats = ScanTraceStats.create(span);
-      if (stats != null && span.stringAttributes.get("accumulo.table.id").equals(tableId)
+      if (stats != null
+          && span.stringAttributes.get(TraceAttributes.TABLE_ID_KEY.getKey()).equals(tableId)
           && (results.traceId1.equals(span.traceId) || results.traceId2.equals(span.traceId))) {
         if (stats.isBatchScan()) {
-          assertEquals("pool1", span.stringAttributes.get("accumulo.scan.executor"));
+          assertEquals("pool1", span.stringAttributes.get(EXECUTOR_KEY.getKey()));
         } else {
-          assertEquals("default", span.stringAttributes.get("accumulo.scan.executor"));
+          assertEquals("default", span.stringAttributes.get(EXECUTOR_KEY.getKey()));
         }
         if (numSplits == 0) {
-          assertEquals(tableId + "<<", span.stringAttributes.get("accumulo.extent"));
+          assertEquals(tableId + "<<", span.stringAttributes.get(EXTENT_KEY.getKey()));
         } else {
-          var extent = span.stringAttributes.get("accumulo.extent");
+          var extent = span.stringAttributes.get(EXTENT_KEY.getKey());
           assertTrue(extent.startsWith(tableId + ";") || extent.startsWith(tableId + "<"));
         }
         assertEquals(1, stats.getSeeks());
         if (stats.isBatchScan()) {
           assertEquals(results.traceId1, span.traceId);
-          extents1.add(span.stringAttributes.get("accumulo.extent"));
+          extents1.add(span.stringAttributes.get(EXTENT_KEY.getKey()));
         } else {
           assertEquals(results.traceId2, span.traceId);
-          extents2.add(span.stringAttributes.get("accumulo.extent"));
+          extents2.add(span.stringAttributes.get(EXTENT_KEY.getKey()));
         }
       } else {
         continue;
@@ -302,52 +306,51 @@ class ScanTracingIT extends ConfigurableMacBase {
     }
 
     long getEntriesRead() {
-      return scanStats.getOrDefault("accumulo.scan.entries.read", 0L);
+      return scanStats.getOrDefault(TraceAttributes.ENTRIES_READ_KEY.getKey(), 0L);
     }
 
     long getEntriesReturned() {
-      return scanStats.getOrDefault("accumulo.scan.entries.returned", 0L);
-
+      return scanStats.getOrDefault(TraceAttributes.ENTRIES_RETURNED_KEY.getKey(), 0L);
     }
 
     long getFileBytesRead() {
-      return scanStats.getOrDefault("accumulo.scan.bytes.read.file", 0L);
+      return scanStats.getOrDefault(TraceAttributes.BYTES_READ_FILE_KEY.getKey(), 0L);
     }
 
     long getBytesRead() {
-      return scanStats.getOrDefault("accumulo.scan.bytes.read", 0L);
+      return scanStats.getOrDefault(TraceAttributes.BYTES_READ_KEY.getKey(), 0L);
     }
 
     long getBytesReturned() {
-      return scanStats.getOrDefault("accumulo.scan.bytes.returned", 0L);
+      return scanStats.getOrDefault(TraceAttributes.BYTES_RETURNED_KEY.getKey(), 0L);
     }
 
     long getDataCacheHits() {
-      return scanStats.getOrDefault("accumulo.scan.cache.data.hits", 0L);
+      return scanStats.getOrDefault(TraceAttributes.DATA_HITS_KEY.getKey(), 0L);
     }
 
     long getDataCacheMisses() {
-      return scanStats.getOrDefault("accumulo.scan.cache.data.misses", 0L);
+      return scanStats.getOrDefault(TraceAttributes.DATA_MISSES_KEY.getKey(), 0L);
     }
 
     long getDataCacheBypasses() {
-      return scanStats.getOrDefault("accumulo.scan.cache.data.bypasses", 0L);
+      return scanStats.getOrDefault(TraceAttributes.DATA_BYPASSES_KEY.getKey(), 0L);
     }
 
     long getIndexCacheHits() {
-      return scanStats.getOrDefault("accumulo.scan.cache.index.hits", 0L);
+      return scanStats.getOrDefault(TraceAttributes.INDEX_HITS_KEY.getKey(), 0L);
     }
 
     long getIndexCacheMisses() {
-      return scanStats.getOrDefault("accumulo.scan.cache.index.misses", 0L);
+      return scanStats.getOrDefault(TraceAttributes.INDEX_MISSES_KEY.getKey(), 0L);
     }
 
     long getIndexCacheBypasses() {
-      return scanStats.getOrDefault("accumulo.scan.cache.index.bypasses", 0L);
+      return scanStats.getOrDefault(TraceAttributes.INDEX_BYPASSES_KEY.getKey(), 0L);
     }
 
     long getSeeks() {
-      return scanStats.getOrDefault("accumulo.scan.seeks", 0L);
+      return scanStats.getOrDefault(TraceAttributes.SEEKS_KEY.getKey(), 0L);
     }
 
     @Override
