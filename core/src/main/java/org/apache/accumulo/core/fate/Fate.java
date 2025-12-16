@@ -99,10 +99,25 @@ public class Fate<T> {
                   store.setStatus(tid, IN_PROGRESS);
                 }
                 op = executeCall(tid, op);
+                // It's possible that a Fate operation impl
+                // may not do the right thing with an
+                // InterruptedException.
+                if (Thread.currentThread().isInterrupted()) {
+                  throw new InterruptedException("Fate Transaction Runner thread interrupted");
+                }
               } else {
                 continue;
               }
-
+            } catch (InterruptedException e) {
+              if (keepRunning.get()) {
+                throw e;
+              } else {
+                // If we are shutting down then Fate.shutdown was called
+                // and ExecutorService.shutdownNow was called resulting
+                // in this exception. We will exit at the top of the loop.
+                Thread.interrupted();
+                continue;
+              }
             } catch (Exception e) {
               blockIfHadoopShutdown(tid, e);
               transitionToFailed(tid, e);
@@ -129,8 +144,28 @@ public class Fate<T> {
               }
             }
           }
+        } catch (InterruptedException e) {
+          if (keepRunning.get()) {
+            runnerLog.error("Uncaught InterruptedException in FATE runner thread.", e);
+          } else {
+            // If we are shutting down then Fate.shutdown was called
+            // and ExecutorService.shutdownNow was called resulting
+            // in this exception. We will exit at the top of the loop,
+            // so continue this loop iteration normally.
+            Thread.interrupted();
+          }
         } catch (Exception e) {
-          runnerLog.error("Uncaught exception in FATE runner thread.", e);
+          // ZooStore wraps InterruptedException's with a RuntimeException
+          if (!keepRunning.get() && e instanceof RuntimeException && e.getCause() != null
+              && e.getCause() instanceof InterruptedException) {
+            // If we are shutting down then Fate.shutdown was called
+            // and ExecutorService.shutdownNow was called resulting
+            // in this exception. We will exit at the top of the loop,
+            // so continue this loop iteration normally.
+            Thread.interrupted();
+          } else {
+            runnerLog.error("Uncaught exception in FATE runner thread.", e);
+          }
         } finally {
           if (tid != null) {
             store.unreserve(tid, deferTime, TimeUnit.MILLISECONDS);
@@ -198,6 +233,7 @@ public class Fate<T> {
     }
 
     private void doCleanUp(long tid) {
+      log.debug("Cleaning up {}", tid);
       Boolean autoClean = (Boolean) store.getTransactionInfo(tid, TxInfo.AUTO_CLEAN);
       if (autoClean != null && autoClean) {
         store.delete(tid);
@@ -261,6 +297,7 @@ public class Fate<T> {
       ScheduledThreadPoolExecutor serverGeneralScheduledThreadPool) {
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
+    log.debug("Starting Fate Transaction Running pool with {} threads", pool.getCorePoolSize());
     ThreadPools
         .watchCriticalScheduledTask(serverGeneralScheduledThreadPool.scheduleWithFixedDelay(() -> {
           // resize the pool if the property changed
@@ -421,6 +458,7 @@ public class Fate<T> {
    * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
    */
   public void shutdown(boolean wait) {
+    log.info("Shutdown called on Fate");
     keepRunning.set(false);
     if (executor == null) {
       return;

@@ -448,6 +448,62 @@ public class FateIT {
     assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
   }
 
+  @Test
+  public void testShutdownDoesNotFailTx() throws Exception {
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
+
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+
+    long txid = fate.startTransaction();
+    assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
+    assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
+
+    // wait for call() to be called
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+
+    // shutdown fate
+    fate.shutdown(true);
+
+    // tell the op to exit the method
+    finishCall.countDown();
+
+    // restart fate
+    beforeEach();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+
+    // Restarting the transaction runners will retry the in-progress
+    // transaction. Reset the CountDownLatch's to confirm.
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+    finishCall.countDown();
+
+    // This should complete normally, cleaning up the tx and deleting it from ZK
+    while (true) {
+      try {
+        getTxStatus(zk, txid);
+        Thread.sleep(100);
+        continue;
+      } catch (KeeperException.NoNodeException e) {
+        break;
+      }
+    }
+  }
+
   private static void inCall() throws InterruptedException {
     // signal that call started
     callStarted.countDown();
