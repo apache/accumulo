@@ -352,6 +352,17 @@ under the License.
         <version>1.10.0</version>
       </dependency>
       <dependency>
+        <groupId>io.opentelemetry.javaagent</groupId>
+        <artifactId>opentelemetry-javaagent</artifactId>
+        <!-- This version was selected because it aligns with the version of open telemetry that Accumulo is using. -->
+        <version>2.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry.proto</groupId>
+        <artifactId>opentelemetry-proto</artifactId>
+        <version>1.9.0-alpha</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-access</artifactId>
         <version>${version.accumulo-access}</version>
@@ -976,6 +987,8 @@ under the License.
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
                 <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
                 <unused>at.yawk.lz4:lz4-java:jar:*</unused>
+                <!-- This is only used at runtime only by test, not at compile time  -->
+                <unused>io.opentelemetry.javaagent:opentelemetry-javaagent:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

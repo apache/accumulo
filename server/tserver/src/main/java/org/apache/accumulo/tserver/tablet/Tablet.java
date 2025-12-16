@@ -1167,7 +1167,7 @@ public class Tablet extends TabletBase {
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, this.scannedCount.get());
+    scannedRate.update(now, this.scannedCount.sum());
   }
 
   private Set<DfsLogger> currentLogs = new HashSet<>();
