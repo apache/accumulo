@@ -165,7 +165,7 @@ public class LoadPlan {
 
     @Override
     public int hashCode() {
-     return Objects.hash(Arrays.hashCode(endRow), Arrays.hashCode(startRow), fileName, rangeType);
+      return Objects.hash(Arrays.hashCode(endRow), Arrays.hashCode(startRow), fileName, rangeType);
     }
 
     @Override
