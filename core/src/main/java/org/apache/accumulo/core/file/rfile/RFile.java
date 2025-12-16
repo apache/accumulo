@@ -842,7 +842,6 @@ public class RFile {
     }
 
     private void _next() throws IOException {
-
       if (!hasTop) {
         throw new IllegalStateException();
       }
@@ -1168,6 +1167,12 @@ public class RFile {
     public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
       throw new UnsupportedOperationException();
     }
+
+    public void flushStats() {
+      if (currBlock != null) {
+        currBlock.flushStats();
+      }
+    }
   }
 
   public static class Reader extends HeapIterator implements FileSKVIterator {
@@ -1308,6 +1313,9 @@ public class RFile {
 
     @Override
     public void closeDeepCopies() throws IOException {
+      for (LocalityGroupReader lgr : currentReaders) {
+        lgr.flushStats();
+      }
       closeDeepCopies(false);
     }
 
