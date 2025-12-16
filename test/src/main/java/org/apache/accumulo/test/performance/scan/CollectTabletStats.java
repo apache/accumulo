@@ -36,6 +36,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
@@ -248,6 +250,7 @@ public class CollectTabletStats {
     threadPool.shutdown();
   }
 
+  @NotThreadSafe
   private abstract static class Test implements Runnable {
 
     private int count;

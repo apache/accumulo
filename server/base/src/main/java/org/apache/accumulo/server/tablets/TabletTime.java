@@ -21,6 +21,8 @@ package org.apache.accumulo.server.tablets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
@@ -67,6 +69,7 @@ public abstract class TabletTime {
     return mv1.compareTo(mv2) < 0 ? mv2 : mv1;
   }
 
+  @NotThreadSafe
   static class MillisTime extends TabletTime {
 
     private long lastTime;
@@ -157,11 +160,9 @@ public abstract class TabletTime {
 
     @Override
     public void useMaxTimeFromWALog(long time) {
-      time++;
+      final long finalTime = time + 1;
 
-      if (this.nextTime.get() < time) {
-        this.nextTime.set(time);
-      }
+      this.nextTime.getAndUpdate(val -> Math.max(val, finalTime));
     }
 
     @Override

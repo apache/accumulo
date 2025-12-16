@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
@@ -111,7 +112,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     QueueLock qlock;
     byte[] userData;
-    long entry = -1;
+    AtomicLong entry;
 
     ReadLock(QueueLock qlock, byte[] userData) {
       this.qlock = qlock;
@@ -122,7 +123,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     ReadLock(QueueLock qlock, byte[] userData, long entry) {
       this.qlock = qlock;
       this.userData = userData;
-      this.entry = entry;
+      this.entry = new AtomicLong(entry);
     }
 
     protected LockType lockType() {
@@ -154,22 +155,27 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public boolean tryLock() {
-      if (entry == -1) {
-        entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry {} userData {} lockType {}", entry,
-            new String(this.userData, UTF_8), lockType());
-      }
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
+      var entryVal = entry.updateAndGet(val -> {
+        if (val == -1) {
+          var newVal = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
+          log.info("Added lock entry {} userData {} lockType {}", newVal,
+              new String(this.userData, UTF_8), lockType());
+          return newVal;
+        } else {
+          return val;
+        }
+      });
+      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entryVal);
       for (Entry<Long,byte[]> entry : entries.entrySet()) {
         ParsedLock parsed = new ParsedLock(entry.getValue());
-        if (entry.getKey().equals(this.entry)) {
+        if (entry.getKey().equals(entryVal)) {
           return true;
         }
         if (parsed.type == LockType.WRITE) {
           return false;
         }
       }
-      throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
+      throw new IllegalStateException("Did not find our own lock in the queue: " + entryVal
           + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
     }
 
@@ -190,13 +196,14 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public void unlock() {
-      if (entry == -1) {
-        return;
-      }
-      log.debug("Removing lock entry {} userData {} lockType {}", entry,
-          new String(this.userData, UTF_8), lockType());
-      qlock.removeEntry(entry);
-      entry = -1;
+      entry.updateAndGet(val -> {
+        if (val != -1) {
+          log.debug("Removing lock entry {} userData {} lockType {}", val,
+              new String(this.userData, UTF_8), lockType());
+          qlock.removeEntry(val);
+        }
+        return -1;
+      });
     }
 
     @Override
@@ -222,18 +229,23 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public boolean tryLock() {
-      if (entry == -1) {
-        entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry {} userData {} lockType {}", entry,
-            new String(this.userData, UTF_8), lockType());
-      }
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
+      var entryVal = entry.updateAndGet(val -> {
+        if (val == -1) {
+          var newVal = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
+          log.info("Added lock entry {} userData {} lockType {}", newVal,
+              new String(this.userData, UTF_8), lockType());
+          return newVal;
+        } else {
+          return val;
+        }
+      });
+      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entryVal);
       Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();
       if (!iterator.hasNext()) {
-        throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
+        throw new IllegalStateException("Did not find our own lock in the queue: " + entryVal
             + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
       }
-      return iterator.next().getKey().equals(entry);
+      return iterator.next().getKey().equals(entryVal);
     }
   }
 

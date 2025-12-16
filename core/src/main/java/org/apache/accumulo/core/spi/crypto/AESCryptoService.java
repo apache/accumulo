@@ -117,6 +117,8 @@ public class AESCryptoService implements CryptoService {
   };
 
   @Override
+  @SuppressFBWarnings(value = "AT_STALE_THREAD_WRITE_OF_PRIMITIVE",
+      justification = "Fields modified here are initialized once, and read-only after.")
   public void init(Map<String,String> conf) throws CryptoException {
     ensureNotInit();
     String keyLocation = Objects.requireNonNull(conf.get(KEY_URI_PROPERTY),

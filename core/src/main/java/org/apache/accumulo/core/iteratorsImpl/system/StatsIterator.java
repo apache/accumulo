@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -31,6 +33,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.ServerWrappingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
+@NotThreadSafe
 public class StatsIterator extends ServerWrappingIterator {
 
   private int numRead = 0;

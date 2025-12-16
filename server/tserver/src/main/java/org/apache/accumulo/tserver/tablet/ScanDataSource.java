@@ -27,6 +27,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -57,6 +59,7 @@ import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@NotThreadSafe
 class ScanDataSource implements DataSource {
 
   private static final Logger log = LoggerFactory.getLogger(ScanDataSource.class);

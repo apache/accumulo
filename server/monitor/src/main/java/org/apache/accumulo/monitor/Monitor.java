@@ -130,14 +130,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   private final AtomicLong lastRecalc = new AtomicLong(0L);
-  private double totalIngestRate = 0.0;
-  private double totalQueryRate = 0.0;
-  private double totalScanRate = 0.0;
-  private long totalEntries = 0L;
-  private int totalTabletCount = 0;
-  private long totalHoldTime = 0;
-  private long totalLookups = 0;
-  private int totalTables = 0;
+  private volatile double totalIngestRate = 0.0;
+  private volatile double totalQueryRate = 0.0;
+  private volatile double totalScanRate = 0.0;
+  private volatile long totalEntries = 0L;
+  private volatile int totalTabletCount = 0;
+  private volatile long totalHoldTime = 0;
+  private volatile long totalLookups = 0;
+  private volatile int totalTables = 0;
   private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
   private static <T> List<Pair<Long,T>> newMaxList() {
@@ -996,10 +996,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   public Optional<HostAndPort> getCoordinatorHost() {
     return coordinatorHost;
-  }
-
-  public int getLivePort() {
-    return livePort;
   }
 
   @Override

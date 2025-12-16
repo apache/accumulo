@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+@NotThreadSafe
 public class Scanner {
   private static final Logger log = LoggerFactory.getLogger(Scanner.class);
 
