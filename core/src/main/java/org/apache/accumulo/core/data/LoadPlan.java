@@ -165,12 +165,7 @@ public class LoadPlan {
 
     @Override
     public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + Arrays.hashCode(endRow);
-      result = prime * result + Arrays.hashCode(startRow);
-      result = prime * result + Objects.hash(fileName, rangeType);
-      return result;
+     return Objects.hash(Arrays.hashCode(endRow), Arrays.hashCode(startRow), fileName, rangeType);
     }
 
     @Override
