@@ -48,7 +48,6 @@ class ScanInstrumentationImpl extends ScanInstrumentation {
     fileBytesRead.addAndGet(amount);
   }
 
-  // TODO should it be an option to cache compressed data?
   @Override
   public void incrementUncompressedBytesRead(long amount) {
     uncompressedBytesRead.addAndGet(amount);

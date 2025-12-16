@@ -251,8 +251,6 @@ public abstract class TabletBase {
   void recordScanTrace(Span span, List<KVEntry> batch, ScanParameters scanParameters,
       ScanDataSource dataSource) {
     if (span.isRecording()) {
-      // TODO in testing could not get really large batches, even when increasing table and
-      // client settings
       span.setAttribute(TraceAttributes.ENTRIES_RETURNED_KEY, batch.size());
       long bytesReturned = 0;
       for (var e : batch) {

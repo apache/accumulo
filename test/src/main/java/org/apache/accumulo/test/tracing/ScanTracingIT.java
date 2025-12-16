@@ -246,9 +246,6 @@ class ScanTracingIT extends ConfigurableMacBase {
         assertEquals(0, stats.getDataCacheHits(), stats::toString);
         assertEquals(0, stats.getDataCacheMisses(), stats::toString);
         assertTrue(stats.getDataCacheBypasses() > stats.getSeeks(), stats::toString);
-        // When not caching data, will go to the index cache each time a block location is looked
-        // up. TODO why is this happening? keeps getting the RootData metablock for every data
-        // block.
         assertClose(stats.getDataCacheBypasses(), stats.getIndexCacheHits(), .05);
       }
       assertEquals(0, stats.getIndexCacheBypasses(), stats::toString);
