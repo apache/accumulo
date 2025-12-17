@@ -447,11 +447,17 @@ public class MultiIteratorTest {
 
     Range r1 = new Range((Text) null, (Text) null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
+    miCopy.seek(r1, EMPTY_COL_FAMS, false);
     assertTrue(mi.hasTop());
     assertEquals("5", mi.getTopValue().toString());
     mi.next();
     assertTrue(mi.hasTop());
     assertEquals("6", mi.getTopValue().toString());
+    assertTrue(miCopy.hasTop());
+    assertEquals("5", miCopy.getTopValue().toString());
+    .
+    .
+    .
     mi.next();
     assertTrue(mi.hasTop());
     assertEquals("7", mi.getTopValue().toString());
