@@ -61,6 +61,7 @@ import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
@@ -286,10 +287,20 @@ class RFileScanner extends ScannerOptions implements Scanner {
       }
 
       SortedKeyValueIterator<Key,Value> iterator;
+      boolean shuffled = tableConf.getBoolean(Property.TABLE_SHUFFLE_SOURCES);
+
       if (opts.bounds != null) {
-        iterator = new MultiIterator(readers, opts.bounds);
+        if (shuffled) {
+          iterator = new MultiShuffledIterator(readers, opts.bounds);
+        } else {
+          iterator = new MultiIterator(readers, opts.bounds);
+        }
       } else {
-        iterator = new MultiIterator(readers, false);
+        if (shuffled) {
+          iterator = new MultiShuffledIterator(readers, false);
+        } else {
+          iterator = new MultiIterator(readers, false);
+        }
       }
 
       Set<ByteSequence> families = Collections.emptySet();

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.iteratorsImpl.system;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -33,23 +34,25 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * An iterator capable of iterating over other iterators in sorted order.
+ * An iterator capable of iterating over other iterators in sorted order while shuffling the initial
+ * seek ordering to avoid thread contention.
  */
-public class MultiIterator extends HeapIterator {
+public class MultiShuffledIterator extends HeapIterator {
 
   private final List<SortedKeyValueIterator<Key,Value>> iters;
   private final Range fence;
 
   // deep copy with no seek/scan state
   @Override
-  public MultiIterator deepCopy(IteratorEnvironment env) {
-    return new MultiIterator(this, env);
+  public MultiShuffledIterator deepCopy(IteratorEnvironment env) {
+    return new MultiShuffledIterator(this, env);
   }
 
-  private MultiIterator(MultiIterator other, IteratorEnvironment env) {
+  private MultiShuffledIterator(MultiShuffledIterator other, IteratorEnvironment env) {
     super(other.iters.size());
     this.iters = new ArrayList<>();
     this.fence = other.fence;
+    Collections.shuffle(other.iters);
     for (SortedKeyValueIterator<Key,Value> iter : other.iters) {
       iters.add(iter.deepCopy(env));
     }
@@ -61,7 +64,7 @@ public class MultiIterator extends HeapIterator {
     }
   }
 
-  private MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence,
+  private MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence,
       boolean init) {
     super(iters.size());
 
@@ -73,6 +76,7 @@ public class MultiIterator extends HeapIterator {
     }
 
     this.fence = seekFence;
+    Collections.shuffle(iters);
     this.iters = iters;
 
     if (init) {
@@ -80,15 +84,15 @@ public class MultiIterator extends HeapIterator {
     }
   }
 
-  public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence) {
+  public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence) {
     this(iters, seekFence, false);
   }
 
-  public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters2, KeyExtent extent) {
+  public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> iters2, KeyExtent extent) {
     this(iters2, new Range(extent.prevEndRow(), false, extent.endRow(), true), false);
   }
 
-  public MultiIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {
+  public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {
     this(readers, null, init);
   }
 

@@ -37,11 +37,12 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class MultiIteratorTest {
+public class MultiShuffledIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
@@ -72,9 +73,9 @@ public class MultiIteratorTest {
       iters.add(new SortedMapIterator(map));
     }
 
-    MultiIterator mi;
+    MultiShuffledIterator mi;
     if (endRow == null && prevEndRow == null) {
-      mi = new MultiIterator(iters, init);
+      mi = new MultiShuffledIterator(iters, init);
     } else {
       Range range = new Range(prevEndRow, false, endRow, true);
       if (init) {
@@ -82,7 +83,7 @@ public class MultiIteratorTest {
           iter.seek(range, Set.of(), false);
         }
       }
-      mi = new MultiIterator(iters, range);
+      mi = new MultiShuffledIterator(iters, range);
 
       if (init) {
         mi.seek(range, Set.of(), false);
@@ -442,8 +443,8 @@ public class MultiIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent);
-    MultiIterator miCopy = mi.deepCopy(null);
+    MultiShuffledIterator mi = new MultiShuffledIterator(skvil, extent);
+    MultiShuffledIterator miCopy = mi.deepCopy(null);
 
     Range r1 = new Range((Text) null, null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
