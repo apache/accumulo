@@ -38,7 +38,10 @@ import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache.Loader;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.trace.ScanInstrumentation;
+import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -405,6 +408,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile(null).getMetaBlock(blockName);
+      incrementCacheBypass(CacheType.INDEX);
       return new CachedBlockRead(_currBlock);
     }
 
@@ -421,6 +425,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile(null).getDataBlock(offset, compressedSize, rawSize);
+      incrementCacheBypass(CacheType.INDEX);
       return new CachedBlockRead(_currBlock);
     }
 
@@ -443,6 +448,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(blockIndex);
+      incrementCacheBypass(CacheType.DATA);
       return new CachedBlockRead(_currBlock);
     }
 
@@ -459,7 +465,12 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(offset, compressedSize, rawSize);
+      incrementCacheBypass(CacheType.DATA);
       return new CachedBlockRead(_currBlock);
+    }
+
+    private void incrementCacheBypass(CacheType cacheType) {
+      ScanInstrumentation.get().incrementCacheBypass(cacheType);
     }
 
     @Override
@@ -491,12 +502,22 @@ public class CachableBlockFile {
   }
 
   public static class CachedBlockRead extends DataInputStream {
+
+    private static InputStream wrapForTrace(InputStream inputStream) {
+      var scanInstrumentation = ScanInstrumentation.get();
+      if (scanInstrumentation.enabled()) {
+        return new CountingInputStream(inputStream);
+      } else {
+        return inputStream;
+      }
+    }
+
     private final SeekableByteArrayInputStream seekableInput;
     private final CacheEntry cb;
     boolean indexable;
 
     public CachedBlockRead(InputStream in) {
-      super(in);
+      super(wrapForTrace(in));
       cb = null;
       seekableInput = null;
       indexable = false;
@@ -507,7 +528,7 @@ public class CachableBlockFile {
     }
 
     private CachedBlockRead(SeekableByteArrayInputStream seekableInput, CacheEntry cb) {
-      super(seekableInput);
+      super(wrapForTrace(seekableInput));
       this.seekableInput = seekableInput;
       this.cb = cb;
       indexable = true;
@@ -535,6 +556,26 @@ public class CachableBlockFile {
 
     public void indexWeightChanged() {
       cb.indexWeightChanged();
+    }
+
+    public void flushStats() {
+      if (in instanceof CountingInputStream) {
+        var cin = ((CountingInputStream) in);
+        ScanInstrumentation.get().incrementUncompressedBytesRead(cin.getCount());
+        cin.resetCount();
+        var src = cin.getWrappedStream();
+        if (src instanceof BlockReader) {
+          var br = (BlockReader) src;
+          br.flushStats();
+        }
+
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      flushStats();
+      super.close();
     }
   }
 }
