@@ -27,13 +27,14 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.concurrent.NotThreadSafe;
 
 /**
  * A ReadWriteLock that can be implemented in ZooKeeper. Features the ability to store data with the
@@ -108,11 +109,12 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   private static final Logger log = LoggerFactory.getLogger(DistributedReadWriteLock.class);
 
+  @NotThreadSafe
   static class ReadLock implements Lock {
 
     QueueLock qlock;
     byte[] userData;
-    AtomicLong entry;
+    long entry = -1;
 
     ReadLock(QueueLock qlock, byte[] userData) {
       this.qlock = qlock;
@@ -123,7 +125,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     ReadLock(QueueLock qlock, byte[] userData, long entry) {
       this.qlock = qlock;
       this.userData = userData;
-      this.entry = new AtomicLong(entry);
+      this.entry = entry;
     }
 
     protected LockType lockType() {
@@ -155,28 +157,23 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public boolean tryLock() {
-      var entryVal = entry.updateAndGet(val -> {
-        if (val == -1) {
-          var newVal = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-          log.info("Added lock entry {} userData {} lockType {}", newVal,
-              new String(this.userData, UTF_8), lockType());
-          return newVal;
-        } else {
-          return val;
-        }
-      });
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entryVal);
+      if (entry == -1) {
+        entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
+        log.info("Added lock entry {} userData {} lockType {}", entry,
+                new String(this.userData, UTF_8), lockType());
+      }
+      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       for (Entry<Long,byte[]> entry : entries.entrySet()) {
         ParsedLock parsed = new ParsedLock(entry.getValue());
-        if (entry.getKey().equals(entryVal)) {
+        if (entry.getKey().equals(this.entry)) {
           return true;
         }
         if (parsed.type == LockType.WRITE) {
           return false;
         }
       }
-      throw new IllegalStateException("Did not find our own lock in the queue: " + entryVal
-          + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+      throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
+              + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
     }
 
     @Override
@@ -196,14 +193,13 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public void unlock() {
-      entry.updateAndGet(val -> {
-        if (val != -1) {
-          log.debug("Removing lock entry {} userData {} lockType {}", val,
+      if (entry == -1) {
+        return;
+      }
+      log.debug("Removing lock entry {} userData {} lockType {}", entry,
               new String(this.userData, UTF_8), lockType());
-          qlock.removeEntry(val);
-        }
-        return -1;
-      });
+      qlock.removeEntry(entry);
+      entry = -1;
     }
 
     @Override
@@ -229,23 +225,18 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
     @Override
     public boolean tryLock() {
-      var entryVal = entry.updateAndGet(val -> {
-        if (val == -1) {
-          var newVal = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-          log.info("Added lock entry {} userData {} lockType {}", newVal,
-              new String(this.userData, UTF_8), lockType());
-          return newVal;
-        } else {
-          return val;
-        }
-      });
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entryVal);
+      if (entry == -1) {
+        entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
+        log.info("Added lock entry {} userData {} lockType {}", entry,
+                new String(this.userData, UTF_8), lockType());
+      }
+      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
       Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();
       if (!iterator.hasNext()) {
-        throw new IllegalStateException("Did not find our own lock in the queue: " + entryVal
-            + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+        throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
+                + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
       }
-      return iterator.next().getKey().equals(entryVal);
+      return iterator.next().getKey().equals(entry);
     }
   }
 
