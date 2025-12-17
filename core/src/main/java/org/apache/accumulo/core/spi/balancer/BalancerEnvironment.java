@@ -20,9 +20,12 @@ package org.apache.accumulo.core.spi.balancer;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -86,4 +89,10 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * none is configured.
    */
   String tableContext(TableId tableId);
+
+  /**
+   * Retrieve tablet information for the provided list of ranges.
+   */
+  Stream<TabletInformation> getTabletInformation(TableId tableId, List<Range> ranges,
+      TabletInformation.Field... fields);
 }

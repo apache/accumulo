@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1035,6 +1036,59 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           }
           assertThrows(IllegalStateException.class, ti::getTabletAvailability);
         });
+      }
+
+      var unboundedStartRange = new Range(null, new Text("4"));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          unboundedStartRange, TabletInformation.Field.LOCATION)) {
+        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+            .map(er -> er == null ? "null" : er.toString()).toList();
+        assertEquals(List.of("1", "2", "3", "4"), endRows);
+      }
+
+      var unboundedEndRange = new Range(new Text("6"), true, null, true);
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          unboundedEndRange, TabletInformation.Field.LOCATION)) {
+        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+            .map(er -> er == null ? "null" : er.toString()).toList();
+        assertEquals(List.of("6", "7", "8", "null"), endRows);
+      }
+
+      var exclusiveStartRange = new Range(new Text("4"), false, new Text("6"), true);
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          exclusiveStartRange, TabletInformation.Field.LOCATION)) {
+        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+            .map(Text::toString).toList();
+        assertEquals(List.of("5", "6"), endRows);
+      }
+
+      var inclusiveStartRange = new Range(new Text("4"), true, new Text("6"), true);
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          inclusiveStartRange, TabletInformation.Field.LOCATION)) {
+        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+            .map(Text::toString).toList();
+        assertEquals(List.of("4", "5", "6"), endRows);
+      }
+
+      var fileFieldMissingRange = List.of(new Range(new Text("2"), new Text("4")));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          fileFieldMissingRange, TabletInformation.Field.LOCATION)) {
+        tablets.forEach(ti -> assertThrows(IllegalStateException.class, ti::getNumFiles));
+      }
+
+      var overlappingRange = new Range(new Text("2"), new Text("4"));
+      var overlappingRange2 = new Range(new Text("3"), new Text("5"));
+      var disjointRange = new Range(new Text("7"), new Text("8"));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(overlappingRange, overlappingRange2, disjointRange),
+          TabletInformation.Field.LOCATION)) {
+        var tabletIds = tablets.map(TabletInformation::getTabletId).toList();
+        var endRows = tabletIds.stream().map(TabletId::getEndRow).map(Text::toString).toList();
+        assertEquals(6, tabletIds.size());
+        assertEquals(tabletIds.size(), new HashSet<>(tabletIds).size());
+        assertEquals(endRows, new ArrayList<>(new LinkedHashSet<>(endRows)));
+        assertEquals(Set.of("2", "3", "4", "5", "7", "8"), new HashSet<>(endRows));
+        assertEquals(List.of("2", "3", "4", "5", "7", "8"), endRows);
       }
 
     } finally {

@@ -26,17 +26,11 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
@@ -128,8 +122,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -151,8 +143,6 @@ import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -186,7 +176,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
 
 public class TableOperationsImpl extends TableOperationsHelper {
 
@@ -2257,55 +2246,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
       TabletInformation.Field... fields) throws TableNotFoundException {
-    EXISTING_TABLE_NAME.validate(tableName);
+    return getTabletInformation(tableName, List.of(range), fields);
+  }
 
-    final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
+  @Override
+  public Stream<TabletInformation> getTabletInformation(final String tableName,
+      final List<Range> ranges, TabletInformation.Field... fields) throws TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+    Objects.requireNonNull(ranges, "ranges is null");
+
+    EnumSet<TabletInformation.Field> fieldSet = fields.length == 0
+        ? EnumSet.allOf(TabletInformation.Field.class) : EnumSet.copyOf(Arrays.asList(fields));
+
     TableId tableId = context.getTableId(tableName);
 
-    List<TabletMetadata.ColumnType> columns = new ArrayList<>();
-    EnumSet<TabletInformation.Field> fieldSet =
-        fields.length == 0 ? EnumSet.allOf(TabletInformation.Field.class)
-            : EnumSet.noneOf(TabletInformation.Field.class);
-    Collections.addAll(fieldSet, fields);
-    if (fieldSet.contains(TabletInformation.Field.FILES)) {
-      Collections.addAll(columns, DIR, FILES, LOGS);
-    }
-    if (fieldSet.contains(TabletInformation.Field.LOCATION)) {
-      Collections.addAll(columns, LOCATION, LAST, SUSPEND);
-    }
-    if (fieldSet.contains(TabletInformation.Field.AVAILABILITY)) {
-      Collections.addAll(columns, AVAILABILITY);
-    }
-    if (fieldSet.contains(TabletInformation.Field.MERGEABILITY)) {
-      Collections.addAll(columns, MERGEABILITY);
-    }
-    columns.add(PREV_ROW);
-
-    TabletsMetadata tabletsMetadata =
-        context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(columns.toArray(new TabletMetadata.ColumnType[0])).checkConsistency().build();
-
-    Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
-
-    var currentTime = Suppliers.memoize(() -> {
-      try {
-        return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
-      } catch (AccumuloException | AccumuloSecurityException e) {
-        throw new IllegalStateException(e);
-      }
-    });
-
-    return tabletsMetadata.stream().onClose(tabletsMetadata::close).peek(tm -> {
-      if (scanRangeStart != null && tm.getEndRow() != null
-          && tm.getEndRow().compareTo(scanRangeStart) < 0) {
-        log.debug("tablet {} is before scan start range: {}", tm.getExtent(), scanRangeStart);
-        throw new RuntimeException("Bug in ample or this code.");
-      }
-    }).takeWhile(tm -> tm.getPrevEndRow() == null
-        || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformationImpl(tm,
-            () -> TabletState.compute(tm, liveTserverSet).toString(), currentTime));
+    return TabletInformationCollector.getTabletInformation(context, tableId, ranges, fieldSet);
   }
 
   @Override
