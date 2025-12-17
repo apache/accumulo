@@ -74,6 +74,24 @@ public class Fate<T> {
 
   private class TransactionRunner implements Runnable {
 
+    private boolean isInterruptedException(Throwable e) {
+      if (e == null) {
+        return false;
+      }
+
+      if (e instanceof InterruptedException) {
+        return true;
+      }
+
+      for (Throwable suppressed : e.getSuppressed()) {
+        if (isInterruptedException(suppressed)) {
+          return true;
+        }
+      }
+
+      return isInterruptedException(e.getCause());
+    }
+
     @Override
     public void run() {
       while (keepRunning.get()) {
@@ -108,20 +126,22 @@ public class Fate<T> {
               } else {
                 continue;
               }
-            } catch (InterruptedException e) {
-              if (keepRunning.get()) {
-                throw e;
-              } else {
-                // If we are shutting down then Fate.shutdown was called
-                // and ExecutorService.shutdownNow was called resulting
-                // in this exception. We will exit at the top of the loop.
-                Thread.interrupted();
-                continue;
-              }
             } catch (Exception e) {
-              blockIfHadoopShutdown(tid, e);
-              transitionToFailed(tid, e);
-              continue;
+              if (!isInterruptedException(e)) {
+                blockIfHadoopShutdown(tid, e);
+                transitionToFailed(tid, e);
+                continue;
+              } else {
+                if (keepRunning.get()) {
+                  throw e;
+                } else {
+                  // If we are shutting down then Fate.shutdown was called
+                  // and ExecutorService.shutdownNow was called resulting
+                  // in this exception. We will exit at the top of the loop.
+                  Thread.interrupted();
+                  continue;
+                }
+              }
             }
 
             if (op == null) {
@@ -144,25 +164,17 @@ public class Fate<T> {
               }
             }
           }
-        } catch (InterruptedException e) {
-          if (keepRunning.get()) {
-            runnerLog.error("Uncaught InterruptedException in FATE runner thread.", e);
-          } else {
-            // If we are shutting down then Fate.shutdown was called
-            // and ExecutorService.shutdownNow was called resulting
-            // in this exception. We will exit at the top of the loop,
-            // so continue this loop iteration normally.
-            Thread.interrupted();
-          }
         } catch (Exception e) {
-          // ZooStore wraps InterruptedException's with a RuntimeException
-          if (!keepRunning.get() && e instanceof RuntimeException && e.getCause() != null
-              && e.getCause() instanceof InterruptedException) {
-            // If we are shutting down then Fate.shutdown was called
-            // and ExecutorService.shutdownNow was called resulting
-            // in this exception. We will exit at the top of the loop,
-            // so continue this loop iteration normally.
-            Thread.interrupted();
+          if (isInterruptedException(e)) {
+            if (keepRunning.get()) {
+              runnerLog.error("Uncaught InterruptedException in FATE runner thread.", e);
+            } else {
+              // If we are shutting down then Fate.shutdown was called
+              // and ExecutorService.shutdownNow was called resulting
+              // in this exception. We will exit at the top of the loop,
+              // so continue this loop iteration normally.
+              Thread.interrupted();
+            }
           } else {
             runnerLog.error("Uncaught exception in FATE runner thread.", e);
           }
@@ -458,7 +470,9 @@ public class Fate<T> {
    * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
    */
   public void shutdown(boolean wait) {
-    log.info("Shutdown called on Fate");
+    log.info("Shutdown called on Fate, waiting: {}", wait);
+    // important this is set before shutdownNow is called as the background
+    // threads will check this to see if shutdown related errors should be ignored.
     keepRunning.set(false);
     if (executor == null) {
       return;

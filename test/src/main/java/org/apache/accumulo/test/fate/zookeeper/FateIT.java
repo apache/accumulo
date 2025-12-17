@@ -31,6 +31,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -42,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -190,6 +192,7 @@ public class FateIT {
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
   private static CountDownLatch undoLatch;
+  private static AtomicReference<Throwable> interruptedException = new AtomicReference<>();
 
   Fate<Manager> fate;
 
@@ -466,8 +469,6 @@ public class FateIT {
     assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
 
     fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
-    // Wait for the transaction runner to be scheduled.
-    UtilWaitThread.sleep(3000);
 
     // wait for call() to be called
     callStarted.await();
@@ -477,7 +478,8 @@ public class FateIT {
     fate.shutdown(true);
 
     // tell the op to exit the method
-    finishCall.countDown();
+    Wait.waitFor(() -> interruptedException.get() != null);
+    interruptedException.set(null);
 
     // restart fate
     beforeEach();
@@ -502,13 +504,20 @@ public class FateIT {
         break;
       }
     }
+    assertNull(interruptedException.get());
   }
 
   private static void inCall() throws InterruptedException {
     // signal that call started
     callStarted.countDown();
-    // wait for the signal to exit the method
-    finishCall.await();
+    try {
+      // wait for the signal to exit the method
+      finishCall.await();
+    } catch (InterruptedException e) {
+      LOG.debug("InterruptedException occurred inCall.");
+      interruptedException.set(e);
+      throw e;
+    }
   }
 
   /*
