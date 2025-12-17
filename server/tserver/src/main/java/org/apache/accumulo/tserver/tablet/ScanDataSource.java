@@ -193,9 +193,9 @@ class ScanDataSource implements DataSource {
     HeapIterator multiIter;
     if (tablet.getContext().getTableConfiguration(tablet.getExtent().tableId())
         .getBoolean(Property.TABLE_SHUFFLE_SOURCES)) {
-      multiIter = new MultiShuffledIterator(iters, tablet.getExtent());
+      multiIter = new MultiShuffledIterator(iters, tablet.getExtent().toDataRange());
     } else {
-      multiIter = new MultiIterator(iters, tablet.getExtent());
+      multiIter = new MultiIterator(iters, tablet.getExtent().toDataRange());
     }
 
     var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())

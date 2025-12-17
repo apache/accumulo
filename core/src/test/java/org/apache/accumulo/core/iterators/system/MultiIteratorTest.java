@@ -368,7 +368,7 @@ public class MultiIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent);
+    MultiIterator mi = new MultiIterator(skvil, extent.toDataRange());
 
     Range r1 = new Range((Text) null, (Text) null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
@@ -442,7 +442,7 @@ public class MultiIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent);
+    MultiIterator mi = new MultiIterator(skvil, extent.toDataRange());
     MultiIterator miCopy = mi.deepCopy(null);
 
     Range r1 = new Range((Text) null, null);

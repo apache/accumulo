@@ -28,7 +28,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
@@ -37,7 +36,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
  */
 public class MultiIterator extends HeapIterator {
 
-  private final List<SortedKeyValueIterator<Key,Value>> iters;
+  private List<SortedKeyValueIterator<Key,Value>> iters;
   private final Range fence;
 
   // deep copy with no seek/scan state
@@ -48,11 +47,16 @@ public class MultiIterator extends HeapIterator {
 
   private MultiIterator(MultiIterator other, IteratorEnvironment env) {
     super(other.iters.size());
-    this.iters = new ArrayList<>();
+    var tmpIters = new ArrayList<SortedKeyValueIterator<Key,Value>>();
     this.fence = other.fence;
     for (SortedKeyValueIterator<Key,Value> iter : other.iters) {
-      iters.add(iter.deepCopy(env));
+      tmpIters.add(iter.deepCopy(env));
     }
+    setIters(tmpIters);
+  }
+
+  protected void setIters(List<SortedKeyValueIterator<Key,Value>> iters) {
+    this.iters = iters;
   }
 
   private void init() {
@@ -67,27 +71,32 @@ public class MultiIterator extends HeapIterator {
 
     if (seekFence != null && init) {
       // throw this exception because multi-iterator does not seek on init, therefore the
-      // fence would not be enforced in anyway, so do not want to give the impression it
+      // fence would not be enforced in any way, so do not want to give the impression it
       // will enforce this
       throw new IllegalArgumentException("Initializing not supported when seek fence set");
     }
 
     this.fence = seekFence;
-    this.iters = iters;
+    setIters(iters);
 
     if (init) {
       init();
     }
   }
 
+  /**
+   * Creates a MultiIterator that doesn't have a fence range and therefore doesn't seek on creation.
+   *
+   * @param iters List of source iterators
+   */
+  public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters) {
+    this(iters, null, false);
+  }
+
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence) {
     this(iters, seekFence, false);
   }
-
-  public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters2, KeyExtent extent) {
-    this(iters2, new Range(extent.prevEndRow(), false, extent.endRow(), true), false);
-  }
-
+  
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {
     this(readers, null, init);
   }

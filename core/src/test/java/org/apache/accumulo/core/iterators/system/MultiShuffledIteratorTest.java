@@ -369,7 +369,7 @@ public class MultiShuffledIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent);
+    MultiIterator mi = new MultiIterator(skvil, extent.toDataRange());
 
     Range r1 = new Range((Text) null, (Text) null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
@@ -443,8 +443,8 @@ public class MultiShuffledIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiShuffledIterator mi = new MultiShuffledIterator(skvil, extent);
-    MultiShuffledIterator miCopy = mi.deepCopy(null);
+    SortedKeyValueIterator<Key,Value> mi = new MultiShuffledIterator(skvil, extent.toDataRange());
+    SortedKeyValueIterator<Key,Value> miCopy = mi.deepCopy(null);
 
     Range r1 = new Range((Text) null, null);
     mi.seek(r1, EMPTY_COL_FAMS, false);

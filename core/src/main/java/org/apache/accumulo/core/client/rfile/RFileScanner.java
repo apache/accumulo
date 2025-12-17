@@ -297,9 +297,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
         }
       } else {
         if (shuffled) {
-          iterator = new MultiShuffledIterator(readers, false);
+          iterator = new MultiShuffledIterator(readers);
         } else {
-          iterator = new MultiIterator(readers, false);
+          iterator = new MultiIterator(readers);
         }
       }
 

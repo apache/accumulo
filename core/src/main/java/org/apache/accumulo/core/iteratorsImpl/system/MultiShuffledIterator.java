@@ -18,105 +18,37 @@
  */
 package org.apache.accumulo.core.iteratorsImpl.system;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
  * An iterator capable of iterating over other iterators in sorted order while shuffling the initial
  * seek ordering to avoid thread contention.
  */
-public class MultiShuffledIterator extends HeapIterator {
+public class MultiShuffledIterator extends MultiIterator {
 
-  private final List<SortedKeyValueIterator<Key,Value>> iters;
-  private final Range fence;
-
-  // deep copy with no seek/scan state
-  @Override
-  public MultiShuffledIterator deepCopy(IteratorEnvironment env) {
-    return new MultiShuffledIterator(this, env);
-  }
-
-  private MultiShuffledIterator(MultiShuffledIterator other, IteratorEnvironment env) {
-    super(other.iters.size());
-    this.iters = new ArrayList<>();
-    this.fence = other.fence;
-    Collections.shuffle(other.iters);
-    for (SortedKeyValueIterator<Key,Value> iter : other.iters) {
-      iters.add(iter.deepCopy(env));
-    }
-  }
-
-  private void init() {
-    for (SortedKeyValueIterator<Key,Value> skvi : iters) {
-      addSource(skvi);
-    }
-  }
-
-  private MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence,
-      boolean init) {
-    super(iters.size());
-
-    if (seekFence != null && init) {
-      // throw this exception because multi-iterator does not seek on init, therefore the
-      // fence would not be enforced in anyway, so do not want to give the impression it
-      // will enforce this
-      throw new IllegalArgumentException("Initializing not supported when seek fence set");
-    }
-
-    this.fence = seekFence;
-    Collections.shuffle(iters);
-    this.iters = iters;
-
-    if (init) {
-      init();
-    }
+  public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> readers) {
+    super(readers);
   }
 
   public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence) {
-    this(iters, seekFence, false);
-  }
-
-  public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> iters2, KeyExtent extent) {
-    this(iters2, new Range(extent.prevEndRow(), false, extent.endRow(), true), false);
+    super(iters, seekFence);
   }
 
   public MultiShuffledIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {
-    this(readers, null, init);
+    super(readers, init);
   }
 
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-    clear();
-
-    if (fence != null) {
-      range = fence.clip(range, true);
-      if (range == null) {
-        return;
-      }
-    }
-
-    for (SortedKeyValueIterator<Key,Value> skvi : iters) {
-      skvi.seek(range, columnFamilies, inclusive);
-      addSource(skvi);
-    }
-  }
-
-  @Override
-  public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
-      IteratorEnvironment env) throws IOException {
-    throw new UnsupportedOperationException();
+  protected void setIters(List<SortedKeyValueIterator<Key,Value>> iters) {
+    var copy = new ArrayList<>(iters);
+    Collections.shuffle(copy);
+    super.setIters(copy);
   }
 }
