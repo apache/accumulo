@@ -96,7 +96,7 @@ public class MultiIterator extends HeapIterator {
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> iters, Range seekFence) {
     this(iters, seekFence, false);
   }
-  
+
   public MultiIterator(List<SortedKeyValueIterator<Key,Value>> readers, boolean init) {
     this(readers, null, init);
   }
