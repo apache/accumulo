@@ -63,7 +63,9 @@ public interface BalancerEnvironment extends ServiceEnvironment {
   /**
    * Fetch the locations for each of {@code tableId}'s tablets from the metadata table. If there is
    * no location available for a given tablet, then the returned mapping will have a {@code null}
-   * value stored for the tablet id.
+   * value stored for the tablet id. If you don't need all tablets in the table, use
+   * {@link BalancerEnvironment#getTabletInformation(TableId, List, TabletInformation.Field...)}
+   * which is more efficient for the case when specific Ranges are needed.
    *
    * @param tableId The id of the table for which to retrieve tablets.
    * @return a mapping of {@link TabletId} to {@link TabletServerId} (or @null if no location is
@@ -92,6 +94,8 @@ public interface BalancerEnvironment extends ServiceEnvironment {
 
   /**
    * Retrieve tablet information for the provided list of ranges.
+   *
+   * @since 4.0.0
    */
   Stream<TabletInformation> getTabletInformation(TableId tableId, List<Range> ranges,
       TabletInformation.Field... fields);
