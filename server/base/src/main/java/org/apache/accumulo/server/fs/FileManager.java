@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.accumulo.server.problems.ProblemReports;
@@ -297,6 +298,8 @@ public class FileManager {
     // limitations
     closeReaders(filesToClose);
 
+    TableConfiguration tableConf = context.getTableConfiguration(tablet.tableId());
+
     // open any files that need to be opened
     for (String file : filesToOpen) {
       try {
@@ -306,7 +309,6 @@ public class FileManager {
         Path path = new Path(file);
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(path);
         // log.debug("Opening "+file + " path " + path);
-        var tableConf = context.getTableConfiguration(tablet.tableId());
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(path.toString(), ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)
