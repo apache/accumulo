@@ -309,7 +309,7 @@ public class Fate<T> {
       ScheduledThreadPoolExecutor serverGeneralScheduledThreadPool) {
     final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createExecutorService(conf,
         Property.MANAGER_FATE_THREADPOOL_SIZE, true);
-    log.debug("Starting Fate Transaction Running pool with {} threads", pool.getCorePoolSize());
+    log.debug("Starting Fate Transaction Runner pool with {} threads", pool.getCorePoolSize());
     ThreadPools
         .watchCriticalScheduledTask(serverGeneralScheduledThreadPool.scheduleWithFixedDelay(() -> {
           // resize the pool if the property changed

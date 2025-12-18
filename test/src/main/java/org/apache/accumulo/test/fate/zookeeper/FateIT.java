@@ -214,6 +214,7 @@ public class FateIT {
 
   @BeforeEach
   public void beforeEach() throws Exception {
+    interruptedException.set(null);
     final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
