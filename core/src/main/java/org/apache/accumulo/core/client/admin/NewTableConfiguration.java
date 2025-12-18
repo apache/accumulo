@@ -206,7 +206,8 @@ public class NewTableConfiguration {
         try {
           TableOperationsHelper.checkIteratorConflicts(noDefaultsPropMap, setting, scopes);
         } catch (AccumuloException e) {
-          throw new IllegalStateException(e);
+          throw new IllegalStateException(String.format(
+              "conflict with default table iterator: scopes: %s setting: %s", scopes, setting), e);
         }
       });
 

@@ -1322,8 +1322,9 @@ public enum Property {
           + " constraints to a table. These properties start with the category"
           + " prefix, followed by a number, and their values correspond to a fully"
           + " qualified Java class that implements the Constraint interface.\nFor example:\n"
-          + "table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
-          + "and:\n table.constraint.2 = my.package.constraints.MySecondConstraint.",
+          + "table.constraint.2 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
+          + "and:\n table.constraint.3 = my.package.constraints.MySecondConstraint.\n"
+          + "Note that table.constraint.1 is a reserved, default table constraint.",
       "1.3.5"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN,
       "Determines whether index block cache is enabled for a table.", "1.3.5"),
