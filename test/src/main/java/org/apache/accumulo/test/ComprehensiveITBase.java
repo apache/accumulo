@@ -1105,7 +1105,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
         IteratorUtil.IteratorScope.scan));
 
     try (Stream<TabletInformation> tabletInfo =
-        client.tableOperations().getTabletInformation(table, new Range())) {
+        client.tableOperations().getTabletInformation(table, List.of(new Range()))) {
       tabletInfo.forEach(tabletInformation -> {
         if (tabletInformation.getTabletId().getEndRow() == null) {
           assertEquals(expectedAvailabilityForDefaultTable,

@@ -878,7 +878,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Range range, Map<TabletId,TabletAvailability> expectedAvailability)
       throws TableNotFoundException {
     Map<TabletId,TabletAvailability> seenAvailability =
-        client.tableOperations().getTabletInformation(tableName, range).collect(Collectors
+        client.tableOperations().getTabletInformation(tableName, List.of(range)).collect(Collectors
             .toMap(TabletInformation::getTabletId, TabletInformation::getTabletAvailability));
     assertEquals(expectedAvailability, seenAvailability);
   }
@@ -945,7 +945,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       var tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          new Range(), TabletInformation.Field.LOCATION)) {
+          List.of(new Range()), TabletInformation.Field.LOCATION)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -963,7 +963,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          new Range(), TabletInformation.Field.FILES)) {
+          List.of(new Range()), TabletInformation.Field.FILES)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -981,7 +981,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          new Range(), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
+          List.of(new Range()), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -999,7 +999,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          new Range(), TabletInformation.Field.AVAILABILITY)) {
+          List.of(new Range()), TabletInformation.Field.AVAILABILITY)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -1017,7 +1017,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          new Range(), TabletInformation.Field.MERGEABILITY)) {
+          List.of(new Range()), TabletInformation.Field.MERGEABILITY)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -1040,7 +1040,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
       var unboundedStartRange = new Range(null, new Text("4"));
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          unboundedStartRange, TabletInformation.Field.LOCATION)) {
+          List.of(unboundedStartRange), TabletInformation.Field.LOCATION)) {
         var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
             .map(er -> er == null ? "null" : er.toString()).toList();
         assertEquals(List.of("1", "2", "3", "4"), endRows);
@@ -1048,7 +1048,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
       var unboundedEndRange = new Range(new Text("6"), true, null, true);
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          unboundedEndRange, TabletInformation.Field.LOCATION)) {
+          List.of(unboundedEndRange), TabletInformation.Field.LOCATION)) {
         var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
             .map(er -> er == null ? "null" : er.toString()).toList();
         assertEquals(List.of("6", "7", "8", "null"), endRows);
@@ -1056,7 +1056,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
       var exclusiveStartRange = new Range(new Text("4"), false, new Text("6"), true);
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          exclusiveStartRange, TabletInformation.Field.LOCATION)) {
+          List.of(exclusiveStartRange), TabletInformation.Field.LOCATION)) {
         var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
             .map(Text::toString).toList();
         assertEquals(List.of("5", "6"), endRows);
@@ -1064,7 +1064,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
       var inclusiveStartRange = new Range(new Text("4"), true, new Text("6"), true);
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          inclusiveStartRange, TabletInformation.Field.LOCATION)) {
+          List.of(inclusiveStartRange), TabletInformation.Field.LOCATION)) {
         var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
             .map(Text::toString).toList();
         assertEquals(List.of("4", "5", "6"), endRows);
@@ -1087,7 +1087,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         assertEquals(6, tabletIds.size());
         assertEquals(tabletIds.size(), new HashSet<>(tabletIds).size());
         assertEquals(endRows, new ArrayList<>(new LinkedHashSet<>(endRows)));
-        assertEquals(Set.of("2", "3", "4", "5", "7", "8"), new HashSet<>(endRows));
         assertEquals(List.of("2", "3", "4", "5", "7", "8"), endRows);
       }
 

@@ -193,7 +193,7 @@ public class ListTabletsCommandTest {
     EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
     EasyMock.expect(context.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(tableOps.getTabletInformation(tableName, new Range()))
+    EasyMock.expect(tableOps.getTabletInformation(tableName, List.of(new Range())))
         .andReturn(Stream.of(tabletInformation));
 
     Map<String,String> idMap = new TreeMap<>();

@@ -153,7 +153,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
       long count;
       t1 = System.currentTimeMillis();
       try (var tabletInformation =
-          c.tableOperations().getTabletInformation(tableName, new Range())) {
+          c.tableOperations().getTabletInformation(tableName, List.of(new Range()))) {
         count = tabletInformation.count();
       }
       t2 = System.currentTimeMillis();

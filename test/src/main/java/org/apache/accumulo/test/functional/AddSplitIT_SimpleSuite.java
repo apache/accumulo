@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
 import java.util.Optional;
@@ -205,14 +206,16 @@ public class AddSplitIT_SimpleSuite extends SharedMiniClusterBase {
       var split = new Text(String.format("%09d", 777));
       splits.put(split, TabletMergeability.after(Duration.ofMinutes(5)));
 
-      var originalTmi = c.tableOperations().getTabletInformation(tableName, new Range(split))
-          .findFirst().orElseThrow().getTabletMergeabilityInfo();
+      var originalTmi =
+          c.tableOperations().getTabletInformation(tableName, List.of(new Range(split))).findFirst()
+              .orElseThrow().getTabletMergeabilityInfo();
       assertTrue(originalTmi.getElapsed().orElseThrow().toNanos() > 0);
 
       // Update existing with same delay of 5 minutes
       c.tableOperations().putSplits(tableName, splits);
-      var updatedTmi = c.tableOperations().getTabletInformation(tableName, new Range(split))
-          .findFirst().orElseThrow().getTabletMergeabilityInfo();
+      var updatedTmi =
+          c.tableOperations().getTabletInformation(tableName, List.of(new Range(split))).findFirst()
+              .orElseThrow().getTabletMergeabilityInfo();
 
       // TabletMergeability setting should be the same but the new elapsed time should
       // be different (less time has passed as it was updated with a new insertion time)
@@ -244,7 +247,7 @@ public class AddSplitIT_SimpleSuite extends SharedMiniClusterBase {
       Thread.sleep(100);
       assertEquals(splits.keySet(), new TreeSet<>(c.tableOperations().listSplits(tableName)));
 
-      var tableInfo = c.tableOperations().getTabletInformation(tableName, new Range())
+      var tableInfo = c.tableOperations().getTabletInformation(tableName, List.of(new Range()))
           .collect(Collectors.toMap(ti -> ti.getTabletId().getEndRow(), Function.identity()));
 
       // Set to always
@@ -372,7 +375,7 @@ public class AddSplitIT_SimpleSuite extends SharedMiniClusterBase {
   private void verifySplitsWithApi(AccumuloClient c, String tableName,
       SortedMap<Text,TabletMergeability> splits) throws TableNotFoundException {
     final Set<Text> addedSplits = new HashSet<>(splits.keySet());
-    c.tableOperations().getTabletInformation(tableName, new Range()).forEach(ti -> {
+    c.tableOperations().getTabletInformation(tableName, List.of(new Range())).forEach(ti -> {
       var tmInfo = ti.getTabletMergeabilityInfo();
       var split = ti.getTabletId().getEndRow();
       // default tablet should always be set to always

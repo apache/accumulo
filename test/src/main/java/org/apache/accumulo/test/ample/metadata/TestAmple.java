@@ -20,6 +20,7 @@ package org.apache.accumulo.test.ample.metadata;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -300,7 +301,7 @@ public class TestAmple {
 
     TabletAvailability availability;
     try (var tabletStream = client.tableOperations()
-        .getTabletInformation(SystemTables.METADATA.tableName(), new Range())) {
+        .getTabletInformation(SystemTables.METADATA.tableName(), List.of(new Range()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }

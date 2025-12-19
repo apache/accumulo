@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.List;
+
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
@@ -46,8 +48,8 @@ public class GetAvailabilityCommand extends TableOperation {
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
     shellState.getWriter().println("TABLE: " + tableName);
     shellState.getWriter().println("TABLET ID    AVAILABILITY");
-    try (var tabletInformation =
-        shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)) {
+    try (var tabletInformation = shellState.getAccumuloClient().tableOperations()
+        .getTabletInformation(tableName, List.of(range))) {
       tabletInformation.forEach(p -> shellState.getWriter()
           .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
     }

@@ -95,6 +95,9 @@ public interface BalancerEnvironment extends ServiceEnvironment {
   /**
    * Retrieve tablet information for the provided list of ranges.
    *
+   * <p>
+   * The returned stream has no defined ordering.
+   *
    * @since 4.0.0
    */
   Stream<TabletInformation> getTabletInformation(TableId tableId, List<Range> ranges,

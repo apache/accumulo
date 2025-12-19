@@ -535,7 +535,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       List<TabletId> tabletIds;
       // start a compaction on each tablet
-      try (var tablets = client.tableOperations().getTabletInformation(table1, new Range())) {
+      try (var tablets =
+          client.tableOperations().getTabletInformation(table1, List.of(new Range()))) {
         tabletIds = tablets.map(TabletInformation::getTabletId).collect(Collectors.toList());
       }
       // compact the even tablet with a modulus filter of 2

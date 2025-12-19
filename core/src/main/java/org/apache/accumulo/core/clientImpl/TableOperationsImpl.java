@@ -2244,12 +2244,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
-      TabletInformation.Field... fields) throws TableNotFoundException {
-    return getTabletInformation(tableName, List.of(range), fields);
-  }
-
-  @Override
   public Stream<TabletInformation> getTabletInformation(final String tableName,
       final List<Range> ranges, TabletInformation.Field... fields) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);

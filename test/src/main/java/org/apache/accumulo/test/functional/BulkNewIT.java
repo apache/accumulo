@@ -1272,7 +1272,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
    */
   private static Map<String,TabletAvailability> getTabletAvailabilities(AccumuloClient c,
       String tableName) throws TableNotFoundException {
-    try (var tabletsInfo = c.tableOperations().getTabletInformation(tableName, new Range())) {
+    try (var tabletsInfo =
+        c.tableOperations().getTabletInformation(tableName, List.of(new Range()))) {
       return tabletsInfo.collect(Collectors.toMap(ti -> {
         var er = ti.getTabletId().getEndRow();
         return er == null ? "NULL" : er.toString();

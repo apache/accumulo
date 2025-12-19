@@ -444,7 +444,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", destTableId);
 
-      client.tableOperations().getTabletInformation(destTable, new Range())
+      client.tableOperations().getTabletInformation(destTable, List.of(new Range()))
           .forEach(tabletInformation -> assertEquals(TabletAvailability.ONDEMAND,
               tabletInformation.getTabletAvailability(),
               "Expected all tablets in imported table to be ONDEMAND"));

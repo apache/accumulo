@@ -76,8 +76,8 @@ public class ListTabletsCommand extends Command {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
-      try (Stream<TabletInformation> tabletInfoStream =
-          shellState.getContext().tableOperations().getTabletInformation(name, new Range())) {
+      try (Stream<TabletInformation> tabletInfoStream = shellState.getContext().tableOperations()
+          .getTabletInformation(name, List.of(new Range()))) {
         final AtomicInteger counter = new AtomicInteger(1);
         tabletInfoStream.forEach(tabletInfo -> {
           int i = counter.getAndIncrement();
