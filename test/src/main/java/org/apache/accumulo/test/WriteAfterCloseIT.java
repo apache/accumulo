@@ -131,7 +131,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
     NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
     ntc.setProperties(
-        Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1", SleepyConstraint.class.getName()));
+        Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "2", SleepyConstraint.class.getName()));
 
     // The short rpc timeout and the random sleep in the constraint can cause some of the writes
     // done by a batch writer to timeout. The batch writer will internally retry the write, but the
