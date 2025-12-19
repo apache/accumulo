@@ -25,7 +25,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -65,7 +65,7 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * no location available for a given tablet, then the returned mapping will have a {@code null}
    * value stored for the tablet id. If you don't need all tablets in the table, use
    * {@link BalancerEnvironment#getTabletInformation(TableId, List, TabletInformation.Field...)}
-   * which is more efficient for the case when specific Ranges are needed.
+   * which is more efficient for the case when specific row ranges are needed.
    *
    * @param tableId The id of the table for which to retrieve tablets.
    * @return a mapping of {@link TabletId} to {@link TabletServerId} (or @null if no location is
@@ -93,13 +93,11 @@ public interface BalancerEnvironment extends ServiceEnvironment {
   String tableContext(TableId tableId);
 
   /**
-   * Retrieve tablet information for the provided list of ranges.
-   *
-   * <p>
-   * The returned stream has no defined ordering.
+   * Retrieve tablet information for the provided list of row ranges. The stream may be backed by a
+   * scanner, so it's best to close the stream. The stream has no defined ordering.
    *
    * @since 4.0.0
    */
-  Stream<TabletInformation> getTabletInformation(TableId tableId, List<Range> ranges,
+  Stream<TabletInformation> getTabletInformation(TableId tableId, List<RowRange> ranges,
       TabletInformation.Field... fields);
 }

@@ -78,6 +78,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -536,7 +537,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       List<TabletId> tabletIds;
       // start a compaction on each tablet
       try (var tablets =
-          client.tableOperations().getTabletInformation(table1, List.of(new Range()))) {
+          client.tableOperations().getTabletInformation(table1, List.of(RowRange.all()))) {
         tabletIds = tablets.map(TabletInformation::getTabletId).collect(Collectors.toList());
       }
       // compact the even tablet with a modulus filter of 2

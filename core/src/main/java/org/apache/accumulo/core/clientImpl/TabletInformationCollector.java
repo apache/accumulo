@@ -36,9 +36,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletInformation;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
@@ -60,11 +58,12 @@ public class TabletInformationCollector {
   private TabletInformationCollector() {}
 
   /**
-   * Fetch tablet information for the provided ranges. Ranges will be merged.
+   * Fetch tablet information for the provided ranges. Ranges will be merged. The stream may be
+   * backed by a scanner, so it's best to close the stream. The stream has no defined ordering.
    */
   public static Stream<TabletInformation> getTabletInformation(ClientContext context,
-      TableId tableId, List<Range> ranges, EnumSet<TabletInformation.Field> fields) {
-    var mergedRanges = Range.mergeOverlapping(ranges);
+      TableId tableId, List<RowRange> ranges, EnumSet<TabletInformation.Field> fields) {
+    var mergedRanges = RowRange.mergeOverlapping(ranges);
 
     EnumSet<ColumnType> columns = columnsForFields(fields);
 
@@ -79,21 +78,24 @@ public class TabletInformationCollector {
     });
 
     List<Stream<TabletInformation>> tabletStreams = new ArrayList<>();
-    // TODO replace the per-range builds below with a single multirange (maybe new TabletsMetadata
-    // logic)
-    for (Range range : mergedRanges) {
+    for (RowRange rowRange : mergedRanges) {
 
-      Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
-      Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
-      boolean startInclusive = range.getStartKey() == null || range.isStartKeyInclusive();
+      Text startRow = rowRange.getLowerBound();
+      Text endRow = rowRange.getUpperBound();
+      boolean startInclusive = rowRange.isLowerBoundInclusive();
 
       var tm = context.getAmple().readTablets().forTable(tableId)
           .overlapping(startRow, startInclusive, endRow).fetch(columns.toArray(ColumnType[]::new))
           .checkConsistency().build();
 
-      // we need to stop the stream when we have passed the end bound
-      Predicate<TabletMetadata> tabletMetadataPredicate = tme -> tme.getPrevEndRow() == null
-          || !range.afterEndKey(new Key(tme.getPrevEndRow()).followingKey(PartialKey.ROW));
+      // stop once the tablets are beyond the row range's upper bound
+      Predicate<TabletMetadata> notPastUpperBound = tme -> {
+        Text prevEndRow = tme.getPrevEndRow();
+        if (prevEndRow == null || endRow == null) {
+          return true;
+        }
+        return prevEndRow.compareTo(endRow) < 0;
+      };
 
       Stream<TabletInformation> stream = tm.stream().onClose(tm::close).peek(tme -> {
         if (startRow != null && tme.getEndRow() != null
@@ -101,7 +103,7 @@ public class TabletInformationCollector {
           log.debug("tablet {} is before scan start range: {}", tme.getExtent(), startRow);
           throw new RuntimeException("Bug in ample or this code.");
         }
-      }).takeWhile(tabletMetadataPredicate).map(tme -> new TabletInformationImpl(tme,
+      }).takeWhile(notPastUpperBound).map(tme -> new TabletInformationImpl(tme,
           () -> TabletState.compute(tme, liveTserverSet).toString(), currentTime));
       tabletStreams.add(stream);
     }

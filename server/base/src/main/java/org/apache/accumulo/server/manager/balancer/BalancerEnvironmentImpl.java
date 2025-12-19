@@ -36,7 +36,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.TabletInformationCollector;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -118,7 +118,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   }
 
   @Override
-  public Stream<TabletInformation> getTabletInformation(TableId tableId, List<Range> ranges,
+  public Stream<TabletInformation> getTabletInformation(TableId tableId, List<RowRange> ranges,
       TabletInformation.Field... fields) {
     EnumSet<TabletInformation.Field> fieldSet = fields.length == 0
         ? EnumSet.allOf(TabletInformation.Field.class) : EnumSet.copyOf(Arrays.asList(fields));

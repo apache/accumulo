@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
@@ -104,7 +105,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
 
       // ensure tablet availability is as expected
       SortedMap<String,TabletAvailability> availabilitesSeen = new TreeMap<>();
-      client.tableOperations().getTabletInformation(table, List.of(new Range())).forEach(ti -> {
+      client.tableOperations().getTabletInformation(table, List.of(RowRange.all())).forEach(ti -> {
         if (ti.getTabletId().getEndRow() != null) {
           availabilitesSeen.put(ti.getTabletId().getEndRow().toString(),
               ti.getTabletAvailability());

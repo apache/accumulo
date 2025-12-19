@@ -55,6 +55,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -377,7 +378,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
           TabletAvailability.UNHOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, null, "q",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilities(client, srcTable, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(client, srcTable, RowRange.all(), expectedTabletAvailability);
 
       // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
       splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
@@ -397,7 +398,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
           TabletAvailability.HOSTED);
       setExpectedTabletAvailability(expectedTabletAvailability, srcTableId, null, "v",
           TabletAvailability.HOSTED);
-      verifyTabletAvailabilities(client, srcTable, new Range(), expectedTabletAvailability);
+      verifyTabletAvailabilities(client, srcTable, RowRange.all(), expectedTabletAvailability);
 
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
@@ -444,7 +445,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", destTableId);
 
-      client.tableOperations().getTabletInformation(destTable, List.of(new Range()))
+      client.tableOperations().getTabletInformation(destTable, List.of(RowRange.all()))
           .forEach(tabletInformation -> assertEquals(TabletAvailability.ONDEMAND,
               tabletInformation.getTabletAvailability(),
               "Expected all tablets in imported table to be ONDEMAND"));

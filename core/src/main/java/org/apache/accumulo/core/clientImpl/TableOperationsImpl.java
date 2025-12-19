@@ -2245,7 +2245,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public Stream<TabletInformation> getTabletInformation(final String tableName,
-      final List<Range> ranges, TabletInformation.Field... fields) throws TableNotFoundException {
+      final List<RowRange> ranges, TabletInformation.Field... fields)
+      throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
     Objects.requireNonNull(ranges, "ranges is null");
 

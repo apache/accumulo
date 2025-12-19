@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
@@ -66,7 +66,7 @@ public class FateTestUtil {
 
     TabletAvailability availability;
     try (var tabletStream = client.tableOperations()
-        .getTabletInformation(SystemTables.FATE.tableName(), List.of(new Range()))) {
+        .getTabletInformation(SystemTables.FATE.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }

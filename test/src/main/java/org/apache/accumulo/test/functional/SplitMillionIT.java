@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
@@ -153,7 +154,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
       long count;
       t1 = System.currentTimeMillis();
       try (var tabletInformation =
-          c.tableOperations().getTabletInformation(tableName, List.of(new Range()))) {
+          c.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
         count = tabletInformation.count();
       }
       t2 = System.currentTimeMillis();

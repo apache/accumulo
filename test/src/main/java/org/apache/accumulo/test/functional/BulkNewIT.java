@@ -82,6 +82,7 @@ import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -1273,7 +1274,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
   private static Map<String,TabletAvailability> getTabletAvailabilities(AccumuloClient c,
       String tableName) throws TableNotFoundException {
     try (var tabletsInfo =
-        c.tableOperations().getTabletInformation(tableName, List.of(new Range()))) {
+        c.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
       return tabletsInfo.collect(Collectors.toMap(ti -> {
         var er = ti.getTabletId().getEndRow();
         return er == null ? "NULL" : er.toString();
