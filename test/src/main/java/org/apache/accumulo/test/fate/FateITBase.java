@@ -591,7 +591,13 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
     fate.seedTransaction(TEST_FATE_OP, txid, new TestRepo("testShutdownDoesNotFailTx"), true,
         "Test Op");
 
-    assertEquals(TStatus.SUBMITTED, getTxStatus(sctx, txid));
+    // The Fate operation could be in a SUBMITTED state if the
+    // Fate transaction runner thread has not picked it up yet.
+    // If the thread has picked it up, then it will be in an
+    // IN_PROGRESS state, but will be waiting on the finishCall
+    // latch to be called to continue.
+    assertTrue(TStatus.SUBMITTED == getTxStatus(sctx, txid)
+        || TStatus.IN_PROGRESS == getTxStatus(sctx, txid));
 
     // wait for call() to be called
     callStarted.await();
