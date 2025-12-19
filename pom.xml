@@ -346,6 +346,18 @@ under the License.
         <version>1.10.0</version>
       </dependency>
       <dependency>
+        <groupId>io.opentelemetry.javaagent</groupId>
+        <artifactId>opentelemetry-javaagent</artifactId>
+        <!-- This version was selected because it aligns with the version of open telemetry that Accumulo 2.1 is using. -->
+        <version>2.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry.proto</groupId>
+        <artifactId>opentelemetry-proto</artifactId>
+        <!-- This version was selected because it aligns with the version of protocol buffers that Accumulo 2.1 is using. -->
+        <version>1.3.2-alpha</version>
+      </dependency>
+      <dependency>
         <!-- legacy junit version specified here for dependency convergence -->
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>
@@ -1020,6 +1032,8 @@ under the License.
                 <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
                 <unused>org.lz4:lz4-java:jar:*</unused>
+                <!-- This is only used at runtime only by test, not at compile time  -->
+                <unused>io.opentelemetry.javaagent:opentelemetry-javaagent:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

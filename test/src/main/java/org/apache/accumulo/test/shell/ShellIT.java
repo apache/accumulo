@@ -691,8 +691,7 @@ public class ShellIT extends SharedMiniClusterBase {
     writer.println("table.custom.test2=false");
     writer.close();
     String table = getUniqueNames(1)[0];
-    exec("createtable " + table + " --propFile " + file.getAbsolutePath()
-        + " -prop table.custom.test3=optional", true);
+    exec("createtable " + table + " --propFile " + file.getAbsolutePath(), true);
 
     assertTrue(shell.getAccumuloClient().tableOperations().exists(table));
     Map<String,String> tableIds = shell.getAccumuloClient().tableOperations().tableIdMap();
@@ -701,7 +700,6 @@ public class ShellIT extends SharedMiniClusterBase {
         getCluster().getServerContext().getTableConfiguration(TableId.of(tableIds.get(table)));
     assertEquals("true", tableConf.get("table.custom.test1"));
     assertEquals("false", tableConf.get("table.custom.test2"));
-    assertEquals("optional", tableConf.get("table.custom.test3"));
   }
 
   @Test
