@@ -111,7 +111,7 @@ public class BatchWriterIT extends AccumuloClusterHarness {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.setProperties(Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
+      ntc.setProperties(Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "2",
           NumericValueConstraint.class.getName()));
       c.tableOperations().create(table, ntc);
 
