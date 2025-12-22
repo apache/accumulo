@@ -369,7 +369,7 @@ under the License.
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-access</artifactId>
+        <artifactId>accumulo-access-core</artifactId>
         <version>${version.accumulo-access}</version>
       </dependency>
       <dependency>
@@ -1057,7 +1057,7 @@ under the License.
                     <!-- ignore our own SNAPSHOT versions during development -->
                     <ignore>org.apache.accumulo:*:${project.version}</ignore>
                     <!-- ignore apache-access, because we haven't had another beta release yet -->
-                    <ignore>org.apache.accumulo:accumulo-access:1.0.0-SNAPSHOT</ignore>
+                    <ignore>org.apache.accumulo:accumulo-access-core:1.0.0-SNAPSHOT</ignore>
                   </ignores>
                 </banDynamicVersions>
                 <bannedDependencies>

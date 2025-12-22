@@ -174,12 +174,13 @@ public class CachableBlockFile {
       }
     }
 
-    private BCFile.Reader getBCFile(byte[] serializedMetadata) throws IOException {
+    private BCFile.Reader getBCFile(Supplier<byte[]> cachedMetadataSupplier) throws IOException {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {
         FSDataInputStream fsIn = inputSupplier.get();
         BCFile.Reader tmpReader = null;
+        byte[] serializedMetadata = cachedMetadataSupplier.get();
         if (serializedMetadata == null) {
           if (fileLenCache == null) {
             tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
@@ -215,15 +216,19 @@ public class CachableBlockFile {
     }
 
     private BCFile.Reader getBCFile() throws IOException {
-      BlockCache _iCache = cacheProvider.getIndexCache();
-      if (_iCache != null) {
-        CacheEntry mce = _iCache.getBlock(cacheId + ROOT_BLOCK_NAME, new BCFileLoader());
-        if (mce != null) {
-          return getBCFile(mce.getBuffer());
-        }
-      }
 
-      return getBCFile(null);
+      Supplier<byte[]> cachedMetadataSupplier = () -> {
+        BlockCache _iCache = cacheProvider.getIndexCache();
+        if (_iCache != null) {
+          CacheEntry mce = _iCache.getBlock(cacheId + ROOT_BLOCK_NAME, new BCFileLoader());
+          if (mce != null) {
+            return mce.getBuffer();
+          }
+        }
+        return null;
+      };
+
+      return getBCFile(cachedMetadataSupplier);
     }
 
     private class BCFileLoader implements Loader {
@@ -236,7 +241,7 @@ public class CachableBlockFile {
       @Override
       public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
         try {
-          return getBCFile(null).serializeMetadata(maxSize);
+          return getBCFile(() -> null).serializeMetadata(maxSize);
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }
@@ -342,7 +347,7 @@ public class CachableBlockFile {
           if (reader == null) {
             if (loadingMetaBlock) {
               byte[] serializedMetadata = dependencies.get(cacheId + ROOT_BLOCK_NAME);
-              reader = getBCFile(serializedMetadata);
+              reader = getBCFile(() -> serializedMetadata);
             } else {
               reader = getBCFile();
             }
@@ -400,7 +405,7 @@ public class CachableBlockFile {
         }
       }
 
-      BlockReader _currBlock = getBCFile(null).getMetaBlock(blockName);
+      BlockReader _currBlock = getBCFile(() -> null).getMetaBlock(blockName);
       incrementCacheBypass(CacheType.INDEX);
       return new CachedBlockRead(_currBlock);
     }
@@ -417,7 +422,7 @@ public class CachableBlockFile {
         }
       }
 
-      BlockReader _currBlock = getBCFile(null).getDataBlock(offset, compressedSize, rawSize);
+      BlockReader _currBlock = getBCFile(() -> null).getDataBlock(offset, compressedSize, rawSize);
       incrementCacheBypass(CacheType.INDEX);
       return new CachedBlockRead(_currBlock);
     }

@@ -94,14 +94,17 @@ class ScanTracingIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    var names = getUniqueNames(7);
+    var names = getUniqueNames(8);
     runTest(names[0], 0, false, false, -1, -1, -1);
     runTest(names[1], 10, false, false, -1, -1, -1);
-    runTest(names[2], 0, true, false, -1, -1, -1);
-    runTest(names[3], 0, false, false, -1, -1, 2);
-    runTest(names[4], 0, false, false, 32, 256, -1);
-    runTest(names[5], 0, true, true, 32, 256, -1);
-    runTest(names[6], 0, true, false, -1, -1, 2);
+    // when the tables tablets are spread across two tablet servers, then all the tables data will
+    // fit in cache
+    runTest(names[2], 10, true, true, -1, -1, -1);
+    runTest(names[3], 0, true, false, -1, -1, -1);
+    runTest(names[4], 0, false, false, -1, -1, 2);
+    runTest(names[5], 0, false, false, 32, 256, -1);
+    runTest(names[6], 0, true, true, 32, 256, -1);
+    runTest(names[7], 0, true, false, -1, -1, 2);
   }
 
   private void runTest(String tableName, int numSplits, boolean cacheData,
@@ -242,15 +245,14 @@ class ScanTracingIT extends ConfigurableMacBase {
         if (stats.getFileBytesRead() == 0) {
           assertEquals(0L, stats.getDataCacheMisses(), stats::toString);
         }
-        // When caching data, does not seem to hit the cache much
-        var cacheSum = stats.getIndexCacheHits() + stats.getIndexCacheMisses();
-        assertTrue(cacheSum == 0 || cacheSum == 1, stats::toString);
       } else {
         assertEquals(0, stats.getDataCacheHits(), stats::toString);
         assertEquals(0, stats.getDataCacheMisses(), stats::toString);
         assertTrue(stats.getDataCacheBypasses() > stats.getSeeks(), stats::toString);
-        assertClose(stats.getDataCacheBypasses(), stats.getIndexCacheHits(), .05);
       }
+      // May see rfile metadata reads for each tablet
+      var cacheSum = stats.getIndexCacheHits() + stats.getIndexCacheMisses();
+      assertTrue(cacheSum <= (numSplits + 1) * 2L, stats::toString);
       assertEquals(0, stats.getIndexCacheBypasses(), stats::toString);
     }
 

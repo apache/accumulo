@@ -394,6 +394,24 @@ public class FateExecutor<T> {
       return Optional.empty();
     }
 
+    private boolean isInterruptedException(Throwable e) {
+      if (e == null) {
+        return false;
+      }
+
+      if (e instanceof InterruptedException) {
+        return true;
+      }
+
+      for (Throwable suppressed : e.getSuppressed()) {
+        if (isInterruptedException(suppressed)) {
+          return true;
+        }
+      }
+
+      return isInterruptedException(e.getCause());
+    }
+
     @Override
     public void run() {
       runnerLog.trace("A TransactionRunner is starting for {} {} ", fate.getStore().type(),
@@ -419,6 +437,12 @@ public class FateExecutor<T> {
             } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
               try {
                 execute(txStore, state);
+                // It's possible that a Fate operation impl
+                // may not do the right thing with an
+                // InterruptedException.
+                if (Thread.currentThread().isInterrupted()) {
+                  throw new InterruptedException("Fate Transaction Runner thread interrupted");
+                }
                 if (state.op != null && state.deferTime != 0) {
                   // The current op is not ready to execute
                   continue;
@@ -429,9 +453,21 @@ public class FateExecutor<T> {
                 transitionToFailed(txStore, e);
                 continue;
               } catch (Exception e) {
-                blockIfHadoopShutdown(txStore.getID(), e);
-                transitionToFailed(txStore, e);
-                continue;
+                if (!isInterruptedException(e)) {
+                  blockIfHadoopShutdown(txStore.getID(), e);
+                  transitionToFailed(txStore, e);
+                  continue;
+                } else {
+                  if (fate.getKeepRunning().get()) {
+                    throw e;
+                  } else {
+                    // If we are shutting down then Fate.shutdown was called
+                    // and ExecutorService.shutdownNow was called resulting
+                    // in this exception. We will exit at the top of the loop.
+                    Thread.interrupted();
+                    continue;
+                  }
+                }
               }
 
               if (state.op == null) {
@@ -447,9 +483,23 @@ public class FateExecutor<T> {
           } catch (Exception e) {
             String name = state.op == null ? null : state.op.getName();
             FateId txid = txStore == null ? null : txStore.getID();
-            runnerLog.error(
-                "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
-                txid, state.status, e);
+            if (isInterruptedException(e)) {
+              if (fate.getKeepRunning().get()) {
+                runnerLog.error(
+                    "Uncaught InterruptedException in FATE runner thread processing {} id: {} status: {}",
+                    name, txid, state.status, e);
+              } else {
+                // If we are shutting down then Fate.shutdown was called
+                // and ExecutorService.shutdownNow was called resulting
+                // in this exception. We will exit at the top of the loop,
+                // so continue this loop iteration normally.
+                Thread.interrupted();
+              }
+            } else {
+              runnerLog.error(
+                  "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
+                  txid, state.status, e);
+            }
           } finally {
             if (txStore != null) {
               if (runnerLog.isTraceEnabled()) {
