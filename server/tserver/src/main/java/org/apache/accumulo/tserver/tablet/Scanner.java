@@ -24,8 +24,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -43,7 +41,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-@NotThreadSafe
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class Scanner {
   private static final Logger log = LoggerFactory.getLogger(Scanner.class);
 
@@ -216,6 +215,8 @@ public class Scanner {
    * read is in progress), it interrupts the reading thread. This ensures the reading thread can
    * finish its current operation and release the lock, allowing close to finish.
    */
+  @SuppressFBWarnings(value = "AT_STALE_THREAD_WRITE_OF_PRIMITIVE",
+      justification = "accesses non-volatile/non-atomic vars only when lock is held")
   public boolean close() {
     interruptFlag.set(true);
 
