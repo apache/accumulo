@@ -26,7 +26,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.zookeeper.KeeperException;
@@ -138,8 +137,8 @@ public class ServiceLockSupport {
       return acquiredLock;
     }
 
-    public boolean isFailedToAcquireLock() {
-      return failedToAcquireLock;
+    public boolean cannotRetryLocking() {
+      return acquiredLock && !failedToAcquireLock;
     }
 
   }
@@ -147,8 +146,9 @@ public class ServiceLockSupport {
   /**
    * Lock Watcher used by non-HA services
    */
-  public static class ServiceLockWatcher implements LockWatcher {
+  public static class ServiceLockWatcher implements AccumuloLockWatcher {
 
+    private final Logger log = LoggerFactory.getLogger(ServiceLockWatcher.class);
     private final Type server;
     private final Supplier<Boolean> shutdownComplete;
     private final Consumer<Type> lostLockAction;
@@ -158,6 +158,16 @@ public class ServiceLockSupport {
       this.server = server;
       this.shutdownComplete = shutdownComplete;
       this.lostLockAction = lostLockAction;
+    }
+
+    @Override
+    public void acquiredLock() {
+      LOG.debug("Acquired {} lock", server);
+    }
+
+    @Override
+    public void failedToAcquireLock(Exception e) {
+      log.debug("Failed to acquire lock", e);
     }
 
     @Override
