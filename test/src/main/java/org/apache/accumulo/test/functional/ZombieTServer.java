@@ -127,7 +127,7 @@ public class ZombieTServer {
     ServerAddress serverPort = TServerUtils.createThriftServer(context.getConfiguration(),
         ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "ZombieTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
-        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
+        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(),
         HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, port));
     serverPort.startThriftServer("walking dead");
 
