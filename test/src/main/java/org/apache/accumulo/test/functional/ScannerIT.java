@@ -133,7 +133,7 @@ public class ScannerIT extends ConfigurableMacBase {
   @ParameterizedTest
   @EnumSource
   public void testSessionCleanup(ConsistencyLevel consistency) throws Exception {
-    final String tableName = getUniqueNames(1)[0];
+    final String tableName = getUniqueNames(1)[0] + "_" + consistency;
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
 
