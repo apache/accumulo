@@ -21,13 +21,13 @@ package org.apache.accumulo.server.tablets;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.util.time.RelativeTime;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public abstract class TabletTime {
 
@@ -69,7 +69,6 @@ public abstract class TabletTime {
     return mv1.compareTo(mv2) < 0 ? mv2 : mv1;
   }
 
-  @NotThreadSafe
   static class MillisTime extends TabletTime {
 
     private long lastTime;
@@ -90,6 +89,8 @@ public abstract class TabletTime {
     }
 
     @Override
+    @SuppressFBWarnings(value = "AT_NONATOMIC_64BIT_PRIMITIVE",
+        justification = "this is only called in tablet constructor, so does not need to be done atomically")
     public void useMaxTimeFromWALog(long time) {
       if (time > lastTime) {
         lastTime = time;
@@ -160,9 +161,7 @@ public abstract class TabletTime {
 
     @Override
     public void useMaxTimeFromWALog(long time) {
-      final long finalTime = time + 1;
-
-      this.nextTime.getAndUpdate(val -> Math.max(val, finalTime));
+      this.nextTime.getAndUpdate(val -> Math.max(val, time + 1));
     }
 
     @Override
