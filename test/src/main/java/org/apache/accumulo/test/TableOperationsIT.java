@@ -884,7 +884,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   /**
-   * assert the given List<String> equals what's returned from
+   * assert the given {@code List<String>} equals what's returned from
    * {@link TableOperations#getTabletInformation(String, List, TabletInformation.Field...)} using
    * the given RowRange
    */
