@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -884,6 +883,22 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(expectedAvailability, seenAvailability);
   }
 
+  /**
+   * assert the given List<String> equals what's returned from
+   * {@link TableOperations#getTabletInformation(String, List, TabletInformation.Field...)} using
+   * the given RowRange
+   */
+  private static void assertEndRowsForRange(String tableName, RowRange range, List<String> expected)
+      throws TableNotFoundException {
+    try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+        List.of(range), TabletInformation.Field.LOCATION)) {
+      var actual = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+          .map(er -> er == null ? "null" : er.toString()).toList();
+      assertEquals(expected, actual,
+          "Expected does not match actual. Expected: " + expected + " Actual: " + actual);
+    }
+  }
+
   public static void setExpectedTabletAvailability(Map<TabletId,TabletAvailability> expected,
       String id, String endRow, String prevEndRow, TabletAvailability availability) {
     KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
@@ -1040,37 +1055,45 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         });
       }
 
+      // RowRange.range(null, true, X, true)
       var unboundedStartRange = RowRange.atMost(new Text("4"));
-      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          List.of(unboundedStartRange), TabletInformation.Field.LOCATION)) {
-        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
-            .map(er -> er == null ? "null" : er.toString()).toList();
-        assertEquals(List.of("1", "2", "3", "4"), endRows);
-      }
+      List<String> expected = List.of("1", "2", "3", "4");
+      assertEndRowsForRange(tableName, unboundedStartRange, expected);
 
+      // RowRange.range(null, true, X, false)
+      var exclusiveEndRange = RowRange.lessThan(new Text("4"));
+      expected = List.of("1", "2", "3", "4");
+      assertEndRowsForRange(tableName, exclusiveEndRange, expected);
+
+      // RowRange.range(X, true, null, true)
       var unboundedEndRange = RowRange.atLeast(new Text("6"));
-      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          List.of(unboundedEndRange), TabletInformation.Field.LOCATION)) {
-        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
-            .map(er -> er == null ? "null" : er.toString()).toList();
-        assertEquals(List.of("6", "7", "8", "null"), endRows);
-      }
+      expected = List.of("6", "7", "8", "null");
+      assertEndRowsForRange(tableName, unboundedEndRange, expected);
 
+      // RowRange.range(X, false, null, true)
+      var exclusiveStartRangeUnboundedEnd = RowRange.greaterThan(new Text("6"));
+      expected = List.of("7", "8", "null");
+      assertEndRowsForRange(tableName, exclusiveStartRangeUnboundedEnd, expected);
+
+      // RowRange.range(X, false, Y, true)
       var exclusiveStartRange = RowRange.openClosed(new Text("4"), new Text("6"));
-      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          List.of(exclusiveStartRange), TabletInformation.Field.LOCATION)) {
-        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
-            .map(Text::toString).toList();
-        assertEquals(List.of("5", "6"), endRows);
-      }
+      expected = List.of("5", "6");
+      assertEndRowsForRange(tableName, exclusiveStartRange, expected);
 
+      // RowRange.range(X, false, Y, false)
+      var exclusiveStartAndEndRange = RowRange.open(new Text("4"), new Text("6"));
+      expected = List.of("5", "6");
+      assertEndRowsForRange(tableName, exclusiveStartAndEndRange, expected);
+
+      // RowRange.range(X, true, Y, true)
       var inclusiveStartRange = RowRange.closed(new Text("4"), new Text("6"));
-      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          List.of(inclusiveStartRange), TabletInformation.Field.LOCATION)) {
-        var endRows = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
-            .map(Text::toString).toList();
-        assertEquals(List.of("4", "5", "6"), endRows);
-      }
+      expected = List.of("4", "5", "6");
+      assertEndRowsForRange(tableName, inclusiveStartRange, expected);
+
+      // RowRange.range(X, true, Y, false)
+      var inclusiveStartExclusiveEndRange = RowRange.closedOpen(new Text("4"), new Text("6"));
+      expected = List.of("4", "5", "6");
+      assertEndRowsForRange(tableName, inclusiveStartExclusiveEndRange, expected);
 
       var fileFieldMissingRange = List.of(RowRange.closed(new Text("2"), new Text("4")));
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
@@ -1086,9 +1109,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           TabletInformation.Field.LOCATION)) {
         var tabletIds = tablets.map(TabletInformation::getTabletId).toList();
         var endRows = tabletIds.stream().map(TabletId::getEndRow).map(Text::toString).toList();
-        assertEquals(6, tabletIds.size());
-        assertEquals(tabletIds.size(), new HashSet<>(tabletIds).size());
-        assertEquals(endRows, new ArrayList<>(new LinkedHashSet<>(endRows)));
         assertEquals(List.of("2", "3", "4", "5", "7", "8"), endRows);
       }
 
