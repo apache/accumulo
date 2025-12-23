@@ -536,12 +536,12 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       var iterator1 = new IteratorSetting(20, "foo", "foo.bar");
       var exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
           .create(table, new NewTableConfiguration().attachIterator(iterator1)));
-      assertTrue(exception.getMessage().contains("iterator priority conflict"));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       // add an iterator with same name as the default iterator
       var iterator2 = new IteratorSetting(10, "vers", "foo.bar");
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
           .create(table, new NewTableConfiguration().attachIterator(iterator2)));
-      assertTrue(exception.getMessage().contains("iterator name conflict"));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       // try to attach the exact default iterators, should not present a conflict as they are
       // equivalent to what would be added
       IteratorConfigUtil.getInitialTableIteratorSettings().forEach((setting, scopes) -> {
@@ -563,7 +563,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       }
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
           .create(table2, new NewTableConfiguration().setProperties(props)));
-      assertTrue(exception.getMessage().contains("iterator priority conflict"));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       props.clear();
       // add an iterator with same name as the default iterator
       for (IteratorScope iterScope : IteratorScope.values()) {
@@ -571,7 +571,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
       }
       exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
           .create(table2, new NewTableConfiguration().setProperties(props)));
-      assertTrue(exception.getMessage().contains("iterator name conflict"));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       props.clear();
       // try to attach the exact default iterators, should not present a conflict as they are
       // equivalent to what would be added
