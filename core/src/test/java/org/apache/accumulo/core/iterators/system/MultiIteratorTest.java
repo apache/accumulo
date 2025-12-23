@@ -45,6 +45,14 @@ public class MultiIteratorTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
+  protected MultiIterator makeIterator(List<SortedKeyValueIterator<Key,Value>> list, Range range) {
+    return new MultiIterator(list, range);
+  }
+
+  protected MultiIterator makeIterator(List<SortedKeyValueIterator<Key,Value>> list, Boolean init) {
+    return new MultiIterator(list, init);
+  }
+
   public static Key newKey(int row, long ts) {
     return new Key(newRow(row), ts);
   }
@@ -74,7 +82,7 @@ public class MultiIteratorTest {
 
     MultiIterator mi;
     if (endRow == null && prevEndRow == null) {
-      mi = new MultiIterator(iters, init);
+      mi = makeIterator(iters, init);
     } else {
       Range range = new Range(prevEndRow, false, endRow, true);
       if (init) {
@@ -82,7 +90,7 @@ public class MultiIteratorTest {
           iter.seek(range, Set.of(), false);
         }
       }
-      mi = new MultiIterator(iters, range);
+      mi = makeIterator(iters, range);
 
       if (init) {
         mi.seek(range, Set.of(), false);
@@ -204,7 +212,7 @@ public class MultiIteratorTest {
 
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
-    MultiIterator mi = new MultiIterator(skvil, true);
+    MultiIterator mi = makeIterator(skvil, true);
 
     assertFalse(mi.hasTop());
 
@@ -285,7 +293,7 @@ public class MultiIteratorTest {
 
     List<SortedKeyValueIterator<Key,Value>> skvil = new ArrayList<>(1);
     skvil.add(new SortedMapIterator(tm1));
-    MultiIterator mi = new MultiIterator(skvil, true);
+    MultiIterator mi = makeIterator(skvil, true);
     mi.seek(new Range(null, true, newKey(5, 9), false), EMPTY_COL_FAMS, false);
 
     assertTrue(mi.hasTop());
@@ -368,7 +376,7 @@ public class MultiIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent.toDataRange());
+    MultiIterator mi = makeIterator(skvil, extent.toDataRange());
 
     Range r1 = new Range((Text) null, (Text) null);
     mi.seek(r1, EMPTY_COL_FAMS, false);
@@ -442,7 +450,7 @@ public class MultiIteratorTest {
 
     KeyExtent extent = new KeyExtent(TableId.of("tablename"), newRow(1), newRow(0));
 
-    MultiIterator mi = new MultiIterator(skvil, extent.toDataRange());
+    MultiIterator mi = makeIterator(skvil, extent.toDataRange());
     MultiIterator miCopy = mi.deepCopy(null);
 
     Range r1 = new Range((Text) null, null);
