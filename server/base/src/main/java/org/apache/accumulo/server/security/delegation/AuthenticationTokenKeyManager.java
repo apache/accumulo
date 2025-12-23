@@ -26,6 +26,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Service that handles generation of the secret key used to create delegation tokens.
  */
@@ -93,6 +95,9 @@ public class AuthenticationTokenKeyManager implements Runnable {
   }
 
   @VisibleForTesting
+  @SuppressFBWarnings(
+      value = {"AT_STALE_THREAD_WRITE_OF_PRIMITIVE", "AT_NONATOMIC_64BIT_PRIMITIVE"},
+      justification = "only called from run() and testing")
   void updateStateFromCurrentKeys() {
     try {
       List<AuthenticationKey> currentKeys = keyDistributor.getCurrentKeys();
@@ -138,6 +143,9 @@ public class AuthenticationTokenKeyManager implements Runnable {
    *
    * @param now The current time in millis since epoch.
    */
+  @SuppressFBWarnings(
+      value = {"AT_STALE_THREAD_WRITE_OF_PRIMITIVE", "AT_NONATOMIC_64BIT_PRIMITIVE"},
+      justification = "only called from run() and testing")
   void _run(long now) {
     // clear any expired keys
     int removedKeys = secretManager.removeExpiredKeys(keyDistributor);

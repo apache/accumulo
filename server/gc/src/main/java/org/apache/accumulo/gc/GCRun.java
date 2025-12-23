@@ -42,6 +42,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -91,6 +93,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 /**
  * A single garbage collection performed on a table (Root, MD) or all User tables.
  */
+@NotThreadSafe
 public class GCRun implements GarbageCollectionEnvironment {
   // loggers are not static to support unique naming by level
   private final Logger log;

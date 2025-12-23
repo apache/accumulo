@@ -21,6 +21,8 @@ package org.apache.accumulo.core.file.streams;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.hadoop.fs.Seekable;
 
 /**
@@ -28,6 +30,7 @@ import org.apache.hadoop.fs.Seekable;
  * regular input stream. One can create multiple BoundedRangeFileInputStream on top of the same
  * FSDataInputStream and they would not interfere with each other.
  */
+@NotThreadSafe
 public class BoundedRangeFileInputStream extends InputStream {
 
   private volatile boolean closed = false;

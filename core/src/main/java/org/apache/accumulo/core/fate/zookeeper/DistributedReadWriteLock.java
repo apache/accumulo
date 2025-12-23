@@ -30,6 +30,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,6 +109,7 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   private static final Logger log = LoggerFactory.getLogger(DistributedReadWriteLock.class);
 
+  @NotThreadSafe
   static class ReadLock implements Lock {
 
     QueueLock qlock;

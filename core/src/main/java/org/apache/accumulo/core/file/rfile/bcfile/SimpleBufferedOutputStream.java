@@ -22,10 +22,13 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 /**
  * A simplified BufferedOutputStream with borrowed buffer, and allow users to see how much data have
  * been buffered.
  */
+@NotThreadSafe
 class SimpleBufferedOutputStream extends FilterOutputStream {
   protected byte[] buf; // the borrowed buffer
   protected int count = 0; // bytes used in buffer.

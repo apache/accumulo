@@ -27,6 +27,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class automates management of static singletons that maintain state for Accumulo clients.
  * Historically, Accumulo client code that used Connector had no control over these singletons. The
@@ -81,6 +83,8 @@ public class SingletonManager {
   private static List<SingletonService> services;
 
   @VisibleForTesting
+  @SuppressFBWarnings(value = "AT_NONATOMIC_64BIT_PRIMITIVE",
+      justification = "only called in static init block and testing, no sync needed")
   static void reset() {
     reservations = 0;
     mode = Mode.CLIENT;

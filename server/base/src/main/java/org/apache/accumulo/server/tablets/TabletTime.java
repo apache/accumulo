@@ -27,6 +27,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.util.time.RelativeTime;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public abstract class TabletTime {
 
   public abstract void useMaxTimeFromWALog(long time);
@@ -87,6 +89,8 @@ public abstract class TabletTime {
     }
 
     @Override
+    @SuppressFBWarnings(value = "AT_NONATOMIC_64BIT_PRIMITIVE",
+        justification = "this is only called in tablet constructor, so does not need to be done atomically")
     public void useMaxTimeFromWALog(long time) {
       if (time > lastTime) {
         lastTime = time;
@@ -157,11 +161,7 @@ public abstract class TabletTime {
 
     @Override
     public void useMaxTimeFromWALog(long time) {
-      time++;
-
-      if (this.nextTime.get() < time) {
-        this.nextTime.set(time);
-      }
+      this.nextTime.getAndUpdate(val -> Math.max(val, time + 1));
     }
 
     @Override
