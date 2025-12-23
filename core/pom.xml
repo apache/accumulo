@@ -29,6 +29,9 @@
   <artifactId>accumulo-core</artifactId>
   <name>Apache Accumulo Core</name>
   <description>Apache Accumulo core libraries.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>

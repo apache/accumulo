@@ -105,7 +105,7 @@ public class LoadPlan {
    *
    * @since 2.0.0
    */
-  public static class Destination {
+  public static final class Destination {
 
     private final String fileName;
     private final byte[] startRow;

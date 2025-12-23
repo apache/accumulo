@@ -32,7 +32,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifi
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 
-public class DelegationTokenImpl extends PasswordToken implements DelegationToken {
+public final class DelegationTokenImpl extends PasswordToken implements DelegationToken {
 
   public static final String SERVICE_NAME = "AccumuloDelegationToken";
 

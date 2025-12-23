@@ -25,7 +25,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 
-public class ScanCacheProvider implements CacheProvider {
+public final class ScanCacheProvider implements CacheProvider {
 
   private final BlockCache indexCache;
   private final BlockCache dataCache;

@@ -30,6 +30,9 @@
   <artifactId>accumulo-manager</artifactId>
   <name>Apache Accumulo Manager Server</name>
   <description>The manager server for Apache Accumulo for load balancing and other system-wide operations.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>

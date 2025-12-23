@@ -59,6 +59,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);

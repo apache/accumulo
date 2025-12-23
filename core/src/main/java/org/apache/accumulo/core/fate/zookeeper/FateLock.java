@@ -72,7 +72,7 @@ public class FateLock implements QueueLock {
     }
   }
 
-  public static class FateLockEntry {
+  public final static class FateLockEntry {
 
     private static final String DELIMITER = "_";
 
@@ -163,7 +163,7 @@ public class FateLock implements QueueLock {
     this.path = requireNonNull(path);
   }
 
-  public static class NodeName {
+  public final static class NodeName {
     public final long sequence;
     public final Supplier<FateLockEntry> fateLockEntry;
 

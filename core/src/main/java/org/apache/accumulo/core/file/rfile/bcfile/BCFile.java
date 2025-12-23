@@ -103,7 +103,7 @@ public final class BCFile {
   /**
    * BCFile writer, the entry point for creating a new BCFile.
    */
-  public static class Writer implements Closeable {
+  public static final class Writer implements Closeable {
     private final FSDataOutputStream out;
     private final Configuration conf;
     private FileEncrypter encrypter;
@@ -451,7 +451,7 @@ public final class BCFile {
   /**
    * BCFile Reader, interface to read the file's data and meta blocks.
    */
-  public static class Reader implements Closeable {
+  public static final class Reader implements Closeable {
     private final SeekableDataInputStream in;
     private final Configuration conf;
     final DataIndex dataIndex;
@@ -768,7 +768,7 @@ public final class BCFile {
   /**
    * Index for all Meta blocks.
    */
-  static class MetaIndex {
+  static final class MetaIndex {
     // use a tree map, for getting a meta block entry by name
     final Map<String,MetaIndexEntry> index;
 
@@ -857,7 +857,7 @@ public final class BCFile {
   /**
    * Index of all compressed data blocks.
    */
-  static class DataIndex {
+  static final class DataIndex {
     static final String BLOCK_NAME = "BCFile.index";
 
     private final CompressionAlgorithm defaultCompressionAlgorithm;
