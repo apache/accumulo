@@ -97,15 +97,6 @@ public class RootTabletMetadata {
       this.columnValues = columnValues;
     }
 
-    public int getVersion() {
-      return version;
-    }
-
-    public static boolean needsUpgrade(final String json) {
-      var rootData = GSON.get().fromJson(json, Data.class);
-      int currVersion = rootData.getVersion();
-      return currVersion < VERSION;
-    }
   }
 
   /**
@@ -198,10 +189,6 @@ public class RootTabletMetadata {
     // Keep the key/values in case they are needed
     return TabletMetadata.convertRow(getKeyValues().iterator(),
         EnumSet.allOf(TabletMetadata.ColumnType.class), true, false);
-  }
-
-  public static boolean needsUpgrade(final String json) {
-    return Data.needsUpgrade(json);
   }
 
   /**

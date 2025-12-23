@@ -16,12 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.log;
+package org.apache.accumulo.core.file.blockfile.cache;
 
-import java.io.IOException;
-import java.util.Iterator;
+import org.apache.accumulo.core.logging.LoggingBlockCache;
+import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.cache.CacheType;
 
-public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
-  @Override
-  void close() throws IOException;
+public class BlockCacheUtil {
+  public static BlockCache instrument(CacheType type, BlockCache cache) {
+    if (cache == null) {
+      return null;
+    }
+
+    if (cache instanceof InstrumentedBlockCache || cache instanceof LoggingBlockCache) {
+      // its already instrumented
+      return cache;
+    }
+
+    return LoggingBlockCache.wrap(type, InstrumentedBlockCache.wrap(type, cache));
+  }
 }

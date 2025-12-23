@@ -167,7 +167,7 @@ public class FileSystemInitializer {
     // populate the metadata tablet with info about the fate and scan ref tablets
     String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
     String metadataFileName = tableMetadataTabletDirUri + Path.SEPARATOR + "0_1." + ext;
-    createMetadataFile(fs, metadataFileName, fateTablet, scanRefTablet);
+    createMetadataFile(fs, metadataFileName, scanRefTablet.tableId, fateTablet, scanRefTablet);
 
     // populate the root tablet with info about the metadata table's two initial tablets
     // For the default tablet we want to make that mergeable, but don't make the TabletsSection
@@ -177,7 +177,7 @@ public class FileSystemInitializer {
         StoredTabletFile.of(new Path(metadataFileName)).getMetadataPath());
     InitialTablet defaultTablet = new InitialTablet(SystemTables.METADATA.tableId(),
         defaultMetadataTabletDirName, SPLIT_POINT, null, always);
-    createMetadataFile(fs, rootTabletFileUri, tablesTablet, defaultTablet);
+    createMetadataFile(fs, rootTabletFileUri, tablesTablet.tableId, tablesTablet, defaultTablet);
   }
 
   private void createDirectories(VolumeManager fs, String... dirs) throws IOException {
@@ -218,7 +218,7 @@ public class FileSystemInitializer {
     }
   }
 
-  private void createMetadataFile(VolumeManager volmanager, String fileName,
+  private void createMetadataFile(VolumeManager volmanager, String fileName, TableId tid,
       InitialTablet... initialTablets) throws IOException {
     AccumuloConfiguration conf = initConfig.getSiteConf();
     ReferencedTabletFile file = ReferencedTabletFile.of(new Path(fileName));
@@ -226,7 +226,7 @@ public class FileSystemInitializer {
 
     CryptoService cs = CryptoFactoryLoader.getServiceForServer(conf);
 
-    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder()
+    FileSKVWriter tabletWriter = FileOperations.getInstance().newWriterBuilder().forTable(tid)
         .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(conf).build();
     tabletWriter.startDefaultLocalityGroup();
 

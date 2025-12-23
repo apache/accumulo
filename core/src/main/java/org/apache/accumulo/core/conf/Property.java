@@ -291,7 +291,11 @@ public enum Property {
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
-      "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
+      "Enables OpenTelemetry traces for new spans in the server process that are not already part "
+          + "of an existing trace. Spans that are part of an existing trace, such as one "
+          + "originating in client code and propagated to the server over an RPC request, are "
+          + "always traced, regardless of this value. (Note: no tracing will occur if "
+          + "OpenTelemetry is not first configured for the JVM).",
       "2.1.0"),
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "3", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
@@ -1141,10 +1145,19 @@ public enum Property {
           """,
       "2.1.4"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY, """
-      The durability used to write to the write-ahead log. Legal values are: \
-      none, which skips the write-ahead log; log, which sends the data to the \
-      write-ahead log, but does nothing to make it durable; flush, which pushes \
-      data to the file system; and sync, which ensures the data is written to disk. \
+      The durability of writes to tables includes ensuring that mutations written \
+      by clients are persisted in the write-ahead log and that files written \
+      during a compaction are persisted to disk successfully. This property only \
+      configures the durability used to write to the write-ahead log. Legal \
+      values are: none, which skips the write-ahead log; log, which sends the \
+      data to the write-ahead log, but does nothing to make it durable; flush, \
+      which pushes data out of the JVM (likely to page cache); and sync, which \
+      ensures that each mutation is written to the physical disk. To configure \
+      the durability of files written during minor and major compactions, set the \
+      Hadoop property \"dfs.datanode.synconclose\" to \"true\". This will ensure \
+      that the blocks of the files in HDFS are written to the physical disk as \
+      the compaction output files are written (Note that this may only apply \
+      to replicated files in HDFS). \
       """, "1.7.0"),
 
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN, """
@@ -1174,9 +1187,10 @@ public enum Property {
       prefix, followed by a number, and their values correspond to a fully \
       qualified Java class that implements the Constraint interface.
       For example:
-        table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint
+        table.constraint.2 = org.apache.accumulo.core.constraints.MyCustomConstraint
       and:
-        table.constraint.2 = my.package.constraints.MySecondConstraint.
+        table.constraint.3 = my.package.constraints.MySecondConstraint.
+      Note that table.constraint.1 is a reserved, default table constraint.
       """, "1.3.5"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN,
       "Determines whether index block cache is enabled for a table.", "1.3.5"),

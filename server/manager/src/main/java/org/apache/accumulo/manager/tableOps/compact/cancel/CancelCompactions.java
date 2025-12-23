@@ -24,14 +24,14 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CancelCompactions extends ManagerRepo {
+public class CancelCompactions extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
@@ -45,8 +45,7 @@ public class CancelCompactions extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
-
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
     return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT_CANCEL)
         + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
@@ -54,7 +53,7 @@ public class CancelCompactions extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     var idsToCancel =
         CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
 
@@ -66,7 +65,7 @@ public class CancelCompactions extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) {
+  public void undo(FateId fateId, FateEnv env) {
     Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.READ);
     Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }

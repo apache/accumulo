@@ -81,12 +81,6 @@ public class TabletManagement {
   private final TabletMetadata tabletMetadata;
   private final String errorMessage;
 
-  public TabletManagement(Set<ManagementAction> actions, TabletMetadata tm, String errorMessage) {
-    this.actions = actions;
-    this.tabletMetadata = tm;
-    this.errorMessage = errorMessage;
-  }
-
   public TabletManagement(Key wholeRowKey, Value wholeRowValue) throws IOException {
     this(wholeRowKey, wholeRowValue, false);
   }

@@ -70,7 +70,7 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
       String tableName = getUniqueNames(1)[0];
 
       NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting iteratorSetting = new IteratorSetting(20, NullIterator.class);
+      IteratorSetting iteratorSetting = new IteratorSetting(30, NullIterator.class);
       ntc.attachIterator(iteratorSetting, EnumSet.of(IteratorUtil.IteratorScope.minc));
       ntc.withSplits(new TreeSet<>(Set.of(new Text("a"), new Text("s"))));
 

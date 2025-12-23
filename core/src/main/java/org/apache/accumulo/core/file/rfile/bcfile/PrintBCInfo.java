@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -40,7 +39,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = {"DM_EXIT", "CT_CONSTRUCTOR_THROW"},
     justification = "System.exit is acceptable here as it's a utility class, and constructor validation ensures proper initialization")
 public class PrintBCInfo {
-  SiteConfiguration siteConfig;
   Configuration conf;
   FileSystem fs;
   Path path;
@@ -89,7 +87,6 @@ public class PrintBCInfo {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    siteConfig = opts.getSiteConfiguration();
     conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);

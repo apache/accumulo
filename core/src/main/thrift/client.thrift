@@ -127,12 +127,6 @@ struct TInfo {
   1:map<string,string> headers
 }
 
-enum TTabletAvailability {
-  HOSTED
-  UNHOSTED
-  ONDEMAND
-}
-
 service ClientService {
 
   void ping(

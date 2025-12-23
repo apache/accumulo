@@ -843,15 +843,6 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     }
   }
 
-  public static void doLookup(ClientContext context, String server,
-      Map<KeyExtent,List<Range>> requested, Map<KeyExtent,List<Range>> failures,
-      Map<KeyExtent,List<Range>> unscanned, ResultReceiver receiver, List<Column> columns,
-      ScannerOptions options, Authorizations authorizations)
-      throws IOException, AccumuloSecurityException, AccumuloServerException {
-    doLookup(context, server, requested, failures, unscanned, receiver, columns, options,
-        authorizations, new TimeoutTracker(Long.MAX_VALUE), 0L);
-  }
-
   static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested,
       Map<KeyExtent,List<Range>> failures, Map<KeyExtent,List<Range>> unscanned,
       ResultReceiver receiver, List<Column> columns, ScannerOptions options,

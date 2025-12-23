@@ -29,7 +29,8 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -37,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
-public class ShutdownTServer extends ManagerRepo {
+public class ShutdownTServer extends AbstractFateOperation {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
@@ -54,7 +55,7 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) {
+  public long isReady(FateId fateId, FateEnv env) {
     TServerInstance server = new TServerInstance(hostAndPort, serverSession);
     // suppress assignment of tablets to the server
     if (force) {
@@ -62,6 +63,7 @@ public class ShutdownTServer extends ManagerRepo {
     }
 
     // Inform the manager that we want this server to shutdown
+    Manager manager = (Manager) env;
     manager.shutdownTServer(server);
 
     if (manager.onlineTabletServers().contains(server)) {
@@ -71,7 +73,7 @@ public class ShutdownTServer extends ManagerRepo {
           TabletServerStatus status = connection.getTableMap(false);
           if (status.tableMap != null && status.tableMap.isEmpty()) {
             log.info("tablet server hosts no tablets {}", server);
-            connection.halt(manager.getManagerLock());
+            connection.halt(manager.getServiceLock());
             log.info("tablet server asked to halt {}", server);
             return 0;
           } else {
@@ -95,15 +97,15 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // suppress assignment of tablets to the server
     if (force) {
-      ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
+      ZooReaderWriter zoo = env.getContext().getZooSession().asReaderWriter();
       var path =
-          manager.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
+          env.getContext().getServerPaths().createTabletServerPath(resourceGroup, hostAndPort);
       ServiceLock.deleteLock(zoo, path);
-      path = manager.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup,
-          hostAndPort);
+      path =
+          env.getContext().getServerPaths().createDeadTabletServerPath(resourceGroup, hostAndPort);
       zoo.putPersistentData(path.toString(), "forced down".getBytes(UTF_8),
           NodeExistsPolicy.OVERWRITE);
     }
@@ -112,5 +114,5 @@ public class ShutdownTServer extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager m) {}
+  public void undo(FateId fateId, FateEnv env) {}
 }

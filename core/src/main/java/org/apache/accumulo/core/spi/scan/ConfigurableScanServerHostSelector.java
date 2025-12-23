@@ -18,140 +18,175 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import static org.apache.accumulo.core.spi.scan.RendezvousHasher.Mode.HOST;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
 
-import com.google.common.hash.HashCode;
 import com.google.common.net.HostAndPort;
 
 /**
- * Extension of the {@code ConfigurableScanServerSelector} that can be used when there are multiple
+ * Extension of the {@link ConfigurableScanServerSelector} that can be used when there are multiple
  * ScanServers running on the same host and for some reason, like using a shared off-heap cache,
  * sending scans for the same tablet to the same host may provide a better experience.
  *
- * This implementation will initially hash a Tablet to a ScanServer. If the ScanServer is unable to
- * execute the scan, this implementation will try to send the scan to a ScanServer on the same host.
- * If there are no more ScanServers to try on that host, then it will fall back to trying a
- * different host and the process repeats.
+ * <p>
+ * This implementation will use rendezvous hashing to map a tablet to one or more hosts. Then it
+ * will randomly pick one of those hosts and then randomly pick a scan server on that host. Scan
+ * servers that have not had previous failures are chosen first.
+ *
+ * <p>
+ * This implementation uses the same configuration as {@link ConfigurableScanServerSelector} but
+ * interprets {@code attemptPlans} differently in two ways. First for the server count it will use
+ * that to determine how many hosts to choose from. Second it will only consider an attempt plan as
+ * failed when servers on all host have failed.
+ *
+ * <pre>
+ *       "attemptPlans":[
+ *           {"servers":"1", "busyTimeout":"10s"},
+ *           {"servers":"3", "busyTimeout":"30s"},
+ *        ]
+ * </pre>
+ *
+ * <p>
+ * For example given the above attempt plan configuration, the following sequence of events could
+ * happen for a tablet.
+ *
+ * <ol>
+ * <li>host32 is chosen and it has 2 severs [host32:1000,host32:1001]. host32:1001 is randomly
+ * chosen.</li>
+ * <li>Scan on host32:1001 has a busy timeout.</li>
+ * <li>host32 is chosen again because not all servers have failed. For the server, host32:1000 is
+ * chosen because host32:1001 failed.
+ * <li>Scan on host32:1000 has a busy timeout.</li>
+ * <li>Because all servers on host32 have failed, move to the next attemptPlan and choose from three
+ * hosts. host32, host40, and host09 are candidates and host09 is randomly picked, then a server
+ * from host09:1000 is randomly picked
+ * <li>The scan on host09:1000 succeeds.
+ * </ol>
+ *
+ * <p>
+ * This behavior will randomly spread scans against a single tablet across all servers on a host.
+ * For example 100 clients are scanning 1 tablet that maps to 1 host with 5 servers, then those
+ * scans will evenly spread across the 5 servers on the host.
  *
  */
 public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSelector {
 
-  private static final class PriorHostServersComparator implements Comparator<PriorHostServers> {
-
-    @Override
-    public int compare(PriorHostServers o1, PriorHostServers o2) {
-      return Integer.compare(o1.getPriorServers().size(), o2.getPriorServers().size());
+  /**
+   * @return map of previous failure keyed on host name with a set of servers per host
+   */
+  Map<String,Set<String>> computeFailuresByHost(TabletId tablet, SelectorParameters params) {
+    var attempts = params.getAttempts(tablet);
+    if (attempts.isEmpty()) {
+      return Map.of();
     }
 
+    Map<String,Set<String>> previousFailures = new HashMap<>();
+    for (var attempt : attempts) {
+      var hp = HostAndPort.fromString(attempt.getServer());
+      previousFailures.computeIfAbsent(hp.getHost(), h -> new HashSet<>()).add(attempt.getServer());
+    }
+
+    return previousFailures;
   }
 
-  private static final class PriorHostServers {
-    private final String priorHost;
-    private final List<String> priorServers = new ArrayList<>();
-
-    public PriorHostServers(String priorHost) {
-      this.priorHost = priorHost;
+  List<String> removeFailedHost(ResourceGroupId group, Map<String,Set<String>> prevFailures,
+      List<String> rendezvousHosts, ScanServersSnapshot serversSnapshot) {
+    if (prevFailures.isEmpty()) {
+      return rendezvousHosts;
     }
 
-    public String getPriorHost() {
-      return priorHost;
+    // filter out hosts where all servers failed
+    List<String> availableHost = new ArrayList<>(rendezvousHosts.size());
+    for (String host : rendezvousHosts) {
+      var hostsFailures = prevFailures.getOrDefault(host, Set.of());
+      if (hostsFailures.isEmpty()) {
+        availableHost.add(host);
+      } else {
+        var hostsServers = serversSnapshot.getServersForHost(group, host);
+        if (!hostsFailures.containsAll(hostsServers)) {
+          // this host has some servers that did not fail
+          availableHost.add(host);
+        }
+      }
     }
 
-    public List<String> getPriorServers() {
-      return priorServers;
+    return availableHost;
+  }
+
+  private List<String> removeFailedServers(Set<String> failedServers,
+      List<String> scanServersOnHost) {
+    if (failedServers.isEmpty()) {
+      return scanServersOnHost;
     }
+    return scanServersOnHost.stream().filter(s -> !failedServers.contains(s))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * Finds the set of scan servers to use for a given attempt. If all servers have previously failed
+   * for all host this will return an empty list.
+   *
+   */
+  private List<String> getServersForHostAttempt(int hostAttempt, TabletId tablet, Profile profile,
+      RendezvousHasher rhasher, Map<String,Set<String>> prevFailures) {
+    final var snapshot = rhasher.getSnapshot();
+    final int numHostToUse =
+        profile.getNumServers(hostAttempt, snapshot.getHostsForGroup(profile.getGroupId()).size());
+    List<String> rendezvousHosts = rhasher.rendezvous(HOST, profile.getGroupId(), tablet,
+        profile.getSalt(hostAttempt), numHostToUse);
+    rendezvousHosts =
+        removeFailedHost(profile.getGroupId(), prevFailures, rendezvousHosts, snapshot);
+    if (rendezvousHosts.isEmpty()) {
+      return List.of();
+    }
+    var hostToUse = rendezvousHosts.get(RANDOM.get().nextInt(rendezvousHosts.size()));
+    List<String> hostServers = snapshot.getServersForHost(profile.getGroupId(), hostToUse);
+    return removeFailedServers(prevFailures.getOrDefault(hostToUse, Set.of()), hostServers);
   }
 
   @Override
-  protected int selectServers(SelectorParameters params, Profile profile,
-      List<String> orderedScanServers, Map<TabletId,String> serversToUse) {
+  int selectServers(SelectorParameters params, Profile profile, RendezvousHasher rhasher,
+      Map<TabletId,String> serversToUse) {
 
-    // orderedScanServers is the set of ScanServers addresses (host:port)
-    // for the resource group designated for the profile being used for
-    // this scan. We want to group these scan servers by hostname and
-    // hash the tablet to the hostname, then randomly pick one of the
-    // scan servers in that group.
-
-    final Map<String,List<String>> scanServerHosts = new HashMap<>();
-    for (final String address : orderedScanServers) {
-      final HostAndPort hp = HostAndPort.fromString(address);
-      scanServerHosts.computeIfAbsent(hp.getHost(), (k) -> {
-        return new ArrayList<String>();
-      }).add(address);
-    }
-    final List<String> hostIndex = new ArrayList<>(scanServerHosts.keySet());
-
-    final int numberOfPreviousAttempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
-
-    final int numServersToUseInAttemptPlan =
-        profile.getNumServers(numberOfPreviousAttempts, orderedScanServers.size());
+    int maxHostAttempt = 0;
 
     for (TabletId tablet : params.getTablets()) {
+      Map<String,Set<String>> prevFailures = computeFailuresByHost(tablet, params);
 
-      boolean scanServerFound = false;
-      if (numberOfPreviousAttempts > 0) {
-        // Sort the prior attempts by the number of scan servers tried in the list
-        // for each host. In theory the server at the top of the list either has
-        // scan servers remaining on that host, or has tried them all.
-        final Map<String,PriorHostServers> priorServers = new HashMap<>(numberOfPreviousAttempts);
-        params.getAttempts(tablet).forEach(ssa -> {
-          final String priorServerAddress = ssa.getServer();
-          final HostAndPort priorHP = HostAndPort.fromString(priorServerAddress);
-          priorServers.computeIfAbsent(priorHP.getHost(), (k) -> {
-            return new PriorHostServers(priorHP.getHost());
-          }).getPriorServers().add(priorServerAddress);
-        });
-        final List<PriorHostServers> priors = new ArrayList<>(priorServers.values());
-        // sort after populating
-        Collections.sort(priors, new PriorHostServersComparator());
-
-        for (PriorHostServers phs : priors) {
-          final Set<String> scanServersOnPriorHost =
-              new HashSet<>(scanServerHosts.get(phs.getPriorHost()));
-          scanServersOnPriorHost.removeAll(phs.getPriorServers());
-          if (scanServersOnPriorHost.size() > 0) {
-            serversToUse.put(tablet, scanServersOnPriorHost.iterator().next());
-            scanServerFound = true;
-            break;
-          }
-        }
-        // If we get here, then we were unable to find a host with a ScanServer that
-        // we did not try. Remove the hosts from the hostIndex.
-        for (PriorHostServers phs : priors) {
-          hostIndex.remove(phs.getPriorHost());
+      for (int hostAttempt = 0; hostAttempt < profile.getAttemptPlans().size(); hostAttempt++) {
+        maxHostAttempt = Math.max(hostAttempt, maxHostAttempt);
+        List<String> scanServers =
+            getServersForHostAttempt(hostAttempt, tablet, profile, rhasher, prevFailures);
+        if (!scanServers.isEmpty()) {
+          String serverToUse = scanServers.get(RANDOM.get().nextInt(scanServers.size()));
+          serversToUse.put(tablet, serverToUse);
+          break;
         }
       }
 
-      if (!scanServerFound) {
-        if (hostIndex.size() == 0) {
-          // We tried all servers
-          serversToUse.put(tablet, null);
-        } else {
-          final HashCode hashCode = hashTablet(tablet, profile.getSalt(numberOfPreviousAttempts));
-          final int serverIndex =
-              (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServersToUseInAttemptPlan))
-                  % hostIndex.size();
-          final String hostToUse = hostIndex.get(serverIndex);
-          final List<String> scanServersOnHost = scanServerHosts.get(hostToUse);
-          serversToUse.put(tablet, scanServersOnHost.get(0));
+      if (!serversToUse.containsKey(tablet) && !prevFailures.isEmpty()) {
+        // assuming no servers were found because all servers have previously failed, so in the
+        // case were all servers have previous failed ignore previous failures and try any server
+        List<String> scanServers = getServersForHostAttempt(profile.getAttemptPlans().size() - 1,
+            tablet, profile, rhasher, Map.of());
+        if (!scanServers.isEmpty()) {
+          String serverToUse = scanServers.get(RANDOM.get().nextInt(scanServers.size()));
+          serversToUse.put(tablet, serverToUse);
         }
       }
-
     }
-    return numberOfPreviousAttempts;
 
+    return maxHostAttempt;
   }
-
 }

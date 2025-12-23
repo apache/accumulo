@@ -39,6 +39,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
@@ -126,7 +127,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * @since 4.0.0
  * @see org.apache.accumulo.core.spi.compaction
  */
-
 public class RatioBasedCompactionPlanner implements CompactionPlanner {
 
   private final static Logger log = LoggerFactory.getLogger(RatioBasedCompactionPlanner.class);
@@ -163,7 +163,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     public CompactableFile create(long size) {
       try {
         count++;
-        return CompactableFile.create(
+        return new CompactableFileImpl(
             new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
             0);
       } catch (URISyntaxException e) {

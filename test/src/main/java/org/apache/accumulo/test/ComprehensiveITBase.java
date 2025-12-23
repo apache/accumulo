@@ -396,7 +396,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
   public void testTableProperties() throws Exception {
     String table = getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().create(table, new NewTableConfiguration().withoutDefaultIterators());
+      client.tableOperations().create(table, new NewTableConfiguration().withoutDefaults());
 
       assertEquals(Map.of(), client.tableOperations().getTableProperties(table));
 
@@ -936,7 +936,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
 
       client.namespaceOperations().create(namespace);
 
-      client.tableOperations().create(table, new NewTableConfiguration().withoutDefaultIterators());
+      client.tableOperations().create(table, new NewTableConfiguration().withoutDefaults());
 
       assertTrue(client.namespaceOperations().list().contains(namespace));
       assertTrue(client.namespaceOperations().exists(namespace));
@@ -1105,7 +1105,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
         IteratorUtil.IteratorScope.scan));
 
     try (Stream<TabletInformation> tabletInfo =
-        client.tableOperations().getTabletInformation(table, new Range())) {
+        client.tableOperations().getTabletInformation(table, List.of(RowRange.all()))) {
       tabletInfo.forEach(tabletInformation -> {
         if (tabletInformation.getTabletId().getEndRow() == null) {
           assertEquals(expectedAvailabilityForDefaultTable,

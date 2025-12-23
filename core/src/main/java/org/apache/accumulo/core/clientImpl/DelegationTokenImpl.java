@@ -30,15 +30,9 @@ import org.apache.accumulo.core.client.security.tokens.DelegationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.securityImpl.thrift.TAuthenticationTokenIdentifier;
 import org.apache.hadoop.io.Text;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.security.token.TokenIdentifier;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public final class DelegationTokenImpl extends PasswordToken implements DelegationToken {
-  private static final Logger log = LoggerFactory.getLogger(DelegationTokenImpl.class);
 
   public static final String SERVICE_NAME = "AccumuloDelegationToken";
 
@@ -54,41 +48,6 @@ public final class DelegationTokenImpl extends PasswordToken implements Delegati
     requireNonNull(identifier);
     setPassword(delegationTokenPassword);
     this.identifier = identifier;
-  }
-
-  public DelegationTokenImpl(String instanceID, UserGroupInformation user,
-      AuthenticationTokenIdentifier identifier) {
-    requireNonNull(instanceID);
-    requireNonNull(user);
-    requireNonNull(identifier);
-
-    Credentials creds = user.getCredentials();
-    Token<? extends TokenIdentifier> token =
-        creds.getToken(new Text(SERVICE_NAME + "-" + instanceID));
-    if (token == null) {
-      throw new IllegalArgumentException(
-          "Did not find Accumulo delegation token in provided UserGroupInformation");
-    }
-    setPasswordFromToken(token);
-    this.identifier = identifier;
-  }
-
-  public DelegationTokenImpl(Token<? extends TokenIdentifier> token,
-      AuthenticationTokenIdentifier identifier) {
-    requireNonNull(token);
-    requireNonNull(identifier);
-    setPasswordFromToken(token);
-    this.identifier = identifier;
-  }
-
-  private void setPasswordFromToken(Token<? extends TokenIdentifier> token) {
-    if (!AuthenticationTokenIdentifier.TOKEN_KIND.equals(token.getKind())) {
-      String msg = "Expected an AuthenticationTokenIdentifier but got a " + token.getKind();
-      log.error(msg);
-      throw new IllegalArgumentException(msg);
-    }
-
-    setPassword(token.getPassword());
   }
 
   /**

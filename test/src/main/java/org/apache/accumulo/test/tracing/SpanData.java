@@ -16,28 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.rpc;
+package org.apache.accumulo.test.tracing;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
+import java.util.Map;
 
-import org.apache.thrift.transport.TIOStreamTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransportException;
+public class SpanData {
 
-public final class TBufferedSocket extends TIOStreamTransport {
+  public final String traceId;
+  public final String name;
+  public final Map<String,String> stringAttributes;
+  public final Map<String,Long> integerAttributes;
 
-  String client;
-
-  public TBufferedSocket(TSocket sock, int bufferSize) throws IOException, TTransportException {
-    super(new BufferedInputStream(sock.getSocket().getInputStream(), bufferSize),
-        new BufferedOutputStream(sock.getSocket().getOutputStream(), bufferSize));
-    client = sock.getSocket().getInetAddress().getHostAddress() + ":" + sock.getSocket().getPort();
+  public SpanData(String traceId, String name, Map<String,String> stringAttributes,
+      Map<String,Long> integerAttributes) {
+    this.traceId = traceId;
+    this.name = name;
+    this.stringAttributes = stringAttributes;
+    this.integerAttributes = integerAttributes;
   }
 
-  public String getClientString() {
-    return client;
+  @Override
+  public String toString() {
+    return "SpanData{traceId='" + traceId + "', name='" + name + "', stringAttributes="
+        + stringAttributes + ", integerAttributes=" + integerAttributes + '}';
   }
-
 }
