@@ -128,6 +128,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
 
   void close() {
+    // setting this so that some errors can be ignored
+    scanState.closeInitiated = true;
     // run actual close operation in the background so this does not block.
     context.executeCleanupTask(() -> {
       synchronized (scanState) {
@@ -209,8 +211,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     if (ee.getCause() instanceof IsolationException) {
       throw new IsolationException(ee);
     }
-    if (ee.getCause() instanceof TableDeletedException) {
-      TableDeletedException cause = (TableDeletedException) ee.getCause();
+    if (ee.getCause() instanceof TableDeletedException cause) {
       throw new TableDeletedException(cause.getTableId(), cause);
     }
     if (ee.getCause() instanceof TableOfflineException) {

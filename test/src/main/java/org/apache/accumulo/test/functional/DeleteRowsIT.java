@@ -20,28 +20,38 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.util.FileMetadataUtil.printAndVerifyFileMetadata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -67,6 +77,86 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(5);
+  }
+
+  @Test
+  public void tooManyFilesDeleteRowsTest() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName,
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(),
+              "20000", Property.TABLE_MERGE_FILE_MAX.getKey(), "500")));
+
+      c.tableOperations().addSplits(tableName,
+          IntStream.range(1, 100).map(i -> i * 100).mapToObj(i -> String.format("%06d", i))
+              .map(Text::new).collect(Collectors.toCollection(TreeSet::new)));
+
+      // add two bogus files to each tablet, creating 40K file entries
+      c.tableOperations().offline(tableName, true);
+      try (
+          var tablets = getServerContext().getAmple().readTablets()
+              .forTable(getServerContext().getTableId(tableName)).build();
+          var tabletsMutator = getServerContext().getAmple().mutateTablets()) {
+        int fc = 0;
+        for (var tabletMeta : tablets) {
+          // add 500 files to each tablet
+          var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent());
+          for (int i = 0; i < 500; i++) {
+            StoredTabletFile f1 = StoredTabletFile.of(new Path(
+                "file:///accumulo/tables/1/" + tabletMeta.getDirName() + "/F" + fc++ + ".rf"));
+            DataFileValue dfv1 = new DataFileValue(4200, 42);
+            tabletMutator.putFile(f1, dfv1);
+          }
+
+          tabletMutator.mutate();
+        }
+      }
+      c.tableOperations().online(tableName, true);
+
+      // table should now have 50000 files total
+      try (var tablets = getServerContext().getAmple().readTablets()
+          .forTable(getServerContext().getTableId(tableName)).build()) {
+        assertEquals(50000,
+            tablets.stream().mapToInt(tabletMetadata -> tabletMetadata.getFiles().size()).sum());
+      }
+
+      // should fail to merge because there are too many files in the merge range
+      var exception =
+          assertThrows(AccumuloException.class, () -> c.tableOperations().deleteRows(tableName,
+              new Text(String.format("%06d", 55)), new Text(String.format("%06d", 9907))));
+      // message should contain the observed number of files that would be merged. Some tablets
+      // would be completely merged away so their files are not counted.
+      assertTrue(exception.getMessage().contains("1000"));
+      // message should contain the max files limit it saw
+      assertTrue(exception.getMessage().contains("500"));
+
+      assertEquals(99, c.tableOperations().listSplits(tableName).size());
+
+      c.tableOperations().setProperty(tableName, Property.TABLE_MERGE_FILE_MAX.getKey(), "2000");
+
+      // with the higher merge file setting, the delete should be able to go through. The table has
+      // a total of 50K files, however only 1000 files should end up in the merged tablet because
+      // most tablets fall completely within the delete range.
+      Wait.waitFor(() -> {
+        try {
+          c.tableOperations().deleteRows(tableName, new Text(String.format("%06d", 55)),
+              new Text(String.format("%06d", 9907)));
+          return true;
+        } catch (AccumuloException e) {
+          // The property value has not updated in the manager yet.
+          assertTrue(e.getMessage().contains("500"));
+          return false;
+        }
+      });
+
+      assertEquals(1, c.tableOperations().listSplits(tableName).size());
+      // table should now have 1000 files total
+      try (var tablets = getServerContext().getAmple().readTablets()
+          .forTable(getServerContext().getTableId(tableName)).build()) {
+        assertEquals(1000,
+            tablets.stream().mapToInt(tabletMetadata -> tabletMetadata.getFiles().size()).sum());
+      }
+    }
   }
 
   @Test
@@ -220,6 +310,7 @@ public class DeleteRowsIT extends AccumuloClusterHarness {
 
     Text startText = start == null ? null : new Text(start);
     Text endText = end == null ? null : new Text(end);
+
     c.tableOperations().deleteRows(table, startText, endText);
     Collection<Text> remainingSplits = c.tableOperations().listSplits(table);
     StringBuilder sb = new StringBuilder();

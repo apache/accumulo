@@ -18,20 +18,23 @@
  */
 package org.apache.accumulo.core.lock;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.UuidUtil;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
@@ -44,10 +47,12 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ServiceLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
-  private static final String ZLOCK_PREFIX = "zlock#";
+  public static final String ZLOCK_PREFIX = "zlock#";
 
   private static class Prefix {
     private final String prefix;
@@ -61,23 +66,6 @@ public class ServiceLock implements Watcher {
       return this.prefix;
     }
 
-  }
-
-  public static class ServiceLockPath {
-    private final String path;
-
-    private ServiceLockPath(String path) {
-      this.path = requireNonNull(path);
-    }
-
-    @Override
-    public String toString() {
-      return this.path;
-    }
-  }
-
-  public static ServiceLockPath path(String path) {
-    return new ServiceLockPath(path);
   }
 
   public enum LockLossReason {
@@ -127,7 +115,7 @@ public class ServiceLock implements Watcher {
   private static class LockWatcherWrapper implements AccumuloLockWatcher {
 
     boolean acquiredLock = false;
-    LockWatcher lw;
+    final LockWatcher lw;
 
     public LockWatcherWrapper(LockWatcher lw2) {
       this.lw = lw2;
@@ -187,10 +175,10 @@ public class ServiceLock implements Watcher {
    */
   public static List<String> validateAndSort(ServiceLockPath path, List<String> children) {
     LOG.trace("validating and sorting children at path {}", path);
-    List<String> validChildren = new ArrayList<>();
     if (children == null || children.isEmpty()) {
-      return validChildren;
+      return List.of();
     }
+    List<String> validChildren = new ArrayList<>(children.size());
     children.forEach(c -> {
       LOG.trace("Validating {}", c);
       if (c.startsWith(ZLOCK_PREFIX)) {
@@ -201,9 +189,7 @@ public class ServiceLock implements Watcher {
           String sequenceNum = candidate.substring(idx + 1);
           try {
             LOG.trace("Testing uuid format of {}", uuid);
-            // string check guards uuids like "1-1-1-1-1" that parse to
-            // "00000001-0001-0001-0001-000000000001"
-            if (!uuid.equals(UUID.fromString(uuid).toString())) {
+            if (!UuidUtil.isUUID(uuid, 0)) {
               throw new IllegalArgumentException(uuid + " is an invalid UUID");
             }
             if (sequenceNum.length() == 10) {
@@ -386,6 +372,7 @@ public class ServiceLock implements Watcher {
   private void lostLock(LockLossReason reason) {
     LockWatcher localLw = lockWatcher;
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     localLw.lostLock(reason);
@@ -543,6 +530,9 @@ public class ServiceLock implements Watcher {
     return del;
   }
 
+  @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
+      justification = "Sleep is okay. Can hold the lock as long as needed, as we are shutting down."
+          + " Don't need or want other operations to run.")
   public synchronized void unlock() throws InterruptedException, KeeperException {
     if (lockNodeName == null) {
       throw new IllegalStateException();
@@ -552,11 +542,23 @@ public class ServiceLock implements Watcher {
     String localLock = lockNodeName;
 
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     final String pathToDelete = path + "/" + localLock;
     LOG.debug("[{}] Deleting all at path {} due to unlock", vmLockPrefix, pathToDelete);
     ZooUtil.recursiveDelete(zooKeeper, pathToDelete, NodeMissingPolicy.SKIP);
+
+    // Wait for the delete to happen on the server before exiting method
+    Timer start = Timer.startNew();
+    while (zooKeeper.exists(pathToDelete, null) != null) {
+      Thread.sleep(100);
+      if (start.hasElapsed(10, SECONDS)) {
+        start.restart();
+        LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,
+            pathToDelete);
+      }
+    }
 
     localLw.lostLock(LockLossReason.LOCK_DELETED);
   }
@@ -579,11 +581,18 @@ public class ServiceLock implements Watcher {
     return lockNodeName;
   }
 
+  private LockID lockId = null;
+
   public synchronized LockID getLockID() {
     if (lockNodeName == null) {
       throw new IllegalStateException("Lock not held");
     }
-    return new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+
+    if (lockId == null) {
+      lockId = new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+    }
+
+    return lockId;
   }
 
   /**
@@ -641,7 +650,7 @@ public class ServiceLock implements Watcher {
 
   public static boolean isLockHeld(ZooCache zc, LockID lid) {
 
-    var zLockPath = path(lid.path);
+    var zLockPath = ServiceLockPaths.parse(Optional.empty(), lid.path);
     List<String> children = validateAndSort(zLockPath, zc.getChildren(zLockPath.toString()));
 
     if (children.isEmpty()) {
@@ -675,8 +684,8 @@ public class ServiceLock implements Watcher {
     return ServiceLockData.parse(data);
   }
 
-  public static Optional<ServiceLockData> getLockData(
-      org.apache.accumulo.core.fate.zookeeper.ZooCache zc, ServiceLockPath path, ZcStat stat) {
+  public static Optional<ServiceLockData> getLockData(ZooCache zc, ServiceLockPath path,
+      ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
@@ -747,33 +756,6 @@ public class ServiceLock implements Watcher {
     LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
     zk.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
-  }
-
-  public static boolean deleteLock(ZooReaderWriter zk, ServiceLockPath path, String lockData)
-      throws InterruptedException, KeeperException {
-
-    List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
-
-    if (children.isEmpty()) {
-      throw new IllegalStateException("No lock is held at " + path);
-    }
-
-    String lockNode = children.get(0);
-
-    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
-    }
-
-    byte[] data = zk.getData(path + "/" + lockNode);
-
-    if (lockData.equals(new String(data, UTF_8))) {
-      String pathToDelete = path + "/" + lockNode;
-      LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
-      zk.recursiveDelete(pathToDelete, NodeMissingPolicy.FAIL);
-      return true;
-    }
-
-    return false;
   }
 
   /**

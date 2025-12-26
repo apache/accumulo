@@ -136,7 +136,7 @@ $(function () {
   // Create a table for tserver list
   tserversTable = $('#tservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "servers"
     },
     "stateSave": true,
@@ -183,19 +183,13 @@ $(function () {
         "type": "numeric",
         "orderData": [16, 17]
       },
-      // major compaction column will be sorted by number of running, then by number of queued
-      {
-        "targets": [10],
-        "type": "numeric",
-        "orderData": [18, 19]
-      }
     ],
     "columns": [{
         "data": "hostname",
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
+            data = '<a href="tservers?s=' + row.id + '">' + row.hostname + '</a>';
           }
           return data;
         }
@@ -228,9 +222,6 @@ $(function () {
         "data": "minorCombo"
       },
       {
-        "data": "majorCombo"
-      },
-      {
         "data": "indexCacheHitRate"
       },
       {
@@ -254,14 +245,6 @@ $(function () {
       {
         "data": "minorQueued",
         "visible": false
-      },
-      {
-        "data": "majorRunning",
-        "visible": false
-      },
-      {
-        "data": "majorQueued",
-        "visible": false
       }
     ],
     "rowCallback": function (row, data, index) {
@@ -280,7 +263,7 @@ $(function () {
   // Create a table for deadServers list
   deadTServersTable = $('#deadtservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "deadServers"
     },
     "stateSave": true,
@@ -318,7 +301,7 @@ $(function () {
   // Create a table for badServers list
   badTServersTable = $('#badtservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "badServers"
     },
     "stateSave": true,

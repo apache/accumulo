@@ -60,6 +60,22 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @Path("/")
 @Produces(MediaType.TEXT_HTML)
 public class WebViews {
+  /**
+   * A {@code String} constant representing table to display its problem details, used in query
+   * parameter.
+   */
+  private static final String TABLE_PARAM_KEY = "table";
+
+  /**
+   * A {@code String} constant representing tableId Table ID for participating tservers, used in
+   * path parameter.
+   */
+  private static final String TABLEID_PARAM_KEY = "tableId";
+
+  /**
+   * A {@code String} constant representing TServer to show details for, used in query parameter.
+   */
+  private static final String TSERVER_PARAM_KEY = "s";
 
   private static final Logger log = LoggerFactory.getLogger(WebViews.class);
 
@@ -93,12 +109,18 @@ public class WebViews {
   }
 
   private Map<String,Object> getModel() {
-
+    AccumuloConfiguration conf = monitor.getContext().getConfiguration();
+    String rootContext = conf.get(Property.MONITOR_ROOT_CONTEXT);
+    // Add trailing slash if it doesn't exist
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
     model.put("zk_hosts", monitor.getContext().getZooKeepers());
+    model.put("rootContext", rootContext);
     addExternalResources(model);
     return model;
   }
@@ -149,8 +171,8 @@ public class WebViews {
   @GET
   @Path("tservers")
   @Template(name = "/default.ftl")
-  public Map<String,Object>
-      getTabletServers(@QueryParam("s") @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
+  public Map<String,Object> getTabletServers(
+      @QueryParam(TSERVER_PARAM_KEY) @Pattern(regexp = HOSTNAME_PORT_REGEX) String server) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Tablet Server Status");
@@ -279,24 +301,22 @@ public class WebViews {
   /**
    * Returns participating tservers template
    *
-   * @param tableID Table ID for participating tservers
+   * @param tableId Table ID for participating tservers
    * @return Participating tservers model
    */
   @GET
-  @Path("tables/{tableID}")
+  @Path("tables/{" + TABLEID_PARAM_KEY + "}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables(
-      @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
-      throws TableNotFoundException {
-
-    String tableName = monitor.getContext().getTableName(TableId.of(tableID));
+  public Map<String,Object> getTables(@PathParam(TABLEID_PARAM_KEY) @NotNull @Pattern(
+      regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableId) throws TableNotFoundException {
+    String tableName = monitor.getContext().getQualifiedTableName(TableId.of(tableId));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
 
     model.put("template", "table.ftl");
     model.put("js", "table.js");
-    model.put("tableID", tableID);
+    model.put("tableId", tableId);
     model.put("table", tableName);
 
     return model;
@@ -311,8 +331,8 @@ public class WebViews {
   @GET
   @Path("problems")
   @Template(name = "/default.ftl")
-  public Map<String,Object>
-      getProblems(@QueryParam("table") @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
+  public Map<String,Object> getProblems(
+      @QueryParam(TABLE_PARAM_KEY) @Pattern(regexp = ALPHA_NUM_REGEX_BLANK_OK) String table) {
 
     Map<String,Object> model = getModel();
     model.put("title", "Per-Table Problem Report");

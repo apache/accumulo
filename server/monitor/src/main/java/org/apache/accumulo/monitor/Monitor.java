@@ -21,6 +21,8 @@ package org.apache.accumulo.monitor;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.SCAN_SERVER;
+import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.TABLET_SERVER;
 
 import java.net.InetAddress;
 import java.net.URL;
@@ -45,9 +47,11 @@ import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -72,20 +76,20 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.monitor.next.InformationFetcher;
 import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.resource.Resource;
+import org.eclipse.jetty.ee10.servlet.ResourceServlet;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
+import org.eclipse.jetty.io.Connection;
+import org.eclipse.jetty.io.ConnectionStatistics;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.jackson.JacksonFeature;
@@ -97,13 +101,14 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
 /**
  * Serve manager statistics with an embedded web server.
  */
-public class Monitor extends AbstractServer implements HighlyAvailableService {
+public class Monitor extends AbstractServer implements Connection.Listener {
 
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
   private static final int REFRESH_TIME = 5;
@@ -111,16 +116,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
-      monitor.runServer();
-    }
+    AbstractServer.startServer(new Monitor(new ConfigOpts(), args), log);
   }
 
   Monitor(ConfigOpts opts, String[] args) {
-    super("monitor", opts, args);
+    super(ServerId.Type.MONITOR, opts, ServerContext::new, args);
     START_TIME = System.currentTimeMillis();
+    this.connStats = new ConnectionStatistics();
+    this.fetcher = new InformationFetcher(getContext(), connStats::getConnections);
   }
 
+  private final ConnectionStatistics connStats;
+  private final InformationFetcher fetcher;
   private final AtomicLong lastRecalc = new AtomicLong(0L);
   private double totalIngestRate = 0.0;
   private double totalQueryRate = 0.0;
@@ -130,7 +137,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private long totalHoldTime = 0;
   private long totalLookups = 0;
   private int totalTables = 0;
-  private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
   private EventCounter lookupRateTracker = new EventCounter();
   private EventCounter indexCacheHitTracker = new EventCounter();
@@ -141,13 +147,9 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private final AtomicBoolean fetching = new AtomicBoolean(false);
   private ManagerMonitorInfo mmi;
   private GCStatus gcStatus;
-  private Optional<HostAndPort> coordinatorHost = Optional.empty();
-  private Timer coordinatorCheck = null;
-  private CompactionCoordinatorService.Client coordinatorClient;
+  private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
   private final String coordinatorMissingMsg =
-      "Error getting the compaction coordinator. Check that it is running. It is not "
-          + "started automatically with other cluster processes so must be started by running "
-          + "'accumulo compaction-coordinator'.";
+      "Error getting the compaction coordinator client. Check that the Manager is running.";
 
   private EmbeddedWebServer server;
   private int livePort = 0;
@@ -221,7 +223,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       return;
     }
     // DO NOT ADD CODE HERE that could throw an exception before we enter the try block
-    // Otherwise, we'll never release the lock by unsetting 'fetching' in the the finally block
+    // Otherwise, we'll never release the lock by unsetting 'fetching' in the finally block
     try {
       while (retry) {
         ManagerClientService.Client client = null;
@@ -230,11 +232,25 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           if (client != null) {
             mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
             retry = false;
+            // Now that Manager is up, set the coordinator host
+            Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
+            if (managers == null || managers.isEmpty()) {
+              throw new IllegalStateException(
+                  "io.getServers returned nothing for Manager, but it's up.");
+            }
+            ServerId manager = managers.iterator().next();
+            Optional<HostAndPort> nextCoordinatorHost =
+                Optional.of(HostAndPort.fromString(manager.toHostPortString()));
+            if (coordinatorHost.isEmpty()
+                || !coordinatorHost.orElseThrow().equals(nextCoordinatorHost.orElseThrow())) {
+              coordinatorHost = nextCoordinatorHost;
+            }
           } else {
             mmi = null;
             log.error("Unable to get info from Manager");
           }
           gcStatus = fetchGcStatus();
+
         } catch (Exception e) {
           mmi = null;
           log.info("Error fetching stats: ", e);
@@ -247,6 +263,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       }
+
       if (mmi != null) {
 
         lookupRateTracker.startingUpdates();
@@ -296,21 +313,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
       }
 
-      // check for compaction coordinator host and only notify its discovery
-      if (coordinatorCheck == null || coordinatorCheck.hasElapsed(expirationTimeMinutes, MINUTES)) {
-        Optional<HostAndPort> previousHost = coordinatorHost;
-        coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-        coordinatorCheck = Timer.startNew();
-        if (previousHost.isEmpty() && coordinatorHost.isPresent()) {
-          log.info("External Compaction Coordinator found at {}", coordinatorHost.orElseThrow());
-        }
-      }
-
     } finally {
-      if (coordinatorClient != null) {
-        ThriftUtil.returnClient(coordinatorClient, context);
-        coordinatorClient = null;
-      }
       lastRecalc.set(currentTime);
       // stop fetching; log an error if this thread wasn't already fetching
       if (!fetching.compareAndSet(true, false)) {
@@ -326,7 +329,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     try {
       // Read the gc location from its lock
       ZooReaderWriter zk = context.getZooSession().asReaderWriter();
-      var path = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZGC_LOCK);
+      var path = context.getServerPaths().createGarbageCollectorPath();
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
@@ -344,7 +347,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         }
       }
     } catch (Exception ex) {
-      log.warn("Unable to contact the garbage collector at " + address, ex);
+      log.warn("Unable to contact the garbage collector at {}", address, ex);
     }
     return result;
   }
@@ -353,12 +356,17 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public void run() {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
+    String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
+    // Needs leading slash in order to property create rest endpoint requests
+    Preconditions.checkArgument(rootContext.startsWith("/"),
+        "Root context: \"%s\" does not have a leading '/'", rootContext);
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
         server = new EmbeddedWebServer(this, port);
-        server.addServlet(getDefaultServlet(), "/resources/*");
+        server.addServlet(getResourcesServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
+        server.addServlet(getRestV2Servlet(), "/rest-v2/*");
         server.addServlet(getViewServlet(), "/*");
         server.start();
         livePort = port;
@@ -371,18 +379,25 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     } else {
-      log.debug("Monitor started on port {}", livePort);
+      log.debug("Monitor listening on {}:{}", server.getHostName(), livePort);
     }
 
-    String advertiseHost = getHostname();
-    if (advertiseHost.equals("0.0.0.0")) {
-      try {
-        advertiseHost = InetAddress.getLocalHost().getHostName();
-      } catch (UnknownHostException e) {
-        log.error("Unable to get hostname", e);
+    HostAndPort advertiseAddress = getAdvertiseAddress();
+    if (advertiseAddress == null) {
+      // use the bind address from the connector, unless it's null or 0.0.0.0
+      String advertiseHost = server.getHostName();
+      if (advertiseHost == null || advertiseHost == ConfigOpts.BIND_ALL_ADDRESSES) {
+        try {
+          advertiseHost = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+          throw new RuntimeException("Unable to get hostname for advertise address", e);
+        }
       }
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseHost, livePort));
+    } else {
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseAddress.getHost(), livePort));
     }
-    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    HostAndPort monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
 
     try {
@@ -391,26 +406,31 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       log.error("Failed to get Monitor ZooKeeper lock");
       throw new RuntimeException(e);
     }
+    getContext().setServiceLock(monitorLock);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        monitorHostAndPort, ""));
+        monitorHostAndPort, getResourceGroup()));
 
+    // Needed to support the existing zk monitor address format
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
-      final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
+      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
+          server.getPort(), rootContext);
       final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
-      zoo.delete(path);
-      zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
+      zoo.delete(Constants.ZMONITOR_HTTP_ADDR);
+      zoo.putEphemeralData(Constants.ZMONITOR_HTTP_ADDR, url.toString().getBytes(UTF_8));
       log.info("Set monitor address in zookeeper to {}", url);
     } catch (Exception ex) {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
 
     // need to regularly fetch data so plot data is updated
-    Threads.createThread("Data fetcher", () -> {
+    Threads.createCriticalThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();
@@ -420,19 +440,31 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
     }).start();
+    Threads.createCriticalThread("Metric Fetcher Thread", fetcher).start();
 
-    monitorInitialized.set(true);
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        log.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        log.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(context.rpcCreds());
+      }
+    }
+
+    server.stop();
+    log.info("stop requested. exiting ... ");
   }
 
-  private ServletHolder getDefaultServlet() {
-    return new ServletHolder(new DefaultServlet() {
-      private static final long serialVersionUID = 1L;
-
-      @Override
-      public Resource getResource(String pathInContext) {
-        return Resource.newClassPathResource("/org/apache/accumulo/monitor" + pathInContext);
-      }
-    });
+  private ServletHolder getResourcesServlet() {
+    ServletHolder holder = new ServletHolder("resources", ResourceServlet.class);
+    holder.setInitParameter("dirAllowed", "false");
+    holder.setInitParameter("baseResource",
+        Monitor.class.getResource("resources").toExternalForm());
+    return holder;
   }
 
   public static class MonitorFactory extends AbstractBinder implements Factory<Monitor> {
@@ -468,6 +500,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
 
   private ServletHolder getRestServlet() {
     final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.rest")
+        .register(new MonitorFactory(this))
+        .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
+        .register(JacksonFeature.class);
+    return new ServletHolder(new ServletContainer(rc));
+  }
+
+  private ServletHolder getRestV2Servlet() {
+    final ResourceConfig rc = new ResourceConfig().packages("org.apache.accumulo.monitor.next")
         .register(new MonitorFactory(this))
         .register(new LoggingFeature(java.util.logging.Logger.getLogger(this.getClass().getName())))
         .register(JacksonFeature.class);
@@ -584,24 +624,11 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return new RunningCompactorDetails(extCompaction);
   }
 
-  private CompactionCoordinatorService.Client getCoordinator(HostAndPort address) {
-    if (coordinatorClient == null) {
-      try {
-        coordinatorClient =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, getContext());
-      } catch (Exception e) {
-        log.error("Unable to get Compaction coordinator at {}", address);
-        throw new IllegalStateException(coordinatorMissingMsg, e);
-      }
-    }
-    return coordinatorClient;
-  }
-
-  private Map<HostAndPort,ScanStats> fetchScans(Collection<String> servers) {
+  private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {
     ServerContext context = getContext();
     Map<HostAndPort,ScanStats> scans = new HashMap<>();
-    for (String server : servers) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server);
+    for (ServerId server : servers) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
       TabletScanClientService.Client client = null;
       try {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
@@ -617,18 +644,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   private Map<HostAndPort,ScanStats> fetchTServerScans() {
-    return fetchScans(getContext().instanceOperations().getTabletServers());
+    return fetchScans(getContext().instanceOperations().getServers(TABLET_SERVER));
   }
 
   private Map<HostAndPort,ScanStats> fetchSServerScans() {
-    return fetchScans(getContext().instanceOperations().getScanServers());
+    return fetchScans(getContext().instanceOperations().getServers(SCAN_SERVER));
   }
 
   private Map<HostAndPort,CompactionStats> fetchCompactions() {
     ServerContext context = getContext();
     Map<HostAndPort,CompactionStats> allCompactions = new HashMap<>();
-    for (String server : context.instanceOperations().getTabletServers()) {
-      final HostAndPort parsedServer = HostAndPort.fromString(server);
+    for (ServerId server : context.instanceOperations().getServers(TABLET_SERVER)) {
+      final HostAndPort parsedServer = HostAndPort.fromString(server.toHostPortString());
       Client tserver = null;
       try {
         tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
@@ -644,8 +671,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   private ExternalCompactionInfo fetchCompactorsInfo() {
-    ServerContext context = getContext();
-    Map<String,Set<HostAndPort>> compactors = ExternalCompactionUtil.getCompactorAddrs(context);
+    Set<ServerId> compactors =
+        getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
     log.debug("Found compactors: {}", compactors);
     ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
     ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
@@ -670,16 +697,25 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new IllegalStateException(coordinatorMissingMsg);
     }
     var ccHost = coordinatorHost.orElseThrow();
-    log.info("User initiated fetch of running External Compactions from " + ccHost);
-    var client = getCoordinator(ccHost);
-    TExternalCompactionList running;
+    log.info("User initiated fetch of running External Compactions from {}", ccHost);
     try {
-      running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+      CompactionCoordinatorService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
+      TExternalCompactionMap running;
+      try {
+        running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+        return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
+      } catch (Exception e) {
+        throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
+      } finally {
+        if (client != null) {
+          ThriftUtil.returnClient(client, getContext());
+        }
+      }
+    } catch (TTransportException e) {
+      log.error("Unable to get Compaction coordinator at {}", ccHost);
+      throw new IllegalStateException(coordinatorMissingMsg, e);
     }
-
-    return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
   }
 
   /**
@@ -688,21 +724,19 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   private void getMonitorLock(HostAndPort monitorLocation)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
-    final String zRoot = context.getZooKeeperRoot();
-    final String monitorPath = zRoot + Constants.ZMONITOR;
-    final var monitorLockPath = ServiceLock.path(zRoot + Constants.ZMONITOR_LOCK);
+    final var monitorLockPath = context.getServerPaths().createMonitorPath();
 
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-    if (zoo.exists(monitorPath)) {
-      byte[] data = zoo.getData(monitorPath);
+    if (zoo.exists(Constants.ZMONITOR)) {
+      byte[] data = zoo.getData(Constants.ZMONITOR);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
       if (data.length != 0) {
         // Recursively delete from that parent node
-        zoo.recursiveDelete(monitorPath, NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(Constants.ZMONITOR, NodeMissingPolicy.SKIP);
 
         // And then make the nodes that we expect for the incoming ephemeral nodes
-        zoo.putPersistentData(monitorPath, new byte[0], NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
         zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);
       } else if (!zoo.exists(monitorLockPath.toString())) {
         // monitor node in ZK exists and is empty as we expect
@@ -711,7 +745,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       }
     } else {
       // 1.5.0 and earlier
-      zoo.putPersistentData(zRoot + Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
       if (!zoo.exists(monitorLockPath.toString())) {
         // Somehow the monitor node exists but not monitor/lock
         zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);
@@ -721,11 +755,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Get a ZooLock for the monitor
     UUID zooLockUUID = UUID.randomUUID();
     monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
+    HAServiceLockWatcher monitorLockWatcher =
+        new HAServiceLockWatcher(Type.MONITOR, () -> isShutdownRequested());
 
     while (true) {
-      HAServiceLockWatcher monitorLockWatcher = new HAServiceLockWatcher("monitor");
-      monitorLock.lock(monitorLockWatcher, new ServiceLockData(zooLockUUID,
-          monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE));
+      monitorLock.lock(monitorLockWatcher,
+          new ServiceLockData(zooLockUUID,
+              monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE,
+              this.getResourceGroup()));
 
       monitorLockWatcher.waitForChange();
 
@@ -795,11 +832,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     return lookupRateTracker.calculateRate();
   }
 
-  @Override
-  public boolean isActiveService() {
-    return monitorInitialized.get();
-  }
-
   public Optional<HostAndPort> getCoordinatorHost() {
     return coordinatorHost;
   }
@@ -812,4 +844,23 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public ServiceLock getLock() {
     return monitorLock;
   }
+
+  public InformationFetcher getInformationFetcher() {
+    return fetcher;
+  }
+
+  @Override
+  public void onOpened(Connection connection) {
+    fetcher.newConnectionEvent();
+  }
+
+  @Override
+  public void onClosed(Connection connection) {
+    // do nothing
+  }
+
+  public ConnectionStatistics getConnectionStatisticsBean() {
+    return this.connStats;
+  }
+
 }

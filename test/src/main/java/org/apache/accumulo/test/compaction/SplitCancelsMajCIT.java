@@ -19,10 +19,13 @@
 package org.apache.accumulo.test.compaction;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -31,11 +34,18 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -44,6 +54,15 @@ import org.junit.jupiter.api.Test;
 // ACCUMULO-2862
 public class SplitCancelsMajCIT extends SharedMiniClusterBase {
 
+  public static class ClusterConfigForTest implements MiniClusterConfigurationCallback {
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      cfg.setProperty(Property.COMPACTOR_CANCEL_CHECK_INTERVAL, "10s");
+    }
+
+  }
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
@@ -51,7 +70,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    SharedMiniClusterBase.startMiniClusterWithConfig(new ClusterConfigForTest());
   }
 
   @AfterAll
@@ -64,6 +83,7 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
     final String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
+      TableId tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       // majc should take 100 * .5 secs
       IteratorSetting it = new IteratorSetting(100, SlowIterator.class);
       SlowIterator.setSleepTime(it, 500);
@@ -87,12 +107,21 @@ public class SplitCancelsMajCIT extends SharedMiniClusterBase {
       });
       thread.start();
 
+      Set<ExternalCompactionId> compactionIds = ExternalCompactionTestUtils
+          .waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
+      assertNotNull(compactionIds);
+      assertEquals(1, compactionIds.size());
+
       long now = System.currentTimeMillis();
       Thread.sleep(SECONDS.toMillis(10));
       // split the table, interrupts the compaction
       SortedSet<Text> partitionKeys = new TreeSet<>();
       partitionKeys.add(new Text("10"));
       c.tableOperations().addSplits(tableName, partitionKeys);
+
+      ExternalCompactionTestUtils.confirmCompactionCompleted(getCluster().getServerContext(),
+          compactionIds, TCompactionState.CANCELLED);
+
       thread.join();
       // wait for the restarted compaction
       assertTrue(System.currentTimeMillis() - now > 59_000);

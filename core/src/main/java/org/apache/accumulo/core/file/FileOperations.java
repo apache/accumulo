@@ -29,12 +29,12 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -54,6 +54,11 @@ public abstract class FileOperations {
   private static final Set<String> bulkWorkingFiles =
       Set.of(Constants.BULK_LOAD_MAPPING, Constants.BULK_RENAME_FILE,
           FileOutputCommitter.SUCCEEDED_FILE_NAME, HADOOP_JOBHISTORY_LOCATION);
+
+  public static boolean isBulkWorkingFile(String fileName) {
+    return fileName.startsWith(Constants.BULK_WORKING_PREFIX)
+        || bulkWorkingFiles.contains(fileName);
+  }
 
   public static Set<String> getValidExtensions() {
     return validExtensions;
@@ -171,8 +176,8 @@ public abstract class FileOperations {
     public final TabletFile file;
     public final FileSystem fs;
     public final Configuration fsConf;
-    public final RateLimiter rateLimiter;
     // writer only objects
+    private final TableId tableId;
     public final String compression;
     public final FSDataOutputStream outputStream;
     public final boolean enableAccumuloStart;
@@ -187,16 +192,16 @@ public abstract class FileOperations {
     public final boolean inclusive;
     public final boolean dropCacheBehind;
 
-    protected FileOptions(AccumuloConfiguration tableConfiguration, TabletFile file, FileSystem fs,
-        Configuration fsConf, RateLimiter rateLimiter, String compression,
+    protected FileOptions(TableId tableId, AccumuloConfiguration tableConfiguration,
+        TabletFile file, FileSystem fs, Configuration fsConf, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
         Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
+      this.tableId = tableId;
       this.tableConfiguration = tableConfiguration;
       this.file = Objects.requireNonNull(file);
       this.fs = fs;
       this.fsConf = fsConf;
-      this.rateLimiter = rateLimiter;
       this.compression = compression;
       this.outputStream = outputStream;
       this.enableAccumuloStart = enableAccumuloStart;
@@ -208,6 +213,10 @@ public abstract class FileOperations {
       this.columnFamilies = columnFamilies;
       this.inclusive = inclusive;
       this.dropCacheBehind = dropCacheBehind;
+    }
+
+    public TableId getTableId() {
+      return tableId;
     }
 
     public AccumuloConfiguration getTableConfiguration() {
@@ -224,10 +233,6 @@ public abstract class FileOperations {
 
     public Configuration getConfiguration() {
       return fsConf;
-    }
-
-    public RateLimiter getRateLimiter() {
-      return rateLimiter;
     }
 
     public String getCompression() {
@@ -275,13 +280,18 @@ public abstract class FileOperations {
    * Helper class extended by both writers and readers.
    */
   public static class FileHelper {
+    private TableId tableId;
     private AccumuloConfiguration tableConfiguration;
     private TabletFile file;
     private FileSystem fs;
     private Configuration fsConf;
-    private RateLimiter rateLimiter;
     private CryptoService cryptoService;
     private boolean dropCacheBehind = false;
+
+    protected FileHelper table(TableId tid) {
+      this.tableId = tid;
+      return this;
+    }
 
     protected FileHelper fs(FileSystem fs) {
       this.fs = Objects.requireNonNull(fs);
@@ -303,11 +313,6 @@ public abstract class FileOperations {
       return this;
     }
 
-    protected FileHelper rateLimiter(RateLimiter rateLimiter) {
-      this.rateLimiter = rateLimiter;
-      return this;
-    }
-
     protected FileHelper cryptoService(CryptoService cs) {
       this.cryptoService = Objects.requireNonNull(cs);
       return this;
@@ -320,26 +325,26 @@ public abstract class FileOperations {
 
     protected FileOptions toWriterBuilderOptions(String compression,
         FSDataOutputStream outputStream, boolean startEnabled) {
-      return new FileOptions(tableConfiguration, file, fs, fsConf, rateLimiter, compression,
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, compression,
           outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true,
           dropCacheBehind);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning) {
-      return new FileOptions(tableConfiguration, file, fs, fsConf, rateLimiter, null, null, false,
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
           cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache, seekToBeginning,
           cryptoService, null, null, true, dropCacheBehind);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
-      return new FileOptions(tableConfiguration, file, fs, fsConf, rateLimiter, null, null, false,
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
           NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true, dropCacheBehind);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
-      return new FileOptions(tableConfiguration, file, fs, fsConf, rateLimiter, null, null, false,
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
           NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive,
           dropCacheBehind);
     }
@@ -372,6 +377,11 @@ public abstract class FileOperations {
       return this;
     }
 
+    public WriterBuilder forTable(TableId tid) {
+      table(tid);
+      return this;
+    }
+
     @Override
     public WriterBuilder withTableConfiguration(AccumuloConfiguration tableConfiguration) {
       tableConfiguration(tableConfiguration);
@@ -385,11 +395,6 @@ public abstract class FileOperations {
 
     public WriterBuilder withCompression(String compression) {
       this.compression = compression;
-      return this;
-    }
-
-    public WriterBuilder withRateLimiter(RateLimiter rateLimiter) {
-      rateLimiter(rateLimiter);
       return this;
     }
 
@@ -438,11 +443,6 @@ public abstract class FileOperations {
 
     public ReaderBuilder withFileLenCache(Cache<String,Long> fileLenCache) {
       this.fileLenCache = fileLenCache;
-      return this;
-    }
-
-    public ReaderBuilder withRateLimiter(RateLimiter rateLimiter) {
-      rateLimiter(rateLimiter);
       return this;
     }
 

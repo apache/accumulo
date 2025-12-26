@@ -55,7 +55,7 @@ public class RunningCompactionInfo {
     var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
 
     server = ec.getCompactor();
-    queueName = ec.getQueueName();
+    queueName = ec.getGroupName();
     ecid = job.getExternalCompactionId();
     kind = job.getKind().name();
     tableId = KeyExtent.fromThrift(job.getExtent()).tableId().canonical();
@@ -77,7 +77,7 @@ public class RunningCompactionInfo {
       updateMillis = lastEntry.getKey();
       duration = NANOSECONDS.toMillis(last.getCompactionAgeNanos());
     } else {
-      log.debug("No updates found for {}", ecid);
+      log.trace("No updates found for {}", ecid);
       lastUpdate = 1;
       progress = percent;
       status = "na";
@@ -86,12 +86,12 @@ public class RunningCompactionInfo {
     }
     long durationMinutes = MILLISECONDS.toMinutes(duration);
     if (durationMinutes > 15) {
-      log.warn("Compaction {} has been running for {} minutes", ecid, durationMinutes);
+      log.trace("Compaction {} has been running for {} minutes", ecid, durationMinutes);
     }
 
     lastUpdate = nowMillis - updateMillis;
     long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(lastUpdate);
-    log.debug("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
+    log.trace("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
         sinceLastUpdateSeconds);
 
     var total = last.getEntriesToBeCompacted();
@@ -105,9 +105,9 @@ public class RunningCompactionInfo {
     } else {
       status = last.state.name();
     }
-    log.debug("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
+    log.trace("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
     if (sinceLastUpdateSeconds > 30) {
-      log.debug("Compaction hasn't progressed from {} in {} seconds.", progress,
+      log.trace("Compaction hasn't progressed from {} in {} seconds.", progress,
           sinceLastUpdateSeconds);
     }
   }

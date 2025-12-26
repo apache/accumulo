@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>3.1.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo-tserver</artifactId>
@@ -47,10 +47,6 @@
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>commons-codec</groupId>
-      <artifactId>commons-codec</artifactId>
     </dependency>
     <dependency>
       <groupId>io.micrometer</groupId>
@@ -110,11 +106,6 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>test</scope>
@@ -150,7 +141,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${rootlocation}/src/build/license-header.txt</header>
+                <inlineHeader>${accumulo.build.license.header}</inlineHeader>
                 <excludes>
                   <exclude>src/test/resources/*.walog</exclude>
                   <exclude>src/test/resources/walog-from-14/*</exclude>

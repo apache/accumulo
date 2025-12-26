@@ -47,6 +47,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -63,6 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class LogSorter {
 
@@ -221,15 +223,17 @@ public class LogSorter {
     }
   }
 
+  private final AbstractServer server;
   private final ServerContext context;
   private final AccumuloConfiguration conf;
   private final double walBlockSize;
   private final CryptoService cryptoService;
   private final AccumuloConfiguration sortedLogConf;
 
-  public LogSorter(ServerContext context, AccumuloConfiguration conf) {
-    this.context = context;
-    this.conf = conf;
+  public LogSorter(AbstractServer server) {
+    this.server = server;
+    this.context = this.server.getContext();
+    this.conf = this.context.getConfiguration();
     this.sortedLogConf = extractSortedLogConfig(this.conf);
     this.walBlockSize = DfsLogger.getWalBlockSize(this.conf);
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
@@ -271,12 +275,7 @@ public class LogSorter {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
       Key k = logFileKey.toKey();
-      var list = keyListMap.putIfAbsent(k, logFileValue.mutations);
-      if (list != null) {
-        var muts = new ArrayList<>(list);
-        muts.addAll(logFileValue.mutations);
-        keyListMap.put(logFileKey.toKey(), muts);
-      }
+      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>()).addAll(logFileValue.getMutations());
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
@@ -285,19 +284,36 @@ public class LogSorter {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {
         LogFileValue val = new LogFileValue();
-        val.mutations = entry.getValue();
+        val.setMutations(entry.getValue());
         writer.append(entry.getKey(), val.toValue());
       }
     }
   }
 
-  public void startWatchingForRecoveryLogs() throws KeeperException, InterruptedException {
-    int threadPoolSize = this.conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
+  /**
+   * Sort any logs that need sorting in the current thread.
+   *
+   * @return The time in millis when the next check can be done.
+   */
+  public long sortLogsIfNeeded() throws KeeperException, InterruptedException {
+    DistributedWorkQueue dwq = new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf, server);
+    dwq.processExistingWork(new LogProcessor(), MoreExecutors.newDirectExecutorService(), 1, false);
+    return System.currentTimeMillis() + dwq.getCheckInterval();
+  }
+
+  /**
+   * Sort any logs that need sorting in a ThreadPool using
+   * {@link Property#TSERV_WAL_SORT_MAX_CONCURRENT} threads. This method will start a background
+   * thread to look for log sorting work in the future that will be processed by the
+   * ThreadPoolExecutor
+   */
+  public void startWatchingForRecoveryLogs(int threadPoolSize)
+      throws KeeperException, InterruptedException {
     ThreadPoolExecutor threadPool =
         ThreadPools.getServerThreadPools().getPoolBuilder(TSERVER_WAL_SORT_CONCURRENT_POOL)
             .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
-    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
-        context).startProcessing(new LogProcessor(), threadPool);
+    new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf, server)
+        .processExistingAndFuture(new LogProcessor(), threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {

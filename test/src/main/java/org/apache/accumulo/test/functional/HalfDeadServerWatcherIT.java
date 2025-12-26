@@ -23,21 +23,25 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.TreeMap;
-import java.util.TreeSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -45,10 +49,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.TabletServer;
-import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.accumulo.tserver.tablet.TabletData;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -56,6 +57,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Test that validates that the TabletServer will be terminated when the lock is removed in
@@ -68,7 +71,8 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
     private static final Logger LOG = LoggerFactory.getLogger(HalfDeadTabletServer.class);
 
     public static void main(String[] args) throws Exception {
-      try (HalfDeadTabletServer tserver = new HalfDeadTabletServer(new ConfigOpts(), args)) {
+      try (HalfDeadTabletServer tserver =
+          new HalfDeadTabletServer(new ConfigOpts(), ServerContext::new, args)) {
         tserver.runServer();
       }
     }
@@ -87,27 +91,27 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
 
     }
 
-    protected HalfDeadTabletServer(ConfigOpts opts, String[] args) {
-      super(opts, args);
+    protected HalfDeadTabletServer(ConfigOpts opts,
+        BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
+        String[] args) {
+      super(opts, serverContextFactory, args);
     }
 
     @Override
-    protected TreeMap<KeyExtent,TabletData> splitTablet(Tablet tablet, byte[] splitPoint)
-        throws IOException {
-      LOG.info("In HalfDeadServerWatcherIT::splitTablet");
-      TreeMap<KeyExtent,TabletData> results = super.splitTablet(tablet, splitPoint);
-      if (!tablet.getExtent().isMeta()) {
-        final TableId tid = tablet.getExtent().tableId();
-        final String zooRoot = this.getContext().getZooKeeperRoot();
-        final String tableZPath = zooRoot + Constants.ZTABLES + "/" + tid.canonical();
-        try {
-          this.getContext().getZooSession().asReaderWriter().exists(tableZPath, new StuckWatcher());
-        } catch (KeeperException | InterruptedException e) {
-          LOG.error("Error setting watch at: {}", tableZPath, e);
+    public void evaluateOnDemandTabletsForUnload() {
+      super.evaluateOnDemandTabletsForUnload();
+      getOnlineTablets().keySet().forEach(ke -> {
+        if (!ke.isMeta()) {
+          final TableId tid = ke.tableId();
+          final String tableZPath = Constants.ZTABLES + "/" + tid.canonical();
+          try {
+            this.getContext().getZooSession().asReader().exists(tableZPath, new StuckWatcher());
+          } catch (KeeperException | InterruptedException e) {
+            LOG.error("Error setting watch at: {}", tableZPath, e);
+          }
+          LOG.info("Set StuckWatcher at: {}", tableZPath);
         }
-        LOG.info("Set StuckWatcher at: {}", tableZPath);
-      }
-      return results;
+      });
     }
   }
 
@@ -120,16 +124,16 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
     } else {
       cfg.setProperty(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, "0");
     }
-    cfg.setServerClass(ServerType.TABLET_SERVER, HalfDeadTabletServer.class);
-    cfg.setNumCompactors(0);
-    cfg.setNumScanServers(0);
-    cfg.setNumTservers(1);
+    cfg.setServerClass(ServerType.TABLET_SERVER, rg -> HalfDeadTabletServer.class);
+    cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "30s");
+    cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
+    cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   @AfterEach
   public void afterTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    super.teardownCluster();
     USE_VERIFICATION_THREAD.set(!USE_VERIFICATION_THREAD.get());
   }
 
@@ -166,27 +170,32 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
   public boolean testTabletServerWithStuckWatcherDies() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
 
-      // add splits to the table, which should set a StuckWatcher on the table node in zookeeper
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text("j"));
-      splits.add(new Text("t"));
-      client.tableOperations().addSplits(tableName, splits);
+      client.tableOperations().create(tableName,
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED));
+
+      // Wait a minute, the evaluator thread runs on a 30s interval to set the StuckWatcher
+      Thread.sleep(60_000);
 
       // delete the table, which should invoke the watcher
       client.tableOperations().delete(tableName);
 
-      final List<String> tservers = client.instanceOperations().getTabletServers();
+      final Set<ServerId> tservers =
+          client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
       assertEquals(1, tservers.size());
+
+      ServerId tserver = tservers.iterator().next();
 
       // Delete the lock for the TabletServer
       final ServerContext ctx = getServerContext();
-      final String zooRoot = ctx.getZooKeeperRoot();
-      ctx.getZooSession().asReaderWriter().recursiveDelete(
-          zooRoot + Constants.ZTSERVERS + "/" + tservers.get(0), NodeMissingPolicy.FAIL);
+      Set<ServiceLockPath> serverPaths =
+          ctx.getServerPaths().getTabletServer((rg) -> rg.equals(ResourceGroupId.DEFAULT),
+              AddressSelector.exact(HostAndPort.fromString(tserver.toHostPortString())), true);
+      assertEquals(1, serverPaths.size());
+      ctx.getZooSession().asReaderWriter().recursiveDelete(serverPaths.iterator().next().toString(),
+          NodeMissingPolicy.FAIL);
 
-      Wait.waitFor(() -> pingServer(client, tservers.get(0)) == false, 60_000);
+      Wait.waitFor(() -> pingServer(client, tserver.toHostPortString()) == false, 60_000);
       return true;
     }
 

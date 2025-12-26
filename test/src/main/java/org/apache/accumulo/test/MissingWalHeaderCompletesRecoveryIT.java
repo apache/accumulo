@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -35,7 +34,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -56,8 +55,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
@@ -71,7 +68,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
     // Make sure the GC doesn't delete the file before the metadata reference is added
     cfg.setProperty(Property.GC_CYCLE_START, "999999s");
@@ -82,9 +79,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   public void setupMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+          SystemTables.METADATA.tableName(), TablePermission.WRITE);
       if (!rootHasWritePermission) {
-        client.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
+        client.securityOperations().grantTablePermission("root", SystemTables.METADATA.tableName(),
             TablePermission.WRITE);
         // Make sure it propagates through ZK
         Thread.sleep(5000);
@@ -97,15 +94,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Final state doesn't match the original
       if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE)) {
+          SystemTables.METADATA.tableName(), TablePermission.WRITE)) {
         if (rootHasWritePermission) {
           // root had write permission when starting, ensure root still does
           client.securityOperations().grantTablePermission("root",
-              AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+              SystemTables.METADATA.tableName(), TablePermission.WRITE);
         } else {
           // root did not have write permission when starting, ensure that it does not
           client.securityOperations().revokeTablePermission("root",
-              AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+              SystemTables.METADATA.tableName(), TablePermission.WRITE);
         }
       }
     }
@@ -120,16 +117,17 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      java.nio.file.Path walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
+      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
+      java.nio.file.Path emptyWalog = walogServerDir.resolve(UUID.randomUUID().toString());
 
-      log.info("Created empty WAL at {}", emptyWalog.toURI());
+      log.info("Created empty WAL at {}", emptyWalog.toUri());
 
-      fs.create(new Path(emptyWalog.toURI())).close();
+      fs.create(new Path(emptyWalog.toUri())).close();
 
       assertTrue(client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE),
+          SystemTables.METADATA.tableName(), TablePermission.WRITE),
           "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
@@ -138,7 +136,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = LogEntry.fromPath(emptyWalog.toURI().toString());
+      LogEntry logEntry = LogEntry.fromPath(emptyWalog.toUri().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -149,7 +147,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       logEntry.addToMutation(m);
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(m);
       }
 
@@ -161,7 +159,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Reading the table implies that recovery completed successfully (the empty file was ignored)
       // otherwise the tablet will never come online and we won't be able to read it.
       try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals(0, Iterables.size(s));
+        assertEquals(0, s.stream().count());
       }
     }
   }
@@ -175,20 +173,21 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      java.nio.file.Path walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
+      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
+      java.nio.file.Path partialHeaderWalog = walogServerDir.resolve(UUID.randomUUID().toString());
 
-      log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
+      log.info("Created WAL with malformed header at {}", partialHeaderWalog.toUri());
 
       // Write half of the header
-      FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
+      FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toUri()));
       wal.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8), 0,
           DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
       wal.close();
 
       assertTrue(client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE),
+          SystemTables.METADATA.tableName(), TablePermission.WRITE),
           "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
@@ -197,7 +196,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = LogEntry.fromPath(partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = LogEntry.fromPath(partialHeaderWalog.toUri().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -208,7 +207,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       logEntry.addToMutation(m);
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(m);
       }
 
@@ -220,7 +219,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Reading the table implies that recovery completed successfully (the empty file was ignored)
       // otherwise the tablet will never come online and we won't be able to read it.
       try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals(0, Iterables.size(s));
+        assertEquals(0, s.stream().count());
       }
     }
   }

@@ -18,93 +18,64 @@
  */
 package org.apache.accumulo.manager.tableOps.merge;
 
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import static org.apache.accumulo.manager.ManagerClientServiceHandler.mustBeOnline;
+
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MergeInfo.Operation;
-import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableRangeOp extends ManagerRepo {
+public class TableRangeOp extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(TableRangeOp.class);
 
   private static final long serialVersionUID = 1L;
 
-  private final TableId tableId;
-  private final NamespaceId namespaceId;
-  private final byte[] startRow;
-  private final byte[] endRow;
-  private final Operation op;
+  private final MergeInfo data;
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true, TableOperation.MERGE)
-        + Utils.reserveTable(env, tableId, tid, LockType.WRITE, true, TableOperation.MERGE);
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    return Utils.reserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ, true,
+        TableOperation.MERGE)
+        + Utils.reserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE, true,
+            TableOperation.MERGE, LockRange.of(data.getReserveExtent()));
   }
 
   public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,
       Text startRow, Text endRow) {
-    this.tableId = tableId;
-    this.namespaceId = namespaceId;
-    this.startRow = TextUtil.getBytes(startRow);
-    this.endRow = TextUtil.getBytes(endRow);
-    this.op = op;
+    byte[] start = startRow.getLength() == 0 ? null : TextUtil.getBytes(startRow);
+    byte[] end = endRow.getLength() == 0 ? null : TextUtil.getBytes(endRow);
+    this.data = new MergeInfo(tableId, namespaceId, start, end, op);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
-    if (AccumuloTable.ROOT.tableId().equals(tableId) && Operation.MERGE.equals(op)) {
+    if (SystemTables.ROOT.tableId().equals(data.tableId) && data.op.isMergeOp()) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
-          AccumuloTable.ROOT.tableName());
+          SystemTables.ROOT.tableName());
     }
 
-    Text start = startRow.length == 0 ? null : new Text(startRow);
-    Text end = endRow.length == 0 ? null : new Text(endRow);
+    mustBeOnline(env.getContext(), data.tableId);
 
-    if (start != null && end != null) {
-      if (start.compareTo(end) >= 0) {
-        throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
-            TableOperation.MERGE, TableOperationExceptionType.BAD_RANGE,
-            "start row must be less than end row");
-      }
-    }
+    data.validate();
 
-    env.mustBeOnline(tableId);
-
-    MergeInfo info = env.getMergeInfo(tableId);
-
-    if (info.getState() == MergeState.NONE) {
-      KeyExtent range = new KeyExtent(tableId, end, start);
-      env.setMergeState(new MergeInfo(range, op), MergeState.STARTED);
-    }
-
-    return new TableRangeOpWait(namespaceId, tableId);
+    return new ReserveTablets(data);
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
-    // Not sure this is a good thing to do. The Manager state engine should be the one to remove it.
-    MergeInfo mergeInfo = env.getMergeInfo(tableId);
-    if (mergeInfo.getState() != MergeState.NONE) {
-      log.info("removing merge information {}", mergeInfo);
-    }
-    env.clearMergeState(tableId);
-    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
-    Utils.unreserveTable(env, tableId, tid, LockType.WRITE);
+  public void undo(FateId fateId, FateEnv env) throws Exception {
+    Utils.unreserveNamespace(env.getContext(), data.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), data.tableId, fateId, LockType.WRITE);
   }
-
 }

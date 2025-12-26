@@ -33,17 +33,17 @@ import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
-import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache.Loader;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.trace.ScanInstrumentation;
+import org.apache.accumulo.core.util.CountingInputStream;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,11 +69,10 @@ public class CachableBlockFile {
 
   public static class CachableBuilder {
     String cacheId = null;
-    IoeSupplier<InputStream> inputSupplier = null;
+    IoeSupplier<FSDataInputStream> inputSupplier = null;
     IoeSupplier<Long> lengthSupplier = null;
     Cache<String,Long> fileLenCache = null;
     volatile CacheProvider cacheProvider = CacheProvider.NULL_PROVIDER;
-    RateLimiter readLimiter = null;
     Configuration hadoopConf = null;
     CryptoService cryptoService = null;
 
@@ -109,7 +108,7 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder input(InputStream is, String cacheId) {
+    public CachableBuilder input(FSDataInputStream is, String cacheId) {
       this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
@@ -130,11 +129,6 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder readLimiter(RateLimiter readLimiter) {
-      this.readLimiter = readLimiter;
-      return this;
-    }
-
     public CachableBuilder cryptoService(CryptoService cryptoService) {
       this.cryptoService = cryptoService;
       return this;
@@ -145,7 +139,6 @@ public class CachableBlockFile {
    * Class wraps the BCFile reader.
    */
   public static class Reader implements Closeable {
-    private final RateLimiter readLimiter;
     // private BCFile.Reader _bc;
     private final String cacheId;
     private CacheProvider cacheProvider;
@@ -155,7 +148,7 @@ public class CachableBlockFile {
     private final Configuration conf;
     private final CryptoService cryptoService;
 
-    private final IoeSupplier<InputStream> inputSupplier;
+    private final IoeSupplier<FSDataInputStream> inputSupplier;
     private final IoeSupplier<Long> lengthSupplier;
     private final AtomicReference<BCFile.Reader> bcfr = new AtomicReference<>();
 
@@ -181,13 +174,13 @@ public class CachableBlockFile {
       }
     }
 
-    private BCFile.Reader getBCFile(byte[] serializedMetadata) throws IOException {
+    private BCFile.Reader getBCFile(Supplier<byte[]> cachedMetadataSupplier) throws IOException {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {
-        RateLimitedInputStream fsIn =
-            new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
+        FSDataInputStream fsIn = inputSupplier.get();
         BCFile.Reader tmpReader = null;
+        byte[] serializedMetadata = cachedMetadataSupplier.get();
         if (serializedMetadata == null) {
           if (fileLenCache == null) {
             tmpReader = new BCFile.Reader(fsIn, lengthSupplier.get(), conf, cryptoService);
@@ -223,15 +216,19 @@ public class CachableBlockFile {
     }
 
     private BCFile.Reader getBCFile() throws IOException {
-      BlockCache _iCache = cacheProvider.getIndexCache();
-      if (_iCache != null) {
-        CacheEntry mce = _iCache.getBlock(cacheId + ROOT_BLOCK_NAME, new BCFileLoader());
-        if (mce != null) {
-          return getBCFile(mce.getBuffer());
-        }
-      }
 
-      return getBCFile(null);
+      Supplier<byte[]> cachedMetadataSupplier = () -> {
+        BlockCache _iCache = cacheProvider.getIndexCache();
+        if (_iCache != null) {
+          CacheEntry mce = _iCache.getBlock(cacheId + ROOT_BLOCK_NAME, new BCFileLoader());
+          if (mce != null) {
+            return mce.getBuffer();
+          }
+        }
+        return null;
+      };
+
+      return getBCFile(cachedMetadataSupplier);
     }
 
     private class BCFileLoader implements Loader {
@@ -244,7 +241,7 @@ public class CachableBlockFile {
       @Override
       public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
         try {
-          return getBCFile(null).serializeMetadata(maxSize);
+          return getBCFile(() -> null).serializeMetadata(maxSize);
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }
@@ -300,7 +297,7 @@ public class CachableBlockFile {
     }
 
     private class MetaBlockLoader extends BaseBlockLoader {
-      String blockName;
+      final String blockName;
 
       MetaBlockLoader(String blockName) {
         super(true);
@@ -350,29 +347,24 @@ public class CachableBlockFile {
           if (reader == null) {
             if (loadingMetaBlock) {
               byte[] serializedMetadata = dependencies.get(cacheId + ROOT_BLOCK_NAME);
-              reader = getBCFile(serializedMetadata);
+              reader = getBCFile(() -> serializedMetadata);
             } else {
               reader = getBCFile();
             }
           }
 
-          BlockReader _currBlock = getBlockReader(maxSize, reader);
-          if (_currBlock == null) {
-            return null;
-          }
+          try (BlockReader _currBlock = getBlockReader(maxSize, reader)) {
+            if (_currBlock == null) {
+              return null;
+            }
 
-          byte[] b = null;
-          try {
-            b = new byte[(int) _currBlock.getRawSize()];
+            byte[] b = new byte[(int) _currBlock.getRawSize()];
             _currBlock.readFully(b);
+            return b;
           } catch (IOException e) {
             log.debug("Error full blockRead for file " + cacheId + " for block " + getBlockId(), e);
             throw new UncheckedIOException(e);
-          } finally {
-            _currBlock.close();
           }
-
-          return b;
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }
@@ -385,7 +377,6 @@ public class CachableBlockFile {
       this.lengthSupplier = b.lengthSupplier;
       this.fileLenCache = b.fileLenCache;
       this.cacheProvider = b.cacheProvider;
-      this.readLimiter = b.readLimiter;
       this.conf = b.hadoopConf;
       this.cryptoService = Objects.requireNonNull(b.cryptoService);
     }
@@ -414,7 +405,8 @@ public class CachableBlockFile {
         }
       }
 
-      BlockReader _currBlock = getBCFile(null).getMetaBlock(blockName);
+      BlockReader _currBlock = getBCFile(() -> null).getMetaBlock(blockName);
+      incrementCacheBypass(CacheType.INDEX);
       return new CachedBlockRead(_currBlock);
     }
 
@@ -430,7 +422,8 @@ public class CachableBlockFile {
         }
       }
 
-      BlockReader _currBlock = getBCFile(null).getDataBlock(offset, compressedSize, rawSize);
+      BlockReader _currBlock = getBCFile(() -> null).getDataBlock(offset, compressedSize, rawSize);
+      incrementCacheBypass(CacheType.INDEX);
       return new CachedBlockRead(_currBlock);
     }
 
@@ -453,6 +446,7 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(blockIndex);
+      incrementCacheBypass(CacheType.DATA);
       return new CachedBlockRead(_currBlock);
     }
 
@@ -469,7 +463,12 @@ public class CachableBlockFile {
       }
 
       BlockReader _currBlock = getBCFile().getDataBlock(offset, compressedSize, rawSize);
+      incrementCacheBypass(CacheType.DATA);
       return new CachedBlockRead(_currBlock);
+    }
+
+    private void incrementCacheBypass(CacheType cacheType) {
+      ScanInstrumentation.get().incrementCacheBypass(cacheType);
     }
 
     @Override
@@ -501,12 +500,22 @@ public class CachableBlockFile {
   }
 
   public static class CachedBlockRead extends DataInputStream {
+
+    private static InputStream wrapForTrace(InputStream inputStream) {
+      var scanInstrumentation = ScanInstrumentation.get();
+      if (scanInstrumentation.enabled()) {
+        return new CountingInputStream(inputStream);
+      } else {
+        return inputStream;
+      }
+    }
+
     private final SeekableByteArrayInputStream seekableInput;
     private final CacheEntry cb;
-    boolean indexable;
+    final boolean indexable;
 
     public CachedBlockRead(InputStream in) {
-      super(in);
+      super(wrapForTrace(in));
       cb = null;
       seekableInput = null;
       indexable = false;
@@ -517,7 +526,7 @@ public class CachableBlockFile {
     }
 
     private CachedBlockRead(SeekableByteArrayInputStream seekableInput, CacheEntry cb) {
-      super(seekableInput);
+      super(wrapForTrace(seekableInput));
       this.seekableInput = seekableInput;
       this.cb = cb;
       indexable = true;
@@ -545,6 +554,26 @@ public class CachableBlockFile {
 
     public void indexWeightChanged() {
       cb.indexWeightChanged();
+    }
+
+    public void flushStats() {
+      if (in instanceof CountingInputStream) {
+        var cin = ((CountingInputStream) in);
+        ScanInstrumentation.get().incrementUncompressedBytesRead(cin.getCount());
+        cin.resetCount();
+        var src = cin.getWrappedStream();
+        if (src instanceof BlockReader) {
+          var br = (BlockReader) src;
+          br.flushStats();
+        }
+
+      }
+    }
+
+    @Override
+    public void close() throws IOException {
+      flushStats();
+      super.close();
     }
   }
 }

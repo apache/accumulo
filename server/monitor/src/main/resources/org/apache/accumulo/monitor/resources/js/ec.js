@@ -37,7 +37,7 @@ $(function () {
 
   compactorsTable = $('#compactorsTable').DataTable({
     "ajax": {
-      "url": '/rest/ec/compactors',
+      "url": contextPath + 'rest/ec/compactors',
       "dataSrc": "compactors"
     },
     "stateSave": true,
@@ -61,7 +61,7 @@ $(function () {
         "data": "server"
       },
       {
-        "data": "queueName"
+        "data": "groupName"
       },
       {
         "data": "lastContact"
@@ -69,10 +69,15 @@ $(function () {
     ]
   });
 
+  const hostnameColumnName = 'hostname';
+  const queueNameColumnName = 'queueName';
+  const tableIdColumnName = 'tableId';
+  const durationColumnName = 'duration';
+
   // Create a table for running compactors
   runningTable = $('#runningTable').DataTable({
     "ajax": {
-      "url": '/rest/ec/running',
+      "url": contextPath + 'rest/ec/running',
       "dataSrc": "running"
     },
     "stateSave": true,
@@ -93,7 +98,8 @@ $(function () {
       }
     ],
     "columns": [{
-        "data": "server"
+        "data": "server",
+        "name": hostnameColumnName
       },
       {
         "data": "kind"
@@ -102,10 +108,12 @@ $(function () {
         "data": "status"
       },
       {
-        "data": "queueName"
+        "data": "queueName",
+        "name": queueNameColumnName
       },
       {
-        "data": "tableId"
+        "data": "tableId",
+        "name": tableIdColumnName
       },
       {
         "data": "numFiles"
@@ -131,7 +139,8 @@ $(function () {
         "data": "lastUpdate"
       },
       {
-        "data": "duration"
+        "data": "duration",
+        "name": durationColumnName
       },
       { // more column settings
         "class": "details-control",
@@ -142,10 +151,131 @@ $(function () {
     ]
   });
 
+  function handleFilterKeyup(input, feedbackElement, columnName) {
+    if (isValidRegex(input) || input === '') { // if valid, apply the filter
+      feedbackElement.hide();
+      $(this).removeClass('is-invalid');
+      const isRegex = true;
+      const smartEnabled = false;
+      runningTable
+        .column(`${columnName}:name`)
+        .search(input, isRegex, smartEnabled)
+        .draw();
+    } else { // if invalid, show the warning
+      feedbackElement.show();
+      $(this).addClass('is-invalid');
+    }
+  }
+
+  $('#hostname-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#hostname-feedback'), hostnameColumnName);
+  });
+
+  $('#queue-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#queue-feedback'), queueNameColumnName);
+  });
+
+  $('#tableid-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), tableIdColumnName);
+  });
+
+  $('#duration-filter').on('keyup', function () {
+    runningTable.draw();
+  });
+
+  // Clear Filters button handler
+  $('#clear-filters').on('click', function () {
+    $(this).prop('disabled', true); // disable the clear button
+
+    // set the filter inputs to empty and trigger the keyup event to clear the filters
+    $('#hostname-filter').val('').trigger('keyup');
+    $('#queue-filter').val('').trigger('keyup');
+    $('#tableid-filter').val('').trigger('keyup');
+    $('#duration-filter').val('').trigger('keyup');
+
+    $(this).prop('disabled', false); // re-enable the clear
+  });
+
+  // Custom filter function for duration
+  $.fn.dataTable.ext.search.push(function (settings, data, dataIndex) {
+    if (settings.nTable.id !== 'runningTable') {
+      return true;
+    }
+
+    const durationColIndex = runningTable.column(`${durationColumnName}:name`).index();
+    const durationStr = data[durationColIndex];
+    const durationSeconds = parseDuration(durationStr);
+
+    const input = $('#duration-filter').val().trim();
+    if (input === '') {
+      $('#duration-feedback').hide();
+      return true;
+    }
+
+    const match = validateDurationInput(input);
+    if (!match) {
+      $('#duration-feedback').show();
+      return false;
+    }
+
+    $('#duration-feedback').hide();
+    const operator = match[1];
+    const value = parseInt(match[2]);
+    const unit = match[3];
+    const filterSeconds = convertToSeconds(value, unit);
+
+    switch (operator) {
+    case '>':
+      return durationSeconds > filterSeconds;
+    case '>=':
+      return durationSeconds >= filterSeconds;
+    case '<':
+      return durationSeconds < filterSeconds;
+    case '<=':
+      return durationSeconds <= filterSeconds;
+    default:
+      console.error(`Unexpected operator "${operator}" encountered in duration filter.`);
+      return true;
+    }
+  });
+
+  // Helper function to convert duration strings to seconds
+  function convertToSeconds(value, unit) {
+    switch (unit.toLowerCase()) {
+    case 's':
+      return value;
+    case 'm':
+      return value * 60;
+    case 'h':
+      return value * 3600;
+    case 'd':
+      return value * 86400;
+    default:
+      console.error(`Unexpected unit "${unit}" encountered in duration filter. Defaulting to seconds.`);
+      return value;
+    }
+  }
+
+  // Helper function to validate duration input. Makes sure that the input is in the format of '<operator> <value> <unit>'
+  function validateDurationInput(input) {
+    return input.match(/^([<>]=?)\s*(\d+)([smhd])$/i);
+  }
+
+  /**
+   * @param {number} durationStr duration in milliseconds
+   * @returns duration in seconds
+   */
+  function parseDuration(durationStr) {
+    // Assuming durationStr is in milliseconds
+    const milliseconds = parseInt(durationStr, 10);
+    const seconds = milliseconds / 1000;
+    return seconds;
+  }
+
   // Create a table for compaction coordinator
   coordinatorTable = $('#coordinatorTable').DataTable({
     "ajax": {
-      "url": '/rest/ec',
+      "url": contextPath + 'rest/ec',
       "dataSrc": function (data) {
         // the data needs to be in an array to work with DataTables
         var arr = [];
@@ -275,7 +405,7 @@ async function refreshCoordinatorStatus() {
 }
 
 function getRunningDetails(ecid, idSuffix) {
-  var ajaxUrl = '/rest/ec/details?ecid=' + ecid;
+  var ajaxUrl = contextPath + 'rest/ec/details?ecid=' + ecid;
   console.log("Ajax call to " + ajaxUrl);
   $.getJSON(ajaxUrl, function (data) {
     populateDetails(data, idSuffix);
@@ -342,4 +472,14 @@ function refreshRunning() {
   console.log("Refresh running compactions table.");
   // user paging is not reset on reload
   ajaxReloadTable(runningTable);
+}
+
+// Helper function to validate regex
+function isValidRegex(input) {
+  try {
+    new RegExp(input);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

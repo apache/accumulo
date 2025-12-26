@@ -23,13 +23,14 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.LoggerFactory;
 
-class ClonePermissions extends ManagerRepo {
+class ClonePermissions extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -40,18 +41,18 @@ class ClonePermissions extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
         environment.getContext().getSecurityOperation().grantTablePermission(
-            environment.getContext().rpcCreds(), cloneInfo.user, cloneInfo.tableId,
-            cloneInfo.tableName, permission, cloneInfo.namespaceId);
+            environment.getContext().rpcCreds(), cloneInfo.getUser(), cloneInfo.getTableId(),
+            cloneInfo.getTableName(), permission, cloneInfo.getNamespaceId());
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ClonePermissions.class).error("{}", e.getMessage(), e);
         throw e;
@@ -64,15 +65,15 @@ class ClonePermissions extends ManagerRepo {
     try {
       return new CloneZookeeper(cloneInfo, environment.getContext());
     } catch (NamespaceNotFoundException e) {
-      throw new AcceptableThriftTableOperationException(null, cloneInfo.tableName,
+      throw new AcceptableThriftTableOperationException(null, cloneInfo.getTableName(),
           TableOperation.CLONE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
           "Namespace for target table not found");
     }
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     environment.getContext().getSecurityOperation().deleteTable(environment.getContext().rpcCreds(),
-        cloneInfo.tableId, cloneInfo.namespaceId);
+        cloneInfo.getTableId(), cloneInfo.getNamespaceId());
   }
 }

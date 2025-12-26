@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.core.data;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
+
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * A strongly typed representation of a table ID. This class cannot be used to get a table ID from a
@@ -33,7 +35,8 @@ public class TableId extends AbstractId<TableId> {
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of TableId objects in the JVM at any given moment
   // WeakReferences are used because we don't need them to stick around any longer than they need to
-  static final Cache<String,TableId> cache = Caffeine.newBuilder().weakValues().build();
+  static final Cache<String,TableId> cache =
+      Caches.getInstance().createNewBuilder(CacheName.TABLE_ID, false).weakValues().build();
 
   private TableId(final String canonical) {
     super(canonical);

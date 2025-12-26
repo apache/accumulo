@@ -23,6 +23,7 @@ import static org.apache.accumulo.test.functional.ReadWriteIT.ingest;
 import static org.apache.accumulo.test.functional.ReadWriteIT.m;
 import static org.apache.accumulo.test.functional.ReadWriteIT.t;
 import static org.apache.accumulo.test.functional.ReadWriteIT.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -48,8 +49,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -101,11 +102,23 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       accumuloClient.tableOperations().create(tableName);
-      Map<String,Set<Text>> groups = new TreeMap<>();
-      groups.put("g1", Collections.singleton(t("colf")));
-      accumuloClient.tableOperations().setLocalityGroups(tableName, groups);
+      createAndSetLocalityGroups(accumuloClient, tableName);
+      verifyLocalityGroupSet(accumuloClient, tableName);
       verifyLocalityGroupsInRFile(accumuloClient, tableName);
     }
+  }
+
+  public static void createAndSetLocalityGroups(AccumuloClient client, String tableName)
+      throws Exception {
+    Map<String,Set<Text>> groups = new TreeMap<>();
+    groups.put("g1", Collections.singleton(t("colf")));
+    client.tableOperations().setLocalityGroups(tableName, groups);
+  }
+
+  public static void verifyLocalityGroupSet(AccumuloClient client, String tableName)
+      throws Exception {
+    assertEquals(Collections.singleton(t("colf")),
+        client.tableOperations().getLocalityGroups(tableName).get("g1"));
   }
 
   /**
@@ -132,7 +145,7 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
     verify(accumuloClient, 2000, 1, 50, 0, tableName);
     accumuloClient.tableOperations().flush(tableName, null, null, true);
     try (BatchScanner bscanner = accumuloClient
-        .createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 1)) {
+        .createBatchScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY, 1)) {
       String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));

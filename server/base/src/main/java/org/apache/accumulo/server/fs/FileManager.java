@@ -52,6 +52,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
@@ -63,12 +64,12 @@ public class FileManager {
 
   private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 
-  private final int maxOpen;
+  private int maxOpen;
 
   private static class OpenReader implements Comparable<OpenReader> {
-    long releaseTime;
-    FileSKVIterator reader;
-    StoredTabletFile file;
+    final long releaseTime;
+    final FileSKVIterator reader;
+    final StoredTabletFile file;
 
     public OpenReader(StoredTabletFile file, FileSKVIterator reader) {
       this.file = file;
@@ -95,15 +96,15 @@ public class FileManager {
     }
   }
 
-  private final Map<StoredTabletFile,List<OpenReader>> openFiles;
-  private final HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
+  private Map<StoredTabletFile,List<OpenReader>> openFiles;
+  private HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
 
-  private final Semaphore filePermits;
+  private Semaphore filePermits;
 
-  private final Cache<String,Long> fileLenCache;
+  private Cache<String,Long> fileLenCache;
 
-  private final long maxIdleTime;
-  private final long slowFilePermitMillis;
+  private long maxIdleTime;
+  private long slowFilePermitMillis;
 
   private final ServerContext context;
 
@@ -294,12 +295,13 @@ public class FileManager {
     // limitations
     closeReaders(filesToClose);
 
+    TableConfiguration tableConf = context.getTableConfiguration(tablet.tableId());
+
     // open any files that need to be opened
     for (StoredTabletFile file : filesToOpen) {
       try {
         FileSystem ns = context.getVolumeManager().getFileSystemByPath(file.getPath());
         // log.debug("Opening "+file + " path " + path);
-        var tableConf = context.getTableConfiguration(tablet.tableId());
         FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
             .forFile(file, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).withCacheProvider(cacheProvider)

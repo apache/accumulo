@@ -24,23 +24,19 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
-import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,7 +64,9 @@ public class FindOfflineTablets {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
-    LiveTServerSet tservers = new LiveTServerSet(context, new Listener() {
+    LiveTServerSet tservers = new LiveTServerSet(context);
+
+    tservers.startListeningForTabletServerChanges(new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
@@ -80,64 +78,61 @@ public class FindOfflineTablets {
         }
       }
     });
-    tservers.startListeningForTabletServerChanges();
     scanning.set(true);
-
-    Iterator<TabletLocationState> zooScanner =
-        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).iterator();
 
     int offline = 0;
 
     if (!skipZkScan) {
-      printInfoMethod.accept("Scanning zookeeper");
-      if ((offline = checkTablets(context, zooScanner, tservers, printProblemMethod)) > 0) {
-        return offline;
+      try (TabletsMetadata tabletsMetadata =
+          context.getAmple().readTablets().forLevel(DataLevel.ROOT).build()) {
+        printInfoMethod.accept("Scanning zookeeper");
+        if ((offline =
+            checkTablets(context, tabletsMetadata.iterator(), tservers, printProblemMethod)) > 0) {
+          return offline;
+        }
       }
     }
 
-    if (AccumuloTable.ROOT.tableName().equals(tableName)) {
+    if (SystemTables.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
     if (!skipRootScan) {
-      printInfoMethod.accept("Scanning " + AccumuloTable.ROOT.tableName());
-      Iterator<TabletLocationState> rootScanner = new MetaDataTableScanner(context,
-          TabletsSection.getRange(), AccumuloTable.ROOT.tableName());
-      if ((offline = checkTablets(context, rootScanner, tservers, printProblemMethod)) > 0) {
-        return offline;
+      printInfoMethod.accept("Scanning " + SystemTables.ROOT.tableName());
+      try (TabletsMetadata tabletsMetadata =
+          context.getAmple().readTablets().forLevel(DataLevel.METADATA).build()) {
+        if ((offline =
+            checkTablets(context, tabletsMetadata.iterator(), tservers, printProblemMethod)) > 0) {
+          return offline;
+        }
       }
     }
 
-    if (AccumuloTable.METADATA.tableName().equals(tableName)) {
+    if (SystemTables.METADATA.tableName().equals(tableName)) {
       return 0;
     }
 
-    printInfoMethod.accept("Scanning " + AccumuloTable.METADATA.tableName());
+    printInfoMethod.accept("Scanning " + SystemTables.METADATA.tableName());
 
-    Range range = TabletsSection.getRange();
-    if (tableName != null) {
-      TableId tableId = context.getTableId(tableName);
-      range = new KeyExtent(tableId, null, null).toMetaRange();
-    }
-
-    try (MetaDataTableScanner metaScanner =
-        new MetaDataTableScanner(context, range, AccumuloTable.METADATA.tableName())) {
-      return checkTablets(context, metaScanner, tservers, printProblemMethod);
+    try (var metaScanner = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+      return checkTablets(context, metaScanner.iterator(), tservers, printProblemMethod);
     }
   }
 
-  private static int checkTablets(ServerContext context, Iterator<TabletLocationState> scanner,
+  private static int checkTablets(ServerContext context, Iterator<TabletMetadata> scanner,
       LiveTServerSet tservers, Consumer<String> printProblemMethod) {
     int offline = 0;
 
     while (scanner.hasNext() && !System.out.checkError()) {
-      TabletLocationState locationState = scanner.next();
-      TabletState state = locationState.getState(tservers.getCurrentServers());
+      TabletMetadata tabletMetadata = scanner.next();
+      Set<TServerInstance> liveTServers = tservers.getCurrentServers();
+      TabletState state = TabletState.compute(tabletMetadata, liveTServers);
       if (state != null && state != TabletState.HOSTED
-          && context.getTableManager().getTableState(locationState.extent.tableId())
-              != TableState.OFFLINE) {
-        printProblemMethod
-            .accept(locationState + " is " + state + "  #walogs:" + locationState.walogs.size());
+          && tabletMetadata.getTabletAvailability() == TabletAvailability.HOSTED
+          && context.getTableManager().getTableState(tabletMetadata.getTableId())
+              == TableState.ONLINE) {
+        printProblemMethod.accept(tabletMetadata.getExtent() + " is " + state + "  #walogs:"
+            + tabletMetadata.getLogs().size());
         offline++;
       }
     }

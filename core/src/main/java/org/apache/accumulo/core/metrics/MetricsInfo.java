@@ -23,12 +23,24 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Tag;
 
 public interface MetricsInfo {
+
+  String INSTANCE_NAME_TAG_KEY = "instance.name";
+  String PROCESS_NAME_TAG_KEY = "process.name";
+  String RESOURCE_GROUP_TAG_KEY = "resource.group";
+  String HOST_TAG_KEY = "host";
+  String PORT_TAG_KEY = "port";
+
+  Set<String> allTags = Set.of(INSTANCE_NAME_TAG_KEY, PROCESS_NAME_TAG_KEY, RESOURCE_GROUP_TAG_KEY,
+      HOST_TAG_KEY, PORT_TAG_KEY);
 
   /**
    * Convenience method to create tag name / value pair for the instance name
@@ -38,7 +50,7 @@ public interface MetricsInfo {
   static Tag instanceNameTag(final String instanceName) {
     Objects.requireNonNull(instanceName,
         "cannot create the tag without providing the instance name");
-    return Tag.of("instance.name", instanceName);
+    return Tag.of(INSTANCE_NAME_TAG_KEY, instanceName);
   }
 
   /**
@@ -48,7 +60,7 @@ public interface MetricsInfo {
    */
   static Tag processTag(final String processName) {
     Objects.requireNonNull(processName, "cannot create the tag without providing the process name");
-    return Tag.of("process.name", processName);
+    return Tag.of(PROCESS_NAME_TAG_KEY, processName);
   }
 
   /**
@@ -56,11 +68,11 @@ public interface MetricsInfo {
    *
    * @param resourceGroupName the resource group name
    */
-  static Tag resourceGroupTag(final String resourceGroupName) {
-    if (resourceGroupName == null || resourceGroupName.isEmpty()) {
-      return Tag.of("resource.group", "NOT_PROVIDED");
+  static Tag resourceGroupTag(final ResourceGroupId resourceGroupName) {
+    if (resourceGroupName == null) {
+      return Tag.of(RESOURCE_GROUP_TAG_KEY, "NOT_PROVIDED");
     }
-    return Tag.of("resource.group", resourceGroupName);
+    return Tag.of(RESOURCE_GROUP_TAG_KEY, resourceGroupName.canonical());
   }
 
   /**
@@ -72,10 +84,10 @@ public interface MetricsInfo {
   static List<Tag> addressTags(final HostAndPort hostAndPort) {
     Objects.requireNonNull(hostAndPort, "cannot create the tag without providing the hostAndPort");
     List<Tag> tags = new ArrayList<>(2);
-    tags.add(Tag.of("host", hostAndPort.getHost()));
+    tags.add(Tag.of(HOST_TAG_KEY, hostAndPort.getHost()));
     int port = hostAndPort.getPort();
     if (port != 0) {
-      tags.add(Tag.of("port", Integer.toString(hostAndPort.getPort())));
+      tags.add(Tag.of(PORT_TAG_KEY, Integer.toString(hostAndPort.getPort())));
     }
     return Collections.unmodifiableList(tags);
   }
@@ -86,7 +98,7 @@ public interface MetricsInfo {
    * Common tags for all services.
    */
   static Collection<Tag> serviceTags(final String instanceName, final String applicationName,
-      final HostAndPort hostAndPort, final String resourceGroupName) {
+      final HostAndPort hostAndPort, final ResourceGroupId resourceGroupName) {
     List<Tag> tags = new ArrayList<>();
     tags.add(instanceNameTag(instanceName));
     tags.add(processTag(applicationName));

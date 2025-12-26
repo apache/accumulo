@@ -32,11 +32,15 @@ import org.apache.accumulo.monitor.rest.tables.CompactionsTypes;
 import org.apache.accumulo.monitor.rest.trace.RecoveryStatusInformation;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Generates tserver information
  *
  * @since 2.0.0
  */
+@SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
+    justification = "public member variables only referenced from tests, class used for serialization")
 public class TabletServerInformation {
 
   // Variable names become JSON keys
@@ -68,16 +72,11 @@ public class TabletServerInformation {
   public Integer scansQueued;
   // combo string with running value and number queued in parenthesis
   public String minorCombo;
-  public String majorCombo;
   public String scansCombo;
   public Integer minorRunning;
   public Integer minorQueued;
 
-  public Integer majorRunning;
-  public Integer majorQueued;
-
   private CompactionsList scansCompacting; // if scans is removed, change scansCompacting to scans
-  private CompactionsList major;
   private CompactionsList minor;
   public long entries;
   public long lookups;
@@ -136,13 +135,7 @@ public class TabletServerInformation {
 
     this.minor = new CompactionsList(this.minorRunning, this.minorQueued);
 
-    this.majorRunning = summary.majors != null ? summary.majors.running : 0;
-    this.majorQueued = summary.majors != null ? summary.majors.queued : 0;
-    this.majorCombo = majorRunning + "(" + majorQueued + ")";
-
-    this.major = new CompactionsList(this.majorRunning, this.majorQueued);
-
-    this.compactions = new CompactionsTypes(scansCompacting, major, minor);
+    this.compactions = new CompactionsTypes(scansCompacting, minor);
 
     this.osload = thriftStatus.osLoad;
     this.version = thriftStatus.version;

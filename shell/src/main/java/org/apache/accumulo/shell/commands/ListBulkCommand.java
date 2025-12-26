@@ -18,10 +18,6 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -34,7 +30,8 @@ import org.apache.commons.cli.Options;
 
 public class ListBulkCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt;
+  private Option tserverOption;
+  private Option disablePaginationOpt;
 
   @Override
   public String description() {
@@ -45,8 +42,6 @@ public class ListBulkCommand extends Command {
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    List<String> tservers;
-
     ClientContext context = shellState.getContext();
     ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
@@ -54,13 +49,12 @@ public class ListBulkCommand extends Command {
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<>();
-      tservers.add(cl.getOptionValue(tserverOption.getOpt()));
-    } else {
-      tservers = Collections.emptyList();
+      shellState.getWriter().print(tserverOption.getOpt()
+          + " option is deprecated and will be removed in a future release.\n");
+      shellState.getWriter().flush();
     }
 
-    shellState.printLines(new BulkImportListIterator(tservers, stats), paginate);
+    shellState.printLines(new BulkImportListIterator(stats), paginate);
     return 0;
   }
 

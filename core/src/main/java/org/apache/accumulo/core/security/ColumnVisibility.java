@@ -98,7 +98,7 @@ public class ColumnVisibility {
   /**
    * The node types in a parse tree for a visibility expression.
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public enum NodeType {
     EMPTY, TERM, OR, AND,
   }
@@ -111,14 +111,14 @@ public class ColumnVisibility {
   /**
    * A node in the parse tree for a visibility expression.
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static class Node {
     /**
      * An empty list of nodes.
      */
     public static final List<Node> EMPTY = Collections.emptyList();
-    NodeType type;
-    int start;
+    final NodeType type;
+    final int start;
     int end;
     List<Node> children = EMPTY;
 
@@ -178,11 +178,11 @@ public class ColumnVisibility {
    * A node comparator. Nodes sort according to node type, terms sort lexicographically. AND and OR
    * nodes sort by number of children, or if the same by corresponding children.
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static class NodeComparator implements Comparator<Node>, Serializable {
 
     private static final long serialVersionUID = 1L;
-    byte[] text;
+    final byte[] text;
 
     /**
      * Creates a new comparator.
@@ -226,7 +226,7 @@ public class ColumnVisibility {
    * Convenience method that delegates to normalize with a new NodeComparator constructed using the
    * supplied expression.
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static Node normalize(Node root, byte[] expression) {
     return normalize(root, expression, new NodeComparator(expression));
   }
@@ -239,7 +239,7 @@ public class ColumnVisibility {
    *  3) dedupes labels (`a&b&a` becomes `a&b`)
    */
   // @formatter:on
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
     if (root.type != NodeType.TERM) {
       TreeSet<Node> rolledUp = new TreeSet<>(comparator);
@@ -268,7 +268,7 @@ public class ColumnVisibility {
    * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This
    * method adds parens where necessary.
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static void stringify(Node root, byte[] expression, StringBuilder out) {
     if (root.type == NodeType.TERM) {
       out.append(new String(expression, root.start, root.end - root.start, UTF_8));
@@ -295,9 +295,12 @@ public class ColumnVisibility {
    *
    * @return normalized expression in byte[] form
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public byte[] flatten() {
-    return AccessExpression.of(expression, true).getExpression().getBytes(UTF_8);
+    Node normRoot = normalize(nodeSupplier.get(), expression);
+    StringBuilder builder = new StringBuilder(expression.length);
+    stringify(normRoot, expression, builder);
+    return builder.toString().getBytes(UTF_8);
   }
 
   @Deprecated
@@ -532,7 +535,7 @@ public class ColumnVisibility {
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ColumnVisibility(AccessExpression expression) {
     // AccessExpression is a validated immutable object, so no need to re validate
@@ -577,7 +580,7 @@ public class ColumnVisibility {
    *
    * @return parse tree node
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public Node getParseTree() {
     return nodeSupplier.get();
   }
@@ -602,7 +605,7 @@ public class ColumnVisibility {
    * @return quoted term (unquoted if unnecessary)
    * @deprecated use {@link AccessExpression#quote(String)}
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static String quote(String term) {
     return AccessExpression.quote(term);
   }
@@ -616,7 +619,7 @@ public class ColumnVisibility {
    * @see #quote(String)
    * @deprecated use {@link AccessExpression#quote(byte[])}
    */
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   public static byte[] quote(byte[] term) {
     return AccessExpression.quote(term);
   }

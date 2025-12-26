@@ -22,6 +22,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.util.ClassUtil;
 
 /**
  * Utility method to ensure that the instance of TCredentials which is passed to the implementation
@@ -37,7 +38,7 @@ public class TCredentialsUpdatingWrapper {
 
     @SuppressWarnings("unchecked")
     T proxiedInstance = (T) Proxy.newProxyInstance(originalClass.getClassLoader(),
-        originalClass.getInterfaces(), handler);
+        ClassUtil.getInterfaces(instance.getClass()).toArray(new Class<?>[0]), handler);
 
     return proxiedInstance;
   }

@@ -19,25 +19,34 @@
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CleanUpBulkImport extends ManagerRepo {
+public class CleanUpBulkImport extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -50,43 +59,90 @@ public class CleanUpBulkImport extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
-    log.debug("{} removing the bulkDir processing flag file in {}", FateTxId.formatTid(tid),
-        info.bulkDir);
-    Ample ample = manager.getContext().getAmple();
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    env.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
+    log.debug("{} removing the bulkDir processing flag file in {}", fateId, info.bulkDir);
+    Ample ample = env.getContext().getAmple();
     Path bulkDir = new Path(info.bulkDir);
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
     ample.putGcFileAndDirCandidates(info.tableId,
         Collections.singleton(ReferenceFile.forFile(info.tableId, bulkDir)));
-    if (info.tableState == TableState.ONLINE) {
 
-      Text firstSplit = info.firstSplit == null ? null : new Text(info.firstSplit);
-      Text lastSplit = info.lastSplit == null ? null : new Text(info.lastSplit);
+    Text firstSplit = info.firstSplit == null ? null : new Text(info.firstSplit);
+    Text lastSplit = info.lastSplit == null ? null : new Text(info.lastSplit);
 
-      log.debug("{} removing the metadata table markers for loaded files in range {} {}",
-          FateTxId.formatTid(tid), firstSplit, lastSplit);
+    log.debug("{} removing the metadata table markers for loaded files in range {} {}", fateId,
+        firstSplit, lastSplit);
+    removeBulkLoadEntries(ample, info.tableId, fateId, firstSplit, lastSplit);
 
-      ample.removeBulkLoadEntries(info.tableId, tid, firstSplit, lastSplit);
-    }
-    Utils.unreserveHdfsDirectory(manager, info.sourceDir, tid);
-    Utils.getReadLock(manager, info.tableId, tid).unlock();
+    Utils.unreserveHdfsDirectory(env.getContext(), info.sourceDir, fateId);
+    Utils.getReadLock(env.getContext(), info.tableId, fateId, LockRange.infinite()).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
     try {
-      manager.getVolumeManager().delete(renamingFile);
-      manager.getVolumeManager().delete(mappingFile);
+      env.getVolumeManager().delete(renamingFile);
+      env.getVolumeManager().delete(mappingFile);
     } catch (IOException ioe) {
-      log.debug("{} Failed to delete renames and/or loadmap", FateTxId.formatTid(tid), ioe);
+      log.debug("{} Failed to delete renames and/or loadmap", fateId, ioe);
     }
 
-    log.debug("completing bulkDir import transaction " + FateTxId.formatTid(tid));
-    if (info.tableState == TableState.ONLINE) {
-      ZooArbitrator.cleanup(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
-    }
-    manager.removeBulkImportStatus(info.sourceDir);
+    log.debug("completing bulkDir import transaction " + fateId);
+    env.removeBulkImportStatus(info.sourceDir);
     return null;
+  }
+
+  private static void removeBulkLoadEntries(Ample ample, TableId tableId, FateId fateId,
+      Text firstSplit, Text lastSplit) {
+
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+        .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(1)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
+
+    while (true) {
+      try (
+          var tablets = ample.readTablets().forTable(tableId).overlapping(firstSplit, lastSplit)
+              .checkConsistency().fetch(ColumnType.PREV_ROW, ColumnType.LOADED).build();
+          var tabletsMutator = ample.conditionallyMutateTablets()) {
+
+        for (var tablet : tablets) {
+          if (tablet.getLoaded().values().stream()
+              .anyMatch(loadedFateId -> loadedFateId.equals(fateId))) {
+            var tabletMutator =
+                tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
+            tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
+                .peek(entry -> BulkLogger.deletingLoadEntry(tablet.getExtent(), entry))
+                .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
+            tabletMutator.submit(tm -> false, () -> "remove bulk load entries " + fateId);
+          }
+        }
+
+        var results = tabletsMutator.process();
+
+        if (results.values().stream()
+            .anyMatch(condResult -> condResult.getStatus() != Status.ACCEPTED)) {
+
+          results.forEach((extent, condResult) -> {
+            if (condResult.getStatus() != Status.ACCEPTED) {
+              var metadata = Optional.ofNullable(condResult.readMetadata());
+              log.debug("Tablet update failed {} {} {} {} ", fateId, extent, condResult.getStatus(),
+                  metadata.map(TabletMetadata::getOperationId).map(AbstractId::toString)
+                      .orElse("tablet is gone"));
+            }
+          });
+
+          try {
+            retry.waitForNextAttempt(log,
+                String.format("%s tableId:%s conditional mutations to delete load markers failed.",
+                    fateId, tableId));
+          } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+          }
+        } else {
+          break;
+        }
+      }
+    }
   }
 }

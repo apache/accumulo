@@ -25,13 +25,12 @@ import java.net.HttpURLConnection;
 import java.net.Socket;
 import java.net.URL;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -138,9 +137,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          List<String> locks = cluster.getServerContext().getZooSession().asReader()
-              .getChildren(cluster.getServerContext().getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
-          if (!locks.isEmpty()) {
+          ServiceLockPath managerLockPath = getServerContext().getServerPaths().getManager(true);
+          if (managerLockPath != null) {
             break;
           }
         } catch (Exception e) {
@@ -196,9 +194,8 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       // Wait for the Manager to grab its lock
       while (true) {
         try {
-          List<String> locks = cluster.getServerContext().getZooSession().asReader()
-              .getChildren(cluster.getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
-          if (!locks.isEmpty()) {
+          ServiceLockPath slp = getServerContext().getServerPaths().getGarbageCollector(true);
+          if (slp != null) {
             break;
           }
         } catch (Exception e) {
@@ -247,23 +244,21 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
   private Process startProcess(MiniAccumuloClusterImpl cluster, ServerType serverType, int port)
       throws IOException {
     final Property property;
-    final Class<?> service;
-    switch (serverType) {
-      case MONITOR:
+    final Class<?> service = switch (serverType) {
+      case MONITOR -> {
         property = Property.MONITOR_PORT;
-        service = Monitor.class;
-        break;
-      case MANAGER:
+        yield Monitor.class;
+      }
+      case MANAGER -> {
         property = Property.MANAGER_CLIENTPORT;
-        service = Manager.class;
-        break;
-      case GARBAGE_COLLECTOR:
+        yield Manager.class;
+      }
+      case GARBAGE_COLLECTOR -> {
         property = Property.GC_PORT;
-        service = SimpleGarbageCollector.class;
-        break;
-      default:
-        throw new IllegalArgumentException("Irrelevant server type for test");
-    }
+        yield SimpleGarbageCollector.class;
+      }
+      default -> throw new IllegalArgumentException("Irrelevant server type for test");
+    };
 
     return cluster._exec(service, serverType, Map.of(property.getKey(), Integer.toString(port)))
         .getProcess();

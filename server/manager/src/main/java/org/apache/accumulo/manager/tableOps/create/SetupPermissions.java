@@ -19,15 +19,15 @@
 package org.apache.accumulo.manager.tableOps.create;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.slf4j.LoggerFactory;
 
-class SetupPermissions extends ManagerRepo {
+class SetupPermissions extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -38,9 +38,9 @@ class SetupPermissions extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // give all table permissions to the creator
-    SecurityOperation security = env.getContext().getSecurityOperation();
+    var security = env.getContext().getSecurityOperation();
     if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())) {
       for (TablePermission permission : TablePermission.values()) {
         try {
@@ -61,7 +61,7 @@ class SetupPermissions extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     env.getContext().getSecurityOperation().deleteTable(env.getContext().rpcCreds(),
         tableInfo.getTableId(), tableInfo.getNamespaceId());
   }

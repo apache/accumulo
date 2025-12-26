@@ -27,6 +27,7 @@ struct DeadServer {
   1:string server
   2:i64 lastStatus
   3:string status
+  4:string resourceGroup
 }
 
 struct TabletSplit {
@@ -48,24 +49,26 @@ enum TabletLoadState {
   UNLOAD_ERROR
 }
 
-enum FateOperation {
-  TABLE_CREATE
-  TABLE_CLONE
-  TABLE_DELETE
-  TABLE_RENAME
-  TABLE_ONLINE
-  TABLE_OFFLINE
-  TABLE_MERGE
-  TABLE_DELETE_RANGE
-  OBSOLETE_TABLE_BULK_IMPORT
-  TABLE_COMPACT
-  TABLE_IMPORT
-  TABLE_EXPORT
-  TABLE_CANCEL_COMPACT
-  NAMESPACE_CREATE
-  NAMESPACE_DELETE
-  NAMESPACE_RENAME
-  TABLE_BULK_IMPORT2
+enum TFateOperation {
+  TABLE_CREATE = 0
+  TABLE_CLONE = 1
+  TABLE_DELETE = 2
+  TABLE_RENAME = 3
+  TABLE_ONLINE = 4
+  TABLE_OFFLINE = 5
+  TABLE_MERGE = 6
+  TABLE_DELETE_RANGE = 7
+  // 8 was bulk v1 that was removed
+  TABLE_COMPACT = 9
+  TABLE_IMPORT = 10
+  TABLE_EXPORT = 11
+  TABLE_CANCEL_COMPACT = 12
+  NAMESPACE_CREATE = 13
+  NAMESPACE_DELETE = 14
+  NAMESPACE_RENAME = 15
+  TABLE_BULK_IMPORT2 = 16
+  TABLE_TABLET_AVAILABILITY = 17
+  TABLE_SPLIT = 18
 }
 
 enum ManagerState {
@@ -99,7 +102,6 @@ struct TableInfo {
   7:double queryRate
   8:double queryByteRate
   9:Compacting minors
-  10:Compacting majors
   11:Compacting scans
   12:double scanRate
 }
@@ -147,7 +149,6 @@ struct TabletServerStatus {
   14:list<RecoveryStatus> logSorts
   15:i64 flushs
   16:i64 syncs
-  17:list<BulkImportStatus> bulkImports
   19:string version
   18:i64 responseTime
 }
@@ -164,12 +165,30 @@ struct ManagerMonitorInfo {
   9:list<BulkImportStatus> bulkImports
 }
 
+enum TFateInstanceType {
+  META
+  USER
+}
+
+struct TFateId {
+  1:TFateInstanceType type
+  2:string txUUIDStr
+}
+
+struct TTabletMergeability {
+  // Use a flag for "never" instead of something like a -1 delay
+  // in case we want to change how we represent never in the future
+  1:bool never
+  2:i64 delay
+}
+
 service FateService {
 
   // register a fate operation by reserving an opid
-  i64 beginFateOperation(
+  TFateId beginFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
+    3:TFateInstanceType type
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
@@ -179,8 +198,8 @@ service FateService {
   void executeFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
-    4:FateOperation op
+    3:TFateId opid
+    4:TFateOperation op
     5:list<binary> arguments
     6:map<string, string> options
     7:bool autoClean
@@ -194,7 +213,7 @@ service FateService {
   string waitForFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
@@ -205,7 +224,7 @@ service FateService {
   void finishFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
@@ -215,7 +234,7 @@ service FateService {
   bool cancelFateOperation(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:i64 opid
+    3:TFateId opid
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
@@ -351,6 +370,16 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
+  
+  void tabletServerStopping(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tabletServer
+    4:string resourceGroup
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
 
   void setSystemProperty(
     1:client.TInfo tinfo
@@ -383,6 +412,63 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+  void createResourceGroupNode(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+  
+  void removeResourceGroupNode(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftResourceGroupNotExistsException rgne    
+  )
+    
+  void setResourceGroupProperty(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+    4:string property
+    5:string value
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:ThriftPropertyException tpe
+    4:client.ThriftResourceGroupNotExistsException rgne
+  )
+ 
+  void modifyResourceGroupProperties(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+    4:client.TVersionedProperties vProperties
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftConcurrentModificationException tcme
+    4:ThriftPropertyException tpe
+    5:client.ThriftResourceGroupNotExistsException rgne
+  )
+
+  void removeResourceGroupProperty(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+    4:string property
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftResourceGroupNotExistsException rgne
+  )
+
+
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
     1:client.TInfo tinfo
@@ -396,14 +482,6 @@ service ManagerClientService {
     1:client.TInfo tinfo
   ) throws (
     1:client.ThriftNotActiveServiceException tnase
-  )
-
-  // tablet server reporting
-  oneway void reportSplitExtent(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string serverName
-    4:TabletSplit split
   )
 
   oneway void reportTabletStatus(
@@ -432,4 +510,30 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+  void requestTabletHosting(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableId
+    4:list<data.TKeyExtent> extents
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException toe
+  )
+
+  list<data.TKeyExtent> updateTabletMergeability(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+    4:map<data.TKeyExtent,TTabletMergeability> splits
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException toe
+  )
+
+  i64 getManagerTimeNanos(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
 }

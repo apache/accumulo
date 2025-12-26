@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -114,6 +115,7 @@ public class MetricsInfoImpl implements MetricsInfo {
     Objects.requireNonNull(tags);
 
     if (!metricsEnabled) {
+      ThreadPools.getServerThreadPools().disableThreadPoolMetrics();
       LOG.info("Metrics not initialized, metrics are disabled.");
       return;
     }
@@ -121,6 +123,22 @@ public class MetricsInfoImpl implements MetricsInfo {
     if (commonTags != null) {
       LOG.warn("metrics registry has already been initialized");
       return;
+    }
+
+    var userTags = context.getConfiguration().get(Property.GENERAL_MICROMETER_USER_TAGS);
+    if (!userTags.isEmpty()) {
+      tags = new ArrayList<>(tags);
+      String[] userTagList = userTags.split(",");
+      for (String userTag : userTagList) {
+        String[] tagParts = userTag.split("=");
+        if (tagParts.length == 2) {
+          Tag tag = Tag.of(tagParts[0], tagParts[1]);
+          tags.add(tag);
+        } else {
+          LOG.warn("Malformed user metric tag: {} in property {}", userTag,
+              Property.GENERAL_MICROMETER_USER_TAGS.getKey());
+        }
+      }
     }
 
     commonTags = List.copyOf(tags);
@@ -145,6 +163,9 @@ public class MetricsInfoImpl implements MetricsInfo {
         LOG.warn("Could not load registry {}", factoryName, ex);
       }
     }
+
+    // Set the MeterRegistry on the ThreadPools
+    ThreadPools.getServerThreadPools().setMeterRegistry(Metrics.globalRegistry);
 
     if (jvmMetricsEnabled) {
       LOG.info("enabling detailed jvm, classloader, jvm gc and process metrics");

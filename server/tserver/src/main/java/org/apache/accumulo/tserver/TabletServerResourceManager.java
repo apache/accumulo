@@ -24,11 +24,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_DEFAULT_SPLIT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_ASSIGNMENT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.METADATA_TABLET_MIGRATION_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TABLET_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_META_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_ROOT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_FILE_RETRIEVER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL;
@@ -48,8 +49,10 @@ import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Queue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.PriorityBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -64,9 +67,11 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.ScanExecutorConfig;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
 import org.apache.accumulo.core.file.blockfile.impl.ScanCacheProvider;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -80,6 +85,7 @@ import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -95,7 +101,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Suppliers;
 
@@ -109,8 +114,6 @@ public class TabletServerResourceManager {
   private static final Logger log = LoggerFactory.getLogger(TabletServerResourceManager.class);
 
   private final ThreadPoolExecutor minorCompactionThreadPool;
-  private final ThreadPoolExecutor splitThreadPool;
-  private final ThreadPoolExecutor defaultSplitThreadPool;
   private final ThreadPoolExecutor defaultMigrationPool;
   private final ThreadPoolExecutor migrationPool;
   private final ThreadPoolExecutor assignmentPool;
@@ -121,6 +124,8 @@ public class TabletServerResourceManager {
 
   private final Map<String,ThreadPoolExecutor> scanExecutors;
   private final Map<String,ScanExecutor> scanExecutorChoices;
+
+  private final Map<Ample.DataLevel,ThreadPoolExecutor> conditionalMutationExecutors;
 
   private final ConcurrentHashMap<KeyExtent,RunnableStartedAt> activeAssignments;
 
@@ -136,7 +141,7 @@ public class TabletServerResourceManager {
   private final BlockCache _sCache;
   private final ServerContext context;
 
-  private final Cache<String,Long> fileLenCache;
+  private Cache<String,Long> fileLenCache;
 
   /**
    * This method creates a task that changes the number of core and maximum threads on the thread
@@ -287,9 +292,9 @@ public class TabletServerResourceManager {
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
     _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
 
-    long dCacheSize = _dCache.getMaxHeapSize();
-    long iCacheSize = _iCache.getMaxHeapSize();
-    long sCacheSize = _sCache.getMaxHeapSize();
+    long dCacheSize = _dCache == null ? 0 : _dCache.getMaxHeapSize();
+    long iCacheSize = _iCache == null ? 0 : _iCache.getMaxHeapSize();
+    long sCacheSize = _sCache == null ? 0 : _sCache.getMaxHeapSize();
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
@@ -318,21 +323,14 @@ public class TabletServerResourceManager {
     }
 
     minorCompactionThreadPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
-        Property.TSERV_MINC_MAXCONCURRENT, true);
+        Property.TSERV_MINC_MAXCONCURRENT, enableMetrics);
     modifyThreadPoolSizesAtRuntime(
         () -> context.getConfiguration().getCount(Property.TSERV_MINC_MAXCONCURRENT),
         TSERVER_MINOR_COMPACTOR_POOL.poolName, minorCompactionThreadPool);
 
-    splitThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(SPLIT_POOL)
-        .numCoreThreads(0).numMaxThreads(1).withTimeOut(1, SECONDS).build();
-
-    defaultSplitThreadPool =
-        ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_DEFAULT_SPLIT_POOL)
-            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
-
     defaultMigrationPool =
         ThreadPools.getServerThreadPools().getPoolBuilder(METADATA_TABLET_MIGRATION_POOL)
-            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60, SECONDS).build();
+            .numCoreThreads(0).numMaxThreads(1).withTimeOut(60L, SECONDS).build();
 
     migrationPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
         Property.TSERV_MIGRATE_MAXCONCURRENT, enableMetrics);
@@ -386,8 +384,8 @@ public class TabletServerResourceManager {
 
     int maxOpenFiles = acuConf.getCount(Property.TSERV_SCAN_MAX_OPENFILES);
 
-    fileLenCache =
-        Caffeine.newBuilder().maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
+    fileLenCache = context.getCaches().createNewBuilder(CacheName.TSRM_FILE_LENGTHS, true)
+        .maximumSize(Math.min(maxOpenFiles * 1000L, 100_000)).build();
 
     fileManager = new FileManager(context, maxOpenFiles, fileLenCache);
 
@@ -395,6 +393,27 @@ public class TabletServerResourceManager {
     memoryManager.init(context);
     memMgmt = new MemoryManagementFramework();
     memMgmt.startThreads();
+
+    var rootConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_ROOT, enableMetrics);
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_ROOT),
+        TSERVER_CONDITIONAL_UPDATE_ROOT_POOL.poolName, rootConditionalPool);
+
+    var metaConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_META, enableMetrics);
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_META),
+        TSERVER_CONDITIONAL_UPDATE_META_POOL.poolName, metaConditionalPool);
+
+    var userConditionalPool = ThreadPools.getServerThreadPools().createExecutorService(acuConf,
+        Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER, enableMetrics);
+    modifyThreadPoolSizesAtRuntime(
+        () -> context.getConfiguration().getCount(Property.TSERV_CONDITIONAL_UPDATE_THREADS_USER),
+        TSERVER_CONDITIONAL_UPDATE_USER_POOL.poolName, userConditionalPool);
+
+    conditionalMutationExecutors = Map.of(Ample.DataLevel.ROOT, rootConditionalPool,
+        Ample.DataLevel.METADATA, metaConditionalPool, Ample.DataLevel.USER, userConditionalPool);
 
     // We can use the same map for both metadata and normal assignments since the keyspace (extent)
     // is guaranteed to be unique. Schedule the task once, the task will reschedule itself.
@@ -480,10 +499,10 @@ public class TabletServerResourceManager {
       tabletReports = Collections.synchronizedMap(new HashMap<>());
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
-      memoryGuardThread = Threads.createThread("Accumulo Memory Guard",
+      memoryGuardThread = Threads.createCriticalThread("Accumulo Memory Guard",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), this::processTabletMemStats);
       minorCompactionInitiatorThread =
-          Threads.createThread("Accumulo Minor Compaction Initiator", this::manageMemory);
+          Threads.createCriticalThread("Accumulo Minor Compaction Initiator", this::manageMemory);
     }
 
     void startThreads() {
@@ -579,8 +598,6 @@ public class TabletServerResourceManager {
                 }
               }
             }
-
-            // log.debug("mma.tabletsToMinorCompact = "+mma.tabletsToMinorCompact);
           }
         } catch (Exception t) {
           log.error("Minor compactions for memory management failed", t);
@@ -590,10 +607,9 @@ public class TabletServerResourceManager {
       }
     }
 
-    public void updateMemoryUsageStats(Tablet tablet, long size, long lastCommitTime, long mincSize,
+    public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize,
         Timer firstWriteTimer) {
-      memUsageReports
-          .add(new TabletMemoryReport(tablet, lastCommitTime, size, mincSize, firstWriteTimer));
+      memUsageReports.add(new TabletMemoryReport(tablet, size, mincSize, firstWriteTimer));
     }
 
     public void tabletClosed(KeyExtent extent) {
@@ -683,11 +699,6 @@ public class TabletServerResourceManager {
     }
 
     // BEGIN methods that Tablets call to manage their set of open data files
-
-    public void importedDataFiles() {
-      lastReportedCommitTime = System.currentTimeMillis();
-    }
-
     public synchronized ScanFileManager newScanFileManager(ScanDispatch scanDispatch) {
       if (closed) {
         throw new IllegalStateException("closed");
@@ -704,7 +715,6 @@ public class TabletServerResourceManager {
     private final AtomicLong lastReportedSize = new AtomicLong();
     private final AtomicLong lastReportedMincSize = new AtomicLong();
     private final AtomicReference<Timer> firstReportedCommitTimer = new AtomicReference<>(null);
-    private volatile long lastReportedCommitTime = 0;
 
     public void updateMemoryUsageStats(Tablet tablet, long size, long mincSize) {
 
@@ -739,19 +749,12 @@ public class TabletServerResourceManager {
         report = true;
       }
 
-      long currentTime = System.currentTimeMillis();
-
-      if ((delta > 32000 || delta < 0 || (currentTime - lastReportedCommitTime > 1000))
-          && lastReportedSize.compareAndSet(lrs, totalSize)) {
-        if (delta > 0) {
-          lastReportedCommitTime = currentTime;
-        }
+      if ((delta > 32000 || delta < 0) && lastReportedSize.compareAndSet(lrs, totalSize)) {
         report = true;
       }
 
       if (report) {
-        memMgmt.updateMemoryUsageStats(tablet, size, lastReportedCommitTime, mincSize,
-            firstReportedCommitTimer.get());
+        memMgmt.updateMemoryUsageStats(tablet, size, mincSize, firstReportedCommitTimer.get());
       }
     }
 
@@ -781,23 +784,12 @@ public class TabletServerResourceManager {
         }
       }
     }
-
-    public TabletServerResourceManager getTabletServerResourceManager() {
-      return TabletServerResourceManager.this;
-    }
   }
 
-  public void executeSplit(KeyExtent tablet, Runnable splitTask) {
-    if (tablet.isMeta()) {
-      if (tablet.isRootTablet()) {
-        log.warn("Saw request to split root tablet, ignoring");
-        return;
-      }
-      defaultSplitThreadPool.execute(splitTask);
-    } else {
-      splitThreadPool.execute(splitTask);
-    }
-  }
+  private static final ScanDispatch ROOT_SCAN_DISPATCH =
+      ScanDispatch.builder().setExecutorName("root").build();
+  private static final ScanDispatch META_SCAN_DISPATCH =
+      ScanDispatch.builder().setExecutorName("meta").build();
 
   public void executeReadAhead(KeyExtent tablet, ScanDispatcher dispatcher, ScanSession<?> scanInfo,
       Runnable task) {
@@ -806,12 +798,12 @@ public class TabletServerResourceManager {
 
     if (tablet.isRootTablet()) {
       // TODO make meta dispatch??
-      scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
+      scanInfo.scanParams.setScanDispatch(ROOT_SCAN_DISPATCH);
       task.run();
     } else if (tablet.isMeta()) {
       // TODO make meta dispatch??
-      scanInfo.scanParams.setScanDispatch(ScanDispatch.builder().build());
-      scanExecutors.get("meta").execute(task);
+      scanInfo.scanParams.setScanDispatch(META_SCAN_DISPATCH);
+      scanExecutors.get(META_SCAN_DISPATCH.getExecutorName()).execute(task);
     } else {
       DispatchParameters params = new DispatchParameters() {
 
@@ -872,6 +864,10 @@ public class TabletServerResourceManager {
     } else {
       migrationPool.execute(migrationHandler);
     }
+  }
+
+  public <T> Future<T> executeConditionalUpdate(TableId tableId, Callable<T> updateTask) {
+    return conditionalMutationExecutors.get(Ample.DataLevel.of(tableId)).submit(updateTask);
   }
 
   public BlockCache getIndexCache() {

@@ -19,11 +19,16 @@
 package org.apache.accumulo.core.manager.balancer;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -41,39 +46,57 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
   private final List<TabletMigration> migrationsOut;
   private final SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus;
   private final Set<KeyExtent> thriftCurrentMigrations;
+  private final Map<ResourceGroupId,Set<TabletServerId>> tserverResourceGroups;
   private final DataLevel currentDataLevel;
+  private final Map<String,TableId> tablesToBalance;
 
   public static BalanceParamsImpl fromThrift(SortedMap<TabletServerId,TServerStatus> currentStatus,
+      Map<ResourceGroupId,Set<TServerInstance>> currentTServerGrouping,
       SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus,
-      Set<KeyExtent> thriftCurrentMigrations, DataLevel currentLevel) {
+      Set<KeyExtent> thriftCurrentMigrations, DataLevel currentLevel,
+      Map<String,TableId> tablesToBalance) {
     Set<TabletId> currentMigrations = thriftCurrentMigrations.stream().map(TabletIdImpl::new)
         .collect(Collectors.toUnmodifiableSet());
 
-    return new BalanceParamsImpl(currentStatus, currentMigrations, new ArrayList<>(),
-        thriftCurrentStatus, thriftCurrentMigrations, currentLevel);
+    Map<ResourceGroupId,Set<TabletServerId>> tserverGroups = new HashMap<>();
+    currentTServerGrouping.forEach((k, v) -> {
+      Set<TabletServerId> servers = new HashSet<>();
+      v.forEach(tsi -> servers.add(TabletServerIdImpl.fromThrift(tsi)));
+      tserverGroups.put(k, servers);
+    });
+
+    return new BalanceParamsImpl(currentStatus, tserverGroups, currentMigrations, new ArrayList<>(),
+        thriftCurrentStatus, thriftCurrentMigrations, currentLevel, tablesToBalance);
   }
 
   public BalanceParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Set<TabletId> currentMigrations, List<TabletMigration> migrationsOut,
-      DataLevel currentLevel) {
+      Map<ResourceGroupId,Set<TabletServerId>> currentGroups, Set<TabletId> currentMigrations,
+      List<TabletMigration> migrationsOut, DataLevel currentLevel,
+      Map<String,TableId> tablesToBalance) {
     this.currentStatus = currentStatus;
+    this.tserverResourceGroups = currentGroups;
     this.currentMigrations = currentMigrations;
     this.migrationsOut = migrationsOut;
     this.thriftCurrentStatus = null;
     this.thriftCurrentMigrations = null;
     this.currentDataLevel = currentLevel;
+    this.tablesToBalance = tablesToBalance;
   }
 
   private BalanceParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Set<TabletId> currentMigrations, List<TabletMigration> migrationsOut,
+      Map<ResourceGroupId,Set<TabletServerId>> currentGroups, Set<TabletId> currentMigrations,
+      List<TabletMigration> migrationsOut,
       SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus,
-      Set<KeyExtent> thriftCurrentMigrations, DataLevel currentLevel) {
+      Set<KeyExtent> thriftCurrentMigrations, DataLevel currentLevel,
+      Map<String,TableId> tablesToBalance) {
     this.currentStatus = currentStatus;
+    this.tserverResourceGroups = currentGroups;
     this.currentMigrations = currentMigrations;
     this.migrationsOut = migrationsOut;
     this.thriftCurrentStatus = thriftCurrentStatus;
     this.thriftCurrentMigrations = thriftCurrentMigrations;
     this.currentDataLevel = currentLevel;
+    this.tablesToBalance = tablesToBalance;
   }
 
   @Override
@@ -107,7 +130,17 @@ public class BalanceParamsImpl implements TabletBalancer.BalanceParameters {
   }
 
   @Override
+  public Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups() {
+    return tserverResourceGroups;
+  }
+
+  @Override
   public String currentLevel() {
     return currentDataLevel.name();
+  }
+
+  @Override
+  public Map<String,TableId> getTablesToBalance() {
+    return tablesToBalance;
   }
 }

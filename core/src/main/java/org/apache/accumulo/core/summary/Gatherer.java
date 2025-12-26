@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -56,8 +57,8 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
@@ -185,7 +186,7 @@ public class Gatherer {
 
     Map<String,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
 
-    List<String> tservers = null;
+    List<ServerId> tservers = null;
 
     for (Entry<StoredTabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
@@ -203,7 +204,8 @@ public class Gatherer {
 
       if (location == null) {
         if (tservers == null) {
-          tservers = ctx.instanceOperations().getTabletServers();
+          tservers =
+              new ArrayList<>(ctx.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
           Collections.sort(tservers);
         }
 
@@ -211,18 +213,19 @@ public class Gatherer {
         // same file (as long as the set of tservers is stable).
         int idx = Math.abs(Hashing.murmur3_32_fixed()
             .hashString(entry.getKey().getNormalizedPathStr(), UTF_8).asInt()) % tservers.size();
-        location = tservers.get(idx);
+        location = tservers.get(idx).toHostPortString();
       }
+
+      Function<RowRange,TRowRange> toTRowRange =
+          r -> new TRowRange(TextUtil.getByteBuffer(r.getLowerBound()),
+              TextUtil.getByteBuffer(r.getUpperBound()));
 
       // merge contiguous ranges
       List<Range> merged = Range.mergeOverlapping(entry.getValue().stream()
           .map(tm -> tm.getExtent().toDataRange()).collect(Collectors.toList()));
+      // clip ranges to queried range
       List<TRowRange> ranges =
-          merged.stream().map(r -> toClippedExtent(r).toThrift()).collect(Collectors.toList()); // clip
-                                                                                                // ranges
-                                                                                                // to
-                                                                                                // queried
-                                                                                                // range
+          merged.stream().map(this::toClippedExtent).map(toTRowRange).collect(Collectors.toList());
 
       locations.computeIfAbsent(location, s -> new HashMap<>()).put(entry.getKey(), ranges);
     }
@@ -284,8 +287,8 @@ public class Gatherer {
 
   private class FilesProcessor implements Supplier<ProcessedFiles> {
 
-    HostAndPort location;
-    Map<StoredTabletFile,List<TRowRange>> allFiles;
+    final HostAndPort location;
+    final Map<StoredTabletFile,List<TRowRange>> allFiles;
     private final TInfo tinfo;
     private final AtomicBoolean cancelFlag;
 
@@ -432,11 +435,15 @@ public class Gatherer {
   public Future<SummaryCollection> processFiles(FileSystemResolver volMgr,
       Map<String,List<TRowRange>> files, BlockCache summaryCache, BlockCache indexCache,
       Cache<String,Long> fileLenCache, ExecutorService srp) {
+    Function<TRowRange,RowRange> fromThrift = tRowRange -> {
+      Text lowerBound = ByteBufferUtil.toText(tRowRange.startRow);
+      Text upperBound = ByteBufferUtil.toText(tRowRange.endRow);
+      return RowRange.range(lowerBound, false, upperBound, true);
+    };
     List<CompletableFuture<SummaryCollection>> futures = new ArrayList<>();
     for (Entry<String,List<TRowRange>> entry : files.entrySet()) {
       futures.add(CompletableFuture.supplyAsync(() -> {
-        List<RowRange> rrl =
-            entry.getValue().stream().map(RowRange::new).collect(Collectors.toList());
+        List<RowRange> rrl = entry.getValue().stream().map(fromThrift).collect(Collectors.toList());
         return getSummaries(volMgr, entry.getKey(), rrl, summaryCache, indexCache, fileLenCache);
       }, srp));
     }
@@ -535,51 +542,10 @@ public class Gatherer {
   private RowRange toClippedExtent(Range r) {
     r = clipRange.clip(r);
 
-    Text startRow = removeTrailingZeroFromRow(r.getStartKey());
-    Text endRow = removeTrailingZeroFromRow(r.getEndKey());
+    final Text lowerBound = removeTrailingZeroFromRow(r.getStartKey());
+    final Text upperBound = removeTrailingZeroFromRow(r.getEndKey());
 
-    return new RowRange(startRow, endRow);
-  }
-
-  public static class RowRange {
-    private final Text startRow;
-    private final Text endRow;
-
-    public RowRange(KeyExtent ke) {
-      this.startRow = ke.prevEndRow();
-      this.endRow = ke.endRow();
-    }
-
-    public RowRange(TRowRange trr) {
-      this.startRow = ByteBufferUtil.toText(trr.startRow);
-      this.endRow = ByteBufferUtil.toText(trr.endRow);
-    }
-
-    public RowRange(Text startRow, Text endRow) {
-      this.startRow = startRow;
-      this.endRow = endRow;
-    }
-
-    public Range toRange() {
-      return new Range(startRow, false, endRow, true);
-    }
-
-    public TRowRange toThrift() {
-      return new TRowRange(TextUtil.getByteBuffer(startRow), TextUtil.getByteBuffer(endRow));
-    }
-
-    public Text getStartRow() {
-      return startRow;
-    }
-
-    public Text getEndRow() {
-      return endRow;
-    }
-
-    @Override
-    public String toString() {
-      return startRow + " " + endRow;
-    }
+    return RowRange.range(lowerBound, false, upperBound, true);
   }
 
   private SummaryCollection getSummaries(FileSystemResolver volMgr, String file,

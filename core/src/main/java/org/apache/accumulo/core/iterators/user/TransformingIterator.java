@@ -95,7 +95,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
-  protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
+  protected final ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
   protected boolean scanning;
   protected Range seekRange;
@@ -510,25 +510,20 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    */
   protected boolean isSetAfterPart(Key key, PartialKey part) {
     if (key != null) {
-      switch (part) {
-        case ROW:
-          return key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0
+      return switch (part) {
+        case ROW ->
+          key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0
               || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
               || key.isDeleted();
-        case ROW_COLFAM:
-          return key.getColumnQualifierData().length() > 0
-              || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-              || key.isDeleted();
-        case ROW_COLFAM_COLQUAL:
-          return key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-              || key.isDeleted();
-        case ROW_COLFAM_COLQUAL_COLVIS:
-          return key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
-        case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-          return key.isDeleted();
-        case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-          return false;
-      }
+        case ROW_COLFAM ->
+          key.getColumnQualifierData().length() > 0 || key.getColumnVisibilityData().length() > 0
+              || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL -> key.getColumnVisibilityData().length() > 0
+            || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS -> key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS_TIME -> key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> false;
+      };
     }
     return false;
   }
@@ -543,28 +538,17 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * @return the new key containing {@code part} of {@code key}
    */
   protected Key copyPartialKey(Key key, PartialKey part) {
-    Key keyCopy;
-    switch (part) {
-      case ROW:
-        keyCopy = new Key(key.getRow());
-        break;
-      case ROW_COLFAM:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily());
-        break;
-      case ROW_COLFAM_COLQUAL:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier());
-        break;
-      case ROW_COLFAM_COLQUAL_COLVIS:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-            key.getColumnVisibility());
-        break;
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-            key.getColumnVisibility(), key.getTimestamp());
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported key part: " + part);
-    }
+    Key keyCopy = switch (part) {
+      case ROW -> new Key(key.getRow());
+      case ROW_COLFAM -> new Key(key.getRow(), key.getColumnFamily());
+      case ROW_COLFAM_COLQUAL ->
+        new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier());
+      case ROW_COLFAM_COLQUAL_COLVIS -> new Key(key.getRow(), key.getColumnFamily(),
+          key.getColumnQualifier(), key.getColumnVisibility());
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME -> new Key(key.getRow(), key.getColumnFamily(),
+          key.getColumnQualifier(), key.getColumnVisibility(), key.getTimestamp());
+      default -> throw new IllegalArgumentException("Unsupported key part: " + part);
+    };
     return keyCopy;
   }
 

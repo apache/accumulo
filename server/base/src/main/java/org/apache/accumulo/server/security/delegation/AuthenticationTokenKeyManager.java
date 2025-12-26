@@ -39,7 +39,8 @@ public class AuthenticationTokenKeyManager implements Runnable {
   private final long keyUpdateInterval;
   private final long tokenMaxLifetime;
   private int idSeq = 0;
-  private volatile boolean keepRunning = true, initialized = false;
+  private volatile boolean keepRunning = true;
+  private volatile boolean initialized = false;
 
   /**
    * Construct the key manager which will generate new AuthenticationKeys to generate and verify

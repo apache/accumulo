@@ -35,30 +35,34 @@ import java.util.zip.ZipInputStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class PopulateMetadataTable extends ManagerRepo {
+class PopulateMetadataTable extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(PopulateMetadataTable.class);
 
   private static final long serialVersionUID = 1L;
@@ -74,7 +78,8 @@ class PopulateMetadataTable extends ManagerRepo {
     try (var fsDis = fs.open(new Path(importDir, IMPORT_MAPPINGS_FILE));
         var isr = new InputStreamReader(fsDis, UTF_8);
         BufferedReader in = new BufferedReader(isr)) {
-      String line, prev;
+      String line;
+      String prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
         prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
@@ -91,16 +96,15 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     Path path = new Path(tableInfo.exportFile);
 
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = env.getVolumeManager();
 
-    try (
-        BatchWriter mbw =
-            manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
-        ZipInputStream zis = new ZipInputStream(fs.open(path))) {
+    try (BatchWriter mbw = env.getContext().createBatchWriter(SystemTables.METADATA.tableName());
+        FSDataInputStream fsDataInputStream = fs.open(path);
+        ZipInputStream zis = new ZipInputStream(fsDataInputStream)) {
 
       Map<String,String> fileNameMappings = new HashMap<>();
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -112,8 +116,11 @@ class PopulateMetadataTable extends ManagerRepo {
 
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
-        if (zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
-          DataInputStream in = new DataInputStream(new BufferedInputStream(zis));
+        if (!zipEntry.getName().equals(Constants.EXPORT_METADATA_FILE)) {
+          continue;
+        }
+        try (BufferedInputStream bufferedInputStream = new BufferedInputStream(zis);
+            DataInputStream in = new DataInputStream(bufferedInputStream)) {
 
           Key key = new Key();
           Value val = new Value();
@@ -135,7 +142,7 @@ class PopulateMetadataTable extends ManagerRepo {
               StoredTabletFile exportedRef;
               var dataFileCQ = key.getColumnQualifier().toString();
               if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
-                // written without fenced range information (accumulo < 3.1), use default
+                // written without fenced range information (accumulo < 4.0), use default
                 // (null,null)
                 exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
               } else {
@@ -161,6 +168,9 @@ class PopulateMetadataTable extends ManagerRepo {
             if (m == null || !currentRow.equals(metadataRow)) {
 
               if (m != null) {
+                // add a default tablet availability
+                TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                    TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
                 mbw.addMutation(m);
               }
 
@@ -178,8 +188,13 @@ class PopulateMetadataTable extends ManagerRepo {
             m.put(key.getColumnFamily(), cq, val);
 
             if (endRow == null && TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
+
+              // add a default tablet availability
+              TabletColumnFamily.AVAILABILITY_COLUMN.put(m,
+                  TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
+
               mbw.addMutation(m);
-              break; // its the last column in the last row
+              break; // it is the last column in the last row
             }
           }
           break;
@@ -196,8 +211,8 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
   }
 }

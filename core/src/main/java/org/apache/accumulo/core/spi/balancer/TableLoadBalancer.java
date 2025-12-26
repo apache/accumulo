@@ -23,28 +23,46 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ * TabletBalancer that balances Tablets for a Table using the TabletBalancer defined by
+ * {@link Property#TABLE_LOAD_BALANCER}. This allows for different Tables to specify different
+ * TabletBalancer classes.
+ * <p>
+ * Note that in versions prior to 4.0 this class would pass all known TabletServers to the Table
+ * load balancers. In version 4.0 this changed with the introduction of the
+ * {@value #TABLE_ASSIGNMENT_GROUP_PROPERTY} table property. If defined, this balancer passes the
+ * TabletServers that have the corresponding {@link Property#TSERV_GROUP_NAME} property to the Table
+ * load balancer.
+ *
  * @since 2.1.0
  */
 public class TableLoadBalancer implements TabletBalancer {
 
   private static final Logger log = LoggerFactory.getLogger(TableLoadBalancer.class);
 
+  public static final String TABLE_ASSIGNMENT_GROUP_PROPERTY = "table.custom.assignment.group";
+
   protected BalancerEnvironment environment;
-  Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
+  final Map<TableId,TabletBalancer> perTableBalancers = new HashMap<>();
 
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {
@@ -67,6 +85,25 @@ public class TableLoadBalancer implements TabletBalancer {
     return null;
   }
 
+  protected ResourceGroupId getResourceGroupNameForTable(TableId tid) {
+    String resourceGroup = environment.getConfiguration(tid).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
+    if (!StringUtils.isEmpty(resourceGroup)) {
+      return ResourceGroupId.of(resourceGroup);
+    }
+    return ResourceGroupId.DEFAULT;
+  }
+
+  private TabletBalancer constructAndInitializeBalancer(String clazzName, TableId tableId) {
+    try {
+      var balancer = constructNewBalancerForTable(clazzName, tableId);
+      balancer.init(environment);
+      return balancer;
+    } catch (Exception e) {
+      log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
+      return null;
+    }
+  }
+
   protected TabletBalancer getBalancerForTable(TableId tableId) {
     TabletBalancer balancer = perTableBalancers.get(tableId);
 
@@ -75,36 +112,44 @@ public class TableLoadBalancer implements TabletBalancer {
     if (clazzName == null) {
       clazzName = SimpleLoadBalancer.class.getName();
     }
-    if (balancer != null) {
-      if (!clazzName.equals(balancer.getClass().getName())) {
-        // the balancer class for this table does not match the class specified in the configuration
-        try {
-          balancer = constructNewBalancerForTable(clazzName, tableId);
-          perTableBalancers.put(tableId, balancer);
-          balancer.init(environment);
 
-          log.info("Loaded new class {} for table {}", clazzName, tableId);
-        } catch (Exception e) {
-          log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-        }
-      }
-    }
-    if (balancer == null) {
-      try {
-        balancer = constructNewBalancerForTable(clazzName, tableId);
-        log.info("Loaded class {} for table {}", clazzName, tableId);
-      } catch (Exception e) {
-        log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-      }
-
+    if (balancer == null || !clazzName.equals(balancer.getClass().getName())) {
+      balancer = constructAndInitializeBalancer(clazzName, tableId);
       if (balancer == null) {
-        log.info("Using balancer {} for table {}", SimpleLoadBalancer.class.getName(), tableId);
-        balancer = new SimpleLoadBalancer(tableId);
+        balancer = constructAndInitializeBalancer(DoNothingBalancer.class.getName(), tableId);
+        log.error("Fell back to balancer {} for table {}", DoNothingBalancer.class.getName(),
+            tableId);
       }
+      log.info("Loaded class {} for table {}", balancer.getClass().getName(), tableId);
       perTableBalancers.put(tableId, balancer);
-      balancer.init(environment);
     }
     return balancer;
+  }
+
+  private SortedMap<TabletServerId,TServerStatus> getCurrentSetForTable(
+      SortedMap<TabletServerId,TServerStatus> allTServers,
+      Map<ResourceGroupId,Set<TabletServerId>> groupedTServers, ResourceGroupId resourceGroup) {
+
+    final String groupName = resourceGroup.canonical();
+    Set<TabletServerId> tserversInGroup = groupedTServers.get(resourceGroup);
+    if (tserversInGroup == null || tserversInGroup.isEmpty()) {
+      log.warn("No TabletServers in assignment group {}", groupName);
+      return null;
+    }
+    log.trace("{} TabletServers in group: {}", tserversInGroup.size(), groupName);
+    SortedMap<TabletServerId,TServerStatus> group = new TreeMap<>();
+    final String groupNameInUse = groupName;
+    tserversInGroup.forEach(tsid -> {
+      TServerStatus tss = allTServers.get(tsid);
+      if (tss == null) {
+        log.warn(
+            "Excluding TabletServer {}  from group {} because TabletServerStatus is null, likely that Manager.StatusThread.updateStatus has not discovered it yet.",
+            tsid, groupNameInUse);
+      } else {
+        group.put(tsid, tss);
+      }
+    });
+    return group;
   }
 
   @Override
@@ -114,23 +159,66 @@ public class TableLoadBalancer implements TabletBalancer {
     params.unassignedTablets().forEach((tid, lastTserver) -> groupedUnassigned
         .computeIfAbsent(tid.getTable(), k -> new HashMap<>()).put(tid, lastTserver));
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
-      Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
-      getBalancerForTable(e.getKey()).getAssignments(
-          new AssignmentParamsImpl(params.currentStatus(), e.getValue(), newAssignments));
-      newAssignments.forEach(params::addAssignment);
+      final ResourceGroupId tableResourceGroup = getResourceGroupNameForTable(e.getKey());
+      log.trace("Table {} is set to use resource group: {}", e.getKey(), tableResourceGroup);
+      final Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
+      // get the group of tservers for this table
+      final SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
+          params.currentStatus(), params.currentResourceGroups(), tableResourceGroup);
+      if (groupedTServers == null) {
+        // group for table does not contain any tservers, warning already logged
+        continue;
+      }
+      getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(groupedTServers,
+          params.currentResourceGroups(), e.getValue(), newAssignments));
+
+      newAssignments.forEach((tid, tsid) -> {
+        if (!groupedTServers.containsKey(tsid)) {
+          log.warn(
+              "table balancer assigned {} to tablet server {} that is not in the assigned resource group {}",
+              tid, tsid, tableResourceGroup);
+        }
+        params.addAssignment(tid, tsid);
+      });
     }
+  }
+
+  @Override
+  public boolean needsReassignment(CurrentAssignment currentAssignment) {
+    var tableId = currentAssignment.getTablet().getTable();
+    String value = environment.getConfiguration(tableId).get(TABLE_ASSIGNMENT_GROUP_PROPERTY);
+    ResourceGroupId expectedGroup = (value == null || StringUtils.isEmpty(value))
+        ? ResourceGroupId.DEFAULT : ResourceGroupId.of(value);
+
+    if (!expectedGroup.equals(currentAssignment.getResourceGroup())) {
+      // The tablet is not in the expected resource group, so it needs to be reassigned
+      return true;
+    }
+
+    // defer to the per table balancer
+    return getBalancerForTable(tableId).needsReassignment(currentAssignment);
   }
 
   @Override
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
-    // Iterate over the tables and balance each of them
     final DataLevel currentDataLevel = DataLevel.valueOf(params.currentLevel());
-    for (TableId tableId : environment.getTableIdMap().values()) {
+    for (Entry<String,TableId> entry : params.getTablesToBalance().entrySet()) {
+      String tableName = entry.getKey();
+      TableId tableId = entry.getValue();
+      final ResourceGroupId tableResourceGroup = getResourceGroupNameForTable(tableId);
+      // get the group of tservers for this table
+      SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
+          params.currentStatus(), params.currentResourceGroups(), tableResourceGroup);
+      if (groupedTServers == null) {
+        // group for table does not contain any tservers, warning already logged
+        continue;
+      }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime =
-          getBalancerForTable(tableId).balance(new BalanceParamsImpl(params.currentStatus(),
-              params.currentMigrations(), newMigrations, currentDataLevel));
+          getBalancerForTable(tableId).balance(new BalanceParamsImpl(groupedTServers,
+              params.currentResourceGroups(), params.currentMigrations(), newMigrations,
+              currentDataLevel, Map.of(tableName, tableId)));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

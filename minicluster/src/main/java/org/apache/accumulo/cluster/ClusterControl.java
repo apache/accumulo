@@ -21,10 +21,7 @@ package org.apache.accumulo.cluster;
 import java.io.IOException;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.tserver.ScanServer;
 
 /**
  * Basic functionality required to control an Accumulo cluster
@@ -48,33 +45,6 @@ public interface ClusterControl {
    * successfully (return value of 0).
    */
   void adminStopAll() throws IOException;
-
-  /**
-   * Start instances of Compactors
-   *
-   * @param compactor compactor class
-   * @param limit number of compactors to start
-   * @param queueName name of queue
-   */
-  void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
-      throws IOException;
-
-  /**
-   * Start an instance of CompactionCoordinator
-   *
-   * @param coordinator compaction coordinator class
-   */
-  void startCoordinator(Class<? extends CompactionCoordinator> coordinator) throws IOException;
-
-  /**
-   * Start instances of ScanServers
-   *
-   * @param scanServer scan server class
-   * @param limit number of scan servers to start
-   * @param groupName name of scan server group
-   */
-  void startScanServer(Class<? extends ScanServer> scanServer, int limit, String groupName)
-      throws IOException;
 
   /**
    * Starts all occurrences of the given server

@@ -37,7 +37,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   private static final org.apache.thrift.protocol.TField QUERY_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryRate", org.apache.thrift.protocol.TType.DOUBLE, (short)7);
   private static final org.apache.thrift.protocol.TField QUERY_BYTE_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("queryByteRate", org.apache.thrift.protocol.TType.DOUBLE, (short)8);
   private static final org.apache.thrift.protocol.TField MINORS_FIELD_DESC = new org.apache.thrift.protocol.TField("minors", org.apache.thrift.protocol.TType.STRUCT, (short)9);
-  private static final org.apache.thrift.protocol.TField MAJORS_FIELD_DESC = new org.apache.thrift.protocol.TField("majors", org.apache.thrift.protocol.TType.STRUCT, (short)10);
   private static final org.apache.thrift.protocol.TField SCANS_FIELD_DESC = new org.apache.thrift.protocol.TField("scans", org.apache.thrift.protocol.TType.STRUCT, (short)11);
   private static final org.apache.thrift.protocol.TField SCAN_RATE_FIELD_DESC = new org.apache.thrift.protocol.TField("scanRate", org.apache.thrift.protocol.TType.DOUBLE, (short)12);
 
@@ -53,7 +52,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   public double queryRate; // required
   public double queryByteRate; // required
   public @org.apache.thrift.annotation.Nullable Compacting minors; // required
-  public @org.apache.thrift.annotation.Nullable Compacting majors; // required
   public @org.apache.thrift.annotation.Nullable Compacting scans; // required
   public double scanRate; // required
 
@@ -68,7 +66,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     QUERY_RATE((short)7, "queryRate"),
     QUERY_BYTE_RATE((short)8, "queryByteRate"),
     MINORS((short)9, "minors"),
-    MAJORS((short)10, "majors"),
     SCANS((short)11, "scans"),
     SCAN_RATE((short)12, "scanRate");
 
@@ -104,8 +101,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
           return QUERY_BYTE_RATE;
         case 9: // MINORS
           return MINORS;
-        case 10: // MAJORS
-          return MAJORS;
         case 11: // SCANS
           return SCANS;
         case 12: // SCAN_RATE
@@ -184,8 +179,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.DOUBLE)));
     tmpMap.put(_Fields.MINORS, new org.apache.thrift.meta_data.FieldMetaData("minors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
-    tmpMap.put(_Fields.MAJORS, new org.apache.thrift.meta_data.FieldMetaData("majors", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
     tmpMap.put(_Fields.SCANS, new org.apache.thrift.meta_data.FieldMetaData("scans", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, Compacting.class)));
     tmpMap.put(_Fields.SCAN_RATE, new org.apache.thrift.meta_data.FieldMetaData("scanRate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -207,7 +200,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     double queryRate,
     double queryByteRate,
     Compacting minors,
-    Compacting majors,
     Compacting scans,
     double scanRate)
   {
@@ -229,7 +221,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     this.queryByteRate = queryByteRate;
     setQueryByteRateIsSet(true);
     this.minors = minors;
-    this.majors = majors;
     this.scans = scans;
     this.scanRate = scanRate;
     setScanRateIsSet(true);
@@ -250,9 +241,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     this.queryByteRate = other.queryByteRate;
     if (other.isSetMinors()) {
       this.minors = new Compacting(other.minors);
-    }
-    if (other.isSetMajors()) {
-      this.majors = new Compacting(other.majors);
     }
     if (other.isSetScans()) {
       this.scans = new Compacting(other.scans);
@@ -284,7 +272,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     setQueryByteRateIsSet(false);
     this.queryByteRate = 0.0;
     this.minors = null;
-    this.majors = null;
     this.scans = null;
     setScanRateIsSet(false);
     this.scanRate = 0.0;
@@ -500,31 +487,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
   }
 
   @org.apache.thrift.annotation.Nullable
-  public Compacting getMajors() {
-    return this.majors;
-  }
-
-  public TableInfo setMajors(@org.apache.thrift.annotation.Nullable Compacting majors) {
-    this.majors = majors;
-    return this;
-  }
-
-  public void unsetMajors() {
-    this.majors = null;
-  }
-
-  /** Returns true if field majors is set (has been assigned a value) and false otherwise */
-  public boolean isSetMajors() {
-    return this.majors != null;
-  }
-
-  public void setMajorsIsSet(boolean value) {
-    if (!value) {
-      this.majors = null;
-    }
-  }
-
-  @org.apache.thrift.annotation.Nullable
   public Compacting getScans() {
     return this.scans;
   }
@@ -647,14 +609,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       }
       break;
 
-    case MAJORS:
-      if (value == null) {
-        unsetMajors();
-      } else {
-        setMajors((Compacting)value);
-      }
-      break;
-
     case SCANS:
       if (value == null) {
         unsetScans();
@@ -705,9 +659,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     case MINORS:
       return getMinors();
 
-    case MAJORS:
-      return getMajors();
-
     case SCANS:
       return getScans();
 
@@ -744,8 +695,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       return isSetQueryByteRate();
     case MINORS:
       return isSetMinors();
-    case MAJORS:
-      return isSetMajors();
     case SCANS:
       return isSetScans();
     case SCAN_RATE:
@@ -848,15 +797,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         return false;
     }
 
-    boolean this_present_majors = true && this.isSetMajors();
-    boolean that_present_majors = true && that.isSetMajors();
-    if (this_present_majors || that_present_majors) {
-      if (!(this_present_majors && that_present_majors))
-        return false;
-      if (!this.majors.equals(that.majors))
-        return false;
-    }
-
     boolean this_present_scans = true && this.isSetScans();
     boolean that_present_scans = true && that.isSetScans();
     if (this_present_scans || that_present_scans) {
@@ -901,10 +841,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     hashCode = hashCode * 8191 + ((isSetMinors()) ? 131071 : 524287);
     if (isSetMinors())
       hashCode = hashCode * 8191 + minors.hashCode();
-
-    hashCode = hashCode * 8191 + ((isSetMajors()) ? 131071 : 524287);
-    if (isSetMajors())
-      hashCode = hashCode * 8191 + majors.hashCode();
 
     hashCode = hashCode * 8191 + ((isSetScans()) ? 131071 : 524287);
     if (isSetScans())
@@ -1013,16 +949,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetMajors(), other.isSetMajors());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetMajors()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.majors, other.majors);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     lastComparison = java.lang.Boolean.compare(isSetScans(), other.isSetScans());
     if (lastComparison != 0) {
       return lastComparison;
@@ -1107,14 +1033,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     }
     first = false;
     if (!first) sb.append(", ");
-    sb.append("majors:");
-    if (this.majors == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.majors);
-    }
-    first = false;
-    if (!first) sb.append(", ");
     sb.append("scans:");
     if (this.scans == null) {
       sb.append("null");
@@ -1135,9 +1053,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     // check for sub-struct validity
     if (minors != null) {
       minors.validate();
-    }
-    if (majors != null) {
-      majors.validate();
     }
     if (scans != null) {
       scans.validate();
@@ -1255,15 +1170,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 10: // MAJORS
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-              struct.majors = new Compacting();
-              struct.majors.read(iprot);
-              struct.setMajorsIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           case 11: // SCANS
             if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
               struct.scans = new Compacting();
@@ -1326,11 +1232,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         struct.minors.write(oprot);
         oprot.writeFieldEnd();
       }
-      if (struct.majors != null) {
-        oprot.writeFieldBegin(MAJORS_FIELD_DESC);
-        struct.majors.write(oprot);
-        oprot.writeFieldEnd();
-      }
       if (struct.scans != null) {
         oprot.writeFieldBegin(SCANS_FIELD_DESC);
         struct.scans.write(oprot);
@@ -1385,16 +1286,13 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       if (struct.isSetMinors()) {
         optionals.set(8);
       }
-      if (struct.isSetMajors()) {
+      if (struct.isSetScans()) {
         optionals.set(9);
       }
-      if (struct.isSetScans()) {
+      if (struct.isSetScanRate()) {
         optionals.set(10);
       }
-      if (struct.isSetScanRate()) {
-        optionals.set(11);
-      }
-      oprot.writeBitSet(optionals, 12);
+      oprot.writeBitSet(optionals, 11);
       if (struct.isSetRecs()) {
         oprot.writeI64(struct.recs);
       }
@@ -1422,9 +1320,6 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
       if (struct.isSetMinors()) {
         struct.minors.write(oprot);
       }
-      if (struct.isSetMajors()) {
-        struct.majors.write(oprot);
-      }
       if (struct.isSetScans()) {
         struct.scans.write(oprot);
       }
@@ -1436,7 +1331,7 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TableInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(12);
+      java.util.BitSet incoming = iprot.readBitSet(11);
       if (incoming.get(0)) {
         struct.recs = iprot.readI64();
         struct.setRecsIsSet(true);
@@ -1475,16 +1370,11 @@ public class TableInfo implements org.apache.thrift.TBase<TableInfo, TableInfo._
         struct.setMinorsIsSet(true);
       }
       if (incoming.get(9)) {
-        struct.majors = new Compacting();
-        struct.majors.read(iprot);
-        struct.setMajorsIsSet(true);
-      }
-      if (incoming.get(10)) {
         struct.scans = new Compacting();
         struct.scans.read(iprot);
         struct.setScansIsSet(true);
       }
-      if (incoming.get(11)) {
+      if (incoming.get(10)) {
         struct.scanRate = iprot.readDouble();
         struct.setScanRateIsSet(true);
       }

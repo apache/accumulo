@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
@@ -39,7 +38,6 @@ public class TabletServerInformationTest {
   @Test
   public void testFromThrift() {
     TabletServerStatus ts = new TabletServerStatus();
-    ts.setBulkImports(Collections.singletonList(new BulkImportStatus()));
     ts.setDataCacheHits(11);
     ts.setDataCacheRequest(22);
     ts.setFlushs(33);
@@ -65,7 +63,6 @@ public class TabletServerInformationTest {
     tableInfo.queryByteRate = 5.67;
     tableInfo.scans = new Compacting(301, 401);
     tableInfo.recs = 502;
-    tableInfo.majors = new Compacting(501, 601);
     tableInfo.minors = new Compacting(701, 801);
     ts.setTableMap(Collections.singletonMap("tableId0", tableInfo));
     ts.setVersion("testVersion");
@@ -83,8 +80,6 @@ public class TabletServerInformationTest {
     assertEquals(1.23, tsi.osload, 0.001);
     assertEquals("testVersion", tsi.version);
     CompactionsTypes compactions = tsi.compactions;
-    assertEquals(501, compactions.major.running.intValue());
-    assertEquals(601, compactions.major.queued.intValue());
     assertEquals(701, compactions.minor.running.intValue());
     assertEquals(801, compactions.minor.queued.intValue());
     assertEquals(301, compactions.scans.running.intValue());

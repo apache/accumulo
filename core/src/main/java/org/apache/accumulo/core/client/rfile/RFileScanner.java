@@ -25,16 +25,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -45,9 +44,11 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.cache.impl.NoopCache;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -65,10 +67,10 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
-import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
@@ -77,6 +79,38 @@ import com.google.common.base.Preconditions;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
+  private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
+
+    private final Configuration conf;
+    private final Configuration tableConf;
+
+    public RFileScannerEnvironmentImpl(Opts opts) {
+      super(null);
+      conf = new ConfigurationImpl(new ConfigurationCopy(DefaultConfiguration.getInstance()));
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      if (opts.tableConfig != null) {
+        opts.tableConfig.forEach(tableCC::set);
+      }
+      tableConf = new ConfigurationImpl(tableCC);
+    }
+
+    @Override
+    public String getTableName(TableId tableId) throws TableNotFoundException {
+      return null;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+      return conf;
+    }
+
+    @Override
+    public Configuration getConfiguration(TableId tableId) {
+      return tableConf;
+    }
+
+  }
+
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
 
@@ -84,11 +118,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
-  private final Opts opts;
+  private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
-  private final AccumuloConfiguration tableConf;
-  private final CryptoService cryptoService;
+  private AccumuloConfiguration tableConf;
+  private CryptoService cryptoService;
 
   static class Opts {
     InputArgs in;
@@ -98,94 +132,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
     boolean useSystemIterators = true;
     public HashMap<String,String> tableConfig;
     Range bounds;
-  }
-
-  // This cache exist as a hack to avoid leaking decompressors. When the RFile code is not given a
-  // cache it reads blocks directly from the decompressor. However if a user does not read all data
-  // for a scan this can leave a BCFile block open and a decompressor allocated.
-  //
-  // By providing a cache to the RFile code it forces each block to be read into memory. When a
-  // block is accessed the entire thing is read into memory immediately allocating and deallocating
-  // a decompressor. If the user does not read all data, no decompressors are left allocated.
-  private static class NoopCache implements BlockCache {
-
-    @Override
-    public CacheEntry cacheBlock(String blockName, byte[] buf) {
-      return null;
-    }
-
-    @Override
-    public CacheEntry getBlock(String blockName) {
-      return null;
-    }
-
-    @Override
-    public long getMaxHeapSize() {
-      return getMaxSize();
-    }
-
-    @Override
-    public long getMaxSize() {
-      return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public Stats getStats() {
-      return new BlockCache.Stats() {
-        @Override
-        public long hitCount() {
-          return 0L;
-        }
-
-        @Override
-        public long requestCount() {
-          return 0L;
-        }
-
-        @Override
-        public long evictionCount() {
-          return 0L;
-        }
-      };
-    }
-
-    @Override
-    public CacheEntry getBlock(String blockName, Loader loader) {
-      Map<String,Loader> depLoaders = loader.getDependencies();
-      Map<String,byte[]> depData;
-
-      switch (depLoaders.size()) {
-        case 0:
-          depData = Collections.emptyMap();
-          break;
-        case 1:
-          Entry<String,Loader> entry = depLoaders.entrySet().iterator().next();
-          depData = Collections.singletonMap(entry.getKey(),
-              getBlock(entry.getKey(), entry.getValue()).getBuffer());
-          break;
-        default:
-          depData = new HashMap<>();
-          depLoaders.forEach((k, v) -> depData.put(k, getBlock(k, v).getBuffer()));
-      }
-
-      byte[] data = loader.load(Integer.MAX_VALUE, depData);
-
-      return new CacheEntry() {
-
-        @Override
-        public byte[] getBuffer() {
-          return data;
-        }
-
-        @Override
-        public <T extends Weighable> T getIndex(Supplier<T> supplier) {
-          return null;
-        }
-
-        @Override
-        public void indexWeightChanged() {}
-      };
-    }
   }
 
   RFileScanner(Opts opts) {
@@ -315,33 +261,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
     super.updateScanIteratorOption(iteratorName, key, value);
   }
 
-  private class IterEnv implements IteratorEnvironment {
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return false;
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return opts.auths;
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return RFileScanner.this.getSamplerConfiguration() != null;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return RFileScanner.this.getSamplerConfiguration();
-    }
-  }
-
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     try {
@@ -352,10 +271,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
-        FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        CachableBuilder cb =
-            new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
-                .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
+        CachableBuilder cb = new CachableBuilder()
+            .input((FSDataInputStream) sources[i].getInputStream(), "source-" + i)
+            .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
+            .cryptoService(cryptoService);
         readers.add(RFile.getReader(cb, sources[i].getRange()));
       }
 
@@ -382,19 +301,27 @@ class RFileScanner extends ScannerOptions implements Scanner {
             EMPTY_BYTES, tableConf);
       }
 
+      ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
+          .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
+          .withScope(IteratorScope.scan).withTableId(null);
+      if (getSamplerConfiguration() != null) {
+        iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
+        iterEnvBuilder.withSamplingEnabled();
+      }
+      IteratorEnvironment iterEnv = iterEnvBuilder.build();
       try {
         if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
           var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
               serverSideIteratorOptions, tableConf);
-          var iteratorBuilder = ibEnv.env(new IterEnv()).build();
+          var iteratorBuilder = ibEnv.env(iterEnv).build();
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         } else {
           var iteratorBuilder = IteratorBuilder.builder(serverSideIteratorList)
-              .opts(serverSideIteratorOptions).env(new IterEnv()).build();
+              .opts(serverSideIteratorOptions).env(iterEnv).build();
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
+      } catch (IOException | ReflectiveOperationException e) {
+        throw new RuntimeException(e);
       }
 
       iterator.seek(getRange() == null ? EMPTY_RANGE : getRange(), families, !families.isEmpty());

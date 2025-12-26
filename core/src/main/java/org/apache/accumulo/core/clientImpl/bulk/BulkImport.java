@@ -47,6 +47,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
+import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -78,6 +79,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
@@ -88,7 +90,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
@@ -313,19 +314,25 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     KeyExtent lookup(Text row);
   }
 
-  public static List<KeyExtent> findOverlappingTablets(KeyExtentCache extentCache,
-      FileSKVIterator reader) throws IOException {
+  /**
+   * Function that will find a row in a file being bulk imported that is >= the row passed to the
+   * function. If there is no row then it should return null.
+   */
+  public interface NextRowFunction {
+    Text apply(Text row) throws IOException;
+  }
+
+  public static List<KeyExtent> findOverlappingTablets(Function<Text,KeyExtent> rowToExtentResolver,
+      NextRowFunction nextRowFunction) throws IOException {
 
     List<KeyExtent> result = new ArrayList<>();
-    Collection<ByteSequence> columnFamilies = Collections.emptyList();
     Text row = new Text();
     while (true) {
-      reader.seek(new Range(row, null), columnFamilies, false);
-      if (!reader.hasTop()) {
+      row = nextRowFunction.apply(row);
+      if (row == null) {
         break;
       }
-      row = reader.getTopKey().getRow();
-      KeyExtent extent = extentCache.lookup(row);
+      KeyExtent extent = rowToExtentResolver.apply(row);
       result.add(extent);
       row = extent.endRow();
       if (row != null) {
@@ -345,12 +352,22 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
   }
 
   public static List<KeyExtent> findOverlappingTablets(ClientContext context,
-      KeyExtentCache extentCache, UnreferencedTabletFile file, FileSystem fs,
+      KeyExtentCache keyExtentCache, UnreferencedTabletFile file, FileSystem fs,
       Cache<String,Long> fileLenCache, CryptoService cs) throws IOException {
     try (FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
         .forFile(file, fs, fs.getConf(), cs).withTableConfiguration(context.getConfiguration())
         .withFileLenCache(fileLenCache).seekToBeginning().build()) {
-      return findOverlappingTablets(extentCache, reader);
+
+      Collection<ByteSequence> columnFamilies = Collections.emptyList();
+      NextRowFunction nextRowFunction = row -> {
+        reader.seek(new Range(row, null), columnFamilies, false);
+        if (!reader.hasTop()) {
+          return null;
+        }
+        return reader.getTopKey().getRow();
+      };
+
+      return findOverlappingTablets(keyExtentCache::lookup, nextRowFunction);
     }
   }
 
@@ -363,13 +380,15 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
     return fileLens;
   }
 
-  private static Cache<String,Long> getPopulatedFileLenCache(Path dir, List<FileStatus> statuses) {
+  private static Cache<String,Long> getPopulatedFileLenCache(ClientContext ctx, Path dir,
+      List<FileStatus> statuses) {
     Map<String,Long> fileLens = getFileLenMap(statuses);
 
     Map<String,Long> absFileLens = new HashMap<>();
     fileLens.forEach((k, v) -> absFileLens.put(pathToCacheId(new Path(dir, k)), v));
 
-    Cache<String,Long> fileLenCache = Caffeine.newBuilder().build();
+    Cache<String,Long> fileLenCache =
+        ctx.getCaches().createNewBuilder(CacheName.BULK_IMPORT_FILE_LENGTHS, false).build();
 
     fileLenCache.putAll(absFileLens);
 
@@ -499,8 +518,8 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
         continue;
       }
 
-      if (FileOperations.getBulkWorkingFiles().contains(fname)) {
-        log.debug("{} is an internal working file, ignoring.", fileStatus.getPath());
+      if (FileOperations.isBulkWorkingFile(fname)) {
+        log.trace("{} is an internal working file, ignoring.", fileStatus.getPath());
         continue;
       }
 
@@ -526,7 +545,7 @@ public class BulkImport implements ImportDestinationArguments, ImportMappingOpti
 
     // we know all of the file lens, so construct a cache and populate it in order to avoid later
     // trips to the namenode
-    Cache<String,Long> fileLensCache = getPopulatedFileLenCache(dirPath, files);
+    Cache<String,Long> fileLensCache = getPopulatedFileLenCache(context, dirPath, files);
 
     List<CompletableFuture<Map<KeyExtent,Bulk.FileInfo>>> futures = new ArrayList<>();
 

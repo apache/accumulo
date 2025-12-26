@@ -31,7 +31,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -150,18 +151,17 @@ public class AESCryptoService implements CryptoService {
       return DISABLED;
     }
     CryptoModule cm;
-    switch (environment.getScope()) {
-      case WAL:
+    return switch (environment.getScope()) {
+      case WAL -> {
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getEncrypter();
-
-      case TABLE:
+        yield cm.getEncrypter();
+      }
+      case TABLE -> {
         cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getEncrypter();
-
-      default:
-        throw new CryptoException("Unknown scope: " + environment.getScope());
-    }
+        yield cm.getEncrypter();
+      }
+      default -> throw new CryptoException("Unknown scope: " + environment.getScope());
+    };
   }
 
   @Override
@@ -176,17 +176,18 @@ public class AESCryptoService implements CryptoService {
     ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.orElseThrow());
     Key kek = loadDecryptionKek(parsed);
     Key fek = unwrapKey(parsed.getEncFek(), kek);
-    switch (parsed.getCryptoServiceVersion()) {
-      case AESCBCCryptoModule.VERSION:
+    return switch (parsed.getCryptoServiceVersion()) {
+      case AESCBCCryptoModule.VERSION -> {
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getDecrypter(fek);
-      case AESGCMCryptoModule.VERSION:
+        yield cm.getDecrypter(fek);
+      }
+      case AESGCMCryptoModule.VERSION -> {
         cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getDecrypter(fek);
-      default:
-        throw new CryptoException(
-            "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
-    }
+        yield cm.getDecrypter(fek);
+      }
+      default -> throw new CryptoException(
+          "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
+    };
   }
 
   private static boolean checkNoCrypto(byte[] params) {
@@ -287,12 +288,10 @@ public class AESCryptoService implements CryptoService {
       return this.decryptingKeys.get(keyTag);
     }
 
-    switch (params.keyManagerVersion) {
-      case URI:
-        ret = loadKekFromUri(params.kekId);
-        break;
-      default:
-        throw new CryptoException("Unable to load kek: " + params.kekId);
+    if (params.keyManagerVersion.equals(URI)) {
+      ret = loadKekFromUri(params.kekId);
+    } else {
+      throw new CryptoException("Unable to load kek: " + params.kekId);
     }
 
     this.decryptingKeys.put(keyTag, ret);
@@ -351,6 +350,7 @@ public class AESCryptoService implements CryptoService {
       private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
       private final Cipher cipher;
       private final byte[] decryptionParameters;
+      private final AtomicBoolean openTracker = new AtomicBoolean();
 
       AESGCMFileEncrypter() {
         try {
@@ -371,6 +371,10 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException(
               "Key/IV reuse is forbidden in AESGCMCryptoModule. Too many RBlocks.");
         }
+        if (!openTracker.compareAndSet(false, true)) {
+          throw new CryptoException("Attempted to obtain new stream without closing previous one.");
+        }
+
         incrementIV(initVector, initVector.length - 1);
         if (Arrays.equals(initVector, firstInitVector)) {
           ivReused = true; // This will allow us to write the final block, since the
@@ -397,7 +401,7 @@ public class AESCryptoService implements CryptoService {
         // Without this, when the crypto stream is closed (in order to flush its last bytes)
         // the underlying RFile stream will *also* be closed, and that's undesirable as the
         // cipher stream is closed for every block written.
-        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024);
+        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024, openTracker);
       }
 
       /**
@@ -426,20 +430,21 @@ public class AESCryptoService implements CryptoService {
     }
 
     public class AESGCMFileDecrypter implements FileDecrypter {
-      private final Cipher cipher;
       private final Key fek;
 
       AESGCMFileDecrypter(Key fek) {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = fek;
       }
 
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
+        Cipher cipher;
+        try {
+          cipher = Cipher.getInstance(transformation);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
+        }
+
         byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
         try {
           IOUtils.readFully(inputStream, initVector);
@@ -492,6 +497,7 @@ public class AESCryptoService implements CryptoService {
       private final Key fek;
       private final byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
       private final byte[] decryptionParameters;
+      private final AtomicBoolean openTracker = new AtomicBoolean();
 
       AESCBCFileEncrypter() {
         try {
@@ -506,6 +512,10 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
+        if (!openTracker.compareAndSet(false, true)) {
+          throw new CryptoException("Attempted to obtain new stream without closing previous one.");
+        }
+
         RANDOM.get().nextBytes(initVector);
         try {
           outputStream.write(initVector);
@@ -520,7 +530,7 @@ public class AESCryptoService implements CryptoService {
         }
 
         CipherOutputStream cos = new CipherOutputStream(outputStream, cipher);
-        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024);
+        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024, openTracker);
       }
 
       @Override
@@ -531,20 +541,21 @@ public class AESCryptoService implements CryptoService {
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileDecrypter implements FileDecrypter {
-      private final Cipher cipher;
       private final Key fek;
 
       AESCBCFileDecrypter(Key fek) {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = fek;
       }
 
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
+        Cipher cipher;
+        try {
+          cipher = Cipher.getInstance(transformation);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
+        }
+
         byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
         try {
           IOUtils.readFully(inputStream, initVector);
@@ -594,7 +605,7 @@ public class AESCryptoService implements CryptoService {
   public static Key loadKekFromUri(String keyId) {
     try {
       final java.net.URI uri = new URI(keyId);
-      return new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
+      return new SecretKeySpec(Files.readAllBytes(Path.of(uri.getPath())), "AES");
     } catch (URISyntaxException | IOException | IllegalArgumentException e) {
       throw new CryptoException("Unable to load key encryption key.", e);
     }

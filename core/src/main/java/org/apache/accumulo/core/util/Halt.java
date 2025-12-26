@@ -28,33 +28,42 @@ import org.slf4j.LoggerFactory;
 public class Halt {
   private static final Logger log = LoggerFactory.getLogger(Halt.class);
 
-  public static void halt(final String msg) {
-    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-    halt(0, new Runnable() {
-      @Override
-      public void run() {
-        log.error("FATAL {}", msg);
-      }
-    });
+  public static void halt(final int status, final String msg) {
+    halt(status, msg, null, null);
   }
 
-  public static void halt(final String msg, int status) {
-    halt(status, new Runnable() {
-      @Override
-      public void run() {
-        log.error("FATAL {}", msg);
-      }
-    });
+  public static void halt(final int status, final String msg, final Throwable exception) {
+    halt(status, msg, exception, null);
   }
 
-  public static void halt(final int status, Runnable runnable) {
+  public static void halt(final int status, final String msg, final Runnable runnable) {
+    halt(status, msg, null, runnable);
+  }
 
+  private static void halt(final int status, final String msg, final Throwable exception,
+      final Runnable runnable) {
     try {
+
       // give ourselves a little time to try and do something
-      Threads.createThread("Halt Thread", () -> {
+      Threads.createNonCriticalThread("Halt Thread", () -> {
         sleepUninterruptibly(100, MILLISECONDS);
         Runtime.getRuntime().halt(status);
       }).start();
+
+      final String errorMessage = "FATAL " + msg;
+      // Printing to stderr and to the log in case the message does not make
+      // it to the log. This could happen if an asynchronous logging impl is used
+      System.err.println(errorMessage);
+      if (exception != null) {
+        exception.printStackTrace();
+      }
+      System.err.flush();
+
+      if (exception != null) {
+        log.error("{}", errorMessage, exception);
+      } else {
+        log.error("{}", errorMessage);
+      }
 
       if (runnable != null) {
         runnable.run();

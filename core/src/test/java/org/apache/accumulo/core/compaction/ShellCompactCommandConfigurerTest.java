@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer.Ove
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.junit.jupiter.api.Test;
 
 public class ShellCompactCommandConfigurerTest {
@@ -43,8 +44,9 @@ public class ShellCompactCommandConfigurerTest {
   @Test
   public void testOutputOptions() throws URISyntaxException {
 
-    Collection<CompactableFile> files = Set.of(CompactableFile
-        .create(new URI("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"), 50000, 400));
+    Collection<CompactableFile> files =
+        Set.of(new CompactableFileImpl(new URI("hdfs://nn1/accumulo/tables/1/t-009/F00001.rf"),
+            50000, 400));
 
     // test setting no output options
     ShellCompactCommandConfigurer ccs = new ShellCompactCommandConfigurer();
@@ -79,17 +81,22 @@ public class ShellCompactCommandConfigurerTest {
       }
 
       @Override
-      public TabletId getTabletId() {
-        return null;
-      }
-
-      @Override
       public Collection<CompactableFile> getInputFiles() {
         return files;
       }
 
       @Override
       public Set<CompactableFile> getSelectedFiles() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public TabletId getTabletId() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public URI getOutputFile() {
         throw new UnsupportedOperationException();
       }
 

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 /**
  * An immutable object that describes what files to compact and where to compact them.
@@ -33,9 +34,9 @@ public interface CompactionJob {
   short getPriority();
 
   /**
-   * @return The executor to run the job.
+   * @return The group to run the job.
    */
-  CompactionExecutorId getExecutor();
+  ResourceGroupId getGroup();
 
   /**
    * @return The files to compact
