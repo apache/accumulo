@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -1587,7 +1588,7 @@ public class Tablet extends TabletBase {
       } catch (IOException ioe) {
         log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", getExtent(),
             newDatafile, ioe);
-        sleepUninterruptibly(1, TimeUnit.MINUTES);
+        sleepUninterruptibly(1, MINUTES);
       }
     } while (true);
 
