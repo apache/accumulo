@@ -1171,7 +1171,7 @@ public class RFile {
     }
   }
 
-  public static class Reader extends HeapIterator implements RFileSKVIterator {
+  public static final class Reader extends HeapIterator implements RFileSKVIterator {
 
     private final CachableBlockFile.Reader reader;
 

@@ -21,9 +21,11 @@ package org.apache.accumulo.tserver;
 import static org.easymock.EasyMock.createMock;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -36,7 +38,7 @@ public class TabletResourceManagerTest {
   @BeforeEach
   public void setUp() {
     tsrm = createMock(TabletServerResourceManager.class);
-    extent = createMock(KeyExtent.class);
+    extent = new KeyExtent(TableId.of("1"), new Text("m"), new Text("a"));
     conf = createMock(TableConfiguration.class);
     trm = tsrm.new TabletResourceManager(extent, conf);
   }

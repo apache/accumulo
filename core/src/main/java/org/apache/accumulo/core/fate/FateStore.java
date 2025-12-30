@@ -160,7 +160,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
   /**
    * The value stored to indicate a FATE transaction ID ({@link FateId}) has been reserved
    */
-  class FateReservation {
+  final class FateReservation {
 
     // The LockID (provided by the Manager running the FATE which uses this store) which is used for
     // identifying dead Managers, so their reservations can be deleted and picked up again since

@@ -22,7 +22,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.core.util.cache.Caches;
@@ -39,9 +38,7 @@ import com.github.benmanes.caffeine.cache.Cache;
  */
 public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
 
-  private static final AtomicBoolean isInstantiated = new AtomicBoolean(false);
   private static final Logger LOG = LoggerFactory.getLogger(URLContextClassLoaderFactory.class);
-  private static final String className = URLContextClassLoaderFactory.class.getName();
 
   // Cache the class loaders for re-use
   // WeakReferences are used so that the class loaders can be cleaned up when no longer needed
@@ -49,12 +46,6 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
   // so the class loader will be garbage collected when no more classes are loaded that reference it
   private final Cache<String,URLClassLoader> classloaders =
       Caches.getInstance().createNewBuilder(CacheName.CLASSLOADERS, true).weakValues().build();
-
-  public URLContextClassLoaderFactory() {
-    if (!isInstantiated.compareAndSet(false, true)) {
-      throw new IllegalStateException("Can only instantiate " + className + " once");
-    }
-  }
 
   @Override
   public ClassLoader getClassLoader(String context) {

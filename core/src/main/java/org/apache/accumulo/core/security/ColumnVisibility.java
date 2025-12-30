@@ -40,6 +40,8 @@ import org.apache.hadoop.io.WritableComparator;
 
 import com.google.common.base.Suppliers;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See
  * {@link ColumnVisibility#ColumnVisibility(byte[])} for the definition of an expression.
@@ -79,6 +81,8 @@ import com.google.common.base.Suppliers;
  * &quot;A#C&quot; &amp; B
  * </pre>
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnVisibility {
 
   // This functionality is deprecated so its setup as a supplier so it is only computed if the
