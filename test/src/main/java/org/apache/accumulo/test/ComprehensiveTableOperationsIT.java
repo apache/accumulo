@@ -801,7 +801,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     for (var sysTable : SystemTables.tableNames()) {
       // should not be able to unhost any system table
       assertThrows(AccumuloException.class,
-          () -> ops.setTabletAvailability(sysTable, new Range(), TabletAvailability.UNHOSTED));
+          () -> ops.setTabletAvailability(sysTable, RowRange.all(), TabletAvailability.UNHOSTED));
       assertTrue(ops.getTabletInformation(sysTable, List.of(RowRange.all())).findAny().isPresent());
       ops.getTabletInformation(sysTable, List.of(RowRange.all()))
           .forEach(ti -> assertEquals(TabletAvailability.HOSTED, ti.getTabletAvailability()));

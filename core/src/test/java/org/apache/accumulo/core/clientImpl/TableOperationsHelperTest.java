@@ -212,7 +212,7 @@ public class TableOperationsHelperTest {
     public void online(String tableName, boolean wait) {}
 
     @Override
-    public void setTabletAvailability(String tableName, Range range,
+    public void setTabletAvailability(String tableName, RowRange rowRange,
         TabletAvailability tabletAvailability)
         throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
 

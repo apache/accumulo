@@ -57,7 +57,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       for (SystemTables t : SystemTables.values()) {
         assertThrows(AccumuloException.class, () -> client.tableOperations()
-            .setTabletAvailability(t.tableName(), new Range(), UNHOSTED));
+            .setTabletAvailability(t.tableName(), RowRange.all(), UNHOSTED));
       }
     }
   }
@@ -69,7 +69,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
       client.tableOperations().create(table, new NewTableConfiguration().createOffline());
 
       assertThrows(TableOfflineException.class,
-          () -> client.tableOperations().setTabletAvailability(table, new Range(), HOSTED));
+          () -> client.tableOperations().setTabletAvailability(table, RowRange.all(), HOSTED));
     }
   }
 
@@ -95,9 +95,9 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
       for (var a1 : TabletAvailability.values()) {
         for (var a2 : TabletAvailability.values()) {
           availabilites.put(row(r), a1);
-          client.tableOperations().setTabletAvailability(table, new Range(row(r++)), a1);
+          client.tableOperations().setTabletAvailability(table, RowRange.closed(row(r++)), a1);
           availabilites.put(row(r), a2);
-          client.tableOperations().setTabletAvailability(table, new Range(row(r++)), a2);
+          client.tableOperations().setTabletAvailability(table, RowRange.closed(row(r++)), a2);
         }
       }
 
@@ -150,7 +150,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
       }
 
       // verify nothing was actually written to the unhosted tablets
-      client.tableOperations().setTabletAvailability(table, new Range(), HOSTED);
+      client.tableOperations().setTabletAvailability(table, RowRange.all(), HOSTED);
       for (var entry : availabilites.entrySet()) {
         if (entry.getValue() == UNHOSTED) {
           var row = entry.getKey();

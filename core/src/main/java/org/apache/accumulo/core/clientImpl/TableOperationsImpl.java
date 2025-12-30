@@ -2210,15 +2210,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setTabletAvailability(String tableName, Range range, TabletAvailability availability)
-      throws AccumuloSecurityException, AccumuloException {
+  public void setTabletAvailability(String tableName, RowRange rowRange,
+      TabletAvailability availability) throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
     if (SystemTables.containsTableName(tableName)) {
       throw new AccumuloException("Cannot set set tablet availability for table " + tableName);
     }
 
-    checkArgument(range != null, "range is null");
+    checkArgument(rowRange != null, "rowRange is null");
     checkArgument(availability != null, "tabletAvailability is null");
+
+    Range range = rowRange.asRange();
 
     byte[] bRange;
     try {
