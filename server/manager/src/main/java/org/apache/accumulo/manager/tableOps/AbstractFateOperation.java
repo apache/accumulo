@@ -16,28 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.rpc;
+package org.apache.accumulo.manager.tableOps;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.IOException;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.Repo;
 
-import org.apache.thrift.transport.TIOStreamTransport;
-import org.apache.thrift.transport.TSocket;
-import org.apache.thrift.transport.TTransportException;
+public abstract class AbstractFateOperation implements Repo<FateEnv> {
 
-public class TBufferedSocket extends TIOStreamTransport {
+  private static final long serialVersionUID = 1L;
 
-  String client;
-
-  public TBufferedSocket(TSocket sock, int bufferSize) throws IOException, TTransportException {
-    super(new BufferedInputStream(sock.getSocket().getInputStream(), bufferSize),
-        new BufferedOutputStream(sock.getSocket().getOutputStream(), bufferSize));
-    client = sock.getSocket().getInetAddress().getHostAddress() + ":" + sock.getSocket().getPort();
+  @Override
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    return 0;
   }
 
-  public String getClientString() {
-    return client;
+  @Override
+  public void undo(FateId fateId, FateEnv environment) throws Exception {}
+
+  @Override
+  public String getName() {
+    return this.getClass().getSimpleName();
   }
+
+  @Override
+  public String getReturn() {
+    return null;
+  }
+
+  @Override
+  public abstract Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception;
 
 }

@@ -42,8 +42,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.server.AccumuloDataVersion;
@@ -57,7 +57,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Serialization updated for supporting multiple volumes in import table from 1L to 2L.
  */
-public class ImportTable extends ManagerRepo {
+public class ImportTable extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
   private static final long serialVersionUID = 2L;
@@ -76,7 +76,7 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     long result = 0;
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       result += Utils.reserveHdfsDirectory(environment.getContext(),
@@ -88,7 +88,7 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     checkVersions(env.getContext());
 
     // first step is to reserve a table id.. if the machine fails during this step
@@ -156,7 +156,7 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }

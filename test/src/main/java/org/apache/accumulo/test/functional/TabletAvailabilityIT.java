@@ -105,7 +105,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
 
       // ensure tablet availability is as expected
       SortedMap<String,TabletAvailability> availabilitesSeen = new TreeMap<>();
-      client.tableOperations().getTabletInformation(table, RowRange.all()).forEach(ti -> {
+      client.tableOperations().getTabletInformation(table, List.of(RowRange.all())).forEach(ti -> {
         if (ti.getTabletId().getEndRow() != null) {
           availabilitesSeen.put(ti.getTabletId().getEndRow().toString(),
               ti.getTabletAvailability());

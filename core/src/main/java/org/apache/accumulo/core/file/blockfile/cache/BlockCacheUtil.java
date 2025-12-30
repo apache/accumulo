@@ -16,35 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps;
+package org.apache.accumulo.core.file.blockfile.cache;
 
-import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.core.logging.LoggingBlockCache;
+import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.cache.CacheType;
 
-public abstract class ManagerRepo implements Repo<Manager> {
+public class BlockCacheUtil {
+  public static BlockCache instrument(CacheType type, BlockCache cache) {
+    if (cache == null) {
+      return null;
+    }
 
-  private static final long serialVersionUID = 1L;
+    if (cache instanceof InstrumentedBlockCache || cache instanceof LoggingBlockCache) {
+      // its already instrumented
+      return cache;
+    }
 
-  @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
-    return 0;
+    return LoggingBlockCache.wrap(type, InstrumentedBlockCache.wrap(type, cache));
   }
-
-  @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {}
-
-  @Override
-  public String getName() {
-    return this.getClass().getSimpleName();
-  }
-
-  @Override
-  public String getReturn() {
-    return null;
-  }
-
-  @Override
-  public abstract Repo<Manager> call(FateId fateId, Manager environment) throws Exception;
-
 }

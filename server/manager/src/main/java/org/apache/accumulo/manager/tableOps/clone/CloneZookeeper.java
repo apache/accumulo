@@ -24,11 +24,11 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-class CloneZookeeper extends ManagerRepo {
+class CloneZookeeper extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -40,7 +40,7 @@ class CloneZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     long val = 0;
     if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
       val += Utils.reserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
@@ -52,7 +52,7 @@ class CloneZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     var context = environment.getContext();
     // write tableName & tableId, first to Table Mapping and then to Zookeeper
     context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
@@ -66,7 +66,7 @@ class CloneZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     environment.getTableManager().removeTable(cloneInfo.getTableId(), cloneInfo.getNamespaceId());
     if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
       Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,

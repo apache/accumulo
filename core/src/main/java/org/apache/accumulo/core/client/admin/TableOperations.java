@@ -1078,14 +1078,19 @@ public interface TableOperations {
   }
 
   /**
+   * @param ranges the row ranges of tablets to scan. Ranges can overlap and an attempt will be made
+   *        to merge this list. An empty list returns an empty stream; use
+   *        {@code List.of(RowRange.all())} to scan all tablets.
    * @param fields can optionally narrow the data retrieved per tablet, which can speed up streaming
    *        over tablets. If this list is empty then all fields are fetched.
-   * @return a stream of tablet information for tablets that fall in the specified range. The stream
-   *         may be backed by a scanner, so it's best to close the stream.
+   * @return a stream of tablet information for tablets that fall in the specified ranges. The
+   *         stream may be backed by a scanner, so it's best to close the stream. The stream has no
+   *         defined ordering.
    * @since 4.0.0
    */
   default Stream<TabletInformation> getTabletInformation(final String tableName,
-      final RowRange rowRange, TabletInformation.Field... fields) throws TableNotFoundException {
+      final List<RowRange> ranges, TabletInformation.Field... fields)
+      throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 

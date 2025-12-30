@@ -74,6 +74,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -81,6 +82,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -673,8 +675,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
           TabletAvailability.HOSTED);
       // test using row as range constructor
-      verifyTabletAvailabilities(tableName, RowRange.closed(new Text("a")),
-          expectedTabletAvailability);
+      verifyTabletAvailabilities(tableName, RowRange.closed("a"), expectedTabletAvailability);
 
       // test using startRowInclusive set to true
       RowRange rowRange = RowRange.closed(new Text("c"));
@@ -875,10 +876,27 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   public static void verifyTabletAvailabilities(AccumuloClient client, String tableName,
       RowRange rowRange, Map<TabletId,TabletAvailability> expectedAvailability)
       throws TableNotFoundException {
-    Map<TabletId,TabletAvailability> seenAvailability =
-        client.tableOperations().getTabletInformation(tableName, rowRange).collect(Collectors
-            .toMap(TabletInformation::getTabletId, TabletInformation::getTabletAvailability));
+    Map<TabletId,
+        TabletAvailability> seenAvailability = client.tableOperations()
+            .getTabletInformation(tableName, List.of(rowRange)).collect(Collectors
+                .toMap(TabletInformation::getTabletId, TabletInformation::getTabletAvailability));
     assertEquals(expectedAvailability, seenAvailability);
+  }
+
+  /**
+   * assert the given {@code List<String>} equals what's returned from
+   * {@link TableOperations#getTabletInformation(String, List, TabletInformation.Field...)} using
+   * the given RowRange
+   */
+  private static void assertEndRowsForRange(String tableName, RowRange range, List<String> expected)
+      throws TableNotFoundException {
+    try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+        List.of(range), TabletInformation.Field.LOCATION)) {
+      var actual = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+          .map(er -> er == null ? "null" : er.toString()).toList();
+      assertEquals(expected, actual,
+          "Expected does not match actual. Expected: " + expected + " Actual: " + actual);
+    }
   }
 
   public static void setExpectedTabletAvailability(Map<TabletId,TabletAvailability> expected,
@@ -943,7 +961,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       var tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          RowRange.all(), TabletInformation.Field.LOCATION)) {
+          List.of(RowRange.all()), TabletInformation.Field.LOCATION)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -961,7 +979,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          RowRange.all(), TabletInformation.Field.FILES)) {
+          List.of(RowRange.all()), TabletInformation.Field.FILES)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -978,8 +996,9 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         });
       }
 
-      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          RowRange.all(), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
+      try (var tablets =
+          accumuloClient.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()),
+              TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -997,7 +1016,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          RowRange.all(), TabletInformation.Field.AVAILABILITY)) {
+          List.of(RowRange.all()), TabletInformation.Field.AVAILABILITY)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -1015,7 +1034,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-          RowRange.all(), TabletInformation.Field.MERGEABILITY)) {
+          List.of(RowRange.all()), TabletInformation.Field.MERGEABILITY)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -1036,8 +1055,125 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         });
       }
 
+      // RowRange.range(null, true, X, true)
+      var unboundedStartRange = RowRange.atMost(new Text("4"));
+      List<String> expected = List.of("1", "2", "3", "4");
+      assertEndRowsForRange(tableName, unboundedStartRange, expected);
+
+      // RowRange.range(null, true, X, false)
+      var exclusiveEndRange = RowRange.lessThan(new Text("4"));
+      expected = List.of("1", "2", "3", "4");
+      assertEndRowsForRange(tableName, exclusiveEndRange, expected);
+
+      // RowRange.range(X, true, null, true)
+      var unboundedEndRange = RowRange.atLeast(new Text("6"));
+      expected = List.of("6", "7", "8", "null");
+      assertEndRowsForRange(tableName, unboundedEndRange, expected);
+
+      // RowRange.range(X, false, null, true)
+      var exclusiveStartRangeUnboundedEnd = RowRange.greaterThan(new Text("6"));
+      expected = List.of("7", "8", "null");
+      assertEndRowsForRange(tableName, exclusiveStartRangeUnboundedEnd, expected);
+
+      // RowRange.range(X, false, Y, true)
+      var exclusiveStartRange = RowRange.openClosed(new Text("4"), new Text("6"));
+      expected = List.of("5", "6");
+      assertEndRowsForRange(tableName, exclusiveStartRange, expected);
+
+      // RowRange.range(X, false, Y, false)
+      var exclusiveStartAndEndRange = RowRange.open(new Text("4"), new Text("6"));
+      expected = List.of("5", "6");
+      assertEndRowsForRange(tableName, exclusiveStartAndEndRange, expected);
+
+      // RowRange.range(X, true, Y, true)
+      var inclusiveStartRange = RowRange.closed(new Text("4"), new Text("6"));
+      expected = List.of("4", "5", "6");
+      assertEndRowsForRange(tableName, inclusiveStartRange, expected);
+
+      // RowRange.range(X, true, Y, false)
+      var inclusiveStartExclusiveEndRange = RowRange.closedOpen(new Text("4"), new Text("6"));
+      expected = List.of("4", "5", "6");
+      assertEndRowsForRange(tableName, inclusiveStartExclusiveEndRange, expected);
+
+      var fileFieldMissingRange = List.of(RowRange.closed(new Text("2"), new Text("4")));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          fileFieldMissingRange, TabletInformation.Field.LOCATION)) {
+        tablets.forEach(ti -> assertThrows(IllegalStateException.class, ti::getNumFiles));
+      }
+
+      var overlappingRange = RowRange.closed(new Text("2"), new Text("4"));
+      var overlappingRange2 = RowRange.closed(new Text("3"), new Text("5"));
+      var disjointRange = RowRange.closed(new Text("7"), new Text("8"));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(overlappingRange, overlappingRange2, disjointRange),
+          TabletInformation.Field.LOCATION)) {
+        var tabletIds = tablets.map(TabletInformation::getTabletId).toList();
+        var endRows = tabletIds.stream().map(TabletId::getEndRow).map(Text::toString).toList();
+        assertEquals(List.of("2", "3", "4", "5", "7", "8"), endRows);
+      }
+
     } finally {
       accumuloClient.tableOperations().delete(tableName);
+    }
+  }
+
+  @Test
+  public void testTablePropsEqual() throws Exception {
+    // Want to ensure users can somehow create a table via the Java API that has exactly
+    // the same properties of another table (including changes to default properties), similar to
+    // the copy config option of the create table Shell command.
+
+    // default iterator property which is automatically set on creation of all tables; want to
+    // ensure removal and changing this type of prop is retained on copying to another table
+    final String defaultScanIterProp = Property.TABLE_ITERATOR_PREFIX
+        + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".vers";
+    final String defaultScanIterPropMaxVers = Property.TABLE_ITERATOR_PREFIX
+        + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".vers.opt.maxVersions";
+    final String defaultScanIterPropMaxVersDefault = "1";
+    final String defaultScanIterPropMaxVersNew = "999";
+    final String customTableProp = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "foo";
+    final String customTablePropVal = "bar";
+    final String[] names = getUniqueNames(3);
+    final String table1 = names[0];
+    final String table2 = names[1];
+    final String table3 = names[2];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table1,
+          new NewTableConfiguration().setProperties(Map.of(customTableProp, customTablePropVal)));
+
+      Wait.waitFor(() -> {
+        var table1Props = client.tableOperations().getTableProperties(table1);
+        return table1Props.get(customTableProp).equals(customTablePropVal)
+            && table1Props.get(defaultScanIterProp) != null && table1Props
+                .get(defaultScanIterPropMaxVers).equals(defaultScanIterPropMaxVersDefault);
+      });
+
+      // testing both modifying and deleting a default prop
+      client.tableOperations().modifyProperties(table1, props -> {
+        props.replace(defaultScanIterPropMaxVers, defaultScanIterPropMaxVersNew);
+        props.remove(defaultScanIterProp);
+      });
+
+      Wait.waitFor(() -> {
+        var table1Props = client.tableOperations().getTableProperties(table1);
+        return table1Props.get(customTableProp).equals(customTablePropVal)
+            && table1Props.get(defaultScanIterProp) == null
+            && table1Props.get(defaultScanIterPropMaxVers).equals(defaultScanIterPropMaxVersNew);
+      });
+
+      // one option to create a table with the same config, including default prop changes
+      client.tableOperations().create(table2, new NewTableConfiguration().withoutDefaults()
+          .setProperties(client.tableOperations().getTableProperties(table1)));
+      // another option is cloning the table
+      client.tableOperations().clone(table1, table3, CloneConfiguration.empty());
+
+      Wait.waitFor(() -> {
+        var table1Props = client.tableOperations().getTableProperties(table1);
+        var table2Props = client.tableOperations().getTableProperties(table2);
+        var table3Props = client.tableOperations().getTableProperties(table3);
+        return table1Props.equals(table2Props) && table1Props.equals(table3Props);
+      });
     }
   }
 }

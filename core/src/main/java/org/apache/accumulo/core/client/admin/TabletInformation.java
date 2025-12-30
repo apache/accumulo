@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.util.List;
 import java.util.Optional;
 
-import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -30,7 +30,7 @@ public interface TabletInformation {
 
   /**
    * Used to limit what information is obtained per tablet when calling
-   * {@link TableOperations#getTabletInformation(String, RowRange, Field...)}
+   * {@link TableOperations#getTabletInformation(String, List, Field...)}
    *
    * @since 4.0.0
    */

@@ -211,7 +211,7 @@ under the License.
       <dependency>
         <groupId>jakarta.platform</groupId>
         <artifactId>jakarta.jakartaee-bom</artifactId>
-        <version>9.1.0</version>
+        <version>10.0.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -225,7 +225,14 @@ under the License.
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.23</version>
+        <version>12.1.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-bom</artifactId>
+        <version>12.1.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -246,8 +253,7 @@ under the License.
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
-        <!-- 3.1.0 would require jakarta.ws.rs-api 3.1.0, jakartaee 9 uses 3.0.0 -->
-        <version>3.0.9</version>
+        <version>3.1.11</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -316,6 +322,11 @@ under the License.
         <version>33.4.6-jre</version>
       </dependency>
       <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>4.33.1</version>
+      </dependency>
+      <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
         <version>4.0.0</version>
@@ -346,8 +357,19 @@ under the License.
         <version>1.10.0</version>
       </dependency>
       <dependency>
+        <groupId>io.opentelemetry.javaagent</groupId>
+        <artifactId>opentelemetry-javaagent</artifactId>
+        <!-- This version was selected because it aligns with the version of open telemetry that Accumulo is using. -->
+        <version>2.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry.proto</groupId>
+        <artifactId>opentelemetry-proto</artifactId>
+        <version>1.9.0-alpha</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-access</artifactId>
+        <artifactId>accumulo-access-core</artifactId>
         <version>${version.accumulo-access}</version>
       </dependency>
       <dependency>
@@ -969,7 +991,9 @@ under the License.
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
                 <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
-                <unused>org.lz4:lz4-java:jar:*</unused>
+                <unused>at.yawk.lz4:lz4-java:jar:*</unused>
+                <!-- This is only used at runtime only by test, not at compile time  -->
+                <unused>io.opentelemetry.javaagent:opentelemetry-javaagent:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1033,7 +1057,7 @@ under the License.
                     <!-- ignore our own SNAPSHOT versions during development -->
                     <ignore>org.apache.accumulo:*:${project.version}</ignore>
                     <!-- ignore apache-access, because we haven't had another beta release yet -->
-                    <ignore>org.apache.accumulo:accumulo-access:1.0.0-SNAPSHOT</ignore>
+                    <ignore>org.apache.accumulo:accumulo-access-core:1.0.0-SNAPSHOT</ignore>
                   </ignores>
                 </banDynamicVersions>
                 <bannedDependencies>

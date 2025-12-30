@@ -354,7 +354,7 @@ public class RowRange implements Comparable<RowRange> {
 
   /**
    * @param that row to check
-   * @return true if this row range's lower bound is greater than the given row, otherwise false
+   * @return true if every row in this row range is greater than the given row, otherwise false
    */
   public boolean isAfter(Text that) {
     return isAfterImpl(that);
@@ -362,7 +362,7 @@ public class RowRange implements Comparable<RowRange> {
 
   /**
    * @param that row to check
-   * @return true if this row range's upper bound is less than the given row, otherwise false
+   * @return true if every row in this row range is less than the given row, otherwise false
    */
   public boolean isBefore(Text that) {
     if (infiniteUpperBound) {
@@ -428,8 +428,9 @@ public class RowRange implements Comparable<RowRange> {
   /**
    * Compares this row range to another row range. Compares in order: lower bound, inclusiveness of
    * lower bound, upper bound, inclusiveness of upper bound. Infinite rows sort last, and
-   * non-infinite rows are compared with {@link Text#compareTo(BinaryComparable)}. Inclusive sorts
-   * before non-inclusive.
+   * non-infinite rows are compared with {@link Text#compareTo(BinaryComparable)}. When bounds are
+   * equal, inclusive lower bounds sort before exclusive ones, while inclusive upper bounds sort
+   * after exclusive ones.
    *
    * @param other row range to compare
    * @return comparison result
@@ -463,6 +464,16 @@ public class RowRange implements Comparable<RowRange> {
     }
 
     return comp;
+  }
+
+  /**
+   * Determines if this row range contains the given row.
+   *
+   * @param row row to check
+   * @return true if the row is contained in the row range, otherwise false
+   */
+  public boolean contains(String row) {
+    return contains(new Text(row));
   }
 
   /**

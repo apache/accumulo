@@ -157,7 +157,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       try {
         final String tableName = ctx.getQualifiedTableName(tableId);
         try (Stream<TabletInformation> tablets =
-            this.ctx.tableOperations().getTabletInformation(tableName, RowRange.all())) {
+            this.ctx.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
           tablets.forEach(t -> summary.processTabletInformation(tableId, tableName, t));
         }
       } catch (TableNotFoundException e) {

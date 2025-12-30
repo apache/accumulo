@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -78,6 +79,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -93,7 +95,7 @@ import com.google.common.net.HostAndPort;
 public class CompactionCoordinatorTest {
 
   // Need a non-null fateInstances reference for CompactionCoordinator.compactionCompleted
-  private static final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances =
+  private static final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances =
       new AtomicReference<>(Map.of());
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
@@ -126,6 +128,9 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
+    protected void startQueueRunningSummaryLogging() {}
+
+    @Override
     protected void startFailureSummaryLogging() {}
 
     @Override
@@ -151,7 +156,8 @@ public class CompactionCoordinatorTest {
 
     @Override
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent, String exceptionClassName) throws ThriftSecurityException {}
+        TKeyExtent extent, String exceptionClassName, TCompactionState failureState)
+        throws ThriftSecurityException {}
 
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;

@@ -84,7 +84,8 @@ public final class PropUtil {
         ResourceGroupPropUtil.validateResourceGroupProperty(prop.getKey(), prop.getValue());
       }
 
-      if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())) {
+      if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())
+          && !prop.getValue().isEmpty()) {
         var volumes = context.getVolumeManager().getVolumes();
         for (var volume : volumes) {
           if (volume.getFileSystem() instanceof DistributedFileSystem) {

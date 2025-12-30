@@ -16,9 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server;
+package org.apache.accumulo.manager;
 
-public enum TabletLevel {
-  ROOT, META, NORMAL
+import java.util.Collection;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.Ample;
+
+public interface EventPublisher {
+  void event(String msg, Object... args);
+
+  void event(Ample.DataLevel level, String msg, Object... args);
+
+  void event(TableId tableId, String msg, Object... args);
+
+  void event(KeyExtent extent, String msg, Object... args);
+
+  void event(Collection<KeyExtent> extents, String msg, Object... args);
 }

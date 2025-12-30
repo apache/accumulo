@@ -32,12 +32,12 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ReserveTablets extends ManagerRepo {
+public class ReserveTablets extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(ReserveTablets.class);
 
@@ -52,7 +52,7 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
 
     var opid = TabletOperationId.from(TabletOperationType.DELETING, fateId);
 
@@ -72,10 +72,10 @@ public class ReserveTablets extends ManagerRepo {
     long tabletsSeen = 0;
 
     try (
-        var tablets = manager.getContext().getAmple().readTablets().forTable(tableId)
+        var tablets = env.getContext().getAmple().readTablets().forTable(tableId)
             .fetch(OPID, PREV_ROW, LOCATION).checkConsistency().build();
         var conditionalMutator =
-            manager.getContext().getAmple().conditionallyMutateTablets(resultsConsumer)) {
+            env.getContext().getAmple().conditionallyMutateTablets(resultsConsumer)) {
 
       for (var tabletMeta : tablets) {
         tabletsSeen++;
@@ -117,7 +117,7 @@ public class ReserveTablets extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     return new CleanUp(tableId, namespaceId);
   }
 }

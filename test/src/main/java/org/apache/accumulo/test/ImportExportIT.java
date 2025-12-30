@@ -211,7 +211,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
   public void testExportImportThenScan(boolean fenced) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
-      doExportImportThenScan(fenced, client, tableNames[0], tableNames[1]);
+      String tableName1 = tableNames[0] + "_" + fenced;
+      String tableName2 = tableNames[1] + "_" + fenced;
+      doExportImportThenScan(fenced, client, tableName1, tableName2);
     }
   }
 
@@ -223,7 +225,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       client.namespaceOperations().create(ns1);
       String ns2 = "namespace2";
       client.namespaceOperations().create(ns2);
-      String tableName = getUniqueNames(1)[0];
+      String tableName = getUniqueNames(1)[0] + "_" + fenced;
       doExportImportThenScan(fenced, client, ns1 + "." + tableName, ns2 + "." + tableName);
     }
   }
@@ -234,8 +236,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
-      String srcTable = tableNames[0];
-      String destTable = tableNames[1];
+      String srcTable = tableNames[0] + "_" + fenced;
+      String destTable = tableNames[1] + "_" + fenced;
       client.tableOperations().create(srcTable);
 
       try (BatchWriter bw = client.createBatchWriter(srcTable)) {
@@ -445,7 +447,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Get all `file` colfams from the metadata table for the new table
       log.info("Imported into table with ID: {}", destTableId);
 
-      client.tableOperations().getTabletInformation(destTable, RowRange.all())
+      client.tableOperations().getTabletInformation(destTable, List.of(RowRange.all()))
           .forEach(tabletInformation -> assertEquals(TabletAvailability.ONDEMAND,
               tabletInformation.getTabletAvailability(),
               "Expected all tablets in imported table to be ONDEMAND"));

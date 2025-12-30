@@ -16,12 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver.log;
+package org.apache.accumulo.test.tracing;
 
-import java.io.IOException;
-import java.util.Iterator;
+import java.util.Map;
 
-public interface CloseableIterator<T> extends Iterator<T>, AutoCloseable {
+public class SpanData {
+
+  public final String traceId;
+  public final String name;
+  public final Map<String,String> stringAttributes;
+  public final Map<String,Long> integerAttributes;
+
+  public SpanData(String traceId, String name, Map<String,String> stringAttributes,
+      Map<String,Long> integerAttributes) {
+    this.traceId = traceId;
+    this.name = name;
+    this.stringAttributes = stringAttributes;
+    this.integerAttributes = integerAttributes;
+  }
+
   @Override
-  void close() throws IOException;
+  public String toString() {
+    return "SpanData{traceId='" + traceId + "', name='" + name + "', stringAttributes="
+        + stringAttributes + ", integerAttributes=" + integerAttributes + '}';
+  }
 }

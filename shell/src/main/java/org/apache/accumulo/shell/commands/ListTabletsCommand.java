@@ -34,7 +34,6 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.RowRange;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -77,8 +76,8 @@ public class ListTabletsCommand extends Command {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
-      try (Stream<TabletInformation> tabletInfoStream =
-          shellState.getContext().tableOperations().getTabletInformation(name, RowRange.all())) {
+      try (Stream<TabletInformation> tabletInfoStream = shellState.getContext().tableOperations()
+          .getTabletInformation(name, List.of(RowRange.all()))) {
         final AtomicInteger counter = new AtomicInteger(1);
         tabletInfoStream.forEach(tabletInfo -> {
           int i = counter.getAndIncrement();
@@ -156,8 +155,7 @@ public class ListTabletsCommand extends Command {
       Pattern tablePattern = Pattern.compile(cl.getOptionValue(optTablePattern.getOpt()));
       for (String table : tableIdMap.keySet()) {
         if (tablePattern.matcher(table).matches()) {
-          TableId id = TableId.of(tableIdMap.get(table));
-          tableSet.add(new TableInfo(table, id));
+          tableSet.add(new TableInfo(table));
         }
       }
       return tableSet;
@@ -167,7 +165,7 @@ public class ListTabletsCommand extends Command {
       String nsName = cl.getOptionValue(optNamespace.getOpt());
       NamespaceId namespaceId = shellState.getContext().getNamespaceId(nsName);
       shellState.getContext().getTableMapping(namespaceId).createQualifiedNameToIdMap(nsName)
-          .forEach((name, id) -> tableSet.add(new TableInfo(name, id)));
+          .forEach((name, id) -> tableSet.add(new TableInfo(name)));
       return tableSet;
     }
 
@@ -175,8 +173,7 @@ public class ListTabletsCommand extends Command {
       String table = cl.getOptionValue(ShellOptions.tableOption);
       String idString = tableIdMap.get(table);
       if (idString != null) {
-        TableId id = TableId.of(idString);
-        tableSet.add(new TableInfo(table, id));
+        tableSet.add(new TableInfo(table));
       } else {
         Shell.log.warn("Table not found: {}", table);
       }
@@ -186,8 +183,7 @@ public class ListTabletsCommand extends Command {
     // If we didn't get any tables, and we have a table selected, add the current table
     String table = shellState.getTableName();
     if (!table.isEmpty()) {
-      TableId id = TableId.of(tableIdMap.get(table));
-      tableSet.add(new TableInfo(table, id));
+      tableSet.add(new TableInfo(table));
       return tableSet;
     }
 
@@ -200,11 +196,9 @@ public class ListTabletsCommand extends Command {
   static class TableInfo implements Comparable<TableInfo> {
 
     public final String name;
-    public final TableId id;
 
-    public TableInfo(final String name, final TableId id) {
+    public TableInfo(final String name) {
       this.name = name;
-      this.id = id;
     }
 
     @Override

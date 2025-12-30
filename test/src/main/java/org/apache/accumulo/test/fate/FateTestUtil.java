@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -65,13 +66,13 @@ public class FateTestUtil {
 
     TabletAvailability availability;
     try (var tabletStream = client.tableOperations()
-        .getTabletInformation(SystemTables.FATE.tableName(), RowRange.all())) {
+        .getTabletInformation(SystemTables.FATE.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(fateTableProps);
+        .withoutDefaults().setProperties(fateTableProps);
     client.tableOperations().create(table, newTableConf);
     var testFateTableProps = client.tableOperations().getTableProperties(table);
 

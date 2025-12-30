@@ -137,6 +137,7 @@ import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactio
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
@@ -270,7 +271,7 @@ public class CompactionCoordinator
   private final ServerContext ctx;
   private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
-  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
+  private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances;
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
@@ -290,7 +291,7 @@ public class CompactionCoordinator
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
   public CompactionCoordinator(Manager manager,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+      AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances) {
     this.ctx = manager.getContext();
     this.security = ctx.getSecurityOperation();
     this.manager = Objects.requireNonNull(manager);
@@ -340,7 +341,7 @@ public class CompactionCoordinator
         metaReservationPool, Ample.DataLevel.USER, userReservationPool);
 
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
-        .expireAfterWrite(30, TimeUnit.SECONDS).build(this::countCompactors);
+        .expireAfterWrite(2, TimeUnit.MINUTES).build(this::countCompactors);
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
@@ -425,6 +426,7 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
+    startQueueRunningSummaryLogging();
     startFailureSummaryLogging();
     startInternalStateCleaner(ctx.getScheduledExecutor());
 
@@ -524,7 +526,7 @@ public class CompactionCoordinator
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
             new RunningCompaction(result, compactorAddress, groupId));
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
-            rcJob);
+            rcJob, ecm.getCompactTmpName());
         break;
       } else {
         LOG.debug(
@@ -833,17 +835,22 @@ public class CompactionCoordinator
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent, String exceptionClassName) throws ThriftSecurityException {
+      TKeyExtent extent, String exceptionMessage, TCompactionState failureState)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+    if (failureState != TCompactionState.CANCELLED || failureState != TCompactionState.FAILED) {
+      LOG.error("Unexpected failure state sent to compactionFailed: {}. This is likely a bug.",
+          failureState);
+    }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed: id: {}, extent: {}, compactor exception:{}", externalCompactionId,
-        fromThriftExtent, exceptionClassName);
+    LOG.info("Compaction {}: id: {}, extent: {}, compactor exception:{}", failureState,
+        externalCompactionId, fromThriftExtent, exceptionMessage);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    if (exceptionClassName != null) {
+    if (failureState == TCompactionState.FAILED) {
       captureFailure(ecid, fromThriftExtent);
     }
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
@@ -857,6 +864,15 @@ public class CompactionCoordinator
       failingCompactors.compute(compactor, FailureCounts::incrementFailure);
     }
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
+  }
+
+  protected void startQueueRunningSummaryLogging() {
+    CoordinatorSummaryLogger summaryLogger =
+        new CoordinatorSummaryLogger(ctx, this.jobQueues, this.RUNNING_CACHE, compactorCounts);
+
+    ScheduledFuture<?> future = ctx.getScheduledExecutor()
+        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 1, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startFailureSummaryLogging() {

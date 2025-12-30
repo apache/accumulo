@@ -108,21 +108,6 @@ public class CompactionJobQueues {
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
-  public long getDequeuedJobs(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getDequeuedJobs();
-  }
-
-  public long getRejectedJobs(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getRejectedJobs();
-  }
-
-  public long getLowestPriority(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
-    return prioQ == null ? 0 : prioQ.getLowestPriority();
-  }
-
   public long getQueueCount() {
     return priorityQueues.mappingCount();
   }

@@ -114,7 +114,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
     super.setupCluster();
 
     // create a table
-    String tableName = getUniqueNames(1)[0];
+    String tableName = getUniqueNames(1)[0] + "_" + serverForSorting;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       SortedSet<Text> splits = new TreeSet<>();

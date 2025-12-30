@@ -50,10 +50,12 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
@@ -851,6 +853,43 @@ public class RatioBasedCompactionPlannerTest {
     verify(senv);
   }
 
+  /**
+   * Ensures the planner does not drop, modify, or mix up ranges on input files.
+   */
+  @Test
+  public void testFilesWithRanges() throws Exception {
+    String prefix = "hdfs://fake/accumulo/tables/1/t-0000000z/";
+    var file1 =
+        CompactableFile.create(new URI(prefix + "F1.rf"), RowRange.openClosed("c", "m"), 1000, 1);
+    var file2 =
+        CompactableFile.create(new URI(prefix + "F1.rf"), RowRange.openClosed("o", "s"), 1001, 2);
+    var file3 =
+        CompactableFile.create(new URI(prefix + "F2.rf"), RowRange.openClosed("x", "y"), 1002, 3);
+    var file4 = CompactableFile.create(new URI(prefix + "F3.rf"), 1003, 4);
+    var file5 = CompactableFile.create(new URI(prefix + "F4.rf"), RowRange.openClosed("abc", "xyz"),
+        1000000, 5);
+
+    String groups = "[{'group':'small','maxSize':'32M'}, {'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'}, {'group':'huge'}]";
+
+    var systemConf = Map.<String,String>of();
+    var tableConf = Map.<String,String>of();
+    var senv = createMockServiceEnvironment(systemConf, tableConf);
+
+    var planner = createPlanner(senv, groups);
+    var all = Set.of(file1, file2, file3, file4, file5);
+    var params = createPlanningParams(senv, all, all, Set.of(), 3, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(Set.of(
+        CompactableFile.create(new URI(prefix + "F1.rf"), RowRange.openClosed("c", "m"), 1000, 1),
+        CompactableFile.create(new URI(prefix + "F1.rf"), RowRange.openClosed("o", "s"), 1001, 2),
+        CompactableFile.create(new URI(prefix + "F2.rf"), RowRange.openClosed("x", "y"), 1002, 3),
+        CompactableFile.create(new URI(prefix + "F3.rf"), 1003, 4)), job.getFiles());
+
+    verify(senv);
+  }
+
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all)
@@ -897,8 +936,8 @@ public class RatioBasedCompactionPlannerTest {
 
   private static CompactableFile createCF(String name, long size) {
     try {
-      return CompactableFile
-          .create(new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0);
+      return new CompactableFileImpl(
+          new URI("hdfs://fake/accumulo/tables/1/t-0000000z/" + name + ".rf"), size, 0);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }
