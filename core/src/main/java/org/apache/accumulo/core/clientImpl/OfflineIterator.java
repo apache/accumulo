@@ -57,6 +57,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -246,7 +247,12 @@ final class OfflineIterator implements Iterator<Entry<Key,Value>> {
       readers.add(reader);
     }
 
-    MultiIterator multiIter = new MultiIterator(readers, extent);
+    MultiIterator multiIter;
+    if (tableCC.getBoolean(Property.TABLE_SHUFFLE_SOURCES)) {
+      multiIter = new MultiShuffledIterator(readers, extent.toDataRange());
+    } else {
+      multiIter = new MultiIterator(readers, extent.toDataRange());
+    }
 
     ClientIteratorEnvironment.Builder iterEnvBuilder =
         new ClientIteratorEnvironment.Builder().withAuthorizations(authorizations)

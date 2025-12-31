@@ -1048,6 +1048,9 @@ public enum Property {
           + "is exceeded for any tablet the entire bulk import operation will fail before making any "
           + "changes. Value of 0 is unlimited.",
       "4.0.0"),
+  TABLE_SHUFFLE_SOURCES("table.shuffle.sources", "false", PropertyType.BOOLEAN,
+      "Shuffle the opening order for Rfiles to reduce thread contention on file open operations.",
+      "2.1.5"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes.", "1.3.5"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",

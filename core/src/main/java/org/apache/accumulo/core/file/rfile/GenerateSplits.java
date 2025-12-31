@@ -337,7 +337,7 @@ public class GenerateSplits implements KeywordExecutable {
         readers.add(reader);
         fileReaders.add(reader);
       }
-      iterator = new MultiIterator(readers, false);
+      iterator = new MultiIterator(readers);
       iterator.seek(new Range(), Collections.emptySet(), false);
       splitArray = getQuantiles(iterator, numSplits);
     } finally {
@@ -371,7 +371,7 @@ public class GenerateSplits implements KeywordExecutable {
         readers.add(reader);
         fileReaders.add(reader);
       }
-      iterator = new MultiIterator(readers, false);
+      iterator = new MultiIterator(readers);
       iterator.seek(new Range(), Collections.emptySet(), false);
       while (iterator.hasTop()) {
         Key key = iterator.getTopKey();

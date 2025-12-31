@@ -456,6 +456,7 @@ public class FileManager {
     private final KeyExtent tablet;
     private boolean continueOnFailure;
     private final CacheProvider cacheProvider;
+    private final boolean shuffleFiles;
 
     ScanFileManager(KeyExtent tablet, CacheProvider cacheProvider) {
       tabletReservedReaders = new ArrayList<>();
@@ -465,6 +466,9 @@ public class FileManager {
 
       continueOnFailure = context.getTableConfiguration(tablet.tableId())
           .getBoolean(Property.TABLE_FAILURES_IGNORE);
+
+      shuffleFiles = context.getTableConfiguration(tablet.tableId())
+          .getBoolean(Property.TABLE_SHUFFLE_SOURCES);
 
       if (tablet.isMeta()) {
         continueOnFailure = false;
@@ -483,6 +487,9 @@ public class FileManager {
                 + maxOpen + " tablet = " + tablet);
       }
 
+      if (shuffleFiles) {
+        Collections.shuffle(files);
+      }
       Map<FileSKVIterator,StoredTabletFile> newlyReservedReaders =
           reserveReaders(tablet, files, continueOnFailure, cacheProvider);
 
