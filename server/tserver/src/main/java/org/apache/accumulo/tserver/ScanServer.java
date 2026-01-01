@@ -70,7 +70,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
@@ -320,8 +320,9 @@ public class ScanServer extends AbstractServer
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
-      LockWatcher lw = new ServiceLockWatcher(Type.SCAN_SERVER, () -> getShutdownComplete().get(),
-          (type) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
+      AccumuloLockWatcher lw =
+          new ServiceLockWatcher(Type.SCAN_SERVER, () -> getShutdownComplete().get(),
+              (type) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
