@@ -122,7 +122,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         cache.put(copy, bb);
         return bb;
       } catch (InvalidAccessExpressionException e) {
-        log.error("Parse Error", e);
+        log.error("Parse Error with visibility of Key: {}", k, e);
         return false;
       }
     }
