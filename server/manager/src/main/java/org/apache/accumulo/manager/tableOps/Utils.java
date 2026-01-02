@@ -86,7 +86,7 @@ public class Utils {
     }
   }
 
-  private static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
+  public static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
     Objects.requireNonNull(row);
     try (var tablets = ample.readTablets().forTable(tableId).overlapping(row, true, row)
         .fetch(TabletMetadata.ColumnType.PREV_ROW).build()) {
