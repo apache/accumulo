@@ -86,6 +86,12 @@ public class Utils {
     }
   }
 
+  /**
+   * Finds the single tablet extent that contains the provided row.
+   *
+   * @throws NullPointerException if row is null
+   * @throws java.util.NoSuchElementException if no tablet contains the row
+   */
   public static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
     Objects.requireNonNull(row);
     try (var tablets = ample.readTablets().forTable(tableId).overlapping(row, true, row)
