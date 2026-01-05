@@ -257,7 +257,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       return zsmc == -1 || zsmc == 0;
     }, 60_000);
 
-    String table = getUniqueNames(1)[0];
+    String table = getUniqueNames(1)[0] + "_" + consistency;
 
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
 
