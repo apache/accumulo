@@ -32,7 +32,7 @@ var SIZE_SUFFIX = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
 if ($.fn && $.fn.dataTable) {
   $.extend(true, $.fn.dataTable.defaults, {
   "lengthMenu" : [
-    [ 10, 25, 50, 100 -1 ],
+    [ 10, 25, 50, 100, -1 ],
     [ 10, 25, 50, 100, "All" ]
   ]
   });
