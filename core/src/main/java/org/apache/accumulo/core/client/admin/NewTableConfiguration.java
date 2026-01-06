@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedMap;
 
 /**
@@ -66,7 +68,7 @@ public class NewTableConfiguration {
   private static final InitialTableState DEFAULT_CREATION_MODE = InitialTableState.ONLINE;
   private InitialTableState initialTableState = DEFAULT_CREATION_MODE;
 
-  private boolean limitVersion = true;
+  private boolean includeDefaults = true;
 
   private Map<String,String> properties = Collections.emptyMap();
   private Map<String,String> samplerProps = Collections.emptyMap();
@@ -104,14 +106,16 @@ public class NewTableConfiguration {
   }
 
   /**
-   * Currently the only default iterator is the {@link VersioningIterator}. This method will cause
-   * the table to be created without that iterator, or any others which may become defaults in the
-   * future.
+   * Currently, the default table properties include the default iterator
+   * ({@link VersioningIterator}) and the constraint {@link DefaultKeySizeConstraint}. This method
+   * will cause the table to be created without this iterator or constraint, and any others which
+   * may become defaults in the future.
    *
+   * @since 2.1.4
    * @return this
    */
-  public NewTableConfiguration withoutDefaultIterators() {
-    this.limitVersion = false;
+  public NewTableConfiguration withoutDefaults() {
+    this.includeDefaults = false;
     return this;
   }
 
@@ -170,15 +174,40 @@ public class NewTableConfiguration {
   public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
-    if (limitVersion) {
-      propertyMap.putAll(IteratorConfigUtil.generateInitialTableProperties(limitVersion));
-    }
-
     propertyMap.putAll(summarizerProps);
     propertyMap.putAll(samplerProps);
     propertyMap.putAll(properties);
     propertyMap.putAll(iteratorProps);
     propertyMap.putAll(localityProps);
+
+    if (includeDefaults) {
+      var initTableProps = IteratorConfigUtil.getInitialTableProperties();
+      // check the properties for conflicts with default iterators
+      var defaultIterSettings = IteratorConfigUtil.getInitialTableIteratorSettings();
+      // if a default prop already exists, don't want to consider that a conflict
+      var noDefaultsPropMap = new HashMap<>(propertyMap);
+      noDefaultsPropMap.entrySet().removeIf(entry -> initTableProps.get(entry.getKey()) != null
+          && initTableProps.get(entry.getKey()).equals(entry.getValue()));
+      defaultIterSettings.forEach((setting, scopes) -> {
+        try {
+          TableOperationsHelper.checkIteratorConflicts(noDefaultsPropMap, setting, scopes);
+        } catch (AccumuloException e) {
+          throw new IllegalStateException(String.format(
+              "conflict with default table iterator: scopes: %s setting: %s", scopes, setting), e);
+        }
+      });
+
+      // check the properties for conflicts with default properties (non-iterator)
+      var nonIterDefaults = IteratorConfigUtil.getInitialTableProperties();
+      nonIterDefaults.keySet().removeAll(IteratorConfigUtil.getInitialTableIterators().keySet());
+      nonIterDefaults.forEach((dk, dv) -> {
+        var valInPropMap = propertyMap.get(dk);
+        Preconditions.checkState(valInPropMap == null || valInPropMap.equals(dv), String.format(
+            "conflict for property %s : %s (default val) != %s (set val)", dk, dv, valInPropMap));
+      });
+
+      propertyMap.putAll(initTableProps);
+    }
     return Collections.unmodifiableMap(propertyMap);
   }
 

@@ -116,6 +116,7 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:data.TKeyExtent extent
     5:string exceptionClassName
+    6:TCompactionState failureState
   )
 
   /*

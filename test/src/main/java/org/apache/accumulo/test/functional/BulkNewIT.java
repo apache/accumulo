@@ -82,6 +82,7 @@ import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -1012,7 +1013,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().delete(tableName);
       // Create table without versioning iterator. This done to detect the same file being imported
       // more than once.
-      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaults());
 
       addSplits(c, tableName, "0999 1999 2999 3999 4999 5999 6999 7999 8999");
 
@@ -1129,11 +1130,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       addSplits(c, tableName, "0100 0200 0300 0400 0500");
 
-      c.tableOperations().setTabletAvailability(tableName, new Range("0100", false, "0200", true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.openClosed("0100", "0200"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("0300", false, "0400", true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.openClosed("0300", "0400"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("0400", false, null, true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.greaterThan("0400"),
           TabletAvailability.UNHOSTED);
 
       // verify tablet availabilities are as expected
@@ -1272,7 +1273,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
    */
   private static Map<String,TabletAvailability> getTabletAvailabilities(AccumuloClient c,
       String tableName) throws TableNotFoundException {
-    try (var tabletsInfo = c.tableOperations().getTabletInformation(tableName, new Range())) {
+    try (var tabletsInfo =
+        c.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
       return tabletsInfo.collect(Collectors.toMap(ti -> {
         var er = ti.getTabletId().getEndRow();
         return er == null ? "NULL" : er.toString();

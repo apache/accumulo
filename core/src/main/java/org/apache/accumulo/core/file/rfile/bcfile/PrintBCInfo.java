@@ -36,8 +36,8 @@ import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "DM_EXIT",
-    justification = "System.exit is fine here because it's a utility class executed by a main()")
+@SuppressFBWarnings(value = {"DM_EXIT", "CT_CONSTRUCTOR_THROW"},
+    justification = "System.exit is acceptable here as it's a utility class, and constructor validation ensures proper initialization")
 public class PrintBCInfo {
   Configuration conf;
   FileSystem fs;

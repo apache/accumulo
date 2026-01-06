@@ -54,6 +54,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -202,7 +203,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
 
-  public static final AtomicLong seekCount = new AtomicLong(0);
+  public static final LongAdder seekCount = new LongAdder();
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
   private final AtomicInteger onDemandUnloadedLowMemory = new AtomicInteger(0);
@@ -844,7 +845,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
     result.name = String.valueOf(getAdvertiseAddress());
     result.holdTime = resourceManager.holdTime();
-    result.lookups = seekCount.get();
+    result.lookups = seekCount.sum();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
     result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
     result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();

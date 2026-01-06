@@ -28,6 +28,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -68,8 +69,6 @@ class BulkImportMove extends AbstractFateOperation {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
-    log.debug("{} sourceDir {}", fateId, sourceDir);
-
     VolumeManager fs = env.getVolumeManager();
 
     try {
@@ -102,6 +101,7 @@ class BulkImportMove extends AbstractFateOperation {
     }
     try {
       fs.bulkRename(oldToNewMap, env.getRenamePool(), fateId);
+      oldToNewMap.forEach((oldPath, newPath) -> BulkLogger.renamed(fateId, oldPath, newPath));
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,

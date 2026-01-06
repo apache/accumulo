@@ -148,7 +148,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   /**
    * Host Regex Table Load Balance Config
    */
-  static class HrtlbConf {
+  static final class HrtlbConf {
 
     protected long oobCheckMillis =
         ConfigurationTypeHelper.getTimeInMillis(HOST_BALANCER_OOB_DEFAULT);

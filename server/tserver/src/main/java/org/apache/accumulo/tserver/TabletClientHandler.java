@@ -195,6 +195,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       tableId = keyExtent.tableId();
       if (sameTable || security.canWrite(us.getCredentials(), tableId,
           server.getContext().getNamespaceId(tableId))) {
+        logDurabilityWarning(keyExtent, us.durability);
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = server.getOnlineTablet(keyExtent);
@@ -320,6 +321,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         Tablet tablet = entry.getKey();
         Durability durability =
             DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
+        logDurabilityWarning(tablet.getExtent(), durability);
         List<Mutation> mutations = entry.getValue();
         if (!mutations.isEmpty()) {
           preppedMutations += mutations.size();
@@ -634,7 +636,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         } else {
           final Durability durability =
               DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
-
+          logDurabilityWarning(tablet.getExtent(), durability);
           List<Mutation> mutations = Collections.unmodifiableList(entry.getValue());
           preppedMutions += mutations.size();
           if (!mutations.isEmpty()) {
@@ -1395,6 +1397,13 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return tsums;
     } catch (TimeoutException e) {
       return handleTimeout(sessionId);
+    }
+  }
+
+  private void logDurabilityWarning(KeyExtent tablet, Durability durability) {
+    if (tablet.isMeta() && durability != Durability.SYNC) {
+      log.warn("Property {} is not set to 'sync' for table {}", Property.TABLE_DURABILITY.getKey(),
+          tablet.tableId());
     }
   }
 }

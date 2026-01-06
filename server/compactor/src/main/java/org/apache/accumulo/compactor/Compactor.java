@@ -488,14 +488,14 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @param job current compaction job
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
-  protected void updateCompactionFailed(TExternalCompactionJob job, String cause)
-      throws RetriesExceededException {
+  protected void updateCompactionFailed(TExternalCompactionJob job, TCompactionState why,
+      String message) throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, cause);
+                job.getExternalCompactionId(), job.extent, message, why);
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -969,7 +969,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                   new TCompactionStatusUpdate(TCompactionState.CANCELLED, "Compaction cancelled",
                       -1, -1, -1, fcr.getCompactionAge().toNanos());
               updateCompactionState(job, update);
-              updateCompactionFailed(job, InterruptedException.class.getName());
+              updateCompactionFailed(job, TCompactionState.CANCELLED, "Compaction cancelled");
               cancelled.incrementAndGet();
             } catch (RetriesExceededException e) {
               LOG.error("Error updating coordinator with compaction cancellation.", e);
@@ -985,7 +985,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                   "Compaction failed due to: " + err.get().getMessage(), -1, -1, -1,
                   fcr.getCompactionAge().toNanos());
               updateCompactionState(job, update);
-              updateCompactionFailed(job, err.get().getClass().getName());
+              updateCompactionFailed(job, TCompactionState.FAILED,
+                  "Compaction failed due to: " + err.get().getMessage());
               failed.incrementAndGet();
               errorHistory.addError(fromThriftExtent.tableId(), err.get());
             } catch (RetriesExceededException e) {

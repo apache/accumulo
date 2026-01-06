@@ -30,7 +30,7 @@ import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
-public class ColumnSet {
+public final class ColumnSet {
   private final Set<ColFamHashKey> objectsCF;
   private final Set<ColHashKey> objectsCol;
 

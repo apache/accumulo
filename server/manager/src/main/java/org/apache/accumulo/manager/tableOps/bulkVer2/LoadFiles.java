@@ -104,7 +104,7 @@ class LoadFiles extends AbstractFateOperation {
 
   @Override
   public long isReady(FateId fateId, FateEnv env) throws Exception {
-    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
+    log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
     if (env.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
           + ")");
@@ -419,7 +419,7 @@ class LoadFiles extends AbstractFateOperation {
           if (!pi.findWithin(
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
-            log.debug(
+            log.trace(
                 "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
                 fmtTid, loadMapKey.prevEndRow(), skipDistance);
             tabletsMetadata.close();
@@ -438,8 +438,8 @@ class LoadFiles extends AbstractFateOperation {
 
     log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
 
-    if (importTimingStats.callCount > 0) {
-      log.debug(
+    if (importTimingStats.callCount > 0 && log.isTraceEnabled()) {
+      log.trace(
           "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, fateId, importTimingStats.tabletCount, importTimingStats.callCount,
           totalProcessingTime.toMillis(), totalProcessingTime.toNanos(),

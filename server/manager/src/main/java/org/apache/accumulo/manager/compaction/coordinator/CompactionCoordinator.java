@@ -526,7 +526,7 @@ public class CompactionCoordinator
         RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
             new RunningCompaction(result, compactorAddress, groupId));
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
-            rcJob);
+            rcJob, ecm.getCompactTmpName());
         break;
       } else {
         LOG.debug(
@@ -835,17 +835,22 @@ public class CompactionCoordinator
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent, String exceptionClassName) throws ThriftSecurityException {
+      TKeyExtent extent, String exceptionMessage, TCompactionState failureState)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
+    if (failureState != TCompactionState.CANCELLED || failureState != TCompactionState.FAILED) {
+      LOG.error("Unexpected failure state sent to compactionFailed: {}. This is likely a bug.",
+          failureState);
+    }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed: id: {}, extent: {}, compactor exception:{}", externalCompactionId,
-        fromThriftExtent, exceptionClassName);
+    LOG.info("Compaction {}: id: {}, extent: {}, compactor exception:{}", failureState,
+        externalCompactionId, fromThriftExtent, exceptionMessage);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    if (exceptionClassName != null) {
+    if (failureState == TCompactionState.FAILED) {
       captureFailure(ecid, fromThriftExtent);
     }
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));

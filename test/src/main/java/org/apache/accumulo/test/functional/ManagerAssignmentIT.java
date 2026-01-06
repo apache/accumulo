@@ -61,6 +61,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -180,7 +181,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertEquals(TabletAvailability.ONDEMAND, online.getTabletAvailability());
 
     // set the tablet availability to HOSTED
-    client.tableOperations().setTabletAvailability(tableName, new Range(),
+    client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
         TabletAvailability.HOSTED);
 
     Predicate<TabletMetadata> hostedOrCurrentNotNull =
@@ -196,7 +197,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertEquals(TabletAvailability.HOSTED, always.getTabletAvailability());
 
     // set the hosting availability to never
-    client.tableOperations().setTabletAvailability(tableName, new Range(),
+    client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
         TabletAvailability.UNHOSTED);
     Predicate<TabletMetadata> unhostedOrCurrentNull =
         t -> (t.getTabletAvailability() == TabletAvailability.UNHOSTED && !t.hasCurrent());
@@ -210,7 +211,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertEquals(TabletAvailability.UNHOSTED, unhosted.getTabletAvailability());
 
     // set the tablet availability to ONDEMAND
-    client.tableOperations().setTabletAvailability(tableName, new Range(),
+    client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
         TabletAvailability.ONDEMAND);
     Predicate<TabletMetadata> ondemandHosted =
         t -> t.getTabletAvailability() == TabletAvailability.ONDEMAND;

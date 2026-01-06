@@ -66,9 +66,13 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.JsonParser;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Fault tolerant executor
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Fate<T> {
 
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
@@ -216,7 +220,8 @@ public class Fate<T> {
         synchronized (fateExecutors) {
           if (fateExecutors.stream().noneMatch(
               fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
-            log.debug("[{}] Adding FateExecutor for {}", store.type(), fateOps);
+            log.debug("[{}] Adding FateExecutor for {} with {} threads", store.type(), fateOps,
+                poolSize);
             fateExecutors.add(
                 new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName));
           }
@@ -510,8 +515,10 @@ public class Fate<T> {
    * fate data, like add a new fate operation or get the status of an existing fate operation.
    */
   public void shutdown(long timeout, TimeUnit timeUnit) {
-    log.info("Shutting down {} FATE", store.type());
-
+    log.info("Shutting down {} FATE, waiting: {} seconds", store.type(),
+        TimeUnit.SECONDS.convert(timeout, timeUnit));
+    // important this is set before shutdownNow is called as the background
+    // threads will check this to see if shutdown related errors should be ignored.
     if (keepRunning.compareAndSet(true, false)) {
       synchronized (fateExecutors) {
         for (var fateExecutor : fateExecutors) {
