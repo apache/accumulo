@@ -367,9 +367,9 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // add split 'h' and 'q'. Leave first as ONDEMAND, set second to UNHOSTED, and third to HOSTED
       SortedSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("h"), new Text("q")));
       client.tableOperations().addSplits(srcTable, splits);
-      Range range = new Range(new Text("h"), false, new Text("q"), true);
+      RowRange range = RowRange.openClosed(new Text("h"), new Text("q"));
       client.tableOperations().setTabletAvailability(srcTable, range, TabletAvailability.UNHOSTED);
-      range = new Range(new Text("q"), false, null, true);
+      range = RowRange.greaterThan(new Text("q"));
       client.tableOperations().setTabletAvailability(srcTable, range, TabletAvailability.HOSTED);
 
       // verify

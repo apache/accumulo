@@ -1130,11 +1130,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       addSplits(c, tableName, "0100 0200 0300 0400 0500");
 
-      c.tableOperations().setTabletAvailability(tableName, new Range("0100", false, "0200", true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.openClosed("0100", "0200"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("0300", false, "0400", true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.openClosed("0300", "0400"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("0400", false, null, true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.greaterThan("0400"),
           TabletAvailability.UNHOSTED);
 
       // verify tablet availabilities are as expected

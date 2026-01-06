@@ -1063,16 +1063,15 @@ public interface TableOperations {
 
   /**
    * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
-   * for the tablets to reach this availability state. For the Range parameter, note that the Row
-   * portion of the start and end Keys and the inclusivity parameters are used when determining the
-   * range of affected tablets. The other portions of the start and end Keys are not used.
+   * for the tablets to reach this availability state. The supplied row range is compared against
+   * the tablets' start/end rows using its lower/upper bounds and inclusivity flags.
    *
    * @param tableName table name
-   * @param range tablet range
+   * @param rowRange tablet row range
    * @param tabletAvailability tablet availability
    * @since 4.0.0
    */
-  default void setTabletAvailability(String tableName, Range range,
+  default void setTabletAvailability(String tableName, RowRange rowRange,
       TabletAvailability tabletAvailability)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();

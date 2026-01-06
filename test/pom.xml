@@ -30,6 +30,7 @@
   <name>Apache Accumulo Testing</name>
   <description>Tests for Apache Accumulo.</description>
   <properties>
+    <spotbugs.omitVisitors>FindDeadLocalStores,SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
     <timeout.factor>1</timeout.factor>
   </properties>
   <dependencies>

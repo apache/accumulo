@@ -16,29 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.client.admin;
+package org.apache.accumulo.core.iterators.system;
 
-import org.apache.accumulo.core.data.RowRange;
+import java.util.List;
 
-/**
- * @see TableOperations#setTabletAvailability(String, RowRange, TabletAvailability)
- * @since 4.0.0
- */
-public enum TabletAvailability {
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 
-  /**
-   * Signifies that a Tablet should always be hosted on a tablet server.
-   */
-  HOSTED,
+public class MultiShuffledIteratorTest extends MultiIteratorTest {
 
-  /**
-   * Signifies that a Tablet should be hosted on a tablet server when a client needs it.
-   */
-  ONDEMAND,
-
-  /**
-   * Signifies that a Tablet should never be hosted on a tablet server.
-   */
-  UNHOSTED;
-
+  @Override
+  protected MultiIterator makeIterator(List<SortedKeyValueIterator<Key,Value>> list, Range range) {
+    return new MultiShuffledIterator(list, range);
+  }
 }

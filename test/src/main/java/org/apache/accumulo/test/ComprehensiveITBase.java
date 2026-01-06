@@ -850,7 +850,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
       // set last tablet in table to always be HOSTED, setting a tablet availability here will test
       // export and cloning tables with tablet availabilities
       client.tableOperations().setTabletAvailability(everythingTable,
-          new Range(everythingSplits.last(), false, null, true), TabletAvailability.HOSTED);
+          RowRange.greaterThan(everythingSplits.last()), TabletAvailability.HOSTED);
 
       write(client, everythingTable, generateMutations(0, 100, tr -> true));
 

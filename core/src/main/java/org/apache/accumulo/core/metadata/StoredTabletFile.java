@@ -40,6 +40,8 @@ import org.checkerframework.checker.nullness.qual.NonNull;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Object representing a tablet file entry stored in the metadata table. Keeps a string of the exact
  * entry of what is in the metadata table, which is important for updating and deleting metadata
@@ -51,6 +53,8 @@ import com.google.gson.Gson;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
   private final ReferencedTabletFile referencedTabletFile;
