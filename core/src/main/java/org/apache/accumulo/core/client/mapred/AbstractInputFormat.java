@@ -494,16 +494,18 @@ public abstract class AbstractInputFormat<K,V> implements InputFormat<K,V> {
         Scanner scanner;
 
         try {
+          var iteratorValidator = client.getScanIteratorValidator(table);
           if (isOffline) {
-            scanner =
-                new OfflineScanner(client, TableId.of(baseSplit.getTableId()), authorizations);
+            scanner = new OfflineScanner(client, TableId.of(baseSplit.getTableId()), authorizations,
+                iteratorValidator);
           } else {
-            scanner = new ScannerImpl(client, TableId.of(baseSplit.getTableId()), authorizations);
+            scanner = new ScannerImpl(client, TableId.of(baseSplit.getTableId()), authorizations,
+                iteratorValidator);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
             @SuppressWarnings("resource")
-            var wrapped = new IsolatedScanner(scanner);
+            var wrapped = new IsolatedScanner(scanner, iteratorValidator);
             scanner = wrapped;
           }
           if (usesLocalIterators) {

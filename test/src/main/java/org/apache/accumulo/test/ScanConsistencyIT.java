@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -353,7 +354,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
   private static ScanStats scanData(TestContext tctx, Random random, Range range,
       boolean scanIsolated) throws Exception {
     try (ExpectedScanData expectedScanData = tctx.dataTracker.beginScan();
-        Scanner scanner = scanIsolated ? new IsolatedScanner(tctx.client.createScanner(tctx.table))
+        Scanner scanner = scanIsolated
+            ? new IsolatedScanner(tctx.client.createScanner(tctx.table),
+                ((ClientContext) tctx.client).getScanIteratorValidator(tctx.table))
             : tctx.client.createScanner(tctx.table)) {
       Set<Key> expected = expectedScanData.getExpectedData(range).collect(Collectors.toSet());
 

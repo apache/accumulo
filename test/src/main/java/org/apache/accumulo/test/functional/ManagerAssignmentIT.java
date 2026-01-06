@@ -142,7 +142,8 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
       Runnable task = () -> {
         while (true) {
-          try (var scanner = new IsolatedScanner(client.createScanner(tableName))) {
+          try (var scanner = new IsolatedScanner(client.createScanner(tableName),
+              ((ClientContext) client).getScanIteratorValidator(tableName))) {
             // TODO maybe do not close scanner? The following limit was placed on the stream to
             // avoid reading all the data possibly leaving a scan session active on the tserver
             AtomicInteger count = new AtomicInteger(0);

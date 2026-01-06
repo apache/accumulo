@@ -134,6 +134,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
   }
 
   RFileScanner(Opts opts) {
+    super((setting) -> {});
     if (!opts.auths.equals(Authorizations.EMPTY) && !opts.useSystemIterators) {
       throw new IllegalArgumentException(
           "Set authorizations and specified not to use system iterators");

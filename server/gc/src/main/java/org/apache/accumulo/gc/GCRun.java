@@ -174,7 +174,8 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     int blipPrefixLen = MetadataSchema.BlipSection.getRowPrefix().length();
     var scanner =
-        new IsolatedScanner(context.createScanner(level.metaTable(), Authorizations.EMPTY));
+        new IsolatedScanner(context.createScanner(level.metaTable(), Authorizations.EMPTY),
+            context.getScanIteratorValidator(level.metaTable()));
     scanner.setRange(MetadataSchema.BlipSection.getRange());
     return scanner.stream()
         .map(entry -> entry.getKey().getRow().toString().substring(blipPrefixLen))

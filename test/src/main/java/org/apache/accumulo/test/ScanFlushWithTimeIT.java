@@ -34,6 +34,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -86,7 +87,8 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
         testScanner(s, 1200);
 
         log.info("IsolatedScanner");
-        IsolatedScanner is = new IsolatedScanner(s);
+        IsolatedScanner is =
+            new IsolatedScanner(s, ((ClientContext) c).getScanIteratorValidator(tableName));
         is.setReadaheadThreshold(1);
         // buffers an entire row
         testScanner(is, 2200);

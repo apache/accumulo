@@ -69,7 +69,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ConditionalWriterImpl;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -88,6 +90,7 @@ import org.apache.accumulo.core.iterators.user.SummingCombiner;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.FastFormat;
@@ -265,6 +268,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client1.securityOperations().changeUserAuthorizations(user, auths);
       client1.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
+      client1.securityOperations().grantNamespacePermission(user, Namespace.DEFAULT.name(), NamespacePermission.ALTER_NAMESPACE);
 
       try (AccumuloClient client2 =
           Accumulo.newClient().from(client1.properties()).as(user, user1.getToken()).build()) {
@@ -1195,7 +1199,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     @Override
     public void run() {
       try (Scanner scanner =
-          new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY))) {
+          new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY),
+              ((ClientContext) client).getScanIteratorValidator(tableName))) {
 
         for (int i = 0; i < 20; i++) {
           int numRows = random.nextInt(10) + 1;

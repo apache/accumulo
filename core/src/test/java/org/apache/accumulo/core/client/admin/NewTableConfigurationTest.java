@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
@@ -124,7 +125,7 @@ public class NewTableConfigurationTest {
    * Verify enableSampling returns
    */
   @Test
-  public void testEnableSampling() {
+  public void testEnableSampling() throws AccumuloException {
     SamplerConfiguration sha1SamplerConfig = new SamplerConfiguration("com.mysampler");
     sha1SamplerConfig.setOptions(options);
     NewTableConfiguration ntcSample2 =
@@ -138,7 +139,7 @@ public class NewTableConfigurationTest {
    * Verify enableSummarization returns SummarizerConfiguration with the expected class name(s).
    */
   @Test
-  public void testEnableSummarization() {
+  public void testEnableSummarization() throws AccumuloException {
     SummarizerConfiguration summarizerConfig1 = SummarizerConfiguration
         .builder("com.test.summarizer").setPropertyId("s1").addOption("opt1", "v1").build();
     NewTableConfiguration ntcSummarization1 =

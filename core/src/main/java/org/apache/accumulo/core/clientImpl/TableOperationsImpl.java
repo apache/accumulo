@@ -116,6 +116,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -230,6 +231,19 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     NEW_TABLE_NAME.validate(tableName);
     checkArgument(ntc != null, "ntc is null");
+
+    final String[] nsAndTable;
+    try {
+      if ((nsAndTable = tableName.split("\\" + Namespace.SEPARATOR)).length == 2) {
+        ntc.configureInheritedIteratorProps(
+            context.namespaceOperations().getNamespaceProperties(nsAndTable[0]));
+      } else {
+        ntc.configureInheritedIteratorProps(
+            context.namespaceOperations().getNamespaceProperties(Namespace.DEFAULT.name()));
+      }
+    } catch (NamespaceNotFoundException e) {
+      throw new AccumuloException(e);
+    }
 
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
@@ -1008,11 +1022,34 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
+      checkIteratorConflicts(Map.copyOf(this.getConfiguration(tableName)), property, value);
+
       setPropertyNoChecks(tableName, property, value);
 
       checkLocalityGroups(tableName, property);
-    } catch (TableNotFoundException e) {
+    } catch (TableNotFoundException | IllegalArgumentException e) {
       throw new AccumuloException(e);
+    }
+  }
+
+  private void checkIteratorConflicts(Map<String,String> props, String property, String value)
+      throws AccumuloException, TableNotFoundException, IllegalArgumentException {
+    if (props.containsKey(property) && props.get(property).equals(value)) {
+      // setting a property that already exists (i.e., no change)
+      return;
+    }
+    if (IteratorConfigUtil.isNonOptionIterProp(property, value)) {
+      String[] iterPropParts = property.split("\\.");
+      IteratorScope scope = IteratorScope.valueOf(iterPropParts[2]);
+      String iterName = iterPropParts[3];
+      String[] priorityAndClass;
+      if ((priorityAndClass = value.split(",")).length == 2) {
+        // given a single property, the only way for the property to be equivalent to an existing
+        // iterator is if the existing iterator has no options (opts are set as separate props)
+        IteratorSetting givenIter = new IteratorSetting(Integer.parseInt(priorityAndClass[0]),
+            iterName, priorityAndClass[1]);
+        checkIteratorConflicts(props, givenIter, EnumSet.of(scope));
+      }
     }
   }
 
@@ -1022,6 +1059,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    final Map<String,String> configBeforeMut;
+    try {
+      configBeforeMut = getConfiguration(tableName);
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
+
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -1029,6 +1073,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // point. Because of these potential issues, create an immutable snapshot of the map so that
     // from here on the code is assured to always be dealing with the same map.
     vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
+
+    try {
+      for (var property : vProperties.getProperties().entrySet()) {
+        checkIteratorConflicts(configBeforeMut, property.getKey(), property.getValue());
+      }
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
 
     try {
       // Send to server

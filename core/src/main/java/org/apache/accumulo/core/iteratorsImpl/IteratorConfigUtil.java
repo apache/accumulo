@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -56,6 +58,17 @@ public class IteratorConfigUtil {
 
   public static final Comparator<IterInfo> ITER_INFO_COMPARATOR =
       Comparator.comparingInt(IterInfo::getPriority);
+
+  private static final String ITERATOR_PROP_REGEX =
+      ("^" + Property.TABLE_ITERATOR_PREFIX.getKey() + "(" + Arrays.stream(IteratorScope.values())
+          .map(scope -> scope.name().toLowerCase()).collect(Collectors.joining(".|")) + ".)")
+          .replace(".", "\\.") + "[^.]+$";
+  private static final String ITERATOR_PROP_VAL_REGEX = "^[0-9]+,[^,]+$";
+  private static final String ITERATOR_PROP_OPT_REGEX =
+      ("^" + Property.TABLE_ITERATOR_PREFIX.getKey() + "("
+          + Arrays.stream(IteratorScope.values()).map(scope -> scope.name().toLowerCase())
+              .collect(Collectors.joining(".|"))
+          + ".)").replace(".", "\\.") + "[^.]+\\.opt\\.[^.]+$";
 
   /**
    * Fetch the correct configuration key prefix for the given scope. Throws an
@@ -272,5 +285,33 @@ public class IteratorConfigUtil {
         .asSubclass(SortedKeyValueIterator.class);
     log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     return clazz;
+  }
+
+  /**
+   * Returns true if the property is an iterator property not including iterator option properties
+   */
+  public static boolean isNonOptionIterProp(String propKey, String propVal) {
+    return propKey.matches(IteratorConfigUtil.ITERATOR_PROP_REGEX)
+        && propVal.matches(IteratorConfigUtil.ITERATOR_PROP_VAL_REGEX);
+  }
+
+  public static boolean isIterProp(String propKey, String propVal) {
+    return isNonOptionIterProp(propKey, propVal) || ITERATOR_PROP_OPT_REGEX.matches(propKey);
+  }
+
+  /**
+   * returns a map of the options associated with the given iterator property key. Options of the
+   * iterator are obtained by searching the given map
+   */
+  public static Map<String,String> gatherOpts(String iterPropKey, Map<String,String> map) {
+    Map<String,String> opts = new HashMap<>();
+    for (var iteratorProp : map.entrySet()) {
+      if (ITERATOR_PROP_OPT_REGEX.matches(iteratorProp.getKey())
+          && iteratorProp.getKey().contains(iterPropKey)) {
+        String[] parts = iteratorProp.getKey().split("\\.");
+        opts.put(parts[parts.length - 1], iteratorProp.getValue());
+      }
+    }
+    return opts;
   }
 }

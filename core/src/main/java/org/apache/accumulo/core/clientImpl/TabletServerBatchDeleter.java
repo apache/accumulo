@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -41,8 +42,10 @@ public class TabletServerBatchDeleter extends TabletServerBatchReader implements
   private final BatchWriterConfig bwConfig;
 
   public TabletServerBatchDeleter(ClientContext context, TableId tableId, String tableName,
-      Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig) {
-    super(context, BatchDeleter.class, tableId, tableName, authorizations, numQueryThreads);
+      Authorizations authorizations, int numQueryThreads, BatchWriterConfig bwConfig,
+      Consumer<IteratorSetting> iteratorValidator) {
+    super(context, BatchDeleter.class, tableId, tableName, authorizations, numQueryThreads,
+        iteratorValidator);
     this.context = context;
     this.tableId = tableId;
     this.bwConfig = bwConfig;

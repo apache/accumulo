@@ -27,7 +27,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
@@ -44,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Bu
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.zookeeper.DistributedWorkQueue;
@@ -120,9 +120,10 @@ class CopyFailed extends ManagerRepo {
      */
 
     // determine which failed files were loaded
-    AccumuloClient client = manager.getContext();
+    ServerContext client = manager.getContext();
     try (Scanner mscanner =
-        new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
+        new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY),
+            client.getScanIteratorValidator(MetadataTable.NAME))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 

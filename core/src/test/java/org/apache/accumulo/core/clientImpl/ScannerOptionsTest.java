@@ -40,7 +40,7 @@ public class ScannerOptionsTest {
    */
   @Test
   public void testAddRemoveIterator() {
-    try (ScannerOptions options = new ScannerOptions()) {
+    try (ScannerOptions options = new ScannerOptions((setting) -> {})) {
       options.addScanIterator(new IteratorSetting(1, "NAME", WholeRowIterator.class));
       assertEquals(1, options.serverSideIteratorList.size());
       options.removeScanIterator("NAME");
@@ -50,7 +50,7 @@ public class ScannerOptionsTest {
 
   @Test
   public void testIteratorConflict() {
-    try (ScannerOptions options = new ScannerOptions()) {
+    try (ScannerOptions options = new ScannerOptions((setting) -> {})) {
       options.addScanIterator(new IteratorSetting(1, "NAME", DebugIterator.class));
       assertThrows(IllegalArgumentException.class,
           () -> options.addScanIterator(new IteratorSetting(2, "NAME", DebugIterator.class)));
@@ -61,7 +61,7 @@ public class ScannerOptionsTest {
 
   @Test
   public void testFetchColumn() {
-    try (ScannerOptions options = new ScannerOptions()) {
+    try (ScannerOptions options = new ScannerOptions((setting) -> {})) {
       assertEquals(0, options.getFetchedColumns().size());
       IteratorSetting.Column col =
           new IteratorSetting.Column(new Text("family"), new Text("qualifier"));
@@ -76,7 +76,7 @@ public class ScannerOptionsTest {
 
   @Test
   public void testFetchNullColumn() {
-    try (ScannerOptions options = new ScannerOptions()) {
+    try (ScannerOptions options = new ScannerOptions((setting) -> {})) {
       // Require a non-null instance of Column
       assertThrows(IllegalArgumentException.class, () -> options.fetchColumn(null));
     }

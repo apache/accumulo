@@ -254,7 +254,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
       SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
-    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY,
+        context.getScanIteratorValidator(MetadataTable.NAME))) {
       scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();

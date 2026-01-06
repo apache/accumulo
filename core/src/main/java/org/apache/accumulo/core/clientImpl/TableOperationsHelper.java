@@ -144,7 +144,13 @@ public abstract class TableOperationsHelper implements TableOperations {
           String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
+      String valStr = String.format("%s,%s", setting.getPriority(), setting.getIteratorClass());
       Map<String,String> optionConflicts = new TreeMap<>();
+      // skip if the setting is present in the map... not a conflict if exactly the same
+      if (props.containsKey(nameStr) && props.get(nameStr).equals(valStr)
+          && containsSameIterOpts(props, setting, optStr)) {
+        continue;
+      }
       for (Entry<String,String> property : props.entrySet()) {
         if (property.getKey().startsWith(scopeStr)) {
           if (property.getKey().equals(nameStr)) {
@@ -178,6 +184,17 @@ public abstract class TableOperationsHelper implements TableOperations {
             "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
       }
     }
+  }
+
+  private static boolean containsSameIterOpts(Map<String,String> props, IteratorSetting setting,
+      String optStr) {
+    for (var opt : setting.getOptions().entrySet()) {
+      final String optKey = optStr + opt.getKey();
+      if (!props.containsKey(optKey) || !props.get(optKey).equals(opt.getValue())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Override

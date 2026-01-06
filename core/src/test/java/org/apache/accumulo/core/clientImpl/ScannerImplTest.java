@@ -34,11 +34,15 @@ public class ScannerImplTest {
   @BeforeEach
   public void setup() {
     context = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(context.getScanIteratorValidator(EasyMock.anyString()))
+        .andReturn(iteratorSetting -> {});
+    EasyMock.replay(context);
   }
 
   @Test
   public void testValidReadaheadValues() {
-    try (var s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY)) {
+    try (var s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY,
+        context.getScanIteratorValidator("bar"))) {
       s.setReadaheadThreshold(0);
       s.setReadaheadThreshold(10);
       s.setReadaheadThreshold(Long.MAX_VALUE);
@@ -49,7 +53,8 @@ public class ScannerImplTest {
 
   @Test
   public void testInValidReadaheadValues() {
-    try (var s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY)) {
+    try (var s = new ScannerImpl(context, TableId.of("foo"), Authorizations.EMPTY,
+        context.getScanIteratorValidator("bar"))) {
       assertThrows(IllegalArgumentException.class, () -> s.setReadaheadThreshold(-1));
     }
   }
@@ -57,15 +62,16 @@ public class ScannerImplTest {
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    try (var s = new ScannerImpl(context, TableId.of("foo"), expected)) {
+    try (var s = new ScannerImpl(context, TableId.of("foo"), expected,
+        context.getScanIteratorValidator("bar"))) {
       assertEquals(expected, s.getAuthorizations());
     }
   }
 
   @Test
   public void testNullAuthorizationsFails() {
-    assertThrows(IllegalArgumentException.class,
-        () -> new ScannerImpl(context, TableId.of("foo"), null));
+    assertThrows(IllegalArgumentException.class, () -> new ScannerImpl(context, TableId.of("foo"),
+        null, context.getScanIteratorValidator("bar")));
   }
 
 }

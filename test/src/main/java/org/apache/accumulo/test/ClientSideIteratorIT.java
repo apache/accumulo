@@ -217,8 +217,8 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
     // accumulo config from iterators also.
     client.tableOperations().offline(tableName, true);
     var context = (ClientContext) client;
-    try (OfflineScanner offlineScanner =
-        new OfflineScanner(context, context.getTableId(tableName), Authorizations.EMPTY)) {
+    try (OfflineScanner offlineScanner = new OfflineScanner(context, context.getTableId(tableName),
+        Authorizations.EMPTY, context.getScanIteratorValidator(tableName))) {
       initCalled.set(false);
       offlineScanner.addScanIterator(new IteratorSetting(100, "filter", TestPropFilter.class));
       assertEquals(expected, offlineScanner.stream().map(e -> e.getKey().getRowData().toString())

@@ -197,7 +197,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         String resolvedTable = table == null ? level.metaTable() : table;
 
         Scanner scanner =
-            new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
+            new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY),
+                ((ClientContext) client).getScanIteratorValidator(resolvedTable));
         scanner.setRange(range);
 
         boolean extentsPresent = extentsToFetch != null;

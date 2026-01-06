@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
@@ -126,7 +127,8 @@ public class CloseScannerIT extends AccumuloClusterHarness {
       throws Exception {
     Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
     if (i % 2 == 0) {
-      scanner = new IsolatedScanner(scanner);
+      scanner = new IsolatedScanner(scanner,
+          ((ClientContext) client).getScanIteratorValidator(tableName));
     }
     return scanner;
   }

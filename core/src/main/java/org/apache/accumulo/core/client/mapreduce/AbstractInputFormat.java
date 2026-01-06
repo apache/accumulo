@@ -508,17 +508,20 @@ public abstract class AbstractInputFormat<K,V> extends InputFormat<K,V> {
         }
 
         try {
+          var iteratorValidator = client.getScanIteratorValidator(table);
           if (isOffline) {
-            scanner = new OfflineScanner(client, TableId.of(split.getTableId()), authorizations);
+            scanner = new OfflineScanner(client, TableId.of(split.getTableId()), authorizations,
+                iteratorValidator);
           } else {
             // Not using public API to create scanner so that we can use table ID
             // Table ID is used in case of renames during M/R job
-            scanner = new ScannerImpl(client, TableId.of(split.getTableId()), authorizations);
+            scanner = new ScannerImpl(client, TableId.of(split.getTableId()), authorizations,
+                iteratorValidator);
           }
           if (isIsolated) {
             log.info("Creating isolated scanner");
             @SuppressWarnings("resource")
-            var wrapped = new IsolatedScanner(scanner);
+            var wrapped = new IsolatedScanner(scanner, iteratorValidator);
             scanner = wrapped;
           }
           if (usesLocalIterators) {

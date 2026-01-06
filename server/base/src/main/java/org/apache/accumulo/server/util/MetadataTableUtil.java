@@ -311,7 +311,9 @@ public class MetadataTableUtil {
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
       ServiceLock lock) throws AccumuloException {
-    try (Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY);
+    try (
+        Scanner ms = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY,
+            context.getScanIteratorValidator(MetadataTable.NAME));
         BatchWriter bw = new BatchWriterImpl(context, MetadataTable.ID,
             new BatchWriterConfig().setMaxMemory(1000000)
                 .setMaxLatency(120000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(2))) {

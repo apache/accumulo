@@ -302,8 +302,8 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
     cfg.addOption(EXPECTED_TABLE_ID_OPT, tableId.canonical());
 
-    try (OfflineScanner scan =
-        new OfflineScanner((ClientContext) client, tableId, Authorizations.EMPTY)) {
+    try (OfflineScanner scan = new OfflineScanner((ClientContext) client, tableId,
+        Authorizations.EMPTY, ((ClientContext) client).getScanIteratorValidator(tableName))) {
       scan.addScanIterator(cfg);
       validateScanner(scan);
     }

@@ -137,7 +137,8 @@ public class SampleIT extends AccumuloClusterHarness {
 
       Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
       Scanner isoScanner =
-          new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
+          new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY),
+              ((ClientContext) client).getScanIteratorValidator(tableName));
       Scanner csiScanner =
           new ClientSideIteratorScanner(client.createScanner(tableName, Authorizations.EMPTY));
       scanner.setSamplerConfiguration(SC1);
@@ -210,8 +211,8 @@ public class SampleIT extends AccumuloClusterHarness {
     client.tableOperations().clone(tableName, clone, false, em, es);
     client.tableOperations().offline(clone, true);
     TableId cloneID = TableId.of(client.tableOperations().tableIdMap().get(clone));
-    OfflineScanner oScanner =
-        new OfflineScanner((ClientContext) client, cloneID, Authorizations.EMPTY);
+    OfflineScanner oScanner = new OfflineScanner((ClientContext) client, cloneID,
+        Authorizations.EMPTY, ((ClientContext) client).getScanIteratorValidator(clone));
     if (sc != null) {
       oScanner.setSamplerConfiguration(sc);
     }
@@ -315,7 +316,8 @@ public class SampleIT extends AccumuloClusterHarness {
       Scanner oScanner = null;
       try {
         scanner = client.createScanner(tableName, Authorizations.EMPTY);
-        isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY));
+        isoScanner = new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY),
+            ((ClientContext) client).getScanIteratorValidator(tableName));
         csiScanner =
             new ClientSideIteratorScanner(client.createScanner(tableName, Authorizations.EMPTY));
         bScanner = client.createBatchScanner(tableName, Authorizations.EMPTY, 2);
@@ -414,7 +416,8 @@ public class SampleIT extends AccumuloClusterHarness {
       }
 
       Scanner scanner = client.createScanner(tableName);
-      Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName));
+      Scanner isoScanner = new IsolatedScanner(client.createScanner(tableName),
+          ((ClientContext) client).getScanIteratorValidator(tableName));
       isoScanner.setBatchSize(10);
       Scanner csiScanner = new ClientSideIteratorScanner(client.createScanner(tableName));
       try (BatchScanner bScanner = client.createBatchScanner(tableName)) {

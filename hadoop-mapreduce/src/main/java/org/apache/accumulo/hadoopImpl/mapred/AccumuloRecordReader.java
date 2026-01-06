@@ -184,19 +184,22 @@ public abstract class AccumuloRecordReader<K,V> implements RecordReader<K,V> {
       }
 
       Scanner scanner;
+      var iteratorValidator = context.getScanIteratorValidator(table);
 
       try {
         if (isOffline) {
-          scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations);
+          scanner = new OfflineScanner(context, TableId.of(baseSplit.getTableId()), authorizations,
+              iteratorValidator);
         } else {
-          scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations);
+          scanner = new ScannerImpl(context, TableId.of(baseSplit.getTableId()), authorizations,
+              iteratorValidator);
           scanner.setConsistencyLevel(cl == null ? ConsistencyLevel.IMMEDIATE : cl);
           log.info("Using consistency level: {}", scanner.getConsistencyLevel());
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
           @SuppressWarnings("resource")
-          var wrapped = new IsolatedScanner(scanner);
+          var wrapped = new IsolatedScanner(scanner, iteratorValidator);
           scanner = wrapped;
         }
         if (usesLocalIterators) {

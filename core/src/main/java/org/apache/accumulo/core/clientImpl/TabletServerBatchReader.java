@@ -29,8 +29,10 @@ import java.util.Map.Entry;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.BatchScanner;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -57,12 +59,16 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
   private ArrayList<Range> ranges = null;
 
   public TabletServerBatchReader(ClientContext context, TableId tableId, String tableName,
-      Authorizations authorizations, int numQueryThreads) {
-    this(context, BatchScanner.class, tableId, tableName, authorizations, numQueryThreads);
+      Authorizations authorizations, int numQueryThreads,
+      Consumer<IteratorSetting> iteratorValidator) {
+    this(context, BatchScanner.class, tableId, tableName, authorizations, numQueryThreads,
+        iteratorValidator);
   }
 
   protected TabletServerBatchReader(ClientContext context, Class<?> scopeClass, TableId tableId,
-      String tableName, Authorizations authorizations, int numQueryThreads) {
+      String tableName, Authorizations authorizations, int numQueryThreads,
+      Consumer<IteratorSetting> iteratorValidator) {
+    super(iteratorValidator);
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");
