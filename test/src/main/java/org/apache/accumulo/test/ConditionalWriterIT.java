@@ -268,7 +268,8 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       client1.securityOperations().changeUserAuthorizations(user, auths);
       client1.securityOperations().grantSystemPermission(user, SystemPermission.CREATE_TABLE);
-      client1.securityOperations().grantNamespacePermission(user, Namespace.DEFAULT.name(), NamespacePermission.ALTER_NAMESPACE);
+      client1.securityOperations().grantNamespacePermission(user, Namespace.DEFAULT.name(),
+          NamespacePermission.ALTER_NAMESPACE);
 
       try (AccumuloClient client2 =
           Accumulo.newClient().from(client1.properties()).as(user, user1.getToken()).build()) {

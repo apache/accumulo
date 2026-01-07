@@ -1022,34 +1022,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
-      checkIteratorConflicts(Map.copyOf(this.getConfiguration(tableName)), property, value);
+      IteratorConfigUtil.checkIteratorConflicts(Map.copyOf(this.getConfiguration(tableName)),
+          property, value);
 
       setPropertyNoChecks(tableName, property, value);
 
       checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException | IllegalArgumentException e) {
       throw new AccumuloException(e);
-    }
-  }
-
-  private void checkIteratorConflicts(Map<String,String> props, String property, String value)
-      throws AccumuloException, TableNotFoundException, IllegalArgumentException {
-    if (props.containsKey(property) && props.get(property).equals(value)) {
-      // setting a property that already exists (i.e., no change)
-      return;
-    }
-    if (IteratorConfigUtil.isNonOptionIterProp(property, value)) {
-      String[] iterPropParts = property.split("\\.");
-      IteratorScope scope = IteratorScope.valueOf(iterPropParts[2]);
-      String iterName = iterPropParts[3];
-      String[] priorityAndClass;
-      if ((priorityAndClass = value.split(",")).length == 2) {
-        // given a single property, the only way for the property to be equivalent to an existing
-        // iterator is if the existing iterator has no options (opts are set as separate props)
-        IteratorSetting givenIter = new IteratorSetting(Integer.parseInt(priorityAndClass[0]),
-            iterName, priorityAndClass[1]);
-        checkIteratorConflicts(props, givenIter, EnumSet.of(scope));
-      }
     }
   }
 
@@ -1076,7 +1056,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       for (var property : vProperties.getProperties().entrySet()) {
-        checkIteratorConflicts(configBeforeMut, property.getKey(), property.getValue());
+        IteratorConfigUtil.checkIteratorConflicts(configBeforeMut, property.getKey(),
+            property.getValue());
       }
     } catch (TableNotFoundException e) {
       throw new AccumuloException(e);

@@ -35,7 +35,15 @@ import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.NamespaceOperationsHelper;
+import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -285,6 +293,143 @@ public class IteratorConfigUtil {
         .asSubclass(SortedKeyValueIterator.class);
     log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     return clazz;
+  }
+
+  public static void checkIteratorConflicts(Map<String,String> props, String property, String value)
+      throws AccumuloException, TableNotFoundException, IllegalArgumentException {
+    if (props.containsKey(property) && props.get(property).equals(value)) {
+      // setting a property that already exists (i.e., no change)
+      return;
+    }
+    if (IteratorConfigUtil.isNonOptionIterProp(property, value)) {
+      String[] iterPropParts = property.split("\\.");
+      IteratorScope scope = IteratorScope.valueOf(iterPropParts[2]);
+      String iterName = iterPropParts[3];
+      String[] priorityAndClass;
+      if ((priorityAndClass = value.split(",")).length == 2) {
+        // given a single property, the only way for the property to be equivalent to an existing
+        // iterator is if the existing iterator has no options (opts are set as separate props)
+        IteratorSetting givenIter = new IteratorSetting(Integer.parseInt(priorityAndClass[0]),
+            iterName, priorityAndClass[1]);
+        TableOperationsHelper.checkIteratorConflicts(props, givenIter, EnumSet.of(scope));
+      }
+    }
+  }
+
+  public static void checkIteratorConflicts(TableOperations tableOps, NamespaceOperationsHelper noh,
+      String namespace, String property, String value)
+      throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+    var props = noh.getNamespaceProperties(namespace);
+    if (props.containsKey(property) && props.get(property).equals(value)) {
+      // setting a property that already exists (i.e., no change)
+      return;
+    }
+
+    // checking for conflicts in the namespace
+    if (IteratorConfigUtil.isNonOptionIterProp(property, value)) {
+      String[] iterPropParts = property.split("\\.");
+      IteratorScope scope = IteratorScope.valueOf(iterPropParts[2]);
+      String iterName = iterPropParts[3];
+      String[] priorityAndClass;
+      if ((priorityAndClass = value.split(",")).length == 2) {
+        // given a single property, the only way for the property to be equivalent to an existing
+        // iterator is if the existing iterator has no options (opts are set as separate props)
+        IteratorSetting givenIter = new IteratorSetting(Integer.parseInt(priorityAndClass[0]),
+            iterName, priorityAndClass[1]);
+        noh.checkIteratorConflicts(namespace, givenIter, EnumSet.of(scope));
+      }
+    }
+
+    // checking for conflicts for the tables in the namespace
+    checkIteratorConflictsWithTablesInNamespace(tableOps, namespace, property, value);
+  }
+
+  public static void checkIteratorConflictsWithTablesInNamespace(TableOperations tableOps,
+      String namespace, IteratorSetting is, EnumSet<IteratorScope> scopes)
+      throws AccumuloException {
+    var tablesInNamespace = tableOps.list().stream()
+        .filter(t -> t.startsWith(namespace + Namespace.SEPARATOR)).collect(Collectors.toSet());
+    try {
+      for (var table : tablesInNamespace) {
+        IteratorConfigUtil.checkIteratorConflicts(tableOps.getTableProperties(table), is, scopes);
+      }
+    } catch (TableNotFoundException | IllegalArgumentException e) {
+      throw new AccumuloException(e);
+    }
+  }
+
+  public static void checkIteratorConflictsWithTablesInNamespace(TableOperations tableOps,
+      String namespace, String property, String value) throws AccumuloException {
+    var tablesInNamespace = tableOps.list().stream()
+        .filter(t -> t.startsWith(namespace + Namespace.SEPARATOR)).collect(Collectors.toSet());
+    try {
+      for (var table : tablesInNamespace) {
+        IteratorConfigUtil.checkIteratorConflicts(tableOps.getTableProperties(table), property,
+            value);
+      }
+    } catch (TableNotFoundException | IllegalArgumentException e) {
+      throw new AccumuloException(e);
+    }
+  }
+
+  public static void checkIteratorConflicts(Map<String,String> props, IteratorSetting setting,
+      EnumSet<IteratorScope> scopes) throws AccumuloException {
+    for (IteratorScope scope : scopes) {
+      String scopeStr =
+          String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
+      String nameStr = String.format("%s.%s", scopeStr, setting.getName());
+      String optStr = String.format("%s.opt.", nameStr);
+      String valStr = String.format("%s,%s", setting.getPriority(), setting.getIteratorClass());
+      Map<String,String> optionConflicts = new TreeMap<>();
+      // skip if the setting is present in the map... not a conflict if exactly the same
+      if (props.containsKey(nameStr) && props.get(nameStr).equals(valStr)
+          && IteratorConfigUtil.containsSameIterOpts(props, setting, optStr)) {
+        continue;
+      }
+      for (Entry<String,String> property : props.entrySet()) {
+        if (property.getKey().startsWith(scopeStr)) {
+          if (property.getKey().equals(nameStr)) {
+            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
+                + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
+          }
+          if (property.getKey().startsWith(optStr)) {
+            optionConflicts.put(property.getKey(), property.getValue());
+          }
+          if (property.getKey().contains(".opt.")) {
+            continue;
+          }
+          String[] parts = property.getValue().split(",");
+          if (parts.length != 2) {
+            throw new AccumuloException("Bad value for existing iterator setting: "
+                + property.getKey() + "=" + property.getValue());
+          }
+          try {
+            if (Integer.parseInt(parts[0]) == setting.getPriority()) {
+              throw new AccumuloException(new IllegalArgumentException(
+                  "iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
+            }
+          } catch (NumberFormatException e) {
+            throw new AccumuloException("Bad value for existing iterator setting: "
+                + property.getKey() + "=" + property.getValue());
+          }
+        }
+      }
+      if (!optionConflicts.isEmpty()) {
+        throw new AccumuloException(new IllegalArgumentException(
+            "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
+      }
+    }
+  }
+
+  public static boolean containsSameIterOpts(Map<String,String> props, IteratorSetting setting,
+      String optStr) {
+    for (var opt : setting.getOptions().entrySet()) {
+      final String optKey = optStr + opt.getKey();
+      if (!props.containsKey(optKey) || !props.get(optKey).equals(opt.getValue())) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
