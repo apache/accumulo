@@ -58,9 +58,7 @@ import org.junit.jupiter.api.function.Executable;
  * <p>
  * - {@link NamespaceOperations#attachIterator(String, IteratorSetting, EnumSet)}
  * <p>
- * <p>
  * - {@link NamespaceOperations#setProperty(String, String, String)}
- * <p>
  * <p>
  * - {@link NamespaceOperations#modifyProperties(String, Consumer)}
  * <p>
@@ -74,7 +72,6 @@ import org.junit.jupiter.api.function.Executable;
  * is specified
  * <p>
  * - Adding the exact iterator already present should not fail
- * <p>
  */
 public class IteratorConflictsIT extends SharedMiniClusterBase {
   private static TableOperations tops;
