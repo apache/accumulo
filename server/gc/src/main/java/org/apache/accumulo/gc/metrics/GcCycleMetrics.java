@@ -78,9 +78,9 @@ public class GcCycleMetrics {
   }
 
   /**
-   * Duration of post operation (compact, flush, none) in nanoseconds.
+   * Duration of post operation (compact, flush, none).
    *
-   * @return duration in nanoseconds.
+   * @return duration.
    */
   Duration getPostOpDuration() {
     return postOpDuration.get();
@@ -116,7 +116,7 @@ public class GcCycleMetrics {
     final StringBuilder sb = new StringBuilder("GcMetricsValues{");
     sb.append("lastCollect=").append(lastCollect.get());
     sb.append(", lastWalCollect=").append(lastWalCollect.get());
-    sb.append(", postOpDuration=").append(postOpDuration.get());
+    sb.append(", postOpDuration=").append(postOpDuration.get().toMillis());
     sb.append('}');
     return sb.toString();
   }
