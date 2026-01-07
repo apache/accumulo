@@ -21,7 +21,10 @@ package org.apache.accumulo.test.util;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Duration;
 import java.util.function.ToIntFunction;
+
+import org.apache.accumulo.core.util.Timer;
 
 public class Wait {
 
@@ -103,14 +106,14 @@ public class Wait {
       final String failMessage) {
 
     final int timeoutFactor = getTimeoutFactor(e -> 1); // default to factor of 1
-    final long scaledDurationNanos = MILLISECONDS.toNanos(duration) * timeoutFactor;
+    final Duration scaledDuration = Duration.ofMillis(duration).multipliedBy(timeoutFactor);
     final long scaledSleepMillis = sleepMillis * timeoutFactor;
 
-    final long startNanos = System.nanoTime();
+    final Timer timer = Timer.startNew();
     boolean success;
     try {
       success = condition.isSatisfied();
-      while (!success && System.nanoTime() - startNanos < scaledDurationNanos) {
+      while (!success && !timer.hasElapsed(scaledDuration)) {
         MILLISECONDS.sleep(scaledSleepMillis);
         success = condition.isSatisfied();
       }

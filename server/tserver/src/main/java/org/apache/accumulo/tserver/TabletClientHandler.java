@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -92,6 +93,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
@@ -447,15 +449,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     us.totalUpdates += mutationCount;
   }
 
-  private void updateAverageLockTime(long time, TimeUnit unit, int size) {
+  private void updateAverageLockTime(Duration duration, int size) {
     if (size > 0) {
-      server.updateMetrics.addLockTime((long) (time / (double) size), unit);
+      server.updateMetrics.addLockTime(duration.dividedBy(size));
     }
   }
 
-  private void updateAverageCheckTime(long time, TimeUnit unit, int size) {
+  private void updateAverageCheckTime(Duration duration, int size) {
     if (size > 0) {
-      server.updateMetrics.addCheckTime((long) (time / (double) size), unit);
+      server.updateMetrics.addCheckTime(duration.dividedBy(size));
     }
   }
 
@@ -741,17 +743,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
 
     // get as many locks as possible w/o blocking... defer any rows that are locked
-    long lt1 = System.nanoTime();
+    Timer timer = Timer.startNew();
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
-    long lt2 = System.nanoTime();
-    updateAverageLockTime(lt2 - lt1, TimeUnit.NANOSECONDS, numMutations);
+    updateAverageLockTime(timer.elapsed(), numMutations);
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "conditionalUpdate::Check conditions");
       try (Scope scope = span.makeCurrent()) {
-        long t1 = System.nanoTime();
+        timer.restart();
         checkConditions(updates, results, cs, symbols);
-        long t2 = System.nanoTime();
-        updateAverageCheckTime(t2 - t1, TimeUnit.NANOSECONDS, numMutations);
+        updateAverageCheckTime(timer.elapsed(), numMutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;

@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
@@ -84,18 +86,21 @@ public class ThriftTransportPool {
   private Runnable thriftConnectionPoolChecker() {
     return () -> {
       try {
-        final long minNanos = MILLISECONDS.toNanos(250);
-        final long maxNanos = MINUTES.toNanos(1);
-        long lastRun = System.nanoTime();
+        final Duration minInterval = Duration.ofMillis(250);
+        final Duration maxInterval = Duration.ofMinutes(1);
+        Timer lastRunTimer = Timer.startNew();
         // loop often, to detect shutdowns quickly
         while (!connectionPool.awaitShutdown(250)) {
           // don't close on every loop; instead, check based on configured max age, within bounds
-          var threshold = Math.min(maxNanos,
-              Math.max(minNanos, MILLISECONDS.toNanos(maxAgeMillis.getAsLong()) / 2));
-          long currentNanos = System.nanoTime();
-          if ((currentNanos - lastRun) >= threshold) {
+          Duration threshold = Duration.ofMillis(maxAgeMillis.getAsLong()).dividedBy(2);
+          if (threshold.compareTo(minInterval) < 0) {
+            threshold = minInterval;
+          } else if (threshold.compareTo(maxInterval) > 0) {
+            threshold = maxInterval;
+          }
+          if (lastRunTimer.hasElapsed(threshold)) {
             closeExpiredConnections();
-            lastRun = currentNanos;
+            lastRunTimer.restart();
           }
         }
       } catch (InterruptedException e) {

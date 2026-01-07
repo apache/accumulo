@@ -21,13 +21,13 @@ package org.apache.accumulo.tserver.tablet;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -55,6 +55,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
@@ -298,12 +299,12 @@ public abstract class TabletBase {
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
       batchTimeOut = 0;
     }
+
+    Duration timeToRun = Duration.ofMillis(batchTimeOut);
+    Timer timer = Timer.startNew();
     List<KVEntry> results = new ArrayList<>();
     Key key = null;
 
@@ -342,7 +343,7 @@ public abstract class TabletBase {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
+      boolean timesUp = batchTimeOut > 0 && timer.hasElapsed(timeToRun);
 
       boolean runningLowOnMemory =
           context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
@@ -417,12 +418,12 @@ public abstract class TabletBase {
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
     if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
       batchTimeOut = 0;
     }
+
+    Duration timeToRun = Duration.ofMillis(batchTimeOut);
+    Timer timer = Timer.startNew();
 
     // determine if the iterator supported yielding
     YieldCallback<Key> yield = new YieldCallback<>();
@@ -431,7 +432,7 @@ public abstract class TabletBase {
 
     for (Range range : ranges) {
 
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
+      boolean timesUp = batchTimeOut > 0 && timer.hasElapsed(timeToRun);
 
       boolean runningLowOnMemory =
           context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
@@ -469,7 +470,7 @@ public abstract class TabletBase {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
+          timesUp = batchTimeOut > 0 && timer.hasElapsed(timeToRun);
 
           runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
               DetectionScope.SCAN, () -> {

@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -216,7 +217,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         try (Scope outerScope = outerSpan.makeCurrent()) {
           Span innerSpan = TraceUtil.startSpan(this.getClass(), "loop");
           try (Scope innerScope = innerSpan.makeCurrent()) {
-            final long tStart = System.nanoTime();
+            final Timer timer = Timer.startNew();
             try {
               System.gc(); // make room
 
@@ -250,9 +251,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               status.current = new GcCycleStats();
             }
 
-            final long tStop = System.nanoTime();
             log.info(String.format("Collect cycle took %.2f seconds",
-                (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
+                timer.elapsed(MILLISECONDS) / 1000.0));
 
             // Clean up any unused write-ahead logs
             Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
@@ -279,7 +279,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           try {
             AccumuloClient accumuloClient = getContext();
 
-            final long actionStart = System.nanoTime();
+            final Timer actionTimer = Timer.startNew();
 
             String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
             log.debug("gc post action {} started", action);
@@ -301,12 +301,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                 log.trace("'none - no action' or invalid value provided: {}", action);
             }
 
-            final long actionComplete = System.nanoTime();
+            final Duration actionDuration = actionTimer.elapsed();
+            gcCycleMetrics.setPostOpDuration(actionDuration);
 
-            gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
-
-            log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
-                (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
+            log.info("gc post action {} completed in {} seconds", action,
+                String.format("%.2f", actionDuration.toMillis() / 1000.0));
 
           } catch (Exception e) {
             TraceUtil.setException(outerSpan, e, false);
