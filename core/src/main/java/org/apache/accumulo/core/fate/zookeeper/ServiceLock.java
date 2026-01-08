@@ -483,6 +483,8 @@ public class ServiceLock implements Watcher {
                   // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
                   // created a Watcher on a node that does not exist. Delete the watcher we just
                   // created.
+                  LOG.debug("Removing watcher for path {} since stat return was null",
+                      pathForWatcher);
                   zooKeeper.removeWatches(pathForWatcher, this, WatcherType.Any, true);
 
                   if (lockNodeName != null) {
