@@ -30,10 +30,10 @@ var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
   $.extend(true, $.fn.dataTable.defaults, {
-  "lengthMenu" : [
-    [ 10, 25, 50, 100, -1 ],
-    [ 10, 25, 50, 100, "All" ]
-  ]
+    "lengthMenu": [
+      [10, 25, 50, 100, -1],
+      [10, 25, 50, 100, "All"]
+    ]
   });
 }
 

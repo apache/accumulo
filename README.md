@@ -18,7 +18,6 @@
     under the License.
 
 -->
-
 [![Apache Accumulo][logo]][accumulo]
 --
 [![Build Status][ti]][tl] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl] [![Apache License][li]][ll]
