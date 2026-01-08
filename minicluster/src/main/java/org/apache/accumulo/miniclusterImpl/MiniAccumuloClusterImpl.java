@@ -96,8 +96,8 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -805,9 +805,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   // wait up to 10 seconds for the process to start
   private static void waitForProcessStart(Process p, String name) throws InterruptedException {
-    Timer waitTimer = Timer.startNew();
+    CountDownTimer maxWaitTimer = CountDownTimer.startNew(Duration.ofSeconds(10));
     while (p.info().startInstant().isEmpty()) {
-      if (waitTimer.hasElapsed(Duration.ofSeconds(10))) {
+      if (maxWaitTimer.isExpired()) {
         throw new IllegalStateException(
             "Error starting " + name + " - instance not started within 10 seconds");
       }

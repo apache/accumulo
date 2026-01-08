@@ -24,7 +24,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import java.time.Duration;
 import java.util.function.ToIntFunction;
 
-import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.CountDownTimer;
 
 public class Wait {
 
@@ -106,14 +106,14 @@ public class Wait {
       final String failMessage) {
 
     final int timeoutFactor = getTimeoutFactor(e -> 1); // default to factor of 1
-    final Duration scaledDuration = Duration.ofMillis(duration).multipliedBy(timeoutFactor);
+    final Duration scaledWaitDuration = Duration.ofMillis(duration).multipliedBy(timeoutFactor);
     final long scaledSleepMillis = sleepMillis * timeoutFactor;
 
-    final Timer timer = Timer.startNew();
+    final CountDownTimer maxWaitTimer = CountDownTimer.startNew(scaledWaitDuration);
     boolean success;
     try {
       success = condition.isSatisfied();
-      while (!success && !timer.hasElapsed(scaledDuration)) {
+      while (!success && !maxWaitTimer.isExpired()) {
         MILLISECONDS.sleep(scaledSleepMillis);
         success = condition.isSatisfied();
       }

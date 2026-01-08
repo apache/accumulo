@@ -244,7 +244,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private Duration authTimeout;
-  private Timer lastUserActivity = Timer.startNew();
+  private final Timer lastUserActivity = Timer.startNew();
   private boolean logErrorsToConsole = false;
   private boolean askAgain = false;
   private boolean usedClientProps = false;

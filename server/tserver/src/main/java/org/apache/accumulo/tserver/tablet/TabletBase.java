@@ -52,10 +52,10 @@ import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.trace.ScanInstrumentation;
 import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
-import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
@@ -303,8 +303,7 @@ public abstract class TabletBase {
       batchTimeOut = 0;
     }
 
-    Duration timeToRun = Duration.ofMillis(batchTimeOut);
-    Timer timer = Timer.startNew();
+    CountDownTimer runTimer = CountDownTimer.startNew(Duration.ofMillis(batchTimeOut));
     List<KVEntry> results = new ArrayList<>();
     Key key = null;
 
@@ -343,7 +342,7 @@ public abstract class TabletBase {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      boolean timesUp = batchTimeOut > 0 && timer.hasElapsed(timeToRun);
+      boolean timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
       boolean runningLowOnMemory =
           context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
@@ -422,8 +421,7 @@ public abstract class TabletBase {
       batchTimeOut = 0;
     }
 
-    Duration timeToRun = Duration.ofMillis(batchTimeOut);
-    Timer timer = Timer.startNew();
+    CountDownTimer runTimer = CountDownTimer.startNew(Duration.ofMillis(batchTimeOut));
 
     // determine if the iterator supported yielding
     YieldCallback<Key> yield = new YieldCallback<>();
@@ -432,7 +430,7 @@ public abstract class TabletBase {
 
     for (Range range : ranges) {
 
-      boolean timesUp = batchTimeOut > 0 && timer.hasElapsed(timeToRun);
+      boolean timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
       boolean runningLowOnMemory =
           context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
@@ -470,7 +468,7 @@ public abstract class TabletBase {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          timesUp = batchTimeOut > 0 && timer.hasElapsed(timeToRun);
+          timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
           runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
               DetectionScope.SCAN, () -> {

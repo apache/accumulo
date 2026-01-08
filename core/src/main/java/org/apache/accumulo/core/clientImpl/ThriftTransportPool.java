@@ -92,7 +92,7 @@ public class ThriftTransportPool {
         // loop often, to detect shutdowns quickly
         while (!connectionPool.awaitShutdown(250)) {
           // don't close on every loop; instead, check based on configured max age, within bounds
-          Duration threshold = Duration.ofMillis(maxAgeMillis.getAsLong()).dividedBy(2);
+          Duration threshold = Duration.ofMillis(maxAgeMillis.getAsLong() / 2);
           if (threshold.compareTo(minInterval) < 0) {
             threshold = minInterval;
           } else if (threshold.compareTo(maxInterval) > 0) {
