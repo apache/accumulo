@@ -26,7 +26,6 @@ import static org.apache.accumulo.core.metrics.Metric.UPDATE_LOCK;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_MUTATION_ARRAY_SIZE;
 import static org.apache.accumulo.core.metrics.Metric.UPDATE_WALOG_WRITE;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -78,12 +77,12 @@ public class TabletServerUpdateMetrics implements MetricsProducer {
     mutationArraySizeStat.record(value);
   }
 
-  public void addCheckTime(Duration duration) {
-    checkTimeStat.record(duration);
+  public void addCheckTime(long value, TimeUnit unit) {
+    checkTimeStat.record(value, unit);
   }
 
-  public void addLockTime(Duration duration) {
-    lockTimeStat.record(duration);
+  public void addLockTime(long value, TimeUnit unit) {
+    lockTimeStat.record(value, unit);
   }
 
   @Override

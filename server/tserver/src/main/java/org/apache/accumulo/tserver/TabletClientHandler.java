@@ -22,7 +22,6 @@ import static java.util.stream.Collectors.toList;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -449,15 +448,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     us.totalUpdates += mutationCount;
   }
 
-  private void updateAverageLockTime(Duration duration, int size) {
+  private void updateAverageLockTime(long time, TimeUnit unit, int size) {
     if (size > 0) {
-      server.updateMetrics.addLockTime(duration.dividedBy(size));
+      server.updateMetrics.addLockTime((long) (time / (double) size), unit);
     }
   }
 
-  private void updateAverageCheckTime(Duration duration, int size) {
+  private void updateAverageCheckTime(long time, TimeUnit unit, int size) {
     if (size > 0) {
-      server.updateMetrics.addCheckTime(duration.dividedBy(size));
+      server.updateMetrics.addCheckTime((long) (time / (double) size), unit);
     }
   }
 
@@ -745,13 +744,14 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     // get as many locks as possible w/o blocking... defer any rows that are locked
     Timer timer = Timer.startNew();
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
-    updateAverageLockTime(timer.elapsed(), numMutations);
+    updateAverageLockTime(timer.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS, numMutations);
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "conditionalUpdate::Check conditions");
       try (Scope scope = span.makeCurrent()) {
         timer.restart();
         checkConditions(updates, results, cs, symbols);
-        updateAverageCheckTime(timer.elapsed(), numMutations);
+        updateAverageCheckTime(timer.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS,
+            numMutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;
