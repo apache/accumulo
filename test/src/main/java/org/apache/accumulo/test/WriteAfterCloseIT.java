@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -77,7 +78,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
   public static class SleepyConstraint implements Constraint {
 
-    private static final SecureRandom rand = new SecureRandom();
+    private static final SecureRandom rand = RANDOM.get();
 
     private static final long SLEEP_TIME = 4000;
 
