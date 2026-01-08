@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -130,7 +131,7 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       var options2 = Map.of(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
       c.tableOperations().create(table3, new NewTableConfiguration().setProperties(options2));
 
-      SecureRandom random = new SecureRandom();
+      SecureRandom random = RANDOM.get();
 
       try (var writer = c.createMultiTableBatchWriter()) {
         byte[] bytes = new byte[50_000];
