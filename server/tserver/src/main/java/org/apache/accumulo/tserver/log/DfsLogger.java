@@ -21,7 +21,6 @@ package org.apache.accumulo.tserver.log;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -35,6 +34,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.ClosedChannelException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -61,6 +61,7 @@ import org.apache.accumulo.core.spi.crypto.FileEncrypter;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -133,12 +134,12 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
     private final AtomicLong syncCounter;
     private final AtomicLong flushCounter;
-    private final long slowFlushMillis;
+    private final Duration slowFlushDuration;
 
-    LogSyncingTask(AtomicLong syncCounter, AtomicLong flushCounter, long slowFlushMillis) {
+    LogSyncingTask(AtomicLong syncCounter, AtomicLong flushCounter, Duration slowFlushDuration) {
       this.syncCounter = syncCounter;
       this.flushCounter = flushCounter;
-      this.slowFlushMillis = slowFlushMillis;
+      this.slowFlushDuration = slowFlushDuration;
     }
 
     @Override
@@ -174,7 +175,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
-        long start = System.nanoTime();
+        Timer timer = Timer.startNew();
         try {
           if (shouldHSync.isPresent()) {
             if (shouldHSync.orElseThrow()) {
@@ -188,9 +189,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         } catch (IOException | RuntimeException ex) {
           fail(work, ex, "synching");
         }
-        long duration = System.nanoTime() - start;
-        if (duration > MILLISECONDS.toNanos(slowFlushMillis)) {
-          log.info("Slow sync cost: {} ms, current pipeline: {}", NANOSECONDS.toMillis(duration),
+        if (timer.hasElapsed(slowFlushDuration)) {
+          log.info("Slow sync cost: {} ms, current pipeline: {}", timer.elapsed(MILLISECONDS),
               Arrays.toString(getPipeLine()));
           if (expectedReplication > 0) {
             int current = expectedReplication;
@@ -474,7 +474,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     }
 
     syncThread = Threads.createCriticalThread("Accumulo WALog thread " + this,
-        new LogSyncingTask(syncCounter, flushCounter, slowFlushMillis));
+        new LogSyncingTask(syncCounter, flushCounter, Duration.ofMillis(slowFlushMillis)));
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);

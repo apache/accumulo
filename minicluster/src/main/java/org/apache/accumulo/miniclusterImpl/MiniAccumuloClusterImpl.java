@@ -21,7 +21,6 @@ package org.apache.accumulo.miniclusterImpl;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 
 import java.io.BufferedWriter;
@@ -34,6 +33,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,6 +96,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -804,9 +805,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   // wait up to 10 seconds for the process to start
   private static void waitForProcessStart(Process p, String name) throws InterruptedException {
-    long start = System.nanoTime();
+    CountDownTimer maxWaitTimer = CountDownTimer.startNew(Duration.ofSeconds(10));
     while (p.info().startInstant().isEmpty()) {
-      if (NANOSECONDS.toSeconds(System.nanoTime() - start) > 10) {
+      if (maxWaitTimer.isExpired()) {
         throw new IllegalStateException(
             "Error starting " + name + " - instance not started within 10 seconds");
       }

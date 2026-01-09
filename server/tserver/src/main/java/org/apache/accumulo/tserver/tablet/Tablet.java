@@ -168,7 +168,7 @@ public class Tablet extends TabletBase {
     OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
-  private long closeRequestTime = 0;
+  private Timer closeRequestTimer = null;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -796,11 +796,11 @@ public class Tablet extends TabletBase {
 
     synchronized (this) {
       if (closeState == CloseState.OPEN) {
-        closeRequestTime = System.nanoTime();
+        closeRequestTimer = Timer.startNew();
         closeState = CloseState.REQUESTED;
       } else {
-        Preconditions.checkState(closeRequestTime != 0);
-        long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
+        Preconditions.checkState(closeRequestTimer != null);
+        long runningTime = closeRequestTimer.elapsed(MINUTES);
         if (runningTime >= 15) {
           CLOSING_STUCK_LOGGER.info(
               "Tablet {} close requested again, but has been closing for {} minutes", this.extent,

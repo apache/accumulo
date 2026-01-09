@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -34,6 +34,7 @@ import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -72,8 +73,7 @@ public class CleanUp extends AbstractFateOperation {
       }
     };
 
-    long t1;
-    long t2;
+    long scanTime;
     long submitted = 0;
     long total = 0;
 
@@ -82,7 +82,7 @@ public class CleanUp extends AbstractFateOperation {
             .fetch(PREV_ROW, COMPACTED, USER_COMPACTION_REQUESTED).checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
-      t1 = System.nanoTime();
+      Timer timer = Timer.startNew();
       for (TabletMetadata tablet : tablets) {
         total++;
         if (tablet.getCompacted().contains(fateId)
@@ -101,10 +101,8 @@ public class CleanUp extends AbstractFateOperation {
         }
       }
 
-      t2 = System.nanoTime();
+      scanTime = timer.elapsed(TimeUnit.MILLISECONDS);
     }
-
-    long scanTime = Duration.ofNanos(t2 - t1).toMillis();
 
     log.debug("{} removed {} of {} compacted markers for {} tablets in {}ms", fateId,
         submitted - rejectedCount.get(), submitted, total, scanTime);

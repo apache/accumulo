@@ -24,7 +24,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
 
@@ -1289,7 +1288,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
    * @throws InterruptedException if interrupted while blocking, propagated for caller to handle.
    */
   private void blockForTservers() throws InterruptedException {
-    long waitStart = System.nanoTime();
+    Timer waitTimer = Timer.startNew();
 
     long minTserverCount =
         getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
@@ -1341,8 +1340,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       if (needTservers) {
         tserverRetry.logRetry(log, String.format(
             "Blocking for tserver availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
-            minTserverCount, tserverSet.size(),
-            NANOSECONDS.toSeconds(System.nanoTime() - waitStart)));
+            minTserverCount, tserverSet.size(), waitTimer.elapsed(SECONDS)));
       }
       tserverRetry.useRetry();
     }
@@ -1351,13 +1349,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       log.warn(
           "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
+          tserverSet.size(), minTserverCount, waitTimer.elapsed(SECONDS));
 
     } else {
       log.info(
           "tserver availability check completed. Requested {}, have {} tservers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount, NANOSECONDS.toSeconds(System.nanoTime() - waitStart));
+          tserverSet.size(), minTserverCount, waitTimer.elapsed(SECONDS));
     }
   }
 
