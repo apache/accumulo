@@ -54,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Comparators;
 import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -92,12 +93,11 @@ public class ThriftTransportPool {
         // loop often, to detect shutdowns quickly
         while (!connectionPool.awaitShutdown(250)) {
           // don't close on every loop; instead, check based on configured max age, within bounds
+
           Duration threshold = Duration.ofMillis(maxAgeMillis.getAsLong() / 2);
-          if (threshold.compareTo(minInterval) < 0) {
-            threshold = minInterval;
-          } else if (threshold.compareTo(maxInterval) > 0) {
-            threshold = maxInterval;
-          }
+          threshold = Comparators.max(threshold, minInterval);
+          threshold = Comparators.min(maxInterval, threshold);
+
           if (lastRunTimer.hasElapsed(threshold)) {
             closeExpiredConnections();
             lastRunTimer.restart();
