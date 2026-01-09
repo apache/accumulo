@@ -706,7 +706,14 @@ under the License.
             <licenseSets>
               <licenseSet>
                 <inlineHeader>${accumulo.build.license.header}</inlineHeader>
+                <includes>
+                  <!-- override some of the default exclusions -->
+                  <include>**/*.md</include>
+                  <include>**/.github</include>
+                  <include>**/.github/**</include>
+                </includes>
                 <excludes combine.children="append">
+                  <exclude>**/.github/ISSUE_TEMPLATE/**</exclude>
                   <exclude>**/DEPENDENCIES</exclude>
                   <exclude>**/LICENSE</exclude>
                   <exclude>**/NOTICE</exclude>
@@ -723,6 +730,7 @@ under the License.
               <css>SLASHSTAR_STYLE</css>
               <h>SLASHSTAR_STYLE</h>
               <java>SLASHSTAR_STYLE</java>
+              <md>XML_STYLE</md>
               <thrift>SLASHSTAR_STYLE</thrift>
               <fbs>SLASHSTAR_STYLE</fbs>
             </mapping>
