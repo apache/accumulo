@@ -34,31 +34,19 @@
                 <td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td>
               </tr>
               <tr>
-                <td class="left"><a href="tables">Tables</a></td>
+                <td class="left">Server</td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left"><a href="tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="left">Resource&nbsp;Group</td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left"><a href="tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="left">Last&nbsp;Contact</td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left">Tablets</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Entries</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Lookups</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Uptime</td>
+                <td class="left">Metrics</td>
                 <td class="right"></td>
               </tr>
             </thead>
