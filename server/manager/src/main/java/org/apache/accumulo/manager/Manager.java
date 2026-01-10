@@ -195,6 +195,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
+  final Map<TServerInstance,AtomicInteger> haltedServers =
+      Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
   final EventCoordinator nextEvent = new EventCoordinator();
@@ -1150,6 +1152,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
+    final int maxTserverHalts = getConfiguration().getCount(Property.MANAGER_MAX_TSERVER_HALTS);
+    final boolean forceHaltingEnabled = maxTserverHalts != 0;
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1190,15 +1194,31 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
               > MAX_BAD_STATUS_COUNT) {
             if (shutdownServerRateLimiter.tryAcquire()) {
               log.warn("attempting to stop {}", server);
+              if (forceHaltingEnabled
+                  && (haltedServers.computeIfAbsent(server, s -> new AtomicInteger(0))
+                      .incrementAndGet() > maxTserverHalts)) {
+                log.warn("tserver {} is not responding to halt requests, deleting zlock", server);
+                var zk = getContext().getZooReaderWriter();
+                var iid = getContext().getInstanceID();
+                String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
+                try {
+                  ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
+                      log::info, false);
+                } catch (KeeperException | InterruptedException e) {
+                  log.error("Failed to delete zlock for server {}", server);
+                }
+                haltedServers.remove(server);
+              }
               try {
                 TServerConnection connection2 = tserverSet.getConnection(server);
                 if (connection2 != null) {
                   connection2.halt(managerLock);
                 }
               } catch (TTransportException e1) {
-                // ignore: it's probably down
+                // ignore: it's probably down so log the exception at trace
+                log.trace("error attempting to halt tablet server {}", server, e1);
               } catch (Exception e2) {
-                log.info("error talking to troublesome tablet server", e2);
+                log.info("error talking to troublesome tablet server {}", server, e2);
               }
             } else {
               log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
@@ -1225,6 +1245,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       badServers.keySet().retainAll(currentServers);
       badServers.keySet().removeAll(info.keySet());
     }
+
+    synchronized (haltedServers) {
+      haltedServers.keySet().retainAll(currentServers);
+      haltedServers.keySet().removeAll(info.keySet());
+    }
+
     log.debug(String.format("Finished gathering information from %d of %d servers in %.2f seconds",
         info.size(), currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
 
@@ -1727,6 +1753,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
       serversToShutdown.removeAll(deleted);
       badServers.keySet().removeAll(deleted);
+      haltedServers.keySet().removeAll(deleted);
       // clear out any bad server with the same host/port as a new server
       synchronized (badServers) {
         cleanListByHostAndPort(badServers.keySet(), deleted, added);
@@ -1734,7 +1761,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       synchronized (serversToShutdown) {
         cleanListByHostAndPort(serversToShutdown, deleted, added);
       }
-
+      synchronized (haltedServers) {
+        cleanListByHostAndPort(haltedServers.keySet(), deleted, added);
+      }
       migrations.removeServers(deleted);
       nextEvent.event("There are now %d tablet servers", current.size());
     }
