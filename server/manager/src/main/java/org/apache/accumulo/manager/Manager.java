@@ -1205,7 +1205,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                   ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
                       log::info, false);
                 } catch (KeeperException | InterruptedException e) {
-                  log.error("Failed to delete zlock for server {}", server);
+                  log.error("Failed to delete zlock for server {}", server, e);
                 }
                 haltedServers.remove(server);
               }
