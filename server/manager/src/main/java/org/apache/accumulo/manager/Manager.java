@@ -1204,21 +1204,23 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                 try {
                   ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
                       log::info, false);
+                  haltedServers.remove(server);
+                  badServers.remove(server);
                 } catch (KeeperException | InterruptedException e) {
                   log.error("Failed to delete zlock for server {}", server, e);
                 }
-                haltedServers.remove(server);
-              }
-              try {
-                TServerConnection connection2 = tserverSet.getConnection(server);
-                if (connection2 != null) {
-                  connection2.halt(managerLock);
+              } else {
+                try {
+                  TServerConnection connection2 = tserverSet.getConnection(server);
+                  if (connection2 != null) {
+                    connection2.halt(managerLock);
+                  }
+                } catch (TTransportException e1) {
+                  // ignore: it's probably down so log the exception at trace
+                  log.trace("error attempting to halt tablet server {}", server, e1);
+                } catch (Exception e2) {
+                  log.info("error talking to troublesome tablet server {}", server, e2);
                 }
-              } catch (TTransportException e1) {
-                // ignore: it's probably down so log the exception at trace
-                log.trace("error attempting to halt tablet server {}", server, e1);
-              } catch (Exception e2) {
-                log.info("error talking to troublesome tablet server {}", server, e2);
               }
             } else {
               log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
