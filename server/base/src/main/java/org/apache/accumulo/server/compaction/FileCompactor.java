@@ -255,7 +255,9 @@ public class FileCompactor implements Callable<CompactionStats> {
     if (currentTime - lastUpdateTime < Duration.ofMillis(100).toNanos()) {
       return;
     }
-    runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
+    synchronized (runningCompactions) {
+      runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
+    }
     lastUpdateTime = currentTime;
   }
 

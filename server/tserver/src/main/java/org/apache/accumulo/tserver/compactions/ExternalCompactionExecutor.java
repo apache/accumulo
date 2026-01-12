@@ -198,7 +198,9 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
 
   public Stream<TCompactionQueueSummary> summarize() {
     HashSet<Short> uniqPrios = new HashSet<Short>();
-    queuedJob.forEach(job -> uniqPrios.add(job.getJob().getPriority()));
+    synchronized (queuedJob) {
+      queuedJob.forEach(job -> uniqPrios.add(job.getJob().getPriority()));
+    }
 
     Stream<Short> prioStream = uniqPrios.stream();
 

@@ -89,7 +89,7 @@ public class AccumuloVFSClassLoader {
 
   }
 
-  private static List<WeakReference<DefaultFileSystemManager>> vfsInstances =
+  private static final List<WeakReference<DefaultFileSystemManager>> vfsInstances =
       Collections.synchronizedList(new ArrayList<>());
 
   public static final String DYNAMIC_CLASSPATH_PROPERTY_NAME = "general.dynamic.classpaths";
@@ -440,19 +440,21 @@ public class AccumuloVFSClassLoader {
   }
 
   public static void close() {
-    for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
-      DefaultFileSystemManager ref = vfsInstance.get();
-      if (ref != null) {
-        FileReplicator replicator;
-        try {
-          replicator = ref.getReplicator();
-          if (replicator instanceof UniqueFileReplicator) {
-            ((UniqueFileReplicator) replicator).close();
+    synchronized (vfsInstances) {
+      for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
+        DefaultFileSystemManager ref = vfsInstance.get();
+        if (ref != null) {
+          FileReplicator replicator;
+          try {
+            replicator = ref.getReplicator();
+            if (replicator instanceof UniqueFileReplicator) {
+              ((UniqueFileReplicator) replicator).close();
+            }
+          } catch (FileSystemException e) {
+            log.error("FileSystemException", e);
           }
-        } catch (FileSystemException e) {
-          log.error("FileSystemException", e);
+          ref.close();
         }
-        ref.close();
       }
     }
     try {
