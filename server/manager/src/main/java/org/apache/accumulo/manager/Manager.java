@@ -109,6 +109,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
@@ -195,7 +196,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
-  final Map<TServerInstance,AtomicInteger> tserverHaltRpcAttempts =
+  final Map<TServerInstance,GracefulHaltTimer> tserverHaltRpcAttempts =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
@@ -1143,6 +1144,30 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   }
 
+  /**
+   * This class tracks details about the haltRPCs used
+   */
+  private static class GracefulHaltTimer {
+
+    Duration maxHaltGraceDuration;
+    Timer timer;
+
+    public GracefulHaltTimer(AccumuloConfiguration config) {
+      timer = null;
+      maxHaltGraceDuration =
+          Duration.ofMillis(config.getTimeInMillis(Property.MANAGER_TSERVER_HALT_DURATION));
+    }
+
+    public void startTimer() {
+      timer = Timer.startNew();
+    }
+
+    public boolean shouldForceHalt() {
+      return maxHaltGraceDuration.toMillis() != 0 && timer != null
+          && timer.hasElapsed(maxHaltGraceDuration);
+    }
+  }
+
   private SortedMap<TServerInstance,TabletServerStatus>
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
@@ -1153,7 +1178,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
     final int maxTserverRpcHaltAttempts =
-        getConfiguration().getCount(Property.MANAGER_TSERVER_HALT_ATTEMPTS);
+        getConfiguration().getCount(Property.MANAGER_TSERVER_HALT_DURATION);
     final boolean forceHaltingEnabled = maxTserverRpcHaltAttempts != 0;
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
@@ -1195,9 +1220,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
               > MAX_BAD_STATUS_COUNT) {
             if (shutdownServerRateLimiter.tryAcquire()) {
               log.warn("attempting to stop {}", server);
-              if (forceHaltingEnabled
-                  && (tserverHaltRpcAttempts.computeIfAbsent(server, s -> new AtomicInteger(0))
-                      .incrementAndGet() > maxTserverRpcHaltAttempts)) {
+              var gracefulHaltTimer = tserverHaltRpcAttempts.computeIfAbsent(server,
+                  s -> new GracefulHaltTimer(getConfiguration()));
+              if (gracefulHaltTimer.shouldForceHalt()) {
                 log.warn("tserver {} is not responding to halt requests, deleting zlock", server);
                 var zk = getContext().getZooReaderWriter();
                 var iid = getContext().getInstanceID();
@@ -1221,6 +1246,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                   log.trace("error attempting to halt tablet server {}", server, e1);
                 } catch (Exception e2) {
                   log.info("error talking to troublesome tablet server {}", server, e2);
+                } finally {
+                  gracefulHaltTimer.startTimer();
                 }
               }
             } else {
