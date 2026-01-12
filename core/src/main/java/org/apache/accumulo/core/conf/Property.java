@@ -450,7 +450,7 @@ public enum Property {
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
-  MANAGER_MAX_TSERVER_HALTS("manager.max.tservers.halts", "0", PropertyType.COUNT,
+  MANAGER_TSERVER_HALT_ATTEMPTS("manager.tservers.halt.attempts", "0", PropertyType.COUNT,
       "Allows the manager to force tserver halting by setting the max number of attempted tserver halt "
           + " requests before deleting the tserver's zlock. A value of zero (default) disables this feature.",
       "2.1.5"),

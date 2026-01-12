@@ -195,7 +195,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
-  final Map<TServerInstance,AtomicInteger> haltedServers =
+  final Map<TServerInstance,AtomicInteger> tserverHaltRpcAttempts =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
@@ -1152,8 +1152,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     long start = System.currentTimeMillis();
     final SortedMap<TServerInstance,TabletServerStatus> result = new ConcurrentSkipListMap<>();
     final RateLimiter shutdownServerRateLimiter = RateLimiter.create(MAX_SHUTDOWNS_PER_SEC);
-    final int maxTserverHalts = getConfiguration().getCount(Property.MANAGER_MAX_TSERVER_HALTS);
-    final boolean forceHaltingEnabled = maxTserverHalts != 0;
+    final int maxTserverRpcHaltAttempts =
+        getConfiguration().getCount(Property.MANAGER_TSERVER_HALT_ATTEMPTS);
+    final boolean forceHaltingEnabled = maxTserverRpcHaltAttempts != 0;
     for (TServerInstance serverInstance : currentServers) {
       final TServerInstance server = serverInstance;
       if (threads == 0) {
@@ -1195,8 +1196,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             if (shutdownServerRateLimiter.tryAcquire()) {
               log.warn("attempting to stop {}", server);
               if (forceHaltingEnabled
-                  && (haltedServers.computeIfAbsent(server, s -> new AtomicInteger(0))
-                      .incrementAndGet() > maxTserverHalts)) {
+                  && (tserverHaltRpcAttempts.computeIfAbsent(server, s -> new AtomicInteger(0))
+                      .incrementAndGet() > maxTserverRpcHaltAttempts)) {
                 log.warn("tserver {} is not responding to halt requests, deleting zlock", server);
                 var zk = getContext().getZooReaderWriter();
                 var iid = getContext().getInstanceID();
@@ -1204,7 +1205,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                 try {
                   ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
                       log::info, false);
-                  haltedServers.remove(server);
+                  tserverHaltRpcAttempts.remove(server);
                   badServers.remove(server);
                 } catch (KeeperException | InterruptedException e) {
                   log.error("Failed to delete zlock for server {}", server, e);
@@ -1248,9 +1249,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       badServers.keySet().removeAll(info.keySet());
     }
 
-    synchronized (haltedServers) {
-      haltedServers.keySet().retainAll(currentServers);
-      haltedServers.keySet().removeAll(info.keySet());
+    synchronized (tserverHaltRpcAttempts) {
+      tserverHaltRpcAttempts.keySet().retainAll(currentServers);
+      tserverHaltRpcAttempts.keySet().removeAll(info.keySet());
     }
 
     log.debug(String.format("Finished gathering information from %d of %d servers in %.2f seconds",
@@ -1755,7 +1756,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
       serversToShutdown.removeAll(deleted);
       badServers.keySet().removeAll(deleted);
-      haltedServers.keySet().removeAll(deleted);
+      tserverHaltRpcAttempts.keySet().removeAll(deleted);
       // clear out any bad server with the same host/port as a new server
       synchronized (badServers) {
         cleanListByHostAndPort(badServers.keySet(), deleted, added);
@@ -1763,8 +1764,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       synchronized (serversToShutdown) {
         cleanListByHostAndPort(serversToShutdown, deleted, added);
       }
-      synchronized (haltedServers) {
-        cleanListByHostAndPort(haltedServers.keySet(), deleted, added);
+      synchronized (tserverHaltRpcAttempts) {
+        cleanListByHostAndPort(tserverHaltRpcAttempts.keySet(), deleted, added);
       }
       migrations.removeServers(deleted);
       nextEvent.event("There are now %d tablet servers", current.size());
