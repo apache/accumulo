@@ -198,7 +198,6 @@ public class NewTableConfiguration {
       var initTableProps = IteratorConfigUtil.getInitialTableProperties();
       // check the properties for conflicts with default iterators
       var defaultIterSettings = IteratorConfigUtil.getInitialTableIteratorSettings();
-      // if a default prop already exists, don't want to consider that a conflict
       for (var defaultIterSetting : defaultIterSettings.entrySet()) {
         var setting = defaultIterSetting.getKey();
         var scopes = defaultIterSetting.getValue();
