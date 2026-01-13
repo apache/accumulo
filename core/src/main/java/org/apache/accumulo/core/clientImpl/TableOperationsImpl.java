@@ -231,6 +231,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     NEW_TABLE_NAME.validate(tableName);
     checkArgument(ntc != null, "ntc is null");
+
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));

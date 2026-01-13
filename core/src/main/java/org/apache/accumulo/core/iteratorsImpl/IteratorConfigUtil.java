@@ -347,8 +347,14 @@ public class IteratorConfigUtil {
   public static void checkIteratorConflictsWithTablesInNamespace(TableOperations tableOps,
       String namespace, IteratorSetting is, EnumSet<IteratorScope> scopes)
       throws AccumuloException {
-    var tablesInNamespace = tableOps.list().stream()
-        .filter(t -> t.startsWith(namespace + Namespace.SEPARATOR)).collect(Collectors.toSet());
+    Set<String> tablesInNamespace;
+    if (namespace.equals(Namespace.DEFAULT.name())) {
+      tablesInNamespace =
+          tableOps.list().stream().filter(t -> t.startsWith(namespace)).collect(Collectors.toSet());
+    } else {
+      tablesInNamespace = tableOps.list().stream()
+          .filter(t -> t.startsWith(namespace + Namespace.SEPARATOR)).collect(Collectors.toSet());
+    }
     try {
       for (var table : tablesInNamespace) {
         IteratorConfigUtil.checkIteratorConflicts(tableOps.getTableProperties(table), is, scopes);
@@ -360,8 +366,14 @@ public class IteratorConfigUtil {
 
   public static void checkIteratorConflictsWithTablesInNamespace(TableOperations tableOps,
       String namespace, String property, String value) throws AccumuloException {
-    var tablesInNamespace = tableOps.list().stream()
-        .filter(t -> t.startsWith(namespace + Namespace.SEPARATOR)).collect(Collectors.toSet());
+    Set<String> tablesInNamespace;
+    if (namespace.equals(Namespace.DEFAULT.name())) {
+      tablesInNamespace =
+          tableOps.list().stream().filter(t -> t.startsWith(namespace)).collect(Collectors.toSet());
+    } else {
+      tablesInNamespace = tableOps.list().stream()
+          .filter(t -> t.startsWith(namespace + Namespace.SEPARATOR)).collect(Collectors.toSet());
+    }
     try {
       for (var table : tablesInNamespace) {
         IteratorConfigUtil.checkIteratorConflicts(tableOps.getTableProperties(table), property,
