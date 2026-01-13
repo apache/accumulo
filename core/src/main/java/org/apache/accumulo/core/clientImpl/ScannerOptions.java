@@ -34,7 +34,6 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -68,30 +67,15 @@ public class ScannerOptions implements ScannerBase {
 
   private ConsistencyLevel consistencyLevel = ConsistencyLevel.IMMEDIATE;
 
-  private Consumer<IteratorSetting> iteratorValidator;
-
-  protected ScannerOptions(Consumer<IteratorSetting> iteratorValidator) {
-    checkArgument(iteratorValidator != null, "iteratorValidator is null");
-    this.iteratorValidator = iteratorValidator;
-  }
+  protected ScannerOptions() {}
 
   public ScannerOptions(ScannerOptions so) {
     setOptions(this, so);
   }
 
-  public void setIteratorValidator(Consumer<IteratorSetting> iteratorValidator) {
-    checkArgument(iteratorValidator != null, "iteratorValidator is null");
-    this.iteratorValidator = iteratorValidator;
-  }
-
   @Override
   public synchronized void addScanIterator(IteratorSetting si) {
     checkArgument(si != null, "si is null");
-
-    // validate given iterator does not conflict with those already added to the table
-    iteratorValidator.accept(si);
-
-    // validate given iterator does not conflict with those already added to the scanner
     if (serverSideIteratorList.isEmpty()) {
       serverSideIteratorList = new ArrayList<>();
     }

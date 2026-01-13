@@ -231,20 +231,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     NEW_TABLE_NAME.validate(tableName);
     checkArgument(ntc != null, "ntc is null");
-
-    final String[] nsAndTable;
-    try {
-      if ((nsAndTable = tableName.split("\\" + Namespace.SEPARATOR)).length == 2) {
-        ntc.configureInheritedIteratorProps(
-            context.namespaceOperations().getNamespaceProperties(nsAndTable[0]));
-      } else {
-        ntc.configureInheritedIteratorProps(
-            context.namespaceOperations().getNamespaceProperties(Namespace.DEFAULT.name()));
-      }
-    } catch (NamespaceNotFoundException e) {
-      throw new AccumuloException(e);
-    }
-
     List<ByteBuffer> args = new ArrayList<>();
     args.add(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
     args.add(ByteBuffer.wrap(ntc.getTimeType().name().getBytes(UTF_8)));

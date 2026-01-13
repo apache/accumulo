@@ -357,7 +357,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
     String perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains("Table permissions (" + MetadataTable.NAME + "): Table.READ"));
     ts.exec("grant -u xyzzy -s System.CREATE_TABLE", true);
-    ts.exec("grant -u xyzzy -ns \"\" Namespace.ALTER_NAMESPACE", true);
     perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
     ts.exec("grant -u " + getPrincipal() + " -t " + MetadataTable.NAME + " Table.WRITE", true);

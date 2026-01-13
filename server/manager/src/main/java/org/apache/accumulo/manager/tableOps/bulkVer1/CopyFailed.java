@@ -122,8 +122,7 @@ class CopyFailed extends ManagerRepo {
     // determine which failed files were loaded
     ServerContext client = manager.getContext();
     try (Scanner mscanner =
-        new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY),
-            client.getScanIteratorValidator(MetadataTable.NAME))) {
+        new IsolatedScanner(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))) {
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);
 

@@ -372,6 +372,26 @@ public class IteratorConfigUtil {
     }
   }
 
+  public static void checkScanIteratorConflicts(List<IterInfo> iterInfos,
+      Map<String,Map<String,String>> iterOpts, IteratorSetting setting) throws AccumuloException {
+    Map<String,String> props = new HashMap<>();
+    for (var iterInfo : iterInfos) {
+      props.put(
+          String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX.getKey(),
+              IteratorScope.scan.name().toLowerCase(), iterInfo.getIterName()),
+          String.format("%s,%s", iterInfo.getPriority(), iterInfo.getClassName()));
+      var options = iterOpts.get(iterInfo.getIterName());
+      if (options != null) {
+        for (var iterOpt : options.entrySet()) {
+          props.put(String.format("%s%s.%s.opt.%s", Property.TABLE_ITERATOR_PREFIX.getKey(),
+              IteratorScope.scan.name().toLowerCase(), iterInfo.getIterName(), iterOpt.getKey()),
+              iterOpt.getValue());
+        }
+      }
+    }
+    checkIteratorConflicts(props, setting, EnumSet.of(IteratorScope.scan));
+  }
+
   public static void checkIteratorConflicts(Map<String,String> props, IteratorSetting setting,
       EnumSet<IteratorScope> scopes) throws AccumuloException {
     for (IteratorScope scope : scopes) {
@@ -445,10 +465,21 @@ public class IteratorConfigUtil {
   }
 
   /**
+   * Returns a new map of all the iterator props contained in the given map
+   */
+  public static Map<String,String> gatherIteratorProps(Map<String,String> props) {
+    Map<String,String> iterProps = new HashMap<>();
+    props.entrySet().stream()
+        .filter(entry -> IteratorConfigUtil.isIterProp(entry.getKey(), entry.getValue()))
+        .forEach(entry -> iterProps.put(entry.getKey(), entry.getValue()));
+    return iterProps;
+  }
+
+  /**
    * returns a map of the options associated with the given iterator property key. Options of the
    * iterator are obtained by searching the given map
    */
-  public static Map<String,String> gatherOpts(String iterPropKey, Map<String,String> map) {
+  public static Map<String,String> gatherIterOpts(String iterPropKey, Map<String,String> map) {
     Map<String,String> opts = new HashMap<>();
     for (var iteratorProp : map.entrySet()) {
       if (ITERATOR_PROP_OPT_REGEX.matches(iteratorProp.getKey())

@@ -37,23 +37,21 @@ public class TabletServerBatchReaderTest {
   public void setup() {
     context = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(context.threadPools()).andReturn(ThreadPools.getServerThreadPools());
-    EasyMock.expect(context.getScanIteratorValidator(EasyMock.anyString()))
-        .andReturn(iteratorSetting -> {});
     EasyMock.replay(context);
   }
 
   @Test
   public void testGetAuthorizations() {
     Authorizations expected = new Authorizations("a,b");
-    try (BatchScanner s = new TabletServerBatchReader(context, TableId.of("foo"), "fooName",
-        expected, 1, context.getScanIteratorValidator("fooName"))) {
+    try (BatchScanner s =
+        new TabletServerBatchReader(context, TableId.of("foo"), "fooName", expected, 1)) {
       assertEquals(expected, s.getAuthorizations());
     }
   }
 
   @Test
   public void testNullAuthorizationsFails() {
-    assertThrows(IllegalArgumentException.class, () -> new TabletServerBatchReader(context,
-        TableId.of("foo"), "fooName", null, 1, context.getScanIteratorValidator("fooName")));
+    assertThrows(IllegalArgumentException.class,
+        () -> new TabletServerBatchReader(context, TableId.of("foo"), "fooName", null, 1));
   }
 }

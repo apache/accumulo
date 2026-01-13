@@ -191,8 +191,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     Preconditions.checkArgument(DataLevel.of(tableId) == DataLevel.USER);
     try (
         Scanner mscanner =
-            new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY),
-                context.getScanIteratorValidator(MetadataTable.NAME));
+            new IsolatedScanner(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY));
         BatchWriter bw = context.createBatchWriter(MetadataTable.NAME)) {
       mscanner.setRange(new KeyExtent(tableId, lastSplit, firstSplit).toMetaRange());
       mscanner.fetchColumnFamily(BulkFileColumnFamily.NAME);

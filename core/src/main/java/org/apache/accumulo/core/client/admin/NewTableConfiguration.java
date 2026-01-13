@@ -49,6 +49,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 
 /**
@@ -72,24 +73,7 @@ public class NewTableConfiguration {
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
-  private final Map<String,String> inheritedIteratorProps = new HashMap<>();
   private SortedSet<Text> splitProps = Collections.emptySortedSet();
-
-  /**
-   * Configures the {@link NewTableConfiguration} with iterators inherited from the parent
-   * namespace. This is used internally in table creation - no need to call directly.
-   *
-   * @param props the parent namespace config
-   */
-  public void configureInheritedIteratorProps(Map<String,String> props) {
-    for (var prop : props.entrySet()) {
-      var propKey = prop.getKey();
-      var propVal = prop.getValue();
-      if (IteratorConfigUtil.isIterProp(propKey, propVal)) {
-        inheritedIteratorProps.put(propKey, propVal);
-      }
-    }
-  }
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
       String kind) {
@@ -201,7 +185,7 @@ public class NewTableConfiguration {
    *
    * @return the current properties configured
    */
-  public Map<String,String> getProperties() throws AccumuloException {
+  public Map<String,String> getProperties() {
     Map<String,String> propertyMap = new HashMap<>();
 
     propertyMap.putAll(summarizerProps);
@@ -221,7 +205,7 @@ public class NewTableConfiguration {
         try {
           TableOperationsHelper.checkIteratorConflicts(propertyMap, setting, scopes);
         } catch (AccumuloException e) {
-          throw new AccumuloException(String.format(
+          throw new IllegalArgumentException(String.format(
               "conflict with default table iterator: scopes: %s setting: %s", scopes, setting), e);
         }
       }
@@ -233,31 +217,11 @@ public class NewTableConfiguration {
         var dk = nonIterDefault.getKey();
         var dv = nonIterDefault.getValue();
         var valInPropMap = propertyMap.get(dk);
-        if (valInPropMap != null && !valInPropMap.equals(dv)) {
-          throw new AccumuloException(String.format(
-              "conflict for property %s : %s (default val) != %s (set val)", dk, dv, valInPropMap));
-        }
+        Preconditions.checkArgument(valInPropMap == null || valInPropMap.equals(dv), String.format(
+            "conflict for property %s : %s (default val) != %s (set val)", dk, dv, valInPropMap));
       }
 
       propertyMap.putAll(initTableProps);
-    }
-
-    // check for conflicts between attached iterators and namespace-inherited iterators
-    for (var iterProp : iteratorProps.entrySet()) {
-      var iterPropKey = iterProp.getKey();
-      var iterPropVal = iterProp.getValue();
-      if (IteratorConfigUtil.isNonOptionIterProp(iterPropKey, iterPropVal)) {
-        var iterPropKeyParts = iterPropKey.split("\\.");
-        var iterPropValParts = iterPropVal.split(",");
-        String iterName = iterPropKeyParts[iterPropKeyParts.length - 1];
-        IteratorScope iterScope =
-            IteratorScope.valueOf(iterPropKeyParts[iterPropKeyParts.length - 2]);
-        Map<String,String> opts = IteratorConfigUtil.gatherOpts(iterPropKey, iteratorProps);
-        var is = new IteratorSetting(Integer.parseInt(iterPropValParts[0]), iterName,
-            iterPropValParts[1], opts);
-        TableOperationsHelper.checkIteratorConflicts(inheritedIteratorProps, is,
-            EnumSet.of(iterScope));
-      }
     }
 
     return Collections.unmodifiableMap(propertyMap);

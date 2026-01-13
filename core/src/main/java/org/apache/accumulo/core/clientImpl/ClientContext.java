@@ -34,7 +34,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -45,7 +44,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -61,7 +59,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
@@ -86,7 +83,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooCacheFactory;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -715,7 +711,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
     return new TabletServerBatchReader(this, requireNotOffline(getTableId(tableName), tableName),
-        tableName, authorizations, numQueryThreads, getScanIteratorValidator(tableName));
+        tableName, authorizations, numQueryThreads);
   }
 
   @Override
@@ -741,8 +737,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
     return new TabletServerBatchDeleter(this, requireNotOffline(getTableId(tableName), tableName),
-        tableName, authorizations, numQueryThreads, config.merge(getBatchWriterConfig()),
-        getScanIteratorValidator(tableName));
+        tableName, authorizations, numQueryThreads, config.merge(getBatchWriterConfig()));
   }
 
   @Override
@@ -801,8 +796,8 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    Scanner scanner = new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName),
-        authorizations, getScanIteratorValidator(tableName));
+    Scanner scanner =
+        new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);
@@ -815,33 +810,6 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
     Authorizations auths = securityOperations().getUserAuthorizations(getPrincipal());
     return createScanner(tableName, auths);
-  }
-
-  private Consumer<IteratorSetting> getScanIteratorValidator(Callable<String> tableNameGetter) {
-    return (givenIter) -> {
-      try {
-        tableOperations().checkIteratorConflicts(tableNameGetter.call(), givenIter,
-            EnumSet.of(IteratorUtil.IteratorScope.scan));
-      } catch (Exception e) {
-        throw new IllegalArgumentException(e);
-      }
-    };
-  }
-
-  /**
-   * @see #getScanIteratorValidator(String)
-   */
-  public Consumer<IteratorSetting> getScanIteratorValidator(TableId tableId) {
-    return getScanIteratorValidator(() -> getTableName(tableId));
-  }
-
-  /**
-   * Returns an IteratorSetting Consumer which checks if the given IteratorSetting conflicts with
-   * iterators on the given table. Invoking the Consumer will throw an
-   * {@link IllegalArgumentException} if there is a conflict
-   */
-  public Consumer<IteratorSetting> getScanIteratorValidator(String tableName) {
-    return getScanIteratorValidator(() -> tableName);
   }
 
   @Override

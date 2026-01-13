@@ -93,8 +93,6 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
     accumuloClient.securityOperations().grantTablePermission(user, tableName, TablePermission.READ);
     accumuloClient.securityOperations().grantTablePermission(user, tableName,
         TablePermission.WRITE);
-    accumuloClient.securityOperations().grantTablePermission(user, tableName,
-        TablePermission.ALTER_TABLE);
     accumuloClient.securityOperations().changeUserAuthorizations(user, AuthsIterator.AUTHS);
   }
 

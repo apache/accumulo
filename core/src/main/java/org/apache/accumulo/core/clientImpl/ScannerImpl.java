@@ -26,10 +26,8 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -111,9 +109,7 @@ public class ScannerImpl extends ScannerOptions implements Scanner {
     }
   }
 
-  public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations,
-      Consumer<IteratorSetting> iteratorValidator) {
-    super(iteratorValidator);
+  public ScannerImpl(ClientContext context, TableId tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");
     checkArgument(tableId != null, "tableId is null");
     checkArgument(authorizations != null, "authorizations is null");

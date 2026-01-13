@@ -26,6 +26,8 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -243,6 +245,26 @@ class ScanDataSource implements DataSource {
       } else {
         // Scan time iterator options were set, so need to merge those with pre-parsed table
         // iterator options.
+
+        // First ensure the set iterators do not conflict with the existing table iterators.
+        for (var scanParamIterInfo : scanParams.getSsiList()) {
+          IteratorSetting setting;
+          var scanParamIterOpts = scanParams.getSsio().get(scanParamIterInfo.getIterName());
+          if (scanParamIterOpts != null) {
+            setting = new IteratorSetting(scanParamIterInfo.getPriority(),
+                scanParamIterInfo.getIterName(), scanParamIterInfo.getClassName(),
+                scanParamIterOpts);
+          } else {
+            setting = new IteratorSetting(scanParamIterInfo.getPriority(),
+                scanParamIterInfo.getIterName(), scanParamIterInfo.getClassName());
+          }
+          try {
+            IteratorConfigUtil.checkScanIteratorConflicts(pic.getIterInfo(), pic.getOpts(),
+                setting);
+          } catch (AccumuloException e) {
+            throw new IllegalArgumentException(e);
+          }
+        }
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
         IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),

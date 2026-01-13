@@ -173,7 +173,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * @param scanner the source scanner
    */
   public ClientSideIteratorScanner(final Scanner scanner) {
-    super((setting) -> {});
     smi = new ScannerTranslatorImpl(scanner, scanner.getSamplerConfiguration());
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
@@ -189,8 +188,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       var scannerImpl = (ScannerImpl) scanner;
       this.context = () -> scannerImpl.getClientContext();
       this.tableId = () -> scannerImpl.getTableId();
-      setIteratorValidator(
-          scannerImpl.getClientContext().getScanIteratorValidator(scannerImpl.getTableId()));
     } else {
       // These may never be used, so only fail if an attempt is made to use them.
       this.context = () -> {

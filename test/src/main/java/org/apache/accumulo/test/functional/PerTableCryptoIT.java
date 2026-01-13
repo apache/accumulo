@@ -163,8 +163,7 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       c.tableOperations().offline(tableName, true);
 
-      try (var oScanner = new OfflineScanner((ClientContext) c, tableId, Authorizations.EMPTY,
-          ((ClientContext) c).getScanIteratorValidator(tableName))) {
+      try (var oScanner = new OfflineScanner((ClientContext) c, tableId, Authorizations.EMPTY)) {
         long count = oScanner.stream().count();
         assertEquals(count, 100_000);
       }

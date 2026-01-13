@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 
 import org.apache.accumulo.core.clientImpl.IsolationException;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
@@ -221,13 +220,11 @@ public class IsolatedScanner extends ScannerOptions implements Scanner {
   private long readaheadThreshold;
   private final RowBufferFactory bufferFactory;
 
-  public IsolatedScanner(Scanner scanner, Consumer<IteratorSetting> iteratorValidator) {
-    this(scanner, new MemoryRowBufferFactory(), iteratorValidator);
+  public IsolatedScanner(Scanner scanner) {
+    this(scanner, new MemoryRowBufferFactory());
   }
 
-  public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory,
-      Consumer<IteratorSetting> iteratorValidator) {
-    super(iteratorValidator);
+  public IsolatedScanner(Scanner scanner, RowBufferFactory bufferFactory) {
     this.scanner = scanner;
     this.range = scanner.getRange();
     this.retryTimeout = scanner.getTimeout(MILLISECONDS);

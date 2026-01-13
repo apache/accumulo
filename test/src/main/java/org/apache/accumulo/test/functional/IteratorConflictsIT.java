@@ -19,10 +19,10 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
@@ -62,6 +63,8 @@ import org.junit.jupiter.api.function.Executable;
  * <p>
  * - {@link NamespaceOperations#modifyProperties(String, Consumer)}
  * <p>
+ * - {@link CloneConfiguration.Builder#setPropertiesToSet(Map)}
+ * <p>
  * All fail when conflicts arise from:
  * <p>
  * - Iterators attached directly to a table
@@ -77,32 +80,35 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
   private static TableOperations tops;
   private static NamespaceOperations nops;
   private static AccumuloClient client;
-  private static final IteratorSetting iter1 = new IteratorSetting(99, "iter1name", "foo");
+  // doesn't matter what iterator is used here
+  private static final String iterClass = SlowIterator.class.getName();
+  private static final IteratorSetting iter1 = new IteratorSetting(99, "iter1name", iterClass);
   private static final String iter1Key = Property.TABLE_ITERATOR_PREFIX
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + iter1.getName();
-  private static final String iter1Val = "99,foo";
+  private static final String iter1Val = "99," + iterClass;
   private static final IteratorSetting iter1PrioConflict =
-      new IteratorSetting(99, "othername", "foo");
+      new IteratorSetting(99, "othername", iterClass);
   private static final IteratorSetting iter1NameConflict =
-      new IteratorSetting(101, iter1.getName(), "foo");
+      new IteratorSetting(101, iter1.getName(), iterClass);
   private static final String iter1PrioConflictKey = Property.TABLE_ITERATOR_PREFIX
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".othername";
-  private static final String iter1PrioConflictVal = "99,foo";
+  private static final String iter1PrioConflictVal = "99," + iterClass;
   private static final String iter1NameConflictKey = Property.TABLE_ITERATOR_PREFIX
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + iter1.getName();
-  private static final String iter1NameConflictVal = "101,foo";
+  private static final String iter1NameConflictVal = "101," + iterClass;
   private static final IteratorSetting defaultIterPrioConflict =
-      new IteratorSetting(20, "bar", "foo");
+      new IteratorSetting(20, "bar", iterClass);
   private static final IteratorSetting defaultIterNameConflict =
-      new IteratorSetting(101, "vers", "foo");
+      new IteratorSetting(101, "vers", iterClass);
   private static final IteratorSetting defaultTableIter =
       IteratorConfigUtil.getInitialTableIteratorSettings().keySet().iterator().next();
   private static final String defaultIterPrioConflictKey = Property.TABLE_ITERATOR_PREFIX
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".foo";
-  private static final String defaultIterPrioConflictVal = defaultTableIter.getPriority() + ",bar";
+  private static final String defaultIterPrioConflictVal =
+      defaultTableIter.getPriority() + "," + iterClass;
   private static final String defaultIterNameConflictKey = Property.TABLE_ITERATOR_PREFIX
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
-  private static final String defaultIterNameConflictVal = "99,bar";
+  private static final String defaultIterNameConflictVal = "99," + iterClass;
   private static final String defaultIterKey = Property.TABLE_ITERATOR_PREFIX.getKey()
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
   private static final String defaultIterVal =
@@ -124,7 +130,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
   @Test
   public void testTableIterConflict() throws Exception {
-    final String[] tableNames = getUniqueNames(10);
+    final String[] tableNames = getUniqueNames(12);
     String table1 = tableNames[0];
     String table2 = tableNames[1];
     String table3 = tableNames[2];
@@ -135,18 +141,23 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String table6 = ns6 + "." + tableNames[7];
     String ns7 = tableNames[8];
     String table7 = ns7 + "." + tableNames[9];
+    String table8 = tableNames[10];
     for (String ns : List.of(ns5, ns6, ns7)) {
       nops.create(ns);
     }
-    for (String table : List.of(table1, table2, table3, table4, table5, table6, table7)) {
+    for (String table : List.of(table1, table2, table3, table4, table5, table6, table7, table8)) {
       tops.create(table);
     }
 
     // testing Scanner.addScanIterator
-    try (var scanner = client.createScanner(table1)) {
-      testTableIterConflict(table1, IllegalArgumentException.class,
-          () -> scanner.addScanIterator(iter1PrioConflict),
-          () -> scanner.addScanIterator(iter1NameConflict));
+    try (var scanner1 = client.createScanner(table1); var scanner2 = client.createScanner(table1)) {
+      testTableIterConflict(table1, RuntimeException.class, () -> {
+        scanner1.addScanIterator(iter1PrioConflict);
+        scanner1.iterator().hasNext();
+      }, () -> {
+        scanner2.addScanIterator(iter1NameConflict);
+        scanner2.iterator().hasNext();
+      });
     }
 
     // testing TableOperations.setProperty
@@ -186,59 +197,57 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
             props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)),
         () -> nops.modifyProperties(ns7,
             props -> props.put(iter1NameConflictKey, iter1NameConflictVal)));
+
+    // testing CloneConfiguration.Builder.setPropertiesToSet
+    String table9 = tableNames[11];
+    testTableIterConflict(table8, AccumuloException.class,
+        () -> tops.clone(table8, table9,
+            CloneConfiguration.builder()
+                .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build()),
+        () -> tops.clone(table8, table9, CloneConfiguration.builder()
+            .setPropertiesToSet(Map.of(iter1NameConflictKey, iter1NameConflictVal)).build()));
   }
 
   private <T extends Exception> void testTableIterConflict(String table, Class<T> exceptionClass,
       Executable iterPrioConflictExec, Executable iterNameConflictExec) throws Exception {
     tops.attachIterator(table, iter1);
-    var e = assertThrows(exceptionClass, iterPrioConflictExec);
-    assertTrue(e.getMessage().contains("iterator priority conflict")
-        && e.getMessage().contains(iter1.getName()));
-    e = assertThrows(exceptionClass, iterNameConflictExec);
-    assertTrue(e.getMessage().contains("iterator name conflict")
-        && e.getMessage().contains(iter1.getName()));
+    assertThrows(exceptionClass, iterPrioConflictExec);
+    assertThrows(exceptionClass, iterNameConflictExec);
   }
 
   @Test
   public void testNamespaceIterConflict() throws Exception {
-    final String[] names = getUniqueNames(16);
-    String ns1 = names[0];
-    String table1 = ns1 + "." + names[1];
-    String ns2 = names[2];
-    String table2 = ns2 + "." + names[3];
-    String ns3 = names[4];
-    String table3 = ns3 + "." + names[5];
-    String ns4 = names[6];
-    String table4 = ns4 + "." + names[7];
-    String ns5 = names[8];
-    String table5 = ns5 + "." + names[9];
-    String ns6 = names[10];
-    String table6 = ns5 + "." + names[11];
-    String ns7 = names[12];
-    String table7 = ns5 + "." + names[13];
-    String ns8 = names[14];
-    String table8 = ns5 + "." + names[15];
-    for (String ns : List.of(ns1, ns2, ns3, ns4, ns5, ns6, ns7, ns8)) {
-      nops.create(ns);
-    }
-    // don't create table4
-    for (String table : List.of(table1, table2, table3, table5, table6, table7, table8)) {
-      tops.create(table);
-    }
+    final String[] names = getUniqueNames(25);
 
     // testing Scanner.addScanIterator
-    try (var scanner = client.createScanner(table1)) {
-      testNamespaceIterConflict(ns1, IllegalArgumentException.class,
-          () -> scanner.addScanIterator(iter1PrioConflict),
-          () -> scanner.addScanIterator(iter1NameConflict));
+    String ns1 = names[0];
+    nops.create(ns1);
+    String table1 = ns1 + "." + names[1];
+    tops.create(table1);
+    try (var scanner1 = client.createScanner(table1); var scanner2 = client.createScanner(table1)) {
+      testNamespaceIterConflict(ns1, RuntimeException.class, () -> {
+        scanner1.addScanIterator(iter1PrioConflict);
+        scanner1.iterator().hasNext();
+      }, () -> {
+        scanner2.addScanIterator(iter1NameConflict);
+        scanner2.iterator().hasNext();
+      });
     }
 
     // testing TableOperations.setProperty
+    String ns2 = names[2];
+    nops.create(ns2);
+    String table2 = ns2 + "." + names[3];
+    tops.create(table2);
     testNamespaceIterConflict(ns2, AccumuloException.class,
         () -> tops.setProperty(table2, iter1PrioConflictKey, iter1PrioConflictVal),
         () -> tops.setProperty(table2, iter1NameConflictKey, iter1NameConflictVal));
 
     // testing TableOperations.modifyProperties
+    String ns3 = names[4];
+    nops.create(ns3);
+    String table3 = ns3 + "." + names[5];
+    tops.create(table3);
     testNamespaceIterConflict(ns3, AccumuloException.class,
         () -> tops.modifyProperties(table3,
             props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)),
@@ -246,61 +255,124 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
             props -> props.put(iter1NameConflictKey, iter1NameConflictVal)));
 
     // testing NewTableConfiguration.attachIterator
+    String ns4 = names[6];
+    nops.create(ns4);
+    String table4 = ns4 + "." + names[7];
     testNamespaceIterConflict(ns4, AccumuloException.class,
         () -> tops.create(table4, new NewTableConfiguration().attachIterator(iter1PrioConflict)),
         () -> tops.create(table4, new NewTableConfiguration().attachIterator(iter1NameConflict)));
 
     // testing TableOperations.attachIterator
+    String ns5 = names[8];
+    nops.create(ns5);
+    String table5 = ns5 + "." + names[9];
+    tops.create(table5);
     testNamespaceIterConflict(ns5, AccumuloException.class,
         () -> tops.attachIterator(table5, iter1PrioConflict),
         () -> tops.attachIterator(table5, iter1NameConflict));
 
     // testing NamespaceOperations.attachIterator
+    String ns6 = names[10];
+    nops.create(ns6);
     testNamespaceIterConflict(ns6, AccumuloException.class,
         () -> nops.attachIterator(ns6, iter1PrioConflict),
         () -> nops.attachIterator(ns6, iter1NameConflict));
 
     // testing NamespaceOperations.setProperty
-    testNamespaceIterConflict(ns6, AccumuloException.class,
-        () -> nops.setProperty(ns6, iter1PrioConflictKey, iter1PrioConflictVal),
-        () -> nops.setProperty(ns6, iter1NameConflictKey, iter1NameConflictVal));
+    String ns7 = names[11];
+    nops.create(ns7);
+    testNamespaceIterConflict(ns7, AccumuloException.class,
+        () -> nops.setProperty(ns7, iter1PrioConflictKey, iter1PrioConflictVal),
+        () -> nops.setProperty(ns7, iter1NameConflictKey, iter1NameConflictVal));
 
     // testing NamespaceOperations.modifyProperties
-    testNamespaceIterConflict(ns6, AccumuloException.class,
-        () -> nops.modifyProperties(ns6,
+    String ns8 = names[12];
+    nops.create(ns8);
+    testNamespaceIterConflict(ns8, AccumuloException.class,
+        () -> nops.modifyProperties(ns8,
             props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)),
-        () -> nops.modifyProperties(ns6,
+        () -> nops.modifyProperties(ns8,
             props -> props.put(iter1NameConflictKey, iter1NameConflictVal)));
+
+    // testing CloneConfiguration.Builder.setPropertiesToSet
+    // testing same src and dst namespace: should conflict
+    String dstAndSrcNamespace1 = names[13];
+    nops.create(dstAndSrcNamespace1);
+    String src1 = dstAndSrcNamespace1 + "." + names[14];
+    tops.create(src1);
+    String dst1 = dstAndSrcNamespace1 + "." + names[15];
+    testNamespaceIterConflict(dstAndSrcNamespace1, AccumuloException.class,
+        () -> tops.clone(src1, dst1,
+            CloneConfiguration.builder()
+                .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build()),
+        () -> tops.clone(src1, dst1, CloneConfiguration.builder()
+            .setPropertiesToSet(Map.of(iter1NameConflictKey, iter1NameConflictVal)).build()));
+    // testing attached to src namespace, different dst namespace: should not conflict
+    String srcNamespace2 = names[16];
+    nops.create(srcNamespace2);
+    nops.attachIterator(srcNamespace2, iter1);
+    String src2 = srcNamespace2 + "." + names[17];
+    tops.create(src2);
+    String dstNamespace2 = names[18];
+    nops.create(dstNamespace2);
+    String dst2 = dstNamespace2 + "." + names[19];
+    String dst3 = dstNamespace2 + "." + names[20];
+    // should NOT throw
+    tops.clone(src2, dst2, CloneConfiguration.builder()
+        .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build());
+    // should NOT throw
+    tops.clone(src2, dst3, CloneConfiguration.builder()
+        .setPropertiesToSet(Map.of(iter1NameConflictKey, iter1NameConflictVal)).build());
+    // testing attached to dst namespace, different src namespace: should conflict
+    String srcNamespace3 = names[21];
+    nops.create(srcNamespace3);
+    String src3 = srcNamespace3 + "." + names[22];
+    tops.create(src3);
+    String dstNamespace3 = names[23];
+    nops.create(dstNamespace3);
+    String dst4 = dstNamespace3 + "." + names[24];
+    testNamespaceIterConflict(dstNamespace3, AccumuloException.class,
+        () -> tops.clone(src3, dst4,
+            CloneConfiguration.builder()
+                .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build()),
+        () -> tops.clone(src3, dst4, CloneConfiguration.builder()
+            .setPropertiesToSet(Map.of(iter1NameConflictKey, iter1NameConflictVal)).build()));
   }
 
   private <T extends Exception> void testNamespaceIterConflict(String ns, Class<T> exceptionClass,
       Executable iterPrioConflictExec, Executable iterNameConflictExec) throws Exception {
     nops.attachIterator(ns, iter1);
 
-    var e = assertThrows(exceptionClass, iterPrioConflictExec);
-    assertTrue(e.getMessage().contains("iterator priority conflict")
-        && e.getMessage().contains(iter1.getName()));
-    e = assertThrows(exceptionClass, iterNameConflictExec);
-    assertTrue(e.getMessage().contains("iterator name conflict")
-        && e.getMessage().contains(iter1.getName()));
+    assertThrows(exceptionClass, iterPrioConflictExec);
+    assertThrows(exceptionClass, iterNameConflictExec);
   }
 
   @Test
   public void testDefaultIterConflict() throws Throwable {
-    final String[] tables = getUniqueNames(23);
+    final String[] tables = getUniqueNames(27);
 
     // testing Scanner.addScanIterator
     String defaultsTable1 = tables[0];
     tops.create(defaultsTable1);
     String noDefaultsTable1 = tables[1];
     tops.create(noDefaultsTable1, new NewTableConfiguration().withoutDefaults());
-    try (var defaultsScanner = client.createScanner(defaultsTable1);
-        var noDefaultsScanner = client.createScanner(noDefaultsTable1)) {
-      testDefaultIterConflict(IllegalArgumentException.class,
-          () -> defaultsScanner.addScanIterator(defaultIterPrioConflict),
-          () -> defaultsScanner.addScanIterator(defaultIterNameConflict),
-          () -> noDefaultsScanner.addScanIterator(defaultIterPrioConflict),
-          () -> noDefaultsScanner.addScanIterator(defaultIterNameConflict));
+    try (var defaultsScanner1 = client.createScanner(defaultsTable1);
+        var noDefaultsScanner1 = client.createScanner(noDefaultsTable1);
+        var defaultsScanner2 = client.createScanner(defaultsTable1);
+        var noDefaultsScanner2 = client.createScanner(noDefaultsTable1)) {
+      testDefaultIterConflict(RuntimeException.class, () -> {
+        defaultsScanner1.addScanIterator(defaultIterPrioConflict);
+        defaultsScanner1.iterator().hasNext();
+      }, () -> {
+        defaultsScanner2.addScanIterator(defaultIterNameConflict);
+        defaultsScanner2.iterator().hasNext();
+      }, () -> {
+        noDefaultsScanner1.addScanIterator(defaultIterPrioConflict);
+        noDefaultsScanner1.iterator().hasNext();
+      }, () -> {
+        noDefaultsScanner2.addScanIterator(defaultIterNameConflict);
+        noDefaultsScanner2.iterator().hasNext();
+      });
     }
 
     // testing TableOperations.setProperty
@@ -337,7 +409,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String defaultsTable4 = tables[6];
     String noDefaultsTable4 = tables[7];
     String noDefaultsTable5 = tables[8];
-    testDefaultIterConflict(AccumuloException.class,
+    testDefaultIterConflict(IllegalArgumentException.class,
         () -> tops.create(defaultsTable4,
             new NewTableConfiguration().attachIterator(defaultIterPrioConflict)),
         () -> tops.create(defaultsTable4,
@@ -402,37 +474,65 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> nops.setProperty(ns11, defaultIterNameConflictKey, defaultIterNameConflictVal),
         () -> nops.setProperty(ns12, defaultIterPrioConflictKey, defaultIterPrioConflictVal),
         () -> nops.setProperty(ns12, defaultIterNameConflictKey, defaultIterNameConflictVal));
+
+    // testing CloneConfiguration.Builder.setPropertiesToSet
+    String dst1 = tables[23];
+    String dst2 = tables[24];
+    String defaultsTable12 = tables[25];
+    tops.create(defaultsTable12);
+    String noDefaultsTable13 = tables[26];
+    tops.create(noDefaultsTable13, new NewTableConfiguration().withoutDefaults());
+    testDefaultIterConflict(AccumuloException.class,
+        () -> tops
+            .clone(defaultsTable12, dst1,
+                CloneConfiguration.builder()
+                    .setPropertiesToSet(
+                        Map.of(defaultIterPrioConflictKey, defaultIterPrioConflictVal))
+                    .build()),
+        () -> tops
+            .clone(defaultsTable12, dst1,
+                CloneConfiguration.builder()
+                    .setPropertiesToSet(
+                        Map.of(defaultIterNameConflictKey, defaultIterNameConflictVal))
+                    .build()),
+        () -> tops
+            .clone(noDefaultsTable13, dst1,
+                CloneConfiguration.builder()
+                    .setPropertiesToSet(
+                        Map.of(defaultIterPrioConflictKey, defaultIterPrioConflictVal))
+                    .build()),
+        () -> tops.clone(noDefaultsTable13, dst2,
+            CloneConfiguration.builder()
+                .setPropertiesToSet(Map.of(defaultIterNameConflictKey, defaultIterNameConflictVal))
+                .build()));
   }
 
   private <T extends Exception> void testDefaultIterConflict(Class<T> exceptionClass,
       Executable defaultsTableOp1, Executable defaultsTableOp2, Executable noDefaultsTableOp1,
       Executable noDefaultsTableOp2) throws Throwable {
-    var e = assertThrows(exceptionClass, defaultsTableOp1);
-    // exception message different depending on operation, just checking essential info
-    assertTrue(
-        e.getMessage().contains("VersioningIterator") && e.getMessage().contains("conflict"));
-
-    e = assertThrows(exceptionClass, defaultsTableOp2);
-    // exception message different depending on operation, just checking essential info
-    assertTrue(
-        e.getMessage().contains("VersioningIterator") && e.getMessage().contains("conflict"));
+    assertThrows(exceptionClass, defaultsTableOp1);
+    assertThrows(exceptionClass, defaultsTableOp2);
 
     noDefaultsTableOp1.execute(); // should NOT fail
-
     noDefaultsTableOp2.execute(); // should NOT fail
   }
 
   @Test
   public void testSameIterNoConflict() throws Throwable {
-    final String[] names = getUniqueNames(13);
+    final String[] names = getUniqueNames(16);
 
     // testing Scanner.addScanIterator
     final String table1 = names[0];
     tops.create(table1);
     tops.attachIterator(table1, iter1);
-    try (var scanner = client.createScanner(table1)) {
-      testSameIterNoConflict(() -> scanner.addScanIterator(iter1),
-          () -> scanner.addScanIterator(defaultTableIter));
+    try (var scanner1 = client.createScanner(table1); var scanner2 = client.createScanner(table1)) {
+      testSameIterNoConflict(() -> {
+        scanner1.addScanIterator(iter1);
+        scanner1.iterator().hasNext();
+      }, () -> {
+        scanner2.addScanIterator(defaultTableIter);
+        scanner2.iterator().hasNext();
+      });
     }
 
     // testing TableOperations.setProperty
@@ -499,6 +599,18 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     tops.attachIterator(table9, iter1);
     testSameIterNoConflict(() -> nops.setProperty(ns4, iter1Key, iter1Val),
         () -> nops.setProperty(ns4, defaultIterKey, defaultIterVal));
+
+    // testing CloneConfiguration.Builder.setPropertiesToSet
+    final String src = names[13];
+    final String dst1 = names[14];
+    final String dst2 = names[15];
+    tops.create(src);
+    tops.attachIterator(src, iter1);
+    testSameIterNoConflict(
+        () -> tops.clone(src, dst1,
+            CloneConfiguration.builder().setPropertiesToSet(Map.of(iter1Key, iter1Val)).build()),
+        () -> tops.clone(src, dst2, CloneConfiguration.builder()
+            .setPropertiesToSet(Map.of(defaultIterKey, defaultIterVal)).build()));
   }
 
   private void testSameIterNoConflict(Executable addIter1Executable,

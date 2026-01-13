@@ -278,8 +278,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     List<Mutation> mutations = new ArrayList<>();
 
     try (Scanner scanner = client.createScanner(source, Authorizations.EMPTY)) {
-      RowIterator rows = new RowIterator(
-          new IsolatedScanner(scanner, ((ClientContext) client).getScanIteratorValidator(source)));
+      RowIterator rows = new RowIterator(new IsolatedScanner(scanner));
 
       while (rows.hasNext()) {
         Iterator<Entry<Key,Value>> row = rows.next();

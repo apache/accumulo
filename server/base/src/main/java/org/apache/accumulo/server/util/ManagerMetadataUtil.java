@@ -132,8 +132,7 @@ public class ManagerMetadataUtil {
     Key prevRowKey = new Key(new Text(TabletsSection.encodeRow(tableId, metadataPrevEndRow)));
 
     try (ScannerImpl scanner2 =
-        new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(), Authorizations.EMPTY,
-            context.getScanIteratorValidator(Ample.DataLevel.of(tableId).metaTable()))) {
+        new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(), Authorizations.EMPTY)) {
       scanner2.setRange(new Range(prevRowKey, prevRowKey.followingKey(PartialKey.ROW)));
 
       if (scanner2.iterator().hasNext()) {
@@ -147,8 +146,7 @@ public class ManagerMetadataUtil {
 
         Key rowKey = new Key(metadataEntry);
         try (Scanner scanner3 = new ScannerImpl(context, Ample.DataLevel.of(tableId).metaTableId(),
-            Authorizations.EMPTY,
-            context.getScanIteratorValidator(Ample.DataLevel.of(tableId).metaTable()))) {
+            Authorizations.EMPTY)) {
 
           scanner3.fetchColumnFamily(DataFileColumnFamily.NAME);
           scanner3.setRange(new Range(rowKey, rowKey.followingKey(PartialKey.ROW)));

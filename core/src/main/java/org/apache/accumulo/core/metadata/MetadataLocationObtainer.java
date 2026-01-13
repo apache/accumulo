@@ -31,7 +31,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -161,10 +160,6 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
   }
 
   private static class SettableScannerOptions extends ScannerOptions {
-    public SettableScannerOptions(Consumer<IteratorSetting> iteratorValidator) {
-      super(iteratorValidator);
-    }
-
     public ScannerOptions setColumns(SortedSet<Column> locCols) {
       this.fetchedColumns = locCols;
       // see comment in lookupTablet about why iterator is used
@@ -191,7 +186,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
     };
 
     ScannerOptions opts = null;
-    try (SettableScannerOptions unsetOpts = new SettableScannerOptions((setting) -> {})) {
+    try (SettableScannerOptions unsetOpts = new SettableScannerOptions()) {
       opts = unsetOpts.setColumns(locCols);
     }
 
