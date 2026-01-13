@@ -440,23 +440,21 @@ public class AccumuloVFSClassLoader {
   }
 
   public static void close() {
-    synchronized (vfsInstances) {
-      for (WeakReference<DefaultFileSystemManager> vfsInstance : vfsInstances) {
-        DefaultFileSystemManager ref = vfsInstance.get();
-        if (ref != null) {
-          FileReplicator replicator;
-          try {
-            replicator = ref.getReplicator();
-            if (replicator instanceof UniqueFileReplicator) {
-              ((UniqueFileReplicator) replicator).close();
-            }
-          } catch (FileSystemException e) {
-            log.error("FileSystemException", e);
+    vfsInstances.forEach(vfsInstance -> {
+      DefaultFileSystemManager ref = vfsInstance.get();
+      if (ref != null) {
+        FileReplicator replicator;
+        try {
+          replicator = ref.getReplicator();
+          if (replicator instanceof UniqueFileReplicator) {
+            ((UniqueFileReplicator) replicator).close();
           }
-          ref.close();
+        } catch (FileSystemException e) {
+          log.error("FileSystemException", e);
         }
+        ref.close();
       }
-    }
+    });
     try {
       FileUtils.deleteDirectory(computeTopCacheDir());
     } catch (IOException e) {

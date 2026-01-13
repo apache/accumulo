@@ -50,15 +50,13 @@ public class Migrations {
       DataLevel... levels) {
     for (var dataLevel : levels) {
       var mmap = migrations.get(dataLevel);
-      synchronized (mmap) {
-        mmap.entrySet().removeIf(entry -> {
-          if (removalTest.test(entry)) {
-            log.trace("Removed migration {} -> {}", entry.getKey(), entry.getValue());
-            return true;
-          }
-          return false;
-        });
-      }
+      mmap.entrySet().removeIf(entry -> {
+        if (removalTest.test(entry)) {
+          log.trace("Removed migration {} -> {}", entry.getKey(), entry.getValue());
+          return true;
+        }
+        return false;
+      });
     }
   }
 

@@ -74,13 +74,11 @@ public class ConfigurationCopy extends AccumuloConfiguration {
 
   @Override
   public void getProperties(Map<String,String> props, Predicate<String> filter) {
-    synchronized (copy) {
-      for (Entry<String,String> entry : copy.entrySet()) {
-        if (filter.test(entry.getKey())) {
-          props.put(entry.getKey(), entry.getValue());
-        }
+    copy.forEach((key, value) -> {
+      if (filter.test(key)) {
+        props.put(key, value);
       }
-    }
+    });
   }
 
   /**

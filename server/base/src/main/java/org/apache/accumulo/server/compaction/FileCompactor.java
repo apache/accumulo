@@ -255,9 +255,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     if (currentTime - lastUpdateTime < Duration.ofMillis(100).toNanos()) {
       return;
     }
-    synchronized (runningCompactions) {
-      runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
-    }
+    runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
     lastUpdateTime = currentTime;
   }
 
@@ -267,11 +265,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
 
-    synchronized (runningCompactions) {
-      for (FileCompactor compactor : runningCompactions) {
-        compactions.add(new CompactionInfo(compactor));
-      }
-    }
+    runningCompactions.forEach(compactor -> compactions.add(new CompactionInfo(compactor)));
 
     return compactions;
   }
