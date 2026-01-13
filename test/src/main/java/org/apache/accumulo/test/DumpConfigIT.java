@@ -27,7 +27,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.Admin;
@@ -51,13 +54,21 @@ public class DumpConfigIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TABLE_FILE_BLOCK_SIZE.getKey(), "1234567"));
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("test", 1);
+    cfg.setSiteConfig(
+        Collections.singletonMap(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD.getKey(), "123s"));
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "user.dir is suitable test input")
   @Test
   public void test() throws Exception {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.resourceGroupOperations().setProperty(ResourceGroupId.of("test"),
+          Property.COMPACTION_WARN_TIME.getKey(), "3m");
+    }
+
     Path folder = tempDir.resolve(testName());
     if (!Files.isDirectory(folder)) {
       Files.createDirectories(folder);
@@ -67,8 +78,8 @@ public class DumpConfigIT extends ConfigurableMacBase {
     assertEquals(0, exec(Admin.class, "dumpConfig", "-a", "-d", folder.toString()).waitFor());
     assertTrue(Files.exists(siteFileBackup));
     String site = FunctionalTestUtils.readAll(Files.newInputStream(siteFileBackup));
-    assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
-    assertTrue(site.contains("1234567"));
+    assertTrue(site.contains(Property.GENERAL_MAX_SCANNER_RETRY_PERIOD.getKey()));
+    assertTrue(site.contains("123s"));
     String meta = FunctionalTestUtils
         .readAll(Files.newInputStream(folder.resolve(SystemTables.METADATA.tableName() + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
@@ -79,5 +90,9 @@ public class DumpConfigIT extends ConfigurableMacBase {
         .contains("grant Table.READ -t " + SystemTables.METADATA.tableName() + " -u root"));
     assertFalse(systemPerm
         .contains("grant Table.DROP -t " + SystemTables.METADATA.tableName() + " -u root"));
+    String rg = FunctionalTestUtils.readAll(Files.newInputStream(folder.resolve("test_rg.cfg")));
+    assertTrue(rg.contains("createresourcegroup test"));
+    assertTrue(rg.contains("config -rg test -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m"));
+
   }
 }

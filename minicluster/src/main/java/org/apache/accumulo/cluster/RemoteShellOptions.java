@@ -92,11 +92,10 @@ public class RemoteShellOptions {
 
     // Let other system properties override those in the file
     for (Entry<Object,Object> entry : System.getProperties().entrySet()) {
-      if (!(entry.getKey() instanceof String)) {
+      if (!(entry.getKey() instanceof String key)) {
         continue;
       }
 
-      String key = (String) entry.getKey();
       if (key.startsWith(SSH_PREFIX)) {
         properties.put(key, entry.getValue());
       }

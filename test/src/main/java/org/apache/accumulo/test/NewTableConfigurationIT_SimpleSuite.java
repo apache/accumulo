@@ -20,6 +20,8 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Collections;
@@ -46,7 +48,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
@@ -286,7 +290,7 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
       AccumuloException, TableExistsException, TableNotFoundException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(2)[0];
-      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaults();
 
       Map<String,Set<Text>> lgroups = new HashMap<>();
       lgroups.put("lg1", Set.of(new Text("colF")));
@@ -423,7 +427,7 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(2)[0];
 
-      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators();
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaults();
       IteratorSetting setting = new IteratorSetting(10, "myIterator", "my.class");
       ntc.attachIterator(setting);
       client.tableOperations().create(tableName, ntc);
@@ -569,7 +573,7 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
       Map<String,Set<Text>> lgroups = new HashMap<>();
       lgroups.put("lgp", Set.of(new Text("col")));
 
-      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaultIterators()
+      NewTableConfiguration ntc = new NewTableConfiguration().withoutDefaults()
           .attachIterator(setting, EnumSet.of(IteratorScope.scan)).setLocalityGroups(lgroups);
 
       client.tableOperations().create(tableName, ntc);
@@ -601,6 +605,79 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
           client.tableOperations().getLocalityGroups(tableName);
       assertEquals(1, createdLocalityGroups.size());
       assertEquals(createdLocalityGroups.get("lgp"), Set.of(new Text("col")));
+    }
+  }
+
+  @Test
+  public void testConflictsWithDefaults() throws Exception {
+    // tests trying to add properties that conflict with the default table properties
+    String[] tableNames = getUniqueNames(3);
+    String table = tableNames[0];
+    String table2 = tableNames[1];
+    String table3 = tableNames[2];
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      /*
+       * conflicts from iterators set via attachIterator()
+       */
+      // add an iterator with same priority as the default iterator
+      var iterator1 = new IteratorSetting(20, "foo", "foo.bar");
+      var exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().attachIterator(iterator1)));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
+      // add an iterator with same name as the default iterator
+      var iterator2 = new IteratorSetting(10, "vers", "foo.bar");
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table, new NewTableConfiguration().attachIterator(iterator2)));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
+      // try to attach the exact default iterators, should not present a conflict as they are
+      // equivalent to what would be added
+      IteratorConfigUtil.getInitialTableIteratorSettings().forEach((setting, scopes) -> {
+        try {
+          client.tableOperations().create(table,
+              new NewTableConfiguration().attachIterator(setting, scopes));
+        } catch (Exception e) {
+          throw new RuntimeException(e);
+        }
+      });
+
+      /*
+       * conflicts from iterators set via properties
+       */
+      // add an iterator with same priority as the default iterator
+      Map<String,String> props = new HashMap<>();
+      for (IteratorScope iterScope : IteratorScope.values()) {
+        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".foo", "20,foo.bar");
+      }
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table2, new NewTableConfiguration().setProperties(props)));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
+      props.clear();
+      // add an iterator with same name as the default iterator
+      for (IteratorScope iterScope : IteratorScope.values()) {
+        props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "10,foo.bar");
+      }
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table2, new NewTableConfiguration().setProperties(props)));
+      assertTrue(exception.getMessage().contains("conflict with default table iterator"));
+      props.clear();
+      // try to attach the exact default iterators, should not present a conflict as they are
+      // equivalent to what would be added
+      client.tableOperations().create(table2,
+          new NewTableConfiguration().setProperties(IteratorConfigUtil.getInitialTableIterators()));
+
+      /*
+       * conflicts with default, non-iterator properties
+       */
+      // setting a value different from default should throw
+      props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", "foo");
+      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+          .create(table3, new NewTableConfiguration().setProperties(props)));
+      assertTrue(exception.getMessage()
+          .contains("conflict for property " + Property.TABLE_CONSTRAINT_PREFIX + "1"));
+      props.clear();
+      // setting a value equal to default should be fine
+      props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", DefaultKeySizeConstraint.class.getName());
+      client.tableOperations().create(table3, new NewTableConfiguration().setProperties(props));
     }
   }
 

@@ -29,6 +29,7 @@ import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -43,7 +44,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -51,6 +55,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
@@ -67,6 +72,7 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
   private static CountDownLatch undoLatch;
+  private static AtomicReference<Throwable> interruptedException = new AtomicReference<>();
 
   private enum ExceptionLocation {
     CALL, IS_READY
@@ -554,15 +560,89 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
     return new Fate<>(new TestEnv(), store, false, r -> r + "",
-        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
+        new ScheduledThreadPoolExecutor(2));
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);
 
+  @Test
+  @Timeout(60)
+  public void testShutdownDoesNotFailTx() throws Exception {
+    executeTest(this::testShutdownDoesNotFailTx);
+  }
+
+  protected void testShutdownDoesNotFailTx(FateStore<TestEnv> store, ServerContext sctx)
+      throws Exception {
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+
+    Fate<TestEnv> fate = initializeFate(store);
+
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
+
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+
+    FateId txid = fate.startTransaction();
+    assertEquals(TStatus.NEW, getTxStatus(sctx, txid));
+
+    fate.seedTransaction(TEST_FATE_OP, txid, new TestRepo("testShutdownDoesNotFailTx"), true,
+        "Test Op");
+
+    // The Fate operation could be in a SUBMITTED state if the
+    // Fate transaction runner thread has not picked it up yet.
+    // If the thread has picked it up, then it will be in an
+    // IN_PROGRESS state, but will be waiting on the finishCall
+    // latch to be called to continue.
+    assertTrue(TStatus.SUBMITTED == getTxStatus(sctx, txid)
+        || TStatus.IN_PROGRESS == getTxStatus(sctx, txid));
+
+    // wait for call() to be called
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+
+    // shutdown fate
+    fate.shutdown(0, SECONDS);
+
+    // tell the op to exit the method
+    Wait.waitFor(() -> interruptedException.get() != null);
+    interruptedException.set(null);
+
+    // restart fate
+    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+    fate = initializeFate(store);
+    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+
+    // Restarting the transaction runners will retry the in-progress
+    // transaction. Reset the CountDownLatch's to confirm.
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+    finishCall.countDown();
+
+    // This should complete normally, cleaning up the tx and deleting it from ZK
+    TStatus status = getTxStatus(sctx, txid);
+    while (status != TStatus.UNKNOWN) {
+      Thread.sleep(100);
+      status = getTxStatus(sctx, txid);
+    }
+    assertNull(interruptedException.get());
+  }
+
   private static void inCall() throws InterruptedException {
     // signal that call started
     callStarted.countDown();
-    // wait for the signal to exit the method
-    finishCall.await();
+    try {
+      // wait for the signal to exit the method
+      finishCall.await();
+    } catch (InterruptedException e) {
+      LOG.debug("InterruptedException occurred inCall.");
+      interruptedException.set(e);
+      throw e;
+    }
   }
 }

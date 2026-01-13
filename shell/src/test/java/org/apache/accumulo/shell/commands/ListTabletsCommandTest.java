@@ -39,7 +39,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
@@ -174,9 +174,9 @@ public class ListTabletsCommandTest {
 
     TabletInformationImpl[] tabletInformation = new TabletInformationImpl[3];
     Supplier<Duration> currentTime = () -> Duration.ofHours(1);
-    tabletInformation[0] = new TabletInformationImpl(tm1, "HOSTED", currentTime);
-    tabletInformation[1] = new TabletInformationImpl(tm2, "HOSTED", currentTime);
-    tabletInformation[2] = new TabletInformationImpl(tm3, "UNASSIGNED", currentTime);
+    tabletInformation[0] = new TabletInformationImpl(tm1, () -> "HOSTED", currentTime);
+    tabletInformation[1] = new TabletInformationImpl(tm2, () -> "HOSTED", currentTime);
+    tabletInformation[2] = new TabletInformationImpl(tm3, () -> "UNASSIGNED", currentTime);
 
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     ClientContext context = EasyMock.createMock(ClientContext.class);
@@ -193,7 +193,7 @@ public class ListTabletsCommandTest {
     EasyMock.expect(shellState.getContext()).andReturn(context).anyTimes();
     EasyMock.expect(client.tableOperations()).andReturn(tableOps).anyTimes();
     EasyMock.expect(context.tableOperations()).andReturn(tableOps).anyTimes();
-    EasyMock.expect(tableOps.getTabletInformation(tableName, new Range()))
+    EasyMock.expect(tableOps.getTabletInformation(tableName, List.of(RowRange.all())))
         .andReturn(Stream.of(tabletInformation));
 
     Map<String,String> idMap = new TreeMap<>();

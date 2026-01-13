@@ -31,6 +31,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -108,8 +109,8 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Map<String,Integer> resourceGroups = new HashMap<>();
-    final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
+    final Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     compactors.forEach(
         c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
             .add(c.getServer()));
@@ -128,8 +129,8 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Map<String,Integer> resourceGroups = new HashMap<>();
-    final Set<ServiceLockPath> scanServers =
-        context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+    final Set<ServiceLockPath> scanServers = context.getServerPaths()
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     scanServers.forEach(
         c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
             .add(c.getServer()));
@@ -158,8 +159,8 @@ public class ServiceStatusCmd {
     final AtomicInteger errors = new AtomicInteger(0);
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Map<String,Integer> resourceGroups = new HashMap<>();
-    final Set<ServiceLockPath> compactors =
-        context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
+    final Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     compactors.forEach(
         c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
             .add(c.getServer()));

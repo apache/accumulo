@@ -23,32 +23,37 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Base64;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.DistributedLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -56,6 +61,9 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.collect.MoreCollectors;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
@@ -78,42 +86,175 @@ public class Utils {
     }
   }
 
-  static final Lock tableNameLock = new ReentrantLock();
+  /**
+   * Finds the single tablet extent that contains the provided row.
+   *
+   * @throws NullPointerException if row is null
+   * @throws java.util.NoSuchElementException if no tablet contains the row
+   */
+  public static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
+    Objects.requireNonNull(row);
+    try (var tablets = ample.readTablets().forTable(tableId).overlapping(row, true, row)
+        .fetch(TabletMetadata.ColumnType.PREV_ROW).build()) {
+      return tablets.stream().collect(MoreCollectors.onlyElement()).getExtent();
+    }
+  }
 
-  public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
-      boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, fateId, lockType).tryLock()) {
+  /**
+   * Widen a range to the greatest table split that is before the range and least table split that
+   * is after the range.
+   */
+  public static KeyExtent widen(Ample ample, KeyExtent extent) {
+    Text prevRowOfStartRowTablet = extent.prevEndRow();
+    Text endRowOfEndRowTablet = extent.endRow();
+
+    if (extent.prevEndRow() != null) {
+      // The startRow is not inclusive, so do not want to find the tablet containing startRow but
+      // instead find the tablet that contains the next possible row after startRow
+      Text nextPossibleRow = new Key(extent.prevEndRow()).followingKey(PartialKey.ROW).getRow();
+      prevRowOfStartRowTablet =
+          findContaining(ample, extent.tableId(), nextPossibleRow).prevEndRow();
+    }
+
+    if (extent.endRow() != null) {
+      // find the tablet containing endRow and use its endRow
+      endRowOfEndRowTablet = findContaining(ample, extent.tableId(), extent.endRow()).endRow();
+    }
+
+    return new KeyExtent(extent.tableId(), endRowOfEndRowTablet, prevRowOfStartRowTablet);
+  }
+
+  public static LockRange widen(Ample ample, TableId tableId, LockRange range, TableOperation op,
+      boolean tableMustExists) throws AcceptableThriftTableOperationException {
+    if (range.isInfinite()) {
+      return range;
+    }
+    try {
+      var wext = widen(ample, new KeyExtent(tableId, range.getEndRow(), range.getStartRow()));
+      return LockRange.of(wext.prevEndRow(), wext.endRow());
+    } catch (NoSuchElementException nse) {
+      if (tableMustExists) {
+        throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
+            TableOperationExceptionType.NOTFOUND, "Table does not exist");
+      } else {
+        log.debug("Attempted to widen range {} but no metadata entries found for table {}", range,
+            tableId);
+        return LockRange.infinite();
+      }
+    }
+
+  }
+
+  public static long reserveTable(ServerContext ctx, TableId tableId, FateId fateId,
+      LockType lockType, boolean tableMustExist, TableOperation op) throws Exception {
+    return reserveTable(ctx, tableId, fateId, lockType, tableMustExist, op, LockRange.infinite());
+  }
+
+  public static long reserveTable(ServerContext ctx, TableId tableId, FateId fateId,
+      LockType lockType, boolean tableMustExist, TableOperation op, final LockRange range)
+      throws Exception {
+    final LockRange widenedRange;
+
+    boolean shouldWiden = lockType == LockType.WRITE || op == TableOperation.COMPACT;
+
+    if (shouldWiden) {
+      /*
+       * Write locks are widened to table split points to avoid non-overlapping ranges operating on
+       * the same tablet. For example assume a table has splits at c,e and two fate operations need
+       * write locks on ranges (a1,c2] and (d1,d9]. The fate ranges do not overlap, however both
+       * will operate on the tablet (c,e]. When the ranges are widened, (a1,c2] turns into (null,e]
+       * and (d1,d9] turns into (c,e]. The widened ranges for the fate operations overlap which
+       * prevents both from operating on the same tablet.
+       *
+       * Widening is done for write locks because those need to work on mutually exclusive sets of
+       * tablets w/ other write or read locks. Read locks do not need to be mutually exclusive w/
+       * each other and it does not matter if they operate on the same tablet so widening is not
+       * needed for that case. Widening write locks is sufficient for detecting overlap w/ any
+       * tablets that read locks need to use. For example if a write locks is obtained on (a1,c2]
+       * and it widens to (null,e] then a read lock on (d1,d9] would overlap with the widened range.
+       *
+       * Mostly widening for write locks is nice because fate operations that get read locks are
+       * probably more frequent. So the work of widening is not done on most fate operations. Also
+       * widening an infinite range is a quick operation, so create/delete table will not be slowed
+       * down by widening.
+       *
+       * Widening is done for compactions because those operations widen their range.
+       */
+      widenedRange = widen(ctx.getAmple(), tableId, range, op, tableMustExist);
+      log.debug("{} widened write lock range from {} to {}", fateId, range, widenedRange);
+    } else {
+      widenedRange = range;
+    }
+
+    var lock = getLock(ctx, tableId, fateId, lockType, widenedRange);
+    if (shouldWiden && !widenedRange.equals(lock.getRange())) {
+      // It is possible the range changed since the lock entry was created. Pre existing locks are
+      // found using the fate id and could have a different range.
+      lock.unlock();
+      // This should be a rare event, log at info in case it happens a lot.
+      log.info(
+          "{} widened range {} differs from existing lock range {}, deleted lock and will retry",
+          fateId, widenedRange, lock.getRange());
+      return 100;
+    } else if (lockType == LockType.READ) {
+      // Not expecting the lock range on a read lock to change.
+      Preconditions.checkState(widenedRange.equals(lock.getRange()));
+    }
+
+    if (lock.tryLock()) {
+      if (shouldWiden) {
+        // Now that table lock is acquired see if the range still widens to the same thing. If not
+        // it means the table splits changed so release the lock and try again later. The table
+        // splits in this range can not change once the lock is acquired, so this recheck is done
+        // after getting the lock.
+        var widenedRange2 = widen(ctx.getAmple(), tableId, range, op, tableMustExist);
+        if (!widenedRange.equals(widenedRange2)) {
+          lock.unlock();
+          log.info(
+              "{} widened range {} changed to {} after acquiring lock, deleted lock and will retry",
+              fateId, widenedRange, widenedRange2);
+          return 100;
+        }
+      }
+
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+        ZooReaderWriter zk = ctx.getZooSession().asReaderWriter();
         if (!zk.exists(Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }
       }
-      log.info("table {} {} locked for {} operation: {}", tableId, fateId, lockType, op);
+
+      if (widenedRange.equals(range)) {
+        log.info("table {} {} locked for {} operation: {} range:{}", tableId, fateId, lockType, op,
+            range);
+      } else {
+        log.info("table {} {} locked for {} operation: {} range:{} widenedRange:{}", tableId,
+            fateId, lockType, op, range, widenedRange);
+      }
       return 0;
     } else {
       return 100;
     }
   }
 
-  public static void unreserveTable(Manager env, TableId tableId, FateId fateId,
+  public static void unreserveTable(ServerContext ctx, TableId tableId, FateId fateId,
       LockType lockType) {
-    getLock(env.getContext(), tableId, fateId, lockType).unlock();
+    getLock(ctx, tableId, fateId, lockType, LockRange.infinite()).unlock();
     log.info("table {} {} unlocked for {}", tableId, fateId, lockType);
   }
 
-  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
+  public static void unreserveNamespace(ServerContext ctx, NamespaceId namespaceId, FateId fateId,
       LockType lockType) {
-    getLock(env.getContext(), namespaceId, fateId, lockType).unlock();
+    getLock(ctx, namespaceId, fateId, lockType, LockRange.infinite()).unlock();
     log.info("namespace {} {} unlocked for {}", namespaceId, fateId, lockType);
   }
 
-  public static long reserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
+  public static long reserveNamespace(ServerContext ctx, NamespaceId namespaceId, FateId fateId,
       LockType lockType, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, fateId, lockType).tryLock()) {
+    if (getLock(ctx, namespaceId, fateId, lockType, LockRange.infinite()).tryLock()) {
       if (mustExist) {
-        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+        ZooReaderWriter zk = ctx.getZooSession().asReaderWriter();
         if (!zk.exists(Constants.ZNAMESPACES + "/" + namespaceId)) {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
@@ -126,29 +267,30 @@ public class Utils {
     }
   }
 
-  public static long reserveHdfsDirectory(Manager env, String directory, FateId fateId)
+  public static long reserveHdfsDirectory(ServerContext ctx, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
 
-    ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+    ZooReaderWriter zk = ctx.getZooSession().asReaderWriter();
 
     if (ZooReservation.attempt(zk, Constants.ZHDFS_RESERVATIONS + "/"
         + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId, "")) {
+      log.trace("{} reserved bulk dir {}", fateId, directory);
       return 0;
     } else {
+      log.trace("{} could not reserve bulk dir {} that is already reserved", fateId, directory);
       return 50;
     }
   }
 
-  public static void unreserveHdfsDirectory(Manager env, String directory, FateId fateId)
+  public static void unreserveHdfsDirectory(ServerContext ctx, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
-    ZooReservation.release(env.getContext().getZooSession().asReaderWriter(),
-        Constants.ZHDFS_RESERVATIONS + "/"
-            + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)),
-        fateId);
+    ZooReservation.release(ctx.getZooSession().asReaderWriter(), Constants.ZHDFS_RESERVATIONS + "/"
+        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId);
+    log.trace("{} unreserved bulk dir {}", fateId, directory);
   }
 
-  private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
-      LockType lockType) {
+  private static DistributedLock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
+      LockType lockType, LockRange range) {
     FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(),
         FateLock.path(Constants.ZTABLE_LOCKS + "/" + id.canonical()));
     DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, fateId);
@@ -161,27 +303,18 @@ public class Utils {
                 + " on object " + id + ". Expected " + lockType + " lock instead.");
       }
     } else {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId);
-      switch (lockType) {
-        case WRITE:
-          lock = locker.writeLock();
-          break;
-        case READ:
-          lock = locker.readLock();
-          break;
-        default:
-          throw new IllegalStateException("Unexpected LockType: " + lockType);
-      }
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId, range);
+      lock = switch (lockType) {
+        case WRITE -> locker.writeLock();
+        case READ -> locker.readLock();
+      };
     }
     return lock;
   }
 
-  public static Lock getTableNameLock() {
-    return tableNameLock;
-  }
-
-  public static Lock getReadLock(Manager env, AbstractId<?> id, FateId fateId) {
-    return Utils.getLock(env.getContext(), id, fateId, LockType.READ);
+  public static DistributedLock getReadLock(ServerContext ctx, AbstractId<?> id, FateId fateId,
+      LockRange range) {
+    return Utils.getLock(ctx, id, fateId, LockType.READ, range);
   }
 
   /**
@@ -191,9 +324,9 @@ public class Utils {
    *
    * @param path the fully-qualified path
    */
-  public static SortedSet<Text> getSortedSetFromFile(Manager manager, Path path, boolean encoded)
+  public static SortedSet<Text> getSortedSetFromFile(ServerContext ctx, Path path, boolean encoded)
       throws IOException {
-    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(ctx.getHadoopConf());
     var data = new TreeSet<Text>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {
@@ -204,16 +337,16 @@ public class Utils {
     return data;
   }
 
-  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(Manager manager,
+  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(ServerContext ctx,
       Path path) throws IOException {
-    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    FileSystem fs = path.getFileSystem(ctx.getHadoopConf());
     var data = new TreeMap<Text,TabletMergeability>();
     try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
       while (file.hasNextLine()) {
         String line = file.nextLine();
         log.trace("split line: {}", line);
-        Pair<Text,TabletMergeability> splitTm = TabletMergeabilityUtil.decode(line);
-        data.put(splitTm.getFirst(), splitTm.getSecond());
+        TableOperationsImpl.SplitMergeability splitTm = TabletMergeabilityUtil.decode(line);
+        data.put(splitTm.split(), splitTm.mergeability());
       }
     }
     return data;

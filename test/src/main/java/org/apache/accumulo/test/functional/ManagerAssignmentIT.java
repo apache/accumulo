@@ -56,10 +56,12 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -75,7 +77,7 @@ import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
+import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -101,7 +103,6 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.GENERAL_THREADPOOL_SIZE, "10");
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "5s");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "10s");
-      cfg.setProperty(DefaultOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
     });
     client = Accumulo.newClient().from(getClientProps()).build();
   }
@@ -116,6 +117,10 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   public void before() throws Exception {
     Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.ROOT.tableId()) > 0);
     Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.METADATA.tableId()) > 0);
+    client.namespaceOperations().setProperty(Namespace.ACCUMULO.name(),
+        LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
+    client.namespaceOperations().setProperty(Namespace.DEFAULT.name(),
+        LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15");
   }
 
   @Test
@@ -176,7 +181,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertEquals(TabletAvailability.ONDEMAND, online.getTabletAvailability());
 
     // set the tablet availability to HOSTED
-    client.tableOperations().setTabletAvailability(tableName, new Range(),
+    client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
         TabletAvailability.HOSTED);
 
     Predicate<TabletMetadata> hostedOrCurrentNotNull =
@@ -192,7 +197,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertEquals(TabletAvailability.HOSTED, always.getTabletAvailability());
 
     // set the hosting availability to never
-    client.tableOperations().setTabletAvailability(tableName, new Range(),
+    client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
         TabletAvailability.UNHOSTED);
     Predicate<TabletMetadata> unhostedOrCurrentNull =
         t -> (t.getTabletAvailability() == TabletAvailability.UNHOSTED && !t.hasCurrent());
@@ -206,7 +211,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     assertEquals(TabletAvailability.UNHOSTED, unhosted.getTabletAvailability());
 
     // set the tablet availability to ONDEMAND
-    client.tableOperations().setTabletAvailability(tableName, new Range(),
+    client.tableOperations().setTabletAvailability(tableName, RowRange.all(),
         TabletAvailability.ONDEMAND);
     Predicate<TabletMetadata> ondemandHosted =
         t -> t.getTabletAvailability() == TabletAvailability.ONDEMAND;

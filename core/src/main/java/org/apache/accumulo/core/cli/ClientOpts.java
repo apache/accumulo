@@ -170,9 +170,6 @@ public class ClientOpts extends Help {
       + "accumulo-client.properties. Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
 
-  @Parameter(names = "--trace", description = "turn on distributed tracing")
-  public boolean trace = false;
-
   public Map<String,String> getOverrides() {
     return ConfigOpts.getOverrides(overrides);
   }

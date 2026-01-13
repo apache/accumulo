@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import org.apache.accumulo.core.data.Range;
+import java.util.List;
+
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -30,7 +32,7 @@ public class GetAvailabilityCommand extends TableOperation {
   private Option optRow;
   private Option optStartRowExclusive;
   private Option optEndRowExclusive;
-  private Range range;
+  private RowRange range;
 
   @Override
   public String getName() {
@@ -46,8 +48,8 @@ public class GetAvailabilityCommand extends TableOperation {
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
     shellState.getWriter().println("TABLE: " + tableName);
     shellState.getWriter().println("TABLET ID    AVAILABILITY");
-    try (var tabletInformation =
-        shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)) {
+    try (var tabletInformation = shellState.getAccumuloClient().tableOperations()
+        .getTabletInformation(tableName, List.of(range))) {
       tabletInformation.forEach(p -> shellState.getWriter()
           .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
     }
@@ -65,13 +67,14 @@ public class GetAvailabilityCommand extends TableOperation {
     }
 
     if (cl.hasOption(optRow.getOpt())) {
-      this.range = new Range(new Text(cl.getOptionValue(optRow.getOpt()).getBytes(Shell.CHARSET)));
+      this.range =
+          RowRange.closed(new Text(cl.getOptionValue(optRow.getOpt()).getBytes(Shell.CHARSET)));
     } else {
       Text startRow = OptUtil.getStartRow(cl);
       Text endRow = OptUtil.getEndRow(cl);
       final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
-      this.range = new Range(startRow, startInclusive, endRow, endInclusive);
+      this.range = RowRange.range(startRow, startInclusive, endRow, endInclusive);
     }
     return super.execute(fullCommand, cl, shellState);
   }

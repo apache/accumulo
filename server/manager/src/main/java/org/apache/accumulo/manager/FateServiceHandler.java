@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
+import org.apache.accumulo.core.clientImpl.TableOperationsImpl.SplitMergeability;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -81,7 +82,6 @@ import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Validator;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -89,7 +89,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.availability.LockTable;
-import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport;
+import org.apache.accumulo.manager.tableOps.bulkVer2.ComputeBulkRange;
 import org.apache.accumulo.manager.tableOps.clone.CloneTable;
 import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
@@ -635,7 +635,8 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_BULK_IMPORT2: {
         TableOperation tableOp = TableOperation.BULK_IMPORT;
         validateArgumentCount(arguments, tableOp, 3);
-        final var tableId = validateTableIdArgument(arguments.get(0), tableOp, NOT_ROOT_TABLE_ID);
+        final var tableId =
+            validateTableIdArgument(arguments.get(0), tableOp, NOT_BUILTIN_TABLE_ID);
         String dir = ByteBufferUtil.toString(arguments.get(1));
 
         boolean setTime = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
@@ -664,7 +665,7 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Bulk import (v2)  " + dir + " to " + tableName + "(" + tableId + ")";
         manager.fate(type).seedTransaction(op, fateId,
-            new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
+            new TraceRepo<>(new ComputeBulkRange(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
       }
       case TABLE_TABLET_AVAILABILITY: {
@@ -746,8 +747,9 @@ class FateServiceHandler implements FateService.Iface {
 
         SortedMap<Text,
             TabletMergeability> splits = arguments.subList(SPLIT_OFFSET, arguments.size()).stream()
-                .map(TabletMergeabilityUtil::decode).collect(
-                    Collectors.toMap(Pair::getFirst, Pair::getSecond, (a, b) -> a, TreeMap::new));
+                .map(TabletMergeabilityUtil::decode)
+                .collect(Collectors.toMap(SplitMergeability::split, SplitMergeability::mergeability,
+                    (a, b) -> a, TreeMap::new));
 
         KeyExtent extent = new KeyExtent(tableId, endRow, prevEndRow);
 

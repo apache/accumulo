@@ -72,6 +72,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -149,16 +150,16 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tables = getUniqueNames(10);
-      final String t1 = tables[0];
-      final String t2 = tables[1];
-      final String t3 = tables[2];
-      final String t4 = tables[3];
-      final String metaCopy1 = tables[4];
-      final String metaCopy2 = tables[5];
-      final String metaCopy3 = tables[6];
-      final String metaCopy4 = tables[7];
-      final String metaCopy5 = tables[8];
-      final String metaCopy6 = tables[9];
+      final String t1 = tables[0] + "_" + compressionType;
+      final String t2 = tables[1] + "_" + compressionType;
+      final String t3 = tables[2] + "_" + compressionType;
+      final String t4 = tables[3] + "_" + compressionType;
+      final String metaCopy1 = tables[4] + "_" + compressionType;
+      final String metaCopy2 = tables[5] + "_" + compressionType;
+      final String metaCopy3 = tables[6] + "_" + compressionType;
+      final String metaCopy4 = tables[7] + "_" + compressionType;
+      final String metaCopy5 = tables[8] + "_" + compressionType;
+      final String metaCopy6 = tables[9] + "_" + compressionType;
 
       // create some metadata
       createTable(client, t1, true);
@@ -690,8 +691,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
-    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(rg -> true,
-        AddressSelector.all(), true)) {
+    for (ServiceLockPath tserver : context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)) {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
         tservers.add(new TServerInstance(tserver.getServer(), sessionId));

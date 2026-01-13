@@ -23,13 +23,13 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.util.PropUtil;
 
-class PopulateZookeeperWithNamespace extends ManagerRepo {
+class PopulateZookeeperWithNamespace extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -40,37 +40,32 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceInfo.namespaceId, fateId, LockType.WRITE,
-        false, TableOperation.CREATE);
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    return Utils.reserveNamespace(environment.getContext(), namespaceInfo.namespaceId, fateId,
+        LockType.WRITE, false, TableOperation.CREATE);
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
-    Utils.getTableNameLock().lock();
-    try {
-      var context = manager.getContext();
-      context.getNamespaceMapping().put(namespaceInfo.namespaceId, namespaceInfo.namespaceName);
-      context.getTableManager().prepareNewNamespaceState(namespaceInfo.namespaceId,
-          namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
+    var context = env.getContext();
+    context.getNamespaceMapping().put(namespaceInfo.namespaceId, namespaceInfo.namespaceName);
+    context.getTableManager().prepareNewNamespaceState(namespaceInfo.namespaceId,
+        namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      PropUtil.setProperties(context, NamespacePropKey.of(namespaceInfo.namespaceId),
-          namespaceInfo.props);
+    PropUtil.setProperties(context, NamespacePropKey.of(namespaceInfo.namespaceId),
+        namespaceInfo.props);
 
-      context.clearTableListCache();
+    context.clearTableListCache();
 
-      return new FinishCreateNamespace(namespaceInfo);
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    return new FinishCreateNamespace(namespaceInfo);
   }
 
   @Override
-  public void undo(FateId fateId, Manager manager) throws Exception {
-    manager.getTableManager().removeNamespace(namespaceInfo.namespaceId);
-    manager.getContext().clearTableListCache();
-    Utils.unreserveNamespace(manager, namespaceInfo.namespaceId, fateId, LockType.WRITE);
+  public void undo(FateId fateId, FateEnv env) throws Exception {
+    env.getTableManager().removeNamespace(namespaceInfo.namespaceId);
+    env.getContext().clearTableListCache();
+    Utils.unreserveNamespace(env.getContext(), namespaceInfo.namespaceId, fateId, LockType.WRITE);
   }
 
 }

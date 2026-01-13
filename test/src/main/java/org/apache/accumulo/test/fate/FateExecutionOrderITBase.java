@@ -47,6 +47,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -194,7 +195,8 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {
     return new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
-        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
+        new ScheduledThreadPoolExecutor(2));
   }
 
   private static Entry<FateId,String> toIdStep(Entry<Key,Value> e) {

@@ -36,12 +36,16 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.WritableUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This is the Key used to store and access individual values in Accumulo. A Key is a tuple composed
  * of a row, column family, column qualifier, column visibility, timestamp, and delete marker.
  * <p>
  * Keys are comparable and therefore have a sorted order defined by {@link #compareTo(Key)}.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Key implements WritableComparable<Key>, Cloneable {
 
   protected byte[] row;
@@ -54,7 +58,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Create a {@link Key} builder.
    *
-   * @since 2.0
+   * @since 2.0.0
    * @param copyBytes if the bytes of the {@link Key} components should be copied
    * @return the builder at the {@link KeyBuilder.RowStep}
    */
@@ -66,7 +70,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Create a {@link Key} builder. Using the builder makes it easy to mix types, like {@code String}
    * and {@code byte[]}, for different fields. Copy bytes defaults to true.
    *
-   * @since 2.0
+   * @since 2.0.0
    * @return the builder at the {@link KeyBuilder.RowStep}
    * @see #builder(boolean)
    */
@@ -1041,30 +1045,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @return true if specified parts of keys match, false otherwise
    */
   public boolean equals(Key other, PartialKey part) {
-    switch (part) {
-      case ROW:
-        return isEqual(row, other.row);
-      case ROW_COLFAM:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
-      case ROW_COLFAM_COLQUAL:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier);
-      case ROW_COLFAM_COLQUAL_COLVIS:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility);
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
-            && deleted == other.deleted;
-      default:
-        throw new IllegalArgumentException("Unrecognized partial key specification " + part);
-    }
+    return switch (part) {
+      case ROW -> isEqual(row, other.row);
+      case ROW_COLFAM -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
+      case ROW_COLFAM_COLQUAL -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
+          && isEqual(colQualifier, other.colQualifier);
+      case ROW_COLFAM_COLQUAL_COLVIS -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility);
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
+          && deleted == other.deleted;
+    };
   }
 
   /**
@@ -1188,7 +1184,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     }
 
     if (len > maxLen) {
-      sb.append("... TRUNCATED");
+      sb.append("... TRUNCATED (length: ").append(len).append(")");
     }
 
     return sb;

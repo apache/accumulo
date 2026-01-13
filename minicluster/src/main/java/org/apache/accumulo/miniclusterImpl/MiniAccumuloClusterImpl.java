@@ -21,7 +21,6 @@ package org.apache.accumulo.miniclusterImpl;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 
 import java.io.BufferedWriter;
@@ -34,6 +33,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -86,6 +86,7 @@ import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -95,6 +96,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -243,7 +245,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       siteConfig.put(Property.INSTANCE_VOLUMES.getKey(), dfsUri + "/accumulo");
       config.setSiteConfig(siteConfig);
     } else if (config.useExistingInstance()) {
-      dfsUri = config.getHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
+      dfsUri = loadExistingHadoopConfiguration().get(CommonConfigurationKeys.FS_DEFAULT_NAME_KEY);
     } else {
       dfsUri = "file:///";
     }
@@ -377,21 +379,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
     var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
-    var jvmArgs = extraJvmOpts.stream();
-    var propsArgs = config.getSystemProperties().entrySet().stream()
+    var jvmOptions = Stream.concat(config.getJvmOptions().stream(), extraJvmOpts.stream());
+    var systemProps = config.getSystemProperties().entrySet().stream()
         .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
 
-    // @formatter:off
-    var hardcodedArgs = Stream.of(
-        "-Dapple.awt.UIElement=true",
-        "-Djava.net.preferIPv4Stack=true",
-        "-XX:+PerfDisableSharedMem",
-        "-XX:+AlwaysPreTouch",
-        Main.class.getName(), clazz.getName());
-    // @formatter:on
+    var classArgs = Stream.of(Main.class.getName(), clazz.getName());
 
     // concatenate all the args sources into a single list of args
-    var argList = Stream.of(basicArgs, jvmArgs, propsArgs, hardcodedArgs, Stream.of(args))
+    var argList = Stream.of(basicArgs, jvmOptions, systemProps, classArgs, Stream.of(args))
         .flatMap(Function.identity()).collect(toList());
     ProcessBuilder builder = new ProcessBuilder(argList);
 
@@ -505,6 +500,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
     }
     fileWriter.close();
+  }
+
+  private Configuration loadExistingHadoopConfiguration() {
+    if (config.getHadoopConfDir() == null) {
+      throw new IllegalStateException(
+          "Hadoop configuration directory is required for existing instances");
+    }
+    return config.buildHadoopConfiguration();
   }
 
   /**
@@ -802,9 +805,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   // wait up to 10 seconds for the process to start
   private static void waitForProcessStart(Process p, String name) throws InterruptedException {
-    long start = System.nanoTime();
+    CountDownTimer maxWaitTimer = CountDownTimer.startNew(Duration.ofSeconds(10));
     while (p.info().startInstant().isEmpty()) {
-      if (NANOSECONDS.toSeconds(System.nanoTime() - start) > 10) {
+      if (maxWaitTimer.isExpired()) {
         throw new IllegalStateException(
             "Error starting " + name + " - instance not started within 10 seconds");
       }
@@ -850,8 +853,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int tsActualCount = 0;
     while (tsActualCount < tsExpectedCount) {
-      Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
+      Set<ServiceLockPath> tservers = context.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       tsActualCount = tservers.size();
       log.info(tsActualCount + " of " + tsExpectedCount + " tablet servers present in ZooKeeper");
       Thread.sleep(500);
@@ -859,8 +862,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int ssActualCount = 0;
     while (ssActualCount < ssExpectedCount) {
-      Set<ServiceLockPath> tservers =
-          context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+      Set<ServiceLockPath> tservers = context.getServerPaths()
+          .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ssActualCount = tservers.size();
       log.info(ssActualCount + " of " + ssExpectedCount + " scan servers present in ZooKeeper");
       Thread.sleep(500);
@@ -868,8 +871,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int ecActualCount = 0;
     while (ecActualCount < ecExpectedCount) {
-      Set<ServiceLockPath> compactors =
-          context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
+      Set<ServiceLockPath> compactors = context.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
       ecActualCount = compactors.size();
       log.info(ecActualCount + " of " + ecExpectedCount + " compactors present in ZooKeeper");
       Thread.sleep(500);

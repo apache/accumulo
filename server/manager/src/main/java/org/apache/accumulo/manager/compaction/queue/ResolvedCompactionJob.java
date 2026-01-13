@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -60,6 +61,13 @@ public class ResolvedCompactionJob implements CompactionJob {
   private final String tabletDir;
   private final boolean overlapsSelectedFiles;
 
+  private static long weigh(RowRange rowRange) {
+    if (rowRange != null) {
+      return weigh(rowRange.asRange());
+    }
+    return 0;
+  }
+
   private static long weigh(Range range) {
     long estDataSize = 0;
     if (range != null) {
@@ -72,8 +80,7 @@ public class ResolvedCompactionJob implements CompactionJob {
   }
 
   public static final SizeTrackingTreeMap.Weigher<CompactionJob> WEIGHER = job -> {
-    if (job instanceof ResolvedCompactionJob) {
-      var rcj = (ResolvedCompactionJob) job;
+    if (job instanceof ResolvedCompactionJob rcj) {
       long estDataSize = 0;
       if (rcj.selectedFateId != null) {
         estDataSize += rcj.selectedFateId.canonical().length();

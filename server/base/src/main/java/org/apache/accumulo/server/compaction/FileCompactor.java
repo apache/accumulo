@@ -361,9 +361,10 @@ public class FileCompactor implements Callable<CompactionStats> {
               && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
                   || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
-      WriterBuilder outBuilder =
-          fileFactory.newWriterBuilder().forFile(outputFile, ns, ns.getConf(), cryptoService)
-              .withTableConfiguration(acuTableConf);
+      WriterBuilder outBuilder = fileFactory.newWriterBuilder().forTable(this.extent.tableId())
+          .forFile(outputFile, ns, ns.getConf(), cryptoService)
+          .withTableConfiguration(acuTableConf);
+
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }

@@ -523,8 +523,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      client.tableOperations().create(tableName,
-          new NewTableConfiguration().withoutDefaultIterators());
+      client.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaults());
 
       try (BatchWriter bw = client.createBatchWriter(tableName)) {
 
@@ -1245,14 +1244,11 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration();
 
-      switch (RANDOM.get().nextInt(3)) {
-        case 1:
-          ntc = ntc.withSplits(nss("4"));
-          break;
-        case 2:
-          ntc = ntc.withSplits(nss("3", "5"));
-          break;
-      }
+      ntc = switch (RANDOM.get().nextInt(3)) {
+        case 1 -> ntc.withSplits(nss("4"));
+        case 2 -> ntc.withSplits(nss("3", "5"));
+        default -> ntc;
+      };
 
       client.tableOperations().create(tableName, ntc);
 

@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>34</version>
+    <version>35</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -110,11 +110,33 @@
     <url>https://github.com/apache/accumulo/actions</url>
   </ciManagement>
   <properties>
+    <!-- properties used by the accumulo build in our own POM files -->
+    <accumulo.build.extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.stream=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</accumulo.build.extraTestArgs>
+    <accumulo.build.javadoc.since>4.0.0</accumulo.build.javadoc.since>
+    <accumulo.build.license.header><![CDATA[
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+]]></accumulo.build.license.header>
     <!-- used for filtering the java source with the current version -->
-    <accumulo.release.version>${project.version}</accumulo.release.version>
+    <accumulo.build.release.version>${project.version}</accumulo.build.release.version>
+    <accumulo.build.unitTestMemSize>-Xmx1G</accumulo.build.unitTestMemSize>
+    <accumulo.it.uniq.test.dir>false</accumulo.it.uniq.test.dir>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
-    <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.stream=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</extraTestArgs>
     <failsafe.excludedGroups />
     <failsafe.failIfNoSpecifiedTests>false</failsafe.failIfNoSpecifiedTests>
     <failsafe.forkCount>1</failsafe.forkCount>
@@ -122,9 +144,7 @@
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
-    <maven.compiler.release>11</maven.compiler.release>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
     <maven.site.deploy.skip>true</maven.site.deploy.skip>
     <maven.site.skip>true</maven.site.skip>
@@ -135,7 +155,7 @@
     <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
     <minimalMavenBuildVersion>3.9</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2024-07-29T06:03:16Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-08-13T01:30:03Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -143,21 +163,19 @@
     <surefire.forkCount>1C</surefire.forkCount>
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
-    <unitTestMemSize>-Xmx1G</unitTestMemSize>
     <!-- dependency and plugin versions managed with properties -->
     <version.accumulo-access>1.0.0-SNAPSHOT</version.accumulo-access>
     <version.auto-service>1.1.1</version.auto-service>
     <version.bouncycastle>1.80</version.bouncycastle>
     <version.curator>5.8.0</version.curator>
-    <version.errorprone>2.35.0</version.errorprone>
+    <version.errorprone>2.41.0</version.errorprone>
     <version.flatbuffers>24.3.25</version.flatbuffers>
-    <version.hadoop>3.4.0</version.hadoop>
-    <version.log4j>2.24.3</version.log4j>
+    <version.hadoop>3.4.2</version.hadoop>
+    <version.log4j>2.25.1</version.log4j>
     <version.opentelemetry>1.48.0</version.opentelemetry>
-    <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.17</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
-    <version.zookeeper>3.9.3</version.zookeeper>
+    <version.zookeeper>3.9.4</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -193,7 +211,7 @@
       <dependency>
         <groupId>jakarta.platform</groupId>
         <artifactId>jakarta.jakartaee-bom</artifactId>
-        <version>9.1.0</version>
+        <version>10.0.0</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -207,7 +225,14 @@
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.23</version>
+        <version>12.1.1</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.eclipse.jetty.ee10</groupId>
+        <artifactId>jetty-ee10-bom</artifactId>
+        <version>12.1.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -228,8 +253,7 @@
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
-        <!-- 3.1.0 would require jakarta.ws.rs-api 3.1.0, jakartaee 9 uses 3.0.0 -->
-        <version>3.0.9</version>
+        <version>3.1.11</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -298,10 +322,14 @@
         <version>33.4.6-jre</version>
       </dependency>
       <dependency>
+        <groupId>com.google.protobuf</groupId>
+        <artifactId>protobuf-java</artifactId>
+        <version>4.33.1</version>
+      </dependency>
+      <dependency>
         <groupId>com.lmax</groupId>
         <artifactId>disruptor</artifactId>
-        <!-- log4j doesn't support 4 yet; see https://github.com/apache/logging-log4j2/issues/1829 -->
-        <version>3.4.4</version>
+        <version>4.0.0</version>
       </dependency>
       <dependency>
         <groupId>commons-cli</groupId>
@@ -329,8 +357,19 @@
         <version>1.10.0</version>
       </dependency>
       <dependency>
+        <groupId>io.opentelemetry.javaagent</groupId>
+        <artifactId>opentelemetry-javaagent</artifactId>
+        <!-- This version was selected because it aligns with the version of open telemetry that Accumulo is using. -->
+        <version>2.14.0</version>
+      </dependency>
+      <dependency>
+        <groupId>io.opentelemetry.proto</groupId>
+        <artifactId>opentelemetry-proto</artifactId>
+        <version>1.9.0-alpha</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.accumulo</groupId>
-        <artifactId>accumulo-access</artifactId>
+        <artifactId>accumulo-access-core</artifactId>
         <version>${version.accumulo-access}</version>
       </dependency>
       <dependency>
@@ -657,7 +696,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.18.0</version>
+          <version>2.19.0</version>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
@@ -666,8 +705,15 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${rootlocation}/src/build/license-header.txt</header>
+                <inlineHeader>${accumulo.build.license.header}</inlineHeader>
+                <includes>
+                  <!-- override some of the default exclusions -->
+                  <include>**/*.md</include>
+                  <include>**/.github</include>
+                  <include>**/.github/**</include>
+                </includes>
                 <excludes combine.children="append">
+                  <exclude>**/.github/ISSUE_TEMPLATE/**</exclude>
                   <exclude>**/DEPENDENCIES</exclude>
                   <exclude>**/LICENSE</exclude>
                   <exclude>**/NOTICE</exclude>
@@ -684,6 +730,7 @@
               <css>SLASHSTAR_STYLE</css>
               <h>SLASHSTAR_STYLE</h>
               <java>SLASHSTAR_STYLE</java>
+              <md>XML_STYLE</md>
               <thrift>SLASHSTAR_STYLE</thrift>
               <fbs>SLASHSTAR_STYLE</fbs>
             </mapping>
@@ -692,7 +739,7 @@
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>3.2.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -700,7 +747,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.9.3.0</version>
+          <version>4.9.5.0</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -708,7 +755,6 @@
             <includeTests>true</includeTests>
             <maxHeap>1024</maxHeap>
             <maxRank>16</maxRank>
-            <omitVisitors>ConstructorThrow,SharedVariableAtomicityDetector</omitVisitors>
             <jvmArgs>-Dcom.overstock.findbugs.ignore=com.google.common.util.concurrent.RateLimiter,com.google.common.hash.Hasher,com.google.common.hash.HashCode,com.google.common.hash.HashFunction,com.google.common.hash.Hashing,com.google.common.cache.Cache,com.google.common.io.CountingOutputStream,com.google.common.io.ByteStreams,com.google.common.cache.LoadingCache,com.google.common.base.Stopwatch,com.google.common.cache.RemovalNotification,com.google.common.util.concurrent.Uninterruptibles,com.google.common.reflect.ClassPath,com.google.common.reflect.ClassPath$ClassInfo,com.google.common.base.Throwables,com.google.common.collect.Iterators</jvmArgs>
             <plugins combine.children="append">
               <plugin>
@@ -739,7 +785,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>1.1.0</version>
+          <version>1.1.1</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -764,11 +810,6 @@
                 <artifactId>auto-service</artifactId>
                 <version>${version.auto-service}</version>
               </path>
-              <path>
-                <groupId>org.apache.logging.log4j</groupId>
-                <artifactId>log4j-core</artifactId>
-                <version>${version.log4j}</version>
-              </path>
             </annotationProcessorPaths>
           </configuration>
         </plugin>
@@ -778,7 +819,7 @@
           <configuration>
             <archive>
               <manifestEntries>
-                <Automatic-Module-Name>${accumulo.module.name}</Automatic-Module-Name>
+                <Automatic-Module-Name>${accumulo.build.module.name}</Automatic-Module-Name>
                 <Implementation-Build>${mvngit.commit.id}</Implementation-Build>
                 <Sealed>true</Sealed>
               </manifestEntries>
@@ -794,6 +835,10 @@
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
+            <additionalOptions>
+              <additionalOption>--since "${accumulo.build.javadoc.since}"</additionalOption>
+              <additionalOption>--since-label "New API since ${accumulo.build.javadoc.since.first}"</additionalOption>
+            </additionalOptions>
             <doclint>all,-missing</doclint>
             <legacyMode>true</legacyMode>
           </configuration>
@@ -803,7 +848,6 @@
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
             <arguments>-P !autoformat,verifyformat,thrift -DskipTests</arguments>
-            <autoVersionSubmodules>true</autoVersionSubmodules>
             <goals>clean deploy</goals>
             <preparationGoals>clean package</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
@@ -824,7 +868,7 @@
             <systemPropertyVariables combine.children="append">
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>${unitTestMemSize} ${extraTestArgs}</argLine>
+            <argLine>${accumulo.build.unitTestMemSize} ${accumulo.build.extraTestArgs}</argLine>
           </configuration>
         </plugin>
         <plugin>
@@ -836,21 +880,22 @@
             <excludedGroups>${failsafe.excludedGroups}</excludedGroups>
             <groups>${failsafe.groups}</groups>
             <systemPropertyVariables combine.children="append">
+              <accumulo.it.uniq.test.dir>${accumulo.it.uniq.test.dir}</accumulo.it.uniq.test.dir>
               <java.io.tmpdir>${project.build.directory}</java.io.tmpdir>
             </systemPropertyVariables>
-            <argLine>${extraTestArgs}</argLine>
+            <argLine>${accumulo.build.extraTestArgs}</argLine>
             <trimStackTrace>false</trimStackTrace>
           </configuration>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.6.0</version>
+          <version>3.6.1</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.5.1</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -860,7 +905,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.26.0</version>
+          <version>2.29.0</version>
           <configuration>
             <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
@@ -931,8 +976,6 @@
                 <undeclared>org.apache.hadoop:hadoop-mapreduce-client-core:jar:*</undeclared>
                 <undeclared>org.apache.hadoop:hadoop-auth:jar:*</undeclared>
                 <undeclared>org.apache.httpcomponents:httpcore:jar:*</undeclared>
-                <undeclared>org.powermock:powermock-core:jar:*</undeclared>
-                <undeclared>org.powermock:powermock-reflect:jar:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
               <ignoredUnusedDeclaredDependencies>
                 <!-- auto-service isn't used in every module -->
@@ -945,7 +988,6 @@
                 <unused>org.glassfish.jersey.ext:jersey-bean-validation:jar:*</unused>
                 <unused>org.glassfish.jersey.inject:jersey-hk2:jar:*</unused>
                 <unused>org.glassfish.jersey.test-framework.providers:jersey-test-framework-provider-grizzly2:jar:*</unused>
-                <unused>org.powermock:powermock-api-easymock:jar:*</unused>
                 <!-- spotbugs annotations may or may not be used in each module -->
                 <unused>com.github.spotbugs:spotbugs-annotations:jar:*</unused>
                 <!-- ignore unused native; analysis isn't possible with tar.gz dependency -->
@@ -954,11 +996,11 @@
                 <unused>org.apache.logging.log4j:log4j-1.2-api:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-slf4j2-impl:jar:*</unused>
                 <unused>org.apache.logging.log4j:log4j-web:jar:*</unused>
-                <!-- ignore log4j dep used for annotations and needed for compile time linting -->
-                <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
                 <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
-                <unused>org.lz4:lz4-java:jar:*</unused>
+                <unused>at.yawk.lz4:lz4-java:jar:*</unused>
+                <!-- This is only used at runtime only by test, not at compile time  -->
+                <unused>io.opentelemetry.javaagent:opentelemetry-javaagent:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -981,10 +1023,23 @@
               <goal>regex-property</goal>
             </goals>
             <configuration>
-              <name>accumulo.module.name</name>
+              <name>accumulo.build.module.name</name>
               <regex>-</regex>
               <replacement>.</replacement>
               <value>org-apache-${project.artifactId}</value>
+            </configuration>
+          </execution>
+          <execution>
+            <id>find-first-javadoc-since-version</id>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>accumulo.build.javadoc.since.first</name>
+              <regex>,.*</regex>
+              <replacement />
+              <value>${accumulo.build.javadoc.since}</value>
+              <failIfNoMatch>false</failIfNoMatch>
             </configuration>
           </execution>
         </executions>
@@ -1009,7 +1064,7 @@
                     <!-- ignore our own SNAPSHOT versions during development -->
                     <ignore>org.apache.accumulo:*:${project.version}</ignore>
                     <!-- ignore apache-access, because we haven't had another beta release yet -->
-                    <ignore>org.apache.accumulo:accumulo-access:1.0.0-SNAPSHOT</ignore>
+                    <ignore>org.apache.accumulo:accumulo-access-core:1.0.0-SNAPSHOT</ignore>
                   </ignores>
                 </banDynamicVersions>
                 <bannedDependencies>
@@ -1145,7 +1200,7 @@
           <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>10.12.6</version>
+            <version>11.0.1</version>
           </dependency>
         </dependencies>
         <executions>
@@ -1242,7 +1297,6 @@
         </property>
       </activation>
       <properties>
-        <accumulo.skip>true</accumulo.skip>
         <apilyzer.skip>true</apilyzer.skip>
         <checkstyle.skip>true</checkstyle.skip>
         <formatter.skip>true</formatter.skip>
@@ -1510,6 +1564,13 @@
       <id>sunny</id>
       <properties>
         <failsafe.groups>SunnyDay</failsafe.groups>
+        <!--
+          exclude junit-platform-suite engine from this list of engines to run,
+          so it skips the SimpleSuite tests, which contain no sunny tests, to
+          prevent the suite engine from running the BeforeSuite and AfterSuite
+          minicluster setup and teardown unnecessarily for zero tests
+        -->
+        <failsafe.includeJUnit5Engines>junit-jupiter</failsafe.includeJUnit5Engines>
       </properties>
     </profile>
     <profile>
@@ -1657,6 +1718,11 @@
       compile time. Auto-generated code is not checked.
       See: https://errorprone.info/bugpatterns for list of available bug patterns.-->
       <id>errorprone</id>
+      <activation>
+        <property>
+          <name>errorprone</name>
+        </property>
+      </activation>
       <properties>
         <!-- forking is required for -J options to take effect -->
         <maven.compiler.fork>true</maven.compiler.fork>
@@ -1669,6 +1735,7 @@
             <configuration>
               <compilerArgs>
                 <arg>-XDcompilePolicy=simple</arg>
+                <arg>--should-stop=ifError=FLOW</arg>
                 <arg>
                   -Xplugin:ErrorProne \
                   -XepExcludedPaths:.*/(flatbuffers|thrift|generated-sources|src/test)/.* \
@@ -1710,6 +1777,17 @@
           </plugin>
         </plugins>
       </build>
+    </profile>
+    <profile>
+      <id>uniq-test-dirs</id>
+      <activation>
+        <property>
+          <name>uniq-test-dirs</name>
+        </property>
+      </activation>
+      <properties>
+        <accumulo.it.uniq.test.dir>true</accumulo.it.uniq.test.dir>
+      </properties>
     </profile>
   </profiles>
 </project>

@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -30,17 +30,19 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CleanUp extends ManagerRepo {
+public class CleanUp extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(CleanUp.class);
 
@@ -59,9 +61,9 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
 
-    var ample = manager.getContext().getAmple();
+    var ample = env.getContext().getAmple();
 
     AtomicLong rejectedCount = new AtomicLong(0);
     Consumer<Ample.ConditionalResult> resultConsumer = result -> {
@@ -71,8 +73,7 @@ public class CleanUp extends ManagerRepo {
       }
     };
 
-    long t1;
-    long t2;
+    long scanTime;
     long submitted = 0;
     long total = 0;
 
@@ -81,7 +82,7 @@ public class CleanUp extends ManagerRepo {
             .fetch(PREV_ROW, COMPACTED, USER_COMPACTION_REQUESTED).checkConsistency().build();
         var tabletsMutator = ample.conditionallyMutateTablets(resultConsumer)) {
 
-      t1 = System.nanoTime();
+      Timer timer = Timer.startNew();
       for (TabletMetadata tablet : tablets) {
         total++;
         if (tablet.getCompacted().contains(fateId)
@@ -100,10 +101,8 @@ public class CleanUp extends ManagerRepo {
         }
       }
 
-      t2 = System.nanoTime();
+      scanTime = timer.elapsed(TimeUnit.MILLISECONDS);
     }
-
-    long scanTime = Duration.ofNanos(t2 - t1).toMillis();
 
     log.debug("{} removed {} of {} compacted markers for {} tablets in {}ms", fateId,
         submitted - rejectedCount.get(), submitted, total, scanTime);
@@ -118,10 +117,10 @@ public class CleanUp extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    CompactionConfigStorage.deleteConfig(manager.getContext(), fateId);
-    Utils.getReadLock(manager, tableId, fateId).unlock();
-    Utils.getReadLock(manager, namespaceId, fateId).unlock();
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
+    Utils.getReadLock(env.getContext(), tableId, fateId, LockRange.infinite()).unlock();
+    Utils.getReadLock(env.getContext(), namespaceId, fateId, LockRange.infinite()).unlock();
     return null;
   }
 }

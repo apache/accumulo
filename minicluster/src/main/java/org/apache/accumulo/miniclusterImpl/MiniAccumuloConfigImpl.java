@@ -28,18 +28,20 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
@@ -87,7 +89,8 @@ public class MiniAccumuloConfigImpl {
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private final Map<ServerType,Function<String,Class<?>>> rgServerClassOverrides = new HashMap<>();
   private boolean jdwpEnabled = false;
-  private Map<String,String> systemProperties = new HashMap<>();
+  private final Map<String,String> systemProperties = new HashMap<>();
+  private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -121,10 +124,6 @@ public class MiniAccumuloConfigImpl {
 
   private String[] nativePathItems = null;
 
-  // These are only used on top of existing instances
-  private Configuration hadoopConf;
-  private SiteConfiguration accumuloConf;
-
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
   private final ClusterServerConfiguration serverConfiguration;
@@ -139,6 +138,11 @@ public class MiniAccumuloConfigImpl {
     this.dir = dir.toPath();
     this.rootPassword = rootPassword;
     this.serverConfiguration = new ClusterServerConfiguration();
+    // Set default options
+    this.jvmOptions.add("-XX:+PerfDisableSharedMem");
+    this.jvmOptions.add("-XX:+AlwaysPreTouch");
+    this.systemProperties.put("-Dapple.awt.UIElement", "true");
+    this.systemProperties.put("-Djava.net.preferIPv4Stack", "true");
   }
 
   /**
@@ -236,7 +240,7 @@ public class MiniAccumuloConfigImpl {
 
     Path keystoreFile = confDir.resolve("credential-provider.jks");
     String keystoreUri = "jceks://file" + keystoreFile.toAbsolutePath();
-    Configuration conf = getHadoopConfiguration();
+    Configuration conf = buildHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
 
     // Set the URI on the siteCfg
@@ -262,6 +266,22 @@ public class MiniAccumuloConfigImpl {
       // Only remove it from the siteCfg if we succeeded in adding it to the CredentialProvider
       entries.remove();
     }
+  }
+
+  Configuration buildHadoopConfiguration() {
+    Configuration conf = new Configuration(false);
+    if (hadoopConfDir != null) {
+      Path coreSite = hadoopConfDir.toPath().resolve("core-site.xml");
+      Path hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml");
+
+      try {
+        conf.addResource(coreSite.toUri().toURL());
+        conf.addResource(hdfsSite.toUri().toURL());
+      } catch (MalformedURLException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+    return conf;
   }
 
   /**
@@ -618,7 +638,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public void setSystemProperties(Map<String,String> systemProperties) {
-    this.systemProperties = new HashMap<>(systemProperties);
+    this.systemProperties.putAll(systemProperties);
   }
 
   /**
@@ -628,6 +648,39 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<>(systemProperties);
+  }
+
+  /**
+   * Add a JVM option to the spawned JVM processes. The default set of JVM options contains
+   * '-XX:+PerfDisableSharedMem' and '-XX:+AlwaysPreTouch'
+   *
+   * @param option JVM option
+   * @since 2.1.5
+   */
+  public void addJvmOption(String option) {
+    this.jvmOptions.add(option);
+  }
+
+  /**
+   * Remove an option from the set of JVM options. Only options that match the {@code option}
+   * exactly will be removed.
+   *
+   * @param option JVM option
+   * @return true if removed, false if not removed
+   * @since 2.1.5
+   */
+  public boolean removeJvmOption(String option) {
+    return this.jvmOptions.remove(option);
+  }
+
+  /**
+   * Get the set of JVM options
+   *
+   * @return set of options
+   * @since 2.1.5
+   */
+  public Set<String> getJvmOptions() {
+    return new HashSet<>(jvmOptions);
   }
 
   /**
@@ -737,22 +790,10 @@ public class MiniAccumuloConfigImpl {
 
     System.setProperty("accumulo.properties", "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
-    hadoopConf = new Configuration(false);
-    accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    Path coreSite = this.hadoopConfDir.toPath().resolve("core-site.xml");
-    Path hdfsSite = this.hadoopConfDir.toPath().resolve("hdfs-site.xml");
-
-    try {
-      hadoopConf.addResource(coreSite.toUri().toURL());
-      hadoopConf.addResource(hdfsSite.toUri().toURL());
-    } catch (MalformedURLException e1) {
-      throw e1;
-    }
+    var siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
 
     Map<String,String> siteConfigMap = new HashMap<>();
-    for (Entry<String,String> e : accumuloConf) {
-      siteConfigMap.put(e.getKey(), e.getValue());
-    }
+    siteConfiguration.getProperties(siteConfigMap, key -> true, false);
     _setSiteConfig(siteConfigMap);
 
     return this;
@@ -774,24 +815,6 @@ public class MiniAccumuloConfigImpl {
    */
   public File getHadoopConfDir() {
     return hadoopConfDir;
-  }
-
-  /**
-   * @return accumulo Configuration being used
-   *
-   * @since 1.6.2
-   */
-  public AccumuloConfiguration getAccumuloConfiguration() {
-    return accumuloConf;
-  }
-
-  /**
-   * @return hadoop Configuration being used
-   *
-   * @since 1.6.2
-   */
-  public Configuration getHadoopConfiguration() {
-    return hadoopConf;
   }
 
   /**

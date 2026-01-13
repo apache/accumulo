@@ -99,6 +99,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlan;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
@@ -504,8 +505,8 @@ public class CompactionIT extends CompactionITBase {
       // This speed bump is an attempt to increase the chance that splits and compactions run
       // concurrently. Wait.waitFor() is not used here because it will throw an exception if the
       // time limit is exceeded.
-      long startTime = System.nanoTime();
-      while (System.nanoTime() - startTime < SECONDS.toNanos(3)
+      CountDownTimer waitTimer = CountDownTimer.startNew(Duration.ofSeconds(3));
+      while (!waitTimer.isExpired()
           && countTablets(tableName, tabletMetadata -> tabletMetadata.getSelectedFiles() != null)
               == 0) {
         Thread.sleep(10);
@@ -523,8 +524,8 @@ public class CompactionIT extends CompactionITBase {
       // before this so do not wait long. Wait.waitFor() is not used here because it will throw an
       // exception if the time limit is exceeded. This is just a speed bump, its ok if the condition
       // is not met within the time limit.
-      startTime = System.nanoTime();
-      while (System.nanoTime() - startTime < SECONDS.toNanos(3)
+      waitTimer.restart();
+      while (!waitTimer.isExpired()
           && countTablets(tableName, tabletMetadata -> !tabletMetadata.getCompacted().isEmpty())
               == 0) {
         Thread.sleep(10);
@@ -1067,21 +1068,28 @@ public class CompactionIT extends CompactionITBase {
 
       // start a bunch of compactions in the background
       var executor = Executors.newCachedThreadPool();
-      List<Future<?>> futures = new ArrayList<>();
+      final int numTasks = 20;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
       // start user compactions on a subset of the tables tablets, system compactions should attempt
       // to run on all tablets. With concurrency should get a mix.
-      for (int i = 1; i < 20; i++) {
+      for (int i = 1; i < numTasks + 1; i++) {
         var startRow = new Text(String.format("r:%04d", i - 1));
         var endRow = new Text(String.format("r:%04d", i));
+        final CompactionConfig config = new CompactionConfig();
+        config.setWait(true);
+        config.setStartRow(startRow);
+        config.setEndRow(endRow);
         futures.add(executor.submit(() -> {
-          CompactionConfig config = new CompactionConfig();
-          config.setWait(true);
-          config.setStartRow(startRow);
-          config.setEndRow(endRow);
+          startLatch.countDown();
+          startLatch.await();
           client.tableOperations().compact(table, config);
           return null;
         }));
       }
+      assertEquals(numTasks, futures.size());
 
       log.debug("Waiting for offline");
       // take tablet offline while there are concurrent compactions

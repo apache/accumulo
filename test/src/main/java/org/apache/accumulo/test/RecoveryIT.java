@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
@@ -113,7 +114,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
     super.setupCluster();
 
     // create a table
-    String tableName = getUniqueNames(1)[0];
+    String tableName = getUniqueNames(1)[0] + "_" + serverForSorting;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
       SortedSet<Text> splits = new TreeSet<>();
@@ -143,12 +144,16 @@ public class RecoveryIT extends AccumuloClusterHarness {
 
       // Stop any running Compactors and ScanServers
       control.stopAllServers(ServerType.COMPACTOR);
-      Wait.waitFor(() -> getServerContext().getServerPaths()
-          .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
+      Wait.waitFor(
+          () -> getServerContext().getServerPaths()
+              .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty(),
+          60_000);
 
       control.stopAllServers(ServerType.SCAN_SERVER);
-      Wait.waitFor(() -> getServerContext().getServerPaths()
-          .getScanServer(rg -> true, AddressSelector.all(), true).size() == 0, 60_000);
+      Wait.waitFor(
+          () -> getServerContext().getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0,
+          60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);

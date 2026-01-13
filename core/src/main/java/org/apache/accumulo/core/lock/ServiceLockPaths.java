@@ -216,18 +216,15 @@ public class ServiceLockPaths {
             "Unhandled zookeeper service path : " + path);
         final String server = pathParts[pathParts.length - 1];
         final String resourceGroup = pathParts[pathParts.length - 2];
-        switch (type) {
-          case Constants.ZMINI_LOCK:
-            return new ServiceLockPath(type, server);
-          case Constants.ZCOMPACTORS:
-          case Constants.ZSSERVERS:
-          case Constants.ZTSERVERS:
-          case Constants.ZDEADTSERVERS:
-            return new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
+        return switch (type) {
+          case Constants.ZMINI_LOCK -> new ServiceLockPath(type, server);
+          case Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS,
+              Constants.ZDEADTSERVERS ->
+            new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
                 HostAndPort.fromString(server));
-          default:
+          default ->
             throw new IllegalArgumentException("Unhandled zookeeper service path : " + path);
-        }
+        };
       }
     }
 
@@ -296,8 +293,8 @@ public class ServiceLockPaths {
    * the ZooKeeper path.
    */
   public ServiceLockPath getGarbageCollector(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZGC_LOCK, rg -> true, AddressSelector.all(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZGC_LOCK, ResourceGroupPredicate.DEFAULT_RG_ONLY,
+        AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -311,8 +308,8 @@ public class ServiceLockPaths {
    * InstanceOperations.getServers(ServerId.Type.MANAGER) to get the location.
    */
   public ServiceLockPath getManager(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZMANAGER_LOCK, rg -> true, AddressSelector.all(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZMANAGER_LOCK,
+        ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -326,8 +323,8 @@ public class ServiceLockPaths {
    * ZooKeeper path.
    */
   public ServiceLockPath getMonitor(boolean withLock) {
-    Set<ServiceLockPath> results =
-        get(Constants.ZMONITOR_LOCK, rg -> true, AddressSelector.all(), withLock);
+    Set<ServiceLockPath> results = get(Constants.ZMONITOR_LOCK,
+        ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), withLock);
     if (results.isEmpty()) {
       return null;
     } else {
@@ -351,7 +348,12 @@ public class ServiceLockPaths {
   }
 
   public interface ResourceGroupPredicate extends Predicate<ResourceGroupId> {
+    ResourceGroupPredicate ANY = rgid -> true;
+    ResourceGroupPredicate DEFAULT_RG_ONLY = ResourceGroupId.DEFAULT::equals;
 
+    static ResourceGroupPredicate exact(ResourceGroupId rgid) {
+      return rgid::equals;
+    }
   }
 
   public static class AddressSelector {

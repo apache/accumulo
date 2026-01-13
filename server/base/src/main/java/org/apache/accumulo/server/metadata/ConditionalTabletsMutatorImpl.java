@@ -72,10 +72,6 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   private final Supplier<ConditionalWriter> sharedMetadataWriter;
   private final Supplier<ConditionalWriter> sharedUserWriter;
 
-  public ConditionalTabletsMutatorImpl(ServerContext context) {
-    this(context, DataLevel::metaTable);
-  }
-
   public ConditionalTabletsMutatorImpl(ServerContext context,
       Function<DataLevel,String> tableMapper) {
     this(context, tableMapper, context.getSharedMetadataWriter(), context.getSharedUserWriter());
@@ -222,15 +218,12 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       throw new IllegalStateException(e);
     }
 
-    switch (status) {
-      case REJECTED:
-        return Ample.ConditionalResult.Status.REJECTED;
-      case ACCEPTED:
-        return Ample.ConditionalResult.Status.ACCEPTED;
-      default:
-        throw new IllegalStateException(
-            "Unexpected conditional mutation status : " + extent + " " + status);
-    }
+    return switch (status) {
+      case REJECTED -> Ample.ConditionalResult.Status.REJECTED;
+      case ACCEPTED -> Ample.ConditionalResult.Status.ACCEPTED;
+      default -> throw new IllegalStateException(
+          "Unexpected conditional mutation status : " + extent + " " + status);
+    };
   }
 
   @Override

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -129,7 +130,7 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ranges.clear();
 
-      tableOps.setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      tableOps.setTabletAvailability(tableName, RowRange.all(), TabletAvailability.HOSTED);
       Wait.waitFor(() -> hostedAndCurrentNotNull
           .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 

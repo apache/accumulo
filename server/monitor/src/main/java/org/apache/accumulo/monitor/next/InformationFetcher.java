@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.core.Response;
+
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -42,7 +45,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
@@ -154,7 +157,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       try {
         final String tableName = ctx.getQualifiedTableName(tableId);
         try (Stream<TabletInformation> tablets =
-            this.ctx.tableOperations().getTabletInformation(tableName, new Range())) {
+            this.ctx.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
           tablets.forEach(t -> summary.processTabletInformation(tableId, tableName, t));
         }
       } catch (TableNotFoundException e) {
@@ -236,11 +239,25 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   // Protect against NPE and wait for initial data gathering
-  public SystemInformation getSummary() {
+  public SystemInformation getSummary() throws InterruptedException {
     while (summaryRef.get() == null) {
-      Thread.onSpinWait();
+      Thread.sleep(100);
     }
     return summaryRef.get();
+  }
+
+  /**
+   * {@link #getSummary()} but throws a 503 (Service Unavailable) server error to the web client if
+   * an {@link InterruptedException} occurs.
+   */
+  public SystemInformation getSummaryForEndpoint() throws ServiceUnavailableException {
+    try {
+      return getSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   public Cache<ServerId,MetricResponse> getAllMetrics() {
@@ -253,8 +270,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     if (server == null) {
       return;
     }
-    LOG.info("{} has been evicted", server);
-    getSummary().processError(server);
+    try {
+      getSummary().processError(server);
+      LOG.info("{} has been evicted", server);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      LOG.warn("{} could not be evicted", server, e);
+    }
   }
 
   @Override
@@ -270,7 +292,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       // Only refresh every 5s (old monitor logic).
       while (!newConnectionEvent.get() && connectionCount.get() == 0
           && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
-        Thread.onSpinWait();
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(
+              "Thread " + Thread.currentThread().getName() + " interrupted", e);
+        }
       }
       // reset the connection event flag
       newConnectionEvent.compareAndExchange(true, false);

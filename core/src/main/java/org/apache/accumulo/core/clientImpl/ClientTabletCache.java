@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -114,17 +113,6 @@ public abstract class ClientTabletCache {
       LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
       TableNotFoundException, InvalidTabletHostingRequestException {
     return findTablet(context, row, skipRow, locationNeed, 0, null);
-  }
-
-  public CachedTablet findTabletWithRetry(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
-    var tl = findTablet(context, row, skipRow, locationNeed);
-    while (tl == null && locationNeed == LocationNeed.REQUIRED) {
-      UtilWaitThread.sleep(100);
-      tl = findTablet(context, row, skipRow, locationNeed);
-    }
-    return tl;
   }
 
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
@@ -242,8 +230,7 @@ public abstract class ClientTabletCache {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CachedTablet) {
-        CachedTablet otl = (CachedTablet) o;
+      if (o instanceof CachedTablet otl) {
         return getExtent().equals(otl.getExtent())
             && getTserverLocation().equals(otl.getTserverLocation())
             && getTserverSession().equals(otl.getTserverSession())

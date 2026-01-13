@@ -31,6 +31,7 @@ import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +46,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -73,6 +73,7 @@ import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClas
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
@@ -91,6 +92,7 @@ import org.apache.accumulo.shell.commands.CompactCommand;
 import org.apache.accumulo.shell.commands.ConfigCommand;
 import org.apache.accumulo.shell.commands.ConstraintCommand;
 import org.apache.accumulo.shell.commands.CreateNamespaceCommand;
+import org.apache.accumulo.shell.commands.CreateResourceGroupCommand;
 import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
@@ -99,6 +101,7 @@ import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
+import org.apache.accumulo.shell.commands.DeleteResourceGroupCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
@@ -128,6 +131,7 @@ import org.apache.accumulo.shell.commands.InsertCommand;
 import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
+import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.shell.commands.ListTabletsCommand;
@@ -239,8 +243,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
-  private long authTimeout;
-  private long lastUserActivity = System.nanoTime();
+  private Duration authTimeout;
+  private final Timer lastUserActivity = Timer.startNew();
   private boolean logErrorsToConsole = false;
   private boolean askAgain = false;
   private boolean usedClientProps = false;
@@ -312,7 +316,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
-      this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
+      this.reader = newLineReaderBuilder().terminal(this.terminal).build();
     }
     this.writer = this.terminal.writer();
 
@@ -343,7 +347,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return false;
     }
 
-    authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
+    authTimeout = Duration.ofMinutes(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
     clientProperties = options.getClientProperties();
@@ -421,6 +425,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
+    Command[] resourceGroupCommands = {new CreateResourceGroupCommand(),
+        new DeleteResourceGroupCommand(), new ListResourceGroupsCommand()};
     Command[] stateCommands =
         {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
             new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};
@@ -444,6 +450,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     commandGrouping.put("-- Help Commands ------------------------", helpCommands);
     commandGrouping.put("-- Iterator Configuration ---------------", iteratorCommands);
     commandGrouping.put("-- Permissions Administration Commands --", permissionsCommands);
+    commandGrouping.put("-- Resource Group Commands --------------", resourceGroupCommands);
     commandGrouping.put("-- Shell State Commands -----------------", stateCommands);
     commandGrouping.put("-- Table Administration Commands --------", tableCommands);
     commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);
@@ -525,8 +532,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
+  private static LineReaderBuilder newLineReaderBuilder() {
+    var builder = LineReaderBuilder.builder();
+    // workaround for https://github.com/jline/jline3/pull/1413
+    if ("on".equals(System.getProperty("org.jline.reader.props.disable-event-expansion"))) {
+      builder.option(LineReader.Option.DISABLE_EVENT_EXPANSION, true);
+    }
+    return builder;
+  }
+
   public static void main(String[] args) throws IOException {
-    LineReader reader = LineReaderBuilder.builder().build();
+    LineReader reader = newLineReaderBuilder().build();
     new Shell(reader).execute(args);
   }
 
@@ -651,7 +667,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       sb.append("- Authorization timeout: disabled\n");
     } else {
       sb.append("- Authorization timeout: ")
-          .append(String.format("%ds%n", TimeUnit.NANOSECONDS.toSeconds(authTimeout)));
+          .append(String.format("%ds%n", authTimeout.toSeconds()));
     }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -729,9 +745,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           return;
         }
 
-        long duration = System.nanoTime() - lastUserActivity;
         if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout
-            && (duration < 0 || duration > authTimeout)) {
+            && lastUserActivity.hasElapsed(authTimeout)) {
           writer.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
@@ -754,7 +769,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               }
             }
           } while (authFailed);
-          lastUserActivity = System.nanoTime();
+          lastUserActivity.restart();
         }
 
         // Get the options from the command on how to parse the string

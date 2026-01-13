@@ -23,13 +23,13 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnreserveSystemMerge extends ManagerRepo {
+public class UnreserveSystemMerge extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(UnreserveSystemMerge.class);
@@ -47,7 +47,7 @@ public class UnreserveSystemMerge extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
     FinishTableRangeOp.removeOperationIds(log, mergeInfo, fateId, environment);
     throw new AcceptableThriftTableOperationException(mergeInfo.tableId.toString(), null,
         mergeInfo.op.isMergeOp() ? TableOperation.MERGE : TableOperation.DELETE_RANGE,
@@ -59,22 +59,20 @@ public class UnreserveSystemMerge extends ManagerRepo {
   }
 
   private String formatReason() {
-    switch (reason) {
-      case MAX_FILE_COUNT:
-        return "Aborted merge because it would produce a tablet with more files than the configured limit of "
+    return switch (reason) {
+      case MAX_FILE_COUNT ->
+        "Aborted merge because it would produce a tablet with more files than the configured limit of "
             + maxFileCount;
-      case MAX_TOTAL_SIZE:
-        return "Aborted merge because it would produce a tablet with a file size larger than the configured limit of "
+      case MAX_TOTAL_SIZE ->
+        "Aborted merge because it would produce a tablet with a file size larger than the configured limit of "
             + maxTotalSize;
       // This state should not happen as VerifyMergeability repo checks consistency but adding it
       // just in case
-      case TABLET_MERGEABILITY:
-        return "Aborted merge because one ore more tablets in the merge range are unmergeable.";
-      case NOT_CONTIGUOUS:
-        return "Aborted merge because the tablets in a range do not form a linked list.";
-      default:
-        throw new IllegalArgumentException("Unknown Reason");
-    }
+      case TABLET_MERGEABILITY ->
+        "Aborted merge because one ore more tablets in the merge range are unmergeable.";
+      case NOT_CONTIGUOUS ->
+        "Aborted merge because the tablets in a range do not form a linked list.";
+    };
 
   }
 }

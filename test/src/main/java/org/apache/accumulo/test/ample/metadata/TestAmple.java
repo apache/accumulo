@@ -20,6 +20,7 @@ package org.apache.accumulo.test.ample.metadata;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -238,7 +239,8 @@ public class TestAmple {
     SiteConfiguration siteConfig;
     try {
       Map<String,String> propsMap = new HashMap<>();
-      context.getSiteConfiguration().getProperties(propsMap, x -> true);
+      // get only properties set in the site config but do not include defaults
+      context.getSiteConfiguration().getProperties(propsMap, x -> true, false);
       siteConfig = SiteConfiguration.empty().withOverrides(propsMap).build();
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -299,13 +301,13 @@ public class TestAmple {
 
     TabletAvailability availability;
     try (var tabletStream = client.tableOperations()
-        .getTabletInformation(SystemTables.METADATA.tableName(), new Range())) {
+        .getTabletInformation(SystemTables.METADATA.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(metadataTableProps);
+        .withoutDefaults().setProperties(metadataTableProps);
     client.tableOperations().create(table, newTableConf);
   }
 }

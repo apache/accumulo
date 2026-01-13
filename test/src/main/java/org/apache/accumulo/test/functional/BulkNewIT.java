@@ -49,11 +49,14 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -79,6 +82,7 @@ import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.LoadPlan.RangeType;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -119,6 +123,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.MoreCollectors;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -126,6 +132,8 @@ import com.google.common.util.concurrent.MoreExecutors;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class BulkNewIT extends SharedMiniClusterBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BulkNewIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -225,6 +233,84 @@ public class BulkNewIT extends SharedMiniClusterBase {
   public void testSingleTabletSingleFile() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       testSingleTabletSingleFile(client, false, false);
+    }
+  }
+
+  @Test
+  public void testConcurrentImportSameDirectory() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final int numTasks = 16;
+      final int iterations = 3;
+      final int startRow = 0;
+      final int endRow = 199;
+
+      ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+
+      try {
+        for (int i = 0; i < iterations; i++) {
+          LOG.debug("Running concurrent import iteration {}/{}", i + 1, iterations);
+          final String table = getUniqueNames(1)[0] + i;
+          client.tableOperations().create(table);
+
+          Path sourceDir = new Path(rootPath + "/concurrent/" + table + "_sourceDir");
+          assertTrue(fs.mkdirs(sourceDir), "Failed to create " + sourceDir);
+
+          writeData(fs, sourceDir + "/f.", aconf, startRow, endRow);
+
+          CountDownLatch startSignal = new CountDownLatch(numTasks);
+          List<Future<Boolean>> futures = new ArrayList<>(numTasks);
+          Predicate<Throwable> expectedConcurrentFailure = throwable -> {
+            if (throwable instanceof IOException || throwable instanceof AccumuloException) {
+              LOG.debug("Concurrent import attempt ({}) failed as expected with {}: {}",
+                  Thread.currentThread().getName(), throwable.getClass().getSimpleName(),
+                  throwable.getMessage());
+              return true;
+            }
+            return false;
+          };
+
+          for (int task = 0; task < numTasks; task++) {
+            futures.add(pool.submit(() -> {
+              final var importMappingOptions =
+                  client.tableOperations().importDirectory(sourceDir.toString()).to(table);
+              try {
+                startSignal.countDown();
+                startSignal.await();
+                importMappingOptions.load();
+                return true;
+              } catch (Exception e) {
+                if (expectedConcurrentFailure.test(e)) {
+                  return false;
+                }
+                throw e;
+              }
+            }));
+          }
+          assertEquals(numTasks, futures.size());
+
+          int success = 0;
+          int failures = 0;
+          for (Future<Boolean> future : futures) {
+            if (future.get()) {
+              success++;
+            } else {
+              failures++;
+            }
+          }
+          assertEquals(1, success, "Expected exactly one successful bulk import");
+          assertEquals(numTasks - 1, failures,
+              "Expected all other attempts to fail with a concurrency related exception");
+
+          try (var scanner = client.createScanner(table, Authorizations.EMPTY)) {
+            long count = scanner.stream().count();
+            assertEquals(endRow - startRow + 1, count);
+          }
+          client.tableOperations().delete(table);
+        }
+      } finally {
+        pool.shutdownNow();
+        pool.awaitTermination(30, TimeUnit.SECONDS);
+      }
     }
   }
 
@@ -927,7 +1013,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().delete(tableName);
       // Create table without versioning iterator. This done to detect the same file being imported
       // more than once.
-      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaultIterators());
+      c.tableOperations().create(tableName, new NewTableConfiguration().withoutDefaults());
 
       addSplits(c, tableName, "0999 1999 2999 3999 4999 5999 6999 7999 8999");
 
@@ -936,9 +1022,15 @@ public class BulkNewIT extends SharedMiniClusterBase {
       final int N = 100;
 
       ExecutorService executor;
+      CountDownLatch startLatch;
       if (parallelBulkImports) {
-        executor = Executors.newFixedThreadPool(16);
+        final int numThreads = 16;
+        executor = Executors.newFixedThreadPool(numThreads);
+        startLatch = new CountDownLatch(numThreads); // wait for a portion of the tasks to be ready
+        assertTrue(N >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
       } else {
+        startLatch = null;
         // execute the bulk imports in the current thread which will cause them to run serially
         executor = MoreExecutors.newDirectExecutorService();
       }
@@ -951,12 +1043,17 @@ public class BulkNewIT extends SharedMiniClusterBase {
           for (int f = 0; f < 10; f++) {
             writeData(fs, iterationDir + "/f" + f + ".", aconf, f * 1000, (f + 1) * 1000 - 1);
           }
+          if (parallelBulkImports) {
+            startLatch.countDown();
+            startLatch.await();
+          }
           c.tableOperations().importDirectory(iterationDir).to(tableName).tableTime(true).load();
           getCluster().getFileSystem().delete(new Path(iterationDir), true);
         } catch (Exception e) {
           throw new IllegalStateException(e);
         }
       })).collect(Collectors.toList());
+      assertEquals(N, futures.size());
 
       // wait for all bulk imports and check for errors in background threads
       for (var future : futures) {
@@ -1033,11 +1130,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       addSplits(c, tableName, "0100 0200 0300 0400 0500");
 
-      c.tableOperations().setTabletAvailability(tableName, new Range("0100", false, "0200", true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.openClosed("0100", "0200"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("0300", false, "0400", true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.openClosed("0300", "0400"),
           TabletAvailability.HOSTED);
-      c.tableOperations().setTabletAvailability(tableName, new Range("0400", false, null, true),
+      c.tableOperations().setTabletAvailability(tableName, RowRange.greaterThan("0400"),
           TabletAvailability.UNHOSTED);
 
       // verify tablet availabilities are as expected
@@ -1102,8 +1199,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
           .collect(Collectors.toCollection(TreeSet::new));
       c.tableOperations().addSplits(tableName, splits);
 
-      var executor = Executors.newFixedThreadPool(16);
-      var futures = new ArrayList<Future<?>>();
+      final int numTasks = 16;
+      var executor = Executors.newFixedThreadPool(numTasks);
+      var futures = new ArrayList<Future<?>>(numTasks);
+      // wait for a portion of the tasks to be ready
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
       var loadPlanBuilder = LoadPlan.builder();
       var rowsExpected = new HashSet<>();
@@ -1115,12 +1217,15 @@ public class BulkNewIT extends SharedMiniClusterBase {
         loadPlanBuilder.loadFileTo(filename + RFile.EXTENSION, RangeType.TABLE, row(data - 1),
             row(data));
         var future = executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
           writeData(fs, dir + "/" + filename, aconf, data, data);
           return null;
         });
         futures.add(future);
         rowsExpected.add(row(data));
       }
+      assertEquals(imports.size(), futures.size());
 
       for (var future : futures) {
         future.get();
@@ -1168,7 +1273,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
    */
   private static Map<String,TabletAvailability> getTabletAvailabilities(AccumuloClient c,
       String tableName) throws TableNotFoundException {
-    try (var tabletsInfo = c.tableOperations().getTabletInformation(tableName, new Range())) {
+    try (var tabletsInfo =
+        c.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
       return tabletsInfo.collect(Collectors.toMap(ti -> {
         var er = ti.getTabletId().getEndRow();
         return er == null ? "NULL" : er.toString();

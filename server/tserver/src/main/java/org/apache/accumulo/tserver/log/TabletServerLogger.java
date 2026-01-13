@@ -455,7 +455,7 @@ public class TabletServerLogger {
         if (sawWriteFailure != null) {
           log.info("WAL write failure, validating server lock in ZooKeeper", sawWriteFailure);
           if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
-            Halt.halt(-1, "Writing to WAL has failed and TabletServer lock does not exist",
+            Halt.halt(1, "Writing to WAL has failed and TabletServer lock does not exist",
                 sawWriteFailure);
           }
         }
@@ -488,19 +488,6 @@ public class TabletServerLogger {
         close();
       }
     });
-  }
-
-  /**
-   * Log a single mutation. This method expects mutations that have a durability other than NONE.
-   */
-  public void log(final CommitSession commitSession, final Mutation m, final Durability durability)
-      throws IOException {
-    if (durability == Durability.DEFAULT || durability == Durability.NONE) {
-      throw new IllegalArgumentException("Unexpected durability " + durability);
-    }
-    write(singletonList(commitSession), false, logger -> logger.log(commitSession, m, durability),
-        writeRetryFactory.createRetry());
-    logSizeEstimate.addAndGet(m.numBytes());
   }
 
   /**

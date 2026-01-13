@@ -125,7 +125,7 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
     }
     ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
     allIters.add(iter);
-    return new MultiIterator(allIters, false);
+    return new MultiIterator(allIters);
   }
 
   @Override

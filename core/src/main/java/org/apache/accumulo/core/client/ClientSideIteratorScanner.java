@@ -178,15 +178,14 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     this.range = scanner.getRange();
     this.size = scanner.getBatchSize();
     this.retryTimeout = scanner.getTimeout(MILLISECONDS);
-    this.batchTimeout = scanner.getTimeout(MILLISECONDS);
+    this.batchTimeout = scanner.getBatchTimeout(MILLISECONDS);
     this.readaheadThreshold = scanner.getReadaheadThreshold();
     SamplerConfiguration samplerConfig = scanner.getSamplerConfiguration();
     if (samplerConfig != null) {
       setSamplerConfiguration(samplerConfig);
     }
 
-    if (scanner instanceof ScannerImpl) {
-      var scannerImpl = (ScannerImpl) scanner;
+    if (scanner instanceof ScannerImpl scannerImpl) {
       this.context = () -> scannerImpl.getClientContext();
       this.tableId = () -> scannerImpl.getTableId();
     } else {

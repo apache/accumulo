@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -76,7 +78,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
   public static class SleepyConstraint implements Constraint {
 
-    private static final SecureRandom rand = new SecureRandom();
+    private static final SecureRandom rand = RANDOM.get();
 
     private static final long SLEEP_TIME = 4000;
 
@@ -123,14 +125,15 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
   public void testWriteAfterClose(TimeType timeType, boolean killTservers, long timeout,
       boolean useConditionalWriter) throws Exception {
     // re #3721 test that tries to cause a write event to happen after a batch writer is closed
-    String table = getUniqueNames(1)[0];
+    String table = getUniqueNames(1)[0] + "_t" + timeType + "_k" + killTservers + "_to" + timeout
+        + "_c" + useConditionalWriter;
     var props = new Properties();
     props.putAll(getClientProps());
     props.setProperty(Property.GENERAL_RPC_TIMEOUT.getKey(), "1s");
 
     NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
     ntc.setProperties(
-        Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1", SleepyConstraint.class.getName()));
+        Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "2", SleepyConstraint.class.getName()));
 
     // The short rpc timeout and the random sleep in the constraint can cause some of the writes
     // done by a batch writer to timeout. The batch writer will internally retry the write, but the
@@ -141,12 +144,26 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
       c.tableOperations().create(table, ntc);
 
-      List<Future<?>> futures = new ArrayList<>();
+      int numTasks = 100;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      // synchronize start of a portion of the tasks
+      CountDownLatch startLatch = new CountDownLatch(32);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-      for (int i = 0; i < 100; i++) {
-        futures.add(
-            executor.submit(createWriteTask(i * 1000, c, table, timeout, useConditionalWriter)));
+      for (int i = 0; i < numTasks; i++) {
+        final int row = i * 1000;
+        futures.add(executor.submit(() -> {
+          try {
+            startLatch.countDown();
+            startLatch.await();
+            createWriteTask(row, c, table, timeout, useConditionalWriter).call();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }));
       }
+      assertEquals(numTasks, futures.size());
 
       if (killTservers) {
         Thread.sleep(250);

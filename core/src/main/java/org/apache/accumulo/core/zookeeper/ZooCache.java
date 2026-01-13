@@ -52,9 +52,13 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A cache for values stored in ZooKeeper. Values are kept up to date as they change.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ZooCache {
 
   public interface ZooCacheWatcher extends Consumer<WatchedEvent> {}
@@ -64,7 +68,7 @@ public class ZooCache {
   private final NavigableSet<String> watchedPaths;
 
   // visible for tests
-  protected final ZCacheWatcher watcher = new ZCacheWatcher();
+  public final ZCacheWatcher watcher = new ZCacheWatcher();
   private final List<ZooCacheWatcher> externalWatchers =
       Collections.synchronizedList(new ArrayList<>());
 
@@ -85,7 +89,7 @@ public class ZooCache {
 
   private final AtomicLong zkClientTracker = new AtomicLong();
 
-  class ZCacheWatcher implements Watcher {
+  public class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {

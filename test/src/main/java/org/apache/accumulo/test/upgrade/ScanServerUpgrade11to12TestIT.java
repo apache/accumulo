@@ -93,8 +93,9 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     }
   }
 
-  private void testMetadataScanServerRefRemoval(String tableName) {
+  private void testMetadataScanServerRefRemoval() {
 
+    String tableName = Ample.DataLevel.USER.metaTable();
     HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
     UUID serverLockUUID = UUID.randomUUID();
 
@@ -137,7 +138,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     assertEquals(scanRefs.size() * 2L, getOldScanServerRefs(tableName).count());
 
     var upgrader = new Upgrader11to12();
-    upgrader.removeScanServerRange(ctx, tableName);
+    upgrader.removeScanServerRanges(ctx);
 
     // Ensure entries are now removed from the metadata table
     assertEquals(0, getOldScanServerRefs(tableName).count());
@@ -145,7 +146,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
   @Test
   public void testMetadataScanServerRefs() {
-    testMetadataScanServerRefRemoval(Ample.DataLevel.USER.metaTable());
+    testMetadataScanServerRefRemoval();
   }
 
 }

@@ -112,6 +112,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
+    Preconditions.checkArgument(this.context.tableOperations().exists(tableName),
+        "user fate store table " + tableName + " does not exist.");
     this.writer = Suppliers.memoize(() -> {
       try {
         return createConditionalWriterForFateTable(this.tableName);
@@ -566,26 +568,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(getRow(fateId));
 
-        final ColumnFQ cq;
-        switch (txInfo) {
-          case FATE_OP:
-            cq = TxAdminColumnFamily.FATE_OP_COLUMN;
-            break;
-          case AUTO_CLEAN:
-            cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
-            break;
-          case EXCEPTION:
-            cq = TxInfoColumnFamily.EXCEPTION_COLUMN;
-            break;
-          case RETURN_VALUE:
-            cq = TxInfoColumnFamily.RETURN_VALUE_COLUMN;
-            break;
-          case TX_AGEOFF:
-            cq = TxInfoColumnFamily.TX_AGEOFF_COLUMN;
-            break;
-          default:
-            throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
-        }
+        final ColumnFQ cq = switch (txInfo) {
+          case FATE_OP -> TxAdminColumnFamily.FATE_OP_COLUMN;
+          case AUTO_CLEAN -> TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
+          case EXCEPTION -> TxInfoColumnFamily.EXCEPTION_COLUMN;
+          case RETURN_VALUE -> TxInfoColumnFamily.RETURN_VALUE_COLUMN;
+          case TX_AGEOFF -> TxInfoColumnFamily.TX_AGEOFF_COLUMN;
+        };
         scanner.fetchColumn(cq.getColumnFamily(), cq.getColumnQualifier());
 
         return scanner.stream().map(e -> deserializeTxInfo(txInfo, e.getValue().get())).findFirst()

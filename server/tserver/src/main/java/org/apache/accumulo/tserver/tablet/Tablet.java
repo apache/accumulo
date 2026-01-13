@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -86,6 +87,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -166,7 +168,7 @@ public class Tablet extends TabletBase {
     OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
-  private long closeRequestTime = 0;
+  private Timer closeRequestTimer = null;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -414,7 +416,7 @@ public class Tablet extends TabletBase {
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
           log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
               + " Halting...", getExtent(), e);
-          Halt.halt(-1, "TabletServer lock does not exist", e);
+          Halt.halt(1, "TabletServer lock does not exist", e);
         } else {
           TraceUtil.setException(span2, e, true);
           throw e;
@@ -794,11 +796,11 @@ public class Tablet extends TabletBase {
 
     synchronized (this) {
       if (closeState == CloseState.OPEN) {
-        closeRequestTime = System.nanoTime();
+        closeRequestTimer = Timer.startNew();
         closeState = CloseState.REQUESTED;
       } else {
-        Preconditions.checkState(closeRequestTime != 0);
-        long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
+        Preconditions.checkState(closeRequestTimer != null);
+        long runningTime = closeRequestTimer.elapsed(MINUTES);
         if (runningTime >= 15) {
           CLOSING_STUCK_LOGGER.info(
               "Tablet {} close requested again, but has been closing for {} minutes", this.extent,
@@ -928,7 +930,7 @@ public class Tablet extends TabletBase {
         return currentlyUnreserved;
       });
 
-      long lastLogTime = System.nanoTime();
+      Timer lastLogTimer = Timer.startNew();
 
       // wait for reads and writes to complete
       while (writesInProgress > 0 || !runningScans.isEmpty()) {
@@ -940,13 +942,12 @@ public class Tablet extends TabletBase {
           return currentlyUnreserved;
         });
 
-        if (log.isDebugEnabled()
-            && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
+        if (log.isDebugEnabled() && lastLogTimer.hasElapsed(1, MINUTES)) {
           for (ScanDataSource activeScan : runningScans) {
             log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
           }
 
-          lastLogTime = System.nanoTime();
+          lastLogTimer.restart();
         }
 
         try {
@@ -1167,7 +1168,7 @@ public class Tablet extends TabletBase {
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, this.scannedCount.get());
+    scannedRate.update(now, this.scannedCount.sum());
   }
 
   private Set<DfsLogger> currentLogs = new HashSet<>();
@@ -1581,12 +1582,13 @@ public class Tablet extends TabletBase {
           }
           attemptedRename = true;
           ScanfileManager.rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+          TabletLogger.renamed(getExtent(), tmpDatafile, newDatafile);
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet " + getExtent() + " failed to rename " + newDatafile
-            + " after MinC, will retry in 60 secs...", ioe);
-        sleepUninterruptibly(1, TimeUnit.MINUTES);
+        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", getExtent(),
+            newDatafile, ioe);
+        sleepUninterruptibly(1, MINUTES);
       }
     } while (true);
 
@@ -1630,7 +1632,7 @@ public class Tablet extends TabletBase {
               commitSession.getWALogSeq() + 2);
           break;
         } catch (IOException e) {
-          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          log.error("Failed to write to write-ahead log {} will retry", e.getMessage(), e);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } while (true);

@@ -88,7 +88,7 @@ public class BloomFilterLayer {
     return loadThreadPool;
   }
 
-  public static class Writer implements FileSKVWriter {
+  public static final class Writer implements FileSKVWriter {
     private DynamicBloomFilter bloomFilter;
     private int numKeys;
     private int vectorSize;
@@ -388,13 +388,8 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      return reader.getFirstRow();
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      return reader.getLastRow();
+    public FileRange getFileRange() {
+      return reader.getFileRange();
     }
 
     @Override

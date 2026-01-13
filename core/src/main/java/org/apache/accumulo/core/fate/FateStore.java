@@ -160,7 +160,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
   /**
    * The value stored to indicate a FATE transaction ID ({@link FateId}) has been reserved
    */
-  class FateReservation {
+  final class FateReservation {
 
     // The LockID (provided by the Manager running the FATE which uses this store) which is used for
     // identifying dead Managers, so their reservations can be deleted and picked up again since
@@ -231,8 +231,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
       if (obj == this) {
         return true;
       }
-      if (obj instanceof FateReservation) {
-        FateReservation other = (FateReservation) obj;
+      if (obj instanceof FateReservation other) {
         return Arrays.equals(this.getSerialized(), other.getSerialized());
       }
       return false;

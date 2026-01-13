@@ -37,11 +37,12 @@ import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.util.DurationFormat;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 class ActiveCompactionHelper {
 
@@ -86,18 +87,11 @@ class ActiveCompactionHelper {
       iterOpts.put(is.getName(), is.getOptions());
     }
 
-    String hostSuffix;
-    switch (ac.getServerId().getType()) {
-      case TABLET_SERVER:
-        hostSuffix = "";
-        break;
-      case COMPACTOR:
-        hostSuffix = " (ext)";
-        break;
-      default:
-        hostSuffix = ac.getServerId().getType().name();
-        break;
-    }
+    String hostSuffix = switch (ac.getServerId().getType()) {
+      case TABLET_SERVER -> "";
+      case COMPACTOR -> " (ext)";
+      default -> ac.getServerId().getType().name();
+    };
 
     String host = ac.getServerId().toHostPortString() + hostSuffix;
 
@@ -107,9 +101,59 @@ class ActiveCompactionHelper {
           "%21s | %21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s",
           ac.getServerId().getResourceGroup(), host, dur, ac.getType(), ac.getReason(),
           shortenCount(ac.getEntriesRead()), shortenCount(ac.getEntriesWritten()), ac.getTable(),
-          ac.getTablet(), ac.getInputFiles().size(), output, iterList, iterOpts);
+          formatTablet(ac.getTablet()), ac.getInputFiles().size(), output, iterList, iterOpts);
     } catch (TableNotFoundException e) {
       return "ERROR " + e.getMessage();
+    }
+  }
+
+  private static String formatTablet(TabletId tabletId) {
+    if (tabletId == null) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    appendEscapedTableId(sb, tabletId.getTable().canonical());
+    appendTabletRow(sb, tabletId.getEndRow());
+    appendTabletRow(sb, tabletId.getPrevEndRow());
+    return sb.toString();
+  }
+
+  private static void appendEscapedTableId(StringBuilder sb, String tableId) {
+    for (int i = 0; i < tableId.length(); i++) {
+      char c = tableId.charAt(i);
+      if (c == '\\') {
+        sb.append("\\\\");
+      } else if (c == ';') {
+        sb.append("\\;");
+      } else {
+        sb.append(c);
+      }
+    }
+  }
+
+  private static void appendTabletRow(StringBuilder sb, Text row) {
+    if (row == null) {
+      sb.append("<");
+      return;
+    }
+    sb.append(';');
+    Text truncated = TextUtil.truncate(row);
+    byte[] bytes = TextUtil.getBytes(truncated);
+    appendEscapedBytes(sb, bytes);
+  }
+
+  private static void appendEscapedBytes(StringBuilder sb, byte[] bytes) {
+    for (byte b : bytes) {
+      int c = b & 0xFF;
+      if (c == '\\') {
+        sb.append("\\\\");
+      } else if (c == ';') {
+        sb.append("\\;");
+      } else if (c >= 32 && c <= 126) {
+        sb.append((char) c);
+      } else {
+        sb.append("\\x").append(String.format("%02X", c));
+      }
     }
   }
 
@@ -119,28 +163,6 @@ class ActiveCompactionHelper {
         "GROUP", "SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT",
         "OUTPUT", "ITERATORS", "ITERATOR OPTIONS"));
     return Stream.concat(header, stream);
-  }
-
-  public static Stream<String> activeCompactionsForServer(String tserver,
-      InstanceOperations instanceOps) {
-    final HostAndPort hp = HostAndPort.fromString(tserver);
-    ServerId server =
-        instanceOps.getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
-    if (server == null) {
-      server = instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
-    }
-    if (server == null) {
-      return Stream.of();
-    } else {
-      try {
-        return instanceOps.getActiveCompactions(List.of(server)).stream()
-            .sorted(COMPACTION_AGE_DESCENDING)
-            .map(ActiveCompactionHelper::formatActiveCompactionLine);
-      } catch (Exception e) {
-        LOG.debug("Failed to list active compactions for server {}", tserver, e);
-        return Stream.of(tserver + " ERROR " + e.getMessage());
-      }
-    }
   }
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps,

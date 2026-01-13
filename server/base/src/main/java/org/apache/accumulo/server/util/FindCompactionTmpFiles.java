@@ -140,7 +140,14 @@ public class FindCompactionTmpFiles {
     filesToDelete.forEach(p -> {
       futures.add(delSvc.submit(() -> {
         if (context.getVolumeManager().exists(p)) {
-          return context.getVolumeManager().delete(p);
+          boolean result = context.getVolumeManager().delete(p);
+          if (result) {
+            LOG.debug("Removed old temp file {}", p);
+          } else {
+            LOG.error(
+                "Unable to remove old temp file {}, operation returned false with no exception", p);
+          }
+          return result;
         }
         return true;
       }));

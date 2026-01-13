@@ -78,6 +78,7 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
+import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -107,6 +108,7 @@ import org.slf4j.event.Level;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
@@ -478,7 +480,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
 
-    while (iter.hasNext()) {
+    while (iter.hasNext() && !manager.isShutdownRequested()) {
       final TabletManagement mti = iter.next();
       if (mti == null) {
         throw new IllegalStateException("State store returned a null ManagerTabletInfo object");
@@ -493,6 +495,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         tableMgmtStats.tabletsWithErrors++;
         continue;
       }
+
+      RecoveryManager.RecoverySession recoverySession =
+          manager.recoveryManager.newRecoverySession();
 
       final TabletMetadata tm = mti.getTabletMetadata();
       final TableId tableId = tm.getTableId();
@@ -649,7 +654,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           // have been sorted so that recovery can occur. Delay the hosting of
           // the Tablet until the sorting is finished.
           if ((state != TabletState.HOSTED && actions.contains(ManagementAction.NEEDS_RECOVERY))
-              && manager.recoveryManager.recoverLogs(tm.getExtent(), tm.getLogs())) {
+              && recoverySession.recoverLogs(tm.getLogs())) {
             LOG.debug("Not hosting {} as it needs recovery, logs: {}", tm.getExtent(),
                 tm.getLogs().size());
             continue;
@@ -728,7 +733,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     int[] oldCounts = new int[TabletState.values().length];
     boolean lookForTabletsNeedingVolReplacement = true;
 
-    while (manager.stillManager()) {
+    while (manager.stillManager() && !manager.isShutdownRequested()) {
       if (!eventHandler.isNeedsFullScan()) {
         // If an event handled by the EventHandler.RangeProcessor indicated
         // that we need to do a full scan, then do it. Otherwise wait a bit
@@ -853,20 +858,26 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
   }
 
+  static TServerInstance findServerIgnoringSession(SortedMap<TServerInstance,?> servers,
+      HostAndPort server) {
+    var tail = servers.tailMap(new TServerInstance(server, 0L)).keySet().iterator();
+    if (tail.hasNext()) {
+      TServerInstance found = tail.next();
+      if (found.getHostAndPort().equals(server)) {
+        return found;
+      }
+    }
+
+    return null;
+  }
+
   private void hostSuspendedTablet(TabletLists tLists, TabletMetadata tm, Location location,
       TableConfiguration tableConf) {
     if (manager.getSteadyTime().minus(tm.getSuspend().suspensionTime).toMillis()
         < tableConf.getTimeInMillis(Property.TABLE_SUSPEND_DURATION)) {
       // Tablet is suspended. See if its tablet server is back.
-      TServerInstance returnInstance = null;
-      Iterator<TServerInstance> find = tLists.destinations
-          .tailMap(new TServerInstance(tm.getSuspend().server, " ")).keySet().iterator();
-      if (find.hasNext()) {
-        TServerInstance found = find.next();
-        if (found.getHostAndPort().equals(tm.getSuspend().server)) {
-          returnInstance = found;
-        }
-      }
+      TServerInstance returnInstance =
+          findServerIgnoringSession(tLists.destinations, tm.getSuspend().server);
 
       // Old tablet server is back. Return this tablet to its previous owner.
       if (returnInstance != null) {
@@ -956,10 +967,14 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     var deadLogs = tLists.logsForDeadServers;
 
     if (!deadTablets.isEmpty()) {
-      int maxServersToShow = min(deadTablets.size(), 100);
-      Manager.log.debug("{} assigned to dead servers: {}...", deadTablets.size(),
-          deadTablets.subList(0, maxServersToShow));
-      Manager.log.debug("logs for dead servers: {}", deadLogs);
+      Manager.log.debug("[{}] {} tablets assigned to dead servers", store.name(),
+          deadTablets.size());
+      if (Manager.log.isTraceEnabled()) {
+        deadLogs.forEach((server, logs) -> Manager.log.trace("[{}] dead server: {} logs: {}",
+            store.name(), server, logs));
+      } else {
+        Manager.log.debug("[{}] {} logs exist for dead servers", store.name(), deadLogs.size());
+      }
       if (canSuspendTablets()) {
         store.suspend(deadTablets, deadLogs, manager.getSteadyTime());
       } else {
@@ -972,8 +987,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
     if (!tLists.suspendedToGoneServers.isEmpty()) {
       int maxServersToShow = min(deadTablets.size(), 100);
-      Manager.log.debug(deadTablets.size() + " suspended to gone servers: "
-          + deadTablets.subList(0, maxServersToShow) + "...");
+      Manager.log.debug("[{}] {} suspended to gone servers: {} ...", store.name(),
+          deadTablets.size(), deadTablets.subList(0, maxServersToShow));
       store.unsuspend(tLists.suspendedToGoneServers);
     }
   }

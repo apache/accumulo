@@ -20,33 +20,33 @@ package org.apache.accumulo.manager.tableOps.compact;
 
 import static java.util.Objects.requireNonNull;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.MoreCollectors;
+import com.google.common.base.Preconditions;
 
-public class CompactRange extends ManagerRepo {
+public class CompactRange extends AbstractFateOperation {
+
+  private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
@@ -80,56 +80,38 @@ public class CompactRange extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.COMPACT);
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.READ, true,
+            TableOperation.COMPACT, LockRange.of(startRow, endRow));
   }
 
   @Override
-  public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(final FateId fateId, FateEnv env) throws Exception {
     CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
-    KeyExtent keyExtent;
-    byte[] prevRowOfStartRowTablet = startRow;
-    byte[] endRowOfEndRowTablet = endRow;
+    var extent = new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
+        startRow == null ? null : new Text(startRow));
+    var widenedRange = LockRange.of(Utils.widen(env.getContext().getAmple(), extent));
+    log.debug("{} Widened compact range from {} to {}", fateId, LockRange.of(extent), widenedRange);
 
-    if (startRow != null) {
-      // The startRow in a compaction range is not inclusive, so do not want to find the tablet
-      // containing startRow but instead find the tablet that contains the next possible row after
-      // startRow
-      Text nextPossibleRow = new Key(startRow).followingKey(PartialKey.ROW).getRow();
-      keyExtent = findContaining(env.getContext().getAmple(), tableId, nextPossibleRow);
-      prevRowOfStartRowTablet =
-          keyExtent.prevEndRow() == null ? null : TextUtil.getBytes(keyExtent.prevEndRow());
-    }
+    // expecting the lock code should widen the range of the lock, make sure this happened
+    var myLock = Utils.getReadLock(env.getContext(), tableId, fateId, LockRange.infinite());
+    Preconditions.checkState(myLock.getRange().contains(widenedRange), "%s does not contain %s",
+        myLock.getRange(), widenedRange);
 
-    if (endRow != null) {
-      // find the tablet containing endRow and pass its end row to the CompactionDriver constructor.
-      keyExtent = findContaining(env.getContext().getAmple(), tableId, new Text(endRow));
-      endRowOfEndRowTablet =
-          keyExtent.endRow() == null ? null : TextUtil.getBytes(keyExtent.endRow());
-    }
-    return new CompactionDriver(namespaceId, tableId, prevRowOfStartRowTablet,
-        endRowOfEndRowTablet);
-  }
-
-  private static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
-    Objects.requireNonNull(row);
-    try (var tablets = ample.readTablets().forTable(tableId).overlapping(row, true, row)
-        .fetch(TabletMetadata.ColumnType.PREV_ROW).build()) {
-      return tablets.stream().collect(MoreCollectors.onlyElement()).getExtent();
-
-    }
-
+    return new CompactionDriver(namespaceId, tableId,
+        widenedRange.getStartRow() == null ? null : TextUtil.getBytes(widenedRange.getStartRow()),
+        widenedRange.getEndRow() == null ? null : TextUtil.getBytes(widenedRange.getEndRow()));
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     try {
       CompactionConfigStorage.deleteConfig(env.getContext(), fateId);
     } finally {
-      Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
-      Utils.unreserveTable(env, tableId, fateId, LockType.READ);
+      Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+      Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.READ);
     }
   }
 

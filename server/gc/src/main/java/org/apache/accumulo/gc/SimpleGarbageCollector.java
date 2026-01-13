@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -93,7 +94,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final Timer lastCompactorCheck = Timer.startNew();
 
-  SimpleGarbageCollector(ConfigOpts opts, String[] args) {
+  protected SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -110,9 +111,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ConfigOpts(), args)) {
-      gc.runServer();
-    }
+    AbstractServer.startServer(new SimpleGarbageCollector(new ConfigOpts(), args), log);
   }
 
   /**
@@ -218,7 +217,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         try (Scope outerScope = outerSpan.makeCurrent()) {
           Span innerSpan = TraceUtil.startSpan(this.getClass(), "loop");
           try (Scope innerScope = innerSpan.makeCurrent()) {
-            final long tStart = System.nanoTime();
+            final Timer timer = Timer.startNew();
             try {
               System.gc(); // make room
 
@@ -252,9 +251,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               status.current = new GcCycleStats();
             }
 
-            final long tStop = System.nanoTime();
             log.info(String.format("Collect cycle took %.2f seconds",
-                (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
+                timer.elapsed(MILLISECONDS) / 1000.0));
 
             // Clean up any unused write-ahead logs
             Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
@@ -281,7 +279,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           try {
             AccumuloClient accumuloClient = getContext();
 
-            final long actionStart = System.nanoTime();
+            final Timer actionTimer = Timer.startNew();
 
             String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
             log.debug("gc post action {} started", action);
@@ -303,12 +301,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                 log.trace("'none - no action' or invalid value provided: {}", action);
             }
 
-            final long actionComplete = System.nanoTime();
+            final Duration actionDuration = actionTimer.elapsed();
+            gcCycleMetrics.setPostOpDuration(actionDuration);
 
-            gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
-
-            log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
-                (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
+            log.info("gc post action {} completed in {} seconds", action,
+                String.format("%.2f", actionDuration.toMillis() / 1000.0));
 
           } catch (Exception e) {
             TraceUtil.setException(outerSpan, e, false);
@@ -354,15 +351,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         gracefulShutdown(getContext().rpcCreds());
       }
     }
-    super.close();
-    getShutdownComplete().set(true);
-    log.info("stop requested. exiting ... ");
-    try {
-      gcLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release GarbageCollector lock", e);
-    }
-
   }
 
   private void incrementStatsForRun(GCRun gcRun) {
@@ -372,7 +360,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     status.current.errors += gcRun.getErrorsStat();
   }
 
-  private void logStats() {
+  // public for ExitCodesIT
+  public void logStats() {
     log.info("Number of data file candidates for deletion: {}", status.current.candidates);
     log.info("Number of data file candidates still in use: {}", status.current.inUse);
     log.info("Number of successfully deleted data files: {}", status.current.deleted);
@@ -436,8 +425,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
     updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
-          processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
-          1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+          processor, getContext().getInstanceID(), this.getClass().getSimpleName(), 2,
+          ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
+          getContext().getServerSslParams(), getContext().getSaslParams(), 0,
           getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
           addresses);
     }, true);
