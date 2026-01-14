@@ -21,8 +21,6 @@ package org.apache.accumulo.server.util.checkCommand;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -32,7 +30,6 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.zookeeper.KeeperException;
 
 public class TableLocksCheckRunner implements CheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.TABLE_LOCKS;
@@ -56,8 +53,7 @@ public class TableLocksCheckRunner implements CheckRunner {
   }
 
   private static Admin.CheckCommand.CheckStatus checkTableLocks(ServerContext context,
-      Admin.CheckCommand.CheckStatus status)
-      throws InterruptedException, KeeperException, AccumuloException, AccumuloSecurityException {
+      Admin.CheckCommand.CheckStatus status) throws Exception {
     final AdminUtil<Admin> admin = new AdminUtil<>();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final var zk = context.getZooSession();
