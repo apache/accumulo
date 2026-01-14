@@ -61,8 +61,6 @@ public class BytesAccess {
   private static final Access ACCESS =
       Access.builder().authorizationValidator((auth, authChars) -> true).build();
 
-  // convert bytes to a string in such a way that each byte maps 1 to 1 to a char.
-
   public static void validate(byte[] expression) {
     ACCESS.validateExpression(new String(expression, ISO_8859_1));
   }
