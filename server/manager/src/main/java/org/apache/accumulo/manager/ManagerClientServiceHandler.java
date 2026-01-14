@@ -581,8 +581,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
             Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
-      log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
-          + property + "=" + value);
+      log.warn("Invalid table property, tried to set: tableId: {} to: {}={}", tableId.canonical(),
+          property, value, ex);
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
       ClientServiceHandler.checkTableId(manager.getContext(), tableName, op);
