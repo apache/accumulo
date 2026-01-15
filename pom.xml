@@ -934,6 +934,13 @@ under the License.
               <exclude>**/*.rf</exclude>
             </excludes>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.doxia</groupId>
+              <artifactId>doxia-site-renderer</artifactId>
+              <version>2.0.0</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
