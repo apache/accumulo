@@ -298,6 +298,29 @@ public abstract class TabletBase {
     long resultBytes = 0L;
 
     long maxResultsSize = getTableConfiguration().getAsBytes(Property.TABLE_SCAN_MAXMEM);
+    int duplicateBatchMultiplier =
+        getTableConfiguration().getCount(Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER);
+    if (duplicateBatchMultiplier < 1) {
+      duplicateBatchMultiplier = 1;
+    }
+    long maxResultsSizeWithDuplicates = maxResultsSize;
+    long maxEntriesWithDuplicates = scanParams.getMaxEntries();
+    if (duplicateBatchMultiplier > 1) {
+      try {
+        maxResultsSizeWithDuplicates =
+            Math.multiplyExact(maxResultsSize, (long) duplicateBatchMultiplier);
+      } catch (ArithmeticException e) {
+        maxResultsSizeWithDuplicates = Long.MAX_VALUE;
+        // TODO maybe log that this happened? Deduped somehow?
+      }
+      try {
+        maxEntriesWithDuplicates =
+            Math.multiplyExact(scanParams.getMaxEntries(), (long) duplicateBatchMultiplier);
+      } catch (ArithmeticException e) {
+        maxEntriesWithDuplicates = Long.MAX_VALUE;
+        // TODO maybe log that this happened? Deduped somehow?
+      }
+    }
 
     Key continueKey = null;
     boolean skipContinueKey = true;
@@ -324,6 +347,8 @@ public abstract class TabletBase {
         iter.hasTop() && rangeStartKey != null && rangeStartKey.equals(iter.getTopKey());
     int previousDuplicates = resumingOnSameKey ? duplicatesToSkip : 0;
     int duplicatesReturnedForCurrentKey = 0;
+    Key cutKey = null;
+    boolean cutPending = false;
 
     while (iter.hasTop()) {
       if (yield.hasYielded()) {
@@ -332,9 +357,15 @@ public abstract class TabletBase {
       }
       value = iter.getTopValue();
       key = iter.getTopKey();
-      if (currentKey == null || !key.equals(currentKey)) {
+      if (cutPending && !key.equals(cutKey)) {
+        continueKey = copyResumeKey(cutKey);
+        resumeOnSameKey = true;
+        skipContinueKey = false;
+        break;
+      }
+      if (!key.equals(currentKey)) {
         currentKey = copyResumeKey(key);
-        if (resumingOnSameKey && rangeStartKey != null && key.equals(rangeStartKey)) {
+        if (resumingOnSameKey && key.equals(rangeStartKey)) {
           duplicatesReturnedForCurrentKey = previousDuplicates;
         } else {
           duplicatesReturnedForCurrentKey = 0;
@@ -349,13 +380,24 @@ public abstract class TabletBase {
 
       duplicatesReturnedForCurrentKey++;
 
+      if (cutPending && (resultSize >= maxResultsSizeWithDuplicates
+          || results.size() >= maxEntriesWithDuplicates)) {
+        throw new IllegalStateException("Duplicate key run exceeded scan batch growth limit for "
+            + cutKey + ". Increase " + Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey()
+            + " or reduce duplicates for this key.");
+      }
+
       boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
 
       if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
-        continueKey = copyResumeKey(key);
-        resumeOnSameKey = true;
-        skipContinueKey = false;
-        break;
+        if (!cutPending) {
+          cutPending = true;
+          cutKey = currentKey;
+        } else if (timesUp) {
+          throw new IllegalStateException("Duplicate key run exceeded scan batch timeout for "
+              + cutKey + ". Increase " + Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey()
+              + " or batch timeout, or reduce duplicates for this key.");
+        }
       }
 
       iter.next();

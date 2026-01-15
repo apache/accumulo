@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -99,6 +100,7 @@ public class DuplicateKeyEdgeCasesIT extends AccumuloClusterHarness {
       properties.remove("table.iterator.minc.vers");
       properties.remove("table.iterator.majc.vers");
       properties.put(Property.TABLE_SCAN_MAXMEM.getKey(), "32k");
+      properties.put(Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey(), "20");
     });
 
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
@@ -127,6 +129,54 @@ public class DuplicateKeyEdgeCasesIT extends AccumuloClusterHarness {
   }
 
   /**
+   * Test that the {@link Property#TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER} property correctly
+   * allows the scan to grow or otherwise fail
+   */
+  @Test
+  public void duplicateRunExceedsBatchGrowthFailsScan() throws Exception {
+    final int totalWrites = 12;
+
+    client.tableOperations().create(tableName);
+    client.tableOperations().modifyProperties(tableName, properties -> {
+      properties.remove("table.iterator.scan.vers");
+      properties.remove("table.iterator.minc.vers");
+      properties.remove("table.iterator.majc.vers");
+      properties.put(Property.TABLE_SCAN_MAXMEM.getKey(), "32k");
+
+      // set multiplier to 1 so we can observe the scan fail due to too many duplicates
+      properties.put(Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey(), "1");
+    });
+
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (int i = 0; i < totalWrites; i++) {
+        Mutation m = new Mutation("row");
+        m.put("cf", "cq", 100L, new Value(("v-" + i).getBytes(UTF_8)));
+        bw.addMutation(m);
+      }
+    }
+    client.tableOperations().flush(tableName, null, null, true);
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+
+    assertThrows(RuntimeException.class, () -> {
+      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        scanner.setBatchSize(5);
+        scanner.stream().count();
+      }
+    }, "Expected the scan to fail due exceeding the max size");
+
+    // increase the batch size multiplier prop then retry the scan to make sure it passes this time
+    client.tableOperations().setProperty(tableName,
+        Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey(), "5");
+
+    long count;
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      scanner.setBatchSize(5);
+      count = scanner.stream().count();
+    }
+    assertEquals(totalWrites, count);
+  }
+
+  /**
    * Test that multiple entries with the same key but different values is properly read when the
    * underlying files change midway through a scan
    */
@@ -141,6 +191,7 @@ public class DuplicateKeyEdgeCasesIT extends AccumuloClusterHarness {
       properties.remove("table.iterator.minc.vers");
       properties.remove("table.iterator.majc.vers");
       properties.put(Property.TABLE_SCAN_MAXMEM.getKey(), "32k");
+      properties.put(Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey(), "20");
     });
 
     // Write duplicates in three flushes to get multiple files
@@ -202,6 +253,7 @@ public class DuplicateKeyEdgeCasesIT extends AccumuloClusterHarness {
       properties.remove("table.iterator.minc.vers");
       properties.remove("table.iterator.majc.vers");
       properties.put(Property.TABLE_SCAN_MAXMEM.getKey(), "32k");
+      properties.put(Property.TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER.getKey(), "20");
     });
 
     int written = 0;

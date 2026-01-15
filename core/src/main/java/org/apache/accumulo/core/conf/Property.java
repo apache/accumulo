@@ -1198,6 +1198,12 @@ public enum Property {
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
+  TABLE_SCAN_BATCH_DUPLICATE_MAX_MULTIPLIER("table.scan.batch.duplicate.max.multiplier", "3",
+      PropertyType.COUNT,
+      "When a scan batch would end on a duplicate key, allow the batch to grow by this "
+          + "multiplier of the scan batch size and table scan max memory to avoid splitting duplicate keys. "
+          + "If the duplicate run still exceeds this limit, the scan fails to avoid dropping keys.",
+      "2.1.5"),
   TABLE_SHUFFLE_SOURCES("table.shuffle.sources", "false", PropertyType.BOOLEAN,
       "Shuffle the opening order for Rfiles to reduce thread contention on file open operations.",
       "2.1.5"),
