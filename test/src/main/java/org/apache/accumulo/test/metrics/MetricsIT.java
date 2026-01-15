@@ -120,7 +120,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             METRICS_SCAN_RESERVATION_TOTAL_TIMER,
             METRICS_SCAN_RESERVATION_WRITEOUT_TIMER,
             METRICS_SCAN_TABLET_METADATA_CACHE,
-            METRICS_SERVER_IDLE);
+            METRICS_SERVER_IDLE,
+            METRICS_SCAN_EXCEPTIONS);
     // @formatter:on
 
     Map<String,String> expectedMetricNames = this.getMetricFields();

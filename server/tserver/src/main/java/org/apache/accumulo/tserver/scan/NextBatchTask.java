@@ -48,6 +48,17 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     }
   }
 
+  private void recordException(SingleScanSession scanSession) {
+    if (scanSession != null && server.getScanMetrics() != null) {
+      String executorName = getExecutorName(scanSession);
+      server.getScanMetrics().incrementExecutorExceptions(executorName);
+    }
+  }
+
+  private String getExecutorName(SingleScanSession scanSession) {
+    return scanSession.scanParams.getScanDispatch().getExecutorName();
+  }
+
   @Override
   public void run() {
 
@@ -93,10 +104,12 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
         addResult(iie);
       }
     } catch (TooManyFilesException | SampleNotPresentException e) {
+      recordException(scanSession);
       addResult(e);
     } catch (IOException | RuntimeException e) {
       log.warn("exception while scanning tablet {} for {}", scanSession.extent, scanSession.client,
           e);
+      recordException(scanSession);
       addResult(e);
     } finally {
       transitionFromRunning();
