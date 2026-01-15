@@ -36,7 +36,7 @@
             </li>
             <li class="nav-item dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                <span id="statusNotification" class="icon-dot normal"></span>&nbspServers
+                <span id="statusNotification" class="icon-dot normal"></span>&nbsp;Servers
               </a>
               <ul class="dropdown-menu">
                 <li><a class="dropdown-item" href="manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>

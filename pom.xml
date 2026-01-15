@@ -739,7 +739,14 @@ under the License.
             <licenseSets>
               <licenseSet>
                 <inlineHeader>${accumulo.build.license.header}</inlineHeader>
+                <includes>
+                  <!-- override some of the default exclusions -->
+                  <include>**/*.md</include>
+                  <include>**/.github</include>
+                  <include>**/.github/**</include>
+                </includes>
                 <excludes combine.children="append">
+                  <exclude>**/.github/ISSUE_TEMPLATE/**</exclude>
                   <exclude>**/DEPENDENCIES</exclude>
                   <exclude>**/LICENSE</exclude>
                   <exclude>**/NOTICE</exclude>
@@ -756,6 +763,7 @@ under the License.
               <css>SLASHSTAR_STYLE</css>
               <h>SLASHSTAR_STYLE</h>
               <java>SLASHSTAR_STYLE</java>
+              <md>XML_STYLE</md>
               <proto>SLASHSTAR_STYLE</proto>
               <thrift>SLASHSTAR_STYLE</thrift>
             </mapping>
@@ -961,6 +969,13 @@ under the License.
               <exclude>**/*.rf</exclude>
             </excludes>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.doxia</groupId>
+              <artifactId>doxia-site-renderer</artifactId>
+              <version>2.0.0</version>
+            </dependency>
+          </dependencies>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
