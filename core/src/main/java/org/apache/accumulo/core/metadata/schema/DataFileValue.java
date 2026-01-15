@@ -28,17 +28,34 @@ public class DataFileValue {
   private final long size;
   private final long numEntries;
   private long time = -1;
+  private boolean shared;
+
+  public DataFileValue(long size, long numEntries, long time, boolean shared) {
+    this.size = size;
+    this.numEntries = numEntries;
+    this.time = time;
+    this.shared = shared;
+  }
+
+  public DataFileValue(long size, long numEntries, boolean shared) {
+    this.size = size;
+    this.numEntries = numEntries;
+    this.time = -1;
+    this.shared = shared;
+  }
 
   public DataFileValue(long size, long numEntries, long time) {
     this.size = size;
     this.numEntries = numEntries;
     this.time = time;
+    this.shared = false;
   }
 
   public DataFileValue(long size, long numEntries) {
     this.size = size;
     this.numEntries = numEntries;
     this.time = -1;
+    this.shared = false;
   }
 
   public DataFileValue(String encodedDFV) {
@@ -46,11 +63,20 @@ public class DataFileValue {
 
     size = Long.parseLong(ba[0]);
     numEntries = Long.parseLong(ba[1]);
+    time = -1;
+    shared = false;
 
-    if (ba.length == 3) {
-      time = Long.parseLong(ba[2]);
-    } else {
-      time = -1;
+    if (ba.length >= 3) {
+      // Field 3 could be either time (old format) or shared (new format)
+      // Try to parse as time first (for backward compatibility)
+      try {
+        time = Long.parseLong(ba[2]);
+      } catch (NumberFormatException e) {
+        shared = Boolean.parseBoolean(ba[2]);
+      }
+    }
+    if (ba.length == 4) {
+      time = Long.parseLong(ba[3]);
     }
   }
 
@@ -74,15 +100,19 @@ public class DataFileValue {
     return time;
   }
 
+  public boolean isShared() {
+    return shared;
+  }
+
   public byte[] encode() {
     return encodeAsString().getBytes(UTF_8);
   }
 
   public String encodeAsString() {
     if (time >= 0) {
-      return ("" + size + "," + numEntries + "," + time);
+      return ("" + size + "," + numEntries + "," + shared + "," + time);
     }
-    return ("" + size + "," + numEntries);
+    return ("" + size + "," + numEntries + "," + shared);
   }
 
   public Value encodeAsValue() {
@@ -93,7 +123,8 @@ public class DataFileValue {
   public boolean equals(Object o) {
     if (o instanceof DataFileValue odfv) {
 
-      return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time;
+      return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time
+          && shared == odfv.shared;
     }
 
     return false;
@@ -114,6 +145,10 @@ public class DataFileValue {
       throw new IllegalArgumentException();
     }
     this.time = time;
+  }
+
+  public void setShared(boolean shared) {
+    this.shared = shared;
   }
 
   /**

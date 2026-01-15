@@ -167,7 +167,7 @@ class LoadFiles extends AbstractFateOperation {
       this.loadingFiles = new HashMap<>();
     }
 
-    void load(List<TabletMetadata> tablets, Files files) {
+    void load(List<TabletMetadata> tablets, Files files, Set<String> sharedFiles) {
 
       Map<ReferencedTabletFile,Bulk.FileInfo> toLoad = new HashMap<>();
       for (var fileInfo : files) {
@@ -245,16 +245,18 @@ class LoadFiles extends AbstractFateOperation {
           ReferencedTabletFile refTabFile = entry.getKey();
           Bulk.FileInfo fileInfo = entry.getValue();
 
+          boolean isShared = sharedFiles.contains(fileInfo.getFileName());
           DataFileValue dfv;
 
           if (setTime) {
             // This should always be set outside the loop when setTime is true and should not be
             // null at this point
             Preconditions.checkState(fileTime != null);
-            dfv =
-                new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(), fileTime);
+            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(),
+                fileTime, isShared);
           } else {
-            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries());
+            dfv =
+                new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(), isShared);
           }
 
           filesToLoad.put(refTabFile, dfv);
@@ -402,6 +404,26 @@ class LoadFiles extends AbstractFateOperation {
     String fmtTid = fateId.getTxUUIDStr();
     log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
+    Map<String,Integer> fileTabletCount = new HashMap<>();
+    while (lmi.hasNext()) {
+      loadMapEntry = lmi.next();
+      for (var fileInfo : loadMapEntry.getValue()) {
+        String fileName = fileInfo.getFileName();
+        fileTabletCount.merge(fileName, 1, Integer::sum);
+      }
+    }
+
+    Set<String> sharedFiles = fileTabletCount.entrySet().stream().filter(e -> e.getValue() > 1)
+        .map(Map.Entry::getKey).collect(Collectors.toSet());
+
+    log.debug("{}:  Detected {} shared files out of {} total files", fmtTid, sharedFiles.size(),
+        fileTabletCount.size());
+
+    // Reset the iterator to start from the beginning
+    lmi = new PeekingIterator<>(loadMapIter);
+    loadMapEntry = lmi.peek();
+    startRow = loadMapEntry.getKey().prevEndRow();
+
     loader.start(bulkDir, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
@@ -429,7 +451,7 @@ class LoadFiles extends AbstractFateOperation {
         }
         List<TabletMetadata> tablets =
             findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
-        loader.load(tablets, loadMapEntry.getValue());
+        loader.load(tablets, loadMapEntry.getValue(), sharedFiles);
       }
     } finally {
       tabletsMetadata.close();
