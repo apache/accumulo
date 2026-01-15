@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -247,20 +248,15 @@ class ScanDataSource implements DataSource {
         // iterator options.
 
         // First ensure the set iterators do not conflict with the existing table iterators.
+        List<IteratorSetting> picIteratorSettings = new ArrayList<>(pic.getIterInfo().size());
+        for (var picIterInfo : pic.getIterInfo()) {
+          picIteratorSettings.add(getIteratorSetting(picIterInfo, pic.getOpts()));
+        }
         for (var scanParamIterInfo : scanParams.getSsiList()) {
-          IteratorSetting setting;
-          var scanParamIterOpts = scanParams.getSsio().get(scanParamIterInfo.getIterName());
-          if (scanParamIterOpts != null) {
-            setting = new IteratorSetting(scanParamIterInfo.getPriority(),
-                scanParamIterInfo.getIterName(), scanParamIterInfo.getClassName(),
-                scanParamIterOpts);
-          } else {
-            setting = new IteratorSetting(scanParamIterInfo.getPriority(),
-                scanParamIterInfo.getIterName(), scanParamIterInfo.getClassName());
-          }
           try {
-            IteratorConfigUtil.checkScanIteratorConflicts(pic.getIterInfo(), pic.getOpts(),
-                setting);
+            IteratorConfigUtil.checkIteratorConflicts(
+                getIteratorSetting(scanParamIterInfo, scanParams.getSsio()),
+                EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings));
           } catch (AccumuloException e) {
             throw new IllegalArgumentException(e);
           }
@@ -292,6 +288,20 @@ class ScanDataSource implements DataSource {
     } else {
       return visFilter;
     }
+  }
+
+  private IteratorSetting getIteratorSetting(IterInfo iterInfo,
+      Map<String,Map<String,String>> iterOpts) {
+    IteratorSetting setting;
+    var opts = iterOpts.get(iterInfo.getIterName());
+    if (opts != null) {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName(), opts);
+    } else {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName());
+    }
+    return setting;
   }
 
   private void returnIterators() {

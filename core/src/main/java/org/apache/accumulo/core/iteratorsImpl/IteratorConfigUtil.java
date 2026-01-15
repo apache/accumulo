@@ -384,84 +384,61 @@ public class IteratorConfigUtil {
     }
   }
 
-  public static void checkScanIteratorConflicts(List<IterInfo> iterInfos,
-      Map<String,Map<String,String>> iterOpts, IteratorSetting setting) throws AccumuloException {
-    Map<String,String> props = new HashMap<>();
-    for (var iterInfo : iterInfos) {
-      props.put(
-          String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX.getKey(),
-              IteratorScope.scan.name().toLowerCase(), iterInfo.getIterName()),
-          String.format("%s,%s", iterInfo.getPriority(), iterInfo.getClassName()));
-      var options = iterOpts.get(iterInfo.getIterName());
-      if (options != null) {
-        for (var iterOpt : options.entrySet()) {
-          props.put(String.format("%s%s.%s.opt.%s", Property.TABLE_ITERATOR_PREFIX.getKey(),
-              IteratorScope.scan.name().toLowerCase(), iterInfo.getIterName(), iterOpt.getKey()),
-              iterOpt.getValue());
-        }
-      }
-    }
-    checkIteratorConflicts(props, setting, EnumSet.of(IteratorScope.scan));
-  }
-
-  public static void checkIteratorConflicts(Map<String,String> props, IteratorSetting setting,
-      EnumSet<IteratorScope> scopes) throws AccumuloException {
-    for (IteratorScope scope : scopes) {
-      String scopeStr =
-          String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
-      String nameStr = String.format("%s.%s", scopeStr, setting.getName());
-      String optStr = String.format("%s.opt.", nameStr);
-      String valStr = String.format("%s,%s", setting.getPriority(), setting.getIteratorClass());
-      Map<String,String> optionConflicts = new TreeMap<>();
-      // skip if the setting is present in the map... not a conflict if exactly the same
-      if (props.containsKey(nameStr) && props.get(nameStr).equals(valStr)
-          && IteratorConfigUtil.containsSameIterOpts(props, setting, optStr)) {
+  public static void checkIteratorConflicts(IteratorSetting iterToCheck,
+      EnumSet<IteratorScope> iterToCheckScopes,
+      Map<IteratorScope,List<IteratorSetting>> existingIters) throws AccumuloException {
+    for (var scope : iterToCheckScopes) {
+      var existingItersForScope = existingIters.get(scope);
+      if (existingItersForScope == null) {
         continue;
       }
-      for (Entry<String,String> property : props.entrySet()) {
-        if (property.getKey().startsWith(scopeStr)) {
-          if (property.getKey().equals(nameStr)) {
-            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
-                + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
-          }
-          if (property.getKey().startsWith(optStr)) {
-            optionConflicts.put(property.getKey(), property.getValue());
-          }
-          if (property.getKey().contains(".opt.")) {
-            continue;
-          }
-          String[] parts = property.getValue().split(",");
-          if (parts.length != 2) {
-            throw new AccumuloException("Bad value for existing iterator setting: "
-                + property.getKey() + "=" + property.getValue());
-          }
-          try {
-            if (Integer.parseInt(parts[0]) == setting.getPriority()) {
-              throw new AccumuloException(new IllegalArgumentException(
-                  "iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
-            }
-          } catch (NumberFormatException e) {
-            throw new AccumuloException("Bad value for existing iterator setting: "
-                + property.getKey() + "=" + property.getValue());
-          }
+      for (var existingIter : existingItersForScope) {
+        // not a conflict if exactly the same
+        if (iterToCheck.equals(existingIter)) {
+          continue;
         }
-      }
-      if (!optionConflicts.isEmpty()) {
-        throw new AccumuloException(new IllegalArgumentException(
-            "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
+        if (iterToCheck.getName().equals(existingIter.getName())) {
+          String msg =
+              String.format("iterator name conflict at %s scope. %s conflicts with existing %s",
+                  scope, iterToCheck, existingIter);
+          throw new AccumuloException(new IllegalArgumentException(msg));
+        }
+        if (iterToCheck.getPriority() == existingIter.getPriority()) {
+          String msg =
+              String.format("iterator priority conflict at %s scope. %s conflicts with existing %s",
+                  scope, iterToCheck, existingIter);
+          throw new AccumuloException(new IllegalArgumentException(msg));
+        }
       }
     }
   }
 
-  public static boolean containsSameIterOpts(Map<String,String> props, IteratorSetting setting,
-      String optStr) {
-    for (var opt : setting.getOptions().entrySet()) {
-      final String optKey = optStr + opt.getKey();
-      if (!props.containsKey(optKey) || !props.get(optKey).equals(opt.getValue())) {
-        return false;
+  public static void checkIteratorConflicts(Map<String,String> props, IteratorSetting iterToCheck,
+      EnumSet<IteratorScope> iterToCheckScopes) throws AccumuloException {
+    // parse the props map
+    Map<IteratorScope,List<IteratorSetting>> existingIters =
+        new HashMap<>(IteratorScope.values().length);
+    for (var prop : props.entrySet()) {
+      if (isNonOptionIterProp(prop.getKey(), prop.getValue())) {
+        var propKeyParts = prop.getKey().split("\\.");
+        var scope = IteratorScope.valueOf(propKeyParts[2]);
+        var name = propKeyParts[3];
+        var propValParts = prop.getValue().split(",");
+        var priority = Integer.parseInt(propValParts[0]);
+        var clazz = propValParts[1];
+        var existingIter =
+            new IteratorSetting(priority, name, clazz, gatherIterOpts(prop.getKey(), props));
+        if (existingIters.get(scope) == null) {
+          List<IteratorSetting> iters = new ArrayList<>();
+          iters.add(existingIter);
+          existingIters.put(scope, iters);
+        } else {
+          existingIters.get(scope).add(existingIter);
+        }
       }
     }
-    return true;
+    // check for conflicts
+    checkIteratorConflicts(iterToCheck, iterToCheckScopes, existingIters);
   }
 
   /**
@@ -472,8 +449,12 @@ public class IteratorConfigUtil {
         && propVal.matches(IteratorConfigUtil.ITERATOR_PROP_VAL_REGEX);
   }
 
+  public static boolean isOptionIterProp(String propKey) {
+    return propKey.matches(ITERATOR_PROP_OPT_REGEX);
+  }
+
   public static boolean isIterProp(String propKey, String propVal) {
-    return isNonOptionIterProp(propKey, propVal) || ITERATOR_PROP_OPT_REGEX.matches(propKey);
+    return isNonOptionIterProp(propKey, propVal) || isOptionIterProp(propKey);
   }
 
   /**
@@ -494,8 +475,7 @@ public class IteratorConfigUtil {
   public static Map<String,String> gatherIterOpts(String iterPropKey, Map<String,String> map) {
     Map<String,String> opts = new HashMap<>();
     for (var iteratorProp : map.entrySet()) {
-      if (ITERATOR_PROP_OPT_REGEX.matches(iteratorProp.getKey())
-          && iteratorProp.getKey().contains(iterPropKey)) {
+      if (isOptionIterProp(iteratorProp.getKey()) && iteratorProp.getKey().contains(iterPropKey)) {
         String[] parts = iteratorProp.getKey().split("\\.");
         opts.put(parts[parts.length - 1], iteratorProp.getValue());
       }

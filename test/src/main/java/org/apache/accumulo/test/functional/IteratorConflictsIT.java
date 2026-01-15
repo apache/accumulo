@@ -113,6 +113,11 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
   private static final String defaultIterVal =
       defaultTableIter.getPriority() + "," + defaultTableIter.getIteratorClass();
+  private static final String defaultIterOptKey = Property.TABLE_ITERATOR_PREFIX.getKey()
+      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName()
+      + ".opt." + defaultTableIter.getOptions().entrySet().iterator().next().getKey();
+  private static final String defaultIterOptVal =
+      defaultTableIter.getOptions().entrySet().iterator().next().getValue();
 
   @BeforeAll
   public static void startup() throws Exception {
@@ -470,10 +475,14 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String noDefaultsTable12 = ns12 + "." + tables[22];
     tops.create(noDefaultsTable12, new NewTableConfiguration().withoutDefaults());
     testDefaultIterConflict(AccumuloException.class,
-        () -> nops.setProperty(ns11, defaultIterPrioConflictKey, defaultIterPrioConflictVal),
-        () -> nops.setProperty(ns11, defaultIterNameConflictKey, defaultIterNameConflictVal),
-        () -> nops.setProperty(ns12, defaultIterPrioConflictKey, defaultIterPrioConflictVal),
-        () -> nops.setProperty(ns12, defaultIterNameConflictKey, defaultIterNameConflictVal));
+        () -> nops.modifyProperties(ns11,
+            props -> props.put(defaultIterPrioConflictKey, defaultIterPrioConflictVal)),
+        () -> nops.modifyProperties(ns11,
+            props -> props.put(defaultIterNameConflictKey, defaultIterNameConflictVal)),
+        () -> nops.modifyProperties(ns12,
+            props -> props.put(defaultIterPrioConflictKey, defaultIterPrioConflictVal)),
+        () -> nops.modifyProperties(ns12,
+            props -> props.put(defaultIterNameConflictKey, defaultIterNameConflictVal)));
 
     // testing CloneConfiguration.Builder.setPropertiesToSet
     String dst1 = tables[23];
@@ -519,6 +528,11 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
   @Test
   public void testSameIterNoConflict() throws Throwable {
+    // note about setProperty calls in this test. The default table iter has an option so the
+    // property representation of this iter is a property for the iter and a property for the
+    // option (2 properties). Obviously we cannot call setProperty with both of these properties,
+    // but calling setProperty for one of these properties should be fine as it has no effect on
+    // the config.
     final String[] names = getUniqueNames(16);
 
     // testing Scanner.addScanIterator
@@ -536,9 +550,6 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     }
 
     // testing TableOperations.setProperty
-    // note that this is not technically the exact same iterator since the default iterator has
-    // options (which are separate properties), but this call has no effect on the
-    // property map/iterators, so this call should not throw
     final String table2 = names[1];
     tops.create(table2);
     tops.attachIterator(table2, iter1);
@@ -546,15 +557,15 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> tops.setProperty(table2, defaultIterKey, defaultIterVal));
 
     // testing TableOperations.modifyProperties
-    // note that this is not technically the exact same iterator since the default iterator has
-    // options (which are separate properties), but this call has no effect on the
-    // property map/iterators, so this call should not throw
     final String table3 = names[2];
     tops.create(table3);
     tops.attachIterator(table3, iter1);
     testSameIterNoConflict(
         () -> tops.modifyProperties(table3, props -> props.put(iter1Key, iter1Val)),
-        () -> tops.modifyProperties(table3, props -> props.put(defaultIterKey, defaultIterVal)));
+        () -> tops.modifyProperties(table3, props -> {
+          props.put(defaultIterKey, defaultIterVal);
+          props.put(defaultIterOptKey, defaultIterOptVal);
+        }));
 
     // testing NewTableConfiguration.attachIterator
     final String ns1 = names[3];
@@ -597,8 +608,11 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     nops.create(ns4);
     tops.create(table9);
     tops.attachIterator(table9, iter1);
-    testSameIterNoConflict(() -> nops.setProperty(ns4, iter1Key, iter1Val),
-        () -> nops.setProperty(ns4, defaultIterKey, defaultIterVal));
+    testSameIterNoConflict(() -> nops.modifyProperties(ns4, props -> props.put(iter1Key, iter1Val)),
+        () -> nops.modifyProperties(ns4, props -> {
+          props.put(defaultIterKey, defaultIterVal);
+          props.put(defaultIterOptKey, defaultIterOptVal);
+        }));
 
     // testing CloneConfiguration.Builder.setPropertiesToSet
     final String src = names[13];
@@ -609,8 +623,11 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     testSameIterNoConflict(
         () -> tops.clone(src, dst1,
             CloneConfiguration.builder().setPropertiesToSet(Map.of(iter1Key, iter1Val)).build()),
-        () -> tops.clone(src, dst2, CloneConfiguration.builder()
-            .setPropertiesToSet(Map.of(defaultIterKey, defaultIterVal)).build()));
+        () -> tops.clone(src, dst2,
+            CloneConfiguration.builder()
+                .setPropertiesToSet(
+                    Map.of(defaultIterKey, defaultIterVal, defaultIterOptKey, defaultIterOptVal))
+                .build()));
   }
 
   private void testSameIterNoConflict(Executable addIter1Executable,
