@@ -43,7 +43,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -97,7 +97,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private static final int MAX_SLEEP = 30000;
 
   private final Authorizations auths;
-  private final AccessEvaluator accessEvaluator;
+  private final BytesAccess.BytesEvaluator accessEvaluator;
   private final Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
   private final ClientContext context;
   private final ClientTabletCache locator;
@@ -375,7 +375,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
-    this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
+    this.accessEvaluator = BytesAccess.newEvaluator(config.getAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
         config.getMaxWriteThreads(), CONDITIONAL_WRITER_POOL.poolName);
     this.locator = new SyncingClientTabletCache(context, tableId);
