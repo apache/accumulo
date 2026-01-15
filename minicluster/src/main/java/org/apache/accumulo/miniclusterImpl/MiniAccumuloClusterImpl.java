@@ -138,6 +138,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private final AtomicReference<MiniDFSCluster> miniDFS = new AtomicReference<>();
   private final List<Process> cleanup = new ArrayList<>();
   private final MiniAccumuloClusterControl clusterControl;
+  private final Set<String> defaultJvmOpts =
+      Set.of("-XX:+PerfDisableSharedMem", "-XX:+AlwaysPreTouch");
+  private final Map<String,String> defaultSystemProps =
+      Map.of("apple.awt.UIElement", "true", "java.net.preferIPv4Stack", "true");
 
   private boolean initialized = false;
   private ExecutorService executor;
@@ -347,18 +351,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
-    Stream<String> defaultJvmOpts = Stream.of("-XX:+PerfDisableSharedMem", "-XX:+AlwaysPreTouch");
-    Map<String,String> defaultSystemProps =
-        Map.of("-Dapple.awt.UIElement", "true", "-Djava.net.preferIPv4Stack", "true");
-
     var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
 
-    var jvmOptions = Stream.concat(Stream.concat(defaultJvmOpts, config.getJvmOptions().stream()),
-        extraJvmOpts.stream());
+    var jvmOptions =
+        Stream.concat(Stream.concat(defaultJvmOpts.stream(), config.getJvmOptions().stream()),
+            extraJvmOpts.stream());
     var systemProps = Stream
         .concat(defaultSystemProps.entrySet().stream(),
             config.getSystemProperties().entrySet().stream())
-        .map(e -> String.format("%s=%s", e.getKey(), e.getValue()));
+        .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
 
     var classArgs = Stream.of(Main.class.getName(), clazz.getName());
 
