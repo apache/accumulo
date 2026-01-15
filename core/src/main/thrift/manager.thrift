@@ -127,7 +127,6 @@ service FateService {
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
-    4:ThriftPropertyException tpe
   )
 
   // wait for completion of the operation and get the returned exception, if any
