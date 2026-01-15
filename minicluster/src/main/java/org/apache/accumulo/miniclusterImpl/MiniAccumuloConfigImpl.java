@@ -89,7 +89,7 @@ public class MiniAccumuloConfigImpl {
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private final Map<ServerType,Function<String,Class<?>>> rgServerClassOverrides = new HashMap<>();
   private boolean jdwpEnabled = false;
-  private final Map<String,String> systemProperties = new HashMap<>();
+  private Map<String,String> systemProperties = new HashMap<>();
   private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
@@ -138,11 +138,6 @@ public class MiniAccumuloConfigImpl {
     this.dir = dir.toPath();
     this.rootPassword = rootPassword;
     this.serverConfiguration = new ClusterServerConfiguration();
-    // Set default options
-    this.jvmOptions.add("-XX:+PerfDisableSharedMem");
-    this.jvmOptions.add("-XX:+AlwaysPreTouch");
-    this.systemProperties.put("-Dapple.awt.UIElement", "true");
-    this.systemProperties.put("-Djava.net.preferIPv4Stack", "true");
   }
 
   /**
@@ -638,7 +633,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.0
    */
   public void setSystemProperties(Map<String,String> systemProperties) {
-    this.systemProperties.putAll(systemProperties);
+    this.systemProperties = new HashMap<>(systemProperties);
   }
 
   /**
@@ -651,36 +646,13 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Add a JVM option to the spawned JVM processes. The default set of JVM options contains
-   * '-XX:+PerfDisableSharedMem' and '-XX:+AlwaysPreTouch'
-   *
-   * @param option JVM option
-   * @since 2.1.5
-   */
-  public void addJvmOption(String option) {
-    this.jvmOptions.add(option);
-  }
-
-  /**
-   * Remove an option from the set of JVM options. Only options that match the {@code option}
-   * exactly will be removed.
-   *
-   * @param option JVM option
-   * @return true if removed, false if not removed
-   * @since 2.1.5
-   */
-  public boolean removeJvmOption(String option) {
-    return this.jvmOptions.remove(option);
-  }
-
-  /**
-   * Get the set of JVM options
+   * Get the set of JVM options. Changes to this set will affect the Configuration
    *
    * @return set of options
    * @since 2.1.5
    */
   public Set<String> getJvmOptions() {
-    return new HashSet<>(jvmOptions);
+    return jvmOptions;
   }
 
   /**
