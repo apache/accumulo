@@ -347,10 +347,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String javaHome = System.getProperty("java.home");
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
+    Stream<String> defaultJvmOpts = Stream.of("-XX:+PerfDisableSharedMem", "-XX:+AlwaysPreTouch");
+    Map<String,String> defaultSystemProps =
+        Map.of("-Dapple.awt.UIElement", "true", "-Djava.net.preferIPv4Stack", "true");
+
     var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
-    var jvmOptions = Stream.concat(config.getJvmOptions().stream(), extraJvmOpts.stream());
-    var systemProps = config.getSystemProperties().entrySet().stream()
-        .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
+
+    var jvmOptions = Stream.concat(Stream.concat(defaultJvmOpts, config.getJvmOptions().stream()),
+        extraJvmOpts.stream());
+    var systemProps = Stream
+        .concat(defaultSystemProps.entrySet().stream(),
+            config.getSystemProperties().entrySet().stream())
+        .map(e -> String.format("%s=%s", e.getKey(), e.getValue()));
 
     var classArgs = Stream.of(Main.class.getName(), clazz.getName());
 
