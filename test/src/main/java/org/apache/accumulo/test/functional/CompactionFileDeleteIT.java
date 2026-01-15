@@ -87,77 +87,6 @@ public class CompactionFileDeleteIT extends AccumuloClusterHarness {
     }
   }
 
-  // /**
-  // * Test that files are appropriately marked as shared or not shared during tablet split
-  // */
-  // @Test
-  // public void testSplitMarksFilesCorrectly() throws Exception {
-  // try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-  // String tableName = getUniqueNames(1)[0];
-  // client.tableOperations().create(tableName);
-  // TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-  //
-  // try (BatchWriter bw = client.createBatchWriter(tableName)) {
-  // for (int i = 0; i < 1000; i++) {
-  // Mutation m = new Mutation(String.format("row%04d", i));
-  // m.put("cf", "cq", "value" + i);
-  // bw.addMutation(m);
-  // }
-  // }
-  // client.tableOperations().flush(tableName, null, null, true);
-  // Map<StoredTabletFile,Boolean> filesBeforeSplit = getFilesSharedStatus(client, tableId);
-  // log.info("Files before split: {}", filesBeforeSplit.size());
-  //
-  // SortedSet<Text> splits = new TreeSet<>();
-  // splits.add(new Text("row0500"));
-  // client.tableOperations().addSplits(tableName, splits);
-  //
-  // int attempts = 0;
-  // int tabletCount = 0;
-  // while (attempts < 30) { // 30 seconds max
-  // tabletCount = getFilesPerTablet(client, tableId).size();
-  // if (tabletCount >= 2) {
-  // break;
-  // }
-  // Thread.sleep(1000);
-  // attempts++;
-  // }
-  //
-  // log.info("Split completed, found {} tablets after {} seconds", tabletCount, attempts);
-  // assertTrue(tabletCount >= 2, "Expected at least 2 tablets after split");
-  //
-  // Map<String,Map<StoredTabletFile,Boolean>> tabletFiles = getFilesPerTablet(client, tableId);
-  // log.info("Number of tablets after split: {}", tabletFiles.size());
-  //
-  // for (Map.Entry<String,Map<StoredTabletFile,Boolean>> tabletEntry : tabletFiles.entrySet()) {
-  // String tablet = tabletEntry.getKey();
-  // Map<StoredTabletFile,Boolean> files = tabletEntry.getValue();
-  //
-  // log.info("Tablet: {} has {} files", tablet, files.size());
-  //
-  // for (Map.Entry<StoredTabletFile,Boolean> fileEntry : files.entrySet()) {
-  // StoredTabletFile file = fileEntry.getKey();
-  // Boolean isShared = fileEntry.getValue();
-  // long tabletCountWithFile = tabletFiles.values().stream()
-  // .filter(tabletFileMap -> tabletFileMap.containsKey(file))
-  // .count();
-  //
-  // log.info(" File: {}, Shared: {}, TabletCount: {}",
-  // file.getFileName(), isShared, tabletCountWithFile);
-  //
-  // if (tabletCountWithFile > 1) {
-  // assertTrue(isShared,
-  // "File " + file.getFileName() + " exists in " + tabletCountWithFile
-  // + " tablets and should be marked as shared");
-  // } else {
-  // assertFalse(isShared,
-  // "File " + file.getFileName() + " exists in only 1 tablet and should NOT be shared");
-  // }
-  // }
-  // }
-  // }
-  // }
-
   /**
    * Test that files are marked as shared during table clone
    */
@@ -253,7 +182,6 @@ public class CompactionFileDeleteIT extends AccumuloClusterHarness {
       client.tableOperations().create(tableName);
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
 
-      // Create multiple files
       for (int batch = 0; batch < 4; batch++) {
         try (BatchWriter bw = client.createBatchWriter(tableName)) {
           for (int i = 0; i < 100; i++) {
@@ -271,9 +199,7 @@ public class CompactionFileDeleteIT extends AccumuloClusterHarness {
       assertTrue(beforeCount >= 3, "Expected at least 3 files");
       before.forEach((f, s) -> assertFalse(s, "Files should not be shared"));
 
-      // Compact
       client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-
       Map<StoredTabletFile,Boolean> after = getFilesSharedStatus(client, tableId);
       int afterCount = after.size();
       log.info("Files after compaction: {}", afterCount);
@@ -281,62 +207,8 @@ public class CompactionFileDeleteIT extends AccumuloClusterHarness {
       assertTrue(afterCount <= beforeCount, "Expected same or fewer files after compaction");
       after.forEach((f, s) -> assertFalse(s, "Compaction output should not be shared"));
 
-      log.info("✓ Compaction test passed");
     }
   }
-
-  // /**
-  // * Test that shared files go through GC process when compacted
-  // */
-  // @Test
-  // public void testCompactionCreatesGcMarkersForSharedFiles() throws Exception {
-  // try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-  // String tableName = getUniqueNames(1)[0];
-  //
-  // Map<String,String> props = new HashMap<>();
-  // props.put(Property.TABLE_MAJC_RATIO.getKey(), "10");
-  // NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props);
-  // client.tableOperations().create(tableName, ntc);
-  //
-  // TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-  //
-  // try (BatchWriter bw = client.createBatchWriter(tableName)) {
-  // for (int i = 0; i < 500; i++) {
-  // Mutation m = new Mutation(String.format("row%04d", i));
-  // m.put("cf", "cq", "value" + i);
-  // bw.addMutation(m);
-  // }
-  // }
-  // client.tableOperations().flush(tableName, null, null, true);
-  //
-  // SortedSet<Text> splits = new TreeSet<>();
-  // splits.add(new Text("row0250"));
-  // client.tableOperations().addSplits(tableName, splits);
-  //
-  // Map<String,Map<StoredTabletFile,Boolean>> tabletFilesBefore =
-  // getFilesPerTablet(client, tableId);
-  //
-  // StoredTabletFile sharedFile = null;
-  // for (Map<StoredTabletFile,Boolean> files : tabletFilesBefore.values()) {
-  // for (Map.Entry<StoredTabletFile,Boolean> entry : files.entrySet()) {
-  // if (entry.getValue()) { // isShared == true
-  // sharedFile = entry.getKey();
-  // break;
-  // }
-  // }
-  // if (sharedFile != null) {
-  // break;
-  // }
-  // }
-  //
-  // if (sharedFile != null) {
-  // log.info("Found shared file: {}", sharedFile.getFileName());
-  // client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-  // Set<String> gcCandidates = getGcFileCandidates(client, tableId);
-  // log.info("GC candidates after compaction: {}", gcCandidates);
-  // }
-  // }
-  // }
 
   /**
    * Get all files and their shared status for a table
