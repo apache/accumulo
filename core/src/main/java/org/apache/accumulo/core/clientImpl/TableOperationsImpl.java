@@ -116,6 +116,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -1008,10 +1009,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
+      IteratorConfigUtil.checkIteratorConflicts(Map.copyOf(this.getConfiguration(tableName)),
+          property, value);
+
       setPropertyNoChecks(tableName, property, value);
 
       checkLocalityGroups(tableName, property);
-    } catch (TableNotFoundException e) {
+    } catch (TableNotFoundException | IllegalArgumentException e) {
       throw new AccumuloException(e);
     }
   }
@@ -1022,6 +1026,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
+    final Map<String,String> configBeforeMut;
+    try {
+      configBeforeMut = getConfiguration(tableName);
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
+
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -1029,6 +1040,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // point. Because of these potential issues, create an immutable snapshot of the map so that
     // from here on the code is assured to always be dealing with the same map.
     vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
+
+    try {
+      for (var property : vProperties.getProperties().entrySet()) {
+        IteratorConfigUtil.checkIteratorConflicts(configBeforeMut, property.getKey(),
+            property.getValue());
+      }
+    } catch (TableNotFoundException e) {
+      throw new AccumuloException(e);
+    }
 
     try {
       // Send to server
