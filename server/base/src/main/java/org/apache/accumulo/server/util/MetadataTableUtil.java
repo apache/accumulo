@@ -179,6 +179,48 @@ public class MetadataTableUtil {
     return new Pair<>(result, sizes);
   }
 
+  private static void markSourceFilesAsShared(TableId srcTableId, TableId tableId,
+      AccumuloClient client, BatchWriter bw) throws MutationsRejectedException {
+
+    log.info("Marking source table {} files as shared after clone to {}", srcTableId, tableId);
+
+    try (TabletsMetadata srcTM = createCloneScanner(null, srcTableId, client)) {
+      for (TabletMetadata srcTablet : srcTM) {
+
+        if (srcTablet.getFiles().isEmpty()) {
+          continue;
+        }
+
+        Mutation m = new Mutation(srcTablet.getExtent().toMetaRow());
+        boolean hasChanges = false;
+
+        // Update each file's DataFileValue to mark as shared
+        for (var entry : srcTablet.getFilesMap().entrySet()) {
+          StoredTabletFile file = entry.getKey();
+          DataFileValue dfv = entry.getValue();
+
+          if (!dfv.isShared()) {
+            DataFileValue sharedDfv = new DataFileValue(dfv.getSize(), dfv.getNumEntries(),
+                dfv.isTimeSet() ? dfv.getTime() : -1, true);
+
+            m.put(DataFileColumnFamily.NAME, file.getMetadataText(), sharedDfv.encodeAsValue());
+            hasChanges = true;
+
+            log.debug("Marking file {} as shared in source tablet {}", file.getFileName(),
+                srcTablet.getExtent());
+          }
+        }
+
+        if (hasChanges) {
+          bw.addMutation(m);
+        }
+      }
+    }
+
+    bw.flush();
+    log.info("Finished marking source table {} files as shared", srcTableId);
+  }
+
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
       Iterable<Entry<Key,Value>> tablet) {
 
@@ -191,7 +233,13 @@ public class MetadataTableUtil {
         if (!cf.startsWith("../") && !cf.contains(":")) {
           cf = "../" + srcTableId + entry.getKey().getColumnQualifier();
         }
-        m.put(entry.getKey().getColumnFamily(), new Text(cf), entry.getValue());
+
+        DataFileValue ogVal = new DataFileValue(entry.getValue().get());
+        DataFileValue newSharedVal = new DataFileValue(ogVal.getSize(), ogVal.getNumEntries(),
+            ogVal.isTimeSet() ? ogVal.getTime() : -1, true);
+
+        // FIXED: Use newSharedVal instead of original value
+        m.put(entry.getKey().getColumnFamily(), new Text(cf), newSharedVal.encodeAsValue());
       } else if (entry.getKey().getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
         m.put(LastLocationColumnFamily.NAME, entry.getKey().getColumnQualifier(), entry.getValue());
       } else if (entry.getKey().getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
@@ -379,6 +427,8 @@ public class MetadataTableUtil {
           sleepUninterruptibly(100, TimeUnit.MILLISECONDS);
         }
       }
+
+      markSourceFilesAsShared(srcTableId, tableId, context, bw);
 
       // delete the clone markers and create directory entries
       Scanner mscanner =
