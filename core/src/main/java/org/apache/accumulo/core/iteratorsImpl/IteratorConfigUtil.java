@@ -385,9 +385,9 @@ public class IteratorConfigUtil {
   }
 
   public static void checkIteratorConflicts(IteratorSetting iterToCheck,
-      EnumSet<IteratorScope> iterToCheckScopes,
+      EnumSet<IteratorScope> iterScopesToCheck,
       Map<IteratorScope,List<IteratorSetting>> existingIters) throws AccumuloException {
-    for (var scope : iterToCheckScopes) {
+    for (var scope : iterScopesToCheck) {
       var existingItersForScope = existingIters.get(scope);
       if (existingItersForScope == null) {
         continue;
@@ -414,7 +414,7 @@ public class IteratorConfigUtil {
   }
 
   public static void checkIteratorConflicts(Map<String,String> props, IteratorSetting iterToCheck,
-      EnumSet<IteratorScope> iterToCheckScopes) throws AccumuloException {
+      EnumSet<IteratorScope> iterScopesToCheck) throws AccumuloException {
     // parse the props map
     Map<IteratorScope,List<IteratorSetting>> existingIters =
         new HashMap<>(IteratorScope.values().length);
@@ -428,17 +428,29 @@ public class IteratorConfigUtil {
         var clazz = propValParts[1];
         var existingIter =
             new IteratorSetting(priority, name, clazz, gatherIterOpts(prop.getKey(), props));
-        if (existingIters.get(scope) == null) {
-          List<IteratorSetting> iters = new ArrayList<>();
-          iters.add(existingIter);
-          existingIters.put(scope, iters);
-        } else {
-          existingIters.get(scope).add(existingIter);
+        existingIters.computeIfAbsent(scope, s -> new ArrayList<>()).add(existingIter);
+      }
+    }
+
+    // check for conflicts
+    // any iterator option property not part of an existing iterator is an option conflict
+    for (var prop : props.entrySet()) {
+      if (isOptionIterProp(prop.getKey())) {
+        var iterOptPropParts = prop.getKey().split("\\.");
+        var scope = IteratorScope.valueOf(iterOptPropParts[2]);
+        var optKey = iterOptPropParts[iterOptPropParts.length - 1];
+        var iterName = iterOptPropParts[3];
+        if (!existingIters.containsKey(scope) || existingIters.get(scope).stream()
+            .noneMatch(is -> is.getName().equals(iterName) && is.getOptions().containsKey(optKey)
+                && is.getOptions().get(optKey).equals(prop.getValue()))) {
+          String msg = String.format("iterator options conflict for %s : %s=%s",
+              iterToCheck.getName(), prop.getKey(), prop.getValue());
+          throw new AccumuloException(new IllegalArgumentException(msg));
         }
       }
     }
-    // check for conflicts
-    checkIteratorConflicts(iterToCheck, iterToCheckScopes, existingIters);
+    // check if the given iterator conflicts with any existing iterators
+    checkIteratorConflicts(iterToCheck, iterScopesToCheck, existingIters);
   }
 
   /**
