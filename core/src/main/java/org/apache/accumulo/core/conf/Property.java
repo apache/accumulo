@@ -450,6 +450,11 @@ public enum Property {
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
+  MANAGER_TSERVER_HALT_DURATION("manager.tservers.halt.grace.period", "0",
+      PropertyType.TIMEDURATION,
+      "Allows the manager to force tserver halting by setting the max duration of time spent attempting to halt a tserver "
+          + " requests before deleting the tserver's zlock. A value of zero (default) disables this feature.",
+      "2.1.5"),
   @Deprecated(since = "2.1.0")
   MANAGER_REPLICATION_SCAN_INTERVAL("manager.replication.status.scan.interval", "30s",
       PropertyType.TIMEDURATION,
