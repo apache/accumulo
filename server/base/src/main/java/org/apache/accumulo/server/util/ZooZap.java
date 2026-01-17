@@ -206,7 +206,8 @@ public class ZooZap implements KeywordExecutable {
             zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
           }
         } else {
-          removeLocks(zoo, tserversPath, hostPortPredicate, opts);
+          ServiceLock.deleteLocks(zoo, tserversPath, hostPortPredicate, m -> message(m, opts),
+              opts.dryRun);
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting tserver locks", e);
@@ -269,7 +270,8 @@ public class ZooZap implements KeywordExecutable {
       List<String> groups = zoo.getChildren(path);
       for (String group : groups) {
         if (groupPredicate.test(group)) {
-          removeLocks(zoo, path + "/" + group, hostPortPredicate, opts);
+          ServiceLock.deleteLocks(zoo, path + "/" + group, hostPortPredicate, m -> message(m, opts),
+              opts.dryRun);
         }
       }
     }
@@ -278,19 +280,7 @@ public class ZooZap implements KeywordExecutable {
   static void removeLocks(ZooReaderWriter zoo, String path,
       Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
-    if (zoo.exists(path)) {
-      List<String> children = zoo.getChildren(path);
-      for (String child : children) {
-        if (hostPortPredicate.test(HostAndPort.fromString(child))) {
-          message("Deleting " + path + "/" + child + " from zookeeper", opts);
-          if (!opts.dryRun) {
-            // TODO not sure this is the correct way to delete this lock.. the code was deleting
-            // locks in multiple different ways for diff servers types.
-            zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
-          }
-        }
-      }
-    }
+    ServiceLock.deleteLocks(zoo, path, hostPortPredicate, m -> message(m, opts), opts.dryRun);
   }
 
   static void removeSingletonLock(ZooReaderWriter zoo, String path,
