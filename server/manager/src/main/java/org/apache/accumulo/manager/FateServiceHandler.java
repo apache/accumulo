@@ -66,7 +66,6 @@ import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -118,7 +117,7 @@ class FateServiceHandler implements FateService.Iface {
   @Override
   public void executeFateOperation(TInfo tinfo, TCredentials c, long opid, FateOperation op,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
-      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+      throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(c);
     String goalMessage = op.toString() + " ";
 
@@ -223,7 +222,8 @@ class FateServiceHandler implements FateService.Iface {
             if (!Property.isValidTablePropertyKey(entry.getKey())) {
               errorMessage = "Invalid Table Property ";
             }
-            throw new ThriftPropertyException(entry.getKey(), entry.getValue(),
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
                 errorMessage + entry.getKey() + "=" + entry.getValue());
           }
         }
@@ -334,7 +334,8 @@ class FateServiceHandler implements FateService.Iface {
             if (!Property.isValidTablePropertyKey(entry.getKey())) {
               errorMessage = "Invalid Table Property ";
             }
-            throw new ThriftPropertyException(entry.getKey(), entry.getValue(),
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
                 errorMessage + entry.getKey() + "=" + entry.getValue());
           }
 
