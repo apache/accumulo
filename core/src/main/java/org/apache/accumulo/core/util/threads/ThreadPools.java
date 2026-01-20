@@ -667,7 +667,10 @@ public class ThreadPools {
 
           @Override
           public void execute(@NonNull Runnable command) {
-            super.execute(TraceUtil.wrap(command));
+            throw new UnsupportedOperationException(
+                "ScheduledThreadPoolExecutor.execute() will internally create a future that is not returned.  This "
+                    + "inaccessible future will silently eat uncaught exceptions.  Call "
+                    + "schedule(runnable,0,NANOSECONDS) instead because it returns a future. ");
           }
 
           @Override
