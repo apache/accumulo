@@ -79,7 +79,6 @@ import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
-import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.TextUtil;
@@ -137,7 +136,7 @@ class FateServiceHandler implements FateService.Iface {
   @Override
   public void executeFateOperation(TInfo tinfo, TCredentials c, TFateId opid, TFateOperation top,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
-      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+      throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(c);
     Fate.FateOperation op = Fate.FateOperation.fromThrift(top);
     String goalMessage = op.toString() + " ";
@@ -241,7 +240,8 @@ class FateServiceHandler implements FateService.Iface {
             if (!Property.isValidTablePropertyKey(entry.getKey())) {
               errorMessage = "Invalid Table Property ";
             }
-            throw new ThriftPropertyException(entry.getKey(), entry.getValue(),
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
                 errorMessage + entry.getKey() + "=" + entry.getValue());
           }
         }
@@ -346,7 +346,8 @@ class FateServiceHandler implements FateService.Iface {
             if (!Property.isValidTablePropertyKey(entry.getKey())) {
               errorMessage = "Invalid Table Property ";
             }
-            throw new ThriftPropertyException(entry.getKey(), entry.getValue(),
+            throw new ThriftTableOperationException(null, tableName, tableOp,
+                TableOperationExceptionType.OTHER,
                 errorMessage + entry.getKey() + "=" + entry.getValue());
           }
 
