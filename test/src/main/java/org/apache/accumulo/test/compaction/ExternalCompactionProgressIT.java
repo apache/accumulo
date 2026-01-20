@@ -142,7 +142,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
       log.info("Compacting table");
 
-      // Verify no compactions are running before we start (catch any leftover state from other tests)
+      // Verify no compactions are running before we start (catch any leftover state from other
+      // tests)
       Map<String,TExternalCompaction> initialCompactions =
           getRunningCompactions(getCluster().getServerContext()).getCompactions();
       assertTrue(initialCompactions == null || initialCompactions.isEmpty(),
