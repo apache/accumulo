@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -116,6 +117,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
     private final List<IterInfo> tableIters;
     private final Map<String,Map<String,String>> tableOpts;
     private final String context;
+    private final Set<String> uniqueNames;
+    private final Set<Integer> uniquePriorities;
 
     private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
         String context) {
@@ -123,6 +126,10 @@ public class TableConfiguration extends ZooBasedConfiguration {
       tableOpts = opts.entrySet().stream()
           .collect(Collectors.toUnmodifiableMap(Entry::getKey, e -> Map.copyOf(e.getValue())));
       this.context = context;
+      uniqueNames =
+          tableIters.stream().map(IterInfo::getIterName).collect(Collectors.toUnmodifiableSet());
+      uniquePriorities =
+          tableIters.stream().map(IterInfo::getPriority).collect(Collectors.toUnmodifiableSet());
     }
 
     public List<IterInfo> getIterInfo() {
@@ -135,6 +142,14 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
     public String getServiceEnv() {
       return context;
+    }
+
+    public Set<String> getUniqueNames() {
+      return uniqueNames;
+    }
+
+    public Set<Integer> getUniquePriorities() {
+      return uniquePriorities;
     }
   }
 

@@ -248,17 +248,27 @@ class ScanDataSource implements DataSource {
         // iterator options.
 
         // First ensure the set iterators do not conflict with the existing table iterators.
-        List<IteratorSetting> picIteratorSettings = new ArrayList<>(pic.getIterInfo().size());
-        for (var picIterInfo : pic.getIterInfo()) {
-          picIteratorSettings.add(getIteratorSetting(picIterInfo, pic.getOpts()));
-        }
+        List<IteratorSetting> picIteratorSettings = null;
         for (var scanParamIterInfo : scanParams.getSsiList()) {
-          try {
-            IteratorConfigUtil.checkIteratorConflicts(
-                getIteratorSetting(scanParamIterInfo, scanParams.getSsio()),
-                EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings));
-          } catch (AccumuloException e) {
-            throw new IllegalArgumentException(e);
+          // Quick check for a potential iterator conflict (does not consider iterator scope).
+          // This avoids the more expensive check method call most of the time.
+          if (pic.getUniqueNames().contains(scanParamIterInfo.getIterName())
+              || pic.getUniquePriorities().contains(scanParamIterInfo.getPriority())) {
+            if (picIteratorSettings == null) {
+              picIteratorSettings = new ArrayList<>(pic.getIterInfo().size());
+              for (var picIterInfo : pic.getIterInfo()) {
+                picIteratorSettings.add(
+                    getIteratorSetting(picIterInfo, pic.getOpts().get(picIterInfo.getIterName())));
+              }
+            }
+            try {
+              IteratorConfigUtil.checkIteratorConflicts(
+                  getIteratorSetting(scanParamIterInfo,
+                      scanParams.getSsio().get(scanParamIterInfo.getIterName())),
+                  EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings));
+            } catch (AccumuloException e) {
+              throw new IllegalArgumentException(e);
+            }
           }
         }
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
@@ -290,13 +300,11 @@ class ScanDataSource implements DataSource {
     }
   }
 
-  private IteratorSetting getIteratorSetting(IterInfo iterInfo,
-      Map<String,Map<String,String>> iterOpts) {
+  private IteratorSetting getIteratorSetting(IterInfo iterInfo, Map<String,String> iterOpts) {
     IteratorSetting setting;
-    var opts = iterOpts.get(iterInfo.getIterName());
-    if (opts != null) {
+    if (iterOpts != null) {
       setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
-          iterInfo.getClassName(), opts);
+          iterInfo.getClassName(), iterOpts);
     } else {
       setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
           iterInfo.getClassName());
