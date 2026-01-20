@@ -158,6 +158,12 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     });
   }
 
+  private static <T> List<T> snapshotSynchronizedList(List<T> list) {
+    synchronized (list) {
+      return new ArrayList<>(list);
+    }
+  }
+
   private final List<Pair<Long,Double>> loadOverTime = newMaxList();
   private final List<Pair<Long,Double>> ingestRateOverTime = newMaxList();
   private final List<Pair<Long,Double>> ingestByteRateOverTime = newMaxList();
@@ -938,27 +944,27 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   public List<Pair<Long,Double>> getLoadOverTime() {
-    return new ArrayList<>(loadOverTime);
+    return snapshotSynchronizedList(loadOverTime);
   }
 
   public List<Pair<Long,Double>> getIngestRateOverTime() {
-    return new ArrayList<>(ingestRateOverTime);
+    return snapshotSynchronizedList(ingestRateOverTime);
   }
 
   public List<Pair<Long,Double>> getIngestByteRateOverTime() {
-    return new ArrayList<>(ingestByteRateOverTime);
+    return snapshotSynchronizedList(ingestByteRateOverTime);
   }
 
   public List<Pair<Long,Integer>> getMinorCompactionsOverTime() {
-    return new ArrayList<>(minorCompactionsOverTime);
+    return snapshotSynchronizedList(minorCompactionsOverTime);
   }
 
   public List<Pair<Long,Integer>> getMajorCompactionsOverTime() {
-    return new ArrayList<>(majorCompactionsOverTime);
+    return snapshotSynchronizedList(majorCompactionsOverTime);
   }
 
   public List<Pair<Long,Double>> getLookupsOverTime() {
-    return new ArrayList<>(lookupsOverTime);
+    return snapshotSynchronizedList(lookupsOverTime);
   }
 
   public double getLookupRate() {
@@ -966,23 +972,23 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   }
 
   public List<Pair<Long,Long>> getQueryRateOverTime() {
-    return new ArrayList<>(queryRateOverTime);
+    return snapshotSynchronizedList(queryRateOverTime);
   }
 
   public List<Pair<Long,Long>> getScanRateOverTime() {
-    return new ArrayList<>(scanRateOverTime);
+    return snapshotSynchronizedList(scanRateOverTime);
   }
 
   public List<Pair<Long,Double>> getQueryByteRateOverTime() {
-    return new ArrayList<>(queryByteRateOverTime);
+    return snapshotSynchronizedList(queryByteRateOverTime);
   }
 
   public List<Pair<Long,Double>> getIndexCacheHitRateOverTime() {
-    return new ArrayList<>(indexCacheHitRateOverTime);
+    return snapshotSynchronizedList(indexCacheHitRateOverTime);
   }
 
   public List<Pair<Long,Double>> getDataCacheHitRateOverTime() {
-    return new ArrayList<>(dataCacheHitRateOverTime);
+    return snapshotSynchronizedList(dataCacheHitRateOverTime);
   }
 
   @Override

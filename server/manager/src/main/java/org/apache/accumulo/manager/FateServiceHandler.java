@@ -71,7 +71,6 @@ import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.master.thrift.BulkImportState;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.thrift.TInfo;
@@ -123,7 +122,7 @@ class FateServiceHandler implements FateService.Iface {
   @Override
   public void executeFateOperation(TInfo tinfo, TCredentials c, long opid, FateOperation op,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
-      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+      throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(c);
     String goalMessage = op.toString() + " ";
 
@@ -226,7 +225,8 @@ class FateServiceHandler implements FateService.Iface {
             .gatherIteratorProps(manager.getContext().getNamespaceConfiguration(namespaceId)
                 .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
         for (Map.Entry<String,String> entry : options.entrySet()) {
-          validateTableProperty(entry.getKey(), entry.getValue(), options, namespaceIterProps);
+          validateTableProperty(entry.getKey(), entry.getValue(), options, namespaceIterProps,
+              tableName, tableOp);
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
@@ -343,7 +343,7 @@ class FateServiceHandler implements FateService.Iface {
           }
 
           validateTableProperty(entry.getKey(), entry.getValue(), options,
-              IteratorConfigUtil.gatherIteratorProps(iterProps));
+              IteratorConfigUtil.gatherIteratorProps(iterProps), tableName, tableOp);
 
           propertiesToSet.put(entry.getKey(), entry.getValue());
         }
@@ -851,14 +851,16 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   private void validateTableProperty(String propKey, String propVal, Map<String,String> propMap,
-      Map<String,String> config) throws ThriftPropertyException {
+      Map<String,String> config, String tableName, TableOperation tableOp)
+      throws ThriftTableOperationException {
     // validating property as valid table property
     if (!Property.isValidProperty(propKey, propVal)) {
       String errorMessage = "Property or value not valid ";
       if (!Property.isValidTablePropertyKey(propKey)) {
         errorMessage = "Invalid Table Property ";
       }
-      throw new ThriftPropertyException(propKey, propVal, errorMessage + propKey + "=" + propVal);
+      throw new ThriftTableOperationException(null, tableName, tableOp,
+          TableOperationExceptionType.OTHER, errorMessage + propKey + "=" + propVal);
     }
 
     // validating property does not create an iterator conflict with those in the config
@@ -874,7 +876,8 @@ class FateServiceHandler implements FateService.Iface {
       try {
         TableOperationsHelper.checkIteratorConflicts(config, is, EnumSet.of(iterScope));
       } catch (AccumuloException e) {
-        throw new ThriftPropertyException(propKey, propVal, e.getMessage());
+        throw new ThriftTableOperationException(null, tableName, tableOp,
+            TableOperationExceptionType.OTHER, e.getMessage());
       }
     }
   }
