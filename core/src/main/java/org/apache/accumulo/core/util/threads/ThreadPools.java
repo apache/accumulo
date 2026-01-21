@@ -667,10 +667,16 @@ public class ThreadPools {
 
           @Override
           public void execute(@NonNull Runnable command) {
-            throw new UnsupportedOperationException(
-                "ScheduledThreadPoolExecutor.execute() will internally create a future that is not returned.  This "
-                    + "inaccessible future will silently eat uncaught exceptions.  Call "
-                    + "schedule(runnable,0,NANOSECONDS) instead because it returns a future. ");
+            // ScheduledThreadPoolExecutor.execute() will internally create a future that is not
+            // returned. This inaccessible future will silently eat uncaught exceptions. This code
+            // is a workaround for this behavior that avoids completely losing exceptions.
+            super.execute(() -> {
+              try {
+                command.run();
+              } catch (Throwable t) {
+                handler.uncaughtException(Thread.currentThread(), t);
+              }
+            });
           }
 
           @Override
