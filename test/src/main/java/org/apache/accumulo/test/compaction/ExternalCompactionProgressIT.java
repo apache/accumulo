@@ -141,13 +141,21 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           EnumSet.of(IteratorUtil.IteratorScope.majc));
 
       log.info("Compacting table");
+
+      // Verify no compactions are running before we start (catch any leftover state from other
+      // tests)
+      Map<String,TExternalCompaction> initialCompactions =
+          getRunningCompactions(getCluster().getServerContext()).getCompactions();
+      assertTrue(initialCompactions == null || initialCompactions.isEmpty(),
+          "Expected no running compactions before starting the test");
+
       compact(client, table, 2, QUEUE1, false);
 
       // Wait until the compaction starts
       Wait.waitFor(() -> {
         Map<String,TExternalCompaction> compactions =
             getRunningCompactions(getCluster().getServerContext()).getCompactions();
-        return compactions == null || compactions.isEmpty();
+        return compactions != null && !compactions.isEmpty();
       }, 30_000, 100, "Compaction did not start within the expected time");
 
       // start a timer after the compaction starts
