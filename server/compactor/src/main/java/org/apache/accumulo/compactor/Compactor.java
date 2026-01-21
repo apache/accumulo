@@ -83,7 +83,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
@@ -373,8 +373,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
     ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
     compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
-    LockWatcher lw = new ServiceLockWatcher(Type.COMPACTOR, () -> getShutdownComplete().get(),
-        (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
+    AccumuloLockWatcher lw =
+        new ServiceLockWatcher(Type.COMPACTOR, () -> getShutdownComplete().get(),
+            (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 
     try {
       for (int i = 0; i < 25; i++) {

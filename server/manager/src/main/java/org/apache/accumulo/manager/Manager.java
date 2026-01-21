@@ -1398,7 +1398,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         break;
       }
 
-      if (!managerLockWatcher.isFailedToAcquireLock()) {
+      if (managerLockWatcher.cannotRetryLocking()) {
         throw new IllegalStateException("manager lock in unknown state");
       }
 
