@@ -177,7 +177,6 @@ public class MiniAccumuloConfigImpl {
       // enable metrics reporting - by default will appear in standard log files.
       mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
 
-      mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
@@ -186,12 +185,7 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
-      mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
-      mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
-      mergePropWithRandomPort(Property.GC_PORT.getKey());
-
-      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
+      mergeProp(Property.RPC_BIND_PORT.getKey(), "0");
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
@@ -285,16 +279,6 @@ public class MiniAccumuloConfigImpl {
   private void mergeProp(String key, String value) {
     if (!siteConfig.containsKey(key)) {
       siteConfig.put(key, value);
-    }
-  }
-
-  /**
-   * Sets a given key with a random port for the value on the site config if it doesn't already
-   * exist.
-   */
-  private void mergePropWithRandomPort(String key) {
-    if (!siteConfig.containsKey(key)) {
-      siteConfig.put(key, "0");
     }
   }
 

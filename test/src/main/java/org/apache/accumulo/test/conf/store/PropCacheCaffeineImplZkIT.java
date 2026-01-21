@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.test.conf.store;
 
-import static org.apache.accumulo.core.conf.Property.GC_PORT;
-import static org.apache.accumulo.core.conf.Property.MANAGER_CLIENTPORT;
-import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
+import static org.apache.accumulo.core.conf.Property.RPC_BIND_PORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
@@ -119,11 +117,9 @@ public class PropCacheCaffeineImplZkIT {
   @Test
   public void init() throws Exception {
     Map<String,String> props = new HashMap<>();
-    props.put(TSERV_CLIENTPORT.getKey(), "1234");
+    props.put(RPC_BIND_PORT.getKey(), "20000-20005");
     props.put(TSERV_NATIVEMAP_ENABLED.getKey(), "false");
     props.put(TSERV_SCAN_MAX_OPENFILES.getKey(), "2345");
-    props.put(MANAGER_CLIENTPORT.getKey(), "3456");
-    props.put(GC_PORT.getKey(), "4567");
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
