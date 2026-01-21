@@ -1041,13 +1041,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // from here on the code is assured to always be dealing with the same map.
     vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
 
-    try {
-      for (var property : vProperties.getProperties().entrySet()) {
-        IteratorConfigUtil.checkIteratorConflicts(configBeforeMut, property.getKey(),
-            property.getValue());
-      }
-    } catch (TableNotFoundException e) {
-      throw new AccumuloException(e);
+    for (var property : vProperties.getProperties().entrySet()) {
+      IteratorConfigUtil.checkIteratorConflicts(configBeforeMut, property.getKey(),
+          property.getValue());
     }
 
     try {
