@@ -41,6 +41,7 @@ import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -55,6 +56,7 @@ public class ListTabletsCommand extends Command {
   private Option optHumanReadable;
   private Option optNamespace;
   private Option disablePaginationOpt;
+  private Option optStartRowExclusive;
 
   static final String header =
       String.format("%-4s %-15s %-5s %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", "NUM",
@@ -76,8 +78,14 @@ public class ListTabletsCommand extends Command {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
-      try (Stream<TabletInformation> tabletInfoStream = shellState.getContext().tableOperations()
-          .getTabletInformation(name, List.of(RowRange.all()))) {
+      Text startRow = OptUtil.getStartRow(cl);
+      Text endRow = OptUtil.getEndRow(cl);
+      final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+      final RowRange range = (startRow == null && endRow == null) ? RowRange.all()
+          : RowRange.range(startRow, startInclusive, endRow, true);
+
+      try (Stream<TabletInformation> tabletInfoStream =
+          shellState.getContext().tableOperations().getTabletInformation(name, List.of(range))) {
         final AtomicInteger counter = new AtomicInteger(1);
         tabletInfoStream.forEach(tabletInfo -> {
           int i = counter.getAndIncrement();
@@ -261,6 +269,15 @@ public class ListTabletsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write output to");
     outputFileOpt.setArgName("file");
     opts.addOption(outputFileOpt);
+
+    Option optStartRowInclusive =
+        new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    optStartRowExclusive = new Option("be", "begin-exclusive", false,
+        "make start row exclusive (by default it's inclusive");
+    optStartRowExclusive.setArgName("begin-exclusive");
+    opts.addOption(optStartRowInclusive);
+    opts.addOption(optStartRowExclusive);
+    opts.addOption(OptUtil.endRowOpt());
 
     return opts;
   }
