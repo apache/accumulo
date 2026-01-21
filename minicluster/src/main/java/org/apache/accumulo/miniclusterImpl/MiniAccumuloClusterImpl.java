@@ -457,6 +457,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       // and won't work with reload4j or log4j2
       jvmOpts.add("-Dzookeeper.jmx.log4j.disable=true");
     }
+
+    String mac_jvm_args = System.getenv("MAC_JVM_ARGS");
+    if (mac_jvm_args != null) {
+      jvmOpts.add(mac_jvm_args);
+    }
+
     jvmOpts.add("-Xmx" + config.getMemory(serverType));
     if (configOverrides != null && !configOverrides.isEmpty()) {
       File siteFile =
