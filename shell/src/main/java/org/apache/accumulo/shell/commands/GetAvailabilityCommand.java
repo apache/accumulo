@@ -82,7 +82,7 @@ public class GetAvailabilityCommand extends TableOperation {
     Option optStartRowInclusive =
         new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false,
-        "make start row exclusive (by default it's inclusive");
+        "make start row exclusive (by default it's inclusive)");
     optStartRowExclusive.setArgName("begin-exclusive");
     optRow = new Option("r", "row", true, "tablet row to read");
     optRow.setArgName("row");
