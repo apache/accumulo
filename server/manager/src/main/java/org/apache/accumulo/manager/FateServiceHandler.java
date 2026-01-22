@@ -53,7 +53,6 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespaces;
-import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -874,7 +873,7 @@ class FateServiceHandler implements FateService.Iface {
       var is = new IteratorSetting(Integer.parseInt(iterPropValParts[0]), iterName,
           iterPropValParts[1], opts);
       try {
-        TableOperationsHelper.checkIteratorConflicts(config, is, EnumSet.of(iterScope));
+        IteratorConfigUtil.checkIteratorConflicts(config, is, EnumSet.of(iterScope), false);
       } catch (AccumuloException e) {
         throw new ThriftTableOperationException(null, tableName, tableOp,
             TableOperationExceptionType.OTHER, e.getMessage());
