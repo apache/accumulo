@@ -771,9 +771,10 @@ public class ServiceLock implements Watcher {
       throw new IllegalStateException("No server locks are held at " + zPath);
     }
 
+    ZooKeeper z = zk.getZooKeeper();
     for (String server : servers) {
       if (hostPortPredicate.test(HostAndPort.fromString(server))) {
-        byte[] lockData = zk.getData(zPath + "/" + server);
+        byte[] lockData = ServiceLock.getLockData(z, path(zPath + "/" + server));
         String lockContent = new String(lockData, UTF_8);
         String[] parts = lockContent.split(",");
         if (parts.length == 2 && groupPredicate.test(parts[1])) {
