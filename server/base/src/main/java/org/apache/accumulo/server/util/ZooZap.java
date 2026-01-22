@@ -245,7 +245,7 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapScanServers) {
       String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
       try {
-        removeGroupedLocks(zoo, sserversPath, groupPredicate, hostPortPredicate, opts);
+        removeScanServerGroupLocks(zoo, sserversPath, hostPortPredicate, groupPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting scan server locks", e);
       }
@@ -281,6 +281,14 @@ public class ZooZap implements KeywordExecutable {
       Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
     ServiceLock.deleteLocks(zoo, path, hostPortPredicate, m -> message(m, opts), opts.dryRun);
+  }
+
+  @Deprecated(since = "2.1.5")
+  static void removeScanServerGroupLocks(ZooReaderWriter zoo, String path,
+      Predicate<HostAndPort> hostPortPredicate, Predicate<String> groupPredicate, Opts opts)
+      throws KeeperException, InterruptedException {
+    ServiceLock.deleteScanServerLocks(zoo, path, hostPortPredicate, groupPredicate,
+        m -> message(m, opts), opts.dryRun);
   }
 
   static void removeSingletonLock(ZooReaderWriter zoo, String path,

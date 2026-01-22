@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
@@ -749,6 +750,38 @@ public class ServiceLock implements Watcher {
         if (!dryRun) {
           LOG.debug("Deleting all locks at path {} due to lock deletion", zPath);
           zk.recursiveDelete(zPath + "/" + server, NodeMissingPolicy.SKIP);
+        }
+      }
+    }
+  }
+
+  @Deprecated(since = "2.1.5")
+  public static void deleteScanServerLocks(ZooReaderWriter zk, String zPath,
+      Predicate<HostAndPort> hostPortPredicate, Predicate<String> groupPredicate,
+      Consumer<String> messageOutput, Boolean dryRun) throws KeeperException, InterruptedException {
+
+    Objects.requireNonNull(zPath, "Lock path cannot be null");
+    Objects.requireNonNull(groupPredicate, "group predicate cannot be null");
+    if (!zk.exists(zPath)) {
+      throw new IllegalStateException("Path " + zPath + " does not exist");
+    }
+
+    List<String> servers = zk.getChildren(zPath);
+    if (servers.isEmpty()) {
+      throw new IllegalStateException("No server locks are held at " + zPath);
+    }
+
+    for (String server : servers) {
+      if (hostPortPredicate.test(HostAndPort.fromString(server))) {
+        byte[] lockData = zk.getData(zPath + "/" + server);
+        String lockContent = new String(lockData, UTF_8);
+        String[] parts = lockContent.split(",");
+        if (parts.length == 2 && groupPredicate.test(parts[1])) {
+          messageOutput.accept("Deleting " + zPath + "/" + server + " from zookeeper");
+          if (!dryRun) {
+            LOG.debug("Deleting all locks at path {} due to lock deletion", zPath);
+            zk.recursiveDelete(zPath + "/" + server, NodeMissingPolicy.SKIP);
+          }
         }
       }
     }

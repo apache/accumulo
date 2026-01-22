@@ -560,6 +560,7 @@ public class Admin implements KeywordExecutable {
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
+  @SuppressWarnings("deprecation")
   private static void stopServers(final ServerContext context, List<String> servers,
       final boolean force)
       throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
@@ -592,7 +593,8 @@ public class Admin implements KeywordExecutable {
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
         ZooZap.removeGroupedLocks(zk, compactorsBasepath, rg -> true, hostAndPort::contains, opts);
         String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
-        ZooZap.removeGroupedLocks(zk, sserversPath, rg -> true, hostAndPort::contains, opts);
+        ZooZap.removeScanServerGroupLocks(zk, sserversPath, hostAndPort::contains, rg -> true,
+            opts);
 
         String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
         ZooZap.removeSingletonLock(zk, managerLockPath, hostAndPort::contains, opts);
