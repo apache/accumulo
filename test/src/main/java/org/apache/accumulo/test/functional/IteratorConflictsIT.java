@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -792,8 +792,8 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       }
     }
     for (var path : files) {
-      try (var in = getCluster().getFileSystem().open(path); BufferedReader reader =
-          new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))) {
+      try (var in = getCluster().getFileSystem().open(path);
+          BufferedReader reader = new BufferedReader(new InputStreamReader(in, UTF_8))) {
         String line;
         while ((line = reader.readLine()) != null) {
           if (line.contains("WARN")) {
