@@ -789,7 +789,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.managerProcess));
+    if (control.managerProcess != null) {
+      result.put(ServerType.MANAGER, references(control.managerProcess));
+    }
+    if (control.coordinatorProcess != null) {
+      result.put(ServerType.COMPACTION_COORDINATOR, references(control.coordinatorProcess));
+    }
+    result.put(ServerType.COMPACTOR,
+        references(control.compactorProcesses.toArray(new Process[0])));
+    result.put(ServerType.SCAN_SERVER,
+        references(control.scanServerProcesses.toArray(new Process[0])));
+    result.put(ServerType.TABLET_SERVER,
+        references(control.tabletServerProcesses.toArray(new Process[0])));
     result.put(ServerType.TABLET_SERVER,
         references(control.tabletServerProcesses.toArray(new Process[0])));
     if (control.zooKeeperProcess != null) {
