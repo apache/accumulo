@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -32,6 +33,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
@@ -45,7 +47,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.fs.Path;
@@ -102,17 +104,17 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
   private static final String iterClass = SlowIterator.class.getName();
   private static final IteratorSetting iter1 = new IteratorSetting(99, "iter1name", iterClass);
   private static final String iter1Key = Property.TABLE_ITERATOR_PREFIX
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + iter1.getName();
+      + IteratorScope.scan.name().toLowerCase() + "." + iter1.getName();
   private static final String iter1Val = "99," + iterClass;
   private static final IteratorSetting iter1PrioConflict =
       new IteratorSetting(99, "othername", iterClass);
   private static final IteratorSetting iter1NameConflict =
       new IteratorSetting(101, iter1.getName(), iterClass);
-  private static final String iter1PrioConflictKey = Property.TABLE_ITERATOR_PREFIX
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".othername";
+  private static final String iter1PrioConflictKey =
+      Property.TABLE_ITERATOR_PREFIX + IteratorScope.scan.name().toLowerCase() + ".othername";
   private static final String iter1PrioConflictVal = "99," + iterClass;
   private static final String iter1NameConflictKey = Property.TABLE_ITERATOR_PREFIX
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + iter1.getName();
+      + IteratorScope.scan.name().toLowerCase() + "." + iter1.getName();
   private static final String iter1NameConflictVal = "101," + iterClass;
   private static final IteratorSetting defaultIterPrioConflict =
       new IteratorSetting(20, "bar", iterClass);
@@ -120,20 +122,20 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       new IteratorSetting(101, "vers", iterClass);
   private static final IteratorSetting defaultTableIter =
       IteratorConfigUtil.getInitialTableIteratorSettings().keySet().iterator().next();
-  private static final String defaultIterPrioConflictKey = Property.TABLE_ITERATOR_PREFIX
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + ".foo";
+  private static final String defaultIterPrioConflictKey =
+      Property.TABLE_ITERATOR_PREFIX + IteratorScope.scan.name().toLowerCase() + ".foo";
   private static final String defaultIterPrioConflictVal =
       defaultTableIter.getPriority() + "," + iterClass;
   private static final String defaultIterNameConflictKey = Property.TABLE_ITERATOR_PREFIX
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
+      + IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
   private static final String defaultIterNameConflictVal = "99," + iterClass;
   private static final String defaultIterKey = Property.TABLE_ITERATOR_PREFIX.getKey()
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
+      + IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName();
   private static final String defaultIterVal =
       defaultTableIter.getPriority() + "," + defaultTableIter.getIteratorClass();
   private static final String defaultIterOptKey = Property.TABLE_ITERATOR_PREFIX.getKey()
-      + IteratorUtil.IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName()
-      + ".opt." + defaultTableIter.getOptions().entrySet().iterator().next().getKey();
+      + IteratorScope.scan.name().toLowerCase() + "." + defaultTableIter.getName() + ".opt."
+      + defaultTableIter.getOptions().entrySet().iterator().next().getKey();
   private static final String defaultIterOptVal =
       defaultTableIter.getOptions().entrySet().iterator().next().getValue();
 
@@ -426,6 +428,10 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       assertTrue(e.toString().contains("iterator priority conflict"));
       e = assertThrows(exceptionClass, iterNameConflictExec);
       assertTrue(e.toString().contains("iterator name conflict"));
+      assertEquals(Set.of(iter1.getName()), nops.listIterators(ns).keySet());
+      for (var scope : IteratorScope.values()) {
+        assertEquals(iter1, nops.getIteratorSetting(ns, iter1.getName(), scope));
+      }
     } else {
       assertTrue(logsContain(List.of("iterator priority conflict"), iterPrioConflictExec));
       assertTrue(logsContain(List.of("iterator name conflict"), iterNameConflictExec));
