@@ -38,7 +38,7 @@ public class IteratorProperty {
   private final String optionKey;
   private final String optionValue;
 
-  public IteratorProperty(String iterName, IteratorUtil.IteratorScope scope, int priority,
+  private IteratorProperty(String iterName, IteratorUtil.IteratorScope scope, int priority,
       String className) {
     this.name = iterName;
     this.scope = scope;
@@ -48,7 +48,7 @@ public class IteratorProperty {
     this.optionValue = null;
   }
 
-  public IteratorProperty(String iterName, IteratorUtil.IteratorScope scope, String optionName,
+  private IteratorProperty(String iterName, IteratorUtil.IteratorScope scope, String optionName,
       String optionValue) {
     this.name = iterName;
     this.scope = scope;
