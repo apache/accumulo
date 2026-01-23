@@ -58,7 +58,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -304,17 +303,17 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       }
 
       try (var scanner = c.createScanner(tableName)) {
-        Assertions.assertEquals("base:xa", scanner.iterator().next().getValue().toString());
+        assertEquals("base:xa", scanner.iterator().next().getValue().toString());
         scanner.addScanIterator(AppendingIterator.configure(70, "m"));
-        Assertions.assertEquals("base:xma", scanner.iterator().next().getValue().toString());
+        assertEquals("base:xma", scanner.iterator().next().getValue().toString());
         // These have the same priority as a table iterator so the iterators should be ordered by
         // their name in that case
         scanner.addScanIterator(AppendingIterator.configure(50, "b"));
         scanner.addScanIterator(AppendingIterator.configure(100, "c"));
-        Assertions.assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
+        assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
         // There are no compaction iterators, so this should not change value
         c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-        Assertions.assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
+        assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
       }
     }
   }

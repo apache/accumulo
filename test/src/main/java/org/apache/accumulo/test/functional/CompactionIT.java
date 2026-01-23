@@ -110,7 +110,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1020,19 +1019,19 @@ public class CompactionIT extends AccumuloClusterHarness {
       try (var mincScanner = c.createScanner(names[0]);
           var majcScanner = c.createScanner(names[1])) {
         // iterators should not be applied yet
-        Assertions.assertEquals("base:", mincScanner.iterator().next().getValue().toString());
-        Assertions.assertEquals("base:", majcScanner.iterator().next().getValue().toString());
+        assertEquals("base:", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:", majcScanner.iterator().next().getValue().toString());
 
         c.tableOperations().flush(names[0], null, null, true);
-        Assertions.assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
-        Assertions.assertEquals("base:", majcScanner.iterator().next().getValue().toString());
+        assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:", majcScanner.iterator().next().getValue().toString());
 
         List<IteratorSetting> iters = List.of(AppendingIterator.configure(70, "m"),
             AppendingIterator.configure(50, "b"), AppendingIterator.configure(100, "c"));
         c.tableOperations().compact(names[1],
             new CompactionConfig().setWait(true).setFlush(true).setIterators(iters));
-        Assertions.assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
-        Assertions.assertEquals("base:bxmac", majcScanner.iterator().next().getValue().toString());
+        assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:bxmac", majcScanner.iterator().next().getValue().toString());
 
       }
     }
