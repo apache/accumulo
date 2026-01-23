@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -298,7 +299,7 @@ public class IteratorConfigUtil {
 
   public static void checkIteratorConflicts(Map<String,String> props, String property, String value)
       throws AccumuloException {
-    if (props.containsKey(property) && props.get(property).equals(value)) {
+    if (Objects.equals(props.get(property), value)) {
       // setting a property that already exists (i.e., no change)
       return;
     }
@@ -321,7 +322,7 @@ public class IteratorConfigUtil {
       String namespace, String property, String value)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
     var props = noh.getNamespaceProperties(namespace);
-    if (props.containsKey(property) && props.get(property).equals(value)) {
+    if (Objects.equals(props.get(property), value)) {
       // setting a property that already exists (i.e., no change)
       return;
     }
@@ -451,9 +452,9 @@ public class IteratorConfigUtil {
         var scope = IteratorScope.valueOf(iterOptPropParts[2]);
         var optKey = iterOptPropParts[iterOptPropParts.length - 1];
         var iterName = iterOptPropParts[3];
-        if (!existingIters.containsKey(scope) || existingIters.get(scope).stream()
-            .noneMatch(is -> is.getName().equals(iterName) && is.getOptions().containsKey(optKey)
-                && is.getOptions().get(optKey).equals(prop.getValue()))) {
+        if (!existingIters.containsKey(scope)
+            || existingIters.get(scope).stream().noneMatch(is -> is.getName().equals(iterName)
+                && Objects.equals(is.getOptions().get(optKey), prop.getValue()))) {
           String msg = String.format("iterator options conflict for %s : %s=%s",
               iterToCheck.getName(), prop.getKey(), prop.getValue());
           if (shouldThrow) {

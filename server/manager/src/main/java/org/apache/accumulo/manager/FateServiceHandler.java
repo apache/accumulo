@@ -94,6 +94,7 @@ import org.apache.accumulo.manager.tableOps.rename.RenameTable;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -324,20 +325,26 @@ class FateServiceHandler implements FateService.Iface {
 
         // dest table will have the dest namespace props + src table props: need to check provided
         // options to set for conflicts with this
-        var srcTableConfigIterProps =
-            new HashMap<>(manager.getContext().getTableConfiguration(srcTableId)
-                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
-        var srcNamespaceConfigIterProps =
-            manager.getContext().getNamespaceConfiguration(srcNamespaceId)
-                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX);
-        srcNamespaceConfigIterProps.forEach((k, v) -> srcTableConfigIterProps.remove(k));
         var iterProps = new HashMap<>(manager.getContext().getNamespaceConfiguration(namespaceId)
             .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
-        iterProps.putAll(srcTableConfigIterProps);
+        // get only the source table props, not the merged view
+        var srcTableProps = manager.getContext().getPropStore()
+            .get(TablePropKey.of(manager.getContext(), srcTableId)).asMap();
+
         for (Entry<String,String> entry : options.entrySet()) {
           if (entry.getKey().startsWith(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX)) {
             propertiesToExclude.add(
                 entry.getKey().substring(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX.length()));
+          }
+        }
+
+        // these props will not be cloned
+        srcTableProps.keySet().removeAll(propertiesToExclude);
+        // merge src table props into dest namespace props
+        iterProps.putAll(srcTableProps);
+
+        for (Entry<String,String> entry : options.entrySet()) {
+          if (entry.getKey().startsWith(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX)) {
             continue;
           }
 
