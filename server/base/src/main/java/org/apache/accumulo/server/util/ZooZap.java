@@ -235,7 +235,8 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapCompactors) {
       String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
       try {
-        removeGroupedLocks(zoo, compactorsBasepath, groupPredicate, hostPortPredicate, opts);
+        removeCompactorGroupedLocks(zoo, compactorsBasepath, groupPredicate, hostPortPredicate,
+            opts);
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting compactors from zookeeper", e);
       }
@@ -263,8 +264,8 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  static void removeGroupedLocks(ZooReaderWriter zoo, String path, Predicate<String> groupPredicate,
-      Predicate<HostAndPort> hostPortPredicate, Opts opts)
+  static void removeCompactorGroupedLocks(ZooReaderWriter zoo, String path,
+      Predicate<String> groupPredicate, Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
     if (zoo.exists(path)) {
       List<String> groups = zoo.getChildren(path);

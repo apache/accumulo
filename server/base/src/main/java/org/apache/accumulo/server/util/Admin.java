@@ -591,7 +591,8 @@ public class Admin implements KeywordExecutable {
         String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
         ZooZap.removeLocks(zk, tserversPath, hostAndPort::contains, opts);
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
-        ZooZap.removeGroupedLocks(zk, compactorsBasepath, rg -> true, hostAndPort::contains, opts);
+        ZooZap.removeCompactorGroupedLocks(zk, compactorsBasepath, rg -> true,
+            hostAndPort::contains, opts);
         String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
         ZooZap.removeScanServerGroupLocks(zk, sserversPath, hostAndPort::contains, rg -> true,
             opts);

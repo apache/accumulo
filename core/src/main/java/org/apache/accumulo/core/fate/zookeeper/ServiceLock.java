@@ -774,14 +774,19 @@ public class ServiceLock implements Watcher {
     ZooKeeper z = zk.getZooKeeper();
     for (String server : servers) {
       if (hostPortPredicate.test(HostAndPort.fromString(server))) {
-        byte[] lockData = ServiceLock.getLockData(z, path(zPath + "/" + server));
+        final String serverPath = zPath + "/" + server;
+        byte[] lockData = ServiceLock.getLockData(z, path(serverPath));
+        if (lockData == null) {
+          messageOutput.accept("Skipping server " + server + " as it's lock content is empty.");
+          continue;
+        }
         String lockContent = new String(lockData, UTF_8);
         String[] parts = lockContent.split(",");
         if (parts.length == 2 && groupPredicate.test(parts[1])) {
-          messageOutput.accept("Deleting " + zPath + "/" + server + " from zookeeper");
+          messageOutput.accept("Deleting " + serverPath + " from zookeeper");
           if (!dryRun) {
-            LOG.debug("Deleting all locks at path {} due to lock deletion", zPath);
-            zk.recursiveDelete(zPath + "/" + server, NodeMissingPolicy.SKIP);
+            LOG.debug("Deleting all locks at path {} due to lock deletion", serverPath);
+            zk.recursiveDelete(serverPath, NodeMissingPolicy.SKIP);
           }
         }
       }
