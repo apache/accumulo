@@ -246,7 +246,11 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapScanServers) {
       String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
       try {
-        removeScanServerGroupLocks(zoo, sserversPath, hostPortPredicate, groupPredicate, opts);
+        if (opts.includeGroups == null) {
+          removeLocks(zoo, sserversPath, hostPortPredicate, opts);
+        } else {
+          removeScanServerGroupLocks(zoo, sserversPath, hostPortPredicate, groupPredicate, opts);
+        }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting scan server locks", e);
       }
