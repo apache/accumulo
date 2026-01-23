@@ -119,6 +119,7 @@ public class IteratorProperty {
     }
 
     String[] iterPropParts = property.split("\\.");
+    check(iterPropParts.length >= 4, property, value);
     IteratorUtil.IteratorScope scope = IteratorUtil.IteratorScope.valueOf(iterPropParts[2]);
     String iterName = iterPropParts[3];
 
