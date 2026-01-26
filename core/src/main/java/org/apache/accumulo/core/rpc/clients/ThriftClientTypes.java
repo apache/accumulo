@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -60,6 +61,9 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ServerProcessServiceThriftClient SERVER_PROCESS =
       new ServerProcessServiceThriftClient("process");
+
+  protected static final ThriftClientTypes<FateWorkerService.Client> FATE_WORKER =
+      new FateWorkerServiceThriftClient("fateworker");
 
   /**
    * execute method with supplied client returning object of type R

@@ -16,32 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-namespace java org.apache.accumulo.core.fate.thrift
-namespace cpp org.apache.accumulo.core.fate.thrift
+package org.apache.accumulo.core.rpc.clients;
 
-include "client.thrift"
-include "security.thrift"
+import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 
-struct TFatePartition {
-  1:string start
-  2:string stop
-}
-
-service FateWorkerService {
-
-  list<TFatePartition> getPartitions(
-    1:client.TInfo tinfo,
-    2:security.TCredentials credentials
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-
-  bool setPartitions(
-    1:client.TInfo tinfo,
-    2:security.TCredentials credentials,
-    3:list<TFatePartition> current,
-    4:list<TFatePartition> desired
-   ) throws (
-     1:client.ThriftSecurityException sec
-   )
+/**
+ * Client side object that can be used to interact with services that support scan operations
+ * against tablets. See TabletScanClientService$Iface for a list of supported operations.
+ */
+public class FateWorkerServiceThriftClient extends ThriftClientTypes<FateWorkerService.Client> {
+  FateWorkerServiceThriftClient(String serviceName) {
+    super(serviceName, new FateWorkerService.Client.Factory());
+  }
 }
