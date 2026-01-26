@@ -1026,6 +1026,8 @@ public class CompactionIT extends AccumuloClusterHarness {
         assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
         assertEquals("base:", majcScanner.iterator().next().getValue().toString());
 
+        // The user compaction iterators with priority 50 and 100 have the same priority as table
+        // level iterators.
         List<IteratorSetting> iters = List.of(AppendingIterator.configure(70, "m"),
             AppendingIterator.configure(50, "b"), AppendingIterator.configure(100, "c"));
         c.tableOperations().compact(names[1],
