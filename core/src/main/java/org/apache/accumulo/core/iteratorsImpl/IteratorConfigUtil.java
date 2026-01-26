@@ -286,6 +286,8 @@ public class IteratorConfigUtil {
 
     var iterProp = IteratorProperty.parse(property, value);
     if (iterProp != null && !iterProp.isOption()) {
+      // given a single property, the only way for the property to be equivalent to an existing
+      // iterator is if the existing iterator has no options (opts are set as separate props)
       checkIteratorConflicts(props, iterProp.toSetting(), EnumSet.of(iterProp.getScope()), false);
     }
   }
