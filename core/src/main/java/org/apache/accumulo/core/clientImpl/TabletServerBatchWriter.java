@@ -874,11 +874,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
           Span span = TraceUtil.startSpan(this.getClass(), "sendMutations");
           try (Scope scope = span.makeCurrent()) {
 
-            TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
-            if (timeoutTracker == null) {
-              timeoutTracker = new TimeoutTracker(location, timeout);
-              timeoutTrackers.put(location, timeoutTracker);
-            }
+            TimeoutTracker timeoutTracker =
+                timeoutTrackers.computeIfAbsent(location, l -> new TimeoutTracker(l, timeout));
 
             long st1 = System.currentTimeMillis();
             try (SessionCloser sessionCloser = new SessionCloser(location)) {

@@ -421,11 +421,8 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
       Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
       Map<KeyExtent,List<Range>> tsFailures = new HashMap<>();
       try {
-        TimeoutTracker timeoutTracker = timeoutTrackers.get(tsLocation);
-        if (timeoutTracker == null) {
-          timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, retryTimeout);
-          timeoutTrackers.put(tsLocation, timeoutTracker);
-        }
+        TimeoutTracker timeoutTracker = timeoutTrackers.computeIfAbsent(tsLocation,
+            key -> new TimeoutTracker(key, timedoutServers, retryTimeout));
         doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
             options, authorizations, timeoutTracker, busyTimeout);
 

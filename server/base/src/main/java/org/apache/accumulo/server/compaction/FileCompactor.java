@@ -265,11 +265,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
 
-    synchronized (runningCompactions) {
-      for (FileCompactor compactor : runningCompactions) {
-        compactions.add(new CompactionInfo(compactor));
-      }
-    }
+    runningCompactions.forEach(compactor -> compactions.add(new CompactionInfo(compactor)));
 
     return compactions;
   }

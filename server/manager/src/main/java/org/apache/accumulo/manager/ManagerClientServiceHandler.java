@@ -652,10 +652,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           value = "";
         }
         PropUtil.setProperties(context, TablePropKey.of(tableId), Map.of(property, value));
+      } else {
+        throw new UnsupportedOperationException("table operation:" + op.name());
       }
     } catch (IllegalStateException ex) {
-      log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
-          + property + "=" + value);
+      log.warn("Invalid table property, tried to {}: tableId: {} to: {}={}", op.name(),
+          tableId.canonical(), property, value, ex);
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
       ClientServiceHandler.checkTableId(context, tableName, op);
