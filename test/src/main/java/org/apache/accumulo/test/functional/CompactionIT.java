@@ -107,6 +107,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
+import org.apache.accumulo.test.functional.ScanIteratorIT.AppendingIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -1203,6 +1204,56 @@ public class CompactionIT extends CompactionITBase {
 
       client.tableOperations().cancelCompaction(table1);
       t.join();
+    }
+  }
+
+  @Test
+  public void testIteratorOrder() throws Exception {
+    String[] names = getUniqueNames(2);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // create a table with minor compaction iterators configured to ensure those iterators are
+      // applied in the correct order
+      NewTableConfiguration ntc = new NewTableConfiguration()
+          .attachIterator(AppendingIterator.configure(50, "x"), EnumSet.of(IteratorScope.minc))
+          .attachIterator(AppendingIterator.configure(100, "a"), EnumSet.of(IteratorScope.minc));
+      c.tableOperations().create(names[0], ntc);
+
+      // create a table with major compaction iterators configured to ensure those iterators are
+      // applied in the correct order
+      NewTableConfiguration ntc2 = new NewTableConfiguration()
+          .attachIterator(AppendingIterator.configure(50, "x"), EnumSet.of(IteratorScope.majc))
+          .attachIterator(AppendingIterator.configure(100, "a"), EnumSet.of(IteratorScope.majc));
+      c.tableOperations().create(names[1], ntc2);
+
+      try (var writer = c.createBatchWriter(names[0]);
+          var writer2 = c.createBatchWriter(names[1])) {
+        Mutation m = new Mutation("r1");
+        m.put("", "", "base:");
+        writer.addMutation(m);
+        writer2.addMutation(m);
+      }
+
+      try (var mincScanner = c.createScanner(names[0]);
+          var majcScanner = c.createScanner(names[1])) {
+        // iterators should not be applied yet
+        assertEquals("base:", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:", majcScanner.iterator().next().getValue().toString());
+
+        c.tableOperations().flush(names[0], null, null, true);
+        assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:", majcScanner.iterator().next().getValue().toString());
+
+        // The user compaction iterators with priority 50 and 100 have the same priority as table
+        // level iterators.
+        List<IteratorSetting> iters = List.of(AppendingIterator.configure(70, "m"),
+            AppendingIterator.configure(50, "b"), AppendingIterator.configure(100, "c"));
+        c.tableOperations().compact(names[1],
+            new CompactionConfig().setWait(true).setFlush(true).setIterators(iters));
+        assertEquals("base:xa", mincScanner.iterator().next().getValue().toString());
+        assertEquals("base:bxmac", majcScanner.iterator().next().getValue().toString());
+
+      }
     }
   }
 
