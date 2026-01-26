@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -65,8 +64,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.IteratorProperty;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -870,17 +869,14 @@ class FateServiceHandler implements FateService.Iface {
     }
 
     // validating property does not create an iterator conflict with those in the config
-    if (IteratorConfigUtil.isNonOptionIterProp(propKey, propVal)) {
-      var iterPropKeyParts = propKey.split("\\.");
-      var iterPropValParts = propVal.split(",");
-      String iterName = iterPropKeyParts[iterPropKeyParts.length - 1];
-      IteratorUtil.IteratorScope iterScope =
-          IteratorUtil.IteratorScope.valueOf(iterPropKeyParts[iterPropKeyParts.length - 2]);
-      Map<String,String> opts = IteratorConfigUtil.gatherIterOpts(propKey, propMap);
-      var is = new IteratorSetting(Integer.parseInt(iterPropValParts[0]), iterName,
-          iterPropValParts[1], opts);
+    var iterProp = IteratorProperty.parse(propKey, propVal);
+    if (iterProp != null && !iterProp.isOption()) {
+      Map<String,String> opts = IteratorConfigUtil.gatherIterOpts(iterProp, propMap);
       try {
-        IteratorConfigUtil.checkIteratorConflicts(config, is, EnumSet.of(iterScope), false);
+        var is = iterProp.toSetting();
+        is.addOptions(opts);
+        IteratorConfigUtil.checkIteratorConflicts(config, is, EnumSet.of(iterProp.getScope()),
+            false);
       } catch (AccumuloException e) {
         throw new ThriftTableOperationException(null, tableName, tableOp,
             TableOperationExceptionType.OTHER, e.getMessage());
