@@ -111,7 +111,8 @@ public class IteratorProperty {
    *
    * @return parsed iterator property or null if the property does not start with the iterator
    *         property prefix.
-   * @throws IllegalArgumentException if the iterator property is malformed.
+   * @throws RuntimeException if the iterator property is malformed. Will actually throw a few
+   *         different subclasses of this exception.
    */
   public static IteratorProperty parse(String property, String value) {
     if (!property.startsWith(Property.TABLE_ITERATOR_PREFIX.getKey())) {

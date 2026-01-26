@@ -278,6 +278,10 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       assertTrue(e.toString().contains("iterator priority conflict"));
       e = assertThrows(exceptionClass, iterNameConflictExec);
       assertTrue(e.toString().contains("iterator name conflict"));
+      assertEquals(Set.of(iter1.getName(), "vers"), tops.listIterators(table).keySet());
+      for (var scope : IteratorScope.values()) {
+        assertEquals(iter1, tops.getIteratorSetting(table, iter1.getName(), scope));
+      }
     } else {
       assertTrue(logsContain(List.of("iterator priority conflict"), iterPrioConflictExec));
       assertTrue(logsContain(List.of("iterator name conflict"), iterNameConflictExec));
