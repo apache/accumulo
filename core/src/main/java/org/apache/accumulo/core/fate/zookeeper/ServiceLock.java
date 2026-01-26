@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
@@ -781,6 +782,22 @@ public class ServiceLock implements Watcher {
     LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
     zk.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
+  }
+
+  public static void removeGCLock(ZooReaderWriter zoo, String path,
+      Predicate<HostAndPort> hostPortPredicate, Consumer<String> messageOutput, Boolean dryRun)
+      throws KeeperException, InterruptedException {
+    var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
+    if (lockData != null) {
+      String lockContent = new String(lockData, UTF_8);
+      String[] parts = lockContent.split("=");
+      if (parts.length == 2 && hostPortPredicate.test(HostAndPort.fromString(parts[1]))) {
+        messageOutput.accept("Deleting " + path + " from zookeeper");
+        if (!dryRun) {
+          zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
+        }
+      }
+    }
   }
 
   /**
