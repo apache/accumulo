@@ -45,7 +45,7 @@ public class FateManager {
                     var curr = currentAssignments.getOrDefault(worker, Set.of());
                     if(!curr.equals(paritions)) {
                         var intersection = Sets.intersection(curr, paritions);
-                        setWorkerPartitions(worker, intersection);
+                        setWorkerPartitions(worker,curr, intersection);
                         currentAssignments.put(worker, intersection);
                     }
                 });
@@ -55,15 +55,14 @@ public class FateManager {
             desired.forEach((worker, paritions)->{
                 var curr = currentAssignments.getOrDefault(worker, Set.of());
                 if(!curr.equals(paritions)){
-                    setWorkerPartitions(worker, paritions);
+                    setWorkerPartitions(worker, curr, paritions);
                 }
             });
         }
     }
 
-    private void setWorkerPartitions(HostAndPort worker, Set<FatePartition> partitions) {
-        // TODO make RPC to get update nonce
-        // TODO update partitions using nonce
+    private void setWorkerPartitions(HostAndPort worker, Set<FatePartition> current, Set<FatePartition> desired) {
+       // TODO make a compare and set type RPC that uses the current and desired
     }
 
     /**
