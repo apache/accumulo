@@ -28,7 +28,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.Path;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -177,11 +177,11 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
   @AfterAll
   public static void shutdown() throws Exception {
-    client.close();
-    SharedMiniClusterBase.stopMiniCluster();
     loggerConfig.getRootLogger().removeAppender(appender.getName());
     appender.stop();
     loggerContext.updateLoggers();
+    client.close();
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test
@@ -202,7 +202,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       nops.create(ns);
     }
     for (String table : List.of(table1, table2, table3, table4, table5, table6, table7, table8)) {
-      tops.create(table);
+      tops.create(table, new NewTableConfiguration().attachIterator(iter1));
     }
 
     // testing Scanner.addScanIterator
@@ -272,7 +272,6 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
   private <T extends Exception> void testTableIterConflict(String table, Class<T> exceptionClass,
       Executable iterPrioConflictExec, Executable iterNameConflictExec, boolean shouldThrow)
       throws Throwable {
-    tops.attachIterator(table, iter1);
     if (shouldThrow) {
       var e = assertThrows(exceptionClass, iterPrioConflictExec);
       assertTrue(e.toString().contains("iterator priority conflict"));
@@ -426,6 +425,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
       Executable iterPrioConflictExec, Executable iterNameConflictExec, boolean shouldThrow)
       throws Throwable {
     nops.attachIterator(ns, iter1);
+    Wait.waitFor(() -> nops.listIterators(ns).containsKey(iter1.getName()));
 
     if (shouldThrow) {
       var e = assertThrows(exceptionClass, iterPrioConflictExec);
@@ -648,8 +648,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
     // testing Scanner.addScanIterator
     final String table1 = names[0];
-    tops.create(table1);
-    tops.attachIterator(table1, iter1);
+    tops.create(table1, new NewTableConfiguration().attachIterator(iter1));
     try (var scanner1 = client.createScanner(table1); var scanner2 = client.createScanner(table1)) {
       testSameIterNoConflict(() -> {
         scanner1.addScanIterator(iter1);
@@ -662,15 +661,13 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
     // testing TableOperations.setProperty
     final String table2 = names[1];
-    tops.create(table2);
-    tops.attachIterator(table2, iter1);
+    tops.create(table2, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(() -> tops.setProperty(table2, iter1Key, iter1Val),
         () -> tops.setProperty(table2, defaultIterKey, defaultIterVal));
 
     // testing TableOperations.modifyProperties
     final String table3 = names[2];
-    tops.create(table3);
-    tops.attachIterator(table3, iter1);
+    tops.create(table3, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(
         () -> tops.modifyProperties(table3, props -> props.put(iter1Key, iter1Val)),
         () -> tops.modifyProperties(table3, props -> {
@@ -684,14 +681,14 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     final String table5 = names[5];
     nops.create(ns1);
     nops.attachIterator(ns1, iter1);
+    Wait.waitFor(() -> nops.listIterators(ns1).containsKey(iter1.getName()));
     testSameIterNoConflict(
         () -> tops.create(table4, new NewTableConfiguration().attachIterator(iter1)),
         () -> tops.create(table5, new NewTableConfiguration().attachIterator(defaultTableIter)));
 
     // testing TableOperations.attachIterator
     final String table6 = names[6];
-    tops.create(table6);
-    tops.attachIterator(table6, iter1);
+    tops.create(table6, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(() -> tops.attachIterator(table6, iter1),
         () -> tops.attachIterator(table6, defaultTableIter));
 
@@ -699,8 +696,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     final String ns2 = names[7];
     final String table7 = ns2 + "." + names[8];
     nops.create(ns2);
-    tops.create(table7);
-    tops.attachIterator(table7, iter1);
+    tops.create(table7, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(() -> nops.attachIterator(ns2, iter1),
         () -> nops.attachIterator(ns2, defaultTableIter));
 
@@ -708,8 +704,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     final String ns3 = names[9];
     final String table8 = ns3 + "." + names[10];
     nops.create(ns3);
-    tops.create(table8);
-    tops.attachIterator(table8, iter1);
+    tops.create(table8, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(() -> nops.setProperty(ns3, iter1Key, iter1Val),
         () -> nops.setProperty(ns3, defaultIterKey, defaultIterVal));
 
@@ -717,8 +712,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     final String ns4 = names[11];
     final String table9 = ns4 + "." + names[12];
     nops.create(ns4);
-    tops.create(table9);
-    tops.attachIterator(table9, iter1);
+    tops.create(table9, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(() -> nops.modifyProperties(ns4, props -> props.put(iter1Key, iter1Val)),
         () -> nops.modifyProperties(ns4, props -> {
           props.put(defaultIterKey, defaultIterVal);
@@ -729,8 +723,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     final String src = names[13];
     final String dst1 = names[14];
     final String dst2 = names[15];
-    tops.create(src);
-    tops.attachIterator(src, iter1);
+    tops.create(src, new NewTableConfiguration().attachIterator(iter1));
     testSameIterNoConflict(
         () -> tops.clone(src, dst1,
             CloneConfiguration.builder().setPropertiesToSet(Map.of(iter1Key, iter1Val)).build()),
@@ -808,13 +801,9 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         while ((line = reader.readLine()) != null) {
           if (line.contains("WARN")) {
             var words = line.split(" ");
-            try {
-              if (words.length >= 1
-                  && LocalDateTime.parse(words[0], dateTimeFormatter).isAfter(timeBeforeExec)) {
-                lines.add(line);
-              }
-            } catch (DateTimeParseException e) {
-              // ignore
+            if (words.length >= 1
+                && LocalDateTime.parse(words[0], dateTimeFormatter).isAfter(timeBeforeExec)) {
+              lines.add(line);
             }
           }
         }
