@@ -404,10 +404,19 @@ class LoadFiles extends AbstractFateOperation {
     String fmtTid = fateId.getTxUUIDStr();
     log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
-    Map<String,Integer> fileTabletCount = new HashMap<>();
+    List<Map.Entry<KeyExtent,Bulk.Files>> allEntries = new ArrayList<>();
     while (lmi.hasNext()) {
-      loadMapEntry = lmi.next();
-      for (var fileInfo : loadMapEntry.getValue()) {
+      allEntries.add(lmi.next());
+    }
+
+    if (allEntries.isEmpty()) {
+      log.warn("{}: No files to load", fateId.getTxUUIDStr());
+      return 0;
+    }
+
+    Map<String,Integer> fileTabletCount = new HashMap<>();
+    for (var entry : allEntries) {
+      for (var fileInfo : entry.getValue()) {
         String fileName = fileInfo.getFileName();
         fileTabletCount.merge(fileName, 1, Integer::sum);
       }
@@ -419,10 +428,7 @@ class LoadFiles extends AbstractFateOperation {
     log.debug("{}:  Detected {} shared files out of {} total files", fmtTid, sharedFiles.size(),
         fileTabletCount.size());
 
-    // Reset the iterator to start from the beginning
-    lmi = new PeekingIterator<>(loadMapIter);
-    loadMapEntry = lmi.peek();
-    startRow = loadMapEntry.getKey().prevEndRow();
+    startRow = allEntries.get(0).getKey().prevEndRow();
 
     loader.start(bulkDir, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
@@ -432,12 +438,11 @@ class LoadFiles extends AbstractFateOperation {
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
     try {
       PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
-      while (lmi.hasNext()) {
-        loadMapEntry = lmi.next();
+      for (var entry : allEntries) {
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
         if (skipDistance > 0) {
-          final KeyExtent loadMapKey = loadMapEntry.getKey();
+          final KeyExtent loadMapKey = entry.getKey();
           if (!pi.findWithin(
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
@@ -450,8 +455,8 @@ class LoadFiles extends AbstractFateOperation {
           }
         }
         List<TabletMetadata> tablets =
-            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
-        loader.load(tablets, loadMapEntry.getValue(), sharedFiles);
+            findOverlappingTablets(fmtTid, entry.getKey(), pi, importTimingStats);
+        loader.load(tablets, entry.getValue(), sharedFiles);
       }
     } finally {
       tabletsMetadata.close();

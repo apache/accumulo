@@ -231,8 +231,6 @@ public class UpdateTablets extends AbstractFateOperation {
         }
 
         var mutator = tabletsMutator.mutateTablet(newExtent).requireAbsentTablet();
-        // dfv now includes shared status
-        newTabletsFiles.get(newExtent).forEach(mutator::putFile);
 
         mutator.putOperation(opid);
         mutator.putDirName(dirNameIter.next());

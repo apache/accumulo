@@ -66,16 +66,15 @@ public class DataFileValue {
     time = -1;
     shared = false;
 
-    if (ba.length >= 3) {
-      // Field 3 could be either time (old format) or shared (new format)
-      // Try to parse as time first (for backward compatibility)
+    if (ba.length == 3) {
+      // Could be old format with time, or new format with shared
       try {
         time = Long.parseLong(ba[2]);
       } catch (NumberFormatException e) {
         shared = Boolean.parseBoolean(ba[2]);
       }
-    }
-    if (ba.length == 4) {
+    } else if (ba.length == 4) {
+      shared = Boolean.parseBoolean(ba[2]);
       time = Long.parseLong(ba[3]);
     }
   }
@@ -132,12 +131,12 @@ public class DataFileValue {
 
   @Override
   public int hashCode() {
-    return Long.valueOf(size + numEntries).hashCode();
+    return Long.valueOf(size + numEntries + (shared ? 1 : 0)).hashCode();
   }
 
   @Override
   public String toString() {
-    return size + " " + numEntries;
+    return size + " " + numEntries + " " + shared;
   }
 
   public void setTime(long time) {
