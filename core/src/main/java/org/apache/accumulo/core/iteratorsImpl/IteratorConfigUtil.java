@@ -55,7 +55,8 @@ public class IteratorConfigUtil {
   private static final Logger log = LoggerFactory.getLogger(IteratorConfigUtil.class);
 
   public static final Comparator<IterInfo> ITER_INFO_COMPARATOR =
-      Comparator.comparingInt(IterInfo::getPriority);
+      Comparator.comparingInt(IterInfo::getPriority)
+          .thenComparing(iterInfo -> iterInfo.getIterName() == null ? "" : iterInfo.getIterName());
 
   /**
    * Fetch the correct configuration key prefix for the given scope. Throws an
