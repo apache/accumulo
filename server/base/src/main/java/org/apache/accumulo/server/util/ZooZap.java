@@ -178,9 +178,9 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapGc) {
       String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
       try {
-        removeSingletonLock(zoo, gcLockPath, hostPortPredicate, opts);
+        removeGCLock(zoo, gcLockPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
-        log.error("Error deleting manager lock", e);
+        log.error("Error deleting gc lock", e);
       }
     }
 
@@ -281,6 +281,20 @@ public class ZooZap implements KeywordExecutable {
       Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
     ServiceLock.deleteLocks(zoo, path, hostPortPredicate, m -> message(m, opts), opts.dryRun);
+  }
+
+  @Deprecated(since = "2.1.5")
+  static void removeGCLock(ZooReaderWriter zoo, String path,
+      Predicate<HostAndPort> hostPortPredicate, Opts ops)
+      throws KeeperException, InterruptedException {
+    var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
+    if (lockData != null) {
+      String lockContent = new String(lockData, UTF_8);
+      String[] parts = lockContent.split("=");
+      if (parts.length == 2 && hostPortPredicate.test(HostAndPort.fromString(parts[1]))) {
+        zapDirectory(zoo, path, ops);
+      }
+    }
   }
 
   static void removeSingletonLock(ZooReaderWriter zoo, String path,
