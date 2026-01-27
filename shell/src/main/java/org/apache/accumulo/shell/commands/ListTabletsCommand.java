@@ -56,7 +56,7 @@ public class ListTabletsCommand extends Command {
   private Option optHumanReadable;
   private Option optNamespace;
   private Option disablePaginationOpt;
-  private Option optStartRowExclusive;
+  private Option startRowExclusiveOpt;
 
   static final String header =
       String.format("%-4s %-15s %-5s %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", "NUM",
@@ -80,7 +80,7 @@ public class ListTabletsCommand extends Command {
 
       Text startRow = OptUtil.getStartRow(cl);
       Text endRow = OptUtil.getEndRow(cl);
-      final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
+      final boolean startInclusive = !cl.hasOption(startRowExclusiveOpt.getOpt());
       final RowRange range = (startRow == null && endRow == null) ? RowRange.all()
           : RowRange.range(startRow, startInclusive, endRow, true);
 
@@ -270,13 +270,13 @@ public class ListTabletsCommand extends Command {
     outputFileOpt.setArgName("file");
     opts.addOption(outputFileOpt);
 
-    Option optStartRowInclusive =
+    Option startRowOpt =
         new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
-    optStartRowExclusive = new Option("be", "begin-exclusive", false,
+    startRowExclusiveOpt = new Option("be", "begin-exclusive", false,
         "make start row exclusive (by default it's inclusive)");
-    optStartRowExclusive.setArgName("begin-exclusive");
-    opts.addOption(optStartRowInclusive);
-    opts.addOption(optStartRowExclusive);
+    startRowExclusiveOpt.setArgName("begin-exclusive");
+    opts.addOption(startRowOpt);
+    opts.addOption(startRowExclusiveOpt);
     opts.addOption(OptUtil.endRowOpt());
 
     return opts;
