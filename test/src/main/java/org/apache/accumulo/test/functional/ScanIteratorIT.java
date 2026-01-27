@@ -20,12 +20,15 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -37,11 +40,17 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -245,6 +254,64 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
       m.put("2", "3", "");
       batchWriter.addMutation(m);
       batchWriter.flush();
+    }
+  }
+
+  public static class AppendingIterator extends WrappingIterator {
+
+    private String append;
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      super.init(source, options, env);
+      append = Objects.requireNonNull(options.get("append"));
+    }
+
+    @Override
+    public Value getTopValue() {
+      var val = super.getTopValue();
+      return new Value(val.toString() + append);
+    }
+
+    public static IteratorSetting configure(int prio, String append) {
+      IteratorSetting iter = new IteratorSetting(prio, "append_" + append, AppendingIterator.class);
+      iter.addOption("append", append);
+      return iter;
+    }
+  }
+
+  // Ensures scan iterators run in the expected order
+  @Test
+  public void testIteratorOrder() throws Exception {
+
+    String tableName = getUniqueNames(2)[1];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var scopes = EnumSet.of(IteratorScope.scan);
+      NewTableConfiguration ntc =
+          new NewTableConfiguration().attachIterator(AppendingIterator.configure(50, "x"), scopes)
+              .attachIterator(AppendingIterator.configure(100, "a"), scopes);
+      c.tableOperations().create(tableName, ntc);
+
+      try (var writer = c.createBatchWriter(tableName)) {
+        Mutation m = new Mutation("r1");
+        m.put("", "", "base:");
+        writer.addMutation(m);
+      }
+
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals("base:xa", scanner.iterator().next().getValue().toString());
+        scanner.addScanIterator(AppendingIterator.configure(70, "m"));
+        assertEquals("base:xma", scanner.iterator().next().getValue().toString());
+        // These have the same priority as a table iterator so the iterators should be ordered by
+        // their name in that case
+        scanner.addScanIterator(AppendingIterator.configure(50, "b"));
+        scanner.addScanIterator(AppendingIterator.configure(100, "c"));
+        assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
+        // There are no compaction iterators, so this should not change value
+        c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+        assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
+      }
     }
   }
 }
