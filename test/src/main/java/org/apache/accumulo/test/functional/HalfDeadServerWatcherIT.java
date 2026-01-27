@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -91,7 +92,8 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
     }
 
     protected HalfDeadTabletServer(ConfigOpts opts,
-        Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+        BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
+        String[] args) {
       super(opts, serverContextFactory, args);
     }
 
@@ -122,7 +124,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
     } else {
       cfg.setProperty(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, "0");
     }
-    cfg.setServerClass(ServerType.TABLET_SERVER, HalfDeadTabletServer.class);
+    cfg.setServerClass(ServerType.TABLET_SERVER, rg -> HalfDeadTabletServer.class);
     cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "30s");
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
     cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
@@ -186,9 +188,9 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
 
       // Delete the lock for the TabletServer
       final ServerContext ctx = getServerContext();
-      Set<ServiceLockPath> serverPaths = ctx.getServerPaths().getTabletServer(
-          (rg) -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME),
-          AddressSelector.exact(HostAndPort.fromString(tserver.toHostPortString())), true);
+      Set<ServiceLockPath> serverPaths =
+          ctx.getServerPaths().getTabletServer((rg) -> rg.equals(ResourceGroupId.DEFAULT),
+              AddressSelector.exact(HostAndPort.fromString(tserver.toHostPortString())), true);
       assertEquals(1, serverPaths.size());
       ctx.getZooSession().asReaderWriter().recursiveDelete(serverPaths.iterator().next().toString(),
           NodeMissingPolicy.FAIL);

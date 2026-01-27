@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration2.AbstractConfiguration;
@@ -58,6 +59,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
@@ -204,6 +207,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration(Map<String,String> config) {
     ConfigCheckUtil.validate(config.entrySet(), "site config");
+    var tableProps =
+        config.keySet().stream().filter(prop -> prop.startsWith(Property.TABLE_PREFIX.getKey()))
+            .collect(Collectors.toSet());
+    if (!tableProps.isEmpty()) {
+      throw new IllegalArgumentException(
+          "accumulo.properties file or options set with -o must not contain table properties, saw : "
+              + tableProps);
+    }
+
     this.config = config;
   }
 

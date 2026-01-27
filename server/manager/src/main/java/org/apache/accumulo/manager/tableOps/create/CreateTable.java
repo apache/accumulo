@@ -31,8 +31,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TableInfo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.FileSystem;
@@ -40,7 +40,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CreateTable extends ManagerRepo {
+public class CreateTable extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
@@ -65,32 +65,25 @@ public class CreateTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), fateId, LockType.READ,
-        true, TableOperation.CREATE);
+    return Utils.reserveNamespace(environment.getContext(), tableInfo.getNamespaceId(), fateId,
+        LockType.READ, true, TableOperation.CREATE);
+
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
-
-    // assuming only the manager process is creating tables
-
-    Utils.getIdLock().lock();
-    try {
-      String tName = tableInfo.getTableName();
-      tableInfo.setTableId(Utils.getNextId(tName, manager.getContext(), TableId::of));
-      return new SetupPermissions(tableInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    String tName = tableInfo.getTableName();
+    tableInfo.setTableId(Utils.getNextId(tName, env.getContext(), TableId::of));
+    return new SetupPermissions(tableInfo);
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws IOException {
+  public void undo(FateId fateId, FateEnv env) throws IOException {
     // Clean up split files if create table operation fails
     Path p = null;
     try {
@@ -102,7 +95,7 @@ public class CreateTable extends ManagerRepo {
     } catch (IOException e) {
       log.error("Table failed to be created and failed to clean up split files at {}", p, e);
     } finally {
-      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);
+      Utils.unreserveNamespace(env.getContext(), tableInfo.getNamespaceId(), fateId, LockType.READ);
     }
   }
 

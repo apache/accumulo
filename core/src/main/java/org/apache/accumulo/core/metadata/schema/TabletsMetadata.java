@@ -51,10 +51,15 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
+import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -63,6 +68,8 @@ import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -72,6 +79,9 @@ import com.google.common.collect.Iterators;
  * tables.
  */
 public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TabletsMetadata.class);
+  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
   public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
 
@@ -92,7 +102,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
     private final Function<DataLevel,String> tableMapper;
 
-    Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
+    // visible for testing
+    protected Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
       this._client = client;
       this.tableMapper = Objects.requireNonNull(tableMapper);
     }
@@ -126,11 +137,39 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s",
           level, table);
       if (level == DataLevel.ROOT) {
-        ClientContext ctx = ((ClientContext) _client);
-        return new TabletsMetadata(getRootMetadata(ctx));
+        try {
+          return buildRoot(_client);
+        } catch (IOException e) {
+          throw new UncheckedIOException("Error creating root tablet metadata", e);
+        }
       } else {
         return buildNonRoot(_client);
       }
+    }
+
+    // visible for testing
+    protected RootTabletMetadata getRootMetadata(AccumuloClient client) {
+      return RootTabletMetadata.read((ClientContext) client);
+    }
+
+    private TabletsMetadata buildRoot(AccumuloClient client) throws IOException {
+      final RootTabletMetadata rtm = getRootMetadata(client);
+      if (!tabletMetadataFilters.isEmpty()) {
+        final SortedMapIterator smi = new SortedMapIterator(rtm.toKeyValues());
+        smi.seek(new Range(), EMPTY_COL_FAMS, true);
+        final var iter = new ColumnFamilySkippingIterator(smi);
+        IteratorEnvironment ienv =
+            new ClientIteratorEnvironment.Builder().withClient(client).build();
+        for (var filter : tabletMetadataFilters) {
+          filter.init(iter, filter.getServerSideOptions(), ienv);
+          if (!filter.acceptRow(iter)) {
+            LOG.trace("Not returning root metadata as it does not pass filter: {}",
+                filter.getClass().getSimpleName());
+            return new TabletsMetadata((AutoCloseable) null, Set.of());
+          }
+        }
+      }
+      return new TabletsMetadata(rtm.toTabletMetadata());
     }
 
     private TabletsMetadata buildExtents(AccumuloClient client) {
@@ -150,7 +189,12 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       for (DataLevel level : groupedExtents.keySet()) {
         if (level == DataLevel.ROOT) {
-          iterables.add(() -> Iterators.singletonIterator(getRootMetadata((ClientContext) client)));
+          try {
+            TabletsMetadata rtm = buildRoot(_client);
+            iterables.add(() -> rtm.iterator());
+          } catch (IOException e) {
+            throw new UncheckedIOException("Error creating root tablet metadata", e);
+          }
         } else {
           try {
             BatchScanner scanner =
@@ -555,10 +599,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   public static TableOptions builder(AccumuloClient client,
       Function<DataLevel,String> tableMapper) {
     return new Builder(client, tableMapper);
-  }
-
-  private static TabletMetadata getRootMetadata(ClientContext ctx) {
-    return RootTabletMetadata.read(ctx).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

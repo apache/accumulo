@@ -37,15 +37,11 @@ import java.util.Set;
 public class AccumuloDataVersion {
 
   /**
-   * version (13) reflects On-Demand tablets starting with 4.0
-   */
-  public static final int ONDEMAND_TABLETS_FOR_VERSION_4 = 13;
-
-  /**
    * version (12) reflect changes to support no chop merges including json encoding of the file
-   * column family stored in root and metadata tables in version 3.1
+   * column family stored in root and metadata tables and On-Demand tablets starting with version
+   * 4.0.
    */
-  public static final int METADATA_FILE_JSON_ENCODING = 12;
+  public static final int FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 = 12;
 
   /**
    * version (11) reflects removal of replication starting with 3.0
@@ -70,7 +66,7 @@ public class AccumuloDataVersion {
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = ONDEMAND_TABLETS_FOR_VERSION_4;
+  private static final int CURRENT_VERSION = FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
@@ -82,8 +78,8 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN = Set.of(CURRENT_VERSION,
-      REMOVE_DEPRECATIONS_FOR_VERSION_3, METADATA_FILE_JSON_ENCODING, ROOT_TABLET_META_CHANGES);
+  public static final Set<Integer> CAN_RUN =
+      Set.of(CURRENT_VERSION, REMOVE_DEPRECATIONS_FOR_VERSION_3, ROOT_TABLET_META_CHANGES);
 
   /**
    * Get the stored, current working version.
@@ -107,16 +103,11 @@ public class AccumuloDataVersion {
   }
 
   private static String dataVersionToReleaseName(final int version) {
-    switch (version) {
-      case ROOT_TABLET_META_CHANGES:
-        return "2.1.0";
-      case REMOVE_DEPRECATIONS_FOR_VERSION_3:
-        return "3.0.0";
-      case METADATA_FILE_JSON_ENCODING:
-        return "3.1.0";
-      case ONDEMAND_TABLETS_FOR_VERSION_4:
-        return "4.0.0";
-    }
-    throw new IllegalArgumentException("Unsupported data version " + version);
+    return switch (version) {
+      case ROOT_TABLET_META_CHANGES -> "2.1.0";
+      case REMOVE_DEPRECATIONS_FOR_VERSION_3 -> "3.0.0";
+      case FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 -> "4.0.0";
+      default -> throw new IllegalArgumentException("Unsupported data version " + version);
+    };
   }
 }

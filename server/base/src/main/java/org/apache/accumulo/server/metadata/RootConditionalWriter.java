@@ -120,7 +120,7 @@ public class RootConditionalWriter implements ConditionalWriter {
 
         } catch (IOException e) {
           throw new UncheckedIOException(e);
-        } catch (AccumuloException e) {
+        } catch (AccumuloException | ReflectiveOperationException e) {
           throw new RuntimeException(e);
         } catch (AccumuloSecurityException e) {
           throw new RuntimeException(e);

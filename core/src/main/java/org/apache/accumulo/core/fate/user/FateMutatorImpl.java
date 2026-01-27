@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.fate.user.UserFateStore.getRowId;
 import static org.apache.accumulo.core.fate.user.UserFateStore.invertRepo;
 
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -58,14 +59,17 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   private final String tableName;
   private final FateId fateId;
   private final ConditionalMutation mutation;
+  private final Supplier<ConditionalWriter> writer;
   private boolean requiredUnreserved = false;
   public static final int INITIAL_ITERATOR_PRIO = 1000000;
 
-  public FateMutatorImpl(ClientContext context, String tableName, FateId fateId) {
+  public FateMutatorImpl(ClientContext context, String tableName, FateId fateId,
+      Supplier<ConditionalWriter> writer) {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
-    this.fateId = fateId;
+    this.fateId = Objects.requireNonNull(fateId);
     this.mutation = new ConditionalMutation(new Text(getRowId(fateId)));
+    this.writer = Objects.requireNonNull(writer);
   }
 
   @Override
@@ -237,21 +241,17 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
         return Status.ACCEPTED;
       } else {
-        try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
-          ConditionalWriter.Result result = writer.write(mutation);
+        try {
+          ConditionalWriter.Result result = writer.get().write(mutation);
 
-          switch (result.getStatus()) {
-            case ACCEPTED:
-              return Status.ACCEPTED;
-            case REJECTED:
-              return Status.REJECTED;
-            case UNKNOWN:
-              return Status.UNKNOWN;
-            default:
-              // do not expect other statuses
-              throw new IllegalStateException(
-                  "Unhandled status for mutation " + result.getStatus());
-          }
+          return switch (result.getStatus()) {
+            case ACCEPTED -> Status.ACCEPTED;
+            case REJECTED -> Status.REJECTED;
+            case UNKNOWN -> Status.UNKNOWN;
+            // do not expect other statuses
+            default -> throw new IllegalStateException(
+                "Unhandled status for mutation " + result.getStatus());
+          };
 
         } catch (AccumuloException | AccumuloSecurityException e) {
           throw new RuntimeException(e);

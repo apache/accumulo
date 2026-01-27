@@ -140,7 +140,14 @@ public class FindCompactionTmpFiles {
     filesToDelete.forEach(p -> {
       futures.add(delSvc.submit(() -> {
         if (context.getVolumeManager().exists(p)) {
-          return context.getVolumeManager().delete(p);
+          boolean result = context.getVolumeManager().delete(p);
+          if (result) {
+            LOG.debug("Removed old temp file {}", p);
+          } else {
+            LOG.error(
+                "Unable to remove old temp file {}, operation returned false with no exception", p);
+          }
+          return result;
         }
         return true;
       }));
@@ -188,10 +195,11 @@ public class FindCompactionTmpFiles {
       ServerContext context = opts.getServerContext();
       String[] tables = opts.tables.split(",");
 
+      final var stringStringMap = context.tableOperations().tableIdMap();
       for (String table : tables) {
 
         table = table.trim();
-        String tableId = context.tableOperations().tableIdMap().get(table);
+        String tableId = stringStringMap.get(table);
         if (tableId == null || tableId.isEmpty()) {
           LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
           continue;

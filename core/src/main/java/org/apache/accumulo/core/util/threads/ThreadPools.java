@@ -58,6 +58,7 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
 
@@ -99,9 +100,14 @@ public class ThreadPools {
     return SERVER_INSTANCE;
   }
 
-  public static final ThreadPools getClientThreadPools(UncaughtExceptionHandler ueh) {
+  public static final ThreadPools getClientThreadPools(AccumuloConfiguration conf,
+      UncaughtExceptionHandler ueh) {
     ThreadPools clientPools = new ThreadPools(ueh);
-    clientPools.setMeterRegistry(Metrics.globalRegistry);
+    if (conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED) == false) {
+      clientPools.disableThreadPoolMetrics();
+    } else {
+      clientPools.setMeterRegistry(Metrics.globalRegistry);
+    }
     return clientPools;
   }
 
@@ -253,6 +259,9 @@ public class ThreadPools {
   }
 
   private final UncaughtExceptionHandler handler;
+  private final AtomicBoolean metricsEnabled = new AtomicBoolean(true);
+  private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
+  private final List<ExecutorServiceMetrics> earlyExecutorServices = new ArrayList<>();
 
   private ThreadPools(UncaughtExceptionHandler ueh) {
     handler = ueh;
@@ -657,7 +666,17 @@ public class ThreadPools {
 
           @Override
           public void execute(@NonNull Runnable command) {
-            super.execute(TraceUtil.wrap(command));
+            // ScheduledThreadPoolExecutor.execute() will internally create a future that is not
+            // returned. This inaccessible future will silently eat uncaught exceptions. This code
+            // is a workaround for this behavior that avoids completely losing exceptions.
+            var wrapped = TraceUtil.wrap(command);
+            super.execute(() -> {
+              try {
+                wrapped.run();
+              } catch (Throwable t) {
+                handler.uncaughtException(Thread.currentThread(), t);
+              }
+            });
           }
 
           @Override
@@ -718,10 +737,10 @@ public class ThreadPools {
     return result;
   }
 
-  private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
-  private final List<ExecutorServiceMetrics> earlyExecutorServices = new ArrayList<>();
-
   private void addExecutorServiceMetrics(ExecutorService executor, String name) {
+    if (!metricsEnabled.get()) {
+      return;
+    }
     ExecutorServiceMetrics esm = new ExecutorServiceMetrics(executor, name, List.of());
     synchronized (earlyExecutorServices) {
       MeterRegistry r = registry.get();
@@ -737,9 +756,21 @@ public class ThreadPools {
     if (registry.compareAndSet(null, r)) {
       synchronized (earlyExecutorServices) {
         earlyExecutorServices.forEach(e -> e.bindTo(r));
+        earlyExecutorServices.clear();
       }
     } else {
       throw new IllegalStateException("setMeterRegistry called more than once");
+    }
+  }
+
+  /**
+   * Called by MetricsInfoImpl.init on the server side if metrics are disabled. ClientContext calls
+   * {@code #getClientThreadPools(AccumuloConfiguration, UncaughtExceptionHandler)} above.
+   */
+  public void disableThreadPoolMetrics() {
+    metricsEnabled.set(false);
+    synchronized (earlyExecutorServices) {
+      earlyExecutorServices.clear();
     }
   }
 

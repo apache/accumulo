@@ -22,12 +22,12 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
 
-public class ExportTable extends ManagerRepo {
+public class ExportTable extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
 
   private final ExportInfo tableInfo;
@@ -41,26 +41,27 @@ public class ExportTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(),
-        fateId);
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    return Utils.reserveHdfsDirectory(environment.getContext(),
+        new Path(tableInfo.exportDir).toString(), fateId);
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) {
     return new WriteExportFiles(tableInfo);
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
-    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), fateId);
+  public void undo(FateId fateId, FateEnv env) throws Exception {
+    String directory = new Path(tableInfo.exportDir).toString();
+    Utils.unreserveHdfsDirectory(env.getContext(), directory, fateId);
   }
 
   /**
    * Defines export / version.
    * <ul>
-   * <li>version 1 exported by Accumulo &lt; 3.1</li>
-   * <li>version 2 exported by Accumulo =&gt; 3.1 - uses file references with ranges.</li>
+   * <li>version 1 exported by Accumulo &lt; 4.0</li>
+   * <li>version 2 exported by Accumulo =&gt; 4.0 - uses file references with ranges.</li>
    * </ul>
    */
   public static final int VERSION_2 = 2;

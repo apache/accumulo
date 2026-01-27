@@ -21,6 +21,7 @@ package org.apache.accumulo.core.conf;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.net.URL;
 import java.nio.file.Path;
@@ -38,11 +39,9 @@ public class SiteConfigurationTest {
   @Test
   public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
       throws SecurityException {
-    // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
-    // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
     assertNotNull(keystore);
-    String credProvPath = "jceks://file" + Path.of(keystore.getFile()).toFile().getAbsolutePath();
+    String credProvPath = "jceks://file" + Path.of(keystore.getFile()).toAbsolutePath();
 
     var overrides =
         Map.of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath);
@@ -78,7 +77,7 @@ public class SiteConfigurationTest {
     assertEquals("256M", conf.get(Property.TSERV_WAL_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory",
         conf.get(Property.INSTANCE_CRYPTO_FACTORY));
-    assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));
+    assertEquals(System.getProperty("user.name"), conf.get("general.test.user.name"));
     assertEquals("/tmp/test/dir", conf.get("general.test.user.dir"));
   }
 
@@ -94,5 +93,18 @@ public class SiteConfigurationTest {
     var results = new HashMap<String,String>();
     conf.getProperties(results, p -> p.startsWith("instance"));
     assertEquals("myhost:2181", results.get(Property.INSTANCE_ZK_HOST.getKey()));
+  }
+
+  @Test
+  public void testTableProps() {
+    // try setting a table prop as an override
+    assertThrows(IllegalArgumentException.class, () -> SiteConfiguration.empty()
+        .withOverrides(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "5")).build());
+
+    // try loading a properties file that has a a table prop
+    URL propsUrl = getClass().getResource("SiteConfigurationTest-testTableProps.properties");
+    assertNotNull(propsUrl);
+    assertThrows(IllegalArgumentException.class,
+        () -> new SiteConfiguration.Builder().fromUrl(propsUrl).build());
   }
 }

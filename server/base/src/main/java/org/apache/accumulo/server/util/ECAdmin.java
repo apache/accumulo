@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -64,7 +65,7 @@ public class ECAdmin implements KeywordExecutable {
     private final String ecid;
     private final String addr;
     private final TCompactionKind kind;
-    private final String groupName;
+    private final ResourceGroupId groupName;
     private final String ke;
     private final String tableId;
     private String status = "";
@@ -79,7 +80,7 @@ public class ECAdmin implements KeywordExecutable {
       ecid = runningCompaction.getJob().getExternalCompactionId();
       addr = runningCompaction.getCompactorAddress();
       kind = runningCompaction.getJob().kind;
-      groupName = runningCompaction.getGroupName();
+      groupName = runningCompaction.getGroup();
       KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().extent);
       ke = extent.obscured();
       tableId = extent.tableId().canonical();
@@ -145,7 +146,7 @@ public class ECAdmin implements KeywordExecutable {
       return kind;
     }
 
-    public String getGroupName() {
+    public ResourceGroupId getGroup() {
       return groupName;
     }
 
@@ -166,13 +167,14 @@ public class ECAdmin implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(ECAdmin.class);
 
-  @Parameters(commandDescription = "cancel the external compaction with given ECID")
+  @Parameters(commandNames = "cancel",
+      commandDescription = "cancel the external compaction with given ECID")
   static class CancelCommand {
     @Parameter(names = "-ecid", description = "<ecid>", required = true)
     String ecid;
   }
 
-  @Parameters(commandDescription = "list the running compactions")
+  @Parameters(commandNames = "running", commandDescription = "list the running compactions")
   static class RunningCommand {
     @Parameter(names = {"-d", "--details"},
         description = "display details about the running compactions")
@@ -182,7 +184,8 @@ public class ECAdmin implements KeywordExecutable {
     boolean jsonOutput = false;
   }
 
-  @Parameters(commandDescription = "list all compactors in zookeeper")
+  @Parameters(commandNames = "listCompactors",
+      commandDescription = "list all compactors in zookeeper")
   static class ListCompactorsCommand {}
 
   public static void main(String[] args) {
@@ -212,13 +215,13 @@ public class ECAdmin implements KeywordExecutable {
     cl.setProgramName("accumulo ec-admin");
 
     CancelCommand cancelOps = new CancelCommand();
-    cl.addCommand("cancel", cancelOps);
+    cl.addCommand(cancelOps);
 
     ListCompactorsCommand listCompactorsOpts = new ListCompactorsCommand();
-    cl.addCommand("listCompactors", listCompactorsOpts);
+    cl.addCommand(listCompactorsOpts);
 
     RunningCommand runningOpts = new RunningCommand();
-    cl.addCommand("running", runningOpts);
+    cl.addCommand(runningOpts);
 
     cl.parse(args);
 
@@ -276,7 +279,7 @@ public class ECAdmin implements KeywordExecutable {
     if (compactors.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
-      Map<String,List<ServerId>> m = new TreeMap<>();
+      Map<ResourceGroupId,List<ServerId>> m = new TreeMap<>();
       compactors.forEach(csi -> {
         m.putIfAbsent(csi.getResourceGroup(), new ArrayList<>()).add(csi);
       });

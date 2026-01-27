@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
+import static org.apache.accumulo.core.Constants.ZRESOURCEGROUPS;
 import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
@@ -48,6 +49,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
@@ -55,6 +57,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -167,7 +170,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(Path.of(testFileName).toFile())) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine().trim();
@@ -205,7 +208,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(Path.of(testFileName).toFile())) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine();
@@ -247,6 +250,21 @@ public class ZooInfoViewerTest {
           s.setDataLength(sysPropBytes.length);
           sStat.setValue(s);
           return sysPropBytes;
+        }).once();
+
+    expect(zk.getChildren(eq(ZRESOURCEGROUPS), isNull()))
+        .andReturn(List.of(ResourceGroupId.DEFAULT.canonical())).anyTimes();
+    var rgPropBytes = propCodec
+        .toBytes(new VersionedProperties(123, Instant.now(), Map.of("s1", "sv1", "s2", "sv2")));
+    expect(zk.getData(eq(ResourceGroupPropKey.DEFAULT.getPath()), isA(PropStoreWatcher.class),
+        capture(sStat))).andAnswer(() -> {
+          Stat s = sStat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion(0); // default version
+          s.setDataLength(rgPropBytes.length);
+          sStat.setValue(s);
+          return rgPropBytes;
         }).once();
 
     var mockNamespaceIdMap = Map.of(NamespaceId.of("a"), "a_name");
@@ -313,7 +331,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     Map<String,String> props = new HashMap<>();
-    try (Scanner scanner = new Scanner(Path.of(testFileName).toFile())) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       while (scanner.hasNext()) {
         String line = scanner.nextLine();
         if (line.contains("=")) {
@@ -358,7 +376,7 @@ public class ZooInfoViewerTest {
 
     String line;
     Map<String,String> ids = new HashMap<>();
-    try (Scanner in = new Scanner(Path.of(testFileName).toFile())) {
+    try (Scanner in = new Scanner(Path.of(testFileName))) {
       while (in.hasNext()) {
         line = in.nextLine().trim();
         if (line.contains("=>") && !line.contains("ID Mapping")) {

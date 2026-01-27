@@ -57,6 +57,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -72,7 +73,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-class OfflineIterator implements Iterator<Entry<Key,Value>> {
+final class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
@@ -107,7 +108,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }
   }
@@ -133,13 +135,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return ret;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  private void nextTablet()
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException,
+      AccumuloSecurityException, ReflectiveOperationException {
 
     Range nextRange;
 
@@ -205,8 +208,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
-      Collection<StoredTabletFile> absFiles)
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+      Collection<StoredTabletFile> absFiles) throws TableNotFoundException, AccumuloException,
+      IOException, AccumuloSecurityException, ReflectiveOperationException {
 
     // possible race condition here, if table is renamed
     String tableName = context.getQualifiedTableName(tableId);
@@ -244,7 +247,12 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       readers.add(reader);
     }
 
-    MultiIterator multiIter = new MultiIterator(readers, extent);
+    MultiIterator multiIter;
+    if (tableCC.getBoolean(Property.TABLE_SHUFFLE_SOURCES)) {
+      multiIter = new MultiShuffledIterator(readers, extent.toDataRange());
+    } else {
+      multiIter = new MultiIterator(readers, extent.toDataRange());
+    }
 
     ClientIteratorEnvironment.Builder iterEnvBuilder =
         new ClientIteratorEnvironment.Builder().withAuthorizations(authorizations)

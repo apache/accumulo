@@ -97,15 +97,6 @@ public class RootTabletMetadata {
       this.columnValues = columnValues;
     }
 
-    public int getVersion() {
-      return version;
-    }
-
-    public static boolean needsUpgrade(final String json) {
-      var rootData = GSON.get().fromJson(json, Data.class);
-      int currVersion = rootData.getVersion();
-      return currVersion < VERSION;
-    }
   }
 
   /**
@@ -194,13 +185,10 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
+    // Create a tablet metadata object from the RootTabletMetadata
+    // Keep the key/values in case they are needed
     return TabletMetadata.convertRow(getKeyValues().iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
-  }
-
-  public static boolean needsUpgrade(final String json) {
-    return Data.needsUpgrade(json);
+        EnumSet.allOf(TabletMetadata.ColumnType.class), true, false);
   }
 
   /**

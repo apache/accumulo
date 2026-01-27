@@ -45,6 +45,8 @@ import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.HashMultimap;
@@ -68,6 +70,8 @@ import com.google.common.collect.Multimap;
  */
 public abstract class GroupBalancer implements TabletBalancer {
 
+  private final Logger log = LoggerFactory.getLogger(GroupBalancer.class);
+
   protected BalancerEnvironment environment;
   private final TableId tableId;
 
@@ -82,6 +86,19 @@ public abstract class GroupBalancer implements TabletBalancer {
    * @return A function that groups tablets into named groups.
    */
   protected abstract Function<TabletId,String> getPartitioner();
+
+  private Function<TabletId,String> getLoggingPartitioner() {
+    Function<TabletId,String> partitioner = getPartitioner();
+    if (log.isTraceEnabled()) {
+      return tabletId -> {
+        String group = partitioner.apply(tabletId);
+        log.trace("Extracted group {} from tablet {}", group, tabletId);
+        return group;
+      };
+    } else {
+      return partitioner;
+    }
+  }
 
   public GroupBalancer(TableId tableId) {
     this.tableId = tableId;
@@ -125,7 +142,7 @@ public abstract class GroupBalancer implements TabletBalancer {
       return;
     }
 
-    Function<TabletId,String> partitioner = getPartitioner();
+    Function<TabletId,String> partitioner = getLoggingPartitioner();
 
     List<ComparablePair<String,TabletId>> tabletsByGroup = new ArrayList<>();
     for (Entry<TabletId,TabletServerId> entry : params.unassignedTablets().entrySet()) {
@@ -227,7 +244,7 @@ public abstract class GroupBalancer implements TabletBalancer {
       tservers.put(tsi, new TserverGroupInfo(tsi));
     }
 
-    Function<TabletId,String> partitioner = getPartitioner();
+    Function<TabletId,String> partitioner = getLoggingPartitioner();
 
     // collect stats about current state
     for (var tablet : getLocationProvider().entrySet()) {
@@ -404,8 +421,7 @@ public abstract class GroupBalancer implements TabletBalancer {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof TserverGroupInfo) {
-        TserverGroupInfo otgi = (TserverGroupInfo) o;
+      if (o instanceof TserverGroupInfo otgi) {
         return tsi.equals(otgi.tsi);
       }
 
@@ -715,7 +731,7 @@ public abstract class GroupBalancer implements TabletBalancer {
       return;
     }
 
-    Function<TabletId,String> partitioner = getPartitioner();
+    Function<TabletId,String> partitioner = getLoggingPartitioner();
 
     for (var tablet : getLocationProvider().entrySet()) {
       String group = partitioner.apply(tablet.getKey());

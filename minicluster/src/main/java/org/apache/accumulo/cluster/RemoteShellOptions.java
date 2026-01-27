@@ -19,7 +19,6 @@
 package org.apache.accumulo.cluster;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -67,8 +66,7 @@ public class RemoteShellOptions {
     if (propertyFile != null) {
       // Check for properties provided in a file
       Path p = Path.of("file://" + propertyFile);
-      File f = p.toFile();
-      if (f.exists() && f.isFile() && f.canRead()) {
+      if (Files.exists(p) && Files.isRegularFile(p) && Files.isReadable(p)) {
         BufferedReader reader = null;
         try {
           reader = Files.newBufferedReader(p);
@@ -94,11 +92,10 @@ public class RemoteShellOptions {
 
     // Let other system properties override those in the file
     for (Entry<Object,Object> entry : System.getProperties().entrySet()) {
-      if (!(entry.getKey() instanceof String)) {
+      if (!(entry.getKey() instanceof String key)) {
         continue;
       }
 
-      String key = (String) entry.getKey();
       if (key.startsWith(SSH_PREFIX)) {
         properties.put(key, entry.getValue());
       }

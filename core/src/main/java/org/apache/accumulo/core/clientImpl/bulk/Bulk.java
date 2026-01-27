@@ -153,10 +153,9 @@ public class Bulk {
       if (o == this) {
         return true;
       }
-      if (!(o instanceof FileInfo)) {
+      if (!(o instanceof FileInfo other)) {
         return false;
       }
-      FileInfo other = (FileInfo) o;
       return this.name.equals(other.name) && this.estSize == other.estSize
           && this.estEntries == other.estEntries;
     }
@@ -180,10 +179,6 @@ public class Bulk {
       if (files.putIfAbsent(fi.name, fi) != null) {
         throw new IllegalArgumentException("File already present " + fi.name);
       }
-    }
-
-    public FileInfo get(String fileName) {
-      return files.get(fileName);
     }
 
     public Files mapNames(Map<String,String> renames) {
@@ -218,10 +213,9 @@ public class Bulk {
       if (o == this) {
         return true;
       }
-      if (!(o instanceof Files)) {
+      if (!(o instanceof Files other)) {
         return false;
       }
-      Files other = (Files) o;
       return this.files.equals(other.files);
     }
 

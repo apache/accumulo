@@ -49,8 +49,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -299,13 +297,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -322,13 +320,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -356,14 +354,16 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
               className, asTypeName));
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+    } catch (AccumuloSecurityException e) {
+      throw e;
+    } catch (AccumuloException e) {
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {

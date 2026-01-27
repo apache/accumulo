@@ -20,6 +20,7 @@ package org.apache.accumulo.server.manager.state;
 
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -139,7 +140,7 @@ public enum TabletGoalState {
             }
 
             @Override
-            public String getResourceGroup() {
+            public ResourceGroupId getResourceGroup() {
               return resourceGroup;
             }
           });
@@ -176,27 +177,22 @@ public enum TabletGoalState {
 
   private static TabletGoalState getSystemGoalState(TabletMetadata tm,
       TabletManagementParameters params) {
-    switch (params.getManagerState()) {
-      case NORMAL:
-        return HOSTED;
-      case HAVE_LOCK: // fall-through intended
-      case INITIAL: // fall-through intended
-      case SAFE_MODE:
+    return switch (params.getManagerState()) {
+      case NORMAL -> HOSTED;
+      case HAVE_LOCK, INITIAL, SAFE_MODE -> {
         if (tm.getExtent().isMeta()) {
-          return HOSTED;
+          yield HOSTED;
         }
-        return TabletGoalState.UNASSIGNED;
-      case UNLOAD_METADATA_TABLETS:
+        yield TabletGoalState.UNASSIGNED;
+      }
+      case UNLOAD_METADATA_TABLETS -> {
         if (tm.getExtent().isRootTablet()) {
-          return HOSTED;
+          yield HOSTED;
         }
-        return UNASSIGNED;
-      case UNLOAD_ROOT_TABLET:
-      case STOP:
-        return UNASSIGNED;
-      default:
-        throw new IllegalStateException("Unknown Manager State");
-    }
+        yield UNASSIGNED;
+      }
+      case UNLOAD_ROOT_TABLET, STOP -> UNASSIGNED;
+    };
   }
 
   private static TabletGoalState trace(TabletGoalState tabletGoalState, TabletMetadata tm,

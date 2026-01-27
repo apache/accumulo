@@ -42,8 +42,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -51,9 +55,11 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
@@ -82,6 +88,8 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
@@ -104,15 +112,23 @@ public class ServerContext extends ClientContext {
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
+  private final Supplier<ConditionalWriter> sharedMetadataWriter;
+  private final Supplier<ConditionalWriter> sharedUserWriter;
 
   private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
   private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedMetadataWriterCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedUserWriterCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(ServerInfo.fromServerConfig(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig), ResourceGroupId.DEFAULT);
   }
 
-  private ServerContext(ServerInfo info) {
+  public ServerContext(SiteConfiguration siteConfig, ResourceGroupId rgid) {
+    this(ServerInfo.fromServerConfig(siteConfig), rgid);
+  }
+
+  private ServerContext(ServerInfo info, ResourceGroupId rgid) {
     super(info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     serverDirs = info.getServerDirs();
@@ -124,7 +140,8 @@ public class ServerContext extends ClientContext {
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
-    serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
+    serverConfFactory =
+        memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration(), rgid));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
@@ -135,6 +152,9 @@ public class ServerContext extends ClientContext {
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     lowMemoryDetector = memoize(() -> new LowMemoryDetector());
     metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
+
+    sharedMetadataWriter = memoize(() -> createSharedConditionalWriter(DataLevel.METADATA));
+    sharedUserWriter = memoize(() -> createSharedConditionalWriter(DataLevel.USER));
   }
 
   /**
@@ -142,7 +162,8 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID));
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID),
+        ResourceGroupId.DEFAULT);
   }
 
   /**
@@ -150,7 +171,8 @@ public class ServerContext extends ClientContext {
    * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
    */
   public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
-    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info));
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info),
+        ResourceGroupId.DEFAULT);
   }
 
   /**
@@ -159,7 +181,8 @@ public class ServerContext extends ClientContext {
   public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
-        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
+        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut),
+        ResourceGroupId.DEFAULT);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -168,6 +191,10 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
+    return serverConfFactory.get().getResourceGroupConfiguration();
+  }
+
+  public AccumuloConfiguration getSystemConfiguration() {
     return serverConfFactory.get().getSystemConfiguration();
   }
 
@@ -406,7 +433,7 @@ public class ServerContext extends ClientContext {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         java.nio.file.Path swappiness = java.nio.file.Path.of(procFile);
-        if (swappiness.toFile().exists() && swappiness.toFile().canRead()) {
+        if (Files.exists(swappiness) && Files.isReadable(swappiness)) {
           try (InputStream is = Files.newInputStream(swappiness)) {
             byte[] buffer = new byte[10];
             int bytes = is.read(buffer);
@@ -441,6 +468,11 @@ public class ServerContext extends ClientContext {
     return getClientTimeoutInMillis();
   }
 
+  @Override
+  public synchronized ThriftTransportPool getTransportPool() {
+    return getTransportPoolImpl(true);
+  }
+
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
   }
@@ -469,13 +501,64 @@ public class ServerContext extends ClientContext {
     return metricsInfoSupplier.get();
   }
 
+  private ConditionalWriter createSharedConditionalWriter(DataLevel level) {
+    try {
+      int maxThreads =
+          getConfiguration().getCount(Property.GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX);
+      var config = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+      String tableName = level.metaTable();
+      log.info("Creating shared ConditionalWriter for DataLevel {} with max threads: {}", level,
+          maxThreads);
+      if (level == DataLevel.METADATA) {
+        sharedMetadataWriterCreated.set(true);
+      } else if (level == DataLevel.USER) {
+        sharedUserWriterCreated.set(true);
+      }
+      return createConditionalWriter(tableName, config);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Failed to create shared ConditionalWriter for level " + level, e);
+    }
+  }
+
+  public Supplier<ConditionalWriter> getSharedMetadataWriter() {
+    return sharedMetadataWriter;
+  }
+
+  public Supplier<ConditionalWriter> getSharedUserWriter() {
+    return sharedUserWriter;
+  }
+
   @Override
   public void close() {
+    Preconditions.checkState(!isClosed(), "ServerContext.close was already called.");
     if (metricsInfoCreated.get()) {
       getMetricsInfo().close();
     }
     if (sharedSchedExecutorCreated.get()) {
+      log.debug("Shutting down shared executor pool");
       getScheduledExecutor().shutdownNow();
+    }
+    if (sharedMetadataWriterCreated.get()) {
+      log.debug("Shutting down shared metadata conditional writer");
+      try {
+        ConditionalWriter writer = sharedMetadataWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      } catch (Exception e) {
+        log.warn("Error closing shared metadata ConditionalWriter", e);
+      }
+    }
+    if (sharedUserWriterCreated.get()) {
+      log.debug("Shutting down shared user conditional writer");
+      try {
+        ConditionalWriter writer = sharedUserWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      } catch (Exception e) {
+        log.warn("Error closing shared user ConditionalWriter", e);
+      }
     }
     super.close();
   }

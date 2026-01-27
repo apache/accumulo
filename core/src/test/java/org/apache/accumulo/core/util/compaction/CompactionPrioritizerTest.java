@@ -40,11 +40,12 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.commons.lang3.Range;
 import org.junit.jupiter.api.Test;
 
@@ -56,11 +57,11 @@ public class CompactionPrioritizerTest {
 
     Collection<CompactableFile> files = new ArrayList<>();
     for (int i = 0; i < numFiles; i++) {
-      files.add(CompactableFile
-          .create(URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
+      files.add(new CompactableFileImpl(
+          URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
     }
     return new CompactionJobImpl(CompactionJobPrioritizer.createPriority(Namespace.DEFAULT.id(),
-        TableId.of("5"), kind, totalFiles, numFiles, totalFiles * 2), CompactorGroupId.of("test"),
+        TableId.of("5"), kind, totalFiles, numFiles, totalFiles * 2), ResourceGroupId.of("test"),
         files, kind);
   }
 

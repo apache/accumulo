@@ -30,6 +30,9 @@
   <artifactId>accumulo-tserver</artifactId>
   <name>Apache Accumulo Tablet Server</name>
   <description>The tablet server for Apache Accumulo to host tablets of data tables.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -106,11 +109,6 @@
       <scope>runtime</scope>
     </dependency>
     <dependency>
-      <groupId>commons-io</groupId>
-      <artifactId>commons-io</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-slf4j2-impl</artifactId>
       <scope>test</scope>
@@ -146,7 +144,7 @@
           <configuration>
             <licenseSets>
               <licenseSet>
-                <header>${rootlocation}/src/build/license-header.txt</header>
+                <inlineHeader>${accumulo.build.license.header}</inlineHeader>
                 <excludes>
                   <exclude>src/test/resources/*.walog</exclude>
                   <exclude>src/test/resources/walog-from-14/*</exclude>

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -33,11 +31,10 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -46,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-class MoveExportedFiles extends ManagerRepo {
+class MoveExportedFiles extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(MoveExportedFiles.class);
 
   private static final long serialVersionUID = 1L;
@@ -58,9 +55,8 @@ class MoveExportedFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    int workerCount = manager.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    VolumeManager fs = manager.getVolumeManager();
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    VolumeManager fs = env.getVolumeManager();
     Map<Path,Path> oldToNewPaths = new HashMap<>();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -112,7 +108,7 @@ class MoveExportedFiles extends ManagerRepo {
       }
     }
     try {
-      fs.bulkRename(oldToNewPaths, workerCount, IMPORT_TABLE_RENAME_POOL.poolName, fateId);
+      fs.bulkRename(oldToNewPaths, env.getRenamePool(), fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

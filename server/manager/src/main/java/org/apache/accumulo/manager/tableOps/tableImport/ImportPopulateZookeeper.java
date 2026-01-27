@@ -28,8 +28,8 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -37,7 +37,7 @@ import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-class ImportPopulateZookeeper extends ManagerRepo {
+class ImportPopulateZookeeper extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -48,9 +48,9 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, fateId, LockType.WRITE, false,
-        TableOperation.IMPORT);
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    return Utils.reserveTable(environment.getContext(), tableInfo.tableId, fateId, LockType.WRITE,
+        false, TableOperation.IMPORT);
   }
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
@@ -68,23 +68,15 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     var context = env.getContext();
-    // reserve the table name in zookeeper or fail
-    Utils.getTableNameLock().lock();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
+        TableOperation.IMPORT);
+    env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
 
-    try {
-
-      // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
-          TableOperation.IMPORT);
-      env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
-
-      context.clearTableListCache();
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    context.clearTableListCache();
 
     VolumeManager volMan = env.getVolumeManager();
 
@@ -100,10 +92,10 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     var context = env.getContext();
     env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
-    Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);
     context.clearTableListCache();
   }
 }

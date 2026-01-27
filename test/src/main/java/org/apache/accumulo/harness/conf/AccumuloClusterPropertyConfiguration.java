@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -55,7 +54,8 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static AccumuloClusterPropertyConfiguration get() {
 
-    String clusterTypeValue = null, clientConf = null;
+    String clusterTypeValue = null;
+    String clientConf = null;
     String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     if (propertyFile != null) {
@@ -100,12 +100,12 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           throw new RuntimeException(
               "Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
-        File clientConfFile = Path.of(clientConf).toFile();
-        if (!clientConfFile.exists() || !clientConfFile.isFile()) {
+        Path clientConfFile = Path.of(clientConf);
+        if (!Files.isRegularFile(clientConfFile)) {
           throw new RuntimeException(
               "Client configuration should be a normal file: " + clientConfFile);
         }
-        return new StandaloneAccumuloClusterConfiguration(clientConfFile);
+        return new StandaloneAccumuloClusterConfiguration(clientConfFile.toFile());
       default:
         throw new RuntimeException(
             "Clusters other than MiniAccumuloCluster are not yet implemented");
@@ -116,17 +116,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   public Map<String,String> getConfiguration(ClusterType type) {
     requireNonNull(type);
 
-    String prefix;
-    switch (type) {
-      case MINI:
-        prefix = ACCUMULO_MINI_PREFIX;
-        break;
-      case STANDALONE:
-        prefix = ACCUMULO_STANDALONE_PREFIX;
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown ClusterType: " + type);
-    }
+    String prefix = switch (type) {
+      case MINI -> ACCUMULO_MINI_PREFIX;
+      case STANDALONE -> ACCUMULO_STANDALONE_PREFIX;
+    };
 
     Map<String,String> configuration = new HashMap<>();
 
@@ -134,12 +127,12 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     // Check for properties provided in a file
     if (propertyFile != null) {
-      File f = Path.of(propertyFile).toFile();
-      if (f.exists() && f.isFile() && f.canRead()) {
+      Path f = Path.of(propertyFile);
+      if (Files.exists(f) && Files.isRegularFile(f) && Files.isReadable(f)) {
         Properties fileProperties = new Properties();
         BufferedReader reader = null;
         try {
-          reader = Files.newBufferedReader(f.toPath(), UTF_8);
+          reader = Files.newBufferedReader(f, UTF_8);
         } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
@@ -170,11 +163,10 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   protected void loadFromProperties(String desiredPrefix, Properties properties,
       Map<String,String> configuration) {
     for (Entry<Object,Object> entry : properties.entrySet()) {
-      if (!(entry.getKey() instanceof String)) {
+      if (!(entry.getKey() instanceof String key)) {
         continue;
       }
 
-      String key = (String) entry.getKey();
       if (key.startsWith(desiredPrefix)) {
         configuration.put(key, (String) entry.getValue());
       }

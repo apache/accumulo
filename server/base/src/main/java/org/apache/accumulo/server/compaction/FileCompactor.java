@@ -265,11 +265,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   public static List<CompactionInfo> getRunningCompactions() {
     ArrayList<CompactionInfo> compactions = new ArrayList<>();
 
-    synchronized (runningCompactions) {
-      for (FileCompactor compactor : runningCompactions) {
-        compactions.add(new CompactionInfo(compactor));
-      }
-    }
+    runningCompactions.forEach(compactor -> compactions.add(new CompactionInfo(compactor)));
 
     return compactions;
   }
@@ -313,8 +309,8 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   @Override
-  public CompactionStats call()
-      throws IOException, CompactionCanceledException, InterruptedException {
+  public CompactionStats call() throws IOException, CompactionCanceledException,
+      InterruptedException, ReflectiveOperationException {
 
     FileSKVWriter mfw = null;
 
@@ -361,9 +357,10 @@ public class FileCompactor implements Callable<CompactionStats> {
               && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
                   || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
-      WriterBuilder outBuilder =
-          fileFactory.newWriterBuilder().forFile(outputFile, ns, ns.getConf(), cryptoService)
-              .withTableConfiguration(acuTableConf);
+      WriterBuilder outBuilder = fileFactory.newWriterBuilder().forTable(this.extent.tableId())
+          .forFile(outputFile, ns, ns.getConf(), cryptoService)
+          .withTableConfiguration(acuTableConf);
+
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
@@ -536,7 +533,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
-      EnumSet<FilePrefix> dropCacheFilePrefixes) throws IOException, CompactionCanceledException {
+      EnumSet<FilePrefix> dropCacheFilePrefixes)
+      throws IOException, CompactionCanceledException, ReflectiveOperationException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
@@ -559,7 +557,6 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorConfigUtil
           .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
-
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 
       if (inclusive) {

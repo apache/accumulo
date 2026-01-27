@@ -115,7 +115,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put("manager1", new TreeSet<>(List.of("hostA:9999")));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.MANAGER,
-        new TreeSet<>(List.of("default", "manager1")), hostByGroup, 0);
+        Map.of("default", 2, "manager1", 1), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -157,7 +157,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put("default", new TreeSet<>(List.of("hostA", "hostB")));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.MONITOR,
-        new TreeSet<>(List.of("default")), hostByGroup, 0);
+        Map.of("default", 2), hostByGroup, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -253,7 +253,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put("default", new TreeSet<>(List.of(host1, host2, host3)));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER,
-        Set.of("default"), hostByGroup, 0);
+        Map.of("default", 3), hostByGroup, 0);
 
     LOG.info("read: {}", status);
     LOG.info("need: {}", expected);
@@ -344,7 +344,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put("sg1", new TreeSet<>(List.of("host1:8080", "host3:9091")));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER,
-        Set.of("default", "sg1"), hostByGroup, 0);
+        Map.of("default", 2, "sg1", 2), hostByGroup, 0);
 
     assertEquals(expected, status);
 
@@ -442,7 +442,7 @@ public class ServiceStatusCmdTest {
     assertEquals(2, status.getServiceByGroups().size());
     assertEquals(1, status.getServiceByGroups().get("default").size());
     assertEquals(1, status.getServiceByGroups().get("gc1").size());
-    assertEquals(new TreeSet<>(List.of("default", "gc1")), status.getResourceGroups());
+    assertEquals(Map.of("default", 1, "gc1", 1), status.getResourceGroups());
     assertEquals(new TreeSet<>(List.of(host1)), status.getServiceByGroups().get("gc1"));
     assertEquals(new TreeSet<>(List.of(host2)), status.getServiceByGroups().get("default"));
   }
@@ -499,7 +499,7 @@ public class ServiceStatusCmdTest {
     replay(zooReader, zooCache);
     Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
-    assertFalse(opts.noHosts);
+    assertFalse(opts.showHosts);
   }
 
 }

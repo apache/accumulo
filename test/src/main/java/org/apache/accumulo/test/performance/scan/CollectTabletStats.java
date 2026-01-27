@@ -52,6 +52,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -72,7 +73,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -251,7 +252,8 @@ public class CollectTabletStats {
     private int count;
     private long t1;
     private long t2;
-    private CountDownLatch startCdl, finishCdl;
+    private CountDownLatch startCdl;
+    private CountDownLatch finishCdl;
     private KeyExtent ke;
 
     Test(KeyExtent ke) {
@@ -430,7 +432,7 @@ public class CollectTabletStats {
       Collection<SortedKeyValueIterator<Key,Value>> dataFiles, Authorizations authorizations,
       byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf,
-      ServerContext context) throws IOException {
+      ServerContext context) throws IOException, ReflectiveOperationException {
 
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
 
@@ -439,7 +441,7 @@ public class CollectTabletStats {
     iters.addAll(dataFiles);
     iters.add(smi);
 
-    MultiIterator multiIter = new MultiIterator(iters, ke);
+    MultiIterator multiIter = new MultiIterator(iters, ke.toDataRange());
     SortedKeyValueIterator<Key,Value> delIter =
         DeletingIterator.wrap(multiIter, false, Behavior.PROCESS);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);
@@ -449,8 +451,8 @@ public class CollectTabletStats {
 
     if (useTableIterators) {
       var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      TabletIteratorEnvironment iterEnv =
-          new TabletIteratorEnvironment(context, IteratorScope.scan, conf, ke.tableId());
+      IteratorEnvironment iterEnv = new SystemIteratorEnvironmentImpl.Builder(context)
+          .withScope(IteratorScope.scan).withTableId(ke.tableId()).build();
       var iteratorBuilder = ibEnv.env(iterEnv).useClassLoader("test").build();
       return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }

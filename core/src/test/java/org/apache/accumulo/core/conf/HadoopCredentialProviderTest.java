@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -38,26 +39,28 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class HadoopCredentialProviderTest {
 
-  private static final Configuration hadoopConf = new Configuration();
-  private static final Logger log = LoggerFactory.getLogger(HadoopCredentialProviderTest.class);
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
-  private static final String populatedKeyStoreName = "/accumulo.jceks",
-      emptyKeyStoreName = "/empty.jceks";
-  private static File emptyKeyStore, populatedKeyStore;
+  private static final Configuration hadoopConf = new Configuration();
+
+  private static final String populatedKeyStoreName = "/accumulo.jceks";
+  private static final String emptyKeyStoreName = "/empty.jceks";
+  private static File emptyKeyStore;
+  private static File populatedKeyStore;
 
   @BeforeAll
   public static void checkCredentialProviderAvailable() throws Exception {
     URL populatedKeyStoreUrl =
-        HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName),
-        emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
+        HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName);
+    URL emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
 
     assertNotNull(populatedKeyStoreUrl, "Could not find " + populatedKeyStoreName);
     assertNotNull(emptyKeyStoreUrl, "Could not find " + emptyKeyStoreName);
@@ -117,8 +120,8 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void testEmptyAndPopulatedKeyStores() {
-    String populatedAbsPath = getKeyStoreUrl(populatedKeyStore),
-        emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
+    String populatedAbsPath = getKeyStoreUrl(populatedKeyStore);
+    String emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
     HadoopCredentialProvider.setPath(conf, populatedAbsPath + "," + emptyAbsPath);
     Map<String,String> expectations = new HashMap<>();
@@ -150,16 +153,10 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void createKeystoreProvider() throws Exception {
-    File targetDir =
-        java.nio.file.Path.of(System.getProperty("user.dir")).resolve("target").toFile();
-    File keystoreFile = targetDir.toPath().resolve("create.jks").toFile();
-    if (keystoreFile.exists()) {
-      if (!keystoreFile.delete()) {
-        log.error("Unable to delete {}", keystoreFile);
-      }
-    }
+    java.nio.file.Path keystoreFile = tempDir.resolve("create.jks");
+    Files.deleteIfExists(keystoreFile);
 
-    String providerUrl = "jceks://file" + keystoreFile.getAbsolutePath();
+    String providerUrl = "jceks://file" + keystoreFile.toAbsolutePath();
     Configuration conf = new Configuration();
     HadoopCredentialProvider.setPath(conf, providerUrl);
 
@@ -172,11 +169,9 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void extractFromHdfs() throws Exception {
-    File target = java.nio.file.Path.of(System.getProperty("user.dir")).resolve("target").toFile();
     String prevValue = System.setProperty("test.build.data",
-        target.toPath().resolve(this.getClass().getName() + "_minidfs").toFile().toString());
-    MiniDFSCluster dfsCluster = new MiniDFSCluster.Builder(new Configuration()).build();
-    try {
+        tempDir.resolve(this.getClass().getName() + "_minidfs").toString());
+    try (MiniDFSCluster dfsCluster = new MiniDFSCluster.Builder(new Configuration()).build()) {
       if (null != prevValue) {
         System.setProperty("test.build.data", prevValue);
       } else {
@@ -199,8 +194,6 @@ public class HadoopCredentialProviderTest {
       expectations.put("key2", "value2");
 
       checkCredentialProviders(cpConf, expectations);
-    } finally {
-      dfsCluster.shutdown();
     }
   }
 

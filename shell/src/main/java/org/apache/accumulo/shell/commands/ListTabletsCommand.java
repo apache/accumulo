@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -32,8 +33,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -41,12 +41,13 @@ import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Utility that generates single line tablet info. The output of this could be fed to sort, awk,
- * grep, etc. in order to answer questions like which tablets have the most files.
+ * grep, etc. to answer questions like which tablets have the most files.
  */
 public class ListTabletsCommand extends Command {
 
@@ -55,6 +56,7 @@ public class ListTabletsCommand extends Command {
   private Option optHumanReadable;
   private Option optNamespace;
   private Option disablePaginationOpt;
+  private Option startRowExclusiveOpt;
 
   static final String header =
       String.format("%-4s %-15s %-5s %-5s %-9s %-9s %-10s %-30s %-5s %-20s %-20s %-10s", "NUM",
@@ -76,8 +78,14 @@ public class ListTabletsCommand extends Command {
       String name = tableInfo.name;
       lines.add("TABLE: " + name);
 
+      Text startRow = OptUtil.getStartRow(cl);
+      Text endRow = OptUtil.getEndRow(cl);
+      final boolean startInclusive = !cl.hasOption(startRowExclusiveOpt.getOpt());
+      final RowRange range = (startRow == null && endRow == null) ? RowRange.all()
+          : RowRange.range(startRow, startInclusive, endRow, true);
+
       try (Stream<TabletInformation> tabletInfoStream =
-          shellState.getContext().tableOperations().getTabletInformation(name, new Range())) {
+          shellState.getContext().tableOperations().getTabletInformation(name, List.of(range))) {
         final AtomicInteger counter = new AtomicInteger(1);
         tabletInfoStream.forEach(tabletInfo -> {
           int i = counter.getAndIncrement();
@@ -147,16 +155,15 @@ public class ListTabletsCommand extends Command {
       throws NamespaceNotFoundException {
 
     final TableOperations tableOps = shellState.getAccumuloClient().tableOperations();
-    var tableIdMap = tableOps.tableIdMap();
+    final Map<String,String> tableIdMap = tableOps.tableIdMap();
 
     Set<TableInfo> tableSet = new TreeSet<>();
 
     if (cl.hasOption(optTablePattern.getOpt())) {
       Pattern tablePattern = Pattern.compile(cl.getOptionValue(optTablePattern.getOpt()));
-      for (String table : tableOps.list()) {
+      for (String table : tableIdMap.keySet()) {
         if (tablePattern.matcher(table).matches()) {
-          TableId id = TableId.of(tableIdMap.get(table));
-          tableSet.add(new TableInfo(table, id));
+          tableSet.add(new TableInfo(table));
         }
       }
       return tableSet;
@@ -166,7 +173,7 @@ public class ListTabletsCommand extends Command {
       String nsName = cl.getOptionValue(optNamespace.getOpt());
       NamespaceId namespaceId = shellState.getContext().getNamespaceId(nsName);
       shellState.getContext().getTableMapping(namespaceId).createQualifiedNameToIdMap(nsName)
-          .forEach((name, id) -> tableSet.add(new TableInfo(name, id)));
+          .forEach((name, id) -> tableSet.add(new TableInfo(name)));
       return tableSet;
     }
 
@@ -174,8 +181,7 @@ public class ListTabletsCommand extends Command {
       String table = cl.getOptionValue(ShellOptions.tableOption);
       String idString = tableIdMap.get(table);
       if (idString != null) {
-        TableId id = TableId.of(idString);
-        tableSet.add(new TableInfo(table, id));
+        tableSet.add(new TableInfo(table));
       } else {
         Shell.log.warn("Table not found: {}", table);
       }
@@ -185,8 +191,7 @@ public class ListTabletsCommand extends Command {
     // If we didn't get any tables, and we have a table selected, add the current table
     String table = shellState.getTableName();
     if (!table.isEmpty()) {
-      TableId id = TableId.of(tableIdMap.get(table));
-      tableSet.add(new TableInfo(table, id));
+      tableSet.add(new TableInfo(table));
       return tableSet;
     }
 
@@ -199,11 +204,9 @@ public class ListTabletsCommand extends Command {
   static class TableInfo implements Comparable<TableInfo> {
 
     public final String name;
-    public final TableId id;
 
-    public TableInfo(final String name, final TableId id) {
+    public TableInfo(final String name) {
       this.name = name;
-      this.id = id;
     }
 
     @Override
@@ -266,6 +269,15 @@ public class ListTabletsCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write output to");
     outputFileOpt.setArgName("file");
     opts.addOption(outputFileOpt);
+
+    Option startRowOpt =
+        new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
+    startRowExclusiveOpt = new Option("be", "begin-exclusive", false,
+        "make start row exclusive (by default it's inclusive)");
+    startRowExclusiveOpt.setArgName("begin-exclusive");
+    opts.addOption(startRowOpt);
+    opts.addOption(startRowExclusiveOpt);
+    opts.addOption(OptUtil.endRowOpt());
 
     return opts;
   }

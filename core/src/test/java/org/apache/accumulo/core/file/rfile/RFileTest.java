@@ -31,11 +31,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,7 +104,7 @@ public class RFileTest extends AbstractRFileTest {
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {
@@ -172,19 +172,6 @@ public class RFileTest extends AbstractRFileTest {
 
   }
 
-  static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
-        ts);
-  }
-
-  static Value newValue(String val) {
-    return new Value(val);
-  }
-
-  static String formatString(String prefix, int i) {
-    return String.format(prefix + "%06d", i);
-  }
-
   @Test
   public void test1() throws IOException {
 
@@ -198,7 +185,8 @@ public class RFileTest extends AbstractRFileTest {
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertNull(trf.reader.getLastRow());
+    assertTrue(trf.reader.getFileRange().empty);
+    assertNull(trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -235,7 +223,7 @@ public class RFileTest extends AbstractRFileTest {
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(new Text("r1"), trf.reader.getLastRow());
+    assertEquals(new Range("r1", "r1"), trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -371,7 +359,9 @@ public class RFileTest extends AbstractRFileTest {
       }
     }
 
-    assertEquals(expectedKeys.get(expectedKeys.size() - 1).getRow(), trf.reader.getLastRow());
+    assertEquals(
+        new Range(expectedKeys.get(0).getRow(), expectedKeys.get(expectedKeys.size() - 1).getRow()),
+        trf.reader.getFileRange().rowRange);
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
@@ -447,7 +437,7 @@ public class RFileTest extends AbstractRFileTest {
     assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
     assertEquals(newValue("foo1"), trf.iter.getTopValue());
 
-    assertEquals(new Text("r1"), trf.reader.getLastRow());
+    assertEquals(new Range("r1", "r1"), trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -480,7 +470,8 @@ public class RFileTest extends AbstractRFileTest {
       assertFalse(trf.iter.hasTop());
     }
 
-    assertEquals(new Text(formatString("r_", 499)), trf.reader.getLastRow());
+    assertEquals(new Range(formatString("r_", 0), formatString("r_", 499)),
+        trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -546,7 +537,8 @@ public class RFileTest extends AbstractRFileTest {
         newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(new Text(formatString("r_", 49)), trf.reader.getLastRow());
+    assertEquals(new Range(formatString("r_", 2), formatString("r_", 49)),
+        trf.reader.getFileRange().rowRange);
 
     trf.reader.close();
   }
@@ -855,6 +847,9 @@ public class RFileTest extends AbstractRFileTest {
 
     trf.closeReader();
 
+    assertTrue(trf.reader.getFileRange().empty);
+    assertNull(trf.reader.getFileRange().rowRange);
+
     // another empty locality group test
     trf = new TestRFile(conf);
 
@@ -879,6 +874,8 @@ public class RFileTest extends AbstractRFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0000", "0002"), trf.reader.getFileRange().rowRange);
 
     // another empty locality group test
     trf = new TestRFile(conf);
@@ -905,6 +902,9 @@ public class RFileTest extends AbstractRFileTest {
 
     trf.closeReader();
 
+    // test getting row range whe some locality groups are empty
+    assertEquals(new Range("0001", "0003"), trf.reader.getFileRange().rowRange);
+
     // another empty locality group test
     trf = new TestRFile(conf);
 
@@ -929,6 +929,8 @@ public class RFileTest extends AbstractRFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0007", "0008"), trf.reader.getFileRange().rowRange);
 
     // another empty locality group test
     trf = new TestRFile(conf);
@@ -964,6 +966,8 @@ public class RFileTest extends AbstractRFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0000", "0008"), trf.reader.getFileRange().rowRange);
   }
 
   @Test
@@ -1080,6 +1084,10 @@ public class RFileTest extends AbstractRFileTest {
       assertFalse(trf.iter.hasTop());
       assertFalse(reader2.hasTop());
     }
+
+    // should get the min and max row across all locality groups
+    assertEquals(new Range(formatString("i", 0), formatString("i", 1023)),
+        trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -1768,25 +1776,19 @@ public class RFileTest extends AbstractRFileTest {
 
   private Key newKey(int r, int c) {
     String row = String.format("r%06d", r);
-    switch (c) {
-      case 0:
-        return new Key(row, "user", "addr");
-      case 1:
-        return new Key(row, "user", "name");
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (c) {
+      case 0 -> new Key(row, "user", "addr");
+      case 1 -> new Key(row, "user", "name");
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   private Value newValue(int r, int c) {
-    switch (c) {
-      case 0:
-        return new Value("123" + r + " west st");
-      case 1:
-        return new Value("bob" + r);
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (c) {
+      case 0 -> new Value("123" + r + " west st");
+      case 1 -> new Value("bob" + r);
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   private static void hash(Hasher hasher, Key key, Value val) {
@@ -2190,7 +2192,7 @@ public class RFileTest extends AbstractRFileTest {
 
     if (true) {
       try (OutputStream fileOutputStream =
-          Files.newOutputStream(tempDir.toPath().resolve("testEncryptedRootFile.rf"))) {
+          Files.newOutputStream(tempDir.resolve("testEncryptedRootFile.rf"))) {
         fileOutputStream.write(testRfile.baos.toByteArray());
       }
     }
@@ -2199,7 +2201,7 @@ public class RFileTest extends AbstractRFileTest {
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertTrue(testRfile.iter.hasTop());
 
-    assertNotNull(testRfile.reader.getLastRow());
+    assertNotNull(testRfile.reader.getFileRange().rowRange);
 
     testRfile.closeReader();
 

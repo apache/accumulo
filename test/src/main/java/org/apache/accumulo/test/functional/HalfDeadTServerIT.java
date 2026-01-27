@@ -28,6 +28,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
@@ -168,8 +169,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       String javaHome = System.getProperty("java.home");
       String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
       String classpath = System.getProperty("java.class.path");
-      classpath =
-          confDirPath.resolve("conf").toFile().getAbsolutePath() + File.pathSeparator + classpath;
+      classpath = confDirPath.resolve("conf").toAbsolutePath() + File.pathSeparator + classpath;
       String className = TabletServer.class.getName();
       ProcessBuilder builder = new ProcessBuilder(javaBin, Main.class.getName(), className);
       Map<String,String> env = builder.environment();
@@ -203,12 +203,14 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
         Thread.sleep(500);
 
         // block I/O with some side-channel trickiness
-        File trickFile = Path.of(trickFilename).toFile();
+        Path trickFile = Path.of(trickFilename);
         try {
-          assertTrue(trickFile.createNewFile());
+          Files.createFile(trickFile);
+          assertTrue(Files.exists(trickFile));
           Thread.sleep(SECONDS.toMillis(seconds));
         } finally {
-          if (!trickFile.delete()) {
+          Files.deleteIfExists(trickFile);
+          if (Files.exists(trickFile)) {
             log.error("Couldn't delete {}", trickFile);
           }
         }

@@ -45,7 +45,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -80,6 +79,7 @@ import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
@@ -213,7 +213,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
     this.executor = context.threadPools().createScheduledExecutorService(2,
-        "BatchWriterThreads-" + numWritersCreated.incrementAndGet(), true);
+        "BatchWriterThreads-" + numWritersCreated.incrementAndGet(), false);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -874,11 +874,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
           Span span = TraceUtil.startSpan(this.getClass(), "sendMutations");
           try (Scope scope = span.makeCurrent()) {
 
-            TimeoutTracker timeoutTracker = timeoutTrackers.get(location);
-            if (timeoutTracker == null) {
-              timeoutTracker = new TimeoutTracker(location, timeout);
-              timeoutTrackers.put(location, timeoutTracker);
-            }
+            TimeoutTracker timeoutTracker =
+                timeoutTrackers.computeIfAbsent(location, l -> new TimeoutTracker(l, timeout));
 
             long st1 = System.currentTimeMillis();
             try (SessionCloser sessionCloser = new SessionCloser(location)) {
@@ -1094,9 +1091,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
         final HostAndPort parsedServer = HostAndPort.fromString(location);
 
-        long startTime = System.nanoTime();
-
-        boolean useCloseUpdate = false;
+        Timer timer = Timer.startNew();
 
         // If somethingFailed is true then the batch writer will throw an exception on close or
         // flush, so no need to close this session. Only want to close the session for retryable
@@ -1123,21 +1118,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
             } else {
               client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
             }
-
-            if (useCloseUpdate) {
-              // This compatability handling for accumulo version 2.1.2 and earlier that did not
-              // have cancelUpdate. Can remove this in 3.1.
-              client.closeUpdate(TraceUtil.traceInfo(), usid.getAsLong());
-              retry.logCompletion(log, "Closed failed write session " + location + " " + usid);
+            if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
+              retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
               break;
             } else {
-              if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
-                retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
-                break;
-              } else {
-                retry.waitForNextAttempt(log,
-                    "Attempting to cancel failed write session " + location + " " + usid);
-              }
+              retry.waitForNextAttempt(log,
+                  "Attempting to cancel failed write session " + location + " " + usid);
             }
           } catch (NoSuchScanIDException e) {
             retry.logCompletion(log,
@@ -1145,30 +1131,20 @@ public class TabletServerBatchWriter implements AutoCloseable {
             // The session no longer exists, so done
             break;
           } catch (TApplicationException tae) {
-            if (tae.getType() == TApplicationException.UNKNOWN_METHOD && !useCloseUpdate) {
-              useCloseUpdate = true;
-              log.debug(
-                  "Accumulo server {} does not have cancelUpdate, falling back to closeUpdate.",
-                  location);
-              retry.waitForNextAttempt(log, "Attempting to cancel failed write session " + location
-                  + " " + usid + " " + tae.getMessage());
-            } else {
-              // no need to bother closing session in this case
-              updateServerErrors(location, tae);
-              break;
-            }
+            // no need to bother closing session in this case
+            updateServerErrors(location, tae);
+            break;
           } catch (ThriftSecurityException e) {
             throw e;
           } catch (TException e) {
-            String op = useCloseUpdate ? "close" : "cancel";
-            retry.waitForNextAttempt(log, "Attempting to " + op + " failed write session "
-                + location + " " + usid + " " + e.getMessage());
+            retry.waitForNextAttempt(log, "Attempting to cancel failed write session " + location
+                + " " + usid + " " + e.getMessage());
           } finally {
             ThriftUtil.returnClient(client, context);
           }
 
           // if a timeout is set on the batch writer, then do not retry longer than the timeout
-          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > timeout) {
+          if (timer.hasElapsed(timeout, MILLISECONDS)) {
             log.debug("Giving up on canceling session {} {} and timing out.", location, usid);
             throw new TimedOutException(Set.of(location));
           }

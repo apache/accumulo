@@ -94,7 +94,7 @@ public class PasswordConverterTest {
   @Test
   public void testFile() throws IOException {
     argv[1] = "file:pom.xml";
-    Scanner scan = new Scanner(Path.of("pom.xml").toFile(), UTF_8);
+    Scanner scan = new Scanner(Path.of("pom.xml"), UTF_8);
     String expected = scan.nextLine();
     scan.close();
     new JCommander(password).parse(argv);

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12.SPLIT_RATIO_COLUMN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -64,7 +64,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.manager.upgrade.SplitRecovery12to13;
+import org.apache.accumulo.manager.upgrade.SplitRecovery11to12;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.util.MetadataTableUtil;
@@ -204,10 +204,10 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    SplitRecovery12to13.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
-        lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+    SplitRecovery11to12.splitDatafiles(midRow, splitRatio, dataFiles, lowDatafileSizes,
+        highDatafileSizes, highDatafilesToRemove);
 
-    SplitRecovery12to13.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
+    SplitRecovery11to12.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
@@ -222,7 +222,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           new MetadataTime(0, TimeType.LOGICAL), -1L);
     }
     if (steps >= 2) {
-      SplitRecovery12to13.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context);
+      SplitRecovery11to12.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context);
     }
 
     if (steps < 2) {
@@ -240,7 +240,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       assertEquals(splitRatio, persistedSplitRatio, 0.0);
     }
 
-    KeyExtent fixedExtent = SplitRecovery12to13.fixSplit(context, high.toMetaRow());
+    KeyExtent fixedExtent = SplitRecovery11to12.fixSplit(context, high.toMetaRow());
 
     if (steps >= 1) {
       assertEquals(high, fixedExtent);

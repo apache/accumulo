@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -341,7 +342,8 @@ public class SystemInformation {
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
 
   // Deployment Overview
-  private final Map<String,Map<String,ProcessSummary>> deployment = new ConcurrentHashMap<>();
+  private final Map<ResourceGroupId,Map<String,ProcessSummary>> deployment =
+      new ConcurrentHashMap<>();
 
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
@@ -374,6 +376,9 @@ public class SystemInformation {
   private void updateAggregates(final MetricResponse response,
       final Map<Id,CumulativeDistributionSummary> total,
       final Map<String,Map<Id,CumulativeDistributionSummary>> rg) {
+    if (response.getMetrics() == null) {
+      return;
+    }
 
     final Map<Id,CumulativeDistributionSummary> rgMetrics =
         rg.computeIfAbsent(response.getResourceGroup(), (k) -> new ConcurrentHashMap<>());
@@ -600,7 +605,7 @@ public class SystemInformation {
     return this.tablets.get(tableId);
   }
 
-  public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {
+  public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
     return this.deployment;
   }
 

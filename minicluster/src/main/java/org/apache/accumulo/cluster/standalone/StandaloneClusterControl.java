@@ -51,10 +51,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
-  private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service",
-      ACCUMULO_SCRIPT = "accumulo";
-  private static final String MANAGER_HOSTS_FILE = "managers", GC_HOSTS_FILE = "gc",
-      TSERVER_HOSTS_FILE = "tservers", MONITOR_HOSTS_FILE = "monitor";
+  private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service";
+  private static final String ACCUMULO_SCRIPT = "accumulo";
+  private static final String MANAGER_HOSTS_FILE = "managers";
+  private static final String GC_HOSTS_FILE = "gc";
+  private static final String TSERVER_HOSTS_FILE = "tservers";
+  private static final String MONITOR_HOSTS_FILE = "monitor";
 
   String accumuloHome;
   String clientAccumuloConfDir;
@@ -63,7 +65,8 @@ public class StandaloneClusterControl implements ClusterControl {
   private String serverCmdPrefix;
   protected RemoteShellOptions options;
 
-  protected String accumuloServicePath, accumuloPath;
+  protected String accumuloServicePath;
+  protected String accumuloPath;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -78,8 +81,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
     Path home = Path.of(accumuloHome);
     Path bin = home.resolve("bin");
-    this.accumuloServicePath = bin.resolve(ACCUMULO_SERVICE_SCRIPT).toFile().getAbsolutePath();
-    this.accumuloPath = bin.resolve(ACCUMULO_SCRIPT).toFile().getAbsolutePath();
+    this.accumuloServicePath = bin.resolve(ACCUMULO_SERVICE_SCRIPT).toAbsolutePath().toString();
+    this.accumuloPath = bin.resolve(ACCUMULO_SCRIPT).toAbsolutePath().toString();
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
@@ -306,18 +309,13 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   protected String getProcessString(ServerType server) {
-    switch (server) {
-      case TABLET_SERVER:
-        return "tserver";
-      case GARBAGE_COLLECTOR:
-        return "gc";
-      case MANAGER:
-        return "manager";
-      case MONITOR:
-        return "monitor";
-      default:
-        throw new UnsupportedOperationException("Unhandled ServerType " + server);
-    }
+    return switch (server) {
+      case TABLET_SERVER -> "tserver";
+      case GARBAGE_COLLECTOR -> "gc";
+      case MANAGER -> "manager";
+      case MONITOR -> "monitor";
+      default -> throw new UnsupportedOperationException("Unhandled ServerType " + server);
+    };
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",

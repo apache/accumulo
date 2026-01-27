@@ -24,6 +24,7 @@ import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FatePoolsWatcherITBase;
@@ -51,8 +52,10 @@ public class UserFatePoolsWatcherIT_SimpleSuite extends FatePoolsWatcherITBase {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
-          fateIdGenerator), getCluster().getServerContext());
+      try (FateStore<PoolResizeTestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(),
+          null, maxDeferred, fateIdGenerator)) {
+        testMethod.execute(fs, getCluster().getServerContext());
+      }
     }
   }
 }

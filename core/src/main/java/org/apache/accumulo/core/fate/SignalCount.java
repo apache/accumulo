@@ -32,18 +32,8 @@ class SignalCount {
     this.notifyAll();
   }
 
-  synchronized void decrement() {
-    Preconditions.checkState(count > 0);
-    count--;
-    this.notifyAll();
-  }
-
   synchronized long getCount() {
     return count;
-  }
-
-  synchronized boolean waitFor(LongPredicate predicate, BooleanSupplier keepWaiting) {
-    return waitFor(predicate, Long.MAX_VALUE, keepWaiting);
   }
 
   synchronized boolean waitFor(LongPredicate predicate, long maxWait, BooleanSupplier keepWaiting) {

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -192,10 +193,6 @@ public interface TableOperations {
    *
    * Ensures that tablets are split along a set of keys.
    *
-   * TODO: This method currently only adds new splits (existing are stripped). The intent in a
-   * future PR is so support updating existing splits and the TabletMergeabilty setting. See
-   * https://github.com/apache/accumulo/issues/5014
-   *
    * <p>
    * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
    * encoding is not enforced by operations that work with byte arrays.
@@ -253,6 +250,7 @@ public interface TableOperations {
    * Finds the max row within a given range. To find the max row in a table, pass null for start and
    * end row.
    *
+   * @param tableName the table to search
    * @param auths find the max row that can seen with these auths
    * @param startRow row to start looking at, null means -Infinity
    * @param startInclusive determines if the start row is included
@@ -260,9 +258,29 @@ public interface TableOperations {
    * @param endInclusive determines if the end row is included
    *
    * @return The max row in the range, or null if there is no visible data in the range.
+   *
+   * @deprecated since 4.0.0, use {@link #getMaxRow(String, Authorizations, RowRange)} instead
    */
-  Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive,
-      Text endRow, boolean endInclusive)
+  @Deprecated(since = "4.0.0")
+  default Text getMaxRow(String tableName, Authorizations auths, Text startRow,
+      boolean startInclusive, Text endRow, boolean endInclusive)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    return getMaxRow(tableName, auths,
+        RowRange.range(startRow, startInclusive, endRow, endInclusive));
+  }
+
+  /**
+   * Finds the max row within a given row range. To find the max row in the whole table, pass
+   * {@link RowRange#all()} as the row range.
+   *
+   * @param tableName the table to search
+   * @param auths find the max row that can seen with these auths
+   * @param range the range of rows to search
+   *
+   * @return The max row in the range, or null if there is no visible data in the range.
+   * @since 4.0.0
+   */
+  Text getMaxRow(String tableName, Authorizations auths, RowRange range)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -420,7 +438,8 @@ public interface TableOperations {
    * @param srcTableName the table to clone
    * @param newTableName the name of the clone
    * @param config the clone command configuration
-   * @since 1.10 and 2.1
+   * @since 1.10.0
+   * @since 2.1.0
    */
   void clone(String srcTableName, String newTableName, CloneConfiguration config)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
@@ -1044,29 +1063,44 @@ public interface TableOperations {
 
   /**
    * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
-   * for the tablets to reach this availability state. For the Range parameter, note that the Row
-   * portion of the start and end Keys and the inclusivity parameters are used when determining the
-   * range of affected tablets. The other portions of the start and end Keys are not used.
+   * for the tablets to reach this availability state. The supplied row range is compared against
+   * the tablets' start/end rows using its lower/upper bounds and inclusivity flags.
    *
    * @param tableName table name
-   * @param range tablet range
+   * @param rowRange tablet row range
    * @param tabletAvailability tablet availability
    * @since 4.0.0
    */
-  default void setTabletAvailability(String tableName, Range range,
+  default void setTabletAvailability(String tableName, RowRange rowRange,
       TabletAvailability tabletAvailability)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 
   /**
-   * @return a stream of tablet information for tablets that fall in the specified range. The stream
-   *         may be backed by a scanner, so it's best to close the stream.
+   * @param ranges the row ranges of tablets to scan. Ranges can overlap and an attempt will be made
+   *        to merge this list. An empty list returns an empty stream; use
+   *        {@code List.of(RowRange.all())} to scan all tablets.
+   * @param fields can optionally narrow the data retrieved per tablet, which can speed up streaming
+   *        over tablets. If this list is empty then all fields are fetched.
+   * @return a stream of tablet information for tablets that fall in the specified ranges. The
+   *         stream may be backed by a scanner, so it's best to close the stream. The stream has no
+   *         defined ordering.
    * @since 4.0.0
    */
-  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+  default Stream<TabletInformation> getTabletInformation(final String tableName,
+      final List<RowRange> ranges, TabletInformation.Field... fields)
       throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Returns the namespace for the given table name
+   *
+   * @param table fully qualified table name
+   * @return namespace name
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @since 4.0.0
+   */
+  String getNamespace(String table);
 }

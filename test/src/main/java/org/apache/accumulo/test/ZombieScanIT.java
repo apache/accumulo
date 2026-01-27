@@ -268,18 +268,11 @@ public class ZombieScanIT extends ConfigurableMacBase {
       return zsmc == -1 || zsmc == 0;
     }, 60_000);
 
-    String table = getUniqueNames(1)[0];
+    String table = getUniqueNames(1)[0] + "_" + consistency;
 
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-
-      if (serverType == SCAN_SERVER) {
-        // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
-        // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(() -> !c.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty(),
-            60_000);
-      }
 
       c.tableOperations().create(table);
 

@@ -52,6 +52,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -59,6 +60,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -77,11 +79,13 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -91,9 +95,11 @@ import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
@@ -281,7 +287,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying table properties: tableId: " + tableId.canonical());
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException();
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
 
   }
@@ -322,7 +328,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
     }
 
-    Fate<Manager> fate = manager.fate(FateInstanceType.META);
+    Fate<FateEnv> fate = manager.fate(FateInstanceType.META);
     FateId fateId = fate.startTransaction();
 
     String msg = "Shutdown tserver " + tabletServer;
@@ -338,14 +344,26 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer)
+  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer,
+      String resourceGroup)
       throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
-    manager.tserverSet.tabletServerShuttingDown(tabletServer);
+    var tserver = new TServerInstance(tabletServer);
+    if (manager.shutdownTServer(tserver)) {
+      // If there is an exception seeding the fate tx this should cause the RPC to fail which should
+      // cause the tserver to halt. Because of that not making an attempt to handle failure here.
+      Fate<FateEnv> fate = manager.fate(FateInstanceType.META);
+      var tid = fate.startTransaction();
+      String msg = "Shutdown tserver " + tabletServer;
+
+      fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
+          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.of(resourceGroup), false)),
+          true, msg);
+    }
   }
 
   @Override
@@ -416,7 +434,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       SystemPropUtil.setSystemProperty(context, property, value);
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
-      throw new ThriftPropertyException(property, value, "Property is invalid");
+      throw new ThriftPropertyException(property, value,
+          "Property is invalid. message: " + iae.getMessage());
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());
@@ -437,6 +456,107 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying system properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
+    } catch (Exception e) {
+      Manager.log.error("Problem setting config property in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
+  }
+
+  @Override
+  public void createResourceGroupNode(TInfo tinfo, TCredentials c, String resourceGroup)
+      throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
+
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try {
+      Preconditions.checkArgument(resourceGroup != null && !resourceGroup.isBlank(),
+          "Supplied resource group name is null or empty");
+      final ResourceGroupId rgid = ResourceGroupId.of(resourceGroup);
+      final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
+      key.createZNode(context.getZooSession().asReaderWriter());
+    } catch (KeeperException | InterruptedException e) {
+      Manager.log.error("Problem creating resource group config node in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
+
+  }
+
+  @Override
+  public void removeResourceGroupNode(TInfo tinfo, TCredentials c, String resourceGroup)
+      throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
+
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    final ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
+    try {
+      if (rgid.equals(ResourceGroupId.DEFAULT)) {
+        throw new IllegalArgumentException(
+            "Cannot remove default resource group configuration node");
+      }
+      final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
+      key.removeZNode(context.getZooSession());
+    } catch (Exception e) {
+      Manager.log.error("Problem removing resource group config node in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
+
+  }
+
+  @Override
+  public void removeResourceGroupProperty(TInfo info, TCredentials c, String resourceGroup,
+      String property) throws TException {
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+    ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
+    try {
+      PropUtil.removeProperties(context, ResourceGroupPropKey.of(rgid), List.of(property));
+    } catch (Exception e) {
+      Manager.log.error("Problem removing config property in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
+  }
+
+  @Override
+  public void setResourceGroupProperty(TInfo info, TCredentials c, String resourceGroup,
+      String property, String value) throws TException {
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    final ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
+    try {
+      PropUtil.setProperties(context, ResourceGroupPropKey.of(rgid), Map.of(property, value));
+    } catch (IllegalArgumentException iae) {
+      Manager.log.error("Problem setting invalid property", iae);
+      throw new ThriftPropertyException(property, value,
+          "Property is invalid. message: " + iae.getMessage());
+    } catch (Exception e) {
+      Manager.log.error("Problem setting config property in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
+  }
+
+  @Override
+  public void modifyResourceGroupProperties(TInfo info, TCredentials c, String resourceGroup,
+      TVersionedProperties properties) throws TException {
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+    ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
+    try {
+      PropUtil.replaceProperties(context, ResourceGroupPropKey.of(rgid), properties.getVersion(),
+          properties.getProperties());
+    } catch (IllegalArgumentException iae) {
+      Manager.log.error("Problem setting invalid property", iae);
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying resource group properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
@@ -476,7 +596,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying namespace properties");
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException("All properties", "failed", iae.getMessage());
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
   }
 
@@ -532,10 +652,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           value = "";
         }
         PropUtil.setProperties(context, TablePropKey.of(tableId), Map.of(property, value));
+      } else {
+        throw new UnsupportedOperationException("table operation:" + op.name());
       }
     } catch (IllegalStateException ex) {
-      log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "
-          + property + "=" + value);
+      log.warn("Invalid table property, tried to {}: tableId: {} to: {}={}", op.name(),
+          tableId.canonical(), property, value, ex);
       // race condition... table no longer exists? This call will throw an exception if the table
       // was deleted:
       ClientServiceHandler.checkTableId(context, tableName, op);
@@ -549,7 +671,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void waitForBalance(TInfo tinfo) {
-    manager.waitForBalance();
+    manager.getBalanceManager().waitForBalance();
   }
 
   @Override
@@ -596,6 +718,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
+  public static void mustBeOnline(ServerContext context, final TableId tableId)
+      throws ThriftTableOperationException {
+    context.clearTableListCache();
+    if (context.getTableState(tableId) != TableState.ONLINE) {
+      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.MERGE,
+          TableOperationExceptionType.OFFLINE, "table is not online");
+    }
+  }
+
   @Override
   public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableIdStr,
       List<TKeyExtent> extents) throws ThriftSecurityException, ThriftTableOperationException {
@@ -607,7 +738,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    manager.mustBeOnline(tableId);
+    mustBeOnline(manager.getContext(), tableId);
 
     manager.hostOndemand(Lists.transform(extents, KeyExtent::fromThrift));
   }

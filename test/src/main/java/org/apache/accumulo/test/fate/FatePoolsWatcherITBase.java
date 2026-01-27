@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.fate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +27,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
@@ -40,6 +38,8 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests the functionality of the FATE pools watcher task
@@ -47,26 +47,28 @@ import org.junit.jupiter.api.Test;
 public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     implements FateTestRunner<FatePoolsWatcherITBase.PoolResizeTestEnv> {
 
+  private static final Logger log = LoggerFactory.getLogger(FatePoolsWatcherITBase.class);
+
   private static final Set<Fate.FateOperation> ALL_USER_FATE_OPS =
       Fate.FateOperation.getAllUserFateOps();
   private static final Set<Fate.FateOperation> ALL_META_FATE_OPS =
       Fate.FateOperation.getAllMetaFateOps();
-  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET1 =
-      ALL_USER_FATE_OPS.stream().limit(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET2 =
-      ALL_USER_FATE_OPS.stream().skip(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET3 =
-      ALL_USER_FATE_OPS.stream().skip(ALL_USER_FATE_OPS.size() / 2 + 1).collect(Collectors.toSet());
+  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET1 = ALL_USER_FATE_OPS.stream()
+      .limit(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET2 = ALL_USER_FATE_OPS.stream()
+      .skip(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET3 = ALL_USER_FATE_OPS.stream()
+      .skip(ALL_USER_FATE_OPS.size() / 2 + 1).collect(Collectors.toUnmodifiableSet());
   private static final Set<Fate.FateOperation> USER_FATE_OPS_SET4 = ALL_USER_FATE_OPS.stream()
-      .skip(ALL_USER_FATE_OPS.size() / 2).limit(1).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> META_FATE_OPS_SET1 =
-      ALL_META_FATE_OPS.stream().limit(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> META_FATE_OPS_SET2 =
-      ALL_META_FATE_OPS.stream().skip(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> META_FATE_OPS_SET3 =
-      ALL_META_FATE_OPS.stream().skip(ALL_META_FATE_OPS.size() / 2 + 1).collect(Collectors.toSet());
+      .skip(ALL_USER_FATE_OPS.size() / 2).limit(1).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> META_FATE_OPS_SET1 = ALL_META_FATE_OPS.stream()
+      .limit(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> META_FATE_OPS_SET2 = ALL_META_FATE_OPS.stream()
+      .skip(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> META_FATE_OPS_SET3 = ALL_META_FATE_OPS.stream()
+      .skip(ALL_META_FATE_OPS.size() / 2 + 1).collect(Collectors.toUnmodifiableSet());
   private static final Set<Fate.FateOperation> META_FATE_OPS_SET4 = ALL_META_FATE_OPS.stream()
-      .skip(ALL_META_FATE_OPS.size() / 2).limit(1).collect(Collectors.toSet());
+      .skip(ALL_META_FATE_OPS.size() / 2).limit(1).collect(Collectors.toUnmodifiableSet());
 
   @Test
   public void testIncrease1() throws Exception {
@@ -76,18 +78,17 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
   protected void testIncrease1(FateStore<PoolResizeTestEnv> store, ServerContext sctx)
       throws Exception {
     // Tests changing the config for the FATE thread pools from
-    // {<half the FATE ops/SET1>}: 4 <-- FateExecutor1
-    // {<other half/SET2>}: 5 <-- FateExecutor2
+    // SET1: {<half the FATE ops>: 4} <-- FateExecutor1
+    // SET2: {<other half>: 5} <-- FateExecutor2
     // ---->
-    // {<half the FATE ops/SET1>}: 10 <-- FateExecutor1
-    // {<other half minus one/SET3>}: 9 <-- FateExecutor3
-    // {<remaining FATE op/SET4>}: 8 <-- FateExecutor4
+    // SET1: {<half the FATE ops>: 10} <-- FateExecutor1
+    // SET3: {<other half minus one>: 9} <-- FateExecutor3
+    // SET4: {<remaining FATE op>: 8} <-- FateExecutor4
     // This tests inc size of FATE thread pools for FateExecutors with unchanged fate ops, stopping
     // FateExecutors that are no longer valid (while ensuring none are stopped while in progress on
     // a transaction), and creating new FateExecutors as needed. Essentially, FateExecutor1's pool
     // size should be increased and FateExecutor3 and 4 should replace 2.
 
-    boolean allAssertsOccurred = false;
     final ConfigurationCopy config = initConfigIncTest1();
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
@@ -104,15 +105,22 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final int numWorkersSet3 = 9;
     final int numWorkersSet4 = 8;
 
+    // create one transaction for each FateExecutor to work on
+    fate.seedTransaction(fateOpFromSet1, fate.startTransaction(), new PoolResizeTestRepo(), true,
+        "testing");
+    fate.seedTransaction(fateOpFromSet2, fate.startTransaction(), new PoolResizeTestRepo(), true,
+        "testing");
+
     try {
-      // create one transaction for each FateExecutor to work on
-      fate.seedTransaction(fateOpFromSet1, fate.startTransaction(), new PoolResizeTestRepo(), true,
-          "testing");
-      fate.seedTransaction(fateOpFromSet2, fate.startTransaction(), new PoolResizeTestRepo(), true,
-          "testing");
 
       // wait for the FateExecutors to work on the transactions
       Wait.waitFor(() -> env.numWorkers.get() == 2);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        final int goal = 2;
+        log.debug("Waiting for test workers {} to reach goal {}", count, goal);
+        return count == goal;
+      });
       // sum has been verified, verify each term
       Map<Fate.FateOperation,
           Long> seenCounts = store.list()
@@ -124,7 +132,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(expectedCounts, seenCounts);
 
       // wait for all transaction runners to be active
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive() == numWorkersSet1 + numWorkersSet2);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = numWorkersSet1 + numWorkersSet2;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
@@ -133,8 +146,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
       // After changing the config, the fate pool watcher should detect the change and increase the
       // pool size for the pool assigned to work on SET1
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-          == newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor assigned to SET2 is no longer valid after the config change, so a
@@ -159,11 +176,19 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // finish work
       env.isReadyLatch.countDown();
 
-      Wait.waitFor(() -> env.numWorkers.get() == 0);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        log.debug("Waiting for test workers {} to reach goal 0", count);
+        return count == 0;
+      });
 
       // workers should still be running: we haven't shutdown FATE, just not working on anything
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-          == newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor for SET2 should have finished work and be shutdown now since it was
@@ -171,12 +196,13 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(0, fate.getTxRunnersActive(set2));
       assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
       assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
-      allAssertsOccurred = true;
-    } catch (Exception e) {
-      System.out.println("Failure: " + e);
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
-      assertTrue(allAssertsOccurred);
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -188,13 +214,14 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
   protected void testIncrease2(FateStore<PoolResizeTestEnv> store, ServerContext sctx) {
     // Tests changing the config for the FATE thread pools from
-    // {<All FATE ops>}: 2 <-- FateExecutor1
+    // AllFateOps: {<All FATE ops>: 2} <-- FateExecutor1
     // ---->
-    // {<All FATE ops>}: 3 <-- FateExecutor1
+    // AllFateOps: {<All FATE ops>: 3} <-- FateExecutor1
     // when 3 transactions need to be worked on. Ensures after the config change, the third tx
     // is picked up.
-    boolean allAssertsOccurred = false;
-    final ConfigurationCopy config = FateTestUtil.createTestFateConfig(2);
+    final String fateExecName = "AllFateOps";
+    final ConfigurationCopy config =
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), 2, fateExecName);
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     final int numWorkers = 2;
@@ -223,7 +250,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(numWorkers, fate.getTxRunnersActive(allFateOps));
 
       // increase the pool size
-      changeConfigIncTest2(config, newNumWorkers);
+      FateTestUtil.updateFateConfig(config, newNumWorkers, fateExecName);
 
       // wait for the final tx to be picked up
       Wait.waitFor(() -> env.numWorkers.get() == newNumWorkers);
@@ -246,13 +273,13 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // workers should still be running: we haven't shutdown FATE, just not working on anything
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newNumWorkers);
       assertEquals(newNumWorkers, fate.getTxRunnersActive(allFateOps));
-
-      allAssertsOccurred = true;
-    } catch (Exception e) {
-      System.out.println("Failure: " + e);
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
-      assertTrue(allAssertsOccurred);
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -265,17 +292,16 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
   protected void testDecrease(FateStore<PoolResizeTestEnv> store, ServerContext sctx)
       throws Exception {
     // Tests changing the config for the FATE thread pools from
-    // {<half the FATE ops/SET1>}: 4 <-- FateExecutor1
-    // {<other half minus one/SET3>}: 5 <-- FateExecutor2
-    // {<remaining FATE op/SET4>}: 6 <-- FateExecutor3
+    // SET1: {<half the FATE ops>: 4} <-- FateExecutor1
+    // SET3: {<other half minus one>: 5} <-- FateExecutor2
+    // SET4: {<remaining FATE op>: 6} <-- FateExecutor3
     // ---->
-    // {<half the FATE ops/SET1>}: 3 <-- FateExecutor1
-    // {<other half/SET2>}: 2 <-- FateExecutor4
+    // SET1: {<half the FATE ops>: 3} <-- FateExecutor1
+    // SET2: {<other half>: 2} <-- FateExecutor4
     // This tests dec size of FATE thread pools for FateExecutors with unchanged fate ops, stopping
     // FateExecutors that are no longer valid (while ensuring none are stopped while in progress on
     // a transaction), and creating new FateExecutors as needed. Essentially, FateExecutor1's pool
     // size should shrink and FateExecutor4 should replace 2 and 3.
-    boolean allAssertsOccurred = false;
     final ConfigurationCopy config = initConfigDecTest();
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
@@ -385,12 +411,13 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
       assertEquals(0, fate.getTxRunnersActive(set3));
       assertEquals(0, fate.getTxRunnersActive(set4));
-      allAssertsOccurred = true;
-    } catch (Exception e) {
-      System.out.println("Failure: " + e);
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
-      assertTrue(allAssertsOccurred);
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -403,8 +430,9 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
   protected void testIdleCountHistory(FateStore<PoolResizeTestEnv> store, ServerContext sctx)
       throws Exception {
     // Tests that a warning to increase pool size is logged when expected
-    boolean allAssertsOccurred = false;
-    var config = configIdleHistoryTest();
+    var config = FateTestUtil.updateFateConfig(new ConfigurationCopy(), 2, "AllFateOps");
+    config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "1m");
+
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
     try {
@@ -418,12 +446,13 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // can finish work now
       env.isReadyLatch.countDown();
       Wait.waitFor(() -> env.numWorkers.get() == 0);
-      allAssertsOccurred = true;
-    } catch (Exception e) {
-      System.out.println("Failure: " + e);
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
-      assertTrue(allAssertsOccurred);
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -436,15 +465,15 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
   protected void testFatePoolsPartitioning(FateStore<PoolResizeTestEnv> store, ServerContext sctx)
       throws Exception {
     // Ensures FATE ops are correctly partitioned between the pools. Configures 4 FateExecutors:
-    // FateExecutor1 with 2 threads operating on 1/4 of FATE ops
-    // FateExecutor2 with 3 threads operating on 1/4 of FATE ops
-    // FateExecutor3 with 4 threads operating on 1/4 of FATE ops
-    // FateExecutor4 with 5 threads operating on 1/4 of FATE ops
+    // pool1/FateExecutor1 with 2 threads operating on 1/4 of FATE ops
+    // pool2/FateExecutor2 with 3 threads operating on 1/4 of FATE ops
+    // pool3/FateExecutor3 with 4 threads operating on 1/4 of FATE ops
+    // pool4/FateExecutor4 with 5 threads operating on 1/4 of FATE ops
     // Seeds:
-    // 5 transactions on FateExecutor1
-    // 6 transactions on FateExecutor2
-    // 1 transactions on FateExecutor3
-    // 4 transactions on FateExecutor4
+    // 5 transactions on pool1/FateExecutor1
+    // 6 transactions on pool2/FateExecutor2
+    // 1 transactions on pool3/FateExecutor3
+    // 4 transactions on pool4/FateExecutor4
     // Ensures that we only see min(configured threads, transactions seeded) ever running
     // Also ensures that FateExecutors do not pick up any work that they shouldn't
     final int numThreadsPool1 = 2;
@@ -486,17 +515,19 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
     config.set(Property.MANAGER_FATE_USER_CONFIG,
-        String.format("{\"%s\": %s, \"%s\": %s, \"%s\": %s, \"%s\": %s}",
+        String.format("{'pool1':{'%s':%d},'pool2':{'%s':%d},'pool3':{'%s':%d},'pool4':{'%s':%d}}",
             userPool1.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool1,
             userPool2.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool2,
             userPool3.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool3,
-            userPool4.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool4));
+            userPool4.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool4)
+            .replace("'", "\""));
     config.set(Property.MANAGER_FATE_META_CONFIG,
-        String.format("{\"%s\": %s, \"%s\": %s, \"%s\": %s, \"%s\": %s}",
+        String.format("{'pool1':{'%s':%d},'pool2':{'%s':%d},'pool3':{'%s':%d},'pool4':{'%s':%d}}",
             metaPool1.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool1,
             metaPool2.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool2,
             metaPool3.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool3,
-            metaPool4.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool4));
+            metaPool4.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool4)
+            .replace("'", "\""));
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
 
     final boolean isUserStore = store.type() == FateInstanceType.USER;
@@ -515,7 +546,6 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final Set<Fate.FateOperation> pool3 = isUserStore ? userPool3 : metaPool3;
     final Set<Fate.FateOperation> pool4 = isUserStore ? userPool4 : metaPool4;
 
-    boolean allAssertsOccurred = false;
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
 
@@ -593,92 +623,150 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // can finish work now
       env.isReadyLatch.countDown();
       Wait.waitFor(() -> env.numWorkers.get() == 0);
-      allAssertsOccurred = true;
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
-      assertTrue(allAssertsOccurred);
+      assertEquals(0, fate.getTotalTxRunnersActive());
+    }
+  }
+
+  @Test
+  public void testFateExecutorRename() throws Exception {
+    executeTest(this::testFateExecutorRename);
+  }
+
+  protected void testFateExecutorRename(FateStore<PoolResizeTestEnv> store, ServerContext sctx)
+      throws Exception {
+    // tests that attempting to rename a fate executor will cause it to be shutdown and a new one
+    // to be started
+
+    final var env = new PoolResizeTestEnv();
+    final int poolSize = 3;
+    final int newPoolSize = 5;
+    final var config =
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), poolSize, "AllFateOps");
+    final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
+
+    try {
+      // start a single transaction
+      fate.seedTransaction(FateTestUtil.TEST_FATE_OP, fate.startTransaction(),
+          new PoolResizeTestRepo(), true, "testing");
+
+      // wait for the transaction to be worked on
+      Wait.waitFor(() -> env.numWorkers.get() == 1);
+      // wait for all transaction runners to be active/started
+      Wait.waitFor(() -> fate.getTotalTxRunnersActive() == poolSize);
+
+      // rename the fate executor
+      // the only reason for changing the pool size here is so that we can tell that the old fate
+      // executor is shutdown and the new one is started. Changing the pool size does not by itself
+      // cause a shutdown
+      FateTestUtil.updateFateConfig(config, newPoolSize, "NewPoolName");
+
+      // newPoolSize for the newly created fate executor and 1 for the old fate executor that has
+      // begun but not finished shutdown (needs to complete the transaction it's working on)
+      Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newPoolSize + 1);
+
+      // allow work to complete
+      env.isReadyLatch.countDown();
+
+      Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newPoolSize);
+      // at this point, we are certain the old fate executor has completely shutdown
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
+    } finally {
+      fate.shutdown(30, TimeUnit.SECONDS);
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
 
   private ConfigurationCopy initConfigIncTest1() {
-    // {<half the FATE ops/SET1>}: 4
-    // {<other half/SET2>}: 5
+    // SET1: {<half the FATE ops>: 4}
+    // SET2: {<other half>: 5}
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
-        + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,\""
-        + USER_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 5}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
-        + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,\""
-        + META_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 5}");
+    config.set(Property.MANAGER_FATE_USER_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET2':{'%s':%d}}",
+                USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 4,
+                USER_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")), 5)
+            .replace("'", "\""));
+    config.set(Property.MANAGER_FATE_META_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET2':{'%s':%d}}",
+                META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 4,
+                META_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")), 5)
+            .replace("'", "\""));
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
     return config;
   }
 
   private void changeConfigIncTest1(ConfigurationCopy config) {
-    // {<half the FATE ops/SET1>}: 10
-    // {<other half minus one/SET3>}: 9
-    // {<remaining FATE op/SET4>}: 8
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
-        + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 10,"
-        + "\"" + USER_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 9,\"" + USER_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 8}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
-        + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 10,"
-        + "\"" + META_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 9,\"" + META_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 8}");
-  }
-
-  private void changeConfigIncTest2(ConfigurationCopy config, int numThreads) {
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
-        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
-        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    // SET1: {<half the FATE ops>: 10}
+    // SET3: {<other half minus one>: 9}
+    // SET4: {<remaining FATE op>: 8}
+    config.set(Property.MANAGER_FATE_USER_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET3':{'%s':%d},'SET4':{'%s':%d}}",
+                USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 10,
+                USER_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(",")), 9,
+                USER_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(",")), 8)
+            .replace("'", "\""));
+    config.set(Property.MANAGER_FATE_META_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET3':{'%s':%d},'SET4':{'%s':%d}}",
+                META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 10,
+                META_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(",")), 9,
+                META_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(",")), 8)
+            .replace("'", "\""));
   }
 
   private ConfigurationCopy initConfigDecTest() {
-    // {<half the FATE ops/SET1>}: 4
-    // {<other half minus one/SET3>}: 5
-    // {<remaining FATE op/SET4>}: 6
+    // SET1: {<half the FATE ops>: 4}
+    // SET3: {<other half minus one>: 5}
+    // SET4: {<remaining FATE op>: 6}
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
-        + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,"
-        + "\"" + USER_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 5,\"" + USER_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 6}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
-        + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 4,"
-        + "\"" + META_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 5,\"" + META_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(","))
-        + "\": 6}");
+    config.set(Property.MANAGER_FATE_USER_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET3':{'%s':%d},'SET4':{'%s':%d}}",
+                USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 4,
+                USER_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(",")), 5,
+                USER_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(",")), 6)
+            .replace("'", "\""));
+    config.set(Property.MANAGER_FATE_META_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET3':{'%s':%d},'SET4':{'%s':%d}}",
+                META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 4,
+                META_FATE_OPS_SET3.stream().map(Enum::name).collect(Collectors.joining(",")), 5,
+                META_FATE_OPS_SET4.stream().map(Enum::name).collect(Collectors.joining(",")), 6)
+            .replace("'", "\""));
     config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
     return config;
   }
 
   private void changeConfigDecTest(ConfigurationCopy config) {
-    // {<half the FATE ops/SET1>}: 3
-    // {<other half/SET2>}: 2
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
-        + USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 3,\""
-        + USER_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
-        + META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 3,\""
-        + META_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
-  }
-
-  private AccumuloConfiguration configIdleHistoryTest() {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\""
-        + ALL_USER_FATE_OPS.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
-    config.set(Property.MANAGER_FATE_META_CONFIG, "{\""
-        + ALL_META_FATE_OPS.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 2}");
-    config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "1m");
-    return config;
+    // SET1: {<half the FATE ops>: 3}
+    // SET2: {<other half>: 2}
+    config.set(Property.MANAGER_FATE_USER_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET2':{'%s':%d}}",
+                USER_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 3,
+                USER_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")), 2)
+            .replace("'", "\""));
+    config.set(Property.MANAGER_FATE_META_CONFIG,
+        String
+            .format("{'SET1':{'%s':%d},'SET2':{'%s':%d}}",
+                META_FATE_OPS_SET1.stream().map(Enum::name).collect(Collectors.joining(",")), 3,
+                META_FATE_OPS_SET2.stream().map(Enum::name).collect(Collectors.joining(",")), 2)
+            .replace("'", "\""));
   }
 
   public static class PoolResizeTestRepo implements Repo<PoolResizeTestEnv> {
@@ -687,7 +775,9 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     @Override
     public long isReady(FateId fateId, PoolResizeTestEnv environment) throws Exception {
       environment.numWorkers.incrementAndGet();
-      environment.isReadyLatch.await();
+      if (!environment.isReadyLatch.await(2, TimeUnit.MINUTES)) {
+        throw new IllegalStateException("Timed out waiting for env latch to be ready.");
+      }
       return 0;
     }
 

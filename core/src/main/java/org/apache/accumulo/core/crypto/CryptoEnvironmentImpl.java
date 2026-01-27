@@ -27,7 +27,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import edu.umd.cs.findbugs.annotations.Nullable;
 
 /**
- * @since 2.0
+ * @since 2.0.0
  */
 public class CryptoEnvironmentImpl implements CryptoEnvironment {
 

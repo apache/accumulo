@@ -99,14 +99,14 @@ public class MinorCompactor extends FileCompactor {
             if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
               log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
                   + " Halting...", getExtent(), e);
-              Halt.halt(-1, "TabletServer lock does not exist", e);
+              Halt.halt(1, "TabletServer lock does not exist", e);
             } else {
               throw e;
             }
           }
 
           return ret;
-        } catch (IOException | UnsatisfiedLinkError e) {
+        } catch (IOException | ReflectiveOperationException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
         } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the

@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import org.apache.accumulo.core.data.Range;
+import java.util.List;
+
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -29,8 +31,7 @@ public class GetAvailabilityCommand extends TableOperation {
 
   private Option optRow;
   private Option optStartRowExclusive;
-  private Option optEndRowExclusive;
-  private Range range;
+  private RowRange range;
 
   @Override
   public String getName() {
@@ -46,9 +47,11 @@ public class GetAvailabilityCommand extends TableOperation {
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
     shellState.getWriter().println("TABLE: " + tableName);
     shellState.getWriter().println("TABLET ID    AVAILABILITY");
-    shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)
-        .forEach(p -> shellState.getWriter()
-            .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
+    try (var tabletInformation = shellState.getAccumuloClient().tableOperations()
+        .getTabletInformation(tableName, List.of(range))) {
+      tabletInformation.forEach(p -> shellState.getWriter()
+          .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
+    }
   }
 
   @Override
@@ -63,13 +66,13 @@ public class GetAvailabilityCommand extends TableOperation {
     }
 
     if (cl.hasOption(optRow.getOpt())) {
-      this.range = new Range(new Text(cl.getOptionValue(optRow.getOpt()).getBytes(Shell.CHARSET)));
+      this.range =
+          RowRange.closed(new Text(cl.getOptionValue(optRow.getOpt()).getBytes(Shell.CHARSET)));
     } else {
       Text startRow = OptUtil.getStartRow(cl);
       Text endRow = OptUtil.getEndRow(cl);
       final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
-      final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
-      this.range = new Range(startRow, startInclusive, endRow, endInclusive);
+      this.range = RowRange.range(startRow, startInclusive, endRow, true);
     }
     return super.execute(fullCommand, cl, shellState);
   }
@@ -79,11 +82,8 @@ public class GetAvailabilityCommand extends TableOperation {
     Option optStartRowInclusive =
         new Option(OptUtil.START_ROW_OPT, "begin-row", true, "begin row (inclusive)");
     optStartRowExclusive = new Option("be", "begin-exclusive", false,
-        "make start row exclusive (by default it's inclusive");
+        "make start row exclusive (by default it's inclusive)");
     optStartRowExclusive.setArgName("begin-exclusive");
-    optEndRowExclusive = new Option("ee", "end-exclusive", false,
-        "make end row exclusive (by default it's inclusive)");
-    optEndRowExclusive.setArgName("end-exclusive");
     optRow = new Option("r", "row", true, "tablet row to read");
     optRow.setArgName("row");
 
@@ -91,7 +91,6 @@ public class GetAvailabilityCommand extends TableOperation {
     opts.addOption(optStartRowInclusive);
     opts.addOption(optStartRowExclusive);
     opts.addOption(OptUtil.endRowOpt());
-    opts.addOption(optEndRowExclusive);
     opts.addOption(optRow);
 
     return opts;

@@ -86,11 +86,10 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
+import org.eclipse.jetty.ee10.servlet.ResourceServlet;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.io.Connection;
 import org.eclipse.jetty.io.ConnectionStatistics;
-import org.eclipse.jetty.servlet.DefaultServlet;
-import org.eclipse.jetty.servlet.ServletHolder;
-import org.eclipse.jetty.util.resource.Resource;
 import org.glassfish.hk2.api.Factory;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.jackson.JacksonFeature;
@@ -102,6 +101,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
@@ -116,9 +116,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
-      monitor.runServer();
-    }
+    AbstractServer.startServer(new Monitor(new ConfigOpts(), args), log);
   }
 
   Monitor(ConfigOpts opts, String[] args) {
@@ -225,7 +223,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       return;
     }
     // DO NOT ADD CODE HERE that could throw an exception before we enter the try block
-    // Otherwise, we'll never release the lock by unsetting 'fetching' in the the finally block
+    // Otherwise, we'll never release the lock by unsetting 'fetching' in the finally block
     try {
       while (retry) {
         ManagerClientService.Client client = null;
@@ -358,11 +356,15 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   public void run() {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
+    String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
+    // Needs leading slash in order to property create rest endpoint requests
+    Preconditions.checkArgument(rootContext.startsWith("/"),
+        "Root context: \"%s\" does not have a leading '/'", rootContext);
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
         server = new EmbeddedWebServer(this, port);
-        server.addServlet(getDefaultServlet(), "/resources/*");
+        server.addServlet(getResourcesServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getRestV2Servlet(), "/rest-v2/*");
         server.addServlet(getViewServlet(), "/*");
@@ -377,18 +379,25 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     } else {
-      log.debug("Monitor started on port {}", livePort);
+      log.debug("Monitor listening on {}:{}", server.getHostName(), livePort);
     }
 
-    String advertiseHost = getHostname();
-    if (advertiseHost.equals("0.0.0.0")) {
-      try {
-        advertiseHost = InetAddress.getLocalHost().getHostName();
-      } catch (UnknownHostException e) {
-        log.error("Unable to get hostname", e);
+    HostAndPort advertiseAddress = getAdvertiseAddress();
+    if (advertiseAddress == null) {
+      // use the bind address from the connector, unless it's null or 0.0.0.0
+      String advertiseHost = server.getHostName();
+      if (advertiseHost == null || advertiseHost == ConfigOpts.BIND_ALL_ADDRESSES) {
+        try {
+          advertiseHost = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+          throw new RuntimeException("Unable to get hostname for advertise address", e);
+        }
       }
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseHost, livePort));
+    } else {
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseAddress.getHost(), livePort));
     }
-    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    HostAndPort monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
 
     try {
@@ -404,8 +413,13 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         monitorHostAndPort, getResourceGroup()));
 
+    // Needed to support the existing zk monitor address format
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
+      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
+          server.getPort(), rootContext);
       final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(Constants.ZMONITOR_HTTP_ADDR);
@@ -416,7 +430,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     }
 
     // need to regularly fetch data so plot data is updated
-    Threads.createThread("Data fetcher", () -> {
+    Threads.createCriticalThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();
@@ -426,7 +440,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
     }).start();
-    Threads.createThread("Metric Fetcher Thread", fetcher).start();
+    Threads.createCriticalThread("Metric Fetcher Thread", fetcher).start();
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {
@@ -445,15 +459,12 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     log.info("stop requested. exiting ... ");
   }
 
-  private ServletHolder getDefaultServlet() {
-    return new ServletHolder(new DefaultServlet() {
-      private static final long serialVersionUID = 1L;
-
-      @Override
-      public Resource getResource(String pathInContext) {
-        return Resource.newClassPathResource("/org/apache/accumulo/monitor" + pathInContext);
-      }
-    });
+  private ServletHolder getResourcesServlet() {
+    ServletHolder holder = new ServletHolder("resources", ResourceServlet.class);
+    holder.setInitParameter("dirAllowed", "false");
+    holder.setInitParameter("baseResource",
+        Monitor.class.getResource("resources").toExternalForm());
+    return holder;
   }
 
   public static class MonitorFactory extends AbstractBinder implements Factory<Monitor> {

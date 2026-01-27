@@ -41,7 +41,8 @@ import org.junit.jupiter.api.Test;
 
 public class SystemCredentialsIT extends ConfigurableMacBase {
 
-  private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;
+  private static final int SCAN_FAILED = 7;
+  private static final int AUTHENICATION_FAILED = 8;
 
   @Override
   protected Duration defaultTimeout() {
@@ -66,19 +67,13 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
       if (args.length < 2) {
         throw new RuntimeException("Incorrect usage; expected to be run by test only");
       }
-      switch (args[0]) {
-        case "bad":
-          creds = SystemCredentials.get(badInstanceID, siteConfig);
-          break;
-        case "good":
-          creds = SystemCredentials.get(context.getInstanceID(), siteConfig);
-          break;
-        case "bad_password":
-          creds = new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
-          break;
-        default:
-          throw new RuntimeException("Incorrect usage; expected to be run by test only");
-      }
+      creds = switch (args[0]) {
+        case "bad" -> SystemCredentials.get(badInstanceID, siteConfig);
+        case "good" -> SystemCredentials.get(context.getInstanceID(), siteConfig);
+        case "bad_password" ->
+          new SystemCredentials(badInstanceID, "!SYSTEM", new PasswordToken("fake"));
+        default -> throw new RuntimeException("Incorrect usage; expected to be run by test only");
+      };
       try (AccumuloClient client = Accumulo.newClient().from(context.properties())
           .as(creds.getPrincipal(), creds.getToken()).build()) {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());

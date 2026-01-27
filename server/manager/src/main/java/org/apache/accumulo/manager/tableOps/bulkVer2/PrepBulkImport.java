@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -45,12 +44,15 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -73,7 +75,7 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-public class PrepBulkImport extends ManagerRepo {
+public class PrepBulkImport extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -81,25 +83,24 @@ public class PrepBulkImport extends ManagerRepo {
 
   private final BulkInfo bulkInfo;
 
-  public PrepBulkImport(TableId tableId, String sourceDir, boolean setTime) {
-    BulkInfo info = new BulkInfo();
-    info.tableId = tableId;
-    info.sourceDir = sourceDir;
-    info.setTime = setTime;
+  public PrepBulkImport(BulkInfo info) {
     this.bulkInfo = info;
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
-    if (!Utils.getReadLock(manager, bulkInfo.tableId, fateId).tryLock()) {
-      return 100;
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    long wait = Utils.reserveTable(env.getContext(), bulkInfo.tableId, fateId,
+        DistributedReadWriteLock.LockType.READ, true, TableOperation.BULK_IMPORT,
+        LockRange.of(bulkInfo.firstSplit, bulkInfo.lastSplit));
+    if (wait > 0) {
+      return wait;
     }
 
-    if (manager.onlineTabletServers().isEmpty()) {
+    if (env.onlineTabletServers().isEmpty()) {
       return 500;
     }
 
-    return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, fateId);
+    return Utils.reserveHdfsDirectory(env.getContext(), bulkInfo.sourceDir, fateId);
   }
 
   @VisibleForTesting
@@ -119,7 +120,7 @@ public class PrepBulkImport extends ManagerRepo {
    * file goes to too many tablets.
    */
   @VisibleForTesting
-  static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
+  static void validateLoadMapping(String tableId, LoadMappingIterator lmi,
       TabletIterFactory tabletIterFactory, int maxNumTablets, int maxFilesPerTablet, FateId fateId,
       int skip) throws Exception {
 
@@ -137,9 +138,6 @@ public class PrepBulkImport extends ManagerRepo {
       var fileCounts = new HashMap<String,Integer>();
       int count;
 
-      KeyExtent firstTablet = currRange.getKey();
-      KeyExtent lastTablet = currRange.getKey();
-
       if (!pi.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
           && equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
         currRange = null;
@@ -153,7 +151,6 @@ public class PrepBulkImport extends ManagerRepo {
           }
           currRange = lmi.next();
           checkFilesPerTablet(tableId, maxFilesPerTablet, currRange);
-          lastTablet = currRange.getKey();
         }
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
@@ -174,10 +171,6 @@ public class PrepBulkImport extends ManagerRepo {
         }
 
         boolean matchedPrevRow = equals(KeyExtent::prevEndRow, currTablet, currRange.getKey());
-
-        if (matchedPrevRow && firstTablet == null) {
-          firstTablet = currTablet;
-        }
 
         count = matchedPrevRow ? 1 : 0;
 
@@ -212,7 +205,6 @@ public class PrepBulkImport extends ManagerRepo {
                   + new TreeMap<>(fileCounts));
         }
       }
-      return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
     } finally {
       tabletIterFactory.close();
     }
@@ -229,15 +221,14 @@ public class PrepBulkImport extends ManagerRepo {
     }
   }
 
-  private KeyExtent checkForMerge(final Manager manager, final FateId fateId) throws Exception {
+  private void checkForMerge(final ServerContext ctx, final FateId fateId) throws Exception {
 
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = ctx.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
-    int maxTablets = manager.getContext().getTableConfiguration(bulkInfo.tableId)
-        .getCount(Property.TABLE_BULK_MAX_TABLETS);
-    int maxFilesPerTablet = manager.getContext().getTableConfiguration(bulkInfo.tableId)
-        .getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
+    var tableConfig = ctx.getTableConfiguration(bulkInfo.tableId);
+    int maxTablets = tableConfig.getCount(Property.TABLE_BULK_MAX_TABLETS);
+    int maxFilesPerTablet = tableConfig.getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
 
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
@@ -248,8 +239,8 @@ public class PrepBulkImport extends ManagerRepo {
 
         @Override
         public Iterator<KeyExtent> newTabletIter(Text startRow) {
-          tm = TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
-              .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build();
+          tm = TabletsMetadata.builder(ctx).forTable(bulkInfo.tableId).overlapping(startRow, null)
+              .checkConsistency().fetch(PREV_ROW).build();
           return tm.stream().map(TabletMetadata::getExtent).iterator();
         }
 
@@ -261,40 +252,33 @@ public class PrepBulkImport extends ManagerRepo {
         }
       };
 
-      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
-          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
+      int skip = tableConfig.getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
           maxFilesPerTablet, fateId, skip);
     }
   }
 
   @Override
-  public Repo<Manager> call(final FateId fateId, final Manager manager) throws Exception {
+  public Repo<FateEnv> call(final FateId fateId, final FateEnv env) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    KeyExtent tabletsRange = checkForMerge(manager, fateId);
+    checkForMerge(env.getContext(), fateId);
 
-    bulkInfo.firstSplit =
-        Optional.ofNullable(tabletsRange.prevEndRow()).map(Text::getBytes).orElse(null);
-    bulkInfo.lastSplit =
-        Optional.ofNullable(tabletsRange.endRow()).map(Text::getBytes).orElse(null);
-
-    log.trace("{} first split:{} last split:{}", fateId, tabletsRange.prevEndRow(),
-        tabletsRange.endRow());
-
-    VolumeManager fs = manager.getVolumeManager();
-    final UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
+    VolumeManager fs = env.getVolumeManager();
+    final UniqueNameAllocator namer = env.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
     List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
-    Path bulkDir = createNewBulkDir(manager.getContext(), fs, bulkInfo.tableId);
+    Path bulkDir = createNewBulkDir(env.getContext(), fs, bulkInfo.tableId);
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
 
+    Iterator<String> names = namer.getNextNames(files.size());
+
     for (FileStatus file : files) {
       // since these are only valid files we know it has an extension
       String newName = FilePrefix.BULK_IMPORT.createFileName(
-          namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName()));
+          names.next() + "." + FilenameUtils.getExtension(file.getPath().getName()));
       oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }
 
@@ -304,6 +288,10 @@ public class PrepBulkImport extends ManagerRepo {
     BulkSerialize.writeRenameMap(oldToNewNameMap, bulkDir.toString(), fs::create);
 
     bulkInfo.bulkDir = bulkDir.toString();
+
+    BulkLogger.initiating(fateId, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
+        bulkInfo.bulkDir);
+
     // return the next step, which will move files
     return new BulkImportMove(bulkInfo);
   }
@@ -332,10 +320,11 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     // unreserve sourceDir/error directories
-    Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, fateId);
-    Utils.getReadLock(environment, bulkInfo.tableId, fateId).unlock();
+    Utils.unreserveHdfsDirectory(environment.getContext(), bulkInfo.sourceDir, fateId);
+    Utils.getReadLock(environment.getContext(), bulkInfo.tableId, fateId, LockRange.infinite())
+        .unlock();
     environment.removeBulkImportStatus(bulkInfo.sourceDir);
   }
 }

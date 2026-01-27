@@ -34,11 +34,15 @@ import javax.security.auth.DestroyFailedException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Authentication token for Kerberos authenticated clients
  *
  * @since 1.7.0
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class KerberosToken implements AuthenticationToken {
 
   public static final String CLASS_NAME = KerberosToken.class.getName();
@@ -123,10 +127,9 @@ public class KerberosToken implements AuthenticationToken {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof KerberosToken)) {
+    if (!(obj instanceof KerberosToken other)) {
       return false;
     }
-    KerberosToken other = (KerberosToken) obj;
 
     return principal.equals(other.principal);
   }

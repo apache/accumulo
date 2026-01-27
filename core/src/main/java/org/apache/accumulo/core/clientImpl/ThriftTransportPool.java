@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.time.Duration;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TConfiguration;
 import org.apache.thrift.transport.TTransport;
@@ -52,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Comparators;
 import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -70,40 +73,56 @@ public class ThriftTransportPool {
 
   private final LongSupplier maxAgeMillis;
 
-  private ThriftTransportPool(LongSupplier maxAgeMillis) {
+  private ThriftTransportPool(LongSupplier maxAgeMillis, boolean shouldHalt) {
     this.maxAgeMillis = maxAgeMillis;
-    this.checkThread = Threads.createThread("Thrift Connection Pool Checker", () -> {
+    final String threadName = "Thrift Connection Pool Checker";
+    final Runnable checkRunner = thriftConnectionPoolChecker();
+    if (shouldHalt) {
+      this.checkThread = Threads.createCriticalThread(threadName, checkRunner);
+    } else {
+      this.checkThread = Threads.createNonCriticalThread(threadName, checkRunner);
+    }
+  }
+
+  private Runnable thriftConnectionPoolChecker() {
+    return () -> {
       try {
-        final long minNanos = MILLISECONDS.toNanos(250);
-        final long maxNanos = MINUTES.toNanos(1);
-        long lastRun = System.nanoTime();
+        final Duration minInterval = Duration.ofMillis(250);
+        final Duration maxInterval = Duration.ofMinutes(1);
+        Timer lastRunTimer = Timer.startNew();
         // loop often, to detect shutdowns quickly
         while (!connectionPool.awaitShutdown(250)) {
           // don't close on every loop; instead, check based on configured max age, within bounds
-          var threshold = Math.min(maxNanos,
-              Math.max(minNanos, MILLISECONDS.toNanos(maxAgeMillis.getAsLong()) / 2));
-          long currentNanos = System.nanoTime();
-          if ((currentNanos - lastRun) >= threshold) {
+
+          Duration threshold = Duration.ofMillis(maxAgeMillis.getAsLong() / 2);
+          threshold = Comparators.max(threshold, minInterval);
+          threshold = Comparators.min(maxInterval, threshold);
+
+          if (lastRunTimer.hasElapsed(threshold)) {
             closeExpiredConnections();
-            lastRun = currentNanos;
+            lastRunTimer.restart();
           }
         }
       } catch (InterruptedException e) {
+        log.warn("Thread " + Thread.currentThread().getName() + " was interrupted. Exiting.");
         Thread.currentThread().interrupt();
       } catch (TransportPoolShutdownException e) {
         log.debug("Error closing expired connections", e);
       }
-    });
+    };
   }
 
   /**
    * Create a new instance and start its checker thread, returning the instance.
    *
    * @param maxAgeMillis the supplier for the max age of idle transports before they are cleaned up
+   * @param shouldHalt true if the death of the checker thread via a RuntimeException should halt
+   *        the JVM; false otherwise. This should be true if the thread is running within a server
+   *        and false if the thread is running within a client
    * @return a new instance with its checker thread started to clean up idle transports
    */
-  static ThriftTransportPool startNew(LongSupplier maxAgeMillis) {
-    var pool = new ThriftTransportPool(maxAgeMillis);
+  static ThriftTransportPool startNew(LongSupplier maxAgeMillis, boolean shouldHalt) {
+    var pool = new ThriftTransportPool(maxAgeMillis, shouldHalt);
     log.debug("Set thrift transport pool idle time to {}ms", maxAgeMillis.getAsLong());
     pool.checkThread.start();
     return pool;
@@ -124,7 +143,9 @@ public class ThriftTransportPool {
   }
 
   public Pair<String,TTransport> getAnyCachedTransport(ThriftClientTypes<?> type) {
+
     final List<ThriftTransportKey> serversSet = new ArrayList<>();
+
     for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
       if (ttk.getType().equals(type)) {
         serversSet.add(ttk);

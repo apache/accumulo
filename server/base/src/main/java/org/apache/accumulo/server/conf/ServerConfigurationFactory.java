@@ -19,8 +19,8 @@
 package org.apache.accumulo.server.conf;
 
 import static com.google.common.base.Suppliers.memoize;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.Map;
 import java.util.concurrent.ScheduledFuture;
@@ -35,7 +35,9 @@ import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -45,6 +47,7 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.slf4j.Logger;
@@ -63,6 +66,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   // cache expiration is used to remove configurations after deletion, not time sensitive
   private static final int CACHE_EXPIRATION_HRS = 1;
   private final Supplier<SystemConfiguration> systemConfig;
+  private final Supplier<ResourceGroupConfiguration> resourceGroupConfig;
   private final Cache<TableId,NamespaceConfiguration> tableParentConfigs;
   private final Cache<TableId,TableConfiguration> tableConfigs;
   private final Cache<NamespaceId,NamespaceConfiguration> namespaceConfigs;
@@ -75,13 +79,18 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private final ConfigRefreshRunner refresher;
 
-  public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
+  public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig,
+      ResourceGroupId rgid) {
     this.context = context;
     this.siteConfig = siteConfig;
     this.systemConfig = memoize(() -> {
       var sysConf = new SystemConfiguration(context, SystemPropKey.of(), siteConfig);
       ConfigCheckUtil.validate(sysConf, "system config");
       return sysConf;
+    });
+    this.resourceGroupConfig = memoize(() -> {
+      return new ResourceGroupConfiguration(context, ResourceGroupPropKey.of(rgid),
+          (SystemConfiguration) getSystemConfiguration());
     });
     tableParentConfigs =
         Caches.getInstance().createNewBuilder(CacheName.TABLE_PARENT_CONFIGS, false)
@@ -92,8 +101,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         .expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
 
     refresher = new ConfigRefreshRunner();
-    Runtime.getRuntime()
-        .addShutdownHook(Threads.createThread("config-refresh-shutdownHook", refresher::shutdown));
+    Runtime.getRuntime().addShutdownHook(
+        Threads.createNonCriticalThread("config-refresh-shutdownHook", refresher::shutdown));
   }
 
   public ServerContext getServerContext() {
@@ -106,6 +115,10 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   public DefaultConfiguration getDefaultConfiguration() {
     return DefaultConfiguration.getInstance();
+  }
+
+  public ResourceGroupConfiguration getResourceGroupConfiguration() {
+    return resourceGroupConfig.get();
   }
 
   @Override
@@ -217,7 +230,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
      */
     private void verifySnapshotVersions() {
 
-      long refreshStart = System.nanoTime();
+      Timer refreshTimer = Timer.startNew();
       int keyCount = 0;
       int keyChangedCount = 0;
 
@@ -258,7 +271,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       }
 
       log.debug("data version sync: Total runtime {} ms for {} entries, changes detected: {}",
-          NANOSECONDS.toMillis(System.nanoTime() - refreshStart), keyCount, keyChangedCount);
+          refreshTimer.elapsed(MILLISECONDS), keyCount, keyChangedCount);
     }
 
     /**

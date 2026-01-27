@@ -54,13 +54,17 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tests the new MR API in the hadoop-mapreduce package.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   private static final String ROW1 = "row1";
   private static final String ROW2 = "row2";
@@ -182,8 +186,8 @@ public class AccumuloRowInputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

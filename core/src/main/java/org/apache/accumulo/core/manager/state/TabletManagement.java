@@ -35,12 +35,16 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Object that represents a Tablets metadata and any actions that the Manager might need to take on
  * the object. This object is created by the TabletManagementIterator iterator used by the
  * TabletGroupWatcher threads in the Manager.
  *
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class TabletManagement {
 
   public static final EnumSet<ColumnType> CONFIGURED_COLUMNS = EnumSet.allOf(ColumnType.class);
@@ -67,21 +71,15 @@ public class TabletManagement {
   }
 
   public static void addError(final BiConsumer<Key,Value> bic, final Text row,
-      final Exception error) {
+      final String errorMessage) {
     final Key errorKey = new Key(row, ERROR_COLUMN_NAME, EMPTY);
-    final Value errorValue = new Value(error.getMessage());
+    final Value errorValue = new Value(errorMessage);
     bic.accept(errorKey, errorValue);
   }
 
   private final Set<ManagementAction> actions;
   private final TabletMetadata tabletMetadata;
   private final String errorMessage;
-
-  public TabletManagement(Set<ManagementAction> actions, TabletMetadata tm, String errorMessage) {
-    this.actions = actions;
-    this.tabletMetadata = tm;
-    this.errorMessage = errorMessage;
-  }
 
   public TabletManagement(Key wholeRowKey, Value wholeRowValue) throws IOException {
     this(wholeRowKey, wholeRowValue, false);
@@ -94,6 +92,9 @@ public class TabletManagement {
     Value errorValue = decodedRow.remove(new Key(row, ERROR_COLUMN_NAME, EMPTY));
     if (errorValue != null) {
       this.errorMessage = errorValue.toString();
+      this.actions = null;
+      this.tabletMetadata = null;
+      return;
     } else {
       this.errorMessage = null;
     }

@@ -181,8 +181,8 @@ public class CreateEmpty implements KeywordExecutable {
         CryptoUtils.writeParams(cryptoParams, out);
 
         LogFileKey key = new LogFileKey();
-        key.event = OPEN;
-        key.tserverSession = "";
+        key.setEvent(OPEN);
+        key.setTserverSession("");
 
         key.write(out);
         EMPTY.write(out);

@@ -21,7 +21,6 @@ package org.apache.accumulo.core.file;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +55,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(BloomFilterLayerLookupTest.class);
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @Test
   public void test() throws IOException {
@@ -80,7 +79,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
 
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
-    String fname = tempDir.toPath().resolve(testName() + "." + suffix).toFile().getAbsolutePath();
+    String fname = tempDir.resolve(testName() + "." + suffix).toAbsolutePath().toString();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
         .forFile(UnreferencedTabletFile.of(fs, new Path(fname)), fs, conf,
             NoCryptoServiceFactory.NONE)

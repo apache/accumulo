@@ -26,7 +26,7 @@ $(function () {
   // Create a table for compactions list
   gcTable = $('#gcActivity').DataTable({
     "ajax": {
-      "url": '/rest/gc',
+      "url": contextPath + 'rest/gc',
       "dataSrc": "stats"
     },
     "stateSave": true,

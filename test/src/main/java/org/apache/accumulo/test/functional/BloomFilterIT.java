@@ -192,7 +192,9 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     HashSet<Long> expected = new HashSet<>();
     List<Range> ranges = new ArrayList<>(num);
     Text key = new Text();
-    Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
+    Text row = new Text("row");
+    Text cq = new Text("cq");
+    Text cf = new Text("cf");
 
     for (int i = 0; i < num; ++i) {
       Long k = ((RANDOM.get().nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;
@@ -204,20 +206,18 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         expected.add(k);
       }
 
-      switch (depth) {
-        case 1:
-          range = new Range(new Text(key));
-          break;
-        case 2:
+      range = switch (depth) {
+        case 1 -> new Range(new Text(key));
+        case 2 -> {
           acuKey = new Key(row, key, cq);
-          range = new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM), false);
-          break;
-        case 3:
+          yield new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM), false);
+        }
+        case 3 -> {
           acuKey = new Key(row, cf, key);
-          range =
-              new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
-          break;
-      }
+          yield new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
+        }
+        default -> range;
+      };
 
       ranges.add(range);
     }

@@ -115,6 +115,7 @@ public class MetricsInfoImpl implements MetricsInfo {
     Objects.requireNonNull(tags);
 
     if (!metricsEnabled) {
+      ThreadPools.getServerThreadPools().disableThreadPoolMetrics();
       LOG.info("Metrics not initialized, metrics are disabled.");
       return;
     }

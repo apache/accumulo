@@ -21,12 +21,15 @@ package org.apache.accumulo.manager.metrics.fate.meta;
 import static org.apache.accumulo.core.metrics.Metric.FATE_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
 
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
@@ -38,8 +41,9 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   private final AtomicLong totalOpsGauge = new AtomicLong(0);
   private final AtomicLong fateErrorsGauge = new AtomicLong(0);
 
-  public MetaFateMetrics(ServerContext context, long minimumRefreshDelay) {
-    super(context, minimumRefreshDelay);
+  public MetaFateMetrics(ServerContext context, long minimumRefreshDelay,
+      Set<FateExecutor<FateEnv>> fateExecutors) {
+    super(context, minimumRefreshDelay, fateExecutors);
   }
 
   @Override

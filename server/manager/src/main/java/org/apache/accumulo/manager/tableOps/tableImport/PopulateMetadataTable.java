@@ -52,8 +52,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -62,7 +62,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class PopulateMetadataTable extends ManagerRepo {
+class PopulateMetadataTable extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(PopulateMetadataTable.class);
 
   private static final long serialVersionUID = 1L;
@@ -78,7 +78,8 @@ class PopulateMetadataTable extends ManagerRepo {
     try (var fsDis = fs.open(new Path(importDir, IMPORT_MAPPINGS_FILE));
         var isr = new InputStreamReader(fsDis, UTF_8);
         BufferedReader in = new BufferedReader(isr)) {
-      String line, prev;
+      String line;
+      String prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
         prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);
@@ -95,14 +96,13 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     Path path = new Path(tableInfo.exportFile);
 
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = env.getVolumeManager();
 
-    try (
-        BatchWriter mbw = manager.getContext().createBatchWriter(SystemTables.METADATA.tableName());
+    try (BatchWriter mbw = env.getContext().createBatchWriter(SystemTables.METADATA.tableName());
         FSDataInputStream fsDataInputStream = fs.open(path);
         ZipInputStream zis = new ZipInputStream(fsDataInputStream)) {
 
@@ -142,7 +142,7 @@ class PopulateMetadataTable extends ManagerRepo {
               StoredTabletFile exportedRef;
               var dataFileCQ = key.getColumnQualifier().toString();
               if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
-                // written without fenced range information (accumulo < 3.1), use default
+                // written without fenced range information (accumulo < 4.0), use default
                 // (null,null)
                 exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
               } else {
@@ -211,8 +211,8 @@ class PopulateMetadataTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(FateId fateId, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     MetadataTableUtil.deleteTable(tableInfo.tableId, false, environment.getContext(),
-        environment.getManagerLock());
+        environment.getServiceLock());
   }
 }

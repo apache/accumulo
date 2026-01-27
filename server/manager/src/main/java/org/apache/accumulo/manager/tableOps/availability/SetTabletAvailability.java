@@ -43,14 +43,14 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SetTabletAvailability extends ManagerRepo {
+public class SetTabletAvailability extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private static final Logger LOG = LoggerFactory.getLogger(SetTabletAvailability.class);
@@ -69,9 +69,9 @@ public class SetTabletAvailability extends ManagerRepo {
   }
 
   @Override
-  public long isReady(FateId fateId, Manager manager) throws Exception {
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
 
-    if (manager.getContext().getTableState(tableId) != TableState.ONLINE) {
+    if (env.getContext().getTableState(tableId) != TableState.ONLINE) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,
           TableOperation.COMPACT, TableOperationExceptionType.OFFLINE, "The table is not online.");
     }
@@ -101,10 +101,10 @@ public class SetTabletAvailability extends ManagerRepo {
 
     var start = Timer.startNew();
     try (
-        TabletsMetadata m = manager.getContext().getAmple().readTablets().forTable(tableId)
+        TabletsMetadata m = env.getContext().getAmple().readTablets().forTable(tableId)
             .overlapping(scanRangeStart, true, null).build();
         Ample.AsyncConditionalTabletsMutator mutator =
-            manager.getContext().getAmple().conditionallyMutateTablets(resultsConsumer)) {
+            env.getContext().getAmple().conditionallyMutateTablets(resultsConsumer)) {
       for (TabletMetadata tm : m) {
         final KeyExtent tabletExtent = tm.getExtent();
         LOG.trace("Evaluating tablet {} against range {}", tabletExtent, range);
@@ -149,9 +149,9 @@ public class SetTabletAvailability extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
-    Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
     return null;
   }
 }

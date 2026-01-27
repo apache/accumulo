@@ -203,14 +203,11 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (id.equals(SystemTables.METADATA.tableId())) {
-      return Optional.of(
-          "Cloning " + SystemTables.METADATA.tableName() + " is dangerous and no longer supported,"
-              + " see https://github.com/apache/accumulo/issues/1309.");
+    if (SystemTables.containsTableId(id)) {
+      return Optional.of("Cloning " + SystemTables.tableIdToSimpleNameMap().get(id.canonical())
+          + " is not supported, see https://github.com/apache/accumulo/issues/1309.");
     }
-    if (id.equals(SystemTables.ROOT.tableId())) {
-      return Optional.of("Unable to clone " + SystemTables.ROOT.tableName());
-    }
+
     return Validator.OK;
   });
 

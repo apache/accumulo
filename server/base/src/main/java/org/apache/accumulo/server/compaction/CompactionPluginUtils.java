@@ -20,6 +20,7 @@ package org.apache.accumulo.server.compaction;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -54,17 +56,18 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
-import org.apache.accumulo.core.summary.Gatherer;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
+import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -158,7 +161,8 @@ public class CompactionPluginUtils {
                 SummaryCollection fsc = SummaryReader
                     .load(conf, source, file.getFileName(), summarySelector, factory,
                         tableConf.getCryptoService())
-                    .getSummaries(Collections.singletonList(new Gatherer.RowRange(extent)));
+                    .getSummaries(Collections.singletonList(
+                        RowRange.range(extent.prevEndRow(), false, extent.endRow(), true)));
 
                 sc.merge(fsc, factory);
               }
@@ -212,12 +216,12 @@ public class CompactionPluginUtils {
 
   public static Map<String,String> computeOverrides(Optional<CompactionConfig> compactionConfig,
       ServerContext context, KeyExtent extent, Set<CompactableFile> inputFiles,
-      Supplier<Set<CompactableFile>> selectedFiles) {
+      Supplier<Set<CompactableFile>> selectedFiles, ReferencedTabletFile outputFile) {
 
     if (compactionConfig.isPresent()
         && !UserCompactionUtils.isDefault(compactionConfig.orElseThrow().getConfigurer())) {
       return CompactionPluginUtils.computeOverrides(context, extent, inputFiles, selectedFiles,
-          compactionConfig.orElseThrow().getConfigurer());
+          compactionConfig.orElseThrow().getConfigurer(), outputFile);
     }
 
     var tableConf = context.getTableConfiguration(extent.tableId());
@@ -231,12 +235,12 @@ public class CompactionPluginUtils {
         tableConf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_CONFIGURER_OPTS);
 
     return CompactionPluginUtils.computeOverrides(context, extent, inputFiles, selectedFiles,
-        new PluginConfig(configurorClass, opts));
+        new PluginConfig(configurorClass, opts), outputFile);
   }
 
   public static Map<String,String> computeOverrides(ServerContext context, KeyExtent extent,
       Set<CompactableFile> inputFiles, Supplier<Set<CompactableFile>> selectedFiles,
-      PluginConfig cfg) {
+      PluginConfig cfg, ReferencedTabletFile outputFile) {
 
     CompactionConfigurer configurer = newInstance(context.getTableConfiguration(extent.tableId()),
         cfg.getClassName(), CompactionConfigurer.class);
@@ -284,6 +288,11 @@ public class CompactionPluginUtils {
       @Override
       public TabletId getTabletId() {
         return new TabletIdImpl(extent);
+      }
+
+      @Override
+      public URI getOutputFile() {
+        return TabletNameGenerator.computeCompactionFileDest(outputFile).getPath().toUri();
       }
     });
 

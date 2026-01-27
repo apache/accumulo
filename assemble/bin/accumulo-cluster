@@ -52,19 +52,19 @@ $(cyan Commands):
   $(green stop)                       Stops Accumulo cluster services
   $(green restart)                    Restarts Accumulo cluster services
   $(green kill)                       Kills Accumulo cluster services
-  $(green prune)                      Reomves zookeeper locks of extra processes
+  $(green prune)                      Removes zookeeper locks of extra processes
 
 $(cyan Examples):
-  $(purple 'accumulo-cluster start')                              $(blue '# start all servers')
-  $(purple 'accumulo-cluster start --dry-run')                    $(blue '# print debug information and commands to be executed')
-  $(purple 'accumulo-cluster start --local')                      $(blue '# start all local services')
-  $(purple 'accumulo-cluster start --local --manager')            $(blue '# start local manager services')
-  $(purple 'accumulo-cluster start --tservers')                   $(blue '# start all tservers')
-  $(purple 'accumulo-cluster start --sservers=group1')            $(blue '# start all group1 sservers')
-  $(purple 'accumulo-cluster start --sservers="group1 group2"')   $(blue '# start all group1 and group2 sservers')
-  $(purple 'accumulo-cluster start --local --manager --tservers') $(blue '# Start the local manager and local tservers')
-  $(purple 'accumulo-cluster prune --compactors')                 $(blue '# prune all extra compactors across all groups')
-  $(purple 'accumulo-cluster prune --compactors="group1"')        $(blue '# prune extra compactors running in group1')
+  $(purple 'accumulo-cluster start')                                             $(blue '# start all servers')
+  $(purple 'accumulo-cluster start --dry-run')                                   $(blue '# print debug information and commands to be executed')
+  $(purple 'accumulo-cluster start --local')                                     $(blue '# start all local services')
+  $(purple 'accumulo-cluster start --local --manager')                           $(blue '# start local manager services')
+  $(purple 'accumulo-cluster start --tservers')                                  $(blue '# start all tservers')
+  $(purple 'accumulo-cluster start --sservers=group1')                           $(blue '# start all group1 sservers')
+  $(purple 'accumulo-cluster start --sservers="group1 group2"')                  $(blue '# start all group1 and group2 sservers')
+  $(purple 'accumulo-cluster start --local --manager --tservers')                $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster prune --compactors')                                $(blue '# prune all extra compactors across all groups')
+  $(purple 'accumulo-cluster prune --compactors="group1"')                       $(blue '# prune extra compactors running in group1')
 
 EOF
 }
@@ -210,6 +210,7 @@ function parse_args() {
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
+  debug "ARG_CREATE_MISSING_RG=$ARG_CREATE_MISSING_RG"
 
 }
 
@@ -248,9 +249,9 @@ function quote() {
   exit 1
 }
 
-# call debug to print, or execute if debug is off
-function debugOrRun() {
-  debug "$(quote "$@")" || "$@"
+# call debug to print the command only, or execute asynchronously if debug is off
+function debugOrRunAsync() {
+  debug "$(quote "$@")" || ("$@") &
 }
 
 function canRunOnHost() {
@@ -276,6 +277,14 @@ function canRunOnHost() {
   [[ $found == 1 ]]
 }
 
+function arrayContains() {
+  local m=$1
+  shift
+  local x
+  for x in "$@"; do [[ $x == "$m" ]] && return 0; done
+  return 1
+}
+
 function parse_config() {
 
   local manager1
@@ -297,6 +306,12 @@ function parse_config() {
     trap 'rm -rf -- "$AC_TMP_DIR"' EXIT
   fi
 
+  RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
+  debug "Printing resource groups to $RG_FILE"
+  "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || exit 1
+  read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
+  debug "All resource groups: ${all_resource_groups[*]}"
+
   CONFIG_FILE="$AC_TMP_DIR/ClusterConfigParser.out"
   "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
@@ -308,7 +323,6 @@ function parse_config() {
       debug "$(white "$line")"
     done <"$CONFIG_FILE"
   fi
-  rm -f "$CONFIG_FILE"
 
   # this might not be possible, since the ClusterConfigParser would probably fail instead
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -320,6 +334,10 @@ function parse_config() {
     echo "$(yellow WARN): No compactor groups configured"
   else
     for group in $COMPACTOR_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="COMPACTOR_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): External compactor group $(yellow "$group") configured, but no compactors configured for it"
@@ -332,6 +350,10 @@ function parse_config() {
     echo "$(yellow WARN): No tablet server groups configured"
   else
     for group in $TSERVER_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="TSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): tablet server group $(yellow "$group") configured, but no hosts configured for it"
@@ -348,6 +370,10 @@ function parse_config() {
 
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="SSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): scan server group $(yellow "$group") configured, but no hosts configured for it"
@@ -369,17 +395,6 @@ function parse_config() {
 
 }
 
-function ssh_wait() {
-  #shellcheck disable=SC2009
-  count=$(ps -ef | grep ssh | grep -c "accumulo-service")
-  while ((count > 0)); do
-    echo "waiting on $count ssh commands to complete"
-    sleep 2
-    #shellcheck disable=SC2009
-    count=$(ps -ef | grep ssh | grep -c "accumulo-service")
-  done
-}
-
 function execute_command() {
   control_cmd=$1
   host=$2
@@ -395,9 +410,9 @@ function execute_command() {
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
-    debugOrRun bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*"
+    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*"
   else
-    debugOrRun "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*'"
+    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*'"
   fi
 }
 
@@ -473,7 +488,7 @@ function control_services() {
         for tserver in ${!G}; do
           debug "Stopping tservers on $addr via admin command"
           if echo "$tserver" | grep -q "$addr"; then
-            debugOrRun "$accumulo_cmd" admin stop "$addr"
+            debugOrRunAsync "$accumulo_cmd" admin stop "$addr"
           fi
         done
       done
@@ -509,11 +524,11 @@ function control_services() {
         fi
       done
       if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
-        # If the prior commands were executed via ssh, then we need to wait for them
-        # to complete before zapping the nodes in ZooKeeper
-        ssh_wait
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers -group "$group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -563,11 +578,11 @@ function control_services() {
         fi
       done
       if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
-        # If the prior commands were executed via ssh, then we need to wait for them
-        # to complete before zapping the nodes in ZooKeeper
-        ssh_wait
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers -group "$group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -588,19 +603,21 @@ function control_services() {
         fi
       done
       if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
-        # If the prior commands were executed via ssh, then we need to wait for them
-        # to complete before zapping the nodes in ZooKeeper
-        ssh_wait
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors -group "$group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
   fi
+
+  wait
 
 }
 
@@ -796,7 +813,7 @@ function main() {
   conf="${ACCUMULO_CONF_DIR:-$basedir/conf}"
 
   accumulo_cmd="$bin/accumulo"
-  SSH=('ssh' '-qnf' '-o' 'ConnectTimeout=2')
+  SSH=('ssh' '-qn' '-o' 'ConnectTimeout=2' '-o' 'BatchMode=yes')
 
   mapfile -t LOCAL_HOST_ADDRESSES < <(get_localhost_addresses)
   debug "LOCAL_HOST_ADDRESSES=${LOCAL_HOST_ADDRESSES[*]}"

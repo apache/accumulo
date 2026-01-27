@@ -33,7 +33,7 @@ public class SuspendingTServer {
   public final HostAndPort server;
   public final SteadyTime suspensionTime;
 
-  SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
+  public SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
     this.server = Objects.requireNonNull(server);
     this.suspensionTime = Objects.requireNonNull(suspensionTime);
   }
@@ -55,10 +55,9 @@ public class SuspendingTServer {
 
   @Override
   public boolean equals(Object rhsObject) {
-    if (!(rhsObject instanceof SuspendingTServer)) {
+    if (!(rhsObject instanceof SuspendingTServer rhs)) {
       return false;
     }
-    SuspendingTServer rhs = (SuspendingTServer) rhsObject;
     return server.equals(rhs.server) && suspensionTime.equals(rhs.suspensionTime);
   }
 

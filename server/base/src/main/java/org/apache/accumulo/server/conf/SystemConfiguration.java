@@ -67,4 +67,9 @@ public class SystemConfiguration extends ZooBasedConfiguration {
     }
     return super.isPropertySet(prop);
   }
+
+  RuntimeFixedProperties getRuntimeFixedProperties() {
+    return runtimeFixedProps;
+  }
+
 }

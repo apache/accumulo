@@ -135,10 +135,6 @@ public interface Ample {
      * Candidates that have no matching file references and can be removed from the system.
      */
     VALID,
-    /**
-     * Candidates that are malformed.
-     */
-    INVALID
   }
 
   /**

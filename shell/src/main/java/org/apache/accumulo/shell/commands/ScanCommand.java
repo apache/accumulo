@@ -56,8 +56,13 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
 
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, outputFileOpt,
-      scanOptCf, scanOptCq;
+  private Option scanOptAuths;
+  private Option scanOptRow;
+  private Option scanOptColumns;
+  private Option disablePaginationOpt;
+  private Option outputFileOpt;
+  private Option scanOptCf;
+  private Option scanOptCq;
 
   protected Option showFewOpt;
   protected Option timestampOpt;

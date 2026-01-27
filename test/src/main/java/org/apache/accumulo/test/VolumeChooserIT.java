@@ -18,75 +18,74 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.fs.DelegatingChooser;
 import org.apache.accumulo.core.spi.fs.PreferredVolumeChooser;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final String TP = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
-  static final String PREFERRED_CHOOSER_PROP = TP + "volume.preferred";
+  private static final String PREFERRED_CHOOSER_PROP = TP + "volume.preferred";
   public static final String PERTABLE_CHOOSER_PROP = TP + "volume.chooser";
 
   private static final String GP = Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey();
 
-  static final String getPreferredProp(Scope scope) {
+  private static final String getPreferredProp(Scope scope) {
     return GP + "volume.preferred." + scope.name().toLowerCase();
   }
 
-  static final String getPerTableProp(Scope scope) {
+  private static final String getPerTableProp(Scope scope) {
     return GP + "volume.chooser." + scope.name().toLowerCase();
   }
 
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value();
-  private File volDirBase;
-  private Path v1, v2, v3;
-  public static String[] alpha_rows =
-      "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
-  private String namespace1;
-  private String namespace2;
-  private String systemPreferredVolumes;
+  private java.nio.file.Path volDirBase;
+  private Path v1;
+  private Path v2;
+  private Path v3_disallowed;
+  private Path v4;
+  private static final TreeSet<Text> alpha_rows =
+      Stream.of("a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",")).map(Text::new)
+          .collect(Collectors.toCollection(TreeSet::new));
 
   @Override
   protected Duration defaultTimeout() {
@@ -97,40 +96,39 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Get 2 tablet servers
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
-    namespace1 = "ns_" + getUniqueNames(2)[0];
-    namespace2 = "ns_" + getUniqueNames(2)[1];
 
     // Set the general volume chooser to the DelegatingChooser so that different choosers can be
     // specified
     Map<String,String> siteConfig = new HashMap<>();
     siteConfig.put(Property.GENERAL_VOLUME_CHOOSER.getKey(), DelegatingChooser.class.getName());
-    // if a table doesn't have a volume chooser, use the preferred volume chooser
-    siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
-    File baseDir = cfg.getDir();
-    volDirBase = baseDir.toPath().resolve("volumes").toFile();
-    File v1f = volDirBase.toPath().resolve("v1").toFile();
-    File v2f = volDirBase.toPath().resolve("v2").toFile();
-    File v3f = volDirBase.toPath().resolve("v3").toFile();
-    v1 = new Path("file://" + v1f.getAbsolutePath());
-    v2 = new Path("file://" + v2f.getAbsolutePath());
-    v3 = new Path("file://" + v3f.getAbsolutePath());
+    java.nio.file.Path baseDir = cfg.getDir().toPath();
+    volDirBase = baseDir.resolve("volumes");
+    java.nio.file.Path v1f = volDirBase.resolve("v1");
+    java.nio.file.Path v2f = volDirBase.resolve("v2");
+    java.nio.file.Path v3f = volDirBase.resolve("v3");
+    java.nio.file.Path v4f = volDirBase.resolve("v4");
+    v1 = new Path("file://" + v1f.toAbsolutePath());
+    v2 = new Path("file://" + v2f.toAbsolutePath());
+    v3_disallowed = new Path("file://" + v3f.toAbsolutePath());
+    v4 = new Path("file://" + v4f.toAbsolutePath());
 
-    systemPreferredVolumes = v1 + "," + v2;
-    // exclude v3
-    siteConfig.put(PREFERRED_CHOOSER_PROP, systemPreferredVolumes);
-    cfg.setSiteConfig(siteConfig);
-
+    // delegate to the preferred volume v2 for logs
     siteConfig.put(getPerTableProp(Scope.LOGGER), PreferredVolumeChooser.class.getName());
     siteConfig.put(getPreferredProp(Scope.LOGGER), v2.toString());
+    // delegate to the preferred volumes v1 and v2 for init
     siteConfig.put(getPerTableProp(Scope.INIT), PreferredVolumeChooser.class.getName());
-    siteConfig.put(getPreferredProp(Scope.INIT), systemPreferredVolumes);
+    siteConfig.put(getPreferredProp(Scope.INIT), v1 + "," + v2);
+    // delegate to the preferred volumes v4
+    siteConfig.put(getPerTableProp(Scope.DEFAULT), PreferredVolumeChooser.class.getName());
+    siteConfig.put(getPreferredProp(Scope.DEFAULT), v4.toString());
+
     cfg.setSiteConfig(siteConfig);
 
     // Only add volumes 1, 2, and 4 to the list of instance volumes to have one volume that isn't in
     // the options list when they are choosing
-    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v3);
+    cfg.setProperty(Property.INSTANCE_VOLUMES, v1 + "," + v2 + "," + v4);
 
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -139,221 +137,180 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   }
 
-  public static void addSplits(AccumuloClient accumuloClient, String tableName)
-      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
-    // Add 10 splits to the table
-    SortedSet<Text> partitions = new TreeSet<>();
-    for (String s : alpha_rows) {
-      partitions.add(new Text(s));
-    }
-    accumuloClient.tableOperations().addSplits(tableName, partitions);
-  }
+  static TableId createAndVerifyTable(AccumuloClient client, String tableName,
+      SortedSet<Text> splits, boolean flush) throws Exception {
+    // create the table
+    var ntc = new NewTableConfiguration().withSplits(splits);
+    client.tableOperations().create(tableName, ntc);
 
-  public static void writeAndReadData(AccumuloClient accumuloClient, String tableName)
-      throws Exception {
-    writeDataToTable(accumuloClient, tableName, alpha_rows);
-
-    // Write the data to disk, read it back
-    accumuloClient.tableOperations().flush(tableName, null, null, true);
-    try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
-      int i = 0;
-      for (Entry<Key,Value> entry : scanner) {
-        assertEquals(alpha_rows[i++], entry.getKey().getRow().toString(),
-            "Data read is not data written");
-      }
-    }
-  }
-
-  public static void writeDataToTable(AccumuloClient accumuloClient, String tableName,
-      String[] rows) throws Exception {
-    // Write some data to the table
-    try (BatchWriter bw = accumuloClient.createBatchWriter(tableName)) {
-      for (String s : rows) {
-        Mutation m = new Mutation(new Text(s));
+    // write some data
+    try (BatchWriter bw = client.createBatchWriter(tableName)) {
+      for (Text row : alpha_rows) {
+        Mutation m = new Mutation(row);
         m.put(EMPTY, EMPTY, EMPTY_VALUE);
         bw.addMutation(m);
       }
     }
+
+    // optionally, flush before verification
+    if (flush) {
+      client.tableOperations().flush(tableName, null, null, true);
+    }
+
+    // verify it can be read back
+    try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+      var row_iter = alpha_rows.iterator();
+      for (Entry<Key,Value> entry : scanner) {
+        assertEquals(row_iter.next(), entry.getKey().getRow(), "Data read is not data written");
+      }
+    }
+    return TableId.of(client.tableOperations().tableIdMap().get(tableName));
   }
 
-  public static void verifyVolumes(AccumuloClient accumuloClient, Range tableRange, String vol)
+  private void createNamespaceWithPreferredChooser(AccumuloClient client, String namespace,
+      Path preferredVolume) throws Exception {
+    client.namespaceOperations().create(namespace);
+    client.namespaceOperations().setProperty(namespace, PERTABLE_CHOOSER_PROP,
+        PreferredVolumeChooser.class.getName());
+    if (preferredVolume != null) {
+      client.namespaceOperations().setProperty(namespace, PREFERRED_CHOOSER_PROP,
+          preferredVolume.toString());
+    }
+  }
+
+  private void createNamespaceWithRandomChooser(AccumuloClient client, String namespace)
       throws Exception {
-    // Verify the new files are written to the Volumes specified
-    ArrayList<String> volumes = new ArrayList<>();
-    Collections.addAll(volumes, vol.split(","));
+    client.namespaceOperations().create(namespace);
+    client.namespaceOperations().setProperty(namespace, PERTABLE_CHOOSER_PROP,
+        RandomVolumeChooser.class.getName());
+    // The random volume chooser should ignore this property
+    client.namespaceOperations().setProperty(namespace, PREFERRED_CHOOSER_PROP, "ignored");
+  }
 
-    TreeSet<String> volumesSeen = new TreeSet<>();
-    int fileCount = 0;
-    try (Scanner scanner =
-        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
-      scanner.setRange(tableRange);
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      for (Entry<Key,Value> entry : scanner) {
-        boolean inVolume = false;
-        for (String volume : volumes) {
-          if (entry.getKey().getColumnQualifier().toString().contains(volume)) {
-            volumesSeen.add(volume);
-            inVolume = true;
-          }
+  private void createTableAndVerifyVolumesUsed(AccumuloClient client, String namespace,
+      Path... expectedVolumes) throws Exception {
+    String tableName = namespace + ".1";
+    TableId tableID = createAndVerifyTable(client, tableName, alpha_rows, true);
+
+    // Verify the new files are written only to the expected volumes
+    Set<String> allTableFiles;
+    try (var tabletsMetadata = getServerContext().getAmple().readTablets().forTable(tableID)
+        .fetch(ColumnType.FILES).build()) {
+      allTableFiles = tabletsMetadata.stream().flatMap(tm -> tm.getFiles().stream())
+          .map(StoredTabletFile::getPath).map(Path::toString).collect(toSet());
+    }
+    assertEquals(alpha_rows.size(), allTableFiles.size(), "Wrong number of files");
+    Set<Path> expectedVolumesSeen = new TreeSet<>();
+    allTableFiles.forEach(file -> {
+      boolean foundMatchingExpectedVolume = false;
+      for (Path volume : expectedVolumes) {
+        if (file.startsWith(volume.toString())) {
+          expectedVolumesSeen.add(volume);
+          foundMatchingExpectedVolume = true;
         }
-        assertTrue(inVolume,
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
-        fileCount++;
       }
-    }
-    assertEquals(volumes.size(), volumesSeen.size(),
-        "Did not see all the volumes. volumes: " + volumes + " volumes seen: " + volumesSeen);
-    assertEquals(26, fileCount, "Wrong number of files");
+      assertTrue(foundMatchingExpectedVolume, "Data not written to the correct volumes: " + file);
+    });
+    assertEquals(expectedVolumes.length, expectedVolumesSeen.size(),
+        "Did not see all the expected volumes. volumes: " + Set.of(expectedVolumes)
+            + " volumes seen: " + expectedVolumesSeen);
   }
 
-  public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
-      throws Exception {
-    try (Scanner scanner =
-        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
-      scanner.setRange(tableRange);
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      for (Entry<Key,Value> entry : scanner) {
-        fail("Data incorrectly written to " + entry.getKey().getColumnQualifier());
-      }
-    }
-  }
-
-  private void configureNamespace(AccumuloClient accumuloClient, String volumeChooserClassName,
-      String configuredVolumes, String namespace) throws Exception {
-    accumuloClient.namespaceOperations().create(namespace);
-    // Set properties on the namespace
-    accumuloClient.namespaceOperations().setProperty(namespace, PERTABLE_CHOOSER_PROP,
-        volumeChooserClassName);
-    accumuloClient.namespaceOperations().setProperty(namespace, PREFERRED_CHOOSER_PROP,
-        configuredVolumes);
-  }
-
-  private void verifyVolumesForWritesToNewTable(AccumuloClient accumuloClient, String myNamespace,
-      String expectedVolumes) throws Exception {
-    String tableName = myNamespace + ".1";
-
-    accumuloClient.tableOperations().create(tableName);
-    TableId tableID = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
-
-    // Add 10 splits to the table
-    addSplits(accumuloClient, tableName);
-    // Write some data to the table
-    writeAndReadData(accumuloClient, tableName);
-    // Verify the new files are written to the Volumes specified
-    verifyVolumes(accumuloClient, TabletsSection.getRange(tableID), expectedVolumes);
-  }
-
-  public static void verifyWaLogVolumes(AccumuloClient accumuloClient, Range tableRange, String vol)
-      throws TableNotFoundException {
-    // Verify the new files are written to the Volumes specified
-    ArrayList<String> volumes = new ArrayList<>();
-    Collections.addAll(volumes, vol.split(","));
-
-    TreeSet<String> volumesSeen = new TreeSet<>();
-    try (Scanner scanner =
-        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
-      scanner.setRange(tableRange);
-      scanner.fetchColumnFamily(LogColumnFamily.NAME);
-      for (Entry<Key,Value> entry : scanner) {
-        boolean inVolume = false;
-        for (String volume : volumes) {
-          if (entry.getKey().getColumnQualifier().toString().contains(volume)) {
-            volumesSeen.add(volume);
-          }
-          inVolume = true;
-        }
-        assertTrue(inVolume,
-            "Data not written to the correct volumes.  " + entry.getKey().getColumnQualifier());
-      }
-    }
-  }
-
-  // Test that uses two tables with 10 split points each. They each use the PreferredVolumeChooser
-  // to choose volumes.
+  // Test that creates two tables, with different preferred volumes
   @Test
   public void twoTablesPreferredVolumeChooser() throws Exception {
-    log.info("Starting twoTablesPreferredVolumeChooser");
+    String namespace1 = "ns_" + getUniqueNames(2)[0];
+    String namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Create namespace
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      // Set properties on the namespace
-      // namespace 1 -> v2
-      configureNamespace(c, PreferredVolumeChooser.class.getName(), v2.toString(), namespace1);
+      createNamespaceWithPreferredChooser(c, namespace1, v2);
+      createNamespaceWithPreferredChooser(c, namespace2, v1);
 
-      // Create table1 on namespace1
-      verifyVolumesForWritesToNewTable(c, namespace1, v2.toString());
-
-      configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
-
-      // Create table2 on namespace2
-      verifyVolumesForWritesToNewTable(c, namespace2, v1.toString());
+      createTableAndVerifyVolumesUsed(c, namespace1, v2);
+      createTableAndVerifyVolumesUsed(c, namespace2, v1);
     }
   }
 
-  // Test that uses two tables with 10 split points each. They each use the RandomVolumeChooser to
-  // choose volumes.
+  // Test that creates two tables, both with random volumes
   @Test
   public void twoTablesRandomVolumeChooser() throws Exception {
-    log.info("Starting twoTablesRandomVolumeChooser()");
+    String namespace1 = "ns_" + getUniqueNames(2)[0];
+    String namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Create namespace
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(client, namespace1, v1 + "," + v2 + "," + v3);
-      createAndVerify(client, namespace2, v1 + "," + v2 + "," + v3);
+      createNamespaceWithRandomChooser(client, namespace1);
+      createNamespaceWithRandomChooser(client, namespace2);
+
+      createTableAndVerifyVolumesUsed(client, namespace1, v1, v2, v4);
+      createTableAndVerifyVolumesUsed(client, namespace2, v1, v2, v4);
     }
   }
 
-  private void createAndVerify(AccumuloClient client, String ns, String expectedVolumes)
-      throws Exception {
-    client.namespaceOperations().create(ns);
-
-    // Set properties on the namespace
-    client.namespaceOperations().setProperty(ns, PERTABLE_CHOOSER_PROP,
-        RandomVolumeChooser.class.getName());
-
-    verifyVolumesForWritesToNewTable(client, ns, expectedVolumes);
-  }
-
-  // Test that uses 2 tables with 10 split points each. The first uses the RandomVolumeChooser and
-  // the second uses the StaticVolumeChooser to choose volumes.
+  // Test that creates two tables with different choosers, one random and the other preferred
   @Test
   public void twoTablesDiffChoosers() throws Exception {
-    log.info("Starting twoTablesDiffChoosers");
+    String namespace1 = "ns_" + getUniqueNames(2)[0];
+    String namespace2 = "ns_" + getUniqueNames(2)[1];
 
-    // Create namespace
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      createAndVerify(c, namespace1, v1 + "," + v2 + "," + v3);
-      configureNamespace(c, PreferredVolumeChooser.class.getName(), v1.toString(), namespace2);
-      // Create table2 on namespace2
-      verifyVolumesForWritesToNewTable(c, namespace2, v1.toString());
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      createNamespaceWithRandomChooser(client, namespace1);
+      createNamespaceWithPreferredChooser(client, namespace2, v1);
+
+      createTableAndVerifyVolumesUsed(client, namespace1, v1, v2, v4);
+      createTableAndVerifyVolumesUsed(client, namespace2, v1);
     }
   }
 
+  // Test that attempts to create a table that prefers a volume not currently configured.
+  // This does not work, because it is a hard-coded requirement that chosen volumes exist in the
+  // instance volumes set; the test is preserved here to document this restriction
+  @Disabled
   @Test
   public void includeSpecialVolumeForTable() throws Exception {
-    log.info("Starting includeSpecialVolumeForTable");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    String namespace = "ns_" + getUniqueNames(1)[0];
 
-      // the following table will be configured to go to the excluded volume
-      String configuredVolumes = v3.toString();
-      configureNamespace(client, PreferredVolumeChooser.class.getName(), configuredVolumes,
-          namespace2);
-      verifyVolumesForWritesToNewTable(client, namespace2, configuredVolumes);
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // the following table will be configured to go to the volume excluded from the instance
+      // volumes set that are normally randomly selected from
+      createNamespaceWithPreferredChooser(client, namespace, v3_disallowed);
+      createTableAndVerifyVolumesUsed(client, namespace, v3_disallowed);
     }
   }
 
+  // Test that relies on falling back to the system default for its preferred volume, because it
+  // does not specify one in its per-table settings.
   @Test
-  public void waLogsSentToConfiguredVolumes() throws Exception {
-    log.info("Starting waLogsSentToConfiguredVolumes");
+  public void generalDefaultPreferredVolume() throws Exception {
+    String namespace = "ns_" + getUniqueNames(1)[0];
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String tableName = "anotherTable";
-      client.tableOperations().create(tableName);
+      // create a namespace with the preferred volume chooser, but without specifying a preferred
+      // volume; this should force it to use the general default preferred volume set in the
+      // configure method
+      createNamespaceWithPreferredChooser(client, namespace, null);
+      createTableAndVerifyVolumesUsed(client, namespace, v4);
+    }
+  }
 
-      VolumeChooserIT.addSplits(client, tableName);
-      VolumeChooserIT.writeDataToTable(client, tableName, alpha_rows);
+  // Test that verifies the log files are placed in the volume configured for the logger scope
+  @Test
+  public void waLogsSentToConfiguredVolumes() throws Exception {
+    String namespace = "ns_" + getUniqueNames(1)[0];
+    String tableName = namespace + "." + testName();
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // create namespace with preference for a volume other than where logs will be stored
+      createNamespaceWithPreferredChooser(client, namespace, v1);
+      // don't flush, in order to ensure WALs exist
+      createAndVerifyTable(client, tableName, alpha_rows, false);
       // should only go to v2 as per configuration in configure()
-      VolumeChooserIT.verifyWaLogVolumes(client, new Range(), v2.toString());
+      var walMgr = new WalStateManager(getServerContext());
+      Map<Path,WalStateManager.WalState> allLogs = walMgr.getAllState();
+      assertFalse(allLogs.isEmpty());
+      String volume = v2.toString();
+      allLogs.keySet().stream().map(Path::toString).forEach(path -> {
+        assertTrue(path.startsWith(volume), () -> path + " did not contain " + volume);
+      });
     }
   }
 }

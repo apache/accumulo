@@ -180,7 +180,8 @@ public class BatchWriterConfigTest {
 
   @Test
   public void testDefaultEquality() {
-    BatchWriterConfig cfg1 = new BatchWriterConfig(), cfg2 = new BatchWriterConfig();
+    BatchWriterConfig cfg1 = new BatchWriterConfig();
+    BatchWriterConfig cfg2 = new BatchWriterConfig();
     assertEquals(cfg1, cfg2);
     assertEquals(cfg1.hashCode(), cfg2.hashCode());
     cfg2.setMaxMemory(1);
@@ -193,7 +194,8 @@ public class BatchWriterConfigTest {
 
   @Test
   public void testManualEquality() {
-    BatchWriterConfig cfg1 = new BatchWriterConfig(), cfg2 = new BatchWriterConfig();
+    BatchWriterConfig cfg1 = new BatchWriterConfig();
+    BatchWriterConfig cfg2 = new BatchWriterConfig();
     cfg1.setMaxLatency(10, SECONDS);
     cfg2.setMaxLatency(10000, MILLISECONDS);
 
@@ -210,7 +212,9 @@ public class BatchWriterConfigTest {
 
   @Test
   public void testMerge() {
-    BatchWriterConfig cfg1 = new BatchWriterConfig(), cfg2 = new BatchWriterConfig();
+    BatchWriterConfig cfg1 = new BatchWriterConfig();
+    BatchWriterConfig cfg2 = new BatchWriterConfig();
+
     cfg1.setMaxMemory(1234);
     cfg2.setMaxMemory(5858);
     cfg2.setDurability(Durability.LOG);

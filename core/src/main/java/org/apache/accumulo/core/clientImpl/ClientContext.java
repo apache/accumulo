@@ -76,6 +76,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -86,6 +87,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -93,6 +95,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
@@ -168,7 +171,8 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  private final ThreadPools clientThreadPools;
+  private ResourceGroupOperations rgOps = null;
+  private final Supplier<ThreadPools> clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
   private MeterRegistry micrometer;
@@ -182,6 +186,10 @@ public class ClientContext implements AccumuloClient {
     if (closed.get()) {
       throw new IllegalStateException("This client was closed.");
     }
+  }
+
+  protected boolean isClosed() {
+    return closed.get();
   }
 
   private ScanServerSelector createScanServerSelector() {
@@ -213,15 +221,16 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
-              .stream().map(entry -> new ScanServerInfo() {
+          return () -> getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).stream()
+              .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
                   return entry.getServer();
                 }
 
                 @Override
-                public String getGroup() {
+                public ResourceGroupId getGroup() {
                   return entry.getResourceGroup();
                 }
               }).collect(Collectors.toSet());
@@ -274,15 +283,15 @@ public class ClientContext implements AccumuloClient {
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
     this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this.getZooCache()));
     if (ueh == Threads.UEH) {
-      clientThreadPools = ThreadPools.getServerThreadPools();
+      clientThreadPools = () -> ThreadPools.getServerThreadPools();
     } else {
       // Provide a default UEH that just logs the error
       if (ueh == null) {
-        clientThreadPools = ThreadPools.getClientThreadPools((t, e) -> {
+        clientThreadPools = () -> ThreadPools.getClientThreadPools(getConfiguration(), (t, e) -> {
           log.error("Caught an Exception in client background thread: {}. Thread is dead.", t, e);
         });
       } else {
-        clientThreadPools = ThreadPools.getClientThreadPools(ueh);
+        clientThreadPools = () -> ThreadPools.getClientThreadPools(getConfiguration(), ueh);
       }
     }
     this.namespaceMapping = memoize(() -> new NamespaceMapping(this));
@@ -300,7 +309,7 @@ public class ClientContext implements AccumuloClient {
       submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
     ensureOpen();
     if (scannerReadaheadPool == null) {
-      scannerReadaheadPool = clientThreadPools.getPoolBuilder(SCANNER_READ_AHEAD_POOL)
+      scannerReadaheadPool = clientThreadPools.get().getPoolBuilder(SCANNER_READ_AHEAD_POOL)
           .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(3L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build();
     }
@@ -310,7 +319,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized void executeCleanupTask(Runnable r) {
     ensureOpen();
     if (cleanupThreadPool == null) {
-      cleanupThreadPool = clientThreadPools.getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
+      cleanupThreadPool = clientThreadPools.get().getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
           .numCoreThreads(1).withTimeOut(3L, SECONDS).build();
     }
     this.cleanupThreadPool.execute(r);
@@ -321,7 +330,7 @@ public class ClientContext implements AccumuloClient {
    */
   public ThreadPools threadPools() {
     ensureOpen();
-    return clientThreadPools;
+    return clientThreadPools.get();
   }
 
   /**
@@ -446,11 +455,11 @@ public class ClientContext implements AccumuloClient {
   /**
    * @return map of live scan server addresses to lock uuids.
    */
-  public Map<String,Pair<UUID,String>> getScanServers() {
+  public Map<String,Pair<UUID,ResourceGroupId>> getScanServers() {
     ensureOpen();
-    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    Map<String,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+        getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();
@@ -459,7 +468,7 @@ public class ClientContext implements AccumuloClient {
           final ServiceLockData data = sld.orElseThrow();
           final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
           final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
-          final String group = data.getGroup(ThriftService.TABLET_SCAN);
+          final ResourceGroupId group = data.getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {
@@ -894,6 +903,15 @@ public class ClientContext implements AccumuloClient {
   }
 
   @Override
+  public synchronized ResourceGroupOperations resourceGroupOperations() {
+    ensureOpen();
+    if (rgOps == null) {
+      rgOps = new ResourceGroupOperationsImpl(this);
+    }
+    return rgOps;
+  }
+
+  @Override
   public Properties properties() {
     ensureOpen();
     Properties result = new Properties();
@@ -913,20 +931,25 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
-      if (zooCacheCreated.get()) {
-        zooCache.get().close();
-      }
-      if (zooKeeperOpened.get()) {
-        zooSession.get().close();
-      }
       if (thriftTransportPool != null) {
+        log.debug("Closing Thrift Transport Pool");
         thriftTransportPool.shutdown();
       }
       if (scannerReadaheadPool != null) {
+        log.debug("Closing Scanner ReadAhead Pool");
         scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
       }
       if (cleanupThreadPool != null) {
+        log.debug("Closing Cleanup ThreadPool");
         cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+      }
+      if (zooCacheCreated.get()) {
+        log.debug("Closing ZooCache");
+        zooCache.get().close();
+      }
+      if (zooKeeperOpened.get()) {
+        log.debug("Closing ZooSession");
+        zooSession.get().close();
       }
     }
   }
@@ -1120,10 +1143,6 @@ public class ClientContext implements AccumuloClient {
       properties.setProperty(property.getKey(), value.toString());
     }
 
-    public void setProperty(ClientProperty property, Long value) {
-      setProperty(property, Long.toString(value));
-    }
-
     public void setProperty(ClientProperty property, Integer value) {
       setProperty(property, Integer.toString(value));
     }
@@ -1146,6 +1165,10 @@ public class ClientContext implements AccumuloClient {
   }
 
   public synchronized ThriftTransportPool getTransportPool() {
+    return getTransportPoolImpl(false);
+  }
+
+  protected synchronized ThriftTransportPool getTransportPoolImpl(boolean shouldHalt) {
     ensureOpen();
     if (thriftTransportPool == null) {
       LongSupplier maxAgeSupplier = () -> {
@@ -1162,7 +1185,7 @@ public class ClientContext implements AccumuloClient {
           throw e;
         }
       };
-      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier);
+      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier, shouldHalt);
     }
     return thriftTransportPool;
   }
@@ -1268,7 +1291,8 @@ public class ClientContext implements AccumuloClient {
     for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
-        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
+        Constants.ZRESOURCEGROUPS)) {
       pathsToWatch.add(path);
     }
     return pathsToWatch;

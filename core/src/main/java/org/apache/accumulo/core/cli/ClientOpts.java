@@ -81,7 +81,7 @@ public class ClientOpts extends Help {
             justification = "app is run in same security context as user providing the filename")
         @Override
         String process(String value) {
-          try (Scanner scanner = new Scanner(Path.of(value).toFile(), UTF_8)) {
+          try (Scanner scanner = new Scanner(Path.of(value), UTF_8)) {
             return scanner.nextLine();
           } catch (IOException e) {
             throw new ParameterException(e);
@@ -169,9 +169,6 @@ public class ClientOpts extends Help {
   @Parameter(names = "-o", splitter = NullSplitter.class, description = "Overrides property in "
       + "accumulo-client.properties. Expected format: -o <key>=<value>")
   private List<String> overrides = new ArrayList<>();
-
-  @Parameter(names = "--trace", description = "turn on distributed tracing")
-  public boolean trace = false;
 
   public Map<String,String> getOverrides() {
     return ConfigOpts.getOverrides(overrides);

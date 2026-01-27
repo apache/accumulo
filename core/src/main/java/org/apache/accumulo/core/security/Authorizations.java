@@ -37,9 +37,13 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A collection of authorization strings.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
 
   private static final long serialVersionUID = 1L;
@@ -327,8 +331,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
       return false;
     }
 
-    if (o instanceof Authorizations) {
-      Authorizations ao = (Authorizations) o;
+    if (o instanceof Authorizations ao) {
 
       return auths.equals(ao.auths);
     }
@@ -384,22 +387,5 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
 
     return sb.toString();
-  }
-
-  /**
-   * Converts to an Accumulo Access Authorizations object.
-   *
-   * @since 3.1.0
-   */
-  public org.apache.accumulo.access.Authorizations toAccessAuthorizations() {
-    if (auths.isEmpty()) {
-      return org.apache.accumulo.access.Authorizations.of();
-    } else {
-      Set<String> auths = new HashSet<>(authsList.size());
-      for (var auth : authsList) {
-        auths.add(new String(auth, UTF_8));
-      }
-      return org.apache.accumulo.access.Authorizations.of(auths);
-    }
   }
 }

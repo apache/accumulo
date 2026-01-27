@@ -92,6 +92,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
@@ -195,6 +196,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       tableId = keyExtent.tableId();
       if (sameTable || security.canWrite(us.getCredentials(), tableId,
           server.getContext().getNamespaceId(tableId))) {
+        logDurabilityWarning(keyExtent, us.durability);
         long t2 = System.currentTimeMillis();
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = server.getOnlineTablet(keyExtent);
@@ -320,6 +322,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         Tablet tablet = entry.getKey();
         Durability durability =
             DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
+        logDurabilityWarning(tablet.getExtent(), durability);
         List<Mutation> mutations = entry.getValue();
         if (!mutations.isEmpty()) {
           preppedMutations += mutations.size();
@@ -569,7 +572,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private void checkConditions(Map<KeyExtent,List<ServerConditionalMutation>> updates,
       ArrayList<TCMResult> results, ConditionalSession cs, List<String> symbols)
-      throws IOException {
+      throws IOException, ReflectiveOperationException {
     Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
 
     final CompressedIterators compressedIters = new CompressedIterators(symbols);
@@ -634,7 +637,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         } else {
           final Durability durability =
               DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
-
+          logDurabilityWarning(tablet.getExtent(), durability);
           List<Mutation> mutations = Collections.unmodifiableList(entry.getValue());
           preppedMutions += mutations.size();
           if (!mutations.isEmpty()) {
@@ -727,7 +730,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs,
       Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results,
-      List<String> symbols) throws IOException {
+      List<String> symbols) throws IOException, ReflectiveOperationException {
     // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is
     // more efficient and detect duplicate rows.
     int numMutations = ConditionalMutationSet.sortConditionalMutations(updates);
@@ -739,17 +742,16 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
 
     // get as many locks as possible w/o blocking... defer any rows that are locked
-    long lt1 = System.nanoTime();
+    Timer timer = Timer.startNew();
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
-    long lt2 = System.nanoTime();
-    updateAverageLockTime(lt2 - lt1, TimeUnit.NANOSECONDS, numMutations);
+    updateAverageLockTime(timer.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS, numMutations);
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "conditionalUpdate::Check conditions");
       try (Scope scope = span.makeCurrent()) {
-        long t1 = System.nanoTime();
+        timer.restart();
         checkConditions(updates, results, cs, symbols);
-        long t2 = System.nanoTime();
-        updateAverageCheckTime(t2 - t1, TimeUnit.NANOSECONDS, numMutations);
+        updateAverageCheckTime(timer.elapsed(TimeUnit.NANOSECONDS), TimeUnit.NANOSECONDS,
+            numMutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;
@@ -1042,11 +1044,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     TabletLogger.loading(extent, server.getTabletSession());
 
     final AssignmentHandler ah = new AssignmentHandler(server, extent);
-    // final Runnable ah = new LoggingRunnable(log, );
     // Root tablet assignment must take place immediately
 
     if (extent.isRootTablet()) {
-      Threads.createThread("Root Tablet Assignment", () -> {
+      Threads.createNonCriticalThread("Root Tablet Assignment", () -> {
         ah.run();
         if (server.getOnlineTablets().containsKey(extent)) {
           log.info("Root tablet loaded: {}", extent);
@@ -1054,12 +1055,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           log.info("Root tablet failed to load");
         }
       }).start();
+    } else if (extent.isMeta()) {
+      server.resourceManager.addMetaDataAssignment(extent, log, ah);
     } else {
-      if (extent.isMeta()) {
-        server.resourceManager.addMetaDataAssignment(extent, log, ah);
-      } else {
-        server.resourceManager.addAssignment(extent, log, ah);
-      }
+      server.resourceManager.addAssignment(extent, log, ah);
     }
   }
 
@@ -1398,6 +1397,13 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       return tsums;
     } catch (TimeoutException e) {
       return handleTimeout(sessionId);
+    }
+  }
+
+  private void logDurabilityWarning(KeyExtent tablet, Durability durability) {
+    if (tablet.isMeta() && durability != Durability.SYNC) {
+      log.warn("Property {} is not set to 'sync' for table {}", Property.TABLE_DURABILITY.getKey(),
+          tablet.tableId());
     }
   }
 }

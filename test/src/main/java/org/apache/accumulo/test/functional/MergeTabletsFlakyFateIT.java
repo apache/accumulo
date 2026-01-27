@@ -33,7 +33,7 @@ public class MergeTabletsFlakyFateIT extends MergeTabletsITBase {
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
-      cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
+      cfg.setServerClass(ServerType.MANAGER, rg -> FlakyFateManager.class);
     });
 
   }

@@ -408,8 +408,8 @@ public class MetadataSchema {
      * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
-      // kept to support upgrades to 3.1; name is used for both col fam and col qual
-      @Deprecated(since = "3.1.0")
+      // kept to support upgrades to 4.0; name is used for both col fam and col qual
+      @Deprecated(since = "4.0.0")
       public static final Text NAME = new Text("chopped");
     }
 
@@ -461,8 +461,8 @@ public class MetadataSchema {
           new ColumnFQ(NAME, new Text(UNSPLITTABLE_QUAL));
     }
 
-    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
-    public static class Upgrade12to13 {
+    // TODO when removing the Upgrader11to12 class in the upgrade package, also remove this class.
+    public static class Upgrade11to12 {
 
       /**
        * A temporary field in case a split fails and we need to roll back

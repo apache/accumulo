@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -55,10 +54,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
@@ -75,9 +77,12 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -88,7 +93,9 @@ import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.ImportExportIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -184,42 +191,20 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("addsplits row5", true);
       ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
       ts.exec("offline " + table, true);
-      File exportDir = java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export").toFile();
+      java.nio.file.Path exportDir =
+          java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export");
       String exportUri = "file://" + exportDir;
-      String localTmp =
-          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.tmp").toFile();
       ts.exec("exporttable -t " + table + " " + exportUri, true);
       DistCp cp = new DistCp(new Configuration(false), null);
-      String import_ =
-          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import").toFile();
+      String import_ = "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import");
       ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
       if (info.saslEnabled()) {
         // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
         // ourselves by hand.
         FileSystem fs = getCluster().getFileSystem();
-        FileSystem localFs = FileSystem.getLocal(new Configuration(false));
-
-        // Path on local fs to cp into
-        Path localTmpPath = new Path(localTmp);
-        localFs.mkdirs(localTmpPath);
-
-        // Path in remote fs to importtable from
         Path importDir = new Path(import_);
-        fs.mkdirs(importDir);
-
-        // Implement a poor-man's DistCp
-        try (BufferedReader reader =
-            Files.newBufferedReader(exportDir.toPath().resolve("distcp.txt"), UTF_8)) {
-          for (String line; (line = reader.readLine()) != null;) {
-            Path exportedFile = new Path(line);
-            // There isn't a cp on FileSystem??
-            log.info("Copying {} to {}", line, localTmpPath);
-            fs.copyToLocalFile(exportedFile, localTmpPath);
-            Path tmpFile = new Path(localTmpPath, exportedFile.getName());
-            log.info("Moving {} to the import directory {}", tmpFile, importDir);
-            fs.moveFromLocalFile(tmpFile, importDir);
-          }
-        }
+        Path exportPath = new Path(exportDir.toUri());
+        ImportExportIT.copyExportedFilesToImportDirs(fs, exportPath, importDir);
       } else {
         String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
         assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
@@ -1315,6 +1300,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
       assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
+      result = ts.exec("getavailability -e m");
+      assertTrue(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+      assertFalse(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
+      assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
+
     } finally {
       if (splitsFilePath != null) {
         Files.delete(splitsFilePath);
@@ -1440,7 +1431,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Configuration conf = new Configuration();
     String nonce = generateNonce();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = createRFiles(conf, fs, table, nonce);
+    java.nio.file.Path importDir = createRFiles(conf, fs, table, nonce);
     ts.exec("createtable " + table, true);
     ts.exec("importdirectory " + importDir + " true", true);
     ts.exec("scan -r 00000000", true, "0-->" + nonce, true);
@@ -1456,7 +1447,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Configuration conf = new Configuration();
     String nonce = generateNonce();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = createRFiles(conf, fs, table, nonce);
+    java.nio.file.Path importDir = createRFiles(conf, fs, table, nonce);
     ts.exec("createtable " + table, true);
     ts.exec("notable", true);
     ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
@@ -1473,12 +1464,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
-  private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix,
-      final String nonce) throws IOException {
-    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + postfix).toFile();
-    assertTrue(importDir.mkdir());
-    String even = importDir.toPath().resolve("even.rf").toFile().toString();
-    String odd = importDir.toPath().resolve("odd.rf").toFile().toString();
+  private java.nio.file.Path createRFiles(final Configuration conf, final FileSystem fs,
+      final String postfix, final String nonce) throws IOException {
+    java.nio.file.Path importDir = java.nio.file.Path.of(rootPath).resolve("import_" + postfix);
+    Files.createDirectories(importDir);
+    String even = importDir.resolve("even.rf").toString();
+    String odd = importDir.resolve("odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
@@ -1518,6 +1509,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
 
     ts.exec("createtable " + table, true);
+    ts.exec("addsplits -t " + table + " a\0test", true);
     ts.exec(
         "config -t " + table
             + " -s table.iterator.minc.slow=30,org.apache.accumulo.test.functional.SlowIterator",
@@ -1543,8 +1535,11 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private void verifyListCompactions(String cmd, String expected) throws IOException {
     ts.exec(cmd, true, expected);
     String[] lines = ts.output.get().split("\n");
-    String last = lines[lines.length - 1];
-    String[] parts = last.split("\\|");
+    String compaction = Arrays.stream(lines).filter(line -> line.contains("default_tablet"))
+        .findFirst().orElseThrow();
+    assertTrue(compaction.contains("\\x00"),
+        "Expected tablet to display \\x00 for null byte: " + compaction);
+    String[] parts = compaction.split("\\|");
     assertEquals(13, parts.length);
   }
 
@@ -2078,8 +2073,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void importDirectoryCmdFmt() throws Exception {
     final String table = getUniqueNames(1)[0];
 
-    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + table).toFile();
-    assertTrue(importDir.mkdir());
+    java.nio.file.Path importDir = java.nio.file.Path.of(rootPath).resolve("import_" + table);
+    Files.createDirectories(importDir);
 
     // expect fail - table does not exist.
     ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false,
@@ -2396,6 +2391,38 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(
         results.contains(tableId2 + "     t                    +INF                 ONDEMAND"));
 
+    String filtered = ts.exec("listtablets -np -t " + table1 + " -b h -e t", true);
+    assertTrue(
+        filtered.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertTrue(
+        filtered.contains(tableId1 + "     n                    u                    HOSTED"));
+    assertFalse(filtered.contains(tableId1 + "     -INF                 g"));
+    assertFalse(filtered.contains(tableId1 + "     u                    +INF"));
+
+    filtered = ts.exec("listtablets -np -t " + table1 + " -b n", true);
+    assertFalse(filtered.contains(tableId1 + "     -INF                 g"));
+    assertTrue(
+        filtered.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertTrue(
+        filtered.contains(tableId1 + "     n                    u                    HOSTED"));
+    assertTrue(
+        filtered.contains(tableId1 + "     u                    +INF                 ONDEMAND"));
+
+    filtered = ts.exec("listtablets -np -t " + table1 + " -e n", true);
+    assertTrue(
+        filtered.contains(tableId1 + "     -INF                 g                    HOSTED"));
+    assertTrue(
+        filtered.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertFalse(
+        filtered.contains(tableId1 + "     n                    u                    HOSTED"));
+    assertFalse(filtered.contains(tableId1 + "     u                    +INF"));
+
+    filtered = ts.exec("listtablets -np -t " + table1 + " -b n -be", true);
+    assertFalse(filtered.contains(tableId1 + "     -INF                 g"));
+    assertFalse(filtered.contains(tableId1 + "     g                    n"));
+    assertTrue(filtered.contains(tableId1 + "     n                    u"));
+    assertTrue(filtered.contains(tableId1 + "     u                    +INF"));
+
     // verify the sum of the tablets sizes, number of entries, and dir name match the data in a
     // metadata scan
     String metadata = ts.exec("scan -np -t accumulo.metadata -b " + tableId1 + " -c loc,file");
@@ -2473,5 +2500,100 @@ public class ShellServerIT extends SharedMiniClusterBase {
     byte[] r = new byte[16];
     RANDOM.get().nextBytes(r);
     return new String(Base64.getEncoder().encode(r), UTF_8);
+  }
+
+  @Test
+  public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException,
+      ResourceGroupNotFoundException, InterruptedException {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      ResourceGroupOperations ops = client.resourceGroupOperations();
+
+      String badRG = "test-RG";
+      String goodRG = "testRG";
+      String goodFileRG = "testFileRG";
+      String badFileRG = "testBadFileRG";
+      ResourceGroupId goodRgid = ResourceGroupId.of(goodRG);
+      ResourceGroupId goodFileRgid = ResourceGroupId.of(goodFileRG);
+      ResourceGroupId badFileRgid = ResourceGroupId.of(badFileRG);
+      String propsFile = System.getProperty("user.dir") + "/target/resourceGroupInitPropsFile";
+      java.nio.file.Path propsFilePath = java.nio.file.Path.of(propsFile);
+      try (BufferedWriter writer = Files.newBufferedWriter(propsFilePath, UTF_8)) {
+        writer.write(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey() + "=4\n");
+      }
+
+      String badPropsFile =
+          System.getProperty("user.dir") + "/target/resourceGroupBadInitPropsFile";
+      java.nio.file.Path badPropsFilePath = java.nio.file.Path.of(badPropsFile);
+      try (BufferedWriter writer = Files.newBufferedWriter(badPropsFilePath, UTF_8)) {
+        writer.write(Property.TABLE_BLOOM_ENABLED.getKey() + "=true\n");
+      }
+
+      assertEquals(1, ops.list().size());
+      assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+      final String expectedErrorMsg = "Group name '" + badRG + "' is invalid";
+
+      ts.exec("createresourcegroup " + badRG, false, expectedErrorMsg);
+      ts.exec("createresourcegroup " + goodRG, true);
+      ts.exec("createresourcegroup -f " + propsFilePath.toAbsolutePath() + " " + goodFileRG, true);
+      ts.exec("createresourcegroup -f " + badPropsFilePath.toAbsolutePath() + " " + badFileRG,
+          false);
+
+      // createresourcegroup command above goes to the Manager
+      // ops.list() below uses the clients ZooCache
+      // Wait a bit so that ZooCache updates.
+      Thread.sleep(100);
+
+      assertEquals(4, ops.list().size());
+      assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
+      assertTrue(ops.list().contains(goodRgid));
+      assertTrue(ops.list().contains(goodFileRgid));
+      assertTrue(ops.list().contains(badFileRgid));
+
+      ts.exec("listresourcegroups", true, goodRG);
+
+      ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
+          false, expectedErrorMsg);
+      ts.exec("config -rg " + goodRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
+          true);
+
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(goodRG, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(goodFileRG,
+          1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+      Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(goodRgid), AddressSelector.all(), true).size()
+          == 1);
+      Map<String,String> props = ops.getProperties(goodRgid);
+      assertEquals(1, props.size());
+      assertTrue(props.containsKey(Property.COMPACTION_WARN_TIME.getKey()));
+      assertEquals("3m", props.get(Property.COMPACTION_WARN_TIME.getKey()));
+
+      Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(goodFileRgid), AddressSelector.all(), true)
+          .size() == 1);
+      Map<String,String> fileProps = ops.getProperties(goodFileRgid);
+      assertEquals(1, fileProps.size());
+      assertTrue(fileProps.containsKey(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
+      assertEquals("4", fileProps.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
+
+      ts.exec("deleteresourcegroup " + badRG, false, expectedErrorMsg);
+      ts.exec("deleteresourcegroup " + goodRG, true);
+      ts.exec("deleteresourcegroup " + goodFileRG, true);
+      ts.exec("deleteresourcegroup " + badFileRG, true);
+
+      // deleteresourcegroup command above goes to the Manager
+      // ops.list() below uses the clients ZooCache
+      // Wait a bit so that ZooCache updates.
+      Thread.sleep(100);
+
+      assertEquals(1, ops.list().size());
+      assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+      getCluster().getClusterControl().stopCompactorGroup(goodRG);
+
+    }
+
   }
 }

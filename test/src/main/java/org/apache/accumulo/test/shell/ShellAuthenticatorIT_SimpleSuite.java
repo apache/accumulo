@@ -26,8 +26,8 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.test.shell.ShellIT_SimpleSuite.StringInputStream;
-import org.apache.accumulo.test.shell.ShellIT_SimpleSuite.TestOutputStream;
+import org.apache.accumulo.test.shell.ShellIT.StringInputStream;
+import org.apache.accumulo.test.shell.ShellIT.TestOutputStream;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
@@ -54,8 +54,8 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  public LineReader reader;
-  public Terminal terminal;
+  private LineReader reader;
+  private Terminal terminal;
 
   @BeforeEach
   public void setupShell() throws IOException {

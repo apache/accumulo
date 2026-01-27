@@ -612,11 +612,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   @VisibleForTesting
-  public void resetTabletHostingRequestCount() {
-    tabletHostingRequestCount.set(0);
-  }
-
-  @VisibleForTesting
   public void enableTabletHostingRequests(boolean enabled) {
     HOSTING_ENABLED.set(enabled);
   }
@@ -682,33 +677,29 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
   }
 
-  private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      InvalidTabletHostingRequestException {
+  private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession,
+      CachedTablet before) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
     CachedTablet ptl = parent.findTablet(context, metadataRow, false, LocationNeed.REQUIRED);
 
-    if (ptl != null) {
-      // Only allow a single lookup at time per parent tablet. For example if a tables tablets are
-      // all stored in three metadata tablets, then that table could have up to three concurrent
-      // metadata lookups.
-      Timer timer = Timer.startNew();
-      try (var unused = lookupLocks.lock(ptl.getExtent())) {
-        // See if entry was added to cache by another thread while we were waiting on the lock
-        var cached = findTabletInCache(row);
-        if (cached != null && cached.getCreationTimer().startedAfter(timer)) {
-          // This cache entry was added after we started waiting on the lock so lets use it and not
-          // go to the metadata table. This means another thread was holding the lock and doing
-          // metadata lookups when we requested the lock.
-          return;
-        }
-        // Lookup tablets in metadata table and update cache. Also updating the cache while holding
-        // the lock is important as it ensures other threads that are waiting on the lock will see
-        // what this thread found and may be able to avoid metadata lookups.
-        lookupTablet(context, lcSession, ptl, metadataRow);
+    if (ptl == null) {
+      return;
+    }
+
+    try (var unused = lookupLocks.lock(ptl.getExtent())) {
+      // Now that the lock is acquired, detect if another thread populated cache since the last time
+      // the cache was read. If so then do not need to read from metadata store.
+      CachedTablet after = findTabletInCache(row);
+      if (after != null && after != before && lcSession.checkLock(after) != null) {
+        return;
       }
+      // Lookup tablets in metadata table and update cache. Also updating the cache while holding
+      // the lock is important as it ensures other threads that are waiting on the lock will see
+      // what this thread found and may be able to avoid metadata lookups.
+      lookupTablet(context, lcSession, ptl, metadataRow);
     }
   }
 
@@ -860,7 +851,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
 
       // not in cache OR the cutoff timer was started after when the cached entry timer was started,
       // so obtain info from metadata table
-      tl = lookupTabletLocationAndCheckLock(context, row, lcSession);
+      tl = lookupTabletLocationAndCheckLock(context, row, lcSession, tl);
 
     }
 
@@ -868,9 +859,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private CachedTablet lookupTabletLocationAndCheckLock(ClientContext context, Text row,
-      LockCheckerSession lcSession) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
-    lookupTablet(context, row, lcSession);
+      LockCheckerSession lcSession, CachedTablet before) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
+    lookupTablet(context, row, lcSession, before);
     return lcSession.checkLock(findTabletInCache(row));
   }
 

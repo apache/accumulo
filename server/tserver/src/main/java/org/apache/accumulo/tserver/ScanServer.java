@@ -103,7 +103,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -131,7 +130,6 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -198,7 +196,6 @@ public class ScanServer extends AbstractServer
   private final ServerContext context;
   private final SessionManager sessionManager;
   private final TabletServerResourceManager resourceManager;
-  HostAndPort clientAddress;
 
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
@@ -293,10 +290,9 @@ public class ScanServer extends AbstractServer
   /**
    * Start the thrift service to handle incoming client requests
    *
-   * @return address of this client service
    * @throws UnknownHostException host unknown
    */
-  protected ServerAddress startScanServerClientService() throws UnknownHostException {
+  protected void startScanServerClientService() throws UnknownHostException {
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
@@ -304,21 +300,12 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getHostname(),
-        Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
-        Property.SSERV_THREADCHECK);
-    sp.startThriftServer("Thrift Client Server");
-    setHostname(sp.address);
-    LOG.info("address = {}", sp.address);
-    return sp;
-  }
-
-  public String getClientAddressString() {
-    if (clientAddress == null) {
-      return null;
-    }
-    return clientAddress.getHost() + ":" + clientAddress.getPort();
+    updateThriftServer(() -> {
+      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
+          Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
+          Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
+          Property.SSERV_THREADCHECK);
+    }, true);
   }
 
   /**
@@ -329,7 +316,7 @@ public class ScanServer extends AbstractServer
     try {
 
       final ServiceLockPath zLockPath =
-          context.getServerPaths().createScanServerPath(getResourceGroup(), clientAddress);
+          context.getServerPaths().createScanServerPath(getResourceGroup(), getAdvertiseAddress());
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
@@ -343,7 +330,7 @@ public class ScanServer extends AbstractServer
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_SCAN}) {
           descriptors.addService(new ServiceDescriptor(serverLockUUID, svc,
-              getClientAddressString(), this.getResourceGroup()));
+              getAdvertiseAddress().toString(), this.getResourceGroup()));
         }
 
         if (scanServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -375,10 +362,8 @@ public class ScanServer extends AbstractServer
 
     SecurityUtil.serverLogin(getConfiguration());
 
-    ServerAddress address = null;
     try {
-      address = startScanServerClientService();
-      clientAddress = address.getAddress();
+      startScanServerClientService();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the scan server client service", e1);
     }
@@ -393,7 +378,7 @@ public class ScanServer extends AbstractServer
 
     metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress, getResourceGroup()));
+        getAdvertiseAddress(), getResourceGroup()));
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();
@@ -415,66 +400,51 @@ public class ScanServer extends AbstractServer
           "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
 
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(1000);
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(getContext().rpcCreds());
+      }
+    }
+
+    // Wait for scans to get to zero
+    while (!sessionManager.getActiveScans().isEmpty()) {
+      LOG.debug("Waiting on {} active scans to complete.", sessionManager.getActiveScans().size());
+      UtilWaitThread.sleep(1000);
+    }
+
+    LOG.debug("Stopping Thrift Servers");
+    getThriftServer().stop();
+
     try {
-      while (!isShutdownRequested()) {
-        if (Thread.currentThread().isInterrupted()) {
-          LOG.info("Server process thread has been interrupted, shutting down");
-          break;
-        }
-        try {
-          Thread.sleep(1000);
-          updateIdleStatus(sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0);
-        } catch (InterruptedException e) {
-          LOG.info("Interrupt Exception received, shutting down");
-          gracefulShutdown(getContext().rpcCreds());
-        }
-      }
-    } finally {
-      // Wait for scans to got to zero
-      while (!sessionManager.getActiveScans().isEmpty()) {
-        LOG.debug("Waiting on {} active scans to complete.",
-            sessionManager.getActiveScans().size());
-        UtilWaitThread.sleep(1000);
-      }
+      LOG.info("Removing server scan references");
+      this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
+          serverLockUUID);
+    } catch (Exception e) {
+      LOG.warn("Failed to remove scan server refs from metadata location", e);
+    }
 
-      LOG.debug("Stopping Thrift Servers");
-      address.server.stop();
-
-      try {
-        LOG.info("Removing server scan references");
-        this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
-            serverLockUUID);
-      } catch (Exception e) {
-        LOG.warn("Failed to remove scan server refs from metadata location", e);
+    try {
+      LOG.debug("Closing filesystems");
+      VolumeManager mgr = getContext().getVolumeManager();
+      if (null != mgr) {
+        mgr.close();
       }
+    } catch (IOException e) {
+      LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+    }
 
-      try {
-        LOG.debug("Closing filesystems");
-        VolumeManager mgr = getContext().getVolumeManager();
-        if (null != mgr) {
-          mgr.close();
-        }
-      } catch (IOException e) {
-        LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
-      }
-
-      if (tmCacheExecutor != null) {
-        LOG.debug("Shutting down TabletMetadataCache executor");
-        tmCacheExecutor.shutdownNow();
-      }
-
-      context.getLowMemoryDetector().logGCInfo(getConfiguration());
-      getShutdownComplete().set(true);
-      LOG.info("stop requested. exiting ... ");
-      try {
-        if (null != lock) {
-          lock.unlock();
-        }
-      } catch (Exception e) {
-        LOG.warn("Failed to release scan server lock", e);
-      }
-
+    if (tmCacheExecutor != null) {
+      LOG.debug("Shutting down TabletMetadataCache executor");
+      tmCacheExecutor.shutdownNow();
     }
   }
 
@@ -642,7 +612,7 @@ public class ScanServer extends AbstractServer
       List<ScanServerRefTabletFile> refs = new ArrayList<>();
       Set<KeyExtent> tabletsToCheck = new HashSet<>();
 
-      String serverAddress = clientAddress.toString();
+      String serverAddress = getAdvertiseAddress().toString();
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
@@ -809,11 +779,9 @@ public class ScanServer extends AbstractServer
   }
 
   private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
-    if (session instanceof SingleScanSession) {
-      var sss = (SingleScanSession) session;
+    if (session instanceof SingleScanSession sss) {
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
-    } else if (session instanceof MultiScanSession) {
-      var mss = (MultiScanSession) session;
+    } else if (session instanceof MultiScanSession mss) {
       return mss.exents.stream().flatMap(e -> {
         var tablet = mss.getTabletResolver().getTablet(e);
         if (tablet == null) {
@@ -836,7 +804,7 @@ public class ScanServer extends AbstractServer
 
       List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>();
       List<StoredTabletFile> confirmed = new ArrayList<>();
-      String serverAddress = clientAddress.toString();
+      String serverAddress = getAdvertiseAddress().toString();
 
       reservationsWriteLock.lock();
       try {
@@ -1151,9 +1119,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
-      tserver.runServer();
-    }
+    AbstractServer.startServer(new ScanServer(new ConfigOpts(), args), LOG);
   }
 
 }
