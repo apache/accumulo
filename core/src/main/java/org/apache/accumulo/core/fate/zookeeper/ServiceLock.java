@@ -755,7 +755,6 @@ public class ServiceLock implements Watcher {
     }
   }
 
-  @Deprecated(since = "2.1.5")
   public static void deleteScanServerLocks(ZooReaderWriter zk, String zPath,
       Predicate<HostAndPort> hostPortPredicate, Predicate<String> groupPredicate,
       Consumer<String> messageOutput, Boolean dryRun) throws KeeperException, InterruptedException {
