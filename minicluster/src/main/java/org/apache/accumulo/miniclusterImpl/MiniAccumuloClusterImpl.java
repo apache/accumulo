@@ -789,14 +789,49 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.managerProcess));
-    result.put(ServerType.TABLET_SERVER,
-        references(control.tabletServerProcesses.toArray(new Process[0])));
-    if (control.zooKeeperProcess != null) {
-      result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
-    }
-    if (control.gcProcess != null) {
-      result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
+
+    for (ServerType type : ServerType.values()) {
+      switch (type) {
+        case COMPACTION_COORDINATOR:
+          if (control.coordinatorProcess != null) {
+            result.put(type, references(control.coordinatorProcess));
+          }
+          break;
+        case COMPACTOR:
+          result.put(type, references(control.compactorProcesses.toArray(new Process[0])));
+          break;
+        case GARBAGE_COLLECTOR:
+          if (control.gcProcess != null) {
+            result.put(type, references(control.gcProcess));
+          }
+          break;
+        case MASTER:
+        case MANAGER:
+          if (control.managerProcess != null) {
+            result.put(type, references(control.managerProcess));
+          }
+          break;
+        case MONITOR:
+          if (control.monitor != null) {
+            result.put(type, references(control.monitor));
+          }
+          break;
+        case SCAN_SERVER:
+          result.put(type, references(control.scanServerProcesses.toArray(new Process[0])));
+          break;
+        case TABLET_SERVER:
+          result.put(type, references(control.tabletServerProcesses.toArray(new Process[0])));
+          break;
+        case ZOOKEEPER:
+          if (control.zooKeeperProcess != null) {
+            result.put(type, references(control.zooKeeperProcess));
+          }
+          break;
+        case TRACER:
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled server type : " + type);
+      }
     }
     return result;
   }
