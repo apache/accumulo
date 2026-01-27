@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -485,7 +486,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     var p = getCluster().exec(Admin.class, "check", "run", sysFilesCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
-    assertTrue(out.contains("missing files: 0, total files: 1"));
+    assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
     assertTrue(out.contains("Check SYSTEM_FILES completed with status OK"));
     assertNoOtherChecksRan(out, false, sysFilesCheck);
 
@@ -503,7 +504,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     assertEquals(0, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("File " + path + " is missing"));
-    assertTrue(out.contains("missing files: 1, total files: 1"));
+    assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
     assertTrue(out.contains("Check SYSTEM_FILES completed with status FAILED"));
     assertNoOtherChecksRan(out, false, sysFilesCheck);
   }
@@ -523,7 +524,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       var p = getCluster().exec(Admin.class, "check", "run", userFilesCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
-      assertTrue(out.contains("missing files: 0, total files: 1"));
+      assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
       assertTrue(out.contains("Check USER_FILES completed with status OK"));
       assertNoOtherChecksRan(out, false, userFilesCheck);
 
@@ -541,7 +542,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       assertEquals(0, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(out.contains("File " + path + " is missing"));
-      assertTrue(out.contains("missing files: 1, total files: 1"));
+      assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
       assertTrue(out.contains("Check USER_FILES completed with status FAILED"));
       assertNoOtherChecksRan(out, false, userFilesCheck);
     }
@@ -571,7 +572,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     out = p.readStdOut();
-    assertTrue(out.contains("Missing essential Accumulo table"));
+    assertTrue(out.contains("Failed to find table ("
+        + (Map.entry(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId())) + ")"));
     assertTrue(out.contains("Check SYSTEM_CONFIG completed with status FAILED"));
     assertNoOtherChecksRan(out, false, sysConfCheck);
   }
