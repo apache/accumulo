@@ -919,23 +919,44 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.managerProcess));
-    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.values().stream()
-        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    result.put(ServerType.COMPACTOR, references(control.compactorProcesses.values().stream()
-        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    if (control.scanServerProcesses != null) {
-      result.put(ServerType.SCAN_SERVER, references(control.scanServerProcesses.values().stream()
-          .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    }
-    if (control.zooKeeperProcess != null) {
-      result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
-    }
-    if (control.gcProcess != null) {
-      result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
-    }
-    if (control.monitor != null) {
-      result.put(ServerType.MONITOR, references(control.monitor));
+
+    for (ServerType type : ServerType.values()) {
+      switch (type) {
+        case COMPACTOR:
+          result.put(type, references(control.compactorProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case GARBAGE_COLLECTOR:
+          if (control.gcProcess != null) {
+            result.put(type, references(control.gcProcess));
+          }
+          break;
+        case MANAGER:
+          if (control.managerProcess != null) {
+            result.put(type, references(control.managerProcess));
+          }
+          break;
+        case MONITOR:
+          if (control.monitor != null) {
+            result.put(type, references(control.monitor));
+          }
+          break;
+        case SCAN_SERVER:
+          result.put(type, references(control.scanServerProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case TABLET_SERVER:
+          result.put(type, references(control.tabletServerProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case ZOOKEEPER:
+          if (control.zooKeeperProcess != null) {
+            result.put(type, references(control.zooKeeperProcess));
+          }
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled server type : " + type);
+      }
     }
     return result;
   }
