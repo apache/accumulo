@@ -19,15 +19,11 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -109,8 +105,8 @@ public class AdminTest {
   @Test
   public void testSserverGroupFilterUsesLockData() throws Exception {
 
-    ZooReaderWriter zoo = EasyMock.createNiceMock(ZooReaderWriter.class);
-    ZooKeeper zk = EasyMock.createNiceMock(ZooKeeper.class);
+    ZooReaderWriter zoo = EasyMock.createMock(ZooReaderWriter.class);
+    ZooKeeper zk = EasyMock.createMock(ZooKeeper.class);
 
     String basePath = "/accumulo/iid/sservers";
     String hostDefault = "host1:10000";
@@ -128,31 +124,13 @@ public class AdminTest {
     EasyMock.expect(zk.getData(basePath + "/" + hostOther + "/" + zlock2, false, null))
         .andReturn((UUID.randomUUID().toString() + ",rg1").getBytes(UTF_8));
 
-    AtomicBoolean deletedDefault = new AtomicBoolean(false);
-    AtomicBoolean deletedOther = new AtomicBoolean(false);
-
     zoo.recursiveDelete(basePath + "/" + hostDefault, NodeMissingPolicy.SKIP);
-    EasyMock.expectLastCall().andStubAnswer(() -> {
-      deletedDefault.set(true);
-      return null;
-    });
-
-    zoo.recursiveDelete(basePath + "/" + hostOther, NodeMissingPolicy.SKIP);
-    EasyMock.expectLastCall().andStubAnswer(() -> {
-      deletedOther.set(true);
-      return null;
-    });
+    EasyMock.expectLastCall();
 
     EasyMock.replay(zoo, zk);
 
     ZooZap.Opts opts = new ZooZap.Opts();
     ZooZap.removeScanServerGroupLocks(zoo, basePath, hp -> true, "default"::equals, opts);
-    assertAll(() -> {
-      assertTrue(deletedDefault.get(),
-          "Expected scan server lock for group 'default' to be deleted, but it was not.");
-      assertFalse(deletedOther.get(),
-          "Expected scan server lock for group 'rg1' to be preserved, but it was deleted.");
-    });
 
     EasyMock.verify(zoo, zk);
 
@@ -161,55 +139,28 @@ public class AdminTest {
   /**
    * SServer cleanup without group filter should delete all host nodes.
    */
-  @SuppressWarnings("deprecation")
   @Test
   public void testSserverDeleteAllNoGroupFilter() throws Exception {
-    ZooReaderWriter zoo = EasyMock.createNiceMock(ZooReaderWriter.class);
-    ZooKeeper zk = EasyMock.createNiceMock(ZooKeeper.class);
+    ZooReaderWriter zoo = EasyMock.createMock(ZooReaderWriter.class);
 
     String basePath = "/accumulo/iid/sservers";
     String host1 = "host1:10000";
     String host2 = "host2:10001";
-    String zlock1 = "zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001";
-    String zlock2 = "zlock#00000000-0000-0000-0000-bbbbbbbbbbbb#0000000001";
 
     EasyMock.expect(zoo.exists(basePath)).andReturn(true);
     EasyMock.expect(zoo.getChildren(basePath)).andReturn(List.of(host1, host2));
-    EasyMock.expect(zoo.getZooKeeper()).andReturn(zk);
-    EasyMock.expect(zk.getChildren(basePath + "/" + host1, null)).andReturn(List.of(zlock1));
-    EasyMock.expect(zk.getData(basePath + "/" + host1 + "/" + zlock1, false, null))
-        .andReturn((UUID.randomUUID().toString() + ",default").getBytes(UTF_8));
-    EasyMock.expect(zk.getChildren(basePath + "/" + host2, null)).andReturn(List.of(zlock2));
-    EasyMock.expect(zk.getData(basePath + "/" + host2 + "/" + zlock2, false, null))
-        .andReturn((UUID.randomUUID().toString() + ",rg1").getBytes(UTF_8));
-
-    AtomicBoolean deletedHost1 = new AtomicBoolean(false);
-    AtomicBoolean deletedHost2 = new AtomicBoolean(false);
 
     zoo.recursiveDelete(basePath + "/" + host1, NodeMissingPolicy.SKIP);
-    EasyMock.expectLastCall().andStubAnswer(() -> {
-      deletedHost1.set(true);
-      return null;
-    });
+    EasyMock.expectLastCall();
 
     zoo.recursiveDelete(basePath + "/" + host2, NodeMissingPolicy.SKIP);
-    EasyMock.expectLastCall().andStubAnswer(() -> {
-      deletedHost2.set(true);
-      return null;
-    });
+    EasyMock.expectLastCall();
 
-    EasyMock.replay(zoo, zk);
+    EasyMock.replay(zoo);
 
     ZooZap.Opts opts = new ZooZap.Opts();
-    ZooZap.removeScanServerGroupLocks(zoo, basePath, hp -> true, g -> true, opts);
+    ZooZap.removeLocks(zoo, basePath, hp -> true, opts);
 
-    assertAll(() -> {
-      assertTrue(deletedHost1.get(),
-          "Expected scan server lock for host1 to be deleted when no group filter is set.");
-      assertTrue(deletedHost2.get(),
-          "Expected scan server lock for host2 to be deleted when no group filter is set.");
-    });
-
-    EasyMock.verify(zoo, zk);
+    EasyMock.verify(zoo);
   }
 }
