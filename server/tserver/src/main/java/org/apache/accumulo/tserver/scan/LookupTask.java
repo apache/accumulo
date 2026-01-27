@@ -59,6 +59,17 @@ public class LookupTask extends ScanTask<MultiScanResult> {
     this.scanID = scanID;
   }
 
+  private void recordException(MultiScanSession scanSession) {
+    if (scanSession != null && server.getScanMetrics() != null) {
+      String executorName = getExecutorName(scanSession);
+      server.getScanMetrics().incrementExecutorExceptions(executorName);
+    }
+  }
+
+  private String getExecutorName(MultiScanSession scanSession) {
+    return scanSession.scanParams.getScanDispatch().getExecutorName();
+  }
+
   @Override
   public void run() {
     MultiScanSession session = (MultiScanSession) server.getSession(scanID);
@@ -179,9 +190,11 @@ public class LookupTask extends ScanTask<MultiScanResult> {
         addResult(iie);
       }
     } catch (SampleNotPresentException e) {
+      recordException(session);
       addResult(e);
     } catch (Exception e) {
       log.warn("exception while doing multi-scan ", e);
+      recordException(session);
       addResult(e);
     } finally {
       transitionFromRunning();
