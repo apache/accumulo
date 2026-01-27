@@ -62,7 +62,7 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   public static final ServerProcessServiceThriftClient SERVER_PROCESS =
       new ServerProcessServiceThriftClient("process");
 
-  protected static final ThriftClientTypes<FateWorkerService.Client> FATE_WORKER =
+  public static final ThriftClientTypes<FateWorkerService.Client> FATE_WORKER =
       new FateWorkerServiceThriftClient("fateworker");
 
   /**

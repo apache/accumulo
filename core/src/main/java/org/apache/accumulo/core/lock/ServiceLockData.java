@@ -46,6 +46,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     COORDINATOR,
     COMPACTOR,
     FATE,
+    FATE_WORKER,
     GC,
     MANAGER,
     NONE,

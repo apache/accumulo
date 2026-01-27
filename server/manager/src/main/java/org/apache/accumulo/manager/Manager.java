@@ -1187,7 +1187,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     UUID uuid = sld.getServerUUID(ThriftService.NONE);
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE}) {
+        ThriftService.FATE, ThriftService.FATE_WORKER}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
           this.getResourceGroup()));
     }

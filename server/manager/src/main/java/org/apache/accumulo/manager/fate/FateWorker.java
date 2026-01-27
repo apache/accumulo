@@ -64,25 +64,25 @@ public class FateWorker implements FateWorkerService.Iface {
   }
 
   @Override
-  public boolean setPartitions(TInfo tinfo, TCredentials credentials, List<TFatePartition> current,
+  public boolean setPartitions(TInfo tinfo, TCredentials credentials, List<TFatePartition> expected,
       List<TFatePartition> desired) throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    var currentSet = current.stream().map(FatePartition::from).collect(Collectors.toSet());
+    var expectedSet = expected.stream().map(FatePartition::from).collect(Collectors.toSet());
     synchronized (currentPartitions) {
-      if (currentPartitions.equals(currentSet)) {
+      if (currentPartitions.equals(expectedSet)) {
         currentPartitions.clear();
         desired.stream().map(FatePartition::from).forEach(currentPartitions::add);
-        log.info("Changed partitions from {} to {}", currentSet, currentPartitions);
+        log.info("Changed partitions from {} to {}", expectedSet, currentPartitions);
+        return true;
       } else {
-        log.info("Did not change partitions to {} because {} != {}", desired, currentSet,
+        log.info("Did not change partitions to {} because {} != {}", desired, expectedSet,
             currentPartitions);
+        return false;
       }
     }
-
-    return false;
   }
 }

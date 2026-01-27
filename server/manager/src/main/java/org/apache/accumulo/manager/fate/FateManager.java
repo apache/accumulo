@@ -18,20 +18,35 @@
  */
 package org.apache.accumulo.manager.fate;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.accumulo.core.fate.thrift.TFatePartition;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.util.Sets;
 
 import com.google.common.net.HostAndPort;
+import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 
 public class FateManager {
 
-  record FatePartition(FateId start, FateId end) {
+    record FatePartition(FateId start, FateId end) {
 
     public TFatePartition toThrift() {
       return new TFatePartition(start.canonical(), end.canonical());
@@ -42,7 +57,13 @@ public class FateManager {
     }
   }
 
-  public void managerWorkers() throws InterruptedException {
+  private final ServerContext context;
+
+  public FateManager(ServerContext context) {
+    this.context = context;
+  }
+
+  public void managerWorkers() throws Exception {
     while (true) {
       // TODO make configurable
       Thread.sleep(10_000);
@@ -161,15 +182,43 @@ public class FateManager {
   }
 
   private Set<FatePartition> getDesiredPartitions() {
-    throw new UnsupportedOperationException();
+
+    HashSet<FatePartition> desired = new HashSet<>();
+    // TODO created based on the number of available servers
+    for(long i = 0; i<=15; i++){
+      UUID start = new UUID((i<<60) , -0);
+      UUID stop = new UUID((i<<60) | (-1L>>>4), -1);
+      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, start), FateId.from(FateInstanceType.USER, stop)));
+    }
+
+    return desired;
   }
 
-  private Map<HostAndPort,Set<FatePartition>> getCurrentAssignments() {
-    throw new UnsupportedOperationException();
-  }
+  private Map<HostAndPort,Set<FatePartition>> getCurrentAssignments() throws InterruptedException, KeeperException, TException {
+    ZooReaderWriter zk = context.getZooSession().asReaderWriter();
+    var managerPath = context.getServerPaths().createManagerPath();
 
-  // TODO this will not need a main eventually, will be run by the manager
-  public static void main(String[] args) {
+    var children = ServiceLock.validateAndSort(managerPath, zk.getChildren(managerPath.toString()));
 
+    List<ServiceLockData> locksData = new ArrayList<>(children.size());
+
+    for(var child : children){
+      ServiceLockData.parse(zk.getData(managerPath +"/"+child)).ifPresent(locksData::add);
+    }
+
+    Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
+
+    for(var lockData : locksData) {
+      var address = lockData.getAddress(ServiceLockData.ThriftService.FATE_WORKER);
+
+      FateWorkerService.Client client =
+              ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
+
+      var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());
+      var partitions = tparitions.stream().map(FatePartition::from).collect(Collectors.toSet());
+      currentAssignments.put(address, partitions);
+    }
+
+    return currentAssignments;
   }
 }

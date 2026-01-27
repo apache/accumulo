@@ -39,7 +39,7 @@ service FateWorkerService {
   bool setPartitions(
     1:client.TInfo tinfo,
     2:security.TCredentials credentials,
-    3:list<TFatePartition> current,
+    3:list<TFatePartition> expected,
     4:list<TFatePartition> desired
    ) throws (
      1:client.ThriftSecurityException sec
