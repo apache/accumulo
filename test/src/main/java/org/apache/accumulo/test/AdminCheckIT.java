@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -48,11 +49,13 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -574,6 +577,54 @@ public class AdminCheckIT extends ConfigurableMacBase {
     out = p.readStdOut();
     assertTrue(out.contains("Failed to find table ("
         + (Map.entry(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId())) + ")"));
+    assertTrue(out.contains("Check SYSTEM_CONFIG completed with status FAILED"));
+    assertNoOtherChecksRan(out, false, sysConfCheck);
+  }
+
+  @Test
+  public void testSystemConfigCheck2() throws Exception {
+    // test a failing case
+    // delete a WAL in HDFS that is referenced in ZK
+
+    Admin.CheckCommand.Check sysConfCheck = Admin.CheckCommand.Check.SYSTEM_CONFIG;
+    var context = getCluster().getServerContext();
+    var zrw = context.getZooSession().asReaderWriter();
+    var rootWalsDir = WalStateManager.ZWALS;
+
+    // Need to ensure some form of mutation happens to a table so at least one WAL exists for us
+    // to delete. This call creates some data in the metadata table
+    getCluster().getServerContext().tableOperations().create(getUniqueNames(1)[0]);
+
+    // need to find a TServer with a WAL, so we can delete the WAL from DFS
+    String fullWalPathZk = null;
+    TServerInstance tServerInstance = null;
+    var tserversIter = zrw.getChildren(rootWalsDir).stream().iterator();
+    outer: while (tserversIter.hasNext()) {
+      var tserverInstanceStr = tserversIter.next();
+      var walPaths = zrw.getChildren(rootWalsDir + "/" + tserverInstanceStr);
+      if (!walPaths.isEmpty()) {
+        var walPathsIter = walPaths.iterator();
+        while (walPathsIter.hasNext()) {
+          var walPath = walPathsIter.next();
+          if (zrw.getData(rootWalsDir + "/" + tserverInstanceStr + "/" + walPath) != null) {
+            fullWalPathZk = rootWalsDir + "/" + tserverInstanceStr + "/" + walPath;
+            tServerInstance = new TServerInstance(tserverInstanceStr);
+            break outer;
+          }
+        }
+      }
+    }
+    assertNotNull(fullWalPathZk, "Could not find a WAL in ZK");
+    var wal = WalStateManager.parse(zrw.getData(fullWalPathZk));
+
+    // delete from HDFS
+    context.getVolumeManager().delete(wal.getSecond());
+
+    var p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    var out = p.readStdOut();
+    assertTrue(out.contains(
+        "WAL metadata for tserver " + tServerInstance + " references a WAL that does not exist"));
     assertTrue(out.contains("Check SYSTEM_CONFIG completed with status FAILED"));
     assertNoOtherChecksRan(out, false, sysConfCheck);
   }

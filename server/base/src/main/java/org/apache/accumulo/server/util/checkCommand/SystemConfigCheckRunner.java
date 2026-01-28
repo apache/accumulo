@@ -19,16 +19,23 @@
 package org.apache.accumulo.server.util.checkCommand;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.hadoop.fs.Path;
+
+import com.google.common.collect.Sets;
 
 public class SystemConfigCheckRunner implements CheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.SYSTEM_CONFIG;
@@ -155,40 +162,71 @@ public class SystemConfigCheckRunner implements CheckRunner {
 
   private static Admin.CheckCommand.CheckStatus checkZKWALsMetadata(ServerContext context,
       Admin.CheckCommand.CheckStatus status) throws Exception {
-    final var zs = context.getZooSession();
-    final var zrw = zs.asReaderWriter();
-    final var rootWalsDir = WalStateManager.ZWALS;
+    final var zrw = context.getZooSession().asReaderWriter();
 
     log.trace("Checking that WAL metadata in ZooKeeper is valid...");
 
-    // each child node of the root wals dir should be a TServerInstance.toString()
-    var tserverInstancesAtWals = zrw.getChildren(rootWalsDir);
-    for (var tserverInstanceAtWals : tserverInstancesAtWals) {
-      final TServerInstance tsi = new TServerInstance(tserverInstanceAtWals);
-      final var tserverPath = rootWalsDir + "/" + tserverInstanceAtWals;
-      // each child node of the tserver should be WAL metadata
-      final var wals = zrw.getChildren(tserverPath);
-      if (wals.isEmpty()) {
-        log.warn("No WAL metadata found for tserver {}. If it is expected that mutations have "
-            + "occurred on the tserver, this is a problem. Otherwise, this is normal", tsi);
-      }
-      for (var wal : wals) {
-        // should be able to parse the WAL metadata
-        final var fullWalPath = tserverPath + "/" + wal;
-        log.trace("Attempting to parse WAL metadata at {}", fullWalPath);
-        var parseRes = WalStateManager.parse(zrw.getData(fullWalPath));
-        log.trace("Successfully parsed WAL metadata at {} result {}", fullWalPath, parseRes);
-        log.trace("Checking if the WAL path {} found in the metadata exists in HDFS...",
-            parseRes.getSecond());
-        if (!context.getVolumeManager().exists(parseRes.getSecond())) {
-          log.warn("WAL metadata for tserver {} references a WAL that does not exist",
-              tserverInstanceAtWals);
-          status = Admin.CheckCommand.CheckStatus.FAILED;
+    var walsBefore = gatherWalsFromZK(zrw);
+
+    // gather any wals present in ZooKeeper but missing in DFS
+    Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>> missingWals = new HashMap<>();
+    for (var instanceAndWals : walsBefore.entrySet()) {
+      for (var wal : instanceAndWals.getValue()) {
+        if (!context.getVolumeManager().exists(wal.getSecond())) {
+          missingWals.computeIfAbsent(instanceAndWals.getKey(), k -> new HashSet<>()).add(wal);
         }
       }
     }
 
+    var walsAfter = gatherWalsFromZK(zrw);
+
+    for (var instanceAndMissingWals : missingWals.entrySet()) {
+      // if the TServer existed before AND after the DFS check AND any missing WAL is still in use
+      // after the DFS check
+      if (walsBefore.get(instanceAndMissingWals.getKey()) != null
+          && walsAfter.get(instanceAndMissingWals.getKey()) != null
+          && !Sets.intersection(instanceAndMissingWals.getValue(),
+              walsAfter.get(instanceAndMissingWals.getKey())).isEmpty()) {
+        log.warn("WAL metadata for tserver {} references a WAL that does not exist",
+            instanceAndMissingWals.getKey());
+        status = Admin.CheckCommand.CheckStatus.FAILED;
+      }
+    }
+
     return status;
+  }
+
+  private static Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>>
+      gatherWalsFromZK(ZooReaderWriter zrw) throws Exception {
+    final var rootWalsDir = WalStateManager.ZWALS;
+    Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>> wals = new HashMap<>();
+    // each child node of the root wals dir should be a TServerInstance.toString()
+    var tserverInstances = zrw.getChildren(rootWalsDir);
+    for (var tsiStr : tserverInstances) {
+      final TServerInstance tsi = new TServerInstance(tsiStr);
+      wals.put(tsi, new HashSet<>());
+      final var tserverPath = rootWalsDir + "/" + tsiStr;
+
+      // each child node of the tserver should be WAL metadata
+      final var walsPaths = zrw.getChildren(tserverPath);
+      if (walsPaths.isEmpty()) {
+        log.warn("No WAL metadata found for tserver {}. If it is expected that mutations have "
+            + "occurred on the tserver, this is a problem. Otherwise, this is normal", tsi);
+      }
+
+      for (var walPath : walsPaths) {
+        // should be able to parse the WAL metadata
+        final var fullWalPath = tserverPath + "/" + walPath;
+        log.trace("Attempting to parse WAL metadata at {}", fullWalPath);
+        var parseRes = WalStateManager.parse(zrw.getData(fullWalPath));
+        log.trace("Successfully parsed WAL metadata at {} result {}", fullWalPath, parseRes);
+        if (parseRes.getFirst() == WalStateManager.WalState.OPEN
+            || parseRes.getFirst() == WalStateManager.WalState.CLOSED) {
+          wals.get(tsi).add(parseRes);
+        }
+      }
+    }
+    return wals;
   }
 
   @Override
