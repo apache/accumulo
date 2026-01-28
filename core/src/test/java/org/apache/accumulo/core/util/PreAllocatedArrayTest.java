@@ -50,7 +50,7 @@ public class PreAllocatedArrayTest {
 
   @Test
   public void testPreAllocatedArray_Fail() {
-    assertThrows(IllegalArgumentException.class, () -> new PreAllocatedArray<String>(-5));
+    assertThrows(NegativeArraySizeException.class, () -> new PreAllocatedArray<String>(-5));
   }
 
   /**
