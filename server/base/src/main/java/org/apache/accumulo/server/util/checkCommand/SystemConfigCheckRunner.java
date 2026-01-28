@@ -19,15 +19,12 @@
 package org.apache.accumulo.server.util.checkCommand;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -106,7 +103,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
             status = Admin.CheckCommand.CheckStatus.FAILED;
           } else {
             // no exception and >= 1 server found
-            log.trace("Verified ZooKeeper lock(s) for {}", servers);
+            log.trace("Verified ZooKeeper lock(s) for {} servers", servers.size());
           }
           break;
         case SCAN_SERVER:
@@ -115,7 +112,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
             log.debug("No {} appear to be running. This may or may not be expected.", serverType);
           } else {
             // no exception and >= 1 server found
-            log.trace("Verified ZooKeeper lock(s) for {}", servers);
+            log.trace("Verified ZooKeeper lock(s) for {} servers", servers.size());
           }
           break;
         default:
@@ -161,8 +158,6 @@ public class SystemConfigCheckRunner implements CheckRunner {
     final var zs = context.getZooSession();
     final var zrw = zs.asReaderWriter();
     final var rootWalsDir = WalStateManager.ZWALS;
-    final Set<TServerInstance> tserverInstances = TabletMetadata.getLiveTServers(context);
-    final Set<TServerInstance> seenTServerInstancesAtWals = new HashSet<>();
 
     log.trace("Checking that WAL metadata in ZooKeeper is valid...");
 
@@ -170,12 +165,14 @@ public class SystemConfigCheckRunner implements CheckRunner {
     var tserverInstancesAtWals = zrw.getChildren(rootWalsDir);
     for (var tserverInstanceAtWals : tserverInstancesAtWals) {
       final TServerInstance tsi = new TServerInstance(tserverInstanceAtWals);
-      seenTServerInstancesAtWals.add(tsi);
       final var tserverPath = rootWalsDir + "/" + tserverInstanceAtWals;
       // each child node of the tserver should be WAL metadata
       final var wals = zrw.getChildren(tserverPath);
       if (wals.isEmpty()) {
-        log.debug("No WAL metadata found for tserver {}", tsi);
+        // Don't fail as this is possible if the TServer only hosts tablets that have never been
+        // written to. Log a warning as this could be an issue though
+        log.warn("No WAL metadata found for tserver {}. If it is expected that mutations have "
+            + "occurred on the tserver, this is a problem. Otherwise, this is normal", tsi);
       }
       for (var wal : wals) {
         // should be able to parse the WAL metadata
@@ -191,12 +188,6 @@ public class SystemConfigCheckRunner implements CheckRunner {
           status = Admin.CheckCommand.CheckStatus.FAILED;
         }
       }
-    }
-    if (!tserverInstances.equals(seenTServerInstancesAtWals)) {
-      log.warn(
-          "Expected WAL metadata in ZooKeeper for all tservers. tservers={} tservers seen storing WAL metadata={}",
-          tserverInstances, seenTServerInstancesAtWals);
-      status = Admin.CheckCommand.CheckStatus.FAILED;
     }
 
     return status;

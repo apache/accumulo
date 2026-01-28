@@ -46,8 +46,7 @@ public class CheckAccumuloProperties implements KeywordExecutable {
     return "Checks the provided Accumulo configuration file for errors. "
         + "This only checks the contents of the file and not any running Accumulo system, "
         + "so it can be used prior to init, but only performs a subset of the checks done by "
-        + "the admin " + Admin.CheckCommand.class.getSimpleName() + " check "
-        + Admin.CheckCommand.Check.SERVER_CONFIG;
+        + "'admin check run " + Admin.CheckCommand.Check.SERVER_CONFIG + "'";
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
