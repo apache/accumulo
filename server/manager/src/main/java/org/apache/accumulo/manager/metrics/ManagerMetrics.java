@@ -55,7 +55,7 @@ public class ManagerMetrics implements MetricsProducer {
   private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
   private final AtomicLong userTGWErrorsGauge = new AtomicLong(0);
   private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
-  private final AtomicInteger managerGoalState = new AtomicInteger(-1);
+  private final AtomicInteger goalState = new AtomicInteger(-1);
 
   public void updateManagerGoalState(ManagerGoalState goal) {
     int newValue = switch (goal) {
@@ -63,7 +63,7 @@ public class ManagerMetrics implements MetricsProducer {
       case SAFE_MODE -> 1;
       case NORMAL -> 2;
     };
-    managerGoalState.set(newValue);
+    goalState.set(newValue);
   }
 
   public void configureFateMetrics(final AccumuloConfiguration conf, final Manager manager,
