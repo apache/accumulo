@@ -169,8 +169,6 @@ public class SystemConfigCheckRunner implements CheckRunner {
       // each child node of the tserver should be WAL metadata
       final var wals = zrw.getChildren(tserverPath);
       if (wals.isEmpty()) {
-        // Don't fail as this is possible if the TServer only hosts tablets that have never been
-        // written to. Log a warning as this could be an issue though
         log.warn("No WAL metadata found for tserver {}. If it is expected that mutations have "
             + "occurred on the tserver, this is a problem. Otherwise, this is normal", tsi);
       }
