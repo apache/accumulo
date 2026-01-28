@@ -18,30 +18,27 @@
  */
 package org.apache.accumulo.core.util;
 
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
-
-import com.google.common.collect.Iterators;
+import java.util.List;
 
 /**
- * An {@link ArrayList} implementation that represents a type-safe pre-allocated array. This should
- * be used exactly like an array, but helps avoid type-safety issues when mixing arrays with
- * generics. The iterator is unmodifiable.
+ * A {@link List} implementation that represents a type-safe pre-allocated array. This should be
+ * used exactly like an array, but helps avoid type-safety issues when mixing arrays with generics.
+ * The iterator is unmodifiable.
  */
-public class PreAllocatedArray<T> implements Iterable<T> {
+public final class PreAllocatedArray<T> implements Iterable<T> {
 
-  private final ArrayList<T> internal;
+  private final List<T> internal;
   public final int length;
 
   /**
    * Creates an instance of the given capacity, with all elements initialized to null
    */
+  @SuppressWarnings("unchecked")
   public PreAllocatedArray(final int capacity) {
+    internal = Arrays.asList((T[]) new Object[capacity]);
     length = capacity;
-    internal = new ArrayList<>(capacity);
-    for (int i = 0; i < capacity; i++) {
-      internal.add(null);
-    }
   }
 
   /**
@@ -60,6 +57,6 @@ public class PreAllocatedArray<T> implements Iterable<T> {
 
   @Override
   public Iterator<T> iterator() {
-    return Iterators.unmodifiableIterator(internal.iterator());
+    return internal.iterator();
   }
 }
