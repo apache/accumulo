@@ -356,7 +356,7 @@ public class LogSorter implements MetricsProducer {
       recoveriesInProgress.set(currentWork.size());
       if (recoveriesInProgress.get() == 0) {
         recoveryRuntime.set(0);
-        recoveryAvgProgress.set(0);
+        recoveryAvgProgress.set(0.0D);
       } else {
         long runtime = 0;
         long progress = 0;

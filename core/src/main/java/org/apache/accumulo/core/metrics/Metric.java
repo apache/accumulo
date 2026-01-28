@@ -312,7 +312,7 @@ public enum Metric {
       "The time (in milliseconds) of the longest running recovery.",
       MetricDocSection.GENERAL_SERVER),
   RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
-      "The averge progress of the in progress recoveries.", MetricDocSection.GENERAL_SERVER);
+      "The average percentage (0.0 - 99.9) of the in progress recoveries.", MetricDocSection.GENERAL_SERVER);
 
   private final String name;
   private final MetricType type;
