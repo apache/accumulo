@@ -304,12 +304,9 @@ public enum Metric {
   MANAGER_USER_TGW_ERRORS("accumulo.tabletmgmt.user.errors", MetricType.GAUGE,
       "Error count encountered by the TabletGroupWatcher for the USER data level.",
       MetricDocSection.MANAGER),
-  MANAGER_GOAL_CLEAN_STOP("accumulo.manager.goal.clean.stop", MetricType.GAUGE,
-      "Value of 1 indicates clean stop goal, 0 otherwise", MetricDocSection.MANAGER),
-  MANAGER_GOAL_NORMAL_MODE("accumulo.manager.goal.normal", MetricType.GAUGE,
-      "Value of 1 indicates normal mode goal, 0 otherwise", MetricDocSection.MANAGER),
-  MANAGER_GOAL_SAFE_MODE("accumulo.manager.goal.safe.mode", MetricType.GAUGE,
-      "Value of 1 indicates safe mode goal, 0 otherwise", MetricDocSection.MANAGER);
+  MANAGER_GOAL_STATE("accumulo.manager.goal.state", MetricType.GAUGE,
+      "Manager goal state: -1=unknown, 0=CLEAN_STOP, 1=SAFE_MODE, 2=NORMAL.",
+      MetricDocSection.MANAGER);
 
   private final String name;
   private final MetricType type;
