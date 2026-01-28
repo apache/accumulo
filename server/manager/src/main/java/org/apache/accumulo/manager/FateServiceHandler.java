@@ -44,6 +44,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -63,6 +64,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.IteratorProperty;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -90,6 +93,7 @@ import org.apache.accumulo.manager.tableOps.rename.RenameTable;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -216,16 +220,12 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
         }
 
+        var namespaceIterProps = IteratorConfigUtil
+            .gatherIteratorProps(manager.getContext().getNamespaceConfiguration(namespaceId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
         for (Map.Entry<String,String> entry : options.entrySet()) {
-          if (!Property.isValidProperty(entry.getKey(), entry.getValue())) {
-            String errorMessage = "Property or value not valid ";
-            if (!Property.isValidTablePropertyKey(entry.getKey())) {
-              errorMessage = "Invalid Table Property ";
-            }
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                errorMessage + entry.getKey() + "=" + entry.getValue());
-          }
+          validateTableProperty(entry.getKey(), entry.getValue(), options, namespaceIterProps,
+              tableName, tableOp);
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
@@ -322,22 +322,33 @@ class FateServiceHandler implements FateService.Iface {
         Map<String,String> propertiesToSet = new HashMap<>();
         Set<String> propertiesToExclude = new HashSet<>();
 
+        // dest table will have the dest namespace props + src table props: need to check provided
+        // options to set for conflicts with this
+        var iterProps = new HashMap<>(manager.getContext().getNamespaceConfiguration(namespaceId)
+            .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+        // get only the source table props, not the merged view
+        var srcTableProps = manager.getContext().getPropStore()
+            .get(TablePropKey.of(manager.getContext(), srcTableId)).asMap();
+
         for (Entry<String,String> entry : options.entrySet()) {
           if (entry.getKey().startsWith(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX)) {
             propertiesToExclude.add(
                 entry.getKey().substring(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX.length()));
+          }
+        }
+
+        // these props will not be cloned
+        srcTableProps.keySet().removeAll(propertiesToExclude);
+        // merge src table props into dest namespace props
+        iterProps.putAll(srcTableProps);
+
+        for (Entry<String,String> entry : options.entrySet()) {
+          if (entry.getKey().startsWith(TableOperationsImpl.PROPERTY_EXCLUDE_PREFIX)) {
             continue;
           }
 
-          if (!Property.isValidProperty(entry.getKey(), entry.getValue())) {
-            String errorMessage = "Property or value not valid ";
-            if (!Property.isValidTablePropertyKey(entry.getKey())) {
-              errorMessage = "Invalid Table Property ";
-            }
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                errorMessage + entry.getKey() + "=" + entry.getValue());
-          }
+          validateTableProperty(entry.getKey(), entry.getValue(), options,
+              IteratorConfigUtil.gatherIteratorProps(iterProps), tableName, tableOp);
 
           propertiesToSet.put(entry.getKey(), entry.getValue());
         }
@@ -841,6 +852,35 @@ class FateServiceHandler implements FateService.Iface {
       log.error("Error in FateServiceHandler while writing splits to {}: {}", splitsPath,
           e.getMessage());
       throw e;
+    }
+  }
+
+  private void validateTableProperty(String propKey, String propVal, Map<String,String> propMap,
+      Map<String,String> config, String tableName, TableOperation tableOp)
+      throws ThriftTableOperationException {
+    // validating property as valid table property
+    if (!Property.isValidProperty(propKey, propVal)) {
+      String errorMessage = "Property or value not valid ";
+      if (!Property.isValidTablePropertyKey(propKey)) {
+        errorMessage = "Invalid Table Property ";
+      }
+      throw new ThriftTableOperationException(null, tableName, tableOp,
+          TableOperationExceptionType.OTHER, errorMessage + propKey + "=" + propVal);
+    }
+
+    // validating property does not create an iterator conflict with those in the config
+    var iterProp = IteratorProperty.parse(propKey, propVal);
+    if (iterProp != null && !iterProp.isOption()) {
+      Map<String,String> opts = IteratorConfigUtil.gatherIterOpts(iterProp, propMap);
+      try {
+        var is = iterProp.toSetting();
+        is.addOptions(opts);
+        IteratorConfigUtil.checkIteratorConflicts(config, is, EnumSet.of(iterProp.getScope()),
+            false);
+      } catch (AccumuloException e) {
+        throw new ThriftTableOperationException(null, tableName, tableOp,
+            TableOperationExceptionType.OTHER, e.getMessage());
+      }
     }
   }
 
