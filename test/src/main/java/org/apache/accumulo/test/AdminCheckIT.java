@@ -354,7 +354,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       final var path = new ServiceLockPaths(context.getZooCache()).createTableLocksPath();
       zrw.putPersistentData(path.toString() + "/foo", new byte[0], ZooUtil.NodeExistsPolicy.FAIL);
       p = getCluster().exec(Admin.class, "check", "run", tableLocksCheck.name());
-      assertEquals(0, p.getProcess().waitFor());
+      assertEquals(5, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(
           out.contains("Some table and namespace locks are INVALID (the table/namespace DNE)"));
@@ -398,7 +398,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       writer.addMutation(mut);
     }
     p = getCluster().exec(Admin.class, "check", "run", metaTableCheck.name());
-    assertEquals(0, p.getProcess().waitFor());
+    assertEquals(5, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
     assertTrue(out.contains("Check METADATA_TABLE completed with status FAILED"));
@@ -433,7 +433,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       writer.addMutation(mut);
     }
     p = getCluster().exec(Admin.class, "check", "run", rootTableCheck.name());
-    assertEquals(0, p.getProcess().waitFor());
+    assertEquals(5, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
     assertTrue(out.contains("Check ROOT_TABLE completed with status FAILED"));
@@ -470,7 +470,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
         ZooUtil.NodeExistsPolicy.OVERWRITE);
 
     p = getCluster().exec(Admin.class, "check", "run", rootMetaCheck.name());
-    assertEquals(0, p.getProcess().waitFor());
+    assertEquals(5, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
     assertTrue(out.contains("Check ROOT_METADATA completed with status FAILED"));
@@ -501,7 +501,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       getCluster().getServerContext().getVolumeManager().delete(path);
     }
     p = getCluster().exec(Admin.class, "check", "run", sysFilesCheck.name());
-    assertEquals(0, p.getProcess().waitFor());
+    assertEquals(5, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("File " + path + " is missing"));
     assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
@@ -539,7 +539,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
         getCluster().getServerContext().getVolumeManager().delete(path);
       }
       p = getCluster().exec(Admin.class, "check", "run", userFilesCheck.name());
-      assertEquals(0, p.getProcess().waitFor());
+      assertEquals(5, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(out.contains("File " + path + " is missing"));
       assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
@@ -570,7 +570,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
         ZooUtil.NodeMissingPolicy.FAIL);
 
     p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
-    assertEquals(0, p.getProcess().waitFor());
+    assertEquals(5, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Failed to find table ("
         + (Map.entry(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId())) + ")"));
