@@ -138,6 +138,15 @@ public class Admin implements KeywordExecutable {
     public boolean help = false;
   }
 
+  @Parameters(commandNames = "find", commandDescription = "Compaction Temp Files Utility")
+  static class FindCompactionTmpFilesCommand {
+    @Parameter(names = {"-t", "--tables"}, description = "comma separated list of table names")
+    String tables;
+
+    @Parameter(names = {"-d", "--delete"}, description = "if true, will delete tmp files")
+    boolean delete = false;
+  }
+
   @Parameters(commandNames = "stop",
       commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  Hostnames only are no longer supported; you must use <host:port>. To Stop all services on a host, use 'accumulo admin serviceStatus' to list all hosts and then pass them to this command.")
   static class StopCommand extends SubCommandOpts {
@@ -481,6 +490,9 @@ public class Admin implements KeywordExecutable {
     VolumesCommand volumesCommand = new VolumesCommand();
     cl.addCommand(volumesCommand);
 
+    FindCompactionTmpFilesCommand filesCommand = new FindCompactionTmpFilesCommand();
+    cl.addCommand("compactionTempFiles", filesCommand);
+
     try {
       cl.parse(args);
     } catch (MissingCommandException e) {
@@ -554,6 +566,8 @@ public class Admin implements KeywordExecutable {
         RestoreZookeeper.execute(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
+      } else if (cl.getParsedCommand().equals("compactionTempFiles")) {
+        FindCompactionTmpFiles.execute(context, filesCommand.tables, filesCommand.delete);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         ServiceStatusCmd ssc = new ServiceStatusCmd();
         ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.showHosts);
