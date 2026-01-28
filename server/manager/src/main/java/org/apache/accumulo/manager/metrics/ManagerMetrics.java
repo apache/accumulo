@@ -55,23 +55,15 @@ public class ManagerMetrics implements MetricsProducer {
   private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
   private final AtomicLong userTGWErrorsGauge = new AtomicLong(0);
   private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
-  private final AtomicInteger goalState = new AtomicInteger(0);
+  private final AtomicInteger managerGoalState = new AtomicInteger(-1);
 
   public void updateManagerGoalState(ManagerGoalState goal) {
-    switch (goal) {
-      case CLEAN_STOP:
-        goalState.set(0);
-        break;
-      case NORMAL:
-        goalState.set(2);
-        break;
-      case SAFE_MODE:
-        goalState.set(1);
-        break;
-      default:
-        goalState.set(-1);
-        throw new IllegalStateException("Unhandled manager goal state: " + goal);
-    }
+    int newValue = switch (goal) {
+      case CLEAN_STOP -> 0;
+      case SAFE_MODE -> 1;
+      case NORMAL -> 2;
+    };
+    managerGoalState.set(newValue);
   }
 
   public void configureFateMetrics(final AccumuloConfiguration conf, final Manager manager,
