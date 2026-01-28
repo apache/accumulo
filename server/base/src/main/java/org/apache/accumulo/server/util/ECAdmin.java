@@ -233,7 +233,16 @@ public class ECAdmin implements KeywordExecutable {
     ServerContext context = opts.getServerContext();
     try {
       if (cl.getParsedCommand().equals("listCompactors")) {
-        listCompactorsByQueue(context);
+        var map = listCompactorsByQueue(context);
+        if (map.isEmpty()) {
+          System.out.println("No Compactors found.");
+        } else {
+          map.forEach((q, c) -> {
+            System.out.println(q);
+            System.out.println("-".repeat(q.toString().length()));
+            c.forEach(s -> System.out.println("\t" + s.toHostPortString()));
+          });
+        }
       } else if (cl.getParsedCommand().equals("cancel")) {
         cancelCompaction(context, cancelOps.ecid);
       } else if (cl.getParsedCommand().equals("running")) {
@@ -274,16 +283,16 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  protected void listCompactorsByQueue(ServerContext context) {
+  protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {
     Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
     if (compactors.isEmpty()) {
-      System.out.println("No Compactors found.");
+      return Map.of();
     } else {
       Map<ResourceGroupId,List<ServerId>> m = new TreeMap<>();
       compactors.forEach(csi -> {
-        m.putIfAbsent(csi.getResourceGroup(), new ArrayList<>()).add(csi);
+        m.computeIfAbsent(csi.getResourceGroup(), (r) -> new ArrayList<>()).add(csi);
       });
-      m.forEach((q, c) -> System.out.println(q + ": " + c));
+      return m;
     }
   }
 
