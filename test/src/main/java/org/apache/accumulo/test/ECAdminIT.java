@@ -18,12 +18,20 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP5;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP6;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP7;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -36,7 +44,9 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -68,8 +78,8 @@ public class ECAdminIT extends SharedMiniClusterBase {
     }
 
     @Override
-    protected void listCompactorsByQueue(ServerContext context) {
-      super.listCompactorsByQueue(context);
+    protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {
+      return super.listCompactorsByQueue(context);
     }
 
     @Override
@@ -84,7 +94,6 @@ public class ECAdminIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-      cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP7, 1);
     }
 
   }
@@ -100,6 +109,23 @@ public class ECAdminIT extends SharedMiniClusterBase {
   }
 
   private final TestECAdmin eca = new TestECAdmin();
+
+  @Test
+  public void testListCompactors() throws Exception {
+    final Map<ResourceGroupId,List<ServerId>> compactors =
+        eca.listCompactorsByQueue(getCluster().getServerContext());
+    System.out.println(compactors);
+    assertEquals(9, compactors.size());
+    assertTrue(compactors.containsKey(ResourceGroupId.DEFAULT));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP1)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP2)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP3)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP4)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP5)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP6)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP7)));
+    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP8)));
+  }
 
   @Test
   public void testListRunningCompactions() throws Exception {
