@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Iterator;
 
@@ -112,5 +113,21 @@ public class PreAllocatedArrayTest {
     assertNull(strings.get(0));
     // spotbugs error suppressed at class level for lambda
     assertThrows(IndexOutOfBoundsException.class, () -> strings.get(-3));
+  }
+
+  @Test
+  public void testIteratorRemove() {
+    PreAllocatedArray<String> strings = new PreAllocatedArray<>(3);
+    strings.set(1, "data");
+    var iter = strings.iterator();
+    for (int i = 0; i < 3; i++) {
+      assertTrue(iter.hasNext());
+      iter.next();
+      assertThrows(UnsupportedOperationException.class, () -> iter.remove());
+    }
+    assertFalse(iter.hasNext());
+    assertNull(strings.get(0));
+    assertEquals("data", strings.get(1));
+    assertNull(strings.get(2));
   }
 }
