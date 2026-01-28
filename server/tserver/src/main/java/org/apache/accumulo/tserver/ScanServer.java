@@ -375,19 +375,16 @@ public class ScanServer extends AbstractServer
     scanServerMetrics = new ScanServerMetrics(tabletMetadataCache);
     blockCacheMetrics = new BlockCacheMetrics(resourceManager.getIndexCache(),
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
-    final LogSorter logSorter = new LogSorter(this);
 
-    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics,
-        logSorter);
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
-    // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
+    metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
 
     ServiceLock lock = announceExistence();
     this.getContext().setServiceLock(lock);
 
     int threadPoolSize = getConfiguration().getCount(Property.SSERV_WAL_SORT_MAX_CONCURRENT);
     if (threadPoolSize > 0) {
+      final LogSorter logSorter = new LogSorter(this);
+      metricsInfo.addMetricsProducers(logSorter);
       try {
         // Attempt to process all existing log sorting work and start a background
         // thread to look for log sorting work in the future
@@ -400,6 +397,9 @@ public class ScanServer extends AbstractServer
       LOG.info(
           "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
+
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {

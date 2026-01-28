@@ -55,6 +55,7 @@ import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -97,6 +98,11 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   public void tearDown() throws Exception {
     fs.close();
     verify(server, context);
+  }
+
+  @AfterAll
+  public static void shutdown() {
+    EXECUTOR.shutdownNow();
   }
 
   static class KeyValue implements Comparable<KeyValue> {

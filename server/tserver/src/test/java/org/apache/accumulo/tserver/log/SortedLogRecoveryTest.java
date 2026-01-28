@@ -81,6 +81,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -135,6 +136,11 @@ public class SortedLogRecoveryTest extends WithTestNames {
     public int compareTo(KeyValue o) {
       return key.compareTo(o.key);
     }
+  }
+
+  @AfterAll
+  public static void shutdown() {
+    EXECUTOR.shutdownNow();
   }
 
   private static KeyValue createKeyValue(LogEvents type, long seq, int tid,
