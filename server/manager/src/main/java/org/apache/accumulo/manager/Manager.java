@@ -543,7 +543,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         byte[] data =
             getContext().getZooSession().asReaderWriter().getData(Constants.ZMANAGER_GOAL_STATE);
         ManagerGoalState goal = ManagerGoalState.valueOf(new String(data, UTF_8));
-        managerMetrics.updateManagerGoalState(goal);
+        try {
+          managerMetrics.updateManagerGoalState(goal);
+        } catch (IllegalStateException e) {
+          log.warn("Error updating goal state metric", e);
+        }
         return goal;
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);

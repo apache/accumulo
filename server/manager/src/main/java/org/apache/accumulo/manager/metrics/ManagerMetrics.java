@@ -20,9 +20,7 @@ package org.apache.accumulo.manager.metrics;
 
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTION_SVC_ERRORS;
-import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_CLEAN_STOP;
-import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_NORMAL_MODE;
-import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_SAFE_MODE;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_STATE;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
@@ -57,28 +55,21 @@ public class ManagerMetrics implements MetricsProducer {
   private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
   private final AtomicLong userTGWErrorsGauge = new AtomicLong(0);
   private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
-  private final AtomicInteger cleanStopGoalState = new AtomicInteger(0);
-  private final AtomicInteger normalGoalState = new AtomicInteger(0);
-  private final AtomicInteger safeModeGoalState = new AtomicInteger(0);
+  private final AtomicInteger goalState = new AtomicInteger(0);
 
   public void updateManagerGoalState(ManagerGoalState goal) {
     switch (goal) {
       case CLEAN_STOP:
-        cleanStopGoalState.set(1);
-        normalGoalState.set(0);
-        safeModeGoalState.set(0);
+        goalState.set(0);
         break;
       case NORMAL:
-        cleanStopGoalState.set(0);
-        normalGoalState.set(1);
-        safeModeGoalState.set(0);
+        goalState.set(2);
         break;
       case SAFE_MODE:
-        cleanStopGoalState.set(0);
-        normalGoalState.set(0);
-        safeModeGoalState.set(1);
+        goalState.set(1);
         break;
       default:
+        goalState.set(-1);
         throw new IllegalStateException("Unhandled manager goal state: " + goal);
     }
   }
@@ -131,12 +122,8 @@ public class ManagerMetrics implements MetricsProducer {
         .description(MANAGER_USER_TGW_ERRORS.getDescription()).register(registry);
     Gauge.builder(COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError, AtomicInteger::get)
         .description(COMPACTION_SVC_ERRORS.getDescription()).register(registry);
-    Gauge.builder(MANAGER_GOAL_CLEAN_STOP.getName(), cleanStopGoalState, AtomicInteger::get)
-        .description(MANAGER_GOAL_CLEAN_STOP.getDescription()).register(registry);
-    Gauge.builder(MANAGER_GOAL_NORMAL_MODE.getName(), normalGoalState, AtomicInteger::get)
-        .description(MANAGER_GOAL_NORMAL_MODE.getDescription()).register(registry);
-    Gauge.builder(MANAGER_GOAL_SAFE_MODE.getName(), safeModeGoalState, AtomicInteger::get)
-        .description(MANAGER_GOAL_SAFE_MODE.getDescription()).register(registry);
+    Gauge.builder(MANAGER_GOAL_STATE.getName(), goalState, AtomicInteger::get)
+        .description(MANAGER_GOAL_STATE.getDescription()).register(registry);
   }
 
   public List<MetricsProducer> getProducers(Manager manager) {
