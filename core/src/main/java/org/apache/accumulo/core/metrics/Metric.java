@@ -306,7 +306,17 @@ public enum Metric {
       MetricDocSection.MANAGER),
   MANAGER_GOAL_STATE("accumulo.manager.goal.state", MetricType.GAUGE,
       "Manager goal state: -1=unknown, 0=CLEAN_STOP, 1=SAFE_MODE, 2=NORMAL.",
-      MetricDocSection.MANAGER);
+      MetricDocSection.MANAGER),
+
+  // Recovery Metrics
+  RECOVERIES_IN_PROGRESS("accumulo.recoveries.in.progress", MetricType.GAUGE,
+      "The number of recoveries in progress.", MetricDocSection.GENERAL_SERVER),
+  RECOVERIES_LONGEST_RUNTIME("accumulo.recoveries.runtime.longest", MetricType.GAUGE,
+      "The time (in milliseconds) of the longest running recovery.",
+      MetricDocSection.GENERAL_SERVER),
+  RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
+      "The average percentage (0.0 - 99.9) of the in progress recoveries.",
+      MetricDocSection.GENERAL_SERVER);
 
   private final String name;
   private final MetricType type;
