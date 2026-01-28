@@ -558,7 +558,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics);
+        pausedMetrics, blockCacheMetrics, logSorter);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 

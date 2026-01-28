@@ -303,7 +303,16 @@ public enum Metric {
       MetricDocSection.MANAGER),
   MANAGER_USER_TGW_ERRORS("accumulo.tabletmgmt.user.errors", MetricType.GAUGE,
       "Error count encountered by the TabletGroupWatcher for the USER data level.",
-      MetricDocSection.MANAGER);
+      MetricDocSection.MANAGER),
+
+  // Recovery Metrics
+  RECOVERIES_IN_PROGRESS("accumulo.recoveries.in.progress", MetricType.GAUGE,
+      "The number of recoveries in progress.", MetricDocSection.GENERAL_SERVER),
+  RECOVERIES_LONGEST_RUNTIME("accumulo.recoveries.runtime.longest", MetricType.GAUGE,
+      "The time (in milliseconds) of the longest running recovery.",
+      MetricDocSection.GENERAL_SERVER),
+  RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
+      "The averge progress of the in progress recoveries.", MetricDocSection.GENERAL_SERVER);
 
   private final String name;
   private final MetricType type;

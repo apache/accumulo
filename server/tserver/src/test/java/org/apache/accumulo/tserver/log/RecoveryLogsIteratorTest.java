@@ -37,6 +37,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.TableId;
@@ -64,6 +65,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RecoveryLogsIteratorTest extends WithTestNames {
 
+  private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
   private VolumeManager fs;
   private java.nio.file.Path workDir;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
@@ -85,6 +87,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+    expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
     replay(server, context);
 
     logSorter = new LogSorter(server);

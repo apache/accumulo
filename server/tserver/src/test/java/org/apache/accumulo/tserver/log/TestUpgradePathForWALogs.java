@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
@@ -57,6 +58,8 @@ public class TestUpgradePathForWALogs extends WithTestNames {
   private static final String WALOG_FROM_16 = "walog-from-16.walog";
   // logs from 2.0 were changed for improved crypto
   private static final String WALOG_FROM_20 = "walog-from-20.walog";
+
+  private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
 
   private ServerContext context;
   private TabletServer server;
@@ -85,6 +88,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
+    expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
     replay(server, context);
   }
 

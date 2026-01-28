@@ -819,7 +819,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    metricsInfo.addMetricsProducers(this, pausedMetrics);
+    final LogSorter logSorter = new LogSorter(this);
+    metricsInfo.addMetricsProducers(this, pausedMetrics, logSorter);
     metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
@@ -831,7 +832,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     LOG.info("Compactor started, waiting for work");
 
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    final LogSorter logSorter = new LogSorter(this);
     long nextSortLogsCheckTime = System.currentTimeMillis();
 
     while (!isShutdownRequested()) {
