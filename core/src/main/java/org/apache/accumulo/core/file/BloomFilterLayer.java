@@ -35,6 +35,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.bloomfilter.DynamicBloomFilter;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -346,6 +348,7 @@ public class BloomFilterLayer {
     }
   }
 
+  @NotThreadSafe
   public static class Reader implements FileSKVIterator {
 
     private final BloomFilterLoader bfl;

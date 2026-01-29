@@ -23,10 +23,13 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 /**
  * Reader corresponding to BlockedOutputStream. Expects all data to be in the form of size (int)
  * data (size bytes) junk (however many bytes it takes to complete a block)
  */
+@NotThreadSafe
 public class BlockedInputStream extends InputStream {
   byte[] array;
   // ReadPos is where to start reading

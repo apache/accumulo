@@ -34,6 +34,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.ColumnUpdate;
@@ -534,6 +536,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     }
   }
 
+  @NotThreadSafe
   private static class NMSKVIter implements InterruptibleIterator {
 
     private ConcurrentIterator iter;

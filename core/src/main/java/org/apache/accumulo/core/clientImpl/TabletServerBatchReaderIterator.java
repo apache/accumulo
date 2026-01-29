@@ -45,6 +45,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
@@ -355,6 +357,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     return context.getPrintableTableInfoFromId(tableId);
   }
 
+  @NotThreadSafe
   private class QueryTask implements Runnable {
 
     private final String tsLocation;

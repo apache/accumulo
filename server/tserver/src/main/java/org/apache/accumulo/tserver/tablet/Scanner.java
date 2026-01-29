@@ -227,10 +227,7 @@ public class Scanner {
         return false;
       }
 
-      scanClosed = true;
-      if (isolatedDataSource != null) {
-        isolatedDataSource.close(false);
-      }
+      lockAndClose();
     } catch (InterruptedException e) {
       return false;
     } finally {
@@ -239,5 +236,17 @@ public class Scanner {
       }
     }
     return true;
+  }
+
+  private void lockAndClose() {
+    lock.lock();
+    try {
+      scanClosed = true;
+      if (isolatedDataSource != null) {
+        isolatedDataSource.close(false);
+      }
+    } finally {
+      lock.unlock();
+    }
   }
 }
