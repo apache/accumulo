@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -166,7 +167,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
 
     log.trace("Checking that WAL metadata in ZooKeeper is valid...");
 
-    var walsBefore = gatherWalsFromZK(zrw);
+    var walsBefore = gatherWalsFromZK(context, zrw);
 
     // gather any wals present in ZooKeeper but missing in DFS
     Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>> missingWals = new HashMap<>();
@@ -178,11 +179,11 @@ public class SystemConfigCheckRunner implements CheckRunner {
       }
     }
 
-    var walsAfter = gatherWalsFromZK(zrw);
+    var walsAfter = gatherWalsFromZK(context, zrw);
 
     for (var instanceAndMissingWals : missingWals.entrySet()) {
-      // if the TServer existed before AND after the DFS check AND any missing WAL is still in use
-      // after the DFS check
+      // if the TServer is alive before AND after the DFS check AND any missing WAL is still in
+      // use after the DFS check
       if (walsBefore.get(instanceAndMissingWals.getKey()) != null
           && walsAfter.get(instanceAndMissingWals.getKey()) != null
           && !Sets.intersection(instanceAndMissingWals.getValue(),
@@ -197,15 +198,14 @@ public class SystemConfigCheckRunner implements CheckRunner {
   }
 
   private static Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>>
-      gatherWalsFromZK(ZooReaderWriter zrw) throws Exception {
+      gatherWalsFromZK(ServerContext context, ZooReaderWriter zrw) throws Exception {
     final var rootWalsDir = WalStateManager.ZWALS;
     Map<TServerInstance,Set<Pair<WalStateManager.WalState,Path>>> wals = new HashMap<>();
-    // each child node of the root wals dir should be a TServerInstance.toString()
-    var tserverInstances = zrw.getChildren(rootWalsDir);
-    for (var tsiStr : tserverInstances) {
-      final TServerInstance tsi = new TServerInstance(tsiStr);
+    var tserverInstances = TabletMetadata.getLiveTServers(context);
+    for (var tsi : tserverInstances) {
       wals.put(tsi, new HashSet<>());
-      final var tserverPath = rootWalsDir + "/" + tsiStr;
+      // each child node of the root wals dir is a TServerInstance
+      final var tserverPath = rootWalsDir + "/" + tsi.toString();
 
       // each child node of the tserver should be WAL metadata
       final var walsPaths = zrw.getChildren(tserverPath);
