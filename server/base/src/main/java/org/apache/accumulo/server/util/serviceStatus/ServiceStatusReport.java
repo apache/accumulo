@@ -41,7 +41,13 @@ import com.google.gson.GsonBuilder;
 public class ServiceStatusReport {
 
   private static class HostExclusionStrategy implements ExclusionStrategy {
-
+    public HostExclusionStrategy(){
+        try {
+            StatusSummary.class.getField("serviceByGroups");
+        } catch (NoSuchFieldException e) {
+            throw new IllegalStateException(e);
+        }
+    }
     @Override
     public boolean shouldSkipField(FieldAttributes f) {
       if (f.getDeclaringClass().equals(StatusSummary.class)
