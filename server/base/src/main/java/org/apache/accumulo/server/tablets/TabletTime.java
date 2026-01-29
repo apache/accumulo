@@ -27,8 +27,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.util.time.RelativeTime;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public abstract class TabletTime {
 
   public abstract void useMaxTimeFromWALog(long time);
@@ -79,7 +77,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    public MetadataTime getMetadataTime() {
+    public synchronized MetadataTime getMetadataTime() {
       return getMetadataTime(lastTime);
     }
 
@@ -89,9 +87,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    @SuppressFBWarnings(value = "AT_NONATOMIC_64BIT_PRIMITIVE",
-        justification = "this is only called in tablet constructor, so does not need to be done atomically")
-    public void useMaxTimeFromWALog(long time) {
+    public synchronized void useMaxTimeFromWALog(long time) {
       if (time > lastTime) {
         lastTime = time;
       }
@@ -117,7 +113,7 @@ public abstract class TabletTime {
       return currTime;
     }
 
-    private long updateTime(long currTime) {
+    private synchronized long updateTime(long currTime) {
       if (currTime < lastTime) {
         if (currTime - lastUpdateTime > 0) {
           // not in same millisecond as last call
@@ -135,7 +131,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    public long getTime() {
+    public synchronized long getTime() {
       return lastTime;
     }
 

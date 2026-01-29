@@ -109,6 +109,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   private static final Logger log = LoggerFactory.getLogger(DistributedReadWriteLock.class);
 
+  // Intended usage of instances of this class is that it's only used by a single thread and
+  // supports locking across threads/processes
   @NotThreadSafe
   static class ReadLock implements Lock {
 

@@ -23,18 +23,15 @@ import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.annotation.concurrent.NotThreadSafe;
-
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 
-@NotThreadSafe
 public class CountingIterator extends WrappingIterator {
 
-  private long count;
+  private AtomicLong count;
   private final ArrayList<CountingIterator> deepCopies;
   private final AtomicLong entriesRead;
 
@@ -45,7 +42,7 @@ public class CountingIterator extends WrappingIterator {
 
   private CountingIterator(CountingIterator other, IteratorEnvironment env) {
     setSource(other.getSource().deepCopy(env));
-    count = 0;
+    count = new AtomicLong(0);
     this.deepCopies = other.deepCopies;
     this.entriesRead = other.entriesRead;
     deepCopies.add(this);
@@ -54,7 +51,7 @@ public class CountingIterator extends WrappingIterator {
   public CountingIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong entriesRead) {
     deepCopies = new ArrayList<>();
     this.setSource(source);
-    count = 0;
+    count = new AtomicLong(0);
     this.entriesRead = entriesRead;
   }
 
@@ -67,18 +64,19 @@ public class CountingIterator extends WrappingIterator {
   @Override
   public void next() throws IOException {
     super.next();
-    count++;
-    if (count % 1024 == 0) {
+    var newCount = count.incrementAndGet();
+    // newCount & 1023 === newCount % 1024, but much faster
+    if ((newCount & 1023) == 0) {
       entriesRead.addAndGet(1024);
     }
   }
 
-  public long getCount() {
+  public synchronized long getCount() {
     long sum = 0;
     for (CountingIterator dc : deepCopies) {
-      sum += dc.count;
+      sum += dc.count.get();
     }
 
-    return count + sum;
+    return count.get() + sum;
   }
 }

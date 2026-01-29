@@ -41,8 +41,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class Scanner {
   private static final Logger log = LoggerFactory.getLogger(Scanner.class);
 
@@ -215,8 +213,6 @@ public class Scanner {
    * read is in progress), it interrupts the reading thread. This ensures the reading thread can
    * finish its current operation and release the lock, allowing close to finish.
    */
-  @SuppressFBWarnings(value = "AT_STALE_THREAD_WRITE_OF_PRIMITIVE",
-      justification = "accesses non-volatile/non-atomic vars only when lock is held")
   public boolean close() {
     interruptFlag.set(true);
 
@@ -231,10 +227,7 @@ public class Scanner {
         return false;
       }
 
-      scanClosed = true;
-      if (isolatedDataSource != null) {
-        isolatedDataSource.close(false);
-      }
+      lockAndClose();
     } catch (InterruptedException e) {
       return false;
     } finally {
@@ -243,5 +236,17 @@ public class Scanner {
       }
     }
     return true;
+  }
+
+  private void lockAndClose() {
+    lock.lock();
+    try {
+      scanClosed = true;
+      if (isolatedDataSource != null) {
+        isolatedDataSource.close(false);
+      }
+    } finally {
+      lock.unlock();
+    }
   }
 }
