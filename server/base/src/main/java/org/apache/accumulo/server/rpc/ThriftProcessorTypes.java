@@ -131,8 +131,7 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static TMultiplexedProcessor getManagerTProcessor(
       ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
       CompactionCoordinatorService.Iface coordinatorServiceHandler,
-      ManagerClientService.Iface managerServiceHandler,
-      FateWorkerService.Iface fateWorkerServiceHandler, ServerContext context) {
+      ManagerClientService.Iface managerServiceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
@@ -145,9 +144,21 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));
+    return muxProcessor;
+  }
+
+  public static TMultiplexedProcessor getManagerWorkerTProcessor(
+          ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
+          FateWorkerService.Iface fateWorkerHandler, ServerContext context) {
+    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
+            ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
+    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
+            SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
+                    ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(FATE_WORKER.getServiceName(),
-        FATE_WORKER.getTProcessor(FateWorkerService.Processor.class, FateWorkerService.Iface.class,
-            fateWorkerServiceHandler, context));
+            FATE_WORKER.getTProcessor(FateWorkerService.Processor.class,
+                    FateWorkerService.Iface.class, fateWorkerHandler, context));
     return muxProcessor;
   }
 

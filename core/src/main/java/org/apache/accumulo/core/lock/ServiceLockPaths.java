@@ -77,7 +77,7 @@ public class ServiceLockPaths {
       Preconditions.checkArgument(this.type.equals(Constants.ZGC_LOCK)
           || this.type.equals(Constants.ZMANAGER_LOCK) || this.type.equals(Constants.ZMONITOR_LOCK)
           || this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZADMIN_LOCK)
-          || this.type.equals(Constants.ZTEST_LOCK), "Unsupported type: " + type);
+          || this.type.equals(Constants.ZTEST_LOCK) || this.type.equals(Constants.ZMANAGER_WORKER_LOCK), "Unsupported type: " + type);
       // These server types support only one active instance, so they use a lock at
       // a known path, not the server's address.
       this.resourceGroup = null;
@@ -170,6 +170,8 @@ public class ServiceLockPaths {
       return Constants.ZGC_LOCK;
     } else if (pathStartsWith(path, Constants.ZMANAGER_LOCK)) {
       return Constants.ZMANAGER_LOCK;
+    } else if (pathStartsWith(path, Constants.ZMANAGER_WORKER_LOCK)) {
+      return Constants.ZMANAGER_WORKER_LOCK;
     } else if (pathStartsWith(path, Constants.ZMONITOR_LOCK)) {
       return Constants.ZMONITOR_LOCK;
     } else if (pathStartsWith(path, Constants.ZMINI_LOCK)) {
@@ -219,7 +221,7 @@ public class ServiceLockPaths {
         return switch (type) {
           case Constants.ZMINI_LOCK -> new ServiceLockPath(type, server);
           case Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS,
-              Constants.ZDEADTSERVERS ->
+               Constants.ZDEADTSERVERS,Constants.ZMANAGER_WORKER_LOCK ->
             new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
                 HostAndPort.fromString(server));
           default ->
@@ -431,7 +433,7 @@ public class ServiceLockPaths {
         }
       }
     } else if (serverType.equals(Constants.ZCOMPACTORS) || serverType.equals(Constants.ZSSERVERS)
-        || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)) {
+        || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS) || serverType.equals(Constants.ZMANAGER_WORKER_LOCK)) {
       final List<String> resourceGroups = zooCache.getChildren(typePath);
       for (final String group : resourceGroups) {
         if (resourceGroupPredicate.test(ResourceGroupId.of(group))) {

@@ -917,10 +917,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
     compactionCoordinator = new CompactionCoordinator(this, fateRefs);
-    FateWorkerService.Iface fateWorkerHandler = new FateWorker(context);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        compactionCoordinator.getThriftService(), managerClientHandler, fateWorkerHandler,
+        compactionCoordinator.getThriftService(), managerClientHandler,
         getContext());
     try {
       updateThriftServer(() -> {
