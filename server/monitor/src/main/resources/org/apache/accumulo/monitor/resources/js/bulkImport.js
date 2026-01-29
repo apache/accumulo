@@ -50,6 +50,7 @@ $(document).ready(function () {
       "dataSrc": "bulkImport"
     },
     "stateSave": true,
+    "autoWidth": false,
     "columns": [{
         "data": "filename",
         "width": "40%"
@@ -58,12 +59,11 @@ $(document).ready(function () {
         "data": "age",
         "width": "45%",
         "render": function (data, type) {
-          if (type === 'display' && Number(data) > 0) {
-            data = new Date(Number(data));
-          } else {
-            data = "-";
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : "-";
           }
-          return data;
+          return age > 0 ? age : 0;
         }
       },
       {
@@ -96,12 +96,11 @@ $(document).ready(function () {
       {
         "data": "oldestAge",
         "render": function (data, type) {
-          if (type === 'display' && Number(data) > 0) {
-            data = new Date(Number(data));
-          } else {
-            data = "-";
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : "-";
           }
-          return data;
+          return age > 0 ? age : 0;
         }
       }
     ]

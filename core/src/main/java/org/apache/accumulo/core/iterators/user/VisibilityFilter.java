@@ -111,7 +111,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         cache.put(testVis, bb);
         return bb;
       } catch (VisibilityParseException | BadArgumentException e) {
-        log.error("Parse Error", e);
+        log.error("Parse Error with visibility of Key: {}", k, e);
         return false;
       }
     }

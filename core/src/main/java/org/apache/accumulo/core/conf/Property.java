@@ -1198,6 +1198,9 @@ public enum Property {
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
+  TABLE_SHUFFLE_SOURCES("table.shuffle.sources", "false", PropertyType.BOOLEAN,
+      "Shuffle the opening order for Rfiles to reduce thread contention on file open operations.",
+      "2.1.5"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes.", "1.3.5"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
@@ -1322,8 +1325,9 @@ public enum Property {
           + " constraints to a table. These properties start with the category"
           + " prefix, followed by a number, and their values correspond to a fully"
           + " qualified Java class that implements the Constraint interface.\nFor example:\n"
-          + "table.constraint.1 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
-          + "and:\n table.constraint.2 = my.package.constraints.MySecondConstraint.",
+          + "table.constraint.2 = org.apache.accumulo.core.constraints.MyCustomConstraint\n"
+          + "and:\n table.constraint.3 = my.package.constraints.MySecondConstraint.\n"
+          + "Note that table.constraint.1 is a reserved, default table constraint.",
       "1.3.5"),
   TABLE_INDEXCACHE_ENABLED("table.cache.index.enable", "true", PropertyType.BOOLEAN,
       "Determines whether index block cache is enabled for a table.", "1.3.5"),

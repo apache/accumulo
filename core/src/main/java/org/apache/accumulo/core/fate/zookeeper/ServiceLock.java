@@ -22,11 +22,15 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -483,6 +487,8 @@ public class ServiceLock implements Watcher {
                   // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
                   // created a Watcher on a node that does not exist. Delete the watcher we just
                   // created.
+                  LOG.debug("Removing watcher for path {} since stat return was null",
+                      pathForWatcher);
                   zooKeeper.removeWatches(pathForWatcher, this, WatcherType.Any, true);
 
                   if (lockNodeName != null) {
@@ -713,6 +719,48 @@ public class ServiceLock implements Watcher {
       return 0;
     }
   }
+
+  /**
+   * This method will delete all server locks for a given path according the predicate conditions.
+   *
+   * @param hostPortPredicate conditional predicate for determining if the lock should be removed.
+   * @param messageOutput function for setting where the output from the lockPath goes
+   * @param dryRun allows lock format validation and the messageOutput to be sent without actually
+   *        deleting the lock
+   *
+   */
+  public static void deleteLocks(ZooReaderWriter zk, String zPath,
+      Predicate<HostAndPort> hostPortPredicate, Consumer<String> messageOutput, Boolean dryRun)
+      throws KeeperException, InterruptedException {
+
+    Objects.requireNonNull(zPath, "Lock path cannot be null");
+    if (!zk.exists(zPath)) {
+      throw new IllegalStateException("Path " + zPath + " does not exist");
+    }
+
+    List<String> servers = zk.getChildren(zPath);
+    if (servers.isEmpty()) {
+      throw new IllegalStateException("No server locks are held at " + zPath);
+    }
+
+    for (String server : servers) {
+      if (hostPortPredicate.test(HostAndPort.fromString(server))) {
+        messageOutput.accept("Deleting " + zPath + "/" + server + " from zookeeper");
+        if (!dryRun) {
+          LOG.debug("Deleting all locks at path {} due to lock deletion", zPath);
+          zk.recursiveDelete(zPath + "/" + server, NodeMissingPolicy.SKIP);
+        }
+      }
+    }
+  }
+
+  /**
+   * This method will delete the top server lock for a given lock path
+   *
+   * @param zk zookeeper client
+   * @param path path for lock deletion only the top child lock will be removed
+   *
+   */
 
   public static void deleteLock(ZooReaderWriter zk, ServiceLockPath path)
       throws InterruptedException, KeeperException {

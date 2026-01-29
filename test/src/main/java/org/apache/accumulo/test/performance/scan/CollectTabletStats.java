@@ -441,7 +441,7 @@ public class CollectTabletStats {
     iters.addAll(mapfiles);
     iters.add(smi);
 
-    MultiIterator multiIter = new MultiIterator(iters, ke);
+    MultiIterator multiIter = new MultiIterator(iters, ke.toDataRange());
     SortedKeyValueIterator<Key,Value> delIter =
         DeletingIterator.wrap(multiIter, false, Behavior.PROCESS);
     ColumnFamilySkippingIterator cfsi = new ColumnFamilySkippingIterator(delIter);

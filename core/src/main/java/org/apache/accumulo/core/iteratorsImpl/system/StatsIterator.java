@@ -97,9 +97,7 @@ public class StatsIterator extends ServerWrappingIterator {
 
     if (reportDeepCopies) {
       // recurse down the fat tree of deep copies forcing them to report
-      for (var deepCopy : deepCopies) {
-        deepCopy.report(true);
-      }
+      deepCopies.forEach(deepCopy -> deepCopy.report(true));
     }
   }
 }

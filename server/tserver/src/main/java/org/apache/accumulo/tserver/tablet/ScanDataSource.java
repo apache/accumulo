@@ -20,7 +20,6 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import javax.annotation.concurrent.NotThreadSafe;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -37,9 +37,11 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.system.HeapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.StatsIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
@@ -194,7 +196,7 @@ class ScanDataSource implements DataSource {
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> mapfiles =
+    List<InterruptibleIterator> mapfiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
     List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
@@ -205,7 +207,13 @@ class ScanDataSource implements DataSource {
     iters.addAll(mapfiles);
     iters.addAll(memIters);
 
-    MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
+    HeapIterator multiIter;
+    if (tablet.getContext().getTableConfiguration(tablet.getExtent().tableId())
+        .getBoolean(Property.TABLE_SHUFFLE_SOURCES)) {
+      multiIter = new MultiShuffledIterator(iters, tablet.getExtent().toDataRange());
+    } else {
+      multiIter = new MultiIterator(iters, tablet.getExtent().toDataRange());
+    }
 
     var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
         .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)

@@ -667,7 +667,17 @@ public class ThreadPools {
 
           @Override
           public void execute(@NonNull Runnable command) {
-            super.execute(TraceUtil.wrap(command));
+            // ScheduledThreadPoolExecutor.execute() will internally create a future that is not
+            // returned. This inaccessible future will silently eat uncaught exceptions. This code
+            // is a workaround for this behavior that avoids completely losing exceptions.
+            var wrapped = TraceUtil.wrap(command);
+            super.execute(() -> {
+              try {
+                wrapped.run();
+              } catch (Throwable t) {
+                handler.uncaughtException(Thread.currentThread(), t);
+              }
+            });
           }
 
           @Override

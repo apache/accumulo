@@ -31,6 +31,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -42,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -190,6 +192,7 @@ public class FateIT {
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
   private static CountDownLatch undoLatch;
+  private static AtomicReference<Throwable> interruptedException = new AtomicReference<>();
 
   Fate<Manager> fate;
 
@@ -211,6 +214,7 @@ public class FateIT {
 
   @BeforeEach
   public void beforeEach() throws Exception {
+    interruptedException.set(null);
     final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
 
@@ -448,11 +452,73 @@ public class FateIT {
     assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
   }
 
+  @Test
+  public void testShutdownDoesNotFailTx() throws Exception {
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
+
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+
+    long txid = fate.startTransaction();
+    assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
+    assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
+
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+
+    // wait for call() to be called
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+
+    // shutdown fate
+    fate.shutdown(true);
+
+    // tell the op to exit the method
+    Wait.waitFor(() -> interruptedException.get() != null);
+    interruptedException.set(null);
+
+    // restart fate
+    beforeEach();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+
+    // Restarting the transaction runners will retry the in-progress
+    // transaction. Reset the CountDownLatch's to confirm.
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+    finishCall.countDown();
+
+    // This should complete normally, cleaning up the tx and deleting it from ZK
+    while (true) {
+      try {
+        getTxStatus(zk, txid);
+        Thread.sleep(100);
+        continue;
+      } catch (KeeperException.NoNodeException e) {
+        break;
+      }
+    }
+    assertNull(interruptedException.get());
+  }
+
   private static void inCall() throws InterruptedException {
     // signal that call started
     callStarted.countDown();
-    // wait for the signal to exit the method
-    finishCall.await();
+    try {
+      // wait for the signal to exit the method
+      finishCall.await();
+    } catch (InterruptedException e) {
+      LOG.debug("InterruptedException occurred inCall.");
+      interruptedException.set(e);
+      throw e;
+    }
   }
 
   /*

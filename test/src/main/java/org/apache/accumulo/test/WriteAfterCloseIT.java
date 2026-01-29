@@ -120,14 +120,15 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
   public void testWriteAfterClose(TimeType timeType, boolean killTservers, long timeout,
       boolean useConditionalWriter) throws Exception {
     // re #3721 test that tries to cause a write event to happen after a batch writer is closed
-    String table = getUniqueNames(1)[0];
+    String table = getUniqueNames(1)[0] + "_t" + timeType + "_k" + killTservers + "_to" + timeout
+        + "_c" + useConditionalWriter;
     var props = new Properties();
     props.putAll(getClientProps());
     props.setProperty(Property.GENERAL_RPC_TIMEOUT.getKey(), "1s");
 
     NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
     ntc.setProperties(
-        Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1", SleepyConstraint.class.getName()));
+        Map.of(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "2", SleepyConstraint.class.getName()));
 
     // The short rpc timeout and the random sleep in the constraint can cause some of the writes
     // done by a batch writer to timeout. The batch writer will internally retry the write, but the
