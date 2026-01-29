@@ -917,8 +917,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
   }
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
-    return new Fate<>(new LatchTestEnv(), store, false, Object::toString,
+    Fate<LatchTestEnv> fate = new Fate<>(new LatchTestEnv(), store, false, Object::toString,
         DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+    fate.start();
+    return fate;
   }
 
   private boolean wordIsTStatus(String word) {

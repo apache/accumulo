@@ -78,9 +78,10 @@ public class Fate<T> {
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
 
   private final FateStore<T> store;
-  private final ScheduledFuture<?> fatePoolsWatcherFuture;
+  private ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
-  private final ExecutorService deadResCleanerExecutor;
+  private ExecutorService deadResCleanerExecutor;
+  private final FateConfiguration<T> fateConfig;
 
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
   public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
@@ -252,6 +253,10 @@ public class Fate<T> {
     }
   }
 
+  private record FateConfiguration<T>(T environment, boolean runDeadResCleaner,
+      AccumuloConfiguration conf, ScheduledThreadPoolExecutor genSchedExecutor) {
+  }
+
   /**
    * Creates a Fault-tolerant executor for the given store type.
    *
@@ -263,6 +268,18 @@ public class Fate<T> {
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf,
       ScheduledThreadPoolExecutor genSchedExecutor) {
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
+    this.fateConfig =
+        new FateConfiguration<>(environment, runDeadResCleaner, conf, genSchedExecutor);
+
+  }
+
+  public void start() {
+    log.info("Start {} FATE", store.type());
+    keepRunning.set(true);
+    final var environment = fateConfig.environment;
+    final var runDeadResCleaner = fateConfig.runDeadResCleaner;
+    final var conf = fateConfig.conf;
+    final var genSchedExecutor = fateConfig.genSchedExecutor;
 
     fatePoolsWatcherFuture =
         genSchedExecutor.scheduleWithFixedDelay(new FatePoolsWatcher(environment, conf),
