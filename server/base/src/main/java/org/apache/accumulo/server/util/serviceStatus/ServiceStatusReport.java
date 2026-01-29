@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util.serviceStatus;
 import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.lang.reflect.Field;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -41,17 +42,22 @@ import com.google.gson.GsonBuilder;
 public class ServiceStatusReport {
 
   private static class HostExclusionStrategy implements ExclusionStrategy {
-    public HostExclusionStrategy(){
-        try {
-            StatusSummary.class.getField("serviceByGroups");
-        } catch (NoSuchFieldException e) {
-            throw new IllegalStateException(e);
-        }
+
+    private final static String field = "serviceByGroups";
+    private final Field fieldToIgnore;
+
+    public HostExclusionStrategy() {
+      try {
+        fieldToIgnore = StatusSummary.class.getDeclaredField(field);
+      } catch (NoSuchFieldException e) {
+        throw new IllegalStateException(e);
+      }
     }
+
     @Override
     public boolean shouldSkipField(FieldAttributes f) {
       if (f.getDeclaringClass().equals(StatusSummary.class)
-          && f.getName().equals("serviceByGroups")) {
+          && f.getName().equals(fieldToIgnore.getName())) {
         return true;
       }
       return false;
