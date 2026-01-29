@@ -22,12 +22,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import com.google.gson.annotations.Expose;
-
 public class StatusSummary {
 
-  @Expose(serialize = false, deserialize = false)
-  private final ServiceStatusReport.ReportKey serviceType;
+  // marked transient to exclude from json serialization
+  private final transient ServiceStatusReport.ReportKey serviceType;
   private final Map<String,Integer> resourceGroups;
   private final Map<String,Set<String>> serviceByGroups;
   private final int serviceCount;
@@ -76,10 +74,6 @@ public class StatusSummary {
 
   public int getErrorCount() {
     return errorCount;
-  }
-
-  public StatusSummary withoutHosts() {
-    return new StatusSummary(serviceType, resourceGroups, Map.of(), errorCount);
   }
 
   @Override
