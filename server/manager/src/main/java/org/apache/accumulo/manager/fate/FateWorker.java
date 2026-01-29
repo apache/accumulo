@@ -74,8 +74,10 @@ public class FateWorker implements FateWorkerService.Iface {
     var expectedSet = expected.stream().map(FatePartition::from).collect(Collectors.toSet());
     synchronized (currentPartitions) {
       if (currentPartitions.equals(expectedSet)) {
+        expectedSet.forEach(p -> log.info("old partition {}", p));
         currentPartitions.clear();
         desired.stream().map(FatePartition::from).forEach(currentPartitions::add);
+        desired.stream().map(FatePartition::from).forEach(p -> log.info("new partition {}", p));
         log.info("Changed partitions from {} to {}", expectedSet, currentPartitions);
         return true;
       } else {

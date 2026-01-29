@@ -1,35 +1,64 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.accumulo.test;
 
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.manager.Manager;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+
+import org.apache.accumulo.manager.ManagerWorker;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.List;
-
 public class MultipleManagerIT extends ConfigurableMacBase {
-    @Override
-    protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-        // TODO add a way to start multiple managers to mini
-        super.configure(cfg, hadoopCoreSite);
+  @Override
+  protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    // TODO add a way to start multiple managers to mini
+    super.configure(cfg, hadoopCoreSite);
+  }
+
+  @Test
+  public void test() throws Exception {
+
+    List<Process> managerWorkers = new ArrayList<>();
+    for (int i = 0; i < 2; i++) {
+      managerWorkers.add(exec(ManagerWorker.class));
     }
 
-    @Test
-    public void test() throws Exception {
+    var executor = Executors.newCachedThreadPool();
 
-        List<Process> managers = new ArrayList<>();
-        for(int i = 0; i<5;i++){
-            managers.add(exec(Manager.class));
-        }
+    var fateMgr = new FateManager(getServerContext());
+    var future = executor.submit(() -> {
+      fateMgr.managerWorkers();
+      return null;
+    });
 
-     var fateMgr =  new FateManager(getServerContext());
-     fateMgr.managerWorkers();
-
-     // TODO kill processes
+    Thread.sleep(30_000);
+    for (int i = 0; i < 3; i++) {
+      managerWorkers.add(exec(ManagerWorker.class));
     }
+
+    Thread.sleep(30_000);
+    System.out.println("DONE");
+    // TODO kill processes
+  }
 }

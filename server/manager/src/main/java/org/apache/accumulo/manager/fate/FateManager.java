@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.manager.fate;
 
-import java.util.ArrayList;
+import static org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate.DEFAULT_RG_ONLY;
+
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -31,22 +31,19 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.accumulo.core.fate.thrift.TFatePartition;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.util.Sets;
+import org.apache.thrift.TException;
 
 import com.google.common.net.HostAndPort;
-import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
 
 public class FateManager {
 
-    record FatePartition(FateId start, FateId end) {
+  record FatePartition(FateId start, FateId end) {
 
     public TFatePartition toThrift() {
       return new TFatePartition(start.canonical(), end.canonical());
@@ -75,6 +72,9 @@ public class FateManager {
 
       // TODO handle duplicate current assignments
 
+      System.out.println("current : " + currentAssignments);
+      System.out.println("desired : " + desiredParititions);
+
       Map<HostAndPort,Set<FatePartition>> desired =
           computeDesiredAssignments(currentAssignments, desiredParititions);
 
@@ -88,29 +88,42 @@ public class FateManager {
 
       if (haveExtra) {
         // force unload of extra partitions to make them available for other workers
-        desired.forEach((worker, paritions) -> {
+        for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+          HostAndPort worker = entry.getKey();
+          Set<FatePartition> partitions = entry.getValue();
           var curr = currentAssignments.getOrDefault(worker, Set.of());
-          if (!curr.equals(paritions)) {
-            var intersection = Sets.intersection(curr, paritions);
+          if (!curr.equals(partitions)) {
+            var intersection = Sets.intersection(curr, partitions);
             setWorkerPartitions(worker, curr, intersection);
             currentAssignments.put(worker, intersection);
           }
-        });
+        }
       }
 
       // Load all partitions on all workers..
-      desired.forEach((worker, paritions) -> {
+      for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+        HostAndPort worker = entry.getKey();
+        Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
-        if (!curr.equals(paritions)) {
-          setWorkerPartitions(worker, curr, paritions);
+        if (!curr.equals(partitions)) {
+          setWorkerPartitions(worker, curr, partitions);
         }
-      });
+      }
     }
   }
 
-  private void setWorkerPartitions(HostAndPort worker, Set<FatePartition> current,
-      Set<FatePartition> desired) {
+  private void setWorkerPartitions(HostAndPort address, Set<FatePartition> current,
+      Set<FatePartition> desired) throws TException {
     // TODO make a compare and set type RPC that uses the current and desired
+    FateWorkerService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
+    try {
+      client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(),
+          current.stream().map(FatePartition::toThrift).toList(),
+          desired.stream().map(FatePartition::toThrift).toList());
+    } finally {
+      ThriftUtil.returnClient(client, context);
+    }
   }
 
   /**
@@ -121,18 +134,26 @@ public class FateManager {
       Map<HostAndPort,Set<FatePartition>> currentAssignments,
       Set<FatePartition> desiredParititions) {
     // min number of partitions a single worker must have
-    int minPerWorker = currentAssignments.size() / desiredParititions.size();
+    int minPerWorker = desiredParititions.size() / currentAssignments.size();
     // max number of partitions a single worker can have
     int maxPerWorker =
-        minPerWorker + Math.min(currentAssignments.size() % desiredParititions.size(), 1);
+        minPerWorker + Math.min(desiredParititions.size() % currentAssignments.size(), 1);
     // number of workers that can have the max partitions
-    int desiredWorkersWithMax = currentAssignments.size() % desiredParititions.size();
+    int desiredWorkersWithMax =
+        desiredParititions.size() - minPerWorker * currentAssignments.size();
 
     Map<HostAndPort,Set<FatePartition>> desiredAssignments = new HashMap<>();
     Set<FatePartition> availablePartitions = new HashSet<>(desiredParititions);
 
     // remove everything that is assigned
     currentAssignments.values().forEach(p -> p.forEach(availablePartitions::remove));
+
+    System.out.println("currentAssignments.size():" + currentAssignments.size());
+    System.out.println("desiredParititions.size():" + desiredParititions.size());
+    System.out.println("minPerWorker:" + minPerWorker);
+    System.out.println("maxPerWorker:" + maxPerWorker);
+    System.out.println("desiredWorkersWithMax:" + desiredWorkersWithMax);
+    System.out.println("availablePartitions:" + availablePartitions);
 
     // Find workers that currently have too many partitions assigned and place their excess in the
     // available set. Let workers keep what they have when its under the limit.
@@ -178,45 +199,47 @@ public class FateManager {
       }
     }
 
+    desiredAssignments.forEach((hp, parts) -> {
+      System.out.println(" desired " + hp + " " + parts.size() + " " + parts);
+    });
+
     return desiredAssignments;
   }
 
   private Set<FatePartition> getDesiredPartitions() {
-
     HashSet<FatePartition> desired = new HashSet<>();
     // TODO created based on the number of available servers
-    for(long i = 0; i<=15; i++){
-      UUID start = new UUID((i<<60) , -0);
-      UUID stop = new UUID((i<<60) | (-1L>>>4), -1);
-      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, start), FateId.from(FateInstanceType.USER, stop)));
+    for (long i = 0; i <= 15; i++) {
+      UUID start = new UUID((i << 60), -0);
+      UUID stop = new UUID((i << 60) | (-1L >>> 4), -1);
+      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, start),
+          FateId.from(FateInstanceType.USER, stop)));
     }
 
     return desired;
   }
 
-  private Map<HostAndPort,Set<FatePartition>> getCurrentAssignments() throws InterruptedException, KeeperException, TException {
-    ZooReaderWriter zk = context.getZooSession().asReaderWriter();
-    var managerPath = context.getServerPaths().createManagerPath();
+  private Map<HostAndPort,Set<FatePartition>> getCurrentAssignments() throws TException {
+    var workers =
+        context.getServerPaths().getManagerWorker(DEFAULT_RG_ONLY, AddressSelector.all(), true);
 
-    var children = ServiceLock.validateAndSort(managerPath, zk.getChildren(managerPath.toString()));
-
-    List<ServiceLockData> locksData = new ArrayList<>(children.size());
-
-    for(var child : children){
-      ServiceLockData.parse(zk.getData(managerPath +"/"+child)).ifPresent(locksData::add);
-    }
+    System.out.println("workers : " + workers);
 
     Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
 
-    for(var lockData : locksData) {
-      var address = lockData.getAddress(ServiceLockData.ThriftService.FATE_WORKER);
+    for (var worker : workers) {
+      var address = HostAndPort.fromString(worker.getServer());
 
       FateWorkerService.Client client =
-              ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
+          ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
+      try {
 
-      var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());
-      var partitions = tparitions.stream().map(FatePartition::from).collect(Collectors.toSet());
-      currentAssignments.put(address, partitions);
+        var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());
+        var partitions = tparitions.stream().map(FatePartition::from).collect(Collectors.toSet());
+        currentAssignments.put(address, partitions);
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
     }
 
     return currentAssignments;

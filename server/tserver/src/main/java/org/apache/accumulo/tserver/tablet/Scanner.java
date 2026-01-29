@@ -34,7 +34,6 @@ import org.apache.accumulo.core.trace.ScanInstrumentation;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
-import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
