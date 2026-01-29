@@ -25,7 +25,6 @@ import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -41,8 +40,8 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.functional.ErrorThrowingIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -55,7 +54,6 @@ public class ScanExecutorExceptionsIT extends ConfigurableMacBase {
 
   private static final Logger log = LoggerFactory.getLogger(ScanExecutorExceptionsIT.class);
   private static TestStatsDSink sink;
-  private static final AtomicLong exceptionCount = new AtomicLong(0);
 
   @Override
   protected Duration defaultTimeout() {
@@ -77,7 +75,9 @@ public class ScanExecutorExceptionsIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
-    cfg.setProperty("general.custom.metrics. opts. logging.step", "5s");
+    cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
+    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
+    cfg.setProperty("general.custom.metrics.opts.logging.step", "5s");
     String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
         + TestStatsDRegistryFactory.class.getName();
     cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, clazzList);
@@ -93,14 +93,18 @@ public class ScanExecutorExceptionsIT extends ConfigurableMacBase {
       String tableName = getUniqueNames(1)[0];
       log.info("Creating table: {}", tableName);
 
-      // Create table with BadIterator configured for scan scope
+      final int numEntries = 10;
+      final int totalExceptions = 6;
+
       NewTableConfiguration ntc = new NewTableConfiguration();
-      IteratorSetting badIterSetting = new IteratorSetting(50, "bad", BadIterator.class);
-      ntc.attachIterator(badIterSetting, EnumSet.of(IteratorUtil.IteratorScope.scan));
+      IteratorSetting errorIterSetting =
+          new IteratorSetting(50, "error", ErrorThrowingIterator.class);
+      errorIterSetting.addOption(ErrorThrowingIterator.TIMES, String.valueOf(totalExceptions));
+      ntc.attachIterator(errorIterSetting, EnumSet.of(IteratorUtil.IteratorScope.scan));
       client.tableOperations().create(tableName, ntc);
 
       try (BatchWriter writer = client.createBatchWriter(tableName)) {
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < numEntries; i++) {
           Mutation m = new Mutation(new Text("row" + i));
           m.put("cf", "cq", "value" + i);
           writer.addMutation(m);
@@ -109,67 +113,79 @@ public class ScanExecutorExceptionsIT extends ConfigurableMacBase {
 
       client.tableOperations().flush(tableName, null, null, true);
 
-      log.info("Performing scans to trigger exceptions.. .");
+      log.info("Performing regular scan");
+      int scanCount = performScanCountingEntries(client, tableName);
+      log.info("Regular scan returned {} entries", scanCount);
 
-      for (int i = 0; i < 3; i++) {
-        performScanWithException(client, tableName);
-      }
+      log.info("Performing batch scan");
+      int batchScanCount = performBatchScanCountingEntries(client, tableName);
+      log.info("Batch scan returned {} entries", batchScanCount);
 
-      for (int i = 0; i < 3; i++) {
-        performBatchScanWithException(client, tableName);
-      }
+      List<String> statsDMetrics;
+      boolean foundMetric = false;
+      long highestExceptionCount = 0;
+      long startTime = System.currentTimeMillis();
+      long timeout = 30_000;
 
-      log.info("Waiting for metrics to be published...");
-      Thread.sleep(15_000);
-      log.info("Collecting metrics from sink...");
-      List<String> statsDMetrics = sink.getLines();
-      log.info("Received {} metric lines from sink", statsDMetrics.size());
-      exceptionCount.set(0);
+      while (!foundMetric && (System.currentTimeMillis() - startTime) < timeout) {
+        statsDMetrics = sink.getLines();
 
-      int metricsFound = 0;
-      for (String line : statsDMetrics) {
-        if (line.startsWith(METRICS_SCAN_EXCEPTIONS)) {
-          metricsFound++;
-          TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
-          log.info("Found scan exception metric: {}", metric);
-          String executor = metric.getTags().get("executor");
-          if (executor != null) {
-            long val = Long.parseLong(metric.getValue());
-            exceptionCount.accumulateAndGet(val, Math::max);
-            log.info("Recorded exception count for executor '{}': {}", executor, val);
+        if (!statsDMetrics.isEmpty()) {
+          for (String line : statsDMetrics) {
+            if (line.startsWith(METRICS_SCAN_EXCEPTIONS)) {
+              foundMetric = true;
+              TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
+              String executor = metric.getTags().get("executor");
+              if (executor != null) {
+                long val = Long.parseLong(metric.getValue());
+                highestExceptionCount = Math.max(highestExceptionCount, val);
+                log.info("Found scan exception metric for executor '{}': {}", executor, val);
+              }
+            }
           }
+        }
+
+        if (!foundMetric) {
+          Thread.sleep(1_000);
         }
       }
 
-      log.info("Found {} scan exception metrics total", metricsFound);
-      long finalCount = exceptionCount.get();
-      log.info("Final exception count: {}", finalCount);
+      log.info("Final exception count from metrics: {}", highestExceptionCount);
 
-      assertTrue(finalCount > 0, "Should have tracked exceptions, but count was: " + finalCount);
+      assertTrue(foundMetric, "Should have found scan exception metric");
+      assertTrue(highestExceptionCount > 0,
+          "Scan exception metric should have a count > 0, but was: " + highestExceptionCount);
     }
   }
 
-  private void performScanWithException(AccumuloClient client, String table) {
+  private int performScanCountingEntries(AccumuloClient client, String table) {
+    int count = 0;
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      // Set a timeout to avoid hanging forever
-      scanner.setTimeout(5, java.util.concurrent.TimeUnit.SECONDS);
-      scanner.forEach((k, v) -> {
-        // This should never be reached because the iterator throws an exception
-      });
+      scanner.setTimeout(10, java.util.concurrent.TimeUnit.SECONDS);
+      for (var entry : scanner) {
+        count++;
+        log.debug("Scan entry {}: {}", count, entry.getKey());
+      }
+      log.info("Scan completed successfully with {} entries", count);
     } catch (Exception e) {
-      log.debug("Expected exception from regular scan on table {}: {}", table, e.getMessage());
+      log.info("Exception during regular scan after {} entries: {}", count, e.getMessage());
     }
+    return count;
   }
 
-  private void performBatchScanWithException(AccumuloClient client, String table) {
+  private int performBatchScanCountingEntries(AccumuloClient client, String table) {
+    int count = 0;
     try (BatchScanner batchScanner = client.createBatchScanner(table, Authorizations.EMPTY, 2)) {
-      batchScanner.setTimeout(5, java.util.concurrent.TimeUnit.SECONDS);
-      batchScanner.setRanges(List.of(new Range("row0", "row5"), new Range("row6", "row9")));
-      batchScanner.forEach((k, v) -> {
-        // This should never be reached because the iterator throws an exception
-      });
+      batchScanner.setTimeout(10, java.util.concurrent.TimeUnit.SECONDS);
+      batchScanner.setRanges(List.of(new Range()));
+      for (var entry : batchScanner) {
+        count++;
+        log.debug("Batch scan entry {}: {}", count, entry.getKey());
+      }
+      log.info("Batch scan completed successfully with {} entries", count);
     } catch (Exception e) {
-      log.debug("Expected exception from batch scan on table {}: {}", table, e.getMessage());
+      log.info("Exception during batch scan after {} entries: {}", count, e.getMessage());
     }
+    return count;
   }
 }
