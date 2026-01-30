@@ -328,7 +328,7 @@ public class ScanServer extends AbstractServer
   }
 
   /**
-   * Set up nodes and locks in ZooKeeper for this Compactor
+   * Set up nodes and locks in ZooKeeper for this ScanServer
    */
   private ServiceLock announceExistence() {
     ZooReaderWriter zoo = getContext().getZooReaderWriter();
