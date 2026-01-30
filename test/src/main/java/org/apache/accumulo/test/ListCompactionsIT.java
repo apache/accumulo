@@ -18,20 +18,12 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP3;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP5;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP6;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP7;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP8;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -44,17 +36,15 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.ECAdmin;
-import org.apache.accumulo.server.util.ECAdmin.RunningCompactionSummary;
+import org.apache.accumulo.server.util.ListCompactions;
+import org.apache.accumulo.server.util.ListCompactions.RunningCompactionSummary;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -67,64 +57,31 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-public class ECAdminIT extends SharedMiniClusterBase {
+public class ListCompactionsIT extends SharedMiniClusterBase {
 
-  // Class exists for access to protected methods
-  private static class TestECAdmin extends ECAdmin {
-
-    @Override
-    protected void cancelCompaction(ServerContext context, String ecid) {
-      super.cancelCompaction(context, ecid);
-    }
-
-    @Override
-    protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {
-      return super.listCompactorsByQueue(context);
-    }
-
-    @Override
-    protected List<RunningCompactionSummary> runningCompactions(ServerContext context,
-        boolean details) {
-      return super.runningCompactions(context, details);
-    }
-  }
-
-  private static final class ECAdminITConfig implements MiniClusterConfigurationCallback {
-
+  private static final class ListCompactionsITConfig implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
     }
+  }
 
+  private static class ListCompactionsWrapper extends ListCompactions {
+    @Override
+    protected List<RunningCompactionSummary> getRunningCompactions(ServerContext context,
+        boolean details) {
+      return super.getRunningCompactions(context, details);
+    }
   }
 
   @BeforeAll
   public static void beforeAll() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(new ECAdminITConfig());
+    SharedMiniClusterBase.startMiniClusterWithConfig(new ListCompactionsITConfig());
   }
 
   @AfterAll
   public static void afterAll() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
-  }
-
-  private final TestECAdmin eca = new TestECAdmin();
-
-  @Test
-  public void testListCompactors() throws Exception {
-    final Map<ResourceGroupId,List<ServerId>> compactors =
-        eca.listCompactorsByQueue(getCluster().getServerContext());
-    System.out.println(compactors);
-    assertEquals(9, compactors.size());
-    assertTrue(compactors.containsKey(ResourceGroupId.DEFAULT));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP1)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP2)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP3)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP4)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP5)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP6)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP7)));
-    assertTrue(compactors.containsKey(ResourceGroupId.of(GROUP8)));
   }
 
   @Test
@@ -156,7 +113,7 @@ public class ECAdminIT extends SharedMiniClusterBase {
       }
 
       final List<RunningCompactionSummary> running =
-          eca.runningCompactions(getCluster().getServerContext(), true);
+          new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
       running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
 
