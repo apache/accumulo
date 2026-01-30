@@ -62,9 +62,9 @@ public class ScanCommand extends Command {
 
   private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, formatterOpt,
       interpreterOpt, formatterInterpreterOpt, outputFileOpt, scanOptCf, scanOptCq;
-  private Option scanOptBeginKeyRow, scanOptBeginKeyCf, scanOptBeginKeyCq, scanOptBeginKeyCv,
-      scanOptBeginKeyTs, scanOptEndKeyRow, scanOptEndKeyCf, scanOptEndKeyCq, scanOptEndKeyCv,
-      scanOptEndKeyTs, scanOptBeginKeyExclusive, scanOptEndKeyExclusive;
+  private Option scanOptBeginKeyRow, scanOptBeginKeyCf, scanOptBeginKeyCq, scanOptBeginKeyTs,
+      scanOptEndKeyRow, scanOptEndKeyCf, scanOptEndKeyCq, scanOptEndKeyTs, scanOptBeginKeyExclusive,
+      scanOptEndKeyExclusive;
   private Options scanOptsKeyRange;
   protected Option showFewOpt;
   protected Option timestampOpt;
@@ -373,9 +373,9 @@ public class ScanCommand extends Command {
       return new Range(interprettedRow);
     } else if (hasScanOptKeyRange) {
       var beginKey = createKey(cl, scanOptBeginKeyRow, scanOptBeginKeyCf, scanOptBeginKeyCq,
-          scanOptBeginKeyCv, scanOptBeginKeyTs);
-      var endKey = createKey(cl, scanOptEndKeyRow, scanOptEndKeyCf, scanOptEndKeyCq,
-          scanOptEndKeyCv, scanOptEndKeyTs);
+          scanOptBeginKeyTs);
+      var endKey =
+          createKey(cl, scanOptEndKeyRow, scanOptEndKeyCf, scanOptEndKeyCq, scanOptEndKeyTs);
       final boolean beginInclusive = !cl.hasOption(scanOptBeginKeyExclusive.getOpt());
       final boolean endInclusive = !cl.hasOption(scanOptEndKeyExclusive.getOpt());
       return new Range(beginKey, beginInclusive, endKey, endInclusive);
@@ -399,10 +399,10 @@ public class ScanCommand extends Command {
   }
 
   private Key createKey(CommandLine cl, Option scanOptKeyRow, Option scanOptKeyCf,
-      Option scanOptKeyCq, Option scanOptKeyCv, Option scanOptKeyTs) {
-    requireAllPreceding(cl, scanOptKeyRow, scanOptKeyCf, scanOptKeyCq, scanOptKeyCv, scanOptKeyTs);
+      Option scanOptKeyCq, Option scanOptKeyTs) {
+    requireAllPreceding(cl, scanOptKeyRow, scanOptKeyCf, scanOptKeyCq, scanOptKeyTs);
     final byte[] emptyBytes = new byte[0];
-    byte[] row, cf = emptyBytes, cq = emptyBytes, cv = emptyBytes;
+    byte[] row, cf = emptyBytes, cq = emptyBytes;
     long ts = Long.MAX_VALUE;
     if (cl.hasOption(scanOptKeyRow)) {
       row = cl.getOptionValue(scanOptKeyRow).getBytes(Shell.CHARSET);
@@ -410,21 +410,18 @@ public class ScanCommand extends Command {
         cf = cl.getOptionValue(scanOptKeyCf.getOpt()).getBytes(Shell.CHARSET);
         if (cl.hasOption(scanOptKeyCq)) {
           cq = cl.getOptionValue(scanOptKeyCq.getOpt()).getBytes(Shell.CHARSET);
-          if (cl.hasOption(scanOptKeyCv)) {
-            cv = cl.getOptionValue(scanOptKeyCv.getOpt()).getBytes(Shell.CHARSET);
-            if (cl.hasOption(scanOptKeyTs)) {
-              ts = Long.parseLong(cl.getOptionValue(scanOptKeyTs.getOpt()));
-            }
+          if (cl.hasOption(scanOptKeyTs)) {
+            ts = Long.parseLong(cl.getOptionValue(scanOptKeyTs.getOpt()));
           }
         }
       }
-      return new Key(row, cf, cq, cv, ts);
+      return new Key(row, cf, cq, emptyBytes, ts);
     }
     return null;
   }
 
   private void requireAllPreceding(CommandLine cl, Option scanOptKeyRow, Option scanOptKeyCf,
-      Option scanOptKeyCq, Option scanOptKeyCv, Option scanOptKeyTs) {
+      Option scanOptKeyCq, Option scanOptKeyTs) {
     if (cl.hasOption(scanOptKeyCf)) {
       Preconditions.checkArgument(cl.hasOption(scanOptKeyRow), "-%s is required when using -%s",
           scanOptKeyRow.getOpt(), scanOptKeyCf.getOpt());
@@ -434,19 +431,11 @@ public class ScanCommand extends Command {
           "both -%s and -%s are required when using -%s", scanOptKeyRow.getOpt(),
           scanOptKeyCf.getOpt(), scanOptKeyCq.getOpt());
     }
-    if (cl.hasOption(scanOptKeyCv)) {
+    if (cl.hasOption(scanOptKeyTs)) {
       Preconditions.checkArgument(
           cl.hasOption(scanOptKeyCq) && cl.hasOption(scanOptKeyCf) && cl.hasOption(scanOptKeyRow),
           "-%s -%s -%s are all required when using -%s", scanOptKeyRow.getOpt(),
-          scanOptKeyCf.getOpt(), scanOptKeyCq.getOpt(), scanOptKeyCv.getOpt());
-    }
-    if (cl.hasOption(scanOptKeyTs)) {
-      Preconditions.checkArgument(
-          cl.hasOption(scanOptKeyCv) && cl.hasOption(scanOptKeyCq) && cl.hasOption(scanOptKeyCf)
-              && cl.hasOption(scanOptKeyRow),
-          "-%s -%s -%s -%s are all required when using -%s", scanOptKeyRow.getOpt(),
-          scanOptKeyCf.getOpt(), scanOptKeyCq.getOpt(), scanOptKeyCv.getOpt(),
-          scanOptKeyTs.getOpt());
+          scanOptKeyCf.getOpt(), scanOptKeyCq.getOpt(), scanOptKeyTs.getOpt());
     }
   }
 
@@ -494,15 +483,11 @@ public class ScanCommand extends Command {
         new Option("bkcf", "begin-key-cf", true, "key-based range start column family");
     scanOptBeginKeyCq =
         new Option("bkcq", "begin-key-cq", true, "key-based range start column qualifier");
-    scanOptBeginKeyCv =
-        new Option("bkcv", "begin-key-cv", true, "key-based range start column visibility");
     scanOptBeginKeyTs = new Option("bkts", "begin-key-ts", true, "key-based range start timestamp");
     scanOptEndKeyRow = new Option("ekr", "end-key-r", true, "key-based range end row");
     scanOptEndKeyCf = new Option("ekcf", "end-key-cf", true, "key-based range end column family");
     scanOptEndKeyCq =
         new Option("ekcq", "end-key-cq", true, "key-based range end column qualifier");
-    scanOptEndKeyCv =
-        new Option("ekcv", "end-key-cv", true, "key-based range end column visibility");
     scanOptEndKeyTs = new Option("ekts", "end-key-ts", true, "key-based range end timestamp");
     scanOptBeginKeyExclusive = new Option("bke", "begin-key-exclusive", false,
         "make start key exclusive (by default it's inclusive)");
@@ -510,10 +495,9 @@ public class ScanCommand extends Command {
         "make end key exclusive (by default it's inclusive)");
     scanOptsKeyRange = new Options();
     scanOptsKeyRange.addOption(scanOptBeginKeyRow).addOption(scanOptBeginKeyCf)
-        .addOption(scanOptBeginKeyCq).addOption(scanOptBeginKeyCv).addOption(scanOptBeginKeyTs)
-        .addOption(scanOptEndKeyRow).addOption(scanOptEndKeyCf).addOption(scanOptEndKeyCq)
-        .addOption(scanOptEndKeyCv).addOption(scanOptEndKeyTs).addOption(scanOptBeginKeyExclusive)
-        .addOption(scanOptEndKeyExclusive);
+        .addOption(scanOptBeginKeyCq).addOption(scanOptBeginKeyTs).addOption(scanOptEndKeyRow)
+        .addOption(scanOptEndKeyCf).addOption(scanOptEndKeyCq).addOption(scanOptEndKeyTs)
+        .addOption(scanOptBeginKeyExclusive).addOption(scanOptEndKeyExclusive);
 
     timestampOpt = new Option("st", "show-timestamps", false, "display timestamps");
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
@@ -554,12 +538,10 @@ public class ScanCommand extends Command {
     scanOptBeginKeyRow.setArgName("begin-key-r");
     scanOptBeginKeyCf.setArgName("begin-key-cf");
     scanOptBeginKeyCq.setArgName("begin-key-cq");
-    scanOptBeginKeyCv.setArgName("begin-key-cv");
     scanOptBeginKeyTs.setArgName("begin-key-ts");
     scanOptEndKeyRow.setArgName("end-key-r");
     scanOptEndKeyCf.setArgName("end-key-cf");
     scanOptEndKeyCq.setArgName("end-key-cq");
-    scanOptEndKeyCv.setArgName("end-key-cv");
     scanOptEndKeyTs.setArgName("end-key-ts");
     scanOptBeginKeyExclusive.setArgName("begin-key-exclusive");
     scanOptEndKeyExclusive.setArgName("end-key-exclusive");
