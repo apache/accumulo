@@ -36,6 +36,7 @@ import java.util.concurrent.Future;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -110,6 +111,26 @@ public class ExternalCompactionUtil {
     }
     return ServiceLock.getLockData(context.getZooCache(), slp, new ZcStat())
         .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
+  }
+
+  /**
+   * @param context client context
+   * @return CompactionCoordinator Thrift client, user has the responsibility to call
+   *         {@code ThriftUtil.returnClient(coordinatorClient, context);}
+   */
+  public static CompactionCoordinatorService.Client getCoordinatorClient(ClientContext context) {
+    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
+    if (coordinatorHost.isEmpty()) {
+      throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
+    }
+    HostAndPort address = coordinatorHost.orElseThrow();
+    CompactionCoordinatorService.Client coordinatorClient;
+    try {
+      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
+    } catch (Exception e) {
+      throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
+    }
+    return coordinatorClient;
   }
 
   /**
