@@ -39,6 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -178,9 +179,10 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapGc) {
       String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
       try {
-        removeSingletonLock(zoo, gcLockPath, hostPortPredicate, opts);
+        ServiceLock.removeLock(zoo, gcLockPath, ServerServices.Service.GC_CLIENT, hostPortPredicate,
+            m -> message(m, opts), opts.dryRun);
       } catch (KeeperException | InterruptedException e) {
-        log.error("Error deleting manager lock", e);
+        log.error("Error deleting gc lock", e);
       }
     }
 
