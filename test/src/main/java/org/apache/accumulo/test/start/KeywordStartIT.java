@@ -172,9 +172,8 @@ public class KeywordStartIT {
     while (expectIter.hasNext() && actualIter.hasNext()) {
       expected = expectIter.next();
       actual = actualIter.next();
-      System.out.println(expected.getKey() + " -> " + actual.getKey());
-      // assertEquals(expected.getKey(), actual.getKey());
-      // assertEquals(expected.getValue(), actual.getValue().getClass());
+      assertEquals(expected.getKey(), actual.getKey());
+      assertEquals(expected.getValue(), actual.getValue().getClass());
     }
     boolean moreExpected = expectIter.hasNext();
     if (moreExpected) {
