@@ -215,7 +215,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       }
 
       ThreadPoolExecutor threads = ThreadPools.getServerThreadPools()
-          .createFixedThreadPool(NUM_THREADS, "ClientThreads", false);
+          .getPoolBuilder("batch.writer.client.flush").numCoreThreads(NUM_THREADS).build();
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 

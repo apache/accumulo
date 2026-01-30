@@ -21,16 +21,16 @@ package org.apache.accumulo.tserver.tablet;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -44,9 +44,15 @@ import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.trace.ScanInstrumentation;
+import org.apache.accumulo.core.trace.TraceAttributes;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
@@ -62,6 +68,8 @@ import org.apache.accumulo.tserver.scan.ScanParameters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.opentelemetry.api.trace.Span;
+
 /**
  * This class exists to share code for scanning a tablet between {@link Tablet} and
  * {@link SnapshotTablet}
@@ -76,10 +84,10 @@ public abstract class TabletBase {
   protected final ServerContext context;
   private final TabletHostingServer server;
 
-  protected AtomicLong lookupCount = new AtomicLong(0);
-  protected AtomicLong queryResultCount = new AtomicLong(0);
-  protected AtomicLong queryResultBytes = new AtomicLong(0);
-  protected final AtomicLong scannedCount = new AtomicLong(0);
+  protected final AtomicLong lookupCount = new AtomicLong(0);
+  protected final AtomicLong queryResultCount = new AtomicLong(0);
+  protected final AtomicLong queryResultBytes = new AtomicLong(0);
+  protected final LongAdder scannedCount = new LongAdder();
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
 
@@ -93,7 +101,7 @@ public abstract class TabletBase {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
-    this.isUserTable = !extent.isMeta();
+    this.isUserTable = !SystemTables.containsTableId(extent.tableId());
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -113,9 +121,18 @@ public abstract class TabletBase {
     }
   }
 
+  protected boolean disallowNewReservations(ScanParameters scanParameters) {
+    var scanSessId = scanParameters.getScanSessionId();
+    if (scanSessId != null) {
+      return server.getSessionManager().disallowNewReservations(scanSessId);
+    } else {
+      return true;
+    }
+  }
+
   public abstract boolean isClosed();
 
-  public abstract SortedMap<StoredTabletFile,DataFileValue> getDatafiles();
+  public abstract Map<StoredTabletFile,DataFileValue> getDatafiles();
 
   public abstract void addToYieldMetric(int i);
 
@@ -148,7 +165,7 @@ public abstract class TabletBase {
     return new Scanner(this, range, scanParams, interruptFlag);
   }
 
-  public AtomicLong getScannedCounter() {
+  public LongAdder getScannedCounter() {
     return this.scannedCount;
   }
 
@@ -199,25 +216,30 @@ public abstract class TabletBase {
       tabletRange.clip(range);
     }
 
-    SourceSwitchingIterator.DataSource dataSource =
-        createDataSource(scanParams, true, interruptFlag);
+    ScanDataSource dataSource = createDataSource(scanParams, true, interruptFlag);
 
     Tablet.LookupResult result = null;
 
     boolean sawException = false;
-    try {
+    var span = TraceUtil.startSpan(TabletBase.class, "multiscan-batch");
+    try (var scope = span.makeCurrent(); var scanScope = ScanInstrumentation.enable(span)) {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
-      this.server.getScanMetrics().incrementLookupCount(1);
+      this.server.getScanMetrics().incrementLookupCount();
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
+      // must close data source before recording scan trace in order to flush all file read stats
+      dataSource.close(false);
+      recordScanTrace(span, results, scanParams, dataSource);
       return result;
     } catch (IOException | RuntimeException e) {
       sawException = true;
+      span.recordException(e);
       throw e;
     } finally {
       // code in finally block because always want
       // to return data files, even when exception is thrown
       dataSource.close(sawException);
+      span.end();
 
       synchronized (this) {
         queryResultCount.addAndGet(results.size());
@@ -227,6 +249,34 @@ public abstract class TabletBase {
           this.server.getScanMetrics().incrementQueryResultBytes(result.dataSize);
         }
       }
+    }
+  }
+
+  void recordScanTrace(Span span, List<KVEntry> batch, ScanParameters scanParameters,
+      ScanDataSource dataSource) {
+    if (span.isRecording()) {
+      span.setAttribute(TraceAttributes.ENTRIES_RETURNED_KEY, batch.size());
+      long bytesReturned = 0;
+      for (var e : batch) {
+        bytesReturned += e.getKey().getLength() + e.getValue().get().length;
+      }
+      span.setAttribute(TraceAttributes.BYTES_RETURNED_KEY, bytesReturned);
+      span.setAttribute(TraceAttributes.EXECUTOR_KEY,
+          scanParameters.getScanDispatch().getExecutorName());
+      span.setAttribute(TraceAttributes.TABLE_ID_KEY, getExtent().tableId().canonical());
+      span.setAttribute(TraceAttributes.EXTENT_KEY, getExtent().toString());
+      var si = ScanInstrumentation.get();
+      span.setAttribute(TraceAttributes.BYTES_READ_FILE_KEY, si.getFileBytesRead());
+      span.setAttribute(TraceAttributes.BYTES_READ_KEY, si.getUncompressedBytesRead());
+      span.setAttribute(TraceAttributes.INDEX_HITS_KEY, si.getCacheHits(CacheType.INDEX));
+      span.setAttribute(TraceAttributes.INDEX_MISSES_KEY, si.getCacheMisses(CacheType.INDEX));
+      span.setAttribute(TraceAttributes.INDEX_BYPASSES_KEY, si.getCacheBypasses(CacheType.INDEX));
+      span.setAttribute(TraceAttributes.DATA_HITS_KEY, si.getCacheHits(CacheType.DATA));
+      span.setAttribute(TraceAttributes.DATA_MISSES_KEY, si.getCacheMisses(CacheType.DATA));
+      span.setAttribute(TraceAttributes.DATA_BYPASSES_KEY, si.getCacheBypasses(CacheType.DATA));
+      span.setAttribute(TraceAttributes.SERVER_KEY, server.getAdvertiseAddress().toString());
+
+      dataSource.setAttributes(span);
     }
   }
 
@@ -249,12 +299,11 @@ public abstract class TabletBase {
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
       batchTimeOut = 0;
     }
+
+    CountDownTimer runTimer = CountDownTimer.startNew(Duration.ofMillis(batchTimeOut));
     List<KVEntry> results = new ArrayList<>();
     Key key = null;
 
@@ -293,7 +342,7 @@ public abstract class TabletBase {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
+      boolean timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
       boolean runningLowOnMemory =
           context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
@@ -368,12 +417,11 @@ public abstract class TabletBase {
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
     if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
       batchTimeOut = 0;
     }
+
+    CountDownTimer runTimer = CountDownTimer.startNew(Duration.ofMillis(batchTimeOut));
 
     // determine if the iterator supported yielding
     YieldCallback<Key> yield = new YieldCallback<>();
@@ -382,7 +430,7 @@ public abstract class TabletBase {
 
     for (Range range : ranges) {
 
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
+      boolean timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
       boolean runningLowOnMemory =
           context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
@@ -420,7 +468,7 @@ public abstract class TabletBase {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
+          timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
           runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
               DetectionScope.SCAN, () -> {

@@ -25,9 +25,9 @@ import java.util.Map;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -46,26 +46,28 @@ public class BigRootTabletIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "60m");
     cfg.setSiteConfig(siteConfig);
   }
 
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.tableOperations().addSplits(MetadataTable.NAME,
+
+      c.namespaceOperations().setProperty(Namespace.ACCUMULO.name(),
+          Property.TABLE_SCAN_MAXMEM.getKey(), "1024");
+
+      c.tableOperations().addSplits(SystemTables.METADATA.tableName(),
           FunctionalTestUtils.splits("0 1 2 3 4 5 6 7 8 9 a".split(" ")));
       String[] names = getUniqueNames(10);
       for (String name : names) {
         c.tableOperations().create(name);
-        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-        c.tableOperations().flush(RootTable.NAME, null, null, true);
+        c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       }
       cluster.stop();
       cluster.start();
-      assertTrue(
-          c.createScanner(RootTable.NAME, Authorizations.EMPTY).stream().findAny().isPresent());
+      assertTrue(c.createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY).stream()
+          .findAny().isPresent());
     }
   }
 

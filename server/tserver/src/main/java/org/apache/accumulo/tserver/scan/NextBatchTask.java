@@ -54,12 +54,13 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     final SingleScanSession scanSession = (SingleScanSession) server.getSession(scanID);
     String oldThreadName = Thread.currentThread().getName();
 
+    if (!transitionToRunning()) {
+      return;
+    }
+    // Do not add any code here. Need to ensure that transitionFromRunning() runs in the finally
+    // block when transitionToRunning() returns true.
     try {
       if (isCancelled() || scanSession == null) {
-        return;
-      }
-
-      if (!transitionToRunning()) {
         return;
       }
 
@@ -98,7 +99,7 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
           e);
       addResult(e);
     } finally {
-      runState.set(ScanRunState.FINISHED);
+      transitionFromRunning();
       Thread.currentThread().setName(oldThreadName);
     }
 

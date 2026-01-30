@@ -28,9 +28,9 @@ import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 public class ConstraintViolationSummary implements Serializable {
 
   private static final long serialVersionUID = 1L;
-  public String constrainClass;
-  public short violationCode;
-  public String violationDescription;
+  public final String constrainClass;
+  public final short violationCode;
+  public final String violationDescription;
   public long numberOfViolatingMutations;
 
   /**

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.crypto;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_FACTORY;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
@@ -29,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,7 +47,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -290,7 +296,7 @@ public class CryptoTest {
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes =
-        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
+        getStringifiedBytes("U+1F47B".getBytes(UTF_8), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -304,7 +310,7 @@ public class CryptoTest {
 
     String stringifiedBytes = Arrays.toString(encryptedBytes);
     String stringifiedMarkerBytes =
-        getStringifiedBytes("U+1F47B".getBytes(), MARKER_STRING, MARKER_INT);
+        getStringifiedBytes("U+1F47B".getBytes(UTF_8), MARKER_STRING, MARKER_INT);
 
     assertEquals(stringifiedBytes, stringifiedMarkerBytes);
 
@@ -494,6 +500,98 @@ public class CryptoTest {
     assertEquals(NoCryptoService.class, cs.getClass());
 
     assertEquals(2, factory.getCount());
+  }
+
+  @Test
+  public void testMultipleThreads() throws Exception {
+    testMultipleThreads(WAL);
+    testMultipleThreads(TABLE);
+  }
+
+  private void testMultipleThreads(Scope scope) throws Exception {
+
+    byte[] plainText = new byte[1024 * 1024];
+    for (int i = 0; i < plainText.length; i++) {
+      plainText[i] = (byte) (i % 128);
+    }
+
+    AESCryptoService cs = new AESCryptoService();
+    cs.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON));
+    CryptoEnvironment encEnv = new CryptoEnvironmentImpl(scope, null, null);
+    FileEncrypter encrypter = cs.getFileEncrypter(encEnv);
+    byte[] params = encrypter.getDecryptionParameters();
+
+    assertNotNull(params);
+
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    DataOutputStream dataOut = new DataOutputStream(out);
+    OutputStream encrypted = encrypter.encryptStream(dataOut);
+
+    assertNotNull(encrypted);
+    DataOutputStream cipherOut = new DataOutputStream(encrypted);
+
+    cipherOut.write(plainText);
+
+    cipherOut.close();
+    dataOut.close();
+    encrypted.close();
+    out.close();
+    byte[] cipherText = out.toByteArray();
+
+    var executor = Executors.newCachedThreadPool();
+
+    final int numTasks = 32;
+    List<Future<Boolean>> verifyFutures = new ArrayList<>(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
+
+    FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
+
+    // verify that each input stream returned by decrypter.decryptStream() is independent when used
+    // by multiple threads
+    for (int i = 0; i < numTasks; i++) {
+      var future = executor.submit(() -> {
+        startLatch.countDown();
+        startLatch.await();
+        try (ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
+            DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in))) {
+          byte[] dataRead = new byte[plainText.length];
+          decrypted.readFully(dataRead);
+          return Arrays.equals(plainText, dataRead);
+        }
+      });
+      verifyFutures.add(future);
+    }
+    assertEquals(numTasks, verifyFutures.size());
+
+    for (var future : verifyFutures) {
+      assertTrue(future.get());
+    }
+  }
+
+  @Test
+  public void testOverlappingWrites() throws Exception {
+    testOverlappingWrites(WAL);
+    testOverlappingWrites(TABLE);
+  }
+
+  private void testOverlappingWrites(Scope scope) throws Exception {
+    AESCryptoService cs = new AESCryptoService();
+    cs.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON));
+    CryptoEnvironment encEnv = new CryptoEnvironmentImpl(scope, null, null);
+    FileEncrypter encrypter = cs.getFileEncrypter(encEnv);
+
+    ByteArrayOutputStream out1 = new ByteArrayOutputStream();
+    var es1 = encrypter.encryptStream(out1);
+
+    // try to create a new encryption stream w/o closing the previous one
+    ByteArrayOutputStream out2 = new ByteArrayOutputStream();
+    var ce = assertThrows(CryptoException.class, () -> encrypter.encryptStream(out2));
+    assertTrue(ce.getMessage().contains("closing previous"));
+
+    es1.close();
+    assertNotNull(encrypter.encryptStream(out2));
   }
 
   private ArrayList<Key> testData() {

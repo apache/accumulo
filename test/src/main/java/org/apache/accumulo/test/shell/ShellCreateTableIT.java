@@ -33,7 +33,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -50,13 +50,16 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -75,7 +78,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
       cfg.setSiteConfig(siteConf);
@@ -297,7 +300,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -318,7 +321,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -339,7 +342,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -360,7 +363,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -381,7 +384,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -402,7 +405,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -423,7 +426,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -442,7 +445,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       assertThrows(TableNotFoundException.class,
           () -> client.tableOperations().listSplits(tableName));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -500,7 +503,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -521,7 +524,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -542,7 +545,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -563,7 +566,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -584,7 +587,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -605,7 +608,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -626,13 +629,72 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
+    }
+  }
+
+  // Verify that createtable handles initial TabletAvailability parameters.
+  // Argument should handle upper/lower/mixed case as value.
+  // If splits are supplied, each created tablet should contain the ~tab:availability value in
+  // the
+  // metadata table.
+  @Test
+  public void testCreateTableWithInitialTabletAvailability() throws Exception {
+    final String[] tables = getUniqueNames(5);
+
+    // createtable with no tablet availability argument supplied
+    String createCmd = "createtable " + tables[0];
+    verifyTableWithTabletAvailability(createCmd, tables[0], "ONDEMAND", 1);
+
+    // createtable with '-a' argument supplied
+    createCmd = "createtable " + tables[1] + " -a hosted";
+    verifyTableWithTabletAvailability(createCmd, tables[1], "HOSTED", 1);
+
+    // using --availability
+    createCmd = "createtable " + tables[2] + " --availability unHosted";
+    verifyTableWithTabletAvailability(createCmd, tables[2], "UNHOSTED", 1);
+
+    String splitsFile = System.getProperty("user.dir") + "/target/splitsFile";
+    Path splitFilePath = Path.of(splitsFile);
+    try {
+      generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
+      createCmd = "createtable " + tables[3] + " -a Hosted -sf " + splitsFile;
+      verifyTableWithTabletAvailability(createCmd, tables[3], "HOSTED", 11);
+    } finally {
+      Files.delete(splitFilePath);
+    }
+
+    try {
+      generateSplitsFile(splitsFile, 5, 5, true, true, true, false, false);
+      createCmd = "createtable " + tables[4] + " -a unhosted -sf " + splitsFile;
+      verifyTableWithTabletAvailability(createCmd, tables[4], "UNHOSTED", 6);
+    } finally {
+      Files.delete(splitFilePath);
+    }
+  }
+
+  private void verifyTableWithTabletAvailability(String cmd, String tableName,
+      String tabletAvailability, int expectedTabletCnt) throws Exception {
+    ts.exec(cmd);
+    String tableId = getTableId(tableName);
+    String result = ts.exec(
+        "scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c ~tab:availability");
+    // the ~tab:availability entry should be created at table creation
+    assertTrue(result.contains("~tab:availability"));
+    // There should be a corresponding tablet availability value for each expected tablet
+    assertEquals(expectedTabletCnt, StringUtils.countMatches(result, tabletAvailability));
+  }
+
+  private String getTableId(String tableName) throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> idMap = client.tableOperations().tableIdMap();
+      return idMap.get(tableName);
     }
   }
 
   private SortedSet<Text> readSplitsFromFile(final String splitsFile) throws IOException {
     SortedSet<Text> splits = new TreeSet<>();
-    try (BufferedReader reader = newBufferedReader(Paths.get(splitsFile))) {
+    try (BufferedReader reader = newBufferedReader(Path.of(splitsFile))) {
       String split;
       while ((split = reader.readLine()) != null) {
         Text unencodedString = decode(split);
@@ -648,7 +710,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       final boolean binarySplits, final boolean encoded, final boolean sort,
       final boolean addBlankLine, final boolean repeat) throws IOException {
 
-    java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
+    java.nio.file.Path splitsPath = java.nio.file.Path.of(splitsFile);
     int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
     Collection<Text> sortedSplits = null;
     Collection<Text> randomSplits;
@@ -692,20 +754,15 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   @Test
   public void copyConfigOptionsTest() throws Exception {
     String[] names = getUniqueNames(2);
-    String srcNS = "ns1"; // + names[0];
+    String srcNS = "ns1";
 
     String srcTable = srcNS + ".src_table_" + names[1];
     String destTable = srcNS + ".dest_table_" + names[1];
 
     // define constants
-    final String sysPropName = "table.custom.my_sys_prop";
-    final String sysPropValue1 = "sys_value1";
-    final String sysPropValue2 = "sys_value2";
     final String nsPropName = "table.custom.my_ns_prop";
     final String nsPropValue1 = "ns_value1";
     final String nsPropValue2 = "ns_value2";
-
-    ts.exec("config -s " + sysPropName + "=" + sysPropValue1);
 
     ts.exec("createnamespace " + srcNS);
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
@@ -722,41 +779,32 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       TableId destId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(destTable));
 
       // the Zk node should have all effective properties copied from configuration
-      var vp1 = propStore.get(TablePropKey.of(getCluster().getServerContext(), destId));
-      assertEquals(sysPropValue1, vp1.asMap().get(sysPropName));
+      var vp1 = propStore.get(TablePropKey.of(destId));
       assertEquals(nsPropValue1, vp1.asMap().get(nsPropName));
 
       // check getTableProperties also inherits the effective config
       Map<String,String> tableEffective =
           accumuloClient.tableOperations().getTableProperties(destTable);
-      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
       assertEquals(nsPropValue1, tableEffective.get(nsPropName));
 
       // changing the system and namespace props should leave the copied effective props unchanged
-      ts.exec("config -s " + sysPropName + "=" + sysPropValue2);
       ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
 
       // source will still inherit from sys and namespace (no prop values)
-      var vp2 = propStore
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(srcTable))));
-      assertNull(vp2.asMap().get(sysPropName));
+      var vp2 = propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable))));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
-      var vp3 = propStore
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
-      assertEquals(sysPropValue1, vp3.asMap().get(sysPropName));
+      var vp3 = propStore.get(TablePropKey.of(TableId.of(tids.get(destTable))));
       assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
 
       // show change propagated in source table effective hierarchy
       tableEffective = accumuloClient.tableOperations().getConfiguration(srcTable);
 
-      assertEquals(sysPropValue2, tableEffective.get(sysPropName));
       assertEquals(nsPropValue2, tableEffective.get(nsPropName));
 
       // because effective config was copied, the change should not propagate to effective hierarchy
       tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
       assertEquals(nsPropValue1, tableEffective.get(nsPropName));
     }
   }
@@ -770,57 +818,45 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     String destTable = srcNS + ".dest_table_" + names[1];
 
     // define constants
-    final String sysPropName = "table.custom.my_sys_prop";
-    final String sysPropValue1 = "sys_value1";
-    final String sysPropValue2 = "sys_value2";
     final String nsPropName = "table.custom.my_ns_prop";
     final String nsPropValue1 = "ns_value1";
     final String nsPropValue2 = "ns_value2";
-
-    ts.exec("config -s " + sysPropName + "=" + sysPropValue1);
 
     ts.exec("createnamespace " + srcNS);
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
 
     ts.exec("createtable " + srcTable);
-    ts.exec("createtable --exclude-parent-properties --copy-config " + srcTable + " " + destTable,
-        true);
+    ts.exec("createtable --copy-properties " + srcTable + " " + destTable, true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
 
       // only table unique values should be stored in Zk node for the table.
       var vp1 = getCluster().getServerContext().getPropStore()
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
-      assertNull(vp1.asMap().get(sysPropName));
+          .get(TablePropKey.of(TableId.of(tids.get(destTable))));
       assertNull(vp1.asMap().get(nsPropName));
 
       // check props were inherited in effective props
       Map<String,String> tableEffective =
           accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(sysPropValue1, tableEffective.get(sysPropName));
       assertEquals(nsPropValue1, tableEffective.get(nsPropName));
 
       // changing the system and namespace props should leave the effective props copied unchanged
-      ts.exec("config -s " + sysPropName + "=" + sysPropValue2);
       ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
 
       // source will still inherit from sys and namespace (no prop values)
       var vp2 = getCluster().getServerContext().getPropStore()
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(srcTable))));
-      assertNull(vp2.asMap().get(sysPropName));
+          .get(TablePropKey.of(TableId.of(tids.get(srcTable))));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
       var vp3 = getCluster().getServerContext().getPropStore()
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
-      assertNull(vp3.asMap().get(sysPropName));
+          .get(TablePropKey.of(TableId.of(tids.get(destTable))));
       assertNull(vp3.asMap().get(nsPropName));
 
       // because effective config was not copied, the changes should propagate to effective
       // hierarchy
       tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(sysPropValue2, tableEffective.get(sysPropName));
       assertEquals(nsPropValue2, tableEffective.get(nsPropName));
     }
   }
@@ -869,6 +905,89 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
     ts.exec("createtable --exclude-parent --copy-config " + names[0] + " " + names[1], true);
     ts.exec("createtable --copy-config " + names[0] + " --exclude-parent " + names[2], true);
+  }
+
+  @Test
+  public void testCreateTableCopiedConfig() throws Exception {
+    // tests that changes to default iterator settings on table1 are carried over to a new table2
+    // when created using the config of table1
+    final String[] tableNames = getUniqueNames(2);
+    final String table1 = tableNames[0];
+    final String table2 = tableNames[1];
+
+    ts.exec("createtable " + table1, true);
+    for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+      ts.exec("config -t " + table1 + " -d " + Property.TABLE_ITERATOR_PREFIX + iterScope.name()
+          + ".vers", true);
+      ts.exec("config -t " + table1 + " -s " + Property.TABLE_ITERATOR_PREFIX + iterScope.name()
+          + ".vers.opt.maxVersions=999", true);
+    }
+
+    ts.exec("createtable " + table2 + " -cc " + table1, true);
+    for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+      var res = ts.exec(
+          "config -t " + table2 + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
+      // verify deleted table1 prop is also deleted in table2
+      // note the space: ".vers "
+      assertFalse(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers "));
+      // verify changed table1 prop is also changed in table2
+      assertTrue(res
+          .contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions"));
+      assertTrue(res.contains("999"));
+    }
+  }
+
+  @Test
+  public void testCreateTableNoDefaults() throws Exception {
+    // tests the no defaults settings
+    final String table = getUniqueNames(1)[0];
+
+    ts.exec("createtable -ndtp " + table, true);
+
+    // verify no default iterator props
+    for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+      var res = ts.exec(
+          "config -t " + table + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
+      assertFalse(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers"));
+    }
+    // verify no default non-iterator props
+    // note filtering by "table.constraint" but checking output for "table.constraint."
+    // don't want to match command itself
+    var res = ts.exec("config -t " + table + " -f table.constraint", true);
+    assertFalse(res.contains(Property.TABLE_CONSTRAINT_PREFIX.getKey()));
+  }
+
+  @Test
+  public void testCreateTableMutuallyExclusiveCopyOpts() throws Exception {
+    final String[] tableNames = getUniqueNames(3);
+    final String optArg = "foo";
+    final String src = tableNames[0];
+    final String src2 = tableNames[1];
+    final String dest = tableNames[2];
+
+    ts.exec("createtable " + src, true);
+    ts.exec("createtable " + src2, true);
+
+    var res = ts.exec(String.format("createtable -cc %s -cp %s %s", src, src2, dest), false);
+    assertTrue(res.contains("AlreadySelectedException"));
+    res = ts.exec(String.format("createtable -cc %s -pf %s %s", src, optArg, dest), false);
+    assertTrue(res.contains("AlreadySelectedException"));
+    res = ts.exec(String.format("createtable -cp %s -pf %s %s", src, optArg, dest), false);
+    assertTrue(res.contains("AlreadySelectedException"));
+
+    for (var copyOpt : List.of("-cp", "-pf")) {
+      for (var noArgPropOpt : List.of("-ndtp", "-evc")) {
+        res = ts.exec(String.format("createtable %s %s %s %s", noArgPropOpt, copyOpt, src, dest),
+            false);
+        assertTrue(res.contains("mutually exclusive with"));
+      }
+      for (var propOpt : List.of("-prop", "-i", "-f", "-l")) {
+        res = ts.exec(
+            String.format("createtable %s %s %s %s %s", propOpt, optArg, copyOpt, src, dest),
+            false);
+        assertTrue(res.contains("mutually exclusive with"));
+      }
+    }
   }
 
   private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {

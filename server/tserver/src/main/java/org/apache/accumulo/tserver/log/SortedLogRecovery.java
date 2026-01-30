@@ -42,6 +42,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.logger.LogEvents;
@@ -51,6 +52,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.PeekingIterator;
@@ -65,46 +67,54 @@ public class SortedLogRecovery {
 
   private final ServerContext context;
 
-  public SortedLogRecovery(ServerContext context) {
+  private final CacheProvider cacheProvider;
+
+  private final Cache<String,Long> fileLenCache;
+
+  public SortedLogRecovery(ServerContext context, Cache<String,Long> fileLenCache,
+      CacheProvider cacheProvider) {
     this.context = context;
+    this.cacheProvider = cacheProvider;
+    this.fileLenCache = fileLenCache;
   }
 
   static LogFileKey maxKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
-    key.event = event;
-    key.tabletId = Integer.MAX_VALUE;
-    key.seq = Long.MAX_VALUE;
+    key.setEvent(event);
+    key.setTabletId(Integer.MAX_VALUE);
+    key.setSeq(Long.MAX_VALUE);
     return key;
   }
 
   static LogFileKey maxKey(LogEvents event, int tabletId) {
     LogFileKey key = maxKey(event);
-    key.tabletId = tabletId;
+    key.setTabletId(tabletId);
     return key;
   }
 
   static LogFileKey minKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
-    key.event = event;
+    key.setEvent(event);
     // see GitHub issue #477. There was a bug that caused -1 to end up in tabletId. If this happens
     // want to detect it and fail since recovery is dubious in this situation . Other code should
     // fail if the id is actually -1 in data.
-    key.tabletId = -1;
-    key.seq = 0;
+    key.setTabletId(-1);
+    key.setSeq(0);
     return key;
   }
 
   static LogFileKey minKey(LogEvents event, int tabletId) {
     LogFileKey key = minKey(event);
-    key.tabletId = tabletId;
+    key.setTabletId(tabletId);
     return key;
   }
 
-  private int findMaxTabletId(KeyExtent extent, List<Path> recoveryLogDirs) throws IOException {
+  private int findMaxTabletId(KeyExtent extent, List<ResolvedSortedLog> recoveryLogDirs)
+      throws IOException {
     int tabletId = -1;
 
     try (var rli = new RecoveryLogsIterator(context, recoveryLogDirs, minKey(DEFINE_TABLET),
-        maxKey(DEFINE_TABLET), true)) {
+        maxKey(DEFINE_TABLET), true, fileLenCache, cacheProvider)) {
 
       KeyExtent alternative = extent;
       if (extent.isRootTablet()) {
@@ -114,15 +124,16 @@ public class SortedLogRecovery {
       while (rli.hasNext()) {
         LogFileKey key = rli.next().getKey();
 
-        checkState(key.event == DEFINE_TABLET); // should only fail if bug elsewhere
+        checkState(key.getEvent() == DEFINE_TABLET); // should only fail if bug elsewhere
 
-        if (key.tablet.equals(extent) || key.tablet.equals(alternative)) {
-          checkState(key.tabletId >= 0, "tabletId %s for %s is negative", key.tabletId, extent);
-          checkState(tabletId == -1 || key.tabletId >= tabletId); // should only fail if bug in
+        if (key.getTablet().equals(extent) || key.getTablet().equals(alternative)) {
+          checkState(key.getTabletId() >= 0, "tabletId %s for %s is negative", key.getTabletId(),
+              extent);
+          checkState(tabletId == -1 || key.getTabletId() >= tabletId); // should only fail if bug in
           // RecoveryLogsIterator
 
-          if (tabletId != key.tabletId) {
-            tabletId = key.tabletId;
+          if (tabletId != key.getTabletId()) {
+            tabletId = key.getTabletId();
           }
         }
       }
@@ -139,18 +150,17 @@ public class SortedLogRecovery {
    * @return The maximum tablet ID observed AND the list of logs that contained the maximum tablet
    *         ID.
    */
-  private Entry<Integer,List<Path>> findLogsThatDefineTablet(KeyExtent extent,
-      List<Path> recoveryDirs) throws IOException {
-    Map<Integer,List<Path>> logsThatDefineTablet = new HashMap<>();
+  private Entry<Integer,List<ResolvedSortedLog>> findLogsThatDefineTablet(KeyExtent extent,
+      List<ResolvedSortedLog> recoveryDirs) throws IOException {
+    Map<Integer,List<ResolvedSortedLog>> logsThatDefineTablet = new HashMap<>();
 
-    for (Path walDir : recoveryDirs) {
+    for (ResolvedSortedLog walDir : recoveryDirs) {
       int tabletId = findMaxTabletId(extent, Collections.singletonList(walDir));
       if (tabletId == -1) {
-        log.debug("Did not find tablet {} in recovery log {}", extent, walDir.getName());
+        log.debug("Did not find tablet {} in recovery log {}", extent, walDir);
       } else {
         logsThatDefineTablet.computeIfAbsent(tabletId, k -> new ArrayList<>()).add(walDir);
-        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId,
-            walDir.getName());
+        log.debug("Found tablet {} with id {} in recovery log {}", extent, tabletId, walDir);
       }
     }
 
@@ -171,7 +181,7 @@ public class SortedLogRecovery {
 
   static class DeduplicatingIterator implements Iterator<Entry<LogFileKey,LogFileValue>> {
 
-    private PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
+    private final PeekingIterator<Entry<LogFileKey,LogFileValue>> source;
 
     public DeduplicatingIterator(Iterator<Entry<LogFileKey,LogFileValue>> source) {
       this.source = Iterators.peekingIterator(source);
@@ -195,8 +205,8 @@ public class SortedLogRecovery {
 
   }
 
-  private long findRecoverySeq(List<Path> recoveryLogs, Set<String> tabletFiles, int tabletId)
-      throws IOException {
+  private long findRecoverySeq(List<ResolvedSortedLog> recoveryLogs, Set<String> tabletFiles,
+      int tabletId) throws IOException {
     HashSet<String> suffixes = new HashSet<>();
     for (String path : tabletFiles) {
       suffixes.add(getPathSuffix(path));
@@ -206,8 +216,9 @@ public class SortedLogRecovery {
     long lastFinish = 0;
     long recoverySeq = 0;
 
-    try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, recoveryLogs,
-        minKey(COMPACTION_START, tabletId), maxKey(COMPACTION_START, tabletId), false)) {
+    try (RecoveryLogsIterator rli =
+        new RecoveryLogsIterator(context, recoveryLogs, minKey(COMPACTION_START, tabletId),
+            maxKey(COMPACTION_START, tabletId), false, fileLenCache, cacheProvider)) {
 
       DeduplicatingIterator ddi = new DeduplicatingIterator(rli);
 
@@ -217,28 +228,30 @@ public class SortedLogRecovery {
       while (ddi.hasNext()) {
         LogFileKey key = ddi.next().getKey();
 
-        checkState(key.seq >= 0, "Unexpected negative seq %s for tabletId %s", key.seq, tabletId);
-        checkState(key.tabletId == tabletId); // should only fail if bug elsewhere
-        checkState(key.seq >= Math.max(lastFinish, lastStart)); // should only fail if bug elsewhere
+        checkState(key.getSeq() >= 0, "Unexpected negative seq %s for tabletId %s", key.getSeq(),
+            tabletId);
+        checkState(key.getTabletId() == tabletId); // should only fail if bug elsewhere
+        checkState(key.getSeq() >= Math.max(lastFinish, lastStart)); // should only fail if bug
+                                                                     // elsewhere
 
-        switch (key.event) {
+        switch (key.getEvent()) {
           case COMPACTION_START:
-            lastStart = key.seq;
-            lastStartFile = key.filename;
+            lastStart = key.getSeq();
+            lastStartFile = key.getFilename();
             break;
           case COMPACTION_FINISH:
-            checkState(key.seq > lastStart, "Compaction finish <= start %s %s %s", key.tabletId,
-                key.seq, lastStart);
+            checkState(key.getSeq() > lastStart, "Compaction finish <= start %s %s %s",
+                key.getTabletId(), key.getSeq(), lastStart);
             checkState(lastEvent != COMPACTION_FINISH,
-                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId, lastFinish,
-                key.seq);
-            lastFinish = key.seq;
+                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.getTabletId(), lastFinish,
+                key.getSeq());
+            lastFinish = key.getSeq();
             break;
           default:
-            throw new IllegalStateException("Non compaction event seen " + key.event);
+            throw new IllegalStateException("Non compaction event seen " + key.getEvent());
         }
 
-        lastEvent = key.event;
+        lastEvent = key.getEvent();
       }
 
       if (lastEvent == COMPACTION_START && suffixes.contains(getPathSuffix(lastStartFile))) {
@@ -255,48 +268,58 @@ public class SortedLogRecovery {
     return recoverySeq;
   }
 
-  private void playbackMutations(List<Path> recoveryLogs, MutationReceiver mr, int tabletId,
-      long recoverySeq) throws IOException {
+  private void playbackMutations(List<ResolvedSortedLog> recoveryLogs, MutationReceiver mr,
+      int tabletId, long recoverySeq) throws IOException {
     LogFileKey start = minKey(MUTATION, tabletId);
-    start.seq = recoverySeq;
+    start.setSeq(recoverySeq);
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
-    try (var rli = new RecoveryLogsIterator(context, recoveryLogs, start, end, false)) {
+    try (var rli = new RecoveryLogsIterator(context, recoveryLogs, start, end, false, fileLenCache,
+        cacheProvider)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
         LogFileKey logFileKey = entry.getKey();
 
-        checkState(logFileKey.tabletId == tabletId); // should only fail if bug elsewhere
-        checkState(logFileKey.seq >= recoverySeq); // should only fail if bug elsewhere
+        checkState(logFileKey.getTabletId() == tabletId); // should only fail if bug elsewhere
+        checkState(logFileKey.getSeq() >= recoverySeq); // should only fail if bug elsewhere
 
         LogFileValue val = entry.getValue();
-        if (logFileKey.event == MUTATION || logFileKey.event == MANY_MUTATIONS) {
-          log.debug("Recover {} mutation(s) for {}", val.mutations.size(), entry.getKey());
-          for (Mutation m : val.mutations) {
+        if (logFileKey.getEvent() == MUTATION || logFileKey.getEvent() == MANY_MUTATIONS) {
+          log.debug("Recover {} mutation(s) for {}", val.getMutations().size(), entry.getKey());
+          for (Mutation m : val.getMutations()) {
             mr.receive(m);
           }
         } else {
-          throw new IllegalStateException("Non mutation event seen " + logFileKey.event);
+          throw new IllegalStateException("Non mutation event seen " + logFileKey.getEvent());
         }
       }
     }
   }
 
-  Collection<String> asNames(List<Path> recoveryLogs) {
-    return Collections2.transform(recoveryLogs, Path::getName);
+  Collection<String> asNames(List<ResolvedSortedLog> recoveryLogs) {
+    return Collections2.transform(recoveryLogs, rsl -> rsl.getDir().getName());
   }
 
-  public void recover(KeyExtent extent, List<Path> recoveryDirs, Set<String> tabletFiles,
-      MutationReceiver mr) throws IOException {
+  public boolean needsRecovery(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs)
+      throws IOException {
+    Entry<Integer,List<ResolvedSortedLog>> maxEntry =
+        findLogsThatDefineTablet(extent, recoveryDirs);
+    int tabletId = maxEntry.getKey();
+    return tabletId != -1;
+  }
 
-    Entry<Integer,List<Path>> maxEntry = findLogsThatDefineTablet(extent, recoveryDirs);
+  public void recover(KeyExtent extent, List<ResolvedSortedLog> recoveryDirs,
+      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
+
+    Entry<Integer,List<ResolvedSortedLog>> maxEntry =
+        findLogsThatDefineTablet(extent, recoveryDirs);
 
     // A tablet may leave a tserver and then come back, in which case it would have a different and
     // higher tablet id. Only want to consider events in the log related to the last time the tablet
     // was loaded.
     int tabletId = maxEntry.getKey();
-    List<Path> logsThatDefineTablet = maxEntry.getValue();
+    List<ResolvedSortedLog> logsThatDefineTablet = maxEntry.getValue();
 
     if (tabletId == -1) {
       log.info("Tablet {} is not defined in recovery logs {} ", extent, asNames(recoveryDirs));

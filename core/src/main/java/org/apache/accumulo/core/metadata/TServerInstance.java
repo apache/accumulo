@@ -32,7 +32,7 @@ import com.google.common.net.HostAndPort;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance> {
+public final class TServerInstance implements Comparable<TServerInstance> {
 
   private final HostAndPort hostAndPort;
   private final String hostPort;
@@ -62,11 +62,11 @@ public class TServerInstance implements Comparable<TServerInstance> {
   }
 
   public TServerInstance(String address, long session) {
-    this(AddressUtil.parseAddress(address, false), Long.toHexString(session));
+    this(AddressUtil.parseAddress(address), Long.toHexString(session));
   }
 
   public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString());
+    this(AddressUtil.parseAddress(new String(address.get(), UTF_8)), session.toString());
   }
 
   @Override

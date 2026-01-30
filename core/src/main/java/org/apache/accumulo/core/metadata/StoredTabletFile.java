@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.util.RowRangeUtil.requireKeyExtentDataRange;
+
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -33,8 +35,12 @@ import org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.Text;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.gson.Gson;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Object representing a tablet file entry stored in the metadata table. Keeps a string of the exact
@@ -47,6 +53,8 @@ import com.google.gson.Gson;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   private final String metadataEntry;
   private final ReferencedTabletFile referencedTabletFile;
@@ -145,17 +153,6 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     return metadataEntry;
   }
 
-  /**
-   * Validates that the provided metadata string for the StoredTabletFile is valid.
-   */
-  public static void validate(String metadataEntry) {
-    final TabletFileCq tabletFileCq = deserialize(metadataEntry);
-    // Validate the path
-    ReferencedTabletFile.parsePath(deserialize(metadataEntry).path);
-    // Validate the range
-    requireRowRange(tabletFileCq.range);
-  }
-
   public static StoredTabletFile of(final Text metadataEntry) {
     return new StoredTabletFile(Objects.requireNonNull(metadataEntry).toString());
   }
@@ -196,6 +193,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     // Recreate the exact Range that was originally stored in Metadata. Stored ranges are originally
     // constructed with inclusive/exclusive for the start and end key inclusivity settings.
     // (Except for Ranges with no start/endkey as then the inclusivity flags do not matter)
+    // The ranges must match the format of KeyExtent.toDataRange()
     //
     // With this particular constructor, when setting the startRowInclusive to true and
     // endRowInclusive to false, both the start and end row values will be taken as is
@@ -213,7 +211,7 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
   }
 
   public static String serialize(String path, Range range) {
-    requireRowRange(range);
+    requireKeyExtentDataRange(range);
     final TabletFileCqMetadataGson metadata = new TabletFileCqMetadataGson();
     metadata.path = Objects.requireNonNull(path);
     metadata.startRow = encodeRow(range.getStartKey());
@@ -261,6 +259,19 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
+  }
+
+  /**
+   * Quick validation to see if value has been converted by checking if the candidate looks like
+   * json by checking the candidate starts with "{" and ends with "}".
+   *
+   * @param candidate a possible file: reference.
+   * @return false if a likely a json object, true if not a likely json object
+   */
+  @VisibleForTesting
+  public static boolean fileNeedsConversion(@NonNull final String candidate) {
+    String trimmed = candidate.trim();
+    return !trimmed.startsWith("{") || !trimmed.endsWith("}");
   }
 
   private static class TabletFileCq {

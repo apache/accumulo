@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -47,13 +46,14 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -61,26 +61,24 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.util.ServerBulkImportStatus;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.util.TableDiskUsage;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
-  protected final TransactionWatcher transactionWatcher;
   protected final ServerContext context;
-  protected final SecurityOperation security;
-  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
+  protected final AuditedSecurityOperation security;
 
-  public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
+  public ClientServiceHandler(ServerContext context) {
     this.context = context;
-    this.transactionWatcher = transactionWatcher;
     this.security = context.getSecurityOperation();
   }
 
@@ -88,50 +86,40 @@ public class ClientServiceHandler implements ClientService.Iface {
       TableOperation operation) throws ThriftTableOperationException {
     TableOperationExceptionType reason = null;
     try {
-      return context._getTableIdDetectNamespaceNotFound(tableName);
-    } catch (NamespaceNotFoundException e) {
-      reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
+      return context.getTableId(tableName);
     } catch (TableNotFoundException e) {
-      reason = TableOperationExceptionType.NOTFOUND;
+      reason = e.getCause() instanceof NamespaceNotFoundException
+          ? TableOperationExceptionType.NAMESPACE_NOTFOUND : TableOperationExceptionType.NOTFOUND;
     }
     throw new ThriftTableOperationException(null, tableName, operation, reason, null);
   }
 
   public static NamespaceId checkNamespaceId(ClientContext context, String namespaceName,
       TableOperation operation) throws ThriftTableOperationException {
-    NamespaceId namespaceId = Namespaces.lookupNamespaceId(context, namespaceName);
-    if (namespaceId == null) {
-      // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache
-      // and check again
-      context.clearTableListCache();
-      namespaceId = Namespaces.lookupNamespaceId(context, namespaceName);
-      if (namespaceId == null) {
-        throw new ThriftTableOperationException(null, namespaceName, operation,
-            TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
-      }
+    try {
+      return context.getNamespaceId(namespaceName);
+    } catch (NamespaceNotFoundException e) {
+      throw new ThriftTableOperationException(null, namespaceName, operation,
+          TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
     }
-    return namespaceId;
   }
 
-  @Override
-  public String getInstanceId() {
-    return context.getInstanceID().canonical();
-  }
+  public static ResourceGroupId checkResourceGroupId(ClientContext context, String rgName)
+      throws ThriftResourceGroupNotExistsException {
+    Preconditions.checkArgument(rgName != null && !rgName.isBlank(),
+        "Supplied resource group name is null or empty");
 
-  @Override
-  public String getRootTabletLocation() {
-    return context.getRootTabletLocation();
-  }
-
-  @Override
-  public String getZooKeepers() {
-    return context.getZooKeepers();
+    if (context.resourceGroupOperations().exists(rgName)) {
+      return ResourceGroupId.of(rgName);
+    } else {
+      throw new ThriftResourceGroupNotExistsException(rgName);
+    }
   }
 
   @Override
   public void ping(TCredentials credentials) {
     // anybody can call this; no authentication check
-    log.info("Manager reports: I just got pinged!");
+    log.info("I just got pinged!");
   }
 
   @Override
@@ -214,12 +202,11 @@ public class ClientServiceHandler implements ClientService.Iface {
     NamespaceId namespaceId;
     try {
       namespaceId = context.getNamespaceId(tableId);
+      security.grantTablePermission(credentials, user, tableId, tableName,
+          TablePermission.getPermissionById(permission), namespaceId);
     } catch (TableNotFoundException e) {
       throw new TException(e);
     }
-
-    security.grantTablePermission(credentials, user, tableId,
-        TablePermission.getPermissionById(permission), namespaceId);
   }
 
   @Override
@@ -346,40 +333,51 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
     checkSystemPermission(credentials);
-    switch (type) {
-      case CURRENT:
-        context.getPropStore().getCache().remove(SystemPropKey.of(context));
-        return conf(credentials, context.getConfiguration());
-      case SITE:
-        return conf(credentials, context.getSiteConfiguration());
-      case DEFAULT:
-        return conf(credentials, context.getDefaultConfiguration());
-    }
-    throw new IllegalArgumentException("Unexpected configuration type " + type);
+    return switch (type) {
+      case PROCESS -> conf(credentials, context.getConfiguration());
+      case SYSTEM -> {
+        context.getPropStore().getCache().remove(SystemPropKey.of());
+        yield conf(credentials, context.getSystemConfiguration());
+      }
+      case SITE -> conf(credentials, context.getSiteConfiguration());
+      case DEFAULT -> conf(credentials, context.getDefaultConfiguration());
+    };
   }
 
   @Override
   public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
     checkSystemPermission(credentials);
-    return context.getPropStore().get(SystemPropKey.of(context)).asMap();
+    return context.getPropStore().get(SystemPropKey.of()).asMap();
   }
 
   @Override
   public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
     checkSystemPermission(credentials);
-    return Optional.of(context.getPropStore().get(SystemPropKey.of(context)))
+    return Optional.of(context.getPropStore().get(SystemPropKey.of()))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+        .orElseThrow();
+  }
+
+  @Override
+  public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo,
+      TCredentials credentials, String group)
+      throws ThriftSecurityException, ThriftResourceGroupNotExistsException {
+    checkSystemPermission(credentials);
+    checkResourceGroupId(context, group);
+    return Optional
+        .of(context.getPropStore().get(ResourceGroupPropKey.of(ResourceGroupId.of(group))))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
         .orElseThrow();
   }
 
   @Override
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
-      String tableName) throws TException, ThriftTableOperationException {
+      String tableName) throws TException {
     TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
-    context.getPropStore().getCache().remove(TablePropKey.of(context, tableId));
+    context.getPropStore().getCache().remove(TablePropKey.of(tableId));
     AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
   }
@@ -389,7 +387,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
-    return context.getPropStore().get(TablePropKey.of(context, tableId)).asMap();
+    return context.getPropStore().get(TablePropKey.of(tableId)).asMap();
   }
 
   @Override
@@ -397,14 +395,9 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
-    return Optional.of(context.getPropStore().get(TablePropKey.of(context, tableId)))
+    return Optional.of(context.getPropStore().get(TablePropKey.of(tableId)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
         .orElseThrow();
-  }
-
-  @Override
-  public boolean isActive(TInfo tinfo, long tid) {
-    return transactionWatcher.isActive(tid);
   }
 
   @Override
@@ -505,57 +498,29 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials,
-      String ns) throws ThriftTableOperationException, TException {
-    NamespaceId namespaceId;
-    try {
-      namespaceId = Namespaces.getNamespaceId(context, ns);
-    } catch (NamespaceNotFoundException e) {
-      String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null,
-          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
-    }
+      String ns) throws TException {
+    NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(context, ns, null);
     checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
-    context.getPropStore().getCache().remove(NamespacePropKey.of(context, namespaceId));
+    context.getPropStore().getCache().remove(NamespacePropKey.of(namespaceId));
     AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
-
   }
 
   @Override
   public Map<String,String> getNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns)
       throws TException {
-    NamespaceId namespaceId;
-    try {
-      namespaceId = Namespaces.getNamespaceId(context, ns);
-      checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
-      return context.getPropStore().get(NamespacePropKey.of(context, namespaceId)).asMap();
-
-    } catch (NamespaceNotFoundException e) {
-      String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null,
-          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
-    }
+    NamespaceId namespaceId = checkNamespaceId(context, ns, null);
+    checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
+    return context.getPropStore().get(NamespacePropKey.of(namespaceId)).asMap();
   }
 
   @Override
   public TVersionedProperties getVersionedNamespaceProperties(TInfo tinfo, TCredentials credentials,
       String ns) throws TException {
-    NamespaceId namespaceId;
-    try {
-      namespaceId = Namespaces.getNamespaceId(context, ns);
-      checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
-      return Optional.of(context.getPropStore().get(NamespacePropKey.of(context, namespaceId)))
-          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
-          .orElseThrow();
-    } catch (NamespaceNotFoundException e) {
-      String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null,
-          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
-    }
+    NamespaceId namespaceId = checkNamespaceId(context, ns, null);
+    checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
+    return Optional.of(context.getPropStore().get(NamespacePropKey.of(namespaceId)))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+        .orElseThrow();
   }
-
-  public List<BulkImportStatus> getBulkLoadStatus() {
-    return bulkImportStatus.getBulkLoadStatus();
-  }
-
 }

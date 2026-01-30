@@ -32,19 +32,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.functional.ManagerAssignmentIT;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -87,6 +95,11 @@ public class LocatorIT extends AccumuloClusterHarness {
 
   @Test
   public void testBasic() throws Exception {
+
+    final Predicate<TabletMetadata> hostedAndCurrentNotNull =
+        t -> t.getTabletAvailability() == TabletAvailability.HOSTED && t.hasCurrent()
+            && t.getLocation().getHostAndPort() != null;
+
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
@@ -104,7 +117,22 @@ public class LocatorIT extends AccumuloClusterHarness {
 
       ArrayList<Range> ranges = new ArrayList<>();
 
-      HashSet<String> tservers = new HashSet<>(client.instanceOperations().getTabletServers());
+      HashSet<String> tservers = new HashSet<>();
+      client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
+          .forEach((s) -> tservers.add(s.toHostPortString()));
+
+      // locate won't find any locations, tablets are not hosted
+      ranges.add(r1);
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
+
+      ranges.add(r2);
+      assertThrows(AccumuloException.class, () -> tableOps.locate(tableName, ranges));
+
+      ranges.clear();
+
+      tableOps.setTabletAvailability(tableName, RowRange.all(), TabletAvailability.HOSTED);
+      Wait.waitFor(() -> hostedAndCurrentNotNull
+          .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
 
       ranges.add(r1);
       Locations ret = tableOps.locate(tableName, ranges);
@@ -119,6 +147,9 @@ public class LocatorIT extends AccumuloClusterHarness {
       splits.add(new Text("r"));
       tableOps.addSplits(tableName, splits);
 
+      Wait.waitFor(() -> hostedAndCurrentNotNull
+          .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, null)), 60000, 250);
+
       ret = tableOps.locate(tableName, ranges);
       assertContains(ret, tservers, Map.of(r1, Set.of(t2), r2, Set.of(t2, t3)),
           Map.of(t2, Set.of(r1, r2), t3, Set.of(r2)));
@@ -126,6 +157,18 @@ public class LocatorIT extends AccumuloClusterHarness {
       tableOps.offline(tableName, true);
 
       assertThrows(TableOfflineException.class, () -> tableOps.locate(tableName, ranges));
+
+      tableOps.online(tableName, true);
+
+      Wait.waitFor(
+          () -> hostedAndCurrentNotNull
+              .test(ManagerAssignmentIT.getTabletMetadata(client, tableId, new Text("r"))),
+          60000, 250);
+
+      ArrayList<Range> ranges2 = new ArrayList<>();
+      ranges2.add(r1);
+      ret = tableOps.locate(tableName, ranges2);
+      assertContains(ret, tservers, Map.of(r1, Set.of(t2)), Map.of(t2, Set.of(r1)));
 
       tableOps.delete(tableName);
 

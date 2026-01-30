@@ -22,8 +22,8 @@ import org.apache.accumulo.core.data.Value;
 
 public class MemValue {
 
-  Value value;
-  int kvCount;
+  final Value value;
+  final int kvCount;
 
   public MemValue(Value value, int kv) {
     this.value = value;

@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -199,9 +200,13 @@ public class TestIngest {
   public static TreeSet<Text> getSplitPoints(long start, long end, long numsplits) {
     long splitSize = (end - start) / numsplits;
 
-    long pos = start + splitSize;
-
     TreeSet<Text> splits = new TreeSet<>();
+
+    if (splitSize < 1) {
+      return splits;
+    }
+
+    long pos = start + splitSize;
 
     while (pos < end) {
       splits.add(new Text(String.format("row_%010d", pos)));
@@ -246,6 +251,10 @@ public class TestIngest {
     for (int i = 0; i < dest.length; i++) {
       dest[i] = (byte) (((0xff & dest[i]) % 92) + ' ');
     }
+  }
+
+  public static IteratorSetting.Column generateColumn(IngestParams params, int column) {
+    return new IteratorSetting.Column(new Text(params.columnFamily), generateQualifier(column));
   }
 
   public static void main(String[] args) throws Exception {
@@ -302,7 +311,7 @@ public class TestIngest {
       Mutation m = new Mutation(row);
       for (int j = 0; j < params.cols; j++) {
         Text colf = new Text(params.columnFamily);
-        Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
+        Text colq = generateQualifier(j);
 
         if (writer != null) {
           Key key = new Key(row, colf, colq, labBA);
@@ -406,6 +415,11 @@ public class TestIngest {
             + " | %,8d bytes/sec | %6.3f secs   %n",
         totalValues, (int) (totalValues / elapsed), bytesWritten, (int) (bytesWritten / elapsed),
         elapsed);
+  }
+
+  private static Text generateQualifier(int j) {
+    Text colq = new Text(FastFormat.toZeroPaddedString(j, 7, 10, COL_PREFIX));
+    return colq;
   }
 
   public static void ingest(AccumuloClient c, IngestParams params)

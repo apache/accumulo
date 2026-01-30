@@ -28,10 +28,12 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.configuration2.AbstractConfiguration;
@@ -39,6 +41,7 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +59,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
@@ -92,7 +97,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       if (configFile.startsWith("file://")) {
         File f;
         try {
-          f = new File(new URI(configFile));
+          f = Path.of(new URI(configFile)).toFile();
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration from " + configFile, e);
@@ -202,6 +207,15 @@ public class SiteConfiguration extends AccumuloConfiguration {
 
   private SiteConfiguration(Map<String,String> config) {
     ConfigCheckUtil.validate(config.entrySet(), "site config");
+    var tableProps =
+        config.keySet().stream().filter(prop -> prop.startsWith(Property.TABLE_PREFIX.getKey()))
+            .collect(Collectors.toSet());
+    if (!tableProps.isEmpty()) {
+      throw new IllegalArgumentException(
+          "accumulo.properties file or options set with -o must not contain table properties, saw : "
+              + tableProps);
+    }
+
     this.config = config;
   }
 
@@ -211,8 +225,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
+      var fileHandler = new FileHandler(config);
       try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
-        config.read(reader);
+        fileHandler.load(reader);
       } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }

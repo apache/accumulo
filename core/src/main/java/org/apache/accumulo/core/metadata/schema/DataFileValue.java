@@ -24,9 +24,13 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class DataFileValue {
-  private long size;
-  private long numEntries;
+  private final long size;
+  private final long numEntries;
   private long time = -1;
 
   public DataFileValue(long size, long numEntries, long time) {
@@ -91,10 +95,9 @@ public class DataFileValue {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof DataFileValue) {
-      DataFileValue odfv = (DataFileValue) o;
+    if (o instanceof DataFileValue odfv) {
 
-      return size == odfv.size && numEntries == odfv.numEntries;
+      return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time;
     }
 
     return false;

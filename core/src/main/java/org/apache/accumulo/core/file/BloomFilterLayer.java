@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BLOOM_LOADER_POOL;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -80,19 +82,18 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, maxLoadThreads, 60,
-          SECONDS, "bloom-loader", false);
+      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(BLOOM_LOADER_POOL)
+          .numCoreThreads(0).numMaxThreads(maxLoadThreads).withTimeOut(60L, SECONDS).build();
     }
-
     return loadThreadPool;
   }
 
-  public static class Writer implements FileSKVWriter {
+  public static final class Writer implements FileSKVWriter {
     private DynamicBloomFilter bloomFilter;
     private int numKeys;
     private int vectorSize;
 
-    private FileSKVWriter writer;
+    private final FileSKVWriter writer;
     private KeyFunctor transformer = null;
     private boolean closed = false;
     private long length = -1;
@@ -204,7 +205,7 @@ public class BloomFilterLayer {
     private volatile DynamicBloomFilter bloomFilter;
     private int loadRequest = 0;
     private int loadThreshold = 1;
-    private int maxLoadThreads;
+    private final int maxLoadThreads;
     private Runnable loadTask;
     private volatile KeyFunctor transformer = null;
     private volatile boolean closed = false;
@@ -348,8 +349,8 @@ public class BloomFilterLayer {
 
   public static class Reader implements FileSKVIterator {
 
-    private BloomFilterLoader bfl;
-    private FileSKVIterator reader;
+    private final BloomFilterLoader bfl;
+    private final FileSKVIterator reader;
 
     public Reader(FileSKVIterator reader, AccumuloConfiguration acuconf) {
       this.reader = reader;
@@ -387,13 +388,8 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      return reader.getFirstRow();
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      return reader.getLastRow();
+    public FileRange getFileRange() {
+      return reader.getFileRange();
     }
 
     @Override
@@ -427,6 +423,11 @@ public class BloomFilterLayer {
     @Override
     public DataInputStream getMetaStore(String name) throws IOException {
       return reader.getMetaStore(name);
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      return reader.estimateOverlappingEntries(extent);
     }
 
     @Override

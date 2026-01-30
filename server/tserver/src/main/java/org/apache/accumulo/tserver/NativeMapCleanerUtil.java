@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver;
 
 import static java.util.Objects.requireNonNull;
 
+import java.lang.ref.Cleaner;
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -43,14 +44,36 @@ public class NativeMapCleanerUtil {
     });
   }
 
+  // Chose 7 cleaners because each cleaner creates a thread, so do not want too many threads. This
+  // should reduce lock contention for scans by a 7th vs a single cleaner, so that is good
+  // reduction and 7 does not seem like too many threads to add. This array is indexed using
+  // pointers addresses from native code, so there is a good chance those are memory aligned on
+  // a multiple of 4, 8, 16, etc. So if changing the array size avoid multiples of 2.
+  private static final Cleaner[] NMI_CLEANERS = new Cleaner[7];
+
+  static {
+    for (int i = 0; i < NMI_CLEANERS.length; i++) {
+      NMI_CLEANERS[i] = Cleaner.create();
+    }
+  }
+
   public static Cleanable deleteNMIterator(Object obj, AtomicLong nmiPtr) {
     requireNonNull(nmiPtr);
-    return CleanerUtil.CLEANER.register(obj, () -> {
+
+    int cleanerIndex = (int) (nmiPtr.get() % NMI_CLEANERS.length);
+    if (cleanerIndex < 0) {
+      cleanerIndex += NMI_CLEANERS.length;
+    }
+
+    // This method can be called very frequently by many scan threads. The register call on cleaner
+    // acquires a lock which can cause lock contention between threads. Having multiple cleaners for
+    // this case lowers the amount of lock contention among scan threads. This locking was observed
+    // in jdk.internal.rf.PhantomCleanable.insert() which currently has a synchronized code block.
+    return NMI_CLEANERS[cleanerIndex].register(obj, () -> {
       long nmiPointer = nmiPtr.get();
       if (nmiPointer != 0) {
         NativeMap._deleteNMI(nmiPointer);
       }
     });
   }
-
 }

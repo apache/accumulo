@@ -20,6 +20,7 @@ package org.apache.accumulo.compactor;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -27,41 +28,55 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.util.ratelimit.NullRateLimiter;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 
 import com.google.common.annotations.VisibleForTesting;
 
 public class ExtCEnv implements CompactionEnv {
 
   private final CompactionJobHolder jobHolder;
-  private TExternalCompactionJob job;
-  private String queueName;
+  private final TExternalCompactionJob job;
+  private final ResourceGroupId groupName;
 
-  public static class CompactorIterEnv extends TabletIteratorEnvironment {
+  public static class CompactorIterEnv extends SystemIteratorEnvironmentImpl {
 
-    private String queueName;
+    private static class Builder extends SystemIteratorEnvironmentImpl.Builder {
 
-    public CompactorIterEnv(ServerContext context, IteratorScope scope, boolean fullMajC,
-        AccumuloConfiguration tableConfig, TableId tableId, CompactionKind kind, String queueName) {
-      super(context, scope, fullMajC, tableConfig, tableId, kind);
-      this.queueName = queueName;
+      private final ResourceGroupId groupName;
+
+      public Builder(ServerContext context, ResourceGroupId groupName) {
+        super(context);
+        this.groupName = groupName;
+      }
+
+      @Override
+      public SystemIteratorEnvironmentImpl build() {
+        return new CompactorIterEnv(this);
+      }
+
+    }
+
+    private final ResourceGroupId groupName;
+
+    public CompactorIterEnv(Builder builder) {
+      super(builder);
+      this.groupName = builder.groupName;
     }
 
     @VisibleForTesting
-    public String getQueueName() {
-      return queueName;
+    public ResourceGroupId getQueueName() {
+      return groupName;
     }
+
   }
 
-  ExtCEnv(CompactionJobHolder jobHolder, String queueName) {
+  ExtCEnv(CompactionJobHolder jobHolder, ResourceGroupId groupName) {
     this.jobHolder = jobHolder;
     this.job = jobHolder.getJob();
-    this.queueName = queueName;
+    this.groupName = groupName;
   }
 
   @Override
@@ -75,21 +90,21 @@ public class ExtCEnv implements CompactionEnv {
   }
 
   @Override
-  public RateLimiter getReadLimiter() {
-    return NullRateLimiter.INSTANCE;
-  }
-
-  @Override
-  public RateLimiter getWriteLimiter() {
-    return NullRateLimiter.INSTANCE;
-  }
-
-  @Override
   public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
       AccumuloConfiguration acuTableConf, TableId tableId) {
-    return new CompactorIterEnv(context, IteratorScope.majc,
-        !jobHolder.getJob().isPropagateDeletes(), acuTableConf, tableId,
-        CompactionKind.valueOf(job.getKind().name()), queueName);
+
+    CompactorIterEnv.Builder builder = new CompactorIterEnv.Builder(context, groupName);
+    builder.withScope(IteratorScope.majc).withTableId(tableId);
+
+    if (CompactionKind.valueOf(job.getKind().name()) == CompactionKind.USER) {
+      builder.isUserCompaction();
+    }
+
+    if (!jobHolder.getJob().isPropagateDeletes()) {
+      builder.isFullMajorCompaction();
+    }
+
+    return builder.build();
   }
 
   @Override
@@ -99,15 +114,10 @@ public class ExtCEnv implements CompactionEnv {
 
   @Override
   public TCompactionReason getReason() {
-    switch (job.getKind()) {
-      case USER:
-        return TCompactionReason.USER;
-      case SELECTOR:
-      case SYSTEM:
-        return TCompactionReason.SYSTEM;
-      default:
-        throw new IllegalStateException("Unknown compaction kind " + job.getKind());
-    }
+    return switch (job.getKind()) {
+      case USER -> TCompactionReason.USER;
+      case SYSTEM -> TCompactionReason.SYSTEM;
+    };
   }
 
 }

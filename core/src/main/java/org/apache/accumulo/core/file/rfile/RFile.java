@@ -52,6 +52,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
@@ -77,17 +78,13 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.Local
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Supplier;
-import com.google.common.base.Suppliers;
 
 public class RFile {
 
@@ -376,8 +373,8 @@ public class RFile {
   }
 
   private static class SampleEntry {
-    Key key;
-    Value val;
+    final Key key;
+    final Value val;
 
     SampleEntry(Key key, Value val) {
       this.key = new Key(key);
@@ -387,15 +384,15 @@ public class RFile {
 
   private static class SampleLocalityGroupWriter {
 
-    private Sampler sampler;
+    private final Sampler sampler;
 
-    private List<SampleEntry> entries = new ArrayList<>();
+    private final List<SampleEntry> entries = new ArrayList<>();
     private long dataSize = 0;
 
-    private LocalityGroupWriter lgr;
+    private final LocalityGroupWriter lgw;
 
-    public SampleLocalityGroupWriter(LocalityGroupWriter lgr, Sampler sampler) {
-      this.lgr = lgr;
+    public SampleLocalityGroupWriter(LocalityGroupWriter lgw, Sampler sampler) {
+      this.lgw = lgw;
       this.sampler = sampler;
     }
 
@@ -408,10 +405,10 @@ public class RFile {
 
     public void close() throws IOException {
       for (SampleEntry se : entries) {
-        lgr.append(se.key, se.val);
+        lgw.append(se.key, se.val);
       }
 
-      lgr.close();
+      lgw.close();
     }
 
     public void flushIfNeeded() throws IOException {
@@ -422,10 +419,10 @@ public class RFile {
 
         if (!subList.isEmpty()) {
           for (SampleEntry se : subList) {
-            lgr.append(se.key, se.val);
+            lgw.append(se.key, se.val);
           }
 
-          lgr.closeBlock(subList.get(subList.size() - 1).key, false);
+          lgw.closeBlock(subList.get(subList.size() - 1).key, false);
 
           subList.clear();
           dataSize = 0;
@@ -436,7 +433,7 @@ public class RFile {
 
   private static class LocalityGroupWriter {
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
     private BlockAppender blockWriter;
 
     private final long blockSize;
@@ -449,10 +446,10 @@ public class RFile {
 
     private Key prevKey = new Key();
 
-    private SampleLocalityGroupWriter sample;
+    private final SampleLocalityGroupWriter sample;
 
     // Use windowed stats to fix ACCUMULO-4669
-    private RollingStats keyLenStats = new RollingStats(2017);
+    private final RollingStats keyLenStats = new RollingStats(2017);
     private double averageKeySize = 0;
 
     LocalityGroupWriter(BCFile.Writer fileWriter, long blockSize, long maxBlockSize,
@@ -568,14 +565,14 @@ public class RFile {
     public static final int MAX_CF_IN_DLG = 1000;
     private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
 
     private final long blockSize;
     private final long maxBlockSize;
     private final int indexBlockSize;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private LocalityGroupMetadata sampleLocalityGroup = null;
 
@@ -583,13 +580,13 @@ public class RFile {
     private boolean closed = false;
     private boolean startedDefaultLocalityGroup = false;
 
-    private HashSet<ByteSequence> previousColumnFamilies;
+    private final HashSet<ByteSequence> previousColumnFamilies;
     private long length = -1;
 
     private LocalityGroupWriter lgWriter;
 
-    private SamplerConfigurationImpl samplerConfig;
-    private Sampler sampler;
+    private final SamplerConfigurationImpl samplerConfig;
+    private final Sampler sampler;
 
     public Writer(BCFile.Writer bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance()
@@ -762,13 +759,13 @@ public class RFile {
 
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
-    private CachableBlockFile.Reader reader;
-    private MultiLevelIndex.Reader index;
-    private int blockCount;
-    private Key firstKey;
-    private int startBlock;
+    private final CachableBlockFile.Reader reader;
+    private final MultiLevelIndex.Reader index;
+    private final int blockCount;
+    private final Key firstKey;
+    private final int startBlock;
     private boolean closed = false;
-    private int version;
+    private final int version;
     private boolean checkRange = true;
 
     private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,
@@ -844,7 +841,6 @@ public class RFile {
     }
 
     private void _next() throws IOException {
-
       if (!hasTop) {
         throw new IllegalStateException();
       }
@@ -992,7 +988,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
           SkippR skippr =
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
@@ -1054,7 +1050,7 @@ public class RFile {
             hasTop = true;
           }
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -1071,7 +1067,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new MutableByteSequence(val.get(), 0, val.getSize());
+                valbs.reset(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
@@ -1107,16 +1103,13 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() {
-      return firstKey != null ? firstKey.getRow() : null;
-    }
-
-    @Override
-    public Text getLastRow() {
-      if (index.size() == 0) {
-        return null;
+    public FileRange getFileRange() {
+      if (firstKey == null) {
+        Preconditions.checkState(index.size() == 0);
+        return FileRange.EMPTY;
+      } else {
+        return new FileRange(firstKey.getRow(), index.getLastKey().getRow());
       }
-      return index.getLastKey().getRow();
     }
 
     @Override
@@ -1165,9 +1158,20 @@ public class RFile {
     public void setCacheProvider(CacheProvider cacheProvider) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    public void flushStats() {
+      if (currBlock != null) {
+        currBlock.flushStats();
+      }
+    }
   }
 
-  public static class Reader extends HeapIterator implements RFileSKVIterator {
+  public static final class Reader extends HeapIterator implements RFileSKVIterator {
 
     private final CachableBlockFile.Reader reader;
 
@@ -1289,24 +1293,35 @@ public class RFile {
       this(new CachableBlockFile.Reader(b));
     }
 
-    private void closeLocalityGroupReaders() {
+    private void closeLocalityGroupReaders(boolean ignoreIOExceptions) throws IOException {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
-          log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          if (ignoreIOExceptions) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          } else {
+            throw e;
+          }
         }
       }
     }
 
     @Override
-    public void closeDeepCopies() {
+    public void closeDeepCopies() throws IOException {
+      for (LocalityGroupReader lgr : currentReaders) {
+        lgr.flushStats();
+      }
+      closeDeepCopies(false);
+    }
+
+    private void closeDeepCopies(boolean ignoreIOExceptions) throws IOException {
       if (deepCopy) {
         throw new IllegalStateException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
-        deepCopy.closeLocalityGroupReaders();
+        deepCopy.closeLocalityGroupReaders(ignoreIOExceptions);
       }
 
       deepCopies.clear();
@@ -1318,8 +1333,9 @@ public class RFile {
         throw new IllegalStateException("Calling close on a deep copy is not supported");
       }
 
-      closeDeepCopies();
-      closeLocalityGroupReaders();
+      // Closes as much as possible igoring and logging exceptions along the way
+      closeDeepCopies(true);
+      closeLocalityGroupReaders(true);
 
       if (sampleReaders != null) {
         for (LocalityGroupReader lgr : sampleReaders) {
@@ -1341,47 +1357,14 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Text minRow = null;
+    public FileRange getFileRange() {
+      FileRange range = FileRange.EMPTY;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        if (minRow == null) {
-          minRow = currentReader.getFirstRow();
-        } else {
-          Text firstRow = currentReader.getFirstRow();
-          if (firstRow != null && firstRow.compareTo(minRow) < 0) {
-            minRow = firstRow;
-          }
-        }
+        range = currentReader.getFileRange().union(range);
       }
 
-      return minRow;
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Text maxRow = null;
-
-      for (LocalityGroupReader currentReader : currentReaders) {
-        if (maxRow == null) {
-          maxRow = currentReader.getLastRow();
-        } else {
-          Text lastRow = currentReader.getLastRow();
-          if (lastRow != null && lastRow.compareTo(maxRow) > 0) {
-            maxRow = lastRow;
-          }
-        }
-      }
-
-      return maxRow;
+      return range;
     }
 
     @Override
@@ -1566,6 +1549,36 @@ public class RFile {
     }
 
     @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      long totalEntries = 0;
+      Key startKey = extent.toDataRange().getStartKey();
+      IndexEntry indexEntry;
+
+      for (LocalityGroupReader lgr : currentReaders) {
+        boolean prevEntryOverlapped = false;
+        var indexIter = startKey == null ? lgr.getIndex() : lgr.index.lookup(startKey);
+
+        while (indexIter.hasNext()) {
+          indexEntry = indexIter.next();
+          if (extent.contains(indexEntry.getKey().getRow())) {
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = true;
+          } else if (prevEntryOverlapped) {
+            // The last index entry included in the count is the one after the last contained by the
+            // extent. This is because it is possible for the extent to overlap this index entry
+            // but there is no way to check whether it does or not. The index entry only contains
+            // info about the last key, but the extent may overlap but not with the last key.
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = false;
+            break;
+          }
+        }
+      }
+
+      return totalEntries;
+    }
+
+    @Override
     public void reset() {
       clear();
     }
@@ -1581,14 +1594,10 @@ public class RFile {
 
     private final FileSKVIterator reader;
     protected final Range fence;
-    private final Key fencedStartKey;
-    private final Supplier<Key> fencedEndKey;
 
     public FencedFileSKVIterator(FileSKVIterator reader, Range fence) {
       this.reader = Objects.requireNonNull(reader);
       this.fence = Objects.requireNonNull(fence);
-      this.fencedStartKey = fence.getStartKey();
-      this.fencedEndKey = Suppliers.memoize(() -> getEndKey(fence.getEndKey()));
     }
 
     @Override
@@ -1618,23 +1627,8 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      var row = reader.getFirstRow();
-      if (row != null && fence.beforeStartKey(new Key(row))) {
-        return fencedStartKey.getRow();
-      } else {
-        return row;
-      }
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      var row = reader.getLastRow();
-      if (row != null && fence.afterEndKey(new Key(row))) {
-        return fencedEndKey.get().getRow();
-      } else {
-        return row;
-      }
+    public FileRange getFileRange() {
+      return reader.getFileRange().intersect(fence);
     }
 
     @Override
@@ -1667,23 +1661,6 @@ public class RFile {
       reader.close();
     }
 
-    private Key getEndKey(Key key) {
-      // If they key is infinite it will be null or if inclusive we can just use it as is
-      // as it would be the correct value for getLastKey()
-      if (fence.isInfiniteStopKey() || fence.isEndKeyInclusive()) {
-        return key;
-      }
-
-      // If exclusive we need to strip the last byte to get the last key that is part of the
-      // actual range to return
-      final byte[] ba = key.getRow().getBytes();
-      Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
-      byte[] fba = new byte[ba.length - 1];
-      System.arraycopy(ba, 0, fba, 0, ba.length - 1);
-
-      return new Key(fba);
-    }
-
   }
 
   static class FencedIndex extends FencedFileSKVIterator {
@@ -1713,6 +1690,11 @@ public class RFile {
 
       // If endKey is set then ensure that the current key is not passed the end of the range
       return source.hasTop() && !fence.afterEndKey(source.getTopKey());
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
     }
 
     @Override
@@ -1764,6 +1746,15 @@ public class RFile {
     @Override
     public FileSKVIterator getIndex() throws IOException {
       return new FencedIndex(reader.getIndex(), fence);
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent c) throws IOException {
+      KeyExtent overlapping = c.clip(fence, true);
+      if (overlapping == null) {
+        return 0;
+      }
+      return reader.estimateOverlappingEntries(overlapping);
     }
 
     @Override

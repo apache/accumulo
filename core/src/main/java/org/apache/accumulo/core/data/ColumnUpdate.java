@@ -25,13 +25,13 @@ import java.util.Arrays;
  */
 public class ColumnUpdate {
 
-  private byte[] columnFamily;
-  private byte[] columnQualifier;
-  private byte[] columnVisibility;
-  private long timestamp;
-  private boolean hasTimestamp;
-  private byte[] val;
-  private boolean deleted;
+  private final byte[] columnFamily;
+  private final byte[] columnQualifier;
+  private final byte[] columnVisibility;
+  private final long timestamp;
+  private final boolean hasTimestamp;
+  private final byte[] val;
+  private final boolean deleted;
 
   /**
    * Creates a new column update.
@@ -127,10 +127,9 @@ public class ColumnUpdate {
 
   @Override
   public boolean equals(Object obj) {
-    if (!(obj instanceof ColumnUpdate)) {
+    if (!(obj instanceof ColumnUpdate upd)) {
       return false;
     }
-    ColumnUpdate upd = (ColumnUpdate) obj;
     return Arrays.equals(getColumnFamily(), upd.getColumnFamily())
         && Arrays.equals(getColumnQualifier(), upd.getColumnQualifier())
         && Arrays.equals(getColumnVisibility(), upd.getColumnVisibility())

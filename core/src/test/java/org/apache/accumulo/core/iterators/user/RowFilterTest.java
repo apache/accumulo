@@ -19,13 +19,16 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -36,8 +39,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
@@ -108,6 +112,24 @@ public class RowFilterTest {
     }
   }
 
+  public static class ColFamFilter extends RowFilter {
+    private Set<ByteSequence> families;
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      super.init(source, options, env);
+      this.families = Set.of(new ArrayByteSequence(options.get("family")));
+    }
+
+    @Override
+    public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) throws IOException {
+      rowIterator.seek(new Range(), families, true);
+      return rowIterator.hasTop();
+    }
+
+  }
+
   public List<Mutation> createMutations() {
     List<Mutation> mutations = new LinkedList<>();
     Mutation m = new Mutation("0");
@@ -160,7 +182,8 @@ public class RowFilterTest {
     List<Mutation> mutations = createMutations();
     TreeMap<Key,Value> keyValues = new TreeMap<>();
 
-    final Text cf = new Text(), cq = new Text();
+    final Text cf = new Text();
+    final Text cq = new Text();
     for (Mutation m : mutations) {
       final Text row = new Text(m.getRow());
       for (ColumnUpdate update : m.getUpdates()) {
@@ -183,7 +206,7 @@ public class RowFilterTest {
         new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
-    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -213,10 +236,10 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new TrueFilter();
-    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     RowFilter filter = new TrueFilter();
-    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -229,10 +252,10 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new RowZeroOrOneFilter();
-    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     RowFilter filter = new RowOneOrTwoFilter();
-    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -244,7 +267,7 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter = new RowZeroOrOneFilter();
-    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -264,7 +287,7 @@ public class RowFilterTest {
     }
 
     // Make a copy of the original RowFilter
-    RowFilter copy = (RowFilter) filter.deepCopy(new DefaultIteratorEnvironment());
+    RowFilter copy = (RowFilter) filter.deepCopy(ClientIteratorEnvironment.DEFAULT);
 
     // Because it's a copy, we should be able to safely seek this one without affecting the original
     copy.seek(new Range(), Collections.emptySet(), false);
@@ -284,6 +307,73 @@ public class RowFilterTest {
     // Make sure we got a Key that was greater than the last Key we read from the original RowFilter
     assertTrue(lastKeyRead.compareTo(finalKeyRead) < 0,
         "Expected next key read to be greater than the previous after deepCopy");
+  }
+
+  // This tests a chaining RowFitler that have an init method and deep copying the chain. There was
+  // a bug where if the row filter called init it was not called on deep copy.
+  @Test
+  public void testDeepCopyChainedIteratorWithInit() throws Exception {
+    TreeMap<Key,Value> data = new TreeMap<>();
+    data.put(new Key("1", "f1", "q1"), new Value("1"));
+    data.put(new Key("1", "f2", "q1"), new Value("2"));
+    data.put(new Key("2", "f1", "q1"), new Value("3"));
+    data.put(new Key("2", "f2", "q1"), new Value("4"));
+    data.put(new Key("2", "f3", "q1"), new Value("5"));
+    data.put(new Key("3", "f1", "q1"), new Value("6"));
+    data.put(new Key("3", "f2", "q1"), new Value("7"));
+    data.put(new Key("3", "f3", "q1"), new Value("8"));
+    data.put(new Key("3", "f4", "q1"), new Value("9"));
+    data.put(new Key("4", "f3", "q1"), new Value("0"));
+    data.put(new Key("5", "f1", "q1"), new Value("a"));
+    data.put(new Key("5", "f3", "q1"), new Value("b"));
+
+    var source = new ColumnFamilySkippingIterator(new SortedMapIterator(data));
+
+    RowFilter filter1 = new ColFamFilter();
+    filter1.init(source, Map.of("family", "f1"), null);
+
+    // The chain of filter1 and filter2 should only return rows that have families 'f1' and 'f3'.
+    RowFilter filter2 = new ColFamFilter();
+    filter2.init(filter1, Map.of("family", "f3"), null);
+
+    // Deep copy of filter2 should be able to independently iterator over the same data.
+    var filter3 = (RowFilter) filter2.deepCopy(null);
+
+    for (int i = 0; i < 3; i++) {
+      filter2.seek(new Range(), Set.of(), false);
+      filter3.seek(new Range(), Set.of(), false);
+
+      Iterator<Key> expectedKeys2 = data.keySet().stream().filter(k -> {
+        var row = k.getRowData().toString();
+        return row.equals("2") || row.equals("3") || row.equals("5");
+      }).iterator();
+
+      Iterator<Key> expectedKeys3 = data.keySet().stream().filter(k -> {
+        var row = k.getRowData().toString();
+        return row.equals("2") || row.equals("3") || row.equals("5");
+      }).iterator();
+
+      // advance one iterator and not the other so they are on different keys in the loop
+      assertEquals(expectedKeys2.next(), filter2.getTopKey());
+      filter2.next();
+
+      while (expectedKeys2.hasNext() || filter2.hasTop() || expectedKeys3.hasNext()
+          || filter3.hasTop()) {
+        if (expectedKeys2.hasNext()) {
+          assertEquals(expectedKeys2.next(), filter2.getTopKey());
+          filter2.next();
+        }
+        if (expectedKeys3.hasNext()) {
+          assertEquals(expectedKeys3.next(), filter3.getTopKey());
+          filter3.next();
+        }
+      }
+
+      assertFalse(expectedKeys2.hasNext());
+      assertFalse(filter2.hasTop());
+      assertFalse(expectedKeys3.hasNext());
+      assertFalse(filter3.hasTop());
+    }
   }
 
   private HashSet<String> getRows(RowFilter filter) throws IOException {

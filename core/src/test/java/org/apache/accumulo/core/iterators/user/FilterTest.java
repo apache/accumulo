@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,9 +40,9 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
@@ -229,19 +230,19 @@ public class FilterTest {
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(902, size(a));
 
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(102, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -270,19 +271,19 @@ public class FilterTest {
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(98, size(a));
 
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(898, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -311,19 +312,19 @@ public class FilterTest {
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(902, size(a));
 
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate", "b"), 101L);
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(102, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("negate", "b"));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -335,7 +336,7 @@ public class FilterTest {
     Value dv = new Value();
     TreeMap<Key,Value> tm = new TreeMap<>();
     HashSet<Column> hsc = new HashSet<>();
-    hsc.add(new Column("c".getBytes(), null, null));
+    hsc.add(new Column("c".getBytes(UTF_8), null, null));
 
     Text colf1 = new Text("a");
     Text colq1 = new Text("b");
@@ -363,7 +364,7 @@ public class FilterTest {
     assertEquals(1000, size(a));
 
     hsc = new HashSet<>();
-    hsc.add(new Column("a".getBytes(), "b".getBytes(), null));
+    hsc.add(new Column("a".getBytes(UTF_8), "b".getBytes(UTF_8), null));
     a = ColumnQualifierFilter.wrap(new SortedMapIterator(tm), hsc);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     int size = size(a);
@@ -427,25 +428,25 @@ public class FilterTest {
 
     assertEquals(5, tm.size());
 
-    int size = size(ncqf(tm, new Column("c".getBytes(), null, null)));
+    int size = size(ncqf(tm, new Column("c".getBytes(UTF_8), null, null)));
     assertEquals(5, size);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), null, null)));
+    size = size(ncqf(tm, new Column("a".getBytes(UTF_8), null, null)));
     assertEquals(5, size);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null)));
+    size = size(ncqf(tm, new Column("a".getBytes(UTF_8), "x".getBytes(UTF_8), null)));
     assertEquals(1, size);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
-        new Column("b".getBytes(), "x".getBytes(), null)));
+    size = size(ncqf(tm, new Column("a".getBytes(UTF_8), "x".getBytes(UTF_8), null),
+        new Column("b".getBytes(UTF_8), "x".getBytes(UTF_8), null)));
     assertEquals(2, size);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
-        new Column("b".getBytes(), "y".getBytes(), null)));
+    size = size(ncqf(tm, new Column("a".getBytes(UTF_8), "x".getBytes(UTF_8), null),
+        new Column("b".getBytes(UTF_8), "y".getBytes(UTF_8), null)));
     assertEquals(2, size);
 
-    size = size(ncqf(tm, new Column("a".getBytes(), "x".getBytes(), null),
-        new Column("b".getBytes(), null, null)));
+    size = size(ncqf(tm, new Column("a".getBytes(UTF_8), "x".getBytes(UTF_8), null),
+        new Column("b".getBytes(UTF_8), null, null)));
     assertEquals(3, size);
   }
 

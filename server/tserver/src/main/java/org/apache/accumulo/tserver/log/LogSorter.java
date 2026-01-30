@@ -19,6 +19,10 @@
 package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_AVG_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.RECOVERIES_LONGEST_RUNTIME;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_SORT_CONCURRENT_POOL;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
@@ -31,6 +35,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -42,10 +48,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.SortedLogState;
@@ -62,11 +70,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.AtomicDouble;
+import com.google.common.util.concurrent.MoreExecutors;
 
-public class LogSorter {
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+
+public class LogSorter implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(LogSorter.class);
-  AccumuloConfiguration sortedLogConf;
 
   private final Map<String,LogProcessor> currentWork = Collections.synchronizedMap(new HashMap<>());
 
@@ -221,21 +233,27 @@ public class LogSorter {
     }
   }
 
-  ThreadPoolExecutor threadPool;
+  private final AbstractServer server;
   private final ServerContext context;
+  private final AccumuloConfiguration conf;
   private final double walBlockSize;
   private final CryptoService cryptoService;
+  private final AccumuloConfiguration sortedLogConf;
+  private final AtomicLong recoveriesInProgress = new AtomicLong(0);
+  private final AtomicLong recoveryRuntime = new AtomicLong(0);
+  private final AtomicDouble recoveryAvgProgress = new AtomicDouble(0.0D);
 
-  public LogSorter(ServerContext context, AccumuloConfiguration conf) {
-    this.context = context;
-    this.sortedLogConf = extractSortedLogConfig(conf);
-
-    int threadPoolSize = conf.getCount(Property.TSERV_WAL_SORT_MAX_CONCURRENT);
-    this.threadPool = ThreadPools.getServerThreadPools().createFixedThreadPool(threadPoolSize,
-        this.getClass().getName(), true);
-    this.walBlockSize = DfsLogger.getWalBlockSize(conf);
+  public LogSorter(AbstractServer server) {
+    this.server = server;
+    this.context = this.server.getContext();
+    this.conf = this.context.getConfiguration();
+    this.sortedLogConf = extractSortedLogConfig(this.conf);
+    this.walBlockSize = DfsLogger.getWalBlockSize(this.conf);
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
-    this.cryptoService = context.getCryptoFactory().getService(env, conf.getAllCryptoProperties());
+    this.cryptoService =
+        context.getCryptoFactory().getService(env, this.conf.getAllCryptoProperties());
+    ThreadPools.watchNonCriticalScheduledTask(context.getScheduledExecutor()
+        .scheduleWithFixedDelay(() -> updateMetrics(), 60, 60, TimeUnit.SECONDS));
   }
 
   /**
@@ -272,12 +290,7 @@ public class LogSorter {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
       Key k = logFileKey.toKey();
-      var list = keyListMap.putIfAbsent(k, logFileValue.mutations);
-      if (list != null) {
-        var muts = new ArrayList<>(list);
-        muts.addAll(logFileValue.mutations);
-        keyListMap.put(logFileKey.toKey(), muts);
-      }
+      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>()).addAll(logFileValue.getMutations());
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
@@ -286,17 +299,36 @@ public class LogSorter {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {
         LogFileValue val = new LogFileValue();
-        val.mutations = entry.getValue();
+        val.setMutations(entry.getValue());
         writer.append(entry.getKey(), val.toValue());
       }
     }
   }
 
-  public void startWatchingForRecoveryLogs(ThreadPoolExecutor distWorkQThreadPool)
+  /**
+   * Sort any logs that need sorting in the current thread.
+   *
+   * @return The time in millis when the next check can be done.
+   */
+  public long sortLogsIfNeeded() throws KeeperException, InterruptedException {
+    DistributedWorkQueue dwq = new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf, server);
+    dwq.processExistingWork(new LogProcessor(), MoreExecutors.newDirectExecutorService(), 1, false);
+    return System.currentTimeMillis() + dwq.getCheckInterval();
+  }
+
+  /**
+   * Sort any logs that need sorting in a ThreadPool using
+   * {@link Property#TSERV_WAL_SORT_MAX_CONCURRENT} threads. This method will start a background
+   * thread to look for log sorting work in the future that will be processed by the
+   * ThreadPoolExecutor
+   */
+  public void startWatchingForRecoveryLogs(int threadPoolSize)
       throws KeeperException, InterruptedException {
-    this.threadPool = distWorkQThreadPool;
-    new DistributedWorkQueue(context.getZooKeeperRoot() + Constants.ZRECOVERY, sortedLogConf,
-        context).startProcessing(new LogProcessor(), this.threadPool);
+    ThreadPoolExecutor threadPool =
+        ThreadPools.getServerThreadPools().getPoolBuilder(TSERVER_WAL_SORT_CONCURRENT_POOL)
+            .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
+    new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf, server)
+        .processExistingAndFuture(new LogProcessor(), threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {
@@ -317,5 +349,42 @@ public class LogSorter {
       }
       return result;
     }
+  }
+
+  private void updateMetrics() {
+    synchronized (currentWork) {
+      recoveriesInProgress.set(currentWork.size());
+      if (recoveriesInProgress.get() == 0) {
+        recoveryRuntime.set(0);
+        recoveryAvgProgress.set(0.0D);
+      } else {
+        long runtime = 0;
+        long progress = 0;
+        for (LogProcessor processor : currentWork.values()) {
+          long start = processor.getSortTime();
+          if (start > 0) { // may not have started yet
+            runtime = Math.max(start, runtime);
+          }
+          try {
+            progress += processor.getBytesCopied();
+          } catch (IOException e) {
+            log.warn("Error getting bytes read");
+          }
+        }
+        recoveryRuntime.set(runtime);
+        recoveryAvgProgress
+            .set(Math.min(progress / (walBlockSize * recoveriesInProgress.get()), 99.9));
+      }
+    }
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    Gauge.builder(RECOVERIES_IN_PROGRESS.getName(), recoveriesInProgress, AtomicLong::get)
+        .description(RECOVERIES_IN_PROGRESS.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_LONGEST_RUNTIME.getName(), recoveryRuntime, AtomicLong::get)
+        .description(RECOVERIES_LONGEST_RUNTIME.getDescription()).register(registry);
+    Gauge.builder(RECOVERIES_AVG_PROGRESS.getName(), recoveryAvgProgress, AtomicDouble::get)
+        .description(RECOVERIES_AVG_PROGRESS.getDescription()).register(registry);
   }
 }

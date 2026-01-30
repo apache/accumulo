@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -35,14 +36,13 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
-import org.apache.hadoop.io.Text;
 
-public class SequenceFileIterator implements FileSKVIterator {
+public final class SequenceFileIterator implements FileSKVIterator {
 
-  private Reader reader;
+  private final Reader reader;
   private Value top_value;
   private Key top_key;
-  private boolean readValue;
+  private final boolean readValue;
 
   @Override
   public SequenceFileIterator deepCopy(IteratorEnvironment env) {
@@ -117,17 +117,17 @@ public class SequenceFileIterator implements FileSKVIterator {
   }
 
   @Override
-  public Text getFirstRow() throws IOException {
-    throw new UnsupportedOperationException("getFirstKey() not supported");
-  }
-
-  @Override
-  public Text getLastRow() throws IOException {
-    throw new UnsupportedOperationException("getLastKey() not supported");
+  public FileRange getFileRange() {
+    throw new UnsupportedOperationException("getFileRange() not supported");
   }
 
   @Override
   public DataInputStream getMetaStore(String name) throws IOException {
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
     throw new UnsupportedOperationException();
   }
 

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
+
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,13 +28,14 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 
 /**
  * Dispatcher that supports simple configuration for making tables use compaction services. By
- * default it dispatches to a compaction service named default.
+ * default, it dispatches to the compaction service named default
+ * {@value org.apache.accumulo.core.Constants#DEFAULT_COMPACTION_SERVICE_NAME}.
  *
  * <p>
  * The following schema is supported for configuration options.
  *
  * <p>
- * {@code table.compaction.dispatcher.opts.service[.user[.<user type>]|selected|system|chop]=
+ * {@code table.compaction.dispatcher.opts.service[.user[.<user type>]|selector|system|chop]=
  * <service>}
  *
  * <p>
@@ -72,7 +75,8 @@ public class SimpleCompactionDispatcher implements CompactionDispatcher {
   public void init(InitParameters params) {
     services = new EnumMap<>(CompactionKind.class);
 
-    var defaultService = CompactionDispatch.builder().toService("default").build();
+    var defaultService =
+        CompactionDispatch.builder().toService(DEFAULT_COMPACTION_SERVICE_NAME).build();
 
     if (params.getOptions().containsKey("service")) {
       defaultService =

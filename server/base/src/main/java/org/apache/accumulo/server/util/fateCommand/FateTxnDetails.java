@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util.fateCommand;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -28,15 +29,19 @@ import org.apache.accumulo.core.fate.AdminUtil;
 
 public class FateTxnDetails implements Comparable<FateTxnDetails> {
   final static String TXN_HEADER =
-      "Running\ttxn_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)";
+      "Running\tfate_id\t\t\t\tStatus\t\tCommand\t\tStep (top)\t\tlocks held:(table id, name)\tlocks waiting:(table id, name)";
 
   private long running;
   private String status = "?";
-  private String txName = "?";
+  private String fateOp = "?";
   private String step = "?";
-  private String txnId = "?";
+  private String fateId = "?";
   private List<String> locksHeld = List.of();
   private List<String> locksWaiting = List.of();
+
+  // Default constructor for Gson
+  @SuppressWarnings("unused")
+  private FateTxnDetails() {}
 
   /**
    * Create a detailed FaTE transaction that can be formatted for status reports.
@@ -68,14 +73,16 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getTop() != null) {
       step = txnStatus.getTop();
     }
-    if (txnStatus.getTxName() != null) {
-      txName = txnStatus.getTxName();
+    if (txnStatus.getFateOp() != null) {
+      fateOp = txnStatus.getFateOp().name();
     }
-    if (txnStatus.getTxid() != null) {
-      txnId = txnStatus.getTxid();
+    if (txnStatus.getFateId() != null) {
+      fateId = txnStatus.getFateId().canonical();
     }
-    locksHeld = formatLockInfo(txnStatus.getHeldLocks(), idsToNameMap);
-    locksWaiting = formatLockInfo(txnStatus.getWaitingLocks(), idsToNameMap);
+    locksHeld =
+        Collections.unmodifiableList(formatLockInfo(txnStatus.getHeldLocks(), idsToNameMap));
+    locksWaiting =
+        Collections.unmodifiableList(formatLockInfo(txnStatus.getWaitingLocks(), idsToNameMap));
   }
 
   private List<String> formatLockInfo(final List<String> lockInfo,
@@ -92,8 +99,32 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return formattedLocks;
   }
 
-  public String getTxnId() {
-    return txnId;
+  public long getRunning() {
+    return running;
+  }
+
+  public String getFateOp() {
+    return fateOp;
+  }
+
+  public String getStep() {
+    return step;
+  }
+
+  public String getFateId() {
+    return fateId;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public List<String> getLocksHeld() {
+    return locksHeld;
+  }
+
+  public List<String> getLocksWaiting() {
+    return locksWaiting;
   }
 
   /**
@@ -109,7 +140,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (v != 0) {
       return v;
     }
-    return txnId.compareTo(other.txnId);
+    return fateId.compareTo(other.fateId);
   }
 
   @Override
@@ -122,12 +153,12 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
       return false;
     }
     FateTxnDetails that = (FateTxnDetails) o;
-    return running == that.running && txnId.equals(that.txnId);
+    return running == that.running && fateId.equals(that.fateId);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(running, txnId);
+    return Objects.hash(running, fateId);
   }
 
   @Override
@@ -136,7 +167,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     String hms = String.format("%d:%02d:%02d", elapsed.toHours(), elapsed.toMinutesPart(),
         elapsed.toSecondsPart());
 
-    return hms + "\t" + txnId + "\t" + status + "\t" + txName + "\t" + step + "\theld:"
+    return hms + "\t" + fateId + "\t" + status + "\t" + fateOp + "\t" + step + "\theld:"
         + locksHeld.toString() + "\twaiting:" + locksWaiting.toString();
   }
 

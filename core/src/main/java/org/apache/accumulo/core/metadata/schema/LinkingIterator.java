@@ -51,8 +51,8 @@ public class LinkingIterator implements Iterator<TabletMetadata> {
 
   private static final Logger log = LoggerFactory.getLogger(LinkingIterator.class);
 
-  private Range range;
-  private Function<Range,Iterator<TabletMetadata>> iteratorFactory;
+  private final Range range;
+  private final Function<Range,Iterator<TabletMetadata>> iteratorFactory;
   private Iterator<TabletMetadata> source;
   private TabletMetadata prevTablet = null;
 

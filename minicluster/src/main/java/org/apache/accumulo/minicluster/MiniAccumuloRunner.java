@@ -19,11 +19,11 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -105,9 +105,9 @@ public class MiniAccumuloRunner {
     System.out.println();
     System.out.println("# Configuration normally placed in accumulo.properties can be added using"
         + " a site.* prefix.");
-    System.out.println("# For example the following line will set tserver.compaction.major.delay");
+    System.out.println("# For example the following line will set tserver.compaction.warn.time");
     System.out.println();
-    System.out.println("#site.tserver.compaction.major.delay=60s");
+    System.out.println("#site.tserver.compaction.warn.time=10m");
 
   }
 
@@ -119,7 +119,7 @@ public class MiniAccumuloRunner {
       Properties prop = new Properties();
       InputStream is;
       try {
-        is = new FileInputStream(fileName);
+        is = Files.newInputStream(Path.of(fileName));
         try {
           prop.load(is);
         } finally {
@@ -167,7 +167,7 @@ public class MiniAccumuloRunner {
     final File miniDir;
 
     if (opts.prop.containsKey(DIRECTORY_PROP)) {
-      miniDir = new File(opts.prop.getProperty(DIRECTORY_PROP));
+      miniDir = Path.of(opts.prop.getProperty(DIRECTORY_PROP)).toFile();
     } else {
       miniDir = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
     }
@@ -179,9 +179,6 @@ public class MiniAccumuloRunner {
 
     if (opts.prop.containsKey(INSTANCE_NAME_PROP)) {
       config.setInstanceName(opts.prop.getProperty(INSTANCE_NAME_PROP));
-    }
-    if (opts.prop.containsKey(NUM_T_SERVERS_PROP)) {
-      config.setNumTservers(Integer.parseInt(opts.prop.getProperty(NUM_T_SERVERS_PROP)));
     }
     if (opts.prop.containsKey(ZOO_KEEPER_PORT_PROP)) {
       config.setZooKeeperPort(Integer.parseInt(opts.prop.getProperty(ZOO_KEEPER_PORT_PROP)));

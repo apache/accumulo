@@ -42,10 +42,7 @@ public class CurrentOperations {
   public double query;
   public Double minorStdDev;
   public Double minorAvgES;
-  public Double majorStdDev;
-  public Double majorAvgES;
   public Double minorAvg;
-  public Double majorAvg;
 
   public CurrentOperations() {}
 
@@ -61,13 +58,9 @@ public class CurrentOperations {
    * @param minorAvg Minor compaction average
    * @param minorStdDev Minor compaction standard deviation
    * @param minorAvgES Minor compaction average ES
-   * @param majorAvg Major compaction average
-   * @param majorStdDev Major compaction standard deviation
-   * @param majorAvgES Major compaction average ES
    */
   public CurrentOperations(String name, TableId tableId, String tablet, long entries, double ingest,
-      double query, Double minorAvg, Double minorStdDev, Double minorAvgES, Double majorAvg,
-      Double majorStdDev, Double majorAvgES) {
+      double query, Double minorAvg, Double minorStdDev, Double minorAvgES) {
     this.name = name;
     this.tableID = tableId;
     this.tablet = tablet;
@@ -76,9 +69,6 @@ public class CurrentOperations {
     this.query = query;
     this.minorStdDev = minorStdDev;
     this.minorAvgES = minorAvgES;
-    this.majorStdDev = majorStdDev;
-    this.majorAvgES = majorAvgES;
     this.minorAvg = minorAvg;
-    this.majorAvg = majorAvg;
   }
 }

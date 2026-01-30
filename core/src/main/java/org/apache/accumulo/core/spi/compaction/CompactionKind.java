@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
-
 /**
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
@@ -29,10 +27,6 @@ public enum CompactionKind {
    * A system initiated routine compaction.
    */
   SYSTEM,
-  /**
-   * Set of files selected by a {@link CompactionSelector} configured for a table.
-   */
-  SELECTOR,
   /**
    * A user initiated a one time compaction using an Accumulo client.
    */

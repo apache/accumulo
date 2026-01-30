@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -30,11 +31,10 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -43,23 +43,20 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-class MoveExportedFiles extends ManagerRepo {
+class MoveExportedFiles extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(MoveExportedFiles.class);
 
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   MoveExportedFiles(ImportedTableInfo ti) {
     this.tableInfo = ti;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    String fmtTid = FateTxId.formatTid(tid);
-
-    int workerCount = manager.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    VolumeManager fs = manager.getVolumeManager();
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    VolumeManager fs = env.getVolumeManager();
     Map<Path,Path> oldToNewPaths = new HashMap<>();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -71,24 +68,27 @@ class MoveExportedFiles extends ManagerRepo {
 
       Function<FileStatus,String> fileStatusName = fstat -> fstat.getPath().getName();
 
-      Set<String> importing = Arrays.stream(exportedFiles).map(fileStatusName)
-          .map(fileNameMappings::get).collect(Collectors.toSet());
+      Set<Path> importing =
+          Arrays.stream(exportedFiles).map(fileStatusName).map(fileNameMappings::get)
+              .filter(Objects::nonNull).map(Path::new).collect(Collectors.toSet());
 
-      Set<String> imported =
-          Arrays.stream(importedFiles).map(fileStatusName).collect(Collectors.toSet());
+      Set<Path> imported =
+          Arrays.stream(importedFiles).map(FileStatus::getPath).collect(Collectors.toSet());
 
       if (log.isDebugEnabled()) {
-        log.debug("{} files already present in imported (target) directory: {}", fmtTid,
-            String.join(",", imported));
+        log.debug("{} files already present in imported (target) directory: {}", fateId,
+            imported.stream().map(Path::getName).collect(Collectors.joining(",")));
       }
 
-      Set<String> missingFiles = Sets.difference(new HashSet<>(fileNameMappings.values()),
+      Set<Path> missingFiles = Sets.difference(
+          fileNameMappings.values().stream().map(Path::new).collect(Collectors.toSet()),
           new HashSet<>(Sets.union(importing, imported)));
 
       if (!missingFiles.isEmpty()) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
             tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-            "Missing source files corresponding to files " + String.join(",", missingFiles));
+            "Missing source files corresponding to files "
+                + missingFiles.stream().map(Path::getName).collect(Collectors.joining(",")));
       }
 
       for (FileStatus fileStatus : exportedFiles) {
@@ -103,12 +103,12 @@ class MoveExportedFiles extends ManagerRepo {
           // operation would be truly unexpected
           oldToNewPaths.put(originalPath, newPath);
         } else {
-          log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
+          log.debug("{} not moving (unmapped) file {}", fateId, originalPath);
         }
       }
     }
     try {
-      fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fmtTid);
+      fs.bulkRename(oldToNewPaths, env.getRenamePool(), fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

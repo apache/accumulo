@@ -41,7 +41,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -69,17 +68,17 @@ public class NamespaceConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    ZooReaderWriter zrw = createMock(ZooReaderWriter.class);
-
-    context = getMockContextWithPropStore(iid, zrw, propStore);
+    context = getMockContextWithPropStore(iid, propStore);
 
     parent = createMock(AccumuloConfiguration.class);
     reset(propStore);
 
-    var nsPropStoreKey = NamespacePropKey.of(iid, NSID);
+    var nsPropStoreKey = NamespacePropKey.of(NSID);
     expect(propStore.get(eq(nsPropStoreKey))).andReturn(new VersionedProperties(123, Instant.now(),
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
     propStore.registerAsListener(eq(nsPropStoreKey), anyObject());
+    expectLastCall().anyTimes();
+    propStore.invalidate(nsPropStoreKey);
     expectLastCall().anyTimes();
 
     replay(propStore, context);
@@ -121,7 +120,7 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGet_SkipParentIfAccumuloNS() {
     reset(propStore);
-    var nsPropKey = NamespacePropKey.of(iid, Namespace.ACCUMULO.id());
+    var nsPropKey = NamespacePropKey.of(Namespace.ACCUMULO.id());
     expect(propStore.get(eq(nsPropKey))).andReturn(new VersionedProperties(Map.of("a", "b")))
         .anyTimes();
     propStore.registerAsListener(eq(nsPropKey), anyObject());
@@ -145,7 +144,7 @@ public class NamespaceConfigurationTest {
     replay(parent);
     reset(propStore);
 
-    var nsPropKey = NamespacePropKey.of(iid, NSID);
+    var nsPropKey = NamespacePropKey.of(NSID);
     expect(propStore.get(eq(nsPropKey)))
         .andReturn(
             new VersionedProperties(123, Instant.now(), Map.of("foo", "bar", "tick", "tock")))

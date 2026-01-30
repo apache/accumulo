@@ -33,7 +33,7 @@ import java.util.Map.Entry;
  */
 public class SamplerConfiguration {
 
-  private String className;
+  private final String className;
   private Map<String,String> options = new HashMap<>();
 
   public SamplerConfiguration(Class<? extends Sampler> samplerClass) {
@@ -73,8 +73,7 @@ public class SamplerConfiguration {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SamplerConfiguration) {
-      SamplerConfiguration osc = (SamplerConfiguration) o;
+    if (o instanceof SamplerConfiguration osc) {
 
       return className.equals(osc.className) && options.equals(osc.options);
     }

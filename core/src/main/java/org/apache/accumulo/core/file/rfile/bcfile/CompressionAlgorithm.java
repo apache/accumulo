@@ -28,6 +28,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.spi.file.rfile.compression.CompressionAlgorithmConfiguration;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.conf.Configured;
 import org.apache.hadoop.io.compress.CodecPool;
@@ -40,7 +42,6 @@ import org.apache.hadoop.util.ReflectionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Maps;
 
@@ -110,9 +111,10 @@ public class CompressionAlgorithm extends Configured {
   /**
    * Guava cache to have a limited factory pattern defined in the Algorithm enum.
    */
-  private static LoadingCache<Entry<CompressionAlgorithm,Integer>,CompressionCodec> codecCache =
-      Caffeine.newBuilder().maximumSize(25)
-          .build(key -> key.getKey().createNewCodec(key.getValue()));
+  private static final LoadingCache<Entry<CompressionAlgorithm,Integer>,
+      CompressionCodec> codecCache =
+          Caches.getInstance().createNewBuilder(CacheName.COMPRESSION_ALGORITHM, false)
+              .maximumSize(25).build(key -> key.getKey().createNewCodec(key.getValue()));
 
   // Data input buffer size to absorb small reads from application.
   protected static final int DATA_IBUF_SIZE = 1024;

@@ -18,21 +18,27 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
+import java.util.List;
+
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.manager.state.TabletManagement;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.server.ServerContext;
+
+import com.google.common.base.Preconditions;
 
 class RootTabletStateStore extends MetaDataStateStore {
 
-  RootTabletStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    super(level, context, state, RootTable.NAME);
+  RootTabletStateStore(DataLevel level, ServerContext context) {
+    super(level, context, SystemTables.ROOT.tableName());
   }
 
   @Override
-  public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, RootTable.NAME);
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    Preconditions.checkArgument(parameters.getLevel() == getLevel());
+    return new TabletManagementScanner(context, ranges, parameters, SystemTables.ROOT.tableName());
   }
 
   @Override

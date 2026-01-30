@@ -21,6 +21,7 @@ package org.apache.accumulo.core.classloader;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,15 +70,15 @@ public class ClassLoaderUtil {
   }
 
   // for testing
-  static synchronized void resetContextFactoryForTests() {
+  public static synchronized void resetContextFactoryForTests() {
     FACTORY = null;
   }
 
-  public static ClassLoader getClassLoader() {
+  public static ClassLoader getClassLoader() throws ContextClassLoaderException {
     return getClassLoader(null);
   }
 
-  public static ClassLoader getClassLoader(String context) {
+  public static ClassLoader getClassLoader(String context) throws ContextClassLoaderException {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
     } else {
@@ -95,7 +96,7 @@ public class ClassLoaderUtil {
           return false;
         }
         return true;
-      } catch (RuntimeException e) {
+      } catch (ContextClassLoaderException e) {
         LOG.debug("Context {} is not valid.", context, e);
         return false;
       }
@@ -106,7 +107,11 @@ public class ClassLoaderUtil {
 
   public static <U> Class<? extends U> loadClass(String context, String className,
       Class<U> extension) throws ClassNotFoundException {
-    return getClassLoader(context).loadClass(className).asSubclass(extension);
+    try {
+      return getClassLoader(context).loadClass(className).asSubclass(extension);
+    } catch (ContextClassLoaderException e) {
+      throw new ClassNotFoundException("Error loading class from context: " + context, e);
+    }
   }
 
   public static <U> Class<? extends U> loadClass(String className, Class<U> extension)

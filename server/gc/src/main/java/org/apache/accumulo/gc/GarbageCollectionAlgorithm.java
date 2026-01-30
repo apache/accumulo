@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -143,62 +142,61 @@ public class GarbageCollectionAlgorithm {
     List<GcCandidate> candidateEntriesToBeDeleted = new ArrayList<>();
     Set<TableId> tableIdsBefore = gce.getCandidateTableIDs();
     Set<TableId> tableIdsSeen = new HashSet<>();
-    Iterator<Reference> iter = gce.getReferences().iterator();
-    while (iter.hasNext()) {
-      Reference ref = iter.next();
-      tableIdsSeen.add(ref.getTableId());
+    try (Stream<Reference> references = gce.getReferences()) {
+      references.forEach(ref -> {
+        tableIdsSeen.add(ref.getTableId());
 
-      if (ref.isDirectory()) {
-        var dirReference = (ReferenceDirectory) ref;
-        ServerColumnFamily.validateDirCol(dirReference.getTabletDir());
+        if (ref.isDirectory()) {
+          ServerColumnFamily.validateDirCol(ref.getMetadataPath());
 
-        String dir = "/" + dirReference.tableId + "/" + dirReference.getTabletDir();
+          String dir = "/" + ref.getTableId() + "/" + ref.getMetadataPath();
 
-        dir = makeRelative(dir, 2);
+          dir = makeRelative(dir, 2);
 
-        GcCandidate gcTemp = candidateMap.remove(dir);
-        if (gcTemp != null) {
-          log.debug("Directory Candidate was still in use by dir ref: {}", dir);
-          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
-        }
-      } else {
-        String reference = ref.getMetadataPath();
-        if (reference.startsWith("/")) {
-          log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
-              ref.getTableId());
-          reference = "/" + ref.getTableId() + ref.getMetadataPath();
-        } else if (!reference.contains(":") && !reference.startsWith("../")) {
-          throw new RuntimeException("Bad file reference " + reference);
-        }
+          GcCandidate gcTemp = candidateMap.remove(dir);
+          if (gcTemp != null) {
+            log.debug("Directory Candidate was still in use by dir ref: {}", dir);
+            // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
+            // once.
+          }
+        } else {
+          String reference = ref.getMetadataPath();
+          if (reference.startsWith("/")) {
+            log.debug("Candidate {} has a relative path, prepend tableId {}", reference,
+                ref.getTableId());
+            reference = "/" + ref.getTableId() + ref.getMetadataPath();
+          } else if (!reference.contains(":") && !reference.startsWith("../")) {
+            throw new RuntimeException("Bad file reference " + reference);
+          }
 
-        String relativePath = makeRelative(reference, 3);
+          String relativePath = makeRelative(reference, 3);
 
-        // WARNING: This line is EXTREMELY IMPORTANT.
-        // You MUST REMOVE candidates that are still in use
-        GcCandidate gcTemp = candidateMap.remove(relativePath);
-        if (gcTemp != null) {
-          log.debug("File Candidate was still in use: {}", relativePath);
-          // Prevent deletion of candidates that are still in use by scans, because they won't be
-          // recreated once the scan is finished.
-          if (!ref.isScan()) {
-            candidateEntriesToBeDeleted.add(gcTemp);
+          // WARNING: This line is EXTREMELY IMPORTANT.
+          // You MUST REMOVE candidates that are still in use
+          GcCandidate gcTemp = candidateMap.remove(relativePath);
+          if (gcTemp != null) {
+            log.debug("File Candidate was still in use: {}", relativePath);
+            // Prevent deletion of candidates that are still in use by scans, because they won't be
+            // recreated once the scan is finished.
+            if (!ref.isScan()) {
+              candidateEntriesToBeDeleted.add(gcTemp);
+            }
+          }
+
+          String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
+          GcCandidate gcT = candidateMap.remove(dir);
+          if (gcT != null) {
+            log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
+            // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created
+            // once.
           }
         }
-
-        String dir = relativePath.substring(0, relativePath.lastIndexOf('/'));
-        GcCandidate gcT = candidateMap.remove(dir);
-        if (gcT != null) {
-          log.debug("Directory Candidate was still in use by file ref: {}", relativePath);
-          // Do not add dir candidates to candidateEntriesToBeDeleted as they are only created once.
-        }
-      }
+      });
     }
     Set<TableId> tableIdsAfter = gce.getCandidateTableIDs();
     ensureAllTablesChecked(Collections.unmodifiableSet(tableIdsBefore),
         Collections.unmodifiableSet(tableIdsSeen), Collections.unmodifiableSet(tableIdsAfter));
-    if (gce.canRemoveInUseCandidates()) {
-      gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
-    }
+    gce.deleteGcCandidates(candidateEntriesToBeDeleted, GcCandidateType.INUSE);
   }
 
   private long removeBlipCandidates(GarbageCollectionEnvironment gce,
@@ -346,6 +344,7 @@ public class GarbageCollectionAlgorithm {
 
     Iterator<GcCandidate> candidatesIter = gce.getCandidates();
     long totalBlips = 0;
+    int batchCount = 0;
 
     while (candidatesIter.hasNext()) {
       List<GcCandidate> batchOfCandidates;
@@ -358,7 +357,8 @@ public class GarbageCollectionAlgorithm {
       } finally {
         candidatesSpan.end();
       }
-      totalBlips = deleteBatch(gce, batchOfCandidates);
+      batchCount++;
+      totalBlips = deleteBatch(gce, batchOfCandidates, batchCount);
     }
     return totalBlips;
   }
@@ -366,11 +366,12 @@ public class GarbageCollectionAlgorithm {
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private long deleteBatch(GarbageCollectionEnvironment gce, List<GcCandidate> currentBatch)
-      throws InterruptedException, TableNotFoundException, IOException {
+  private long deleteBatch(GarbageCollectionEnvironment gce, List<GcCandidate> currentBatch,
+      int batchCount) throws InterruptedException, TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
     gce.incrementCandidatesStat(origSize);
+    log.info("Batch {} total deletion candidates: {}", batchCount, origSize);
 
     SortedMap<String,GcCandidate> candidateMap = makeRelative(currentBatch);
 

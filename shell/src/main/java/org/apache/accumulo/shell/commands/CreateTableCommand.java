@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
+import static org.apache.accumulo.shell.ShellUtil.readPropertiesFromFile;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -37,11 +38,11 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellUtil;
@@ -54,21 +55,21 @@ import org.apache.hadoop.io.Text;
 
 public class CreateTableCommand extends Command {
   private Option createTableOptCopySplits;
-  // copies configuration (property hierarchy: system, namespace, table) into table properties
-  private Option createTableOptCopyConfig;
-  // copies properties from target table, (omits system and namespace properties in configuration)
-  private Option createTableOptExcludeParentProps;
+  private Option createTableOptCopyProps;
   private Option createTableOptSplit;
   private Option createTableOptTimeLogical;
   private Option createTableOptTimeMillis;
-  private Option createTableNoDefaultIters;
+  private Option createTableNoDefaultTableProps;
   private Option createTableOptEVC;
   private Option base64Opt;
   private Option createTableOptFormatter;
   private Option createTableOptInitProp;
+  private Option createTableOptInitPropFile;
   private Option createTableOptLocalityProps;
   private Option createTableOptIteratorProps;
   private Option createTableOptOffline;
+  private Option createTableOptInitialTabletAvailability;
+  private OptionGroup copyConfigGroup;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -97,22 +98,40 @@ public class CreateTableCommand extends Command {
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
-      ntc.withSplits(
-          new TreeSet<>(shellState.getAccumuloClient().tableOperations().listSplits(oldTable)));
+      var splits = shellState.getAccumuloClient().tableOperations().listSplits(oldTable);
+      if (!splits.isEmpty()) {
+        ntc.withSplits(new TreeSet<>(splits));
+      }
     }
 
-    // exclude parent properties; only valid with copy config
-    if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())
-        && !cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      throw new IllegalArgumentException(createTableOptExcludeParentProps.getLongOpt()
-          + " only valid when using " + createTableOptCopyConfig.getLongOpt());
+    for (var copyOpt : copyConfigGroup.getOptions()) {
+      if (cl.hasOption(copyOpt)
+          && (cl.hasOption(createTableNoDefaultTableProps) || cl.hasOption(createTableOptInitProp)
+              || cl.hasOption(createTableOptIteratorProps) || cl.hasOption(createTableOptFormatter)
+              || cl.hasOption(createTableOptLocalityProps) || cl.hasOption(createTableOptEVC))) {
+        throw new IllegalArgumentException(copyOpt.getLongOpt()
+            + " is mutually exclusive with any other option that sets per-table properties");
+      }
     }
 
-    if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      final String oldTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
+    if (cl.hasOption(createTableOptCopyProps)) {
+      String oldTable = cl.getOptionValue(createTableOptCopyProps);
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
+    }
+
+    // set initial tablet availability, if argument supplied.
+    // CreateTable will default to ONDEMAND if argument not supplied
+    if (cl.hasOption(createTableOptInitialTabletAvailability.getOpt())) {
+      String tabletAvailability =
+          cl.getOptionValue(createTableOptInitialTabletAvailability.getOpt()).toUpperCase();
+      TabletAvailability initialTabletAvailability = switch (tabletAvailability) {
+        case "HOSTED" -> TabletAvailability.HOSTED;
+        case "UNHOSTED" -> TabletAvailability.UNHOSTED;
+        default -> TabletAvailability.ONDEMAND;
+      };
+      ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
     }
 
     TimeType timeType = TimeType.MILLIS;
@@ -120,8 +139,15 @@ public class CreateTableCommand extends Command {
       timeType = TimeType.LOGICAL;
     }
 
-    Map<String,String> initProperties =
-        new HashMap<>(ShellUtil.parseMapOpt(cl, createTableOptInitProp));
+    Map<String,String> initProperties;
+    String filename = cl.getOptionValue(createTableOptInitPropFile.getOpt());
+    if (filename != null) {
+      initProperties = readPropertiesFromFile(filename);
+    } else {
+      initProperties = new HashMap<>();
+    }
+
+    initProperties.putAll(ShellUtil.parseMapOpt(cl, createTableOptInitProp));
 
     // Set iterator if supplied
     if (cl.hasOption(createTableOptIteratorProps.getOpt())) {
@@ -139,29 +165,23 @@ public class CreateTableCommand extends Command {
     }
 
     // Copy configuration options if flag was set
-    if (cl.hasOption(createTableOptCopyConfig.getOpt())) {
-      String srcTable = cl.getOptionValue(createTableOptCopyConfig.getOpt());
-      if (cl.hasOption(createTableOptExcludeParentProps.getLongOpt())) {
-        // copy properties, excludes parent properties in configuration
-        Map<String,String> tableProps =
-            shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
-        tableProps.entrySet().stream()
-            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
-      } else {
-        // copy configuration (include parent properties)
-        final Map<String,String> configuration =
-            shellState.getAccumuloClient().tableOperations().getConfiguration(srcTable);
-        configuration.entrySet().stream()
-            .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-            .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
-      }
+    Map<String,String> srcTableConfig;
+    if (cl.hasOption(createTableOptCopyProps)) {
+      String srcTable = cl.getOptionValue(createTableOptCopyProps);
+      // copy properties, excludes parent properties in configuration
+      srcTableConfig =
+          shellState.getAccumuloClient().tableOperations().getTableProperties(srcTable);
+      srcTableConfig.entrySet().stream()
+          .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+          .forEach(entry -> initProperties.put(entry.getKey(), entry.getValue()));
+      // we want to copy the config exactly, specify no defaults so default settings copied from
+      // src (above) are all that are added to dest (if any)
+      ntc = ntc.withoutDefaults();
     }
 
-    // if no defaults selected, remove, even if copied from configuration or properties
-    if (cl.hasOption(createTableNoDefaultIters.getOpt())) {
-      Set<String> initialProps = IteratorConfigUtil.generateInitialTableProperties(true).keySet();
-      initialProps.forEach(initProperties::remove);
+    if (cl.hasOption(createTableNoDefaultTableProps)) {
+      // prevents default props from being added in create table call
+      ntc = ntc.withoutDefaults();
     }
 
     // Load custom formatter if set
@@ -309,29 +329,33 @@ public class CreateTableCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    createTableOptCopyConfig =
-        new Option("cc", "copy-config", true, "table to copy effective configuration from");
-    createTableOptExcludeParentProps = new Option(null, "exclude-parent-properties", false,
-        "exclude properties from its parent(s) when copying configuration");
+    createTableOptCopyProps = new Option("cp", "copy-properties", true,
+        "table to copy properties from. Excludes properties from its parent(s).");
     createTableOptCopySplits =
         new Option("cs", "copy-splits", true, "table to copy current splits from");
     createTableOptSplit = new Option("sf", "splits-file", true,
         "file with a newline-separated list of rows to split the table with");
     createTableOptTimeLogical = new Option("tl", "time-logical", false, "use logical time");
     createTableOptTimeMillis = new Option("tm", "time-millis", false, "use time in milliseconds");
-    createTableNoDefaultIters = new Option("ndi", "no-default-iterators", false,
-        "prevent creation of the normal default iterator set");
+    createTableNoDefaultTableProps = new Option("ndtp", "no-default-table-props", false,
+        "prevent creation of the default iterator and default key size limit");
     createTableOptEVC = new Option("evc", "enable-visibility-constraint", false,
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    createTableOptInitProp =
-        new Option("prop", "init-properties", true, "user defined initial properties");
-    createTableOptCopyConfig.setArgName("table");
+    createTableOptInitProp = new Option("prop", "init-properties", true,
+        "comma-separated user-defined initial key=value pairs");
+    createTableOptInitPropFile =
+        new Option("pf", "propFile", true, "user-defined initial properties file");
+    createTableOptInitialTabletAvailability =
+        new Option("a", "availability", true, "initial tablet availability (defaults to ONDEMAND)");
+    createTableOptCopyProps.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
     createTableOptInitProp.setArgName("properties");
+    createTableOptInitPropFile.setArgName("properties-file");
+    createTableOptInitialTabletAvailability.setArgName("availability");
 
     createTableOptLocalityProps =
         new Option("l", "locality", true, "create locality groups at table creation");
@@ -356,21 +380,25 @@ public class CreateTableCommand extends Command {
     timeGroup.addOption(createTableOptTimeLogical);
     timeGroup.addOption(createTableOptTimeMillis);
 
+    // these table config options are mutually exclusive
+    copyConfigGroup = new OptionGroup();
+    copyConfigGroup.addOption(createTableOptCopyProps);
+    copyConfigGroup.addOption(createTableOptInitPropFile);
+
     base64Opt = new Option("b64", "base64encoded", false, "decode encoded split points");
     o.addOption(base64Opt);
 
     o.addOptionGroup(splitOrCopySplit);
     o.addOptionGroup(timeGroup);
-    o.addOption(createTableOptSplit);
-    o.addOption(createTableOptCopyConfig);
-    o.addOption(createTableOptExcludeParentProps);
-    o.addOption(createTableNoDefaultIters);
+    o.addOptionGroup(copyConfigGroup);
+    o.addOption(createTableNoDefaultTableProps);
     o.addOption(createTableOptEVC);
     o.addOption(createTableOptFormatter);
     o.addOption(createTableOptInitProp);
     o.addOption(createTableOptLocalityProps);
     o.addOption(createTableOptIteratorProps);
     o.addOption(createTableOptOffline);
+    o.addOption(createTableOptInitialTabletAvailability);
 
     return o;
   }

@@ -24,7 +24,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -37,18 +36,16 @@ import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "DM_EXIT",
-    justification = "System.exit is fine here because it's a utility class executed by a main()")
+@SuppressFBWarnings(value = {"DM_EXIT", "CT_CONSTRUCTOR_THROW"},
+    justification = "System.exit is acceptable here as it's a utility class, and constructor validation ensures proper initialization")
 public class PrintBCInfo {
-  SiteConfiguration siteConfig;
   Configuration conf;
   FileSystem fs;
   Path path;
   CryptoService cryptoService = NoCryptoServiceFactory.NONE;
 
   public void printMetaBlockInfo() throws IOException {
-    FSDataInputStream fsin = fs.open(path);
-    try (BCFile.Reader bcfr =
+    try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
         new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
@@ -67,6 +64,17 @@ public class PrintBCInfo {
     }
   }
 
+  public String getCompressionType() throws IOException {
+    try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
+        new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
+
+      Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
+
+      return es.stream().filter(entry -> entry.getKey().equals("RFile.index")).findFirst()
+          .map(entry -> entry.getValue().getCompressionAlgorithm().getName()).orElse(null);
+    }
+  }
+
   static class Opts extends ConfigOpts {
     @Parameter(description = " <file>")
     String file;
@@ -79,7 +87,6 @@ public class PrintBCInfo {
       System.err.println("No files were given");
       System.exit(-1);
     }
-    siteConfig = opts.getSiteConfiguration();
     conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);

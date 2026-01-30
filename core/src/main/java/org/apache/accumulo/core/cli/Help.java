@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.cli;
 
+import java.util.function.Consumer;
+
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -26,8 +28,10 @@ public class Help {
   @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
   public boolean help = false;
 
-  public void parseArgs(String programName, String[] args, Object... others) {
+  public void parseArgs(Consumer<JCommander> jcConsumer, String programName, String[] args,
+      Object... others) {
     JCommander commander = new JCommander();
+    jcConsumer.accept(commander);
     commander.addObject(this);
     for (Object other : others) {
       commander.addObject(other);
@@ -43,6 +47,10 @@ public class Help {
       commander.usage();
       exit(0);
     }
+  }
+
+  public void parseArgs(String programName, String[] args, Object... others) {
+    parseArgs(jCommander -> {}, programName, args, others);
   }
 
   public void exit(int status) {

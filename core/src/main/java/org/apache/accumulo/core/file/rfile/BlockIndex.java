@@ -62,12 +62,12 @@ public class BlockIndex implements Weighable {
     return ((x > 0) && (x & (x - 1)) == 0);
   }
 
-  private AtomicInteger accessCount = new AtomicInteger(0);
+  private final AtomicInteger accessCount = new AtomicInteger(0);
   private volatile BlockIndexEntry[] blockIndex = null;
 
   public static class BlockIndexEntry implements Comparable<BlockIndexEntry> {
 
-    private Key prevKey;
+    private final Key prevKey;
     private int entriesLeft;
     private int pos;
 

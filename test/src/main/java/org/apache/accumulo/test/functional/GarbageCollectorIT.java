@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -49,14 +50,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -103,7 +103,6 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     // reduce the batch size significantly in order to cause the integration tests to have
     // to process many batches of deletion candidates.
     cfg.setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "256K");
@@ -117,8 +116,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
-    ZooReaderWriter zk = getServerContext().getZooReaderWriter();
+    var path = getServerContext().getServerPaths().createGarbageCollectorPath();
+    ZooReaderWriter zk = getServerContext().getZooSession().asReaderWriter();
     try {
       ServiceLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
@@ -141,7 +140,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       TestIngest.ingest(c, cluster.getFileSystem(), params);
       log.info("Compacting the table {}", table);
       c.tableOperations().compact(table, null, null, true, true);
-      String pathString = cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf";
+      // the following path expects mini to be configured with a single volume
+      final String pathString = cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES) + "/"
+          + Constants.TABLE_DIR + "/1/*/*.rf";
       log.info("Counting files in path: {}", pathString);
 
       int before = countFiles(pathString);
@@ -212,7 +213,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       // run recovery
       cluster.start();
       // did it recover?
-      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner scanner =
+          c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
     }
@@ -241,9 +243,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().flush(table, null, null, true);
 
       // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-      c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+      c.securityOperations().grantTablePermission(c.whoami(), SystemTables.METADATA.tableName(),
           TablePermission.WRITE);
-      try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
+      try (BatchWriter bw = c.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
         // path is invalid but value is expected - only way the invalid entry will come through
@@ -286,6 +288,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       log.info("User GcCandidate Deletion test of table: {}", table);
       log.info("GcCandidates will be added/removed from table: {}", DataLevel.USER.metaTable());
       createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.INUSE);
+      createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.VALID);
     }
   }
 
@@ -296,6 +299,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     log.info("Metadata GcCandidate Deletion test");
     log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
     createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
+    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.VALID);
   }
 
   /**
@@ -407,9 +411,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      ZooReaderWriter zk = cluster.getServerContext().getZooReaderWriter();
-      var path = ServiceLock
-          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
+      ZooReaderWriter zk = cluster.getServerContext().getZooSession().asReaderWriter();
+      var path = getServerContext().getServerPaths().createGarbageCollectorPath();
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
@@ -428,7 +431,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
-          assertNotEquals("0.0.0.0", hostAndPort.getHost());
+          assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES, hostAndPort.getHost());
           // Nor should we have the "random port" in zk
           assertNotEquals(0, hostAndPort.getPort());
           return;
@@ -448,9 +451,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
   private void addEntries(AccumuloClient client) throws Exception {
     Ample ample = getServerContext().getAmple();
-    client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
-        TablePermission.WRITE);
-    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+    client.securityOperations().grantTablePermission(client.whoami(),
+        SystemTables.METADATA.tableName(), TablePermission.WRITE);
+    try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
@@ -463,6 +466,13 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   private void createAndDeleteUniqueMutation(TableId tableId, Ample.GcCandidateType type) {
+    int totalCandidates = 2;
+    boolean inUseDelete = true;
+
+    if (type == Ample.GcCandidateType.VALID) {
+      totalCandidates = 1;
+      inUseDelete = false;
+    }
     Ample ample = cluster.getServerContext().getAmple();
     DataLevel datalevel = Ample.DataLevel.of(tableId);
 
@@ -501,7 +511,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         List.of(StoredTabletFile.of(new Path(deleteCandidate.getPath()))));
 
     log.debug("Deleting Candidate {}", deleteCandidate);
-    ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), Ample.GcCandidateType.INUSE);
+    ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), type);
 
     candidate = ample.getGcCandidates(datalevel);
 
@@ -516,7 +526,10 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       }
       counter++;
     }
-    assertEquals(2, counter);
-    assertTrue(foundNewCandidate);
+    assertEquals(totalCandidates, counter);
+    assertEquals(inUseDelete, foundNewCandidate);
+
+    // Cleanup from test
+    ample.deleteGcCandidates(datalevel, candidates, Ample.GcCandidateType.VALID);
   }
 }

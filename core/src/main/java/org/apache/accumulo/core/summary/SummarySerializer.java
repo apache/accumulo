@@ -24,6 +24,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,8 +36,8 @@ import org.apache.accumulo.core.client.summary.Summarizer.Collector;
 import org.apache.accumulo.core.client.summary.Summarizer.Combiner;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.summary.Gatherer.RowRange;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableUtils;
 
@@ -45,34 +46,17 @@ import com.google.common.collect.ImmutableMap;
 
 /**
  * This class supports serializing summaries and periodically storing summaries. The implementations
- * attempts to generate around 10 summaries that are evenly spaced. This allows asking for summaries
+ * attempt to generate around 10 summaries that are evenly spaced. This allows asking for summaries
  * for sub-ranges of data in a rfile.
  *
  * <p>
- * At first summaries are created for every 1000 keys values. After 10 summaries are added, the 10
+ * At first, summaries are created for every 1000 keys values. After 10 summaries are added, the 10
  * summaries are merged to 5 and summaries are then created for every 2000 key values. The code
  * keeps merging summaries and doubling the amount of key values per summary. This results in each
  * summary covering about the same number of key values.
  */
-class SummarySerializer {
-
-  private SummarizerConfiguration sconf;
-  private LgSummaries[] allSummaries;
-
-  private SummarySerializer(SummarizerConfiguration sconf, LgSummaries[] allSummaries) {
-    this.sconf = sconf;
-    this.allSummaries = allSummaries;
-  }
-
-  private SummarySerializer(SummarizerConfiguration sconf) {
-    this.sconf = sconf;
-    // this indicates max size was exceeded
-    this.allSummaries = null;
-  }
-
-  public SummarizerConfiguration getSummarizerConfiguration() {
-    return sconf;
-  }
+record SummarySerializer(SummarizerConfiguration summarizerConfiguration,
+    LgSummaries[] allSummaries) {
 
   public void print(String prefix, String indent, PrintStream out) {
 
@@ -87,35 +71,30 @@ class SummarySerializer {
 
   public Map<String,Long> getSummary(List<RowRange> ranges, SummarizerFactory sf) {
 
-    Summarizer kvs = sf.getSummarizer(sconf);
+    Preconditions.checkState(allSummaries != null,
+        "Summaries were not stored because they exceeded the maximum size");
+
+    Summarizer kvs = sf.getSummarizer(summarizerConfiguration);
 
     Map<String,Long> summary = new HashMap<>();
     for (LgSummaries lgs : allSummaries) {
-      lgs.getSummary(ranges, kvs.combiner(sconf), summary);
+      lgs.getSummary(ranges, kvs.combiner(summarizerConfiguration), summary);
     }
     return summary;
   }
 
   public boolean exceedsRange(List<RowRange> ranges) {
-    boolean er = false;
-    for (LgSummaries lgs : allSummaries) {
-      for (RowRange ke : ranges) {
-        er |= lgs.exceedsRange(ke.getStartRow(), ke.getEndRow());
-        if (er) {
-          return er;
-        }
-      }
-    }
-
-    return er;
+    Preconditions.checkState(allSummaries != null,
+        "Summaries were not stored because they exceeded the maximum size");
+    ranges.forEach(SummarySerializer::validateSummaryRange);
+    return Arrays.stream(allSummaries).anyMatch(lgs -> ranges.stream().anyMatch(lgs::exceedsRange));
   }
 
   public boolean exceededMaxSize() {
     return allSummaries == null;
   }
 
-  private static class SummaryStoreImpl
-      implements org.apache.accumulo.core.client.summary.Summarizer.StatisticConsumer {
+  private static class SummaryStoreImpl implements Summarizer.StatisticConsumer {
 
     HashMap<String,Long> summaries;
 
@@ -126,11 +105,11 @@ class SummarySerializer {
   }
 
   private static class LgBuilder {
-    private Summarizer summarizer;
-    private SummarizerConfiguration conf;
+    private final Summarizer summarizer;
+    private final SummarizerConfiguration conf;
     private Collector collector;
 
-    private int maxSummaries = 10;
+    private static final int MAX_SUMMARIES = 10;
 
     private int cutoff = 1000;
     private int count = 0;
@@ -139,9 +118,9 @@ class SummarySerializer {
 
     private Key lastKey;
 
-    private SummaryStoreImpl sci = new SummaryStoreImpl();
+    private final SummaryStoreImpl sci = new SummaryStoreImpl();
 
-    private String name;
+    private final String name;
 
     private boolean sawFirst = false;
     private Text firstRow;
@@ -198,7 +177,7 @@ class SummarySerializer {
       Preconditions.checkState(!finished);
       summaries.add(new SummaryInfo(row, summary, count));
 
-      if (summaries.size() % 2 == 0 && summaries.size() > maxSummaries) {
+      if (summaries.size() % 2 == 0 && summaries.size() > MAX_SUMMARIES) {
         summaries = merge(summaries.size());
         cutoff *= 2;
       }
@@ -270,14 +249,14 @@ class SummarySerializer {
   }
 
   public static class Builder {
-    private Summarizer kvs;
+    private final Summarizer kvs;
 
-    private SummarizerConfiguration conf;
+    private final SummarizerConfiguration conf;
 
-    private List<LgBuilder> locGroups;
+    private final List<LgBuilder> locGroups;
     private LgBuilder lgb;
 
-    private long maxSize;
+    private final long maxSize;
 
     public Builder(SummarizerConfiguration conf, Summarizer kvs, long maxSize) {
       this.conf = conf;
@@ -399,7 +378,8 @@ class SummarySerializer {
       throws IOException {
     boolean exceededMaxSize = in.readBoolean();
     if (exceededMaxSize) {
-      return new SummarySerializer(sconf);
+      // null indicates max size was exceeded
+      return new SummarySerializer(sconf, null);
     } else {
       WritableUtils.readVInt(in);
       // load symbol table
@@ -419,19 +399,12 @@ class SummarySerializer {
     }
   }
 
-  private static class LgSummaries {
+  private record LgSummaries(Text firstRow, SummaryInfo[] summaries, String lgroupName) {
 
-    private Text firstRow;
-    private SummaryInfo[] summaries;
-    private String lgroupName;
+    boolean exceedsRange(RowRange range) {
 
-    LgSummaries(Text firstRow, SummaryInfo[] summaries, String lgroupName) {
-      this.firstRow = firstRow;
-      this.summaries = summaries;
-      this.lgroupName = lgroupName;
-    }
-
-    boolean exceedsRange(Text startRow, Text endRow) {
+      Text startRow = range.getLowerBound();
+      Text endRow = range.getUpperBound();
 
       if (summaries.length == 0) {
         return false;
@@ -463,22 +436,23 @@ class SummarySerializer {
     void getSummary(List<RowRange> ranges, Combiner combiner, Map<String,Long> summary) {
       boolean[] summariesThatOverlap = new boolean[summaries.length];
 
-      for (RowRange keyExtent : ranges) {
-        Text startRow = keyExtent.getStartRow();
-        Text endRow = keyExtent.getEndRow();
+      for (RowRange rowRange : ranges) {
+        validateSummaryRange(rowRange);
+        Text lowerBound = rowRange.getLowerBound();
+        Text upperBound = rowRange.getUpperBound();
 
-        if (endRow != null && endRow.compareTo(firstRow) < 0) {
+        if (upperBound != null && upperBound.compareTo(firstRow) < 0) {
           continue;
         }
 
         int start = -1;
         int end = summaries.length - 1;
 
-        if (startRow == null) {
+        if (lowerBound == null) {
           start = 0;
         } else {
           for (int i = 0; i < summaries.length; i++) {
-            if (startRow.compareTo(summaries[i].getLastRow()) < 0) {
+            if (lowerBound.compareTo(summaries[i].getLastRow()) < 0) {
               start = i;
               break;
             }
@@ -489,11 +463,11 @@ class SummarySerializer {
           continue;
         }
 
-        if (endRow == null) {
+        if (upperBound == null) {
           end = summaries.length - 1;
         } else {
           for (int i = start; i < summaries.length; i++) {
-            if (endRow.compareTo(summaries[i].getLastRow()) < 0) {
+            if (upperBound.compareTo(summaries[i].getLastRow()) < 0) {
               end = i;
               break;
             }
@@ -510,6 +484,20 @@ class SummarySerializer {
           combiner.merge(summary, summaries[i].summary);
         }
       }
+    }
+  }
+
+  /**
+   * Ensures that the lower bound is exclusive and the upper bound is inclusive
+   */
+  private static void validateSummaryRange(RowRange rowRange) {
+    if (rowRange.getLowerBound() != null) {
+      Preconditions.checkState(!rowRange.isLowerBoundInclusive(),
+          "Summary row range lower bound must be exclusive: %s", rowRange);
+    }
+    if (rowRange.getUpperBound() != null) {
+      Preconditions.checkState(rowRange.isUpperBoundInclusive(),
+          "Summary row range upper bound must be inclusive: %s", rowRange);
     }
   }
 

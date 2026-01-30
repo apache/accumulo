@@ -35,7 +35,8 @@ import org.apache.commons.cli.Options;
 import com.google.common.collect.Iterators;
 
 public class NamespacesCommand extends Command {
-  private Option disablePaginationOpt, namespaceIdOption;
+  private Option disablePaginationOpt;
+  private Option namespaceIdOption;
 
   private static final String DEFAULT_NAMESPACE_DISPLAY_NAME = "\"\"";
 

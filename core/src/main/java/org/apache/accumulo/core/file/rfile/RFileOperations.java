@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -29,12 +30,14 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.RFileSKVIterator;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
@@ -42,7 +45,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,13 +58,13 @@ public class RFileOperations extends FileOperations {
   private static final Logger LOG = LoggerFactory.getLogger(RFileOperations.class);
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
+  private static final AtomicBoolean SYNC_CAPABILITY_LOGGED = new AtomicBoolean(false);
 
   private static RFileSKVIterator getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
         .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-        .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
-        .cryptoService(options.getCryptoService());
+        .cacheProvider(options.cacheProvider).cryptoService(options.getCryptoService());
     return RFile.getReader(cb, options.getFile());
   }
 
@@ -137,10 +142,52 @@ public class RFileOperations extends FileOperations {
       TabletFile file = options.getFile();
       FileSystem fs = options.getFileSystem();
 
-      if (options.dropCacheBehind) {
+      var ecEnable = EcEnabled.valueOf(
+          options.getTableConfiguration().get(Property.TABLE_ENABLE_ERASURE_CODES).toUpperCase());
+
+      if (fs instanceof DistributedFileSystem) {
+        var builder = ((DistributedFileSystem) fs).createFile(file.getPath()).bufferSize(bufferSize)
+            .blockSize(block).overwrite(false);
+
+        if (options.dropCacheBehind) {
+          builder = builder.syncBlock();
+        }
+
+        // create parent directories if they do not exist
+        builder = builder.recursive();
+
+        switch (ecEnable) {
+          case ENABLE:
+            String ecPolicyName =
+                options.getTableConfiguration().get(Property.TABLE_ERASURE_CODE_POLICY);
+            // The default value of this property is empty string. If empty string is given to this
+            // builder it will disable erasure coding. So adding an explicit check for that.
+            Preconditions.checkArgument(!ecPolicyName.isBlank(), "Blank or empty value set for %s",
+                Property.TABLE_ERASURE_CODE_POLICY.getKey());
+            builder = builder.ecPolicyName(ecPolicyName);
+            break;
+          case DISABLE:
+            // force replication
+            builder = builder.replication((short) rep).replicate();
+            break;
+          case INHERIT:
+            // use the directory settings for replication or EC
+            builder = builder.replication((short) rep);
+            break;
+          default:
+            throw new IllegalStateException(ecEnable.name());
+        }
+
+        outputStream = builder.build();
+      } else if (options.dropCacheBehind) {
         EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
         outputStream = fs.create(file.getPath(), FsPermission.getDefault(), set, bufferSize,
             (short) rep, block, null);
+      } else {
+        outputStream = fs.create(file.getPath(), false, bufferSize, (short) rep, block);
+      }
+
+      if (options.dropCacheBehind) {
         try {
           // Tell the DataNode that the file does not need to be cached in the OS page cache
           outputStream.setDropBehind(Boolean.TRUE);
@@ -151,13 +198,21 @@ public class RFileOperations extends FileOperations {
           LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.file,
               e.getMessage());
         }
-      } else {
-        outputStream = fs.create(file.getPath(), false, bufferSize, (short) rep, block);
+      }
+
+      TableId tid = options.getTableId();
+      if (tid != null && !SYNC_CAPABILITY_LOGGED.get() && (SystemTables.ROOT.tableId().equals(tid)
+          || SystemTables.METADATA.tableId().equals(tid))) {
+        if (!outputStream.hasCapability(StreamCapabilities.HSYNC)) {
+          SYNC_CAPABILITY_LOGGED.set(true);
+          LOG.warn("File created for table {} does not support hsync. If dfs.datanode.synconclose"
+              + " is configured, then it may not work. dfs.datanode.synconclose is recommended for the"
+              + " root and metadata tables.", tid);
+        }
       }
     }
 
-    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, options.cryptoService);
+    BCFile.Writer _cbw = new BCFile.Writer(outputStream, compression, conf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

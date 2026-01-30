@@ -119,12 +119,6 @@ public class Token {
     subcommands.add(t);
   }
 
-  public void addSubcommand(Collection<String> t) {
-    for (String a : t) {
-      addSubcommand(new Token(a));
-    }
-  }
-
   @Override
   public String toString() {
     return this.command.toString();

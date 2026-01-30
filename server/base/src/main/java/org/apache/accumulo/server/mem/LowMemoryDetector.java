@@ -23,6 +23,7 @@ import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -30,11 +31,19 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LowMemoryDetector {
+
+  private static class LowMemDetectorState {
+    private long lastMemorySize = 0;
+    private int lowMemCount = 0;
+    private Timer lastMemoryCheckTimer = null;
+    private boolean runningLowOnMemory = false;
+  }
 
   private static final Logger LOG = LoggerFactory.getLogger(LowMemoryDetector.class);
 
@@ -48,19 +57,16 @@ public class LowMemoryDetector {
   }
 
   private final HashMap<String,Long> prevGcTime = new HashMap<>();
-
-  private long lastMemorySize = 0;
-  private int lowMemCount = 0;
-  private long lastMemoryCheckTime = 0;
   private final Lock memCheckTimeLock = new ReentrantLock();
-  private volatile boolean runningLowOnMemory = false;
+  private final AtomicReference<LowMemDetectorState> state =
+      new AtomicReference<>(new LowMemDetectorState());
 
   public long getIntervalMillis(AccumuloConfiguration conf) {
     return conf.getTimeInMillis(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL);
   }
 
   public boolean isRunningLowOnMemory() {
-    return runningLowOnMemory;
+    return state.get().runningLowOnMemory;
   }
 
   /**
@@ -74,23 +80,14 @@ public class LowMemoryDetector {
   public boolean isRunningLowOnMemory(ServerContext context, DetectionScope scope,
       Supplier<Boolean> isUserTable, Action action) {
     if (isUserTable.get()) {
-      Property p;
-      switch (scope) {
-        case SCAN:
-          p = Property.GENERAL_LOW_MEM_SCAN_PROTECTION;
-          break;
-        case MINC:
-          p = Property.GENERAL_LOW_MEM_MINC_PROTECTION;
-          break;
-        case MAJC:
-          p = Property.GENERAL_LOW_MEM_MAJC_PROTECTION;
-          break;
-        default:
-          throw new IllegalArgumentException("Unknown scope: " + scope);
-      }
+      Property p = switch (scope) {
+        case SCAN -> Property.GENERAL_LOW_MEM_SCAN_PROTECTION;
+        case MINC -> Property.GENERAL_LOW_MEM_MINC_PROTECTION;
+        case MAJC -> Property.GENERAL_LOW_MEM_MAJC_PROTECTION;
+      };
       boolean isEnabled = context.getConfiguration().getBoolean(p);
       // Only incur the penalty of accessing the volatile variable when enabled for this scope
-      if (isEnabled && runningLowOnMemory) {
+      if (isEnabled && state.get().runningLowOnMemory) {
         action.execute();
         return true;
       }
@@ -98,13 +95,13 @@ public class LowMemoryDetector {
     return false;
   }
 
-  public void logGCInfo(AccumuloConfiguration conf) {
+  public synchronized void logGCInfo(AccumuloConfiguration conf) {
 
     double freeMemoryPercentage = conf.getFraction(Property.GENERAL_LOW_MEM_DETECTOR_THRESHOLD);
 
     memCheckTimeLock.lock();
     try {
-      final long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
+      LowMemDetectorState localState = state.get();
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
 
@@ -144,54 +141,55 @@ public class LowMemoryDetector {
           maxConfiguredMemory, allocatedMemory, freeMemory, lowMemoryThreshold);
 
       if (freeMemory < lowMemoryThreshold) {
-        lowMemCount++;
-        if (lowMemCount > 3 && !runningLowOnMemory) {
-          runningLowOnMemory = true;
+        localState.lowMemCount++;
+        if (localState.lowMemCount > 3 && !localState.runningLowOnMemory) {
+          localState.runningLowOnMemory = true;
           LOG.warn("Running low on memory: max={}, allocated={}, free={}, free threshold={}",
               maxConfiguredMemory, allocatedMemory, freeMemory, lowMemoryThreshold);
         }
       } else {
         // If we were running low on memory, but are not any longer, than log at warn
         // so that it shows up in the logs
-        if (runningLowOnMemory) {
+        if (localState.runningLowOnMemory) {
           LOG.warn("Recovered from low memory condition");
         } else {
           LOG.trace("Not running low on memory");
         }
-        runningLowOnMemory = false;
-        lowMemCount = 0;
+        localState.runningLowOnMemory = false;
+        localState.lowMemCount = 0;
       }
 
-      if (freeMemory != lastMemorySize) {
+      if (freeMemory != localState.lastMemorySize) {
         sawChange = true;
       }
 
       sb.append(String.format(" freemem=%,d(%+,d) totalmem=%,d", freeMemory,
-          (freeMemory - lastMemorySize), rt.totalMemory()));
+          (freeMemory - localState.lastMemorySize), rt.totalMemory()));
 
       if (sawChange) {
         LOG.debug(sb.toString());
       }
 
       final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-      if (lastMemoryCheckTime > 0 && lastMemoryCheckTime < now) {
-        final long diff = now - lastMemoryCheckTime;
-        if (diff > keepAliveTimeout + 1000) {
+      if (localState.lastMemoryCheckTimer != null) {
+        if (localState.lastMemoryCheckTimer.hasElapsed(keepAliveTimeout + 1000,
+            TimeUnit.MILLISECONDS)) {
+          final long diff = localState.lastMemoryCheckTimer.elapsed(TimeUnit.MILLISECONDS);
           LOG.warn(String.format(
               "GC pause checker not called in a timely"
                   + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
               keepAliveTimeout / 1000., diff / 1000.));
         }
-        lastMemoryCheckTime = now;
+        localState.lastMemoryCheckTimer.restart();
         return;
       }
 
       if (maxIncreaseInCollectionTime > keepAliveTimeout) {
-        Halt.halt("Garbage collection may be interfering with lock keep-alive. Halting.", -1);
+        Halt.halt(1, "Garbage collection may be interfering with lock keep-alive. Halting.");
       }
 
-      lastMemorySize = freeMemory;
-      lastMemoryCheckTime = now;
+      localState.lastMemorySize = freeMemory;
+      localState.lastMemoryCheckTimer = Timer.startNew();
     } finally {
       memCheckTimeLock.unlock();
     }

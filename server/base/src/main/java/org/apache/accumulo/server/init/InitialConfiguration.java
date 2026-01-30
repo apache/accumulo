@@ -25,16 +25,15 @@ import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
-import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
 import org.apache.hadoop.conf.Configuration;
 
-class InitialConfiguration {
+public class InitialConfiguration {
 
   // config only for root table
   private final HashMap<String,String> initialRootConf = new HashMap<>();
@@ -42,38 +41,41 @@ class InitialConfiguration {
   private final HashMap<String,String> initialRootMetaConf = new HashMap<>();
   // config for only metadata table
   private final HashMap<String,String> initialMetaConf = new HashMap<>();
+  // config for only fate table
+  private final HashMap<String,String> initialFateTableConf = new HashMap<>();
+  // config for only scan ref table
+  private final HashMap<String,String> initialScanRefTableConf = new HashMap<>();
   private final Configuration hadoopConf;
   private final SiteConfiguration siteConf;
 
-  InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
+  public InitialConfiguration(Configuration hadoopConf, SiteConfiguration siteConf) {
     this.hadoopConf = hadoopConf;
     this.siteConf = siteConf;
-    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-        SimpleCompactionDispatcher.class.getName());
-    initialRootConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "root");
 
-    initialRootMetaConf.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
-    initialRootMetaConf.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
-    initialRootMetaConf.put(Property.TABLE_DURABILITY.getKey(), "sync");
-    initialRootMetaConf.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
+    // config common to all Accumulo tables
+    Map<String,String> commonConfig = new HashMap<>();
+    commonConfig.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "32K");
+    commonConfig.put(Property.TABLE_FILE_REPLICATION.getKey(), "5");
+    commonConfig.put(Property.TABLE_DURABILITY.getKey(), "sync");
+    commonConfig.put(Property.TABLE_MAJC_RATIO.getKey(), "1");
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions", "1");
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions", "1");
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
+        "10," + VersioningIterator.class.getName());
+    commonConfig.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions", "1");
+    commonConfig.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
+    commonConfig.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
+    commonConfig.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
+    commonConfig.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
+
+    initialRootMetaConf.putAll(commonConfig);
     initialRootMetaConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "64M");
     initialRootMetaConf.put(Property.TABLE_CONSTRAINT_PREFIX.getKey() + "1",
         MetadataConstraints.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers",
-        "10," + VersioningIterator.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions",
-        "1");
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers",
-        "10," + VersioningIterator.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions",
-        "1");
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers",
-        "10," + VersioningIterator.class.getName());
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions",
-        "1");
-    initialRootMetaConf.put(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter",
-        "20," + MetadataBulkLoadFilter.class.getName());
-    initialRootMetaConf.put(Property.TABLE_FAILURES_IGNORE.getKey(), "false");
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "tablet",
         String.format("%s,%s", MetadataSchema.TabletsSection.TabletColumnFamily.NAME,
             MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME));
@@ -83,13 +85,16 @@ class InitialConfiguration {
             MetadataSchema.TabletsSection.ServerColumnFamily.NAME,
             MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME));
     initialRootMetaConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "tablet,server");
-    initialRootMetaConf.put(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey(), "");
-    initialRootMetaConf.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "true");
-    initialRootMetaConf.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "true");
 
-    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER.getKey(),
-        SimpleCompactionDispatcher.class.getName());
-    initialMetaConf.put(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service", "meta");
+    initialFateTableConf.putAll(commonConfig);
+    initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
+    // Create a locality group that contains tx admin columns so its fast to scan. When fate
+    // looks for work it scans this family.
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "txAdmin",
+        FateSchema.TxAdminColumnFamily.STR_NAME);
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "txAdmin");
+
+    initialScanRefTableConf.putAll(commonConfig);
 
     int max = hadoopConf.getInt("dfs.replication.max", 512);
     // Hadoop 0.23 switched the min value configuration name
@@ -106,8 +111,8 @@ class InitialConfiguration {
   private void setMetadataReplication(int replication, String reason) {
     String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
-            + MetadataTable.NAME + " replication of 5. What do you want to set your "
-            + MetadataTable.NAME + " replication to? (" + replication + ") ");
+            + SystemTables.METADATA.tableName() + " replication of 5. What do you want to set your "
+            + SystemTables.METADATA.tableName() + " replication to? (" + replication + ") ");
     if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {
@@ -127,6 +132,14 @@ class InitialConfiguration {
 
   HashMap<String,String> getMetaTableConf() {
     return initialMetaConf;
+  }
+
+  HashMap<String,String> getFateTableConf() {
+    return initialFateTableConf;
+  }
+
+  HashMap<String,String> getScanRefTableConf() {
+    return initialScanRefTableConf;
   }
 
   Configuration getHadoopConf() {

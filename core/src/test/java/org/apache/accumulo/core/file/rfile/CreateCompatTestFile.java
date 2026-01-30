@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -46,7 +48,8 @@ public class CreateCompatTestFile {
   }
 
   private static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
+    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
+        ts);
   }
 
   private static Value newValue(String val) {
@@ -61,7 +64,7 @@ public class CreateCompatTestFile {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
-    BCFile.Writer _cbw = new BCFile.Writer(fs.create(new Path(args[0])), null, "gz", conf,
+    BCFile.Writer _cbw = new BCFile.Writer(fs.create(new Path(args[0])), "gz", conf,
         CryptoFactoryLoader.getServiceForServer(aconf));
     RFile.Writer writer = new RFile.Writer(_cbw, 1000);
 

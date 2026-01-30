@@ -25,24 +25,29 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Arrays;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -50,15 +55,15 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
@@ -69,6 +74,7 @@ import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metadata.ServerAmpleImpl;
+import org.apache.accumulo.server.metrics.MetricsInfoImpl;
 import org.apache.accumulo.server.rpc.SaslServerConnectionParams;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -79,9 +85,10 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
@@ -91,10 +98,8 @@ public class ServerContext extends ClientContext {
   private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
   private final ServerInfo info;
-  private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
-  private final Supplier<String> zkUserPath;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -105,23 +110,38 @@ public class ServerContext extends ClientContext {
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
+  private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
+  private final Supplier<MetricsInfo> metricsInfoSupplier;
+  private final Supplier<ConditionalWriter> sharedMetadataWriter;
+  private final Supplier<ConditionalWriter> sharedUserWriter;
+
+  private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedMetadataWriterCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedUserWriterCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(new ServerInfo(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig), ResourceGroupId.DEFAULT);
   }
 
-  private ServerContext(ServerInfo info) {
-    super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
+  public ServerContext(SiteConfiguration siteConfig, ResourceGroupId rgid) {
+    this(ServerInfo.fromServerConfig(siteConfig), rgid);
+  }
+
+  private ServerContext(ServerInfo info, ResourceGroupId rgid) {
+    super(info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
-    zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
 
-    propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
-    zkUserPath = memoize(() -> Constants.ZROOT + "/" + getInstanceID() + Constants.ZUSERS);
+    // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
+    @SuppressWarnings("resource")
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getZooSession()));
+    propStore = tmpPropStore;
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
-    serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
+    serverConfFactory =
+        memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration(), rgid));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
@@ -131,6 +151,10 @@ public class ServerContext extends ClientContext {
         memoize(() -> new AuditedSecurityOperation(this, SecurityOperation.getAuthorizor(this),
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     lowMemoryDetector = memoize(() -> new LowMemoryDetector());
+    metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
+
+    sharedMetadataWriter = memoize(() -> createSharedConditionalWriter(DataLevel.METADATA));
+    sharedUserWriter = memoize(() -> createSharedConditionalWriter(DataLevel.USER));
   }
 
   /**
@@ -138,21 +162,27 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID),
+        ResourceGroupId.DEFAULT);
+  }
+
+  /**
+   * Used by server-side utilities that have a client configuration. The instance name is obtained
+   * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
+   */
+  public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info),
+        ResourceGroupId.DEFAULT);
   }
 
   /**
    * Override properties for testing
    */
-  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
+  public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
-        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
-  }
-
-  @Override
-  public InstanceId getInstanceID() {
-    return info.getInstanceID();
+        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut),
+        ResourceGroupId.DEFAULT);
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -161,6 +191,10 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
+    return serverConfFactory.get().getResourceGroupConfiguration();
+  }
+
+  public AccumuloConfiguration getSystemConfiguration() {
     return serverConfFactory.get().getSystemConfiguration();
   }
 
@@ -206,15 +240,6 @@ public class ServerContext extends ClientContext {
 
   public VolumeManager getVolumeManager() {
     return info.getVolumeManager();
-  }
-
-  @Override
-  public ZooReader getZooReader() {
-    return getZooReaderWriter();
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zooReaderWriter;
   }
 
   /**
@@ -286,7 +311,7 @@ public class ServerContext extends ClientContext {
     return serverDirs.getBaseUris();
   }
 
-  public List<Pair<Path,Path>> getVolumeReplacements() {
+  public Map<Path,Path> getVolumeReplacements() {
     return serverDirs.getVolumeReplacements();
   }
 
@@ -312,15 +337,8 @@ public class ServerContext extends ClientContext {
 
   public void waitForZookeeperAndHdfs() {
     log.info("Attempting to talk to zookeeper");
-    while (true) {
-      try {
-        getZooReaderWriter().getChildren(Constants.ZROOT);
-        break;
-      } catch (InterruptedException | KeeperException ex) {
-        log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, SECONDS);
-      }
-    }
+    // Next line blocks until connection is established
+    getZooSession();
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
@@ -414,9 +432,9 @@ public class ServerContext extends ClientContext {
     ScheduledFuture<?> future = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
-        File swappiness = new File(procFile);
-        if (swappiness.exists() && swappiness.canRead()) {
-          try (InputStream is = new FileInputStream(procFile)) {
+        java.nio.file.Path swappiness = java.nio.file.Path.of(procFile);
+        if (Files.exists(swappiness) && Files.isReadable(swappiness)) {
+          try (InputStream is = Files.newInputStream(swappiness)) {
             byte[] buffer = new byte[10];
             int bytes = is.read(buffer);
             String setting = new String(buffer, 0, bytes, UTF_8);
@@ -437,6 +455,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    sharedSchedExecutorCreated.set(true);
     return sharedScheduledThreadPool.get();
   }
 
@@ -449,16 +468,98 @@ public class ServerContext extends ClientContext {
     return getClientTimeoutInMillis();
   }
 
-  public AuditedSecurityOperation getSecurityOperation() {
-    return securityOperation.get();
+  @Override
+  public synchronized ThriftTransportPool getTransportPool() {
+    return getTransportPoolImpl(true);
   }
 
-  public String zkUserPath() {
-    return zkUserPath.get();
+  public AuditedSecurityOperation getSecurityOperation() {
+    return securityOperation.get();
   }
 
   public LowMemoryDetector getLowMemoryDetector() {
     return lowMemoryDetector.get();
   }
 
+  public void setServiceLock(ServiceLock lock) {
+    if (!serverLock.compareAndSet(null, lock)) {
+      throw new IllegalStateException("ServiceLock already set on ServerContext");
+    }
+  }
+
+  public ServiceLock getServiceLock() {
+    return serverLock.get();
+  }
+
+  /** Intended to be called from MiniAccumuloClusterImpl only as can be restarted **/
+  public void clearServiceLock() {
+    serverLock.set(null);
+  }
+
+  public MetricsInfo getMetricsInfo() {
+    metricsInfoCreated.set(true);
+    return metricsInfoSupplier.get();
+  }
+
+  private ConditionalWriter createSharedConditionalWriter(DataLevel level) {
+    try {
+      int maxThreads =
+          getConfiguration().getCount(Property.GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX);
+      var config = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+      String tableName = level.metaTable();
+      log.info("Creating shared ConditionalWriter for DataLevel {} with max threads: {}", level,
+          maxThreads);
+      if (level == DataLevel.METADATA) {
+        sharedMetadataWriterCreated.set(true);
+      } else if (level == DataLevel.USER) {
+        sharedUserWriterCreated.set(true);
+      }
+      return createConditionalWriter(tableName, config);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Failed to create shared ConditionalWriter for level " + level, e);
+    }
+  }
+
+  public Supplier<ConditionalWriter> getSharedMetadataWriter() {
+    return sharedMetadataWriter;
+  }
+
+  public Supplier<ConditionalWriter> getSharedUserWriter() {
+    return sharedUserWriter;
+  }
+
+  @Override
+  public void close() {
+    Preconditions.checkState(!isClosed(), "ServerContext.close was already called.");
+    if (metricsInfoCreated.get()) {
+      getMetricsInfo().close();
+    }
+    if (sharedSchedExecutorCreated.get()) {
+      log.debug("Shutting down shared executor pool");
+      getScheduledExecutor().shutdownNow();
+    }
+    if (sharedMetadataWriterCreated.get()) {
+      log.debug("Shutting down shared metadata conditional writer");
+      try {
+        ConditionalWriter writer = sharedMetadataWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      } catch (Exception e) {
+        log.warn("Error closing shared metadata ConditionalWriter", e);
+      }
+    }
+    if (sharedUserWriterCreated.get()) {
+      log.debug("Shutting down shared user conditional writer");
+      try {
+        ConditionalWriter writer = sharedUserWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      } catch (Exception e) {
+        log.warn("Error closing shared user ConditionalWriter", e);
+      }
+    }
+    super.close();
+  }
 }

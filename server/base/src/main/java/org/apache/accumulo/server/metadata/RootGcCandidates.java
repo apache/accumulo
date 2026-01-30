@@ -20,8 +20,8 @@ package org.apache.accumulo.server.metadata;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -41,7 +41,7 @@ public class RootGcCandidates {
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The root tablet will only have a single dir on each volume. Therefore, root file paths will
@@ -50,7 +50,11 @@ public class RootGcCandidates {
      *
      * SortedMap<dir path, SortedSet<file name>>
      */
-    private final SortedMap<String,SortedSet<String>> candidates;
+    private SortedMap<String,SortedSet<String>> candidates;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
+    private Data() {}
 
     public Data(int version, SortedMap<String,SortedSet<String>> candidates) {
       this.version = version;
@@ -88,7 +92,7 @@ public class RootGcCandidates {
   }
 
   public Stream<GcCandidate> sortedStream() {
-    var uidGen = new SecureRandom();
+    var uidGen = RANDOM.get();
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();

@@ -19,14 +19,14 @@
 package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
-import java.nio.file.Paths;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 
@@ -66,10 +66,10 @@ public class TokenFileIT extends AccumuloClusterHarness {
       protected void map(Key k, Value v, Context context) {
         try {
           if (key != null) {
-            assertEquals(key.getRow().toString(), new String(v.get()));
+            assertEquals(key.getRow().toString(), new String(v.get(), UTF_8));
           }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-          assertEquals(new String(v.get()), String.format("%09x", count));
+          assertEquals(new String(v.get(), UTF_8), String.format("%09x", count));
         } catch (AssertionError e) {
           e1 = e;
         }
@@ -95,7 +95,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
 
       String tokenFile = args[0];
-      Properties cp = Accumulo.newClientProperties().from(Paths.get(tokenFile)).build();
+      Properties cp = Accumulo.newClientProperties().from(Path.of(tokenFile)).build();
       String table1 = args[1];
       String table2 = args[2];
 
@@ -127,16 +127,18 @@ public class TokenFileIT extends AccumuloClusterHarness {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
       Configuration conf = cluster.getServerContext().getHadoopConf();
-      conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
+      Path parent = Path.of(args[0]).getParent();
+      assertNotNull(parent);
+      conf.set("hadoop.tmp.dir", parent.toString());
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Test
   public void testMR() throws Exception {
@@ -154,18 +156,18 @@ public class TokenFileIT extends AccumuloClusterHarness {
         }
       }
 
-      File tf = new File(tempDir, "client.properties");
-      assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
-      try (PrintStream out = new PrintStream(tf)) {
+      Path tf = tempDir.resolve("client.properties");
+      Files.createFile(tf);
+      try (var out = Files.newOutputStream(tf)) {
         getClientProps().store(out, "Credentials for " + getClass().getName());
       }
 
-      MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
+      MRTokenFileTester.main(new String[] {tf.toAbsolutePath().toString(), table1, table2});
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
-            .map(Integer::parseInt).collect(onlyElement());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get)
+            .map(e -> new String(e, UTF_8)).map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, i);
       }
     }

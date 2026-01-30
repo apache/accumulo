@@ -23,16 +23,18 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class ShutdownIT extends ConfigurableMacBase {
@@ -85,6 +87,7 @@ public class ShutdownIT extends ConfigurableMacBase {
       Thread async = new Thread(() -> {
         try {
           for (int i = 0; i < 10; i++) {
+            Thread.sleep(100);
             c.tableOperations().delete("table" + i);
           }
         } catch (Exception ex) {
@@ -94,6 +97,9 @@ public class ShutdownIT extends ConfigurableMacBase {
       async.start();
       Thread.sleep(100);
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      // give the backfound delete operations a bit to run
+      Thread.sleep(3000);
+      // The delete operations should get stuck or run, but should not throw an exception
       if (ref.get() != null) {
         throw ref.get();
       }
@@ -117,13 +123,15 @@ public class ShutdownIT extends ConfigurableMacBase {
     int x = cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable")
         .getProcess().waitFor();
     assertEquals(0, x);
-    List<String> tabletServers = c.instanceOperations().getTabletServers();
+    Set<ServerId> tabletServers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(2, tabletServers.size());
-    String doomed = tabletServers.get(0);
+    ServerId doomed = tabletServers.iterator().next();
     log.info("Stopping " + doomed);
-    assertEquals(0, cluster.exec(Admin.class, "stop", doomed).getProcess().waitFor());
-    tabletServers = c.instanceOperations().getTabletServers();
+    assertEquals(0,
+        cluster.exec(Admin.class, "stop", doomed.toHostPortString()).getProcess().waitFor());
+    Wait.waitFor(() -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
+    tabletServers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(1, tabletServers.size());
-    assertNotEquals(tabletServers.get(0), doomed);
+    assertNotEquals(tabletServers.iterator().next(), doomed);
   }
 }

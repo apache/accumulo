@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -80,10 +82,7 @@ public class MultiThreadedRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstRow().compareTo(lastKey.getRow()) > 0) {
-        throw new IllegalStateException(
-            "First key out of order " + reader.getFirstRow() + " " + lastKey);
-      }
+      assertTrue(reader.getFileRange().rowRange.contains(lastKey));
 
       indexIter.next();
 
@@ -98,9 +97,10 @@ public class MultiThreadedRFileTest {
 
       }
 
-      if (!reader.getLastRow().equals(lastKey.getRow())) {
+      if (!reader.getFileRange().rowRange.getEndKey()
+          .equals(lastKey.followingKey(PartialKey.ROW))) {
         throw new IllegalStateException(
-            "Last key out of order " + reader.getLastRow() + " " + lastKey);
+            "Last key out of order " + reader.getFileRange().rowRange + " " + lastKey);
       }
     }
   }
@@ -153,7 +153,7 @@ public class MultiThreadedRFileTest {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
+      BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", conf,
           CryptoFactoryLoader.getServiceForServer(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
@@ -198,7 +198,8 @@ public class MultiThreadedRFileTest {
   }
 
   static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
+    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
+        ts);
   }
 
   static Value newValue(String val) {
@@ -231,9 +232,10 @@ public class MultiThreadedRFileTest {
 
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
-      String name = "MultiThreadedRFileTestThread";
-      ThreadPoolExecutor pool = ThreadPools.getServerThreadPools().createThreadPool(maxThreads + 1,
-          maxThreads + 1, 5 * 60, SECONDS, name, false);
+      String name = "test.rfile.multi.thread.pool";
+      ThreadPoolExecutor pool =
+          ThreadPools.getServerThreadPools().getPoolBuilder(name).numCoreThreads(maxThreads + 1)
+              .numMaxThreads(maxThreads + 1).withTimeOut(5, MINUTES).build();
       try {
         Runnable runnable = () -> {
           try {
@@ -382,16 +384,12 @@ public class MultiThreadedRFileTest {
 
   private String pad(int val) {
     String valStr = String.valueOf(val);
-    switch (valStr.length()) {
-      case 1:
-        return "000" + valStr;
-      case 2:
-        return "00" + valStr;
-      case 3:
-        return "0" + valStr;
-      default:
-        return valStr;
-    }
+    return switch (valStr.length()) {
+      case 1 -> "000" + valStr;
+      case 2 -> "00" + valStr;
+      case 3 -> "0" + valStr;
+      default -> valStr;
+    };
   }
 
   private Value getValue(int index) {

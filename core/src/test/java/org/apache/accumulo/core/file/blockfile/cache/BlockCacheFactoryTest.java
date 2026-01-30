@@ -34,10 +34,11 @@ import org.junit.jupiter.api.Test;
 public class BlockCacheFactoryTest {
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testCreateLruBlockCacheFactory() throws Exception {
     DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+    cc.set(Property.GENERAL_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
     BlockCacheManagerFactory.getInstance(cc);
   }
 
@@ -45,7 +46,7 @@ public class BlockCacheFactoryTest {
   public void testCreateTinyLfuBlockCacheFactory() throws Exception {
     DefaultConfiguration dc = DefaultConfiguration.getInstance();
     ConfigurationCopy cc = new ConfigurationCopy(dc);
-    cc.set(Property.TSERV_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
+    cc.set(Property.GENERAL_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
     BlockCacheManagerFactory.getInstance(cc);
   }
 

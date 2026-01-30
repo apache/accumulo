@@ -23,6 +23,7 @@ import java.util.Objects;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -33,39 +34,47 @@ public class ReferenceFile implements Reference, Comparable<ReferenceFile> {
   // parts of an absolute URI, like "hdfs://1.2.3.4/accumulo/tables/2a/t-0003"
   public final TableId tableId; // 2a
   public final boolean isScan;
+  public final boolean isDirectory;
 
   // the exact path from the file reference string that is stored in the metadata
   protected final String metadataPath;
 
-  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan) {
+  protected ReferenceFile(TableId tableId, String metadataPath, boolean isScan,
+      boolean isDirectory) {
     this.tableId = Objects.requireNonNull(tableId);
     this.metadataPath = Objects.requireNonNull(metadataPath);
     this.isScan = isScan;
+    this.isDirectory = isDirectory;
   }
 
   public static ReferenceFile forFile(TableId tableId, StoredTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false);
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), false, false);
   }
 
   public static ReferenceFile forFile(TableId tableId, Path metadataPathPath) {
-    return new ReferenceFile(tableId, metadataPathPath.toString(), false);
+    return new ReferenceFile(tableId, metadataPathPath.toString(), false, false);
   }
 
   public static ReferenceFile forScan(TableId tableId, ScanServerRefTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true);
+    return new ReferenceFile(tableId, tabletFile.getNormalizedPathStr(), true, false);
   }
 
   public static ReferenceFile forScan(TableId tableId, StoredTabletFile tabletFile) {
-    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), true);
+    return new ReferenceFile(tableId, tabletFile.getMetadataPath(), true, false);
   }
 
   public static ReferenceFile forScan(TableId tableId, Path metadataPathPath) {
-    return new ReferenceFile(tableId, metadataPathPath.toString(), true);
+    return new ReferenceFile(tableId, metadataPathPath.toString(), true, false);
+  }
+
+  public static ReferenceFile forDirectory(TableId tableId, String dirName) {
+    MetadataSchema.TabletsSection.ServerColumnFamily.validateDirCol(dirName);
+    return new ReferenceFile(tableId, dirName, false, true);
   }
 
   @Override
   public boolean isDirectory() {
-    return false;
+    return isDirectory;
   }
 
   @Override

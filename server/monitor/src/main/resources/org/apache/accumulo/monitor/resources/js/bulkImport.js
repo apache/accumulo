@@ -18,14 +18,13 @@
  */
 "use strict";
 
-var bulkListTable, bulkPerServerTable;
+var bulkListTable;
 
 /**
  * Fetches new data and updates DataTables with it
  */
 function refreshBulkImport() {
   ajaxReloadTable(bulkListTable);
-  ajaxReloadTable(bulkPerServerTable);
 }
 
 /**
@@ -38,9 +37,9 @@ function refresh() {
 /**
  * Initializes the bulk import DataTables
  */
-$(document).ready(function () {
+$(function () {
 
-  const url = '/rest/bulkImports';
+  const url = contextPath + 'rest/bulkImports';
   console.debug('REST url used to fetch data for the DataTables in bulkImport.js: ' + url);
 
   // Generates the manager bulk import status table
@@ -50,6 +49,7 @@ $(document).ready(function () {
       "dataSrc": "bulkImport"
     },
     "stateSave": true,
+    "autoWidth": false,
     "columns": [{
         "data": "filename",
         "width": "40%"
@@ -58,12 +58,11 @@ $(document).ready(function () {
         "data": "age",
         "width": "45%",
         "render": function (data, type) {
-          if (type === 'display' && Number(data) > 0) {
-            data = new Date(Number(data));
-          } else {
-            data = "-";
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : "-";
           }
-          return data;
+          return age > 0 ? age : 0;
         }
       },
       {
@@ -85,7 +84,7 @@ $(document).ready(function () {
         "type": "html",
         "render": function (data, type) {
           if (type === 'display') {
-            data = `<a href="/tservers?s=${data}">${data}</a>`;
+            data = `<a href="tservers?s=${data}">${data}</a>`;
           }
           return data;
         }
@@ -96,12 +95,11 @@ $(document).ready(function () {
       {
         "data": "oldestAge",
         "render": function (data, type) {
-          if (type === 'display' && Number(data) > 0) {
-            data = new Date(Number(data));
-          } else {
-            data = "-";
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : "-";
           }
-          return data;
+          return age > 0 ? age : 0;
         }
       }
     ]

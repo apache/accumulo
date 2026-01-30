@@ -54,8 +54,8 @@ import org.apache.accumulo.core.util.ComparablePair;
 public class PairLexicoder<A extends Comparable<A>,B extends Comparable<B>>
     extends AbstractLexicoder<ComparablePair<A,B>> {
 
-  private Lexicoder<A> firstLexicoder;
-  private Lexicoder<B> secondLexicoder;
+  private final Lexicoder<A> firstLexicoder;
+  private final Lexicoder<B> secondLexicoder;
 
   public PairLexicoder(Lexicoder<A> firstLexicoder, Lexicoder<B> secondLexicoder) {
     this.firstLexicoder = firstLexicoder;

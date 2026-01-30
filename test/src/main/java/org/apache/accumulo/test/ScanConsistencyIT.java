@@ -50,6 +50,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -57,7 +58,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -115,6 +118,15 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       FileSystem fileSystem = FileSystem.get(new Configuration());
       runTest(client, fileSystem, tmpDir, table, sleepTime);
     }
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    // Sometimes a merge will run on a single tablet with an active compaction. Merge code will set
+    // an opid, determine that it is a single tablet, and then unset the opid. If the compaction
+    // tries to commit in this case it will fail to commit leaving a dead compaction. This dead
+    // compaction can prevent other user compactions from running.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "3s");
   }
 
   @Test
@@ -180,6 +192,26 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       // let the threads know to exit
       testContext.keepRunning.set(false);
 
+      // start a task to scan the metadata table for the case when the test gets stuck
+      AtomicBoolean keepLogging = new AtomicBoolean(true);
+      var debugTask = executor.submit(() -> {
+        try {
+          while (keepLogging.get()) {
+            Thread.sleep(10000);
+            if (keepLogging.get()) {
+              try (var scanner = client.createScanner(SystemTables.METADATA.tableName())) {
+                log.debug("Scanning metadata table");
+                scanner.forEach((k, v) -> log.debug(k.toStringNoTruncate() + " " + v));
+              }
+            }
+          }
+        } catch (InterruptedException e) {
+          // ignore
+        } catch (Exception e) {
+          log.warn("Failed to scan metadata table", e);
+        }
+      });
+
       for (Future<WriteStats> writeTask : writeTasks) {
         var stats = writeTask.get();
         log.info(String.format("Wrote:%,d Bulk imported:%,d Deleted:%,d Bulk deleted:%,d",
@@ -198,6 +230,9 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
       }
 
       log.info(tableOpsTask.get());
+
+      keepLogging.set(false);
+      debugTask.cancel(true);
 
       var stats1 = scanData(testContext, random, new Range(), false);
       var stats2 = scanData(testContext, random, new Range(), true);
@@ -692,21 +727,24 @@ public class ScanConsistencyIT extends AccumuloClusterHarness {
           // 1 in 20 chance of doing a filter compaction. This compaction will delete a data set.
           var deletes = tctx.dataTracker.getDeletes();
 
-          // The row has the format <random long>:<generation>, the following gets the generations
-          // from the rows. Expect the generation to be the same for a set of data to delete.
-          String gen = deletes.stream().map(m -> new String(m.getRow(), UTF_8))
-              .map(row -> row.split(":")[1]).distinct().collect(MoreCollectors.onlyElement());
+          if (!deletes.isEmpty()) {
+            // The row has the format <random long>:<generation>, the following gets the generations
+            // from the rows. Expect the generation to be the same for a set of data to delete.
+            String gen = deletes.stream().map(m -> new String(m.getRow(), UTF_8))
+                .map(row -> row.split(":")[1]).distinct().collect(MoreCollectors.onlyElement());
 
-          IteratorSetting iterSetting =
-              new IteratorSetting(100, "genfilter", GenerationFilter.class);
-          iterSetting.addOptions(Map.of("generation", gen));
+            IteratorSetting iterSetting =
+                new IteratorSetting(100, "genfilter", GenerationFilter.class);
+            iterSetting.addOptions(Map.of("generation", gen));
 
-          // run a compaction that deletes every key with the specified generation. Must wait on the
-          // compaction because at the end of the test it will try to verify deleted data is not
-          // present. Must flush the table in case data to delete is still in memory.
-          tctx.client.tableOperations().compact(tctx.table, new CompactionConfig().setFlush(true)
-              .setWait(true).setIterators(List.of(iterSetting)));
-          numFilters++;
+            // run a compaction that deletes every key with the specified generation. Must wait on
+            // the
+            // compaction because at the end of the test it will try to verify deleted data is not
+            // present. Must flush the table in case data to delete is still in memory.
+            tctx.client.tableOperations().compact(tctx.table, new CompactionConfig().setFlush(true)
+                .setWait(true).setIterators(List.of(iterSetting)));
+            numFilters++;
+          }
         }
       }
 

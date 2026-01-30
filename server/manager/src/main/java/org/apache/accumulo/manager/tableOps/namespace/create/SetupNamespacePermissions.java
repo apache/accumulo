@@ -19,34 +19,36 @@
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.NamespacePermission;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.slf4j.LoggerFactory;
 
-class SetupNamespacePermissions extends ManagerRepo {
+class SetupNamespacePermissions extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceInfo namespaceInfo;
+  private final NamespaceInfo namespaceInfo;
 
   public SetupNamespacePermissions(NamespaceInfo ti) {
     this.namespaceInfo = ti;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fate, FateEnv env) throws Exception {
     // give all namespace permissions to the creator
-    SecurityOperation security = env.getContext().getSecurityOperation();
-    for (var permission : NamespacePermission.values()) {
-      try {
-        security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
-            namespaceInfo.namespaceId, permission);
-      } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
-        throw e;
+    var security = env.getContext().getSecurityOperation();
+    if (!namespaceInfo.user.equals(env.getContext().getCredentials().getPrincipal())) {
+      for (var permission : NamespacePermission.values()) {
+        try {
+          security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
+              namespaceInfo.namespaceId, permission);
+        } catch (ThriftSecurityException e) {
+          LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
+          throw e;
+        }
       }
     }
 

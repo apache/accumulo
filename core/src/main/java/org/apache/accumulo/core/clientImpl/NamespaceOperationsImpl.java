@@ -21,12 +21,11 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.Validators.EXISTING_NAMESPACE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_NAMESPACE_NAME;
 
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.ConcurrentModificationException;
@@ -38,7 +37,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -51,25 +49,23 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
-import org.apache.accumulo.core.util.OpTimer;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   private final ClientContext context;
-  private TableOperationsImpl tableOps;
+  private final TableOperationsImpl tableOps;
 
   private static final Logger log = LoggerFactory.getLogger(TableOperations.class);
 
@@ -82,19 +78,18 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   @Override
   public SortedSet<String> list() {
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Fetching list of namespaces...", Thread.currentThread().getId());
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
-    TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context).keySet());
+    var namespaces = new TreeSet<>(context.getNamespaceMapping().getIdToNameMap().values());
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
-          namespaces.size(), String.format("%.3f secs", timer.scale(SECONDS)));
+          namespaces.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return namespaces;
@@ -104,20 +99,25 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
   public boolean exists(String namespace) {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
-    OpTimer timer = null;
+    Timer timer = null;
 
     if (log.isTraceEnabled()) {
       log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(),
           namespace);
-      timer = new OpTimer().start();
+      timer = Timer.startNew();
     }
 
-    boolean exists = Namespaces.namespaceNameExists(context, namespace);
+    boolean exists = false;
+    try {
+      context.getNamespaceId(namespace);
+      exists = true;
+    } catch (NamespaceNotFoundException e) {
+      /* ignore */
+    }
 
     if (timer != null) {
-      timer.stop();
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
-          String.format("%.3f secs", timer.scale(SECONDS)));
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return exists;
@@ -129,7 +129,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     NEW_NAMESPACE_NAME.validate(namespace);
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_CREATE,
+      doNamespaceFateOperation(TFateOperation.NAMESPACE_CREATE,
           Arrays.asList(ByteBuffer.wrap(namespace.getBytes(UTF_8))), Collections.emptyMap(),
           namespace);
     } catch (NamespaceNotFoundException e) {
@@ -143,7 +143,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       NamespaceNotFoundException, NamespaceNotEmptyException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
-    NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
+    NamespaceId namespaceId = context.getNamespaceId(namespace);
     if (namespaceId.equals(Namespace.ACCUMULO.id()) || namespaceId.equals(Namespace.DEFAULT.id())) {
       Credentials credentials = context.getCredentials();
       log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
@@ -151,7 +151,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
           SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
-    if (!Namespaces.getTableIds(context, namespaceId).isEmpty()) {
+    if (!context.getTableMapping(namespaceId).getIdToNameMap().isEmpty()) {
       throw new NamespaceNotEmptyException(namespaceId.canonical(), namespace, null);
     }
 
@@ -159,7 +159,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Map<String,String> opts = new HashMap<>();
 
     try {
-      doNamespaceFateOperation(FateOperation.NAMESPACE_DELETE, args, opts, namespace);
+      doNamespaceFateOperation(TFateOperation.NAMESPACE_DELETE, args, opts, namespace);
     } catch (NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
@@ -177,7 +177,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(oldNamespaceName.getBytes(UTF_8)),
         ByteBuffer.wrap(newNamespaceName.getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
-    doNamespaceFateOperation(FateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
+    doNamespaceFateOperation(TFateOperation.NAMESPACE_RENAME, args, opts, oldNamespaceName);
   }
 
   @Override
@@ -245,9 +245,9 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    Retry retry =
-        Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS).incrementBy(25, MILLISECONDS)
-            .maxWait(30, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createRetry();
+    Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(25))
+        .incrementBy(Duration.ofMillis(25)).maxWait(Duration.ofSeconds(30)).backOffFactor(1.5)
+        .logInterval(Duration.ofMinutes(3)).createRetry();
 
     while (true) {
       try {
@@ -297,13 +297,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -320,13 +320,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
     } catch (AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -336,11 +336,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> namespaceIdMap() {
-    return Namespaces.getNameToIdMap(context).entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().canonical(), (v1, v2) -> {
-          throw new IllegalStateException(
-              String.format("Duplicate key for values %s and %s", v1, v2));
-        }, TreeMap::new));
+    var result = new TreeMap<String,String>();
+    context.getNamespaceMapping().getIdToNameMap().forEach(
+        (namespaceId, namespaceName) -> result.put(namespaceName, namespaceId.canonical()));
+    return result;
   }
 
   @Override
@@ -355,14 +354,16 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
               className, asTypeName));
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new NamespaceNotFoundException(ttoe);
+    } catch (AccumuloSecurityException e) {
+      throw e;
+    } catch (AccumuloException e) {
+      Throwable eCause = e.getCause();
+      if (eCause instanceof TableNotFoundException) {
+        Throwable tnfeCause = eCause.getCause();
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
+          nnfe.addSuppressed(e);
+          throw nnfe;
         }
-        throw e;
       }
       throw e;
     } catch (Exception e) {
@@ -388,7 +389,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     return super.addConstraint(namespace, constraintClassName);
   }
 
-  private String doNamespaceFateOperation(FateOperation op, List<ByteBuffer> args,
+  private String doNamespaceFateOperation(TFateOperation op, List<ByteBuffer> args,
       Map<String,String> opts, String namespace) throws AccumuloSecurityException,
       AccumuloException, NamespaceExistsException, NamespaceNotFoundException {
     // caller should validate the namespace name

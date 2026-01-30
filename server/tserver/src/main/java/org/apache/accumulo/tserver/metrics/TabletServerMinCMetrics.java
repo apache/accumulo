@@ -18,18 +18,21 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.MINC_QUEUED;
+import static org.apache.accumulo.core.metrics.Metric.MINC_RUNNING;
+
 import java.time.Duration;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.server.metrics.NoopMetrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 
 public class TabletServerMinCMetrics implements MetricsProducer {
 
-  private Timer activeMinc;
-  private Timer queuedMinc;
+  private Timer activeMinc = NoopMetrics.useNoopTimer();
+  private Timer queuedMinc = NoopMetrics.useNoopTimer();
 
   public void addActive(long value) {
     activeMinc.record(Duration.ofMillis(value));
@@ -41,12 +44,11 @@ public class TabletServerMinCMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    activeMinc = Timer.builder(METRICS_MINC_RUNNING).description("Minor compactions time active")
-        .tags(MetricsUtil.getCommonTags()).register(registry);
+    activeMinc = Timer.builder(MINC_RUNNING.getName()).description(MINC_RUNNING.getDescription())
+        .register(registry);
 
-    queuedMinc =
-        Timer.builder(METRICS_MINC_QUEUED).description("Queued minor compactions time queued")
-            .tags(MetricsUtil.getCommonTags()).register(registry);
+    queuedMinc = Timer.builder(MINC_QUEUED.getName()).description(MINC_QUEUED.getDescription())
+        .register(registry);
   }
 
 }

@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -30,31 +31,39 @@ import org.apache.commons.cli.Options;
 
 public class PingCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt;
+  private Option serverOption;
+  private Option tserverOption;
+  private Option disablePaginationOpt;
 
   @Override
   public String description() {
-    return "ping tablet servers";
+    return "ping compactors, scan servers, or tablet servers";
   }
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
 
-    List<String> tservers;
+    final List<String> servers = new ArrayList<>();
 
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 
     if (cl.hasOption(tserverOption.getOpt())) {
-      tservers = new ArrayList<>();
-      tservers.add(cl.getOptionValue(tserverOption.getOpt()));
+      servers.add(cl.getOptionValue(tserverOption.getOpt()));
+    } else if (cl.hasOption(serverOption.getOpt())) {
+      servers.add(cl.getOptionValue(serverOption.getOpt()));
     } else {
-      tservers = instanceOps.getTabletServers();
+      instanceOps.getServers(ServerId.Type.COMPACTOR)
+          .forEach(s -> servers.add(s.toHostPortString()));
+      instanceOps.getServers(ServerId.Type.SCAN_SERVER)
+          .forEach(s -> servers.add(s.toHostPortString()));
+      instanceOps.getServers(ServerId.Type.TABLET_SERVER)
+          .forEach(s -> servers.add(s.toHostPortString()));
     }
 
-    shellState.printLines(new PingIterator(tservers, instanceOps), paginate);
+    shellState.printLines(new PingIterator(servers, instanceOps), paginate);
 
     return 0;
   }
@@ -68,7 +77,14 @@ public class PingCommand extends Command {
   public Options getOptions() {
     final Options opts = new Options();
 
-    tserverOption = new Option("ts", "tabletServer", true, "tablet server to ping");
+    serverOption =
+        new Option("s", "server", true, "compactor, scan server, or tablet server address to ping");
+    serverOption.setArgName("server address");
+    opts.addOption(serverOption);
+
+    // Leaving here for backwards compatibility
+    tserverOption = new Option("ts", "tabletServer", true,
+        "compactor, scan server, or tablet server address to ping");
     tserverOption.setArgName("tablet server");
     opts.addOption(tserverOption);
 

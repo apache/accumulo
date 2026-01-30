@@ -33,32 +33,48 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 public class FateSummaryReport {
 
-  private final Map<String,Integer> statusCounts = new TreeMap<>();
-  private final Map<String,Integer> cmdCounts = new TreeMap<>();
-  private final Map<String,Integer> stepCounts = new TreeMap<>();
-  private final Set<FateTxnDetails> fateDetails = new TreeSet<>();
+  private Map<String,Integer> statusCounts = new TreeMap<>();
+  private Map<String,Integer> cmdCounts = new TreeMap<>();
+  private Map<String,Integer> stepCounts = new TreeMap<>();
+  private Set<FateTxnDetails> fateDetails = new TreeSet<>();
   // epoch millis to avoid needing gson type adapter.
-  private final long reportTime = Instant.now().toEpochMilli();
+  private long reportTime = Instant.now().toEpochMilli();
 
-  private final Set<String> statusFilterNames = new TreeSet<>();
+  private Set<String> fateIdFilter = new TreeSet<>();
+  private Set<String> statusFilterNames = new TreeSet<>();
+  private Set<String> instanceTypesFilterNames = new TreeSet<>();
 
-  private final static Gson gson = new GsonBuilder().setPrettyPrinting().create();
+  private final static Gson gson =
+      new GsonBuilder().setPrettyPrinting().disableJdkUnsafe().create();
 
   // exclude from json output
-  private final transient Map<String,String> idsToNameMap;
+  private transient Map<String,String> idsToNameMap;
 
-  public FateSummaryReport(Map<String,String> idsToNameMap,
-      EnumSet<ReadOnlyTStore.TStatus> statusFilter) {
+  // Gson requires a default constructor when JDK Unsafe usage is disabled
+  @SuppressWarnings("unused")
+  private FateSummaryReport() {}
+
+  public FateSummaryReport(Map<String,String> idsToNameMap, Set<FateId> fateIdFilter,
+      EnumSet<ReadOnlyFateStore.TStatus> statusFilter, EnumSet<FateInstanceType> typesFilter) {
     this.idsToNameMap = idsToNameMap;
+    if (fateIdFilter != null) {
+      fateIdFilter.forEach(f -> this.fateIdFilter.add(f.canonical()));
+    }
     if (statusFilter != null) {
       statusFilter.forEach(f -> this.statusFilterNames.add(f.name()));
+    }
+    if (typesFilter != null) {
+      typesFilter.forEach(f -> this.instanceTypesFilterNames.add(f.name()));
     }
   }
 
@@ -72,11 +88,21 @@ public class FateSummaryReport {
     }
     String top = txnStatus.getTop();
     stepCounts.merge(Objects.requireNonNullElse(top, "?"), 1, Integer::sum);
-    String runningRepo = txnStatus.getTxName();
-    cmdCounts.merge(Objects.requireNonNullElse(runningRepo, "?"), 1, Integer::sum);
+    Fate.FateOperation runningRepo = txnStatus.getFateOp();
 
+    cmdCounts.merge(runningRepo == null ? "?" : runningRepo.name(), 1, Integer::sum);
+
+    // filter transactions if provided
+    if (!fateIdFilter.isEmpty() && !fateIdFilter.contains(txnStatus.getFateId().canonical())) {
+      return;
+    }
     // filter status if provided.
     if (!statusFilterNames.isEmpty() && !statusFilterNames.contains(txnStatus.getStatus().name())) {
+      return;
+    }
+    // filter FateInstanceType if provided
+    if (!instanceTypesFilterNames.isEmpty()
+        && !instanceTypesFilterNames.contains(txnStatus.getInstanceType().name())) {
       return;
     }
     fateDetails.add(new FateTxnDetails(reportTime, txnStatus, idsToNameMap));
@@ -102,8 +128,16 @@ public class FateSummaryReport {
     return reportTime;
   }
 
+  public Set<String> getFateIdFilter() {
+    return fateIdFilter;
+  }
+
   public Set<String> getStatusFilterNames() {
     return statusFilterNames;
+  }
+
+  public Set<String> getInstanceTypesFilterNames() {
+    return instanceTypesFilterNames;
   }
 
   public String toJson() {
@@ -142,6 +176,9 @@ public class FateSummaryReport {
     lines.add("\nFate transactions (oldest first):");
     lines.add("Status Filters: "
         + (statusFilterNames.isEmpty() ? "[NONE]" : statusFilterNames.toString()));
+    lines.add("Fate ID Filters: " + (fateIdFilter.isEmpty() ? "[NONE]" : fateIdFilter.toString()));
+    lines.add("Instance Types Filters: "
+        + (instanceTypesFilterNames.isEmpty() ? "[NONE]" : instanceTypesFilterNames.toString()));
 
     lines.add(FateTxnDetails.TXN_HEADER);
     fateDetails.forEach(txnDetails -> lines.add(txnDetails.toString()));

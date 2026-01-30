@@ -157,8 +157,8 @@ public final class LruBlockCacheConfiguration {
   }
 
   public static class Builder {
-    private Map<String,String> props = new HashMap<>();
-    private String prefix;
+    private final Map<String,String> props = new HashMap<>();
+    private final String prefix;
 
     private Builder(String prefix) {
       this.prefix = prefix;
@@ -198,12 +198,6 @@ public final class LruBlockCacheConfiguration {
       return this;
     }
 
-    public Builder mapLoadFactor(float mlf) {
-      Preconditions.checkArgument(mlf > 0);
-      set(MAP_LOAD_PROPERTY, mlf);
-      return this;
-    }
-
     public Builder mapConcurrencyLevel(int mcl) {
       Preconditions.checkArgument(mcl > 0);
       props.put(prefix + MAP_CONCURRENCY_PROPERTY, mcl + "");
@@ -236,6 +230,10 @@ public final class LruBlockCacheConfiguration {
 
   public long getMaxSize() {
     return conf.getMaxSize(type);
+  }
+
+  public CacheType getCacheType() {
+    return type;
   }
 
   public long getBlockSize() {

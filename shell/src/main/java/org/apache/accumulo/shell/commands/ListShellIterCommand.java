@@ -31,7 +31,8 @@ import org.apache.commons.cli.Options;
 
 public class ListShellIterCommand extends Command {
 
-  private Option nameOpt, profileOpt;
+  private Option nameOpt;
+  private Option profileOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

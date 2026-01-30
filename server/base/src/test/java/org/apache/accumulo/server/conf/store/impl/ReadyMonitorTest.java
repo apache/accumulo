@@ -34,6 +34,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,8 +61,8 @@ public class ReadyMonitorTest {
     // these tests wait for workers to signal ready using count down latch.
     // size pool so some threads are likely to wait on others to complete.
     int numPoolThreads = numWorkerThreads / 2;
-    workerPool = ThreadPools.getServerThreadPools().createFixedThreadPool(numPoolThreads,
-        "readyMonitor-test-pool", false);
+    workerPool = ThreadPools.getServerThreadPools().getPoolBuilder("test.ready.monitor.pool")
+        .numCoreThreads(numPoolThreads).build();
   }
 
   @AfterEach
@@ -168,13 +169,12 @@ public class ReadyMonitorTest {
     public Long call() throws Exception {
       // signal ready to run
       readyToRunLatch.countDown();
-      // time waiting for isReady to complete++
-      long start = System.nanoTime();
+
+      Timer isReadyTimer = Timer.startNew();
       readyMonitor.isReady();
       finishedLatch.countDown();
 
-      // returning nanoseconds.
-      return System.nanoTime() - start;
+      return isReadyTimer.elapsed(NANOSECONDS);
     }
   }
 }

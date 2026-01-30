@@ -19,35 +19,55 @@
 package org.apache.accumulo.core.util.compaction;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RunningCompaction {
 
+  private final static Logger LOG = LoggerFactory.getLogger(RunningCompaction.class);
+
   private final TExternalCompactionJob job;
   private final String compactorAddress;
-  private final String queueName;
+  private final ResourceGroupId groupName;
   private final Map<Long,TCompactionStatusUpdate> updates = new TreeMap<>();
 
-  public RunningCompaction(TExternalCompactionJob job, String compactorAddress, String queueName) {
-    this.job = job;
-    this.compactorAddress = compactorAddress;
-    this.queueName = queueName;
+  // If this object were to be added to a time sorted list before the start time
+  // is set, then it will end up at the end of the list.
+  private Long startTime = Long.MAX_VALUE;
+
+  public RunningCompaction(TExternalCompactionJob job, String compactorAddress,
+      ResourceGroupId groupName) {
+    this.job = Objects.requireNonNull(job, "job cannot be null");
+    this.compactorAddress =
+        Objects.requireNonNull(compactorAddress, "compactor address cannot be null");
+    this.groupName = Objects.requireNonNull(groupName, "groupName cannot be null");
   }
 
   public RunningCompaction(TExternalCompaction tEC) {
-    this(tEC.getJob(), tEC.getCompactor(), tEC.getQueueName());
+    this(tEC.getJob(), tEC.getCompactor(), ResourceGroupId.of(tEC.getGroupName()));
   }
 
   public Map<Long,TCompactionStatusUpdate> getUpdates() {
-    return updates;
+    synchronized (updates) {
+      return new TreeMap<>(updates);
+    }
   }
 
   public void addUpdate(Long timestamp, TCompactionStatusUpdate update) {
-    this.updates.put(timestamp, update);
+    synchronized (updates) {
+      this.updates.put(timestamp, update);
+      if (update.getState() == TCompactionState.STARTED) {
+        startTime = timestamp;
+      }
+    }
   }
 
   public TExternalCompactionJob getJob() {
@@ -58,8 +78,26 @@ public class RunningCompaction {
     return compactorAddress;
   }
 
-  public String getQueueName() {
-    return queueName;
+  public ResourceGroupId getGroup() {
+    return groupName;
+  }
+
+  public boolean isStartTimeSet() {
+    return startTime != Long.MAX_VALUE;
+  }
+
+  public Long getStartTime() {
+    if (startTime == Long.MAX_VALUE) {
+      LOG.warn("Programming error, RunningCompaction::startTime not set before being compared.");
+    }
+    return startTime;
+  }
+
+  public void setStartTime(Long time) {
+    // Ignore update if startTime has already been set
+    if (startTime == Long.MAX_VALUE) {
+      startTime = time;
+    }
   }
 
 }

@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -57,6 +58,8 @@ public class ChaoticLoadBalancer implements TabletBalancer {
 
   public ChaoticLoadBalancer() {}
 
+  public ChaoticLoadBalancer(TableId tableId) {}
+
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {
     this.environment = balancerEnvironment;
@@ -64,37 +67,23 @@ public class ChaoticLoadBalancer implements TabletBalancer {
 
   @Override
   public void getAssignments(AssignmentParameters params) {
-    long total = params.unassignedTablets().size();
-    long avg = (long) Math.ceil(((double) total) / params.currentStatus().size());
-    Map<TabletServerId,Long> toAssign = new HashMap<>();
-    List<TabletServerId> tServerArray = new ArrayList<>();
-    for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
-      long numTablets = 0;
-      for (TableStatistics ti : e.getValue().getTableMap().values()) {
-        numTablets += ti.getTabletCount();
-      }
-      if (numTablets <= avg) {
-        tServerArray.add(e.getKey());
-        toAssign.put(e.getKey(), avg - numTablets);
-      }
+
+    List<TabletId> tabletsToAssign = new ArrayList<>(params.unassignedTablets().keySet());
+    if (tabletsToAssign.size() > 1) {
+      Collections.shuffle(tabletsToAssign);
+      int index = RANDOM.get().nextInt(tabletsToAssign.size()) + 1;
+      tabletsToAssign = tabletsToAssign.subList(0, index);
     }
 
+    List<TabletServerId> tServerArray = new ArrayList<>(params.currentStatus().keySet());
+
     if (tServerArray.isEmpty()) {
-      // No tservers to assign to
       return;
     }
 
-    for (TabletId tabletId : params.unassignedTablets().keySet()) {
+    for (TabletId tabletId : tabletsToAssign) {
       int index = RANDOM.get().nextInt(tServerArray.size());
-      TabletServerId dest = tServerArray.get(index);
-      params.addAssignment(tabletId, dest);
-      long remaining = toAssign.get(dest) - 1;
-      if (remaining == 0) {
-        tServerArray.remove(index);
-        toAssign.remove(dest);
-      } else {
-        toAssign.put(dest, remaining);
-      }
+      params.addAssignment(tabletId, tServerArray.get(index));
     }
   }
 
@@ -133,7 +122,7 @@ public class ChaoticLoadBalancer implements TabletBalancer {
     for (Entry<TabletServerId,TServerStatus> e : params.currentStatus().entrySet()) {
       for (String tableId : e.getValue().getTableMap().keySet()) {
         TableId id = TableId.of(tableId);
-        if (!moveMetadata && MetadataTable.ID.equals(id)) {
+        if (!moveMetadata && SystemTables.METADATA.tableId().equals(id)) {
           continue;
         }
         try {

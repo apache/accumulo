@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.iteratorsImpl.conf;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -30,26 +29,25 @@ import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnToClassMapping<K> {
 
-  private HashMap<ColFamHashKey,K> objectsCF;
-  private HashMap<ColHashKey,K> objectsCol;
+  private final HashMap<ColFamHashKey,K> objectsCF;
+  private final HashMap<ColHashKey,K> objectsCol;
 
-  private ColHashKey lookupCol = new ColHashKey();
-  private ColFamHashKey lookupCF = new ColFamHashKey();
+  private final ColHashKey lookupCol = new ColHashKey();
+  private final ColFamHashKey lookupCF = new ColFamHashKey();
 
   public ColumnToClassMapping() {
     objectsCF = new HashMap<>();
     objectsCol = new HashMap<>();
   }
 
-  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c)
-      throws ReflectiveOperationException, IOException {
-    this(objectStrings, c, null);
-  }
-
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c,
-      String context) throws ReflectiveOperationException, IOException {
+      String context) throws ReflectiveOperationException {
     this();
 
     for (Entry<String,String> entry : objectStrings.entrySet()) {

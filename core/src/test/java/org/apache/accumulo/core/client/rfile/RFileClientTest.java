@@ -26,8 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.URI;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,7 +41,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.SortedMap;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -57,6 +63,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
+import org.apache.accumulo.core.data.LoadPlanTest;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -72,20 +80,23 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocalFileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
 public class RFileClientTest {
 
+  @TempDir
+  private static java.nio.file.Path tempDir;
+
   private String createTmpTestFile() throws IOException {
-    File dir = new File(System.getProperty("user.dir") + "/target/rfile-test");
-    assertTrue(dir.mkdirs() || dir.isDirectory());
-    File testFile = File.createTempFile("test", ".rf", dir);
-    assertTrue(testFile.delete() || !testFile.exists());
-    return testFile.getAbsolutePath();
+    java.nio.file.Path testFile = Files.createTempFile(tempDir, "test", ".rf");
+    Files.deleteIfExists(testFile);
+    return testFile.toAbsolutePath().toString();
   }
 
   String rowStr(int r) {
@@ -232,10 +243,10 @@ public class RFileClientTest {
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
-    Range range = new Range(rowStr(3), true, rowStr(14), true);
-    Scanner scanner =
-        RFile.newScanner().from(new FencedPath(new Path(new File(testFile).toURI()), range))
-            .withFileSystem(localFs).build();
+    Range range = new Range(rowStr(3), false, rowStr(14), true);
+    Scanner scanner = RFile.newScanner()
+        .from(new FencedPath(new Path(java.nio.file.Path.of(testFile).toUri()), range))
+        .withFileSystem(localFs).build();
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
 
@@ -256,31 +267,27 @@ public class RFileClientTest {
     // Lastly only the row portion of a key is allowed.
 
     // Test valid Row Ranges
-    new FencedPath(new Path(new File(testFile).toURI()), new Range());
+    URI testFileURI = java.nio.file.Path.of(testFile).toUri();
+    new FencedPath(new Path(testFileURI), new Range());
     // This constructor converts to the proper inclusive/exclusive rows
-    new FencedPath(new Path(new File(testFile).toURI()),
-        new Range(rowStr(3), true, rowStr(14), true));
-    new FencedPath(new Path(new File(testFile).toURI()), new Range(new Key(rowStr(3)), true,
-        new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
+    new FencedPath(new Path(testFileURI), new Range(rowStr(3), false, rowStr(14), true));
+    new FencedPath(new Path(testFileURI), new Range(new Key(rowStr(3)).followingKey(PartialKey.ROW),
+        true, new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
 
     // Test invalid Row Ranges
     // Missing 0x00 byte
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
     // End key inclusive
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
     // Start key exclusive
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
     // CF is set which is not allowed
     assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3), colStr(3)), true,
-                new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
+        () -> new FencedPath(new Path(testFileURI), new Range(new Key(rowStr(3), colStr(3)), true,
+            new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
   }
 
   @Test
@@ -291,10 +298,10 @@ public class RFileClientTest {
 
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
-    Range range = new Range(rowStr(3), true, rowStr(14), true);
+    Range range = new Range(rowStr(3), false, rowStr(14), true);
 
-    RFileSKVIterator reader =
-        getReader(localFs, UnreferencedTabletFile.ofRanged(localFs, new File(testFile), range));
+    RFileSKVIterator reader = getReader(localFs,
+        UnreferencedTabletFile.ofRanged(localFs, java.nio.file.Path.of(testFile).toFile(), range));
     reader.seek(new Range(), List.of(), false);
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
@@ -321,8 +328,8 @@ public class RFileClientTest {
     writer.append(testData1.entrySet());
     writer.close();
 
-    RFileSKVIterator reader =
-        getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
+    RFileSKVIterator reader = getReader(localFs,
+        UnreferencedTabletFile.of(localFs, java.nio.file.Path.of(testFile).toFile()));
     FileSKVIterator iiter = reader.getIndex();
 
     int count = 0;
@@ -384,8 +391,8 @@ public class RFileClientTest {
 
     scanner.close();
 
-    Reader reader =
-        (Reader) getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
+    Reader reader = (Reader) getReader(localFs,
+        UnreferencedTabletFile.of(localFs, java.nio.file.Path.of(testFile).toFile()));
     Map<String,ArrayList<ByteSequence>> lGroups = reader.getLocalityGroupCF();
     assertTrue(lGroups.containsKey("z"));
     assertEquals(2, lGroups.get("z").size());
@@ -936,5 +943,246 @@ public class RFileClientTest {
         .withFileSystem(localFs).withIndexCache(1000000).withDataCache(10000000).build();
     assertEquals(testData, toMap(scanner));
     scanner.close();
+  }
+
+  @Test
+  public void testFileSystemFromUri() throws Exception {
+    String localFsClass = "LocalFileSystem";
+
+    String remoteFsHost = "127.0.0.5:8080";
+    String fileUri = "hdfs://" + remoteFsHost + "/bulk-xyx/file1.rf";
+    // There was a bug in the code where the default hadoop file system was always used. This test
+    // checks that the hadoop filesystem used it based on the URI and not the default filesystem. In
+    // this env the default file system is the local hadoop file system.
+    var exception =
+        assertThrows(ConnectException.class, () -> RFile.newWriter().to(fileUri).build());
+    assertTrue(exception.getMessage().contains("to " + remoteFsHost
+        + " failed on connection exception: java.net.ConnectException: Connection refused"));
+    // Ensure the DistributedFileSystem was used.
+    assertTrue(Arrays.stream(exception.getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(DistributedFileSystem.class.getName())));
+    assertTrue(Arrays.stream(exception.getStackTrace())
+        .noneMatch(ste -> ste.getClassName().contains(localFsClass)));
+
+    var exception2 = assertThrows(RuntimeException.class, () -> {
+      var scanner = RFile.newScanner().from(fileUri).build();
+      scanner.iterator();
+    });
+    assertTrue(exception2.getMessage().contains("to " + remoteFsHost
+        + " failed on connection exception: java.net.ConnectException: Connection refused"));
+    assertTrue(Arrays.stream(exception2.getCause().getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(DistributedFileSystem.class.getName())));
+    assertTrue(Arrays.stream(exception2.getCause().getStackTrace())
+        .noneMatch(ste -> ste.getClassName().contains(localFsClass)));
+
+    // verify the assumptions this test is making about the local filesystem being the default.
+    var exception3 = assertThrows(IllegalArgumentException.class,
+        () -> FileSystem.get(new Configuration()).open(new Path(fileUri)));
+    assertTrue(exception3.getMessage().contains("Wrong FS: " + fileUri + ", expected: file:///"));
+    assertTrue(Arrays.stream(exception3.getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(localFsClass)));
+  }
+
+  @Test
+  public void testLoadPlanEmpty() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    LoadPlan.SplitResolver splitResolver =
+        LoadPlan.SplitResolver.from(new TreeSet<>(List.of(new Text("m"))));
+
+    for (boolean withSplits : List.of(true, false)) {
+      String testFile = createTmpTestFile();
+      var builder = RFile.newWriter().to(testFile).withFileSystem(localFs);
+      if (withSplits) {
+        builder = builder.withSplitResolver(splitResolver);
+      }
+      var writer = builder.build();
+
+      // can not get load plan before closing file
+      assertThrows(IllegalStateException.class,
+          () -> writer.getLoadPlan(new Path(testFile).getName()));
+
+      try (writer) {
+        writer.startDefaultLocalityGroup();
+        assertThrows(IllegalStateException.class,
+            () -> writer.getLoadPlan(new Path(testFile).getName()));
+      }
+      var loadPlan = writer.getLoadPlan(new Path(testFile).getName());
+      assertEquals(0, loadPlan.getDestinations().size());
+
+      loadPlan = LoadPlan.compute(new URI(testFile), splitResolver);
+      assertEquals(0, loadPlan.getDestinations().size());
+    }
+  }
+
+  @Test
+  public void testLoadPlanLocalityGroupsNoSplits() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer) {
+      writer.startNewLocalityGroup("LG1", "F1");
+      writer.append(new Key("001", "F1"), "V1");
+      writer.append(new Key("005", "F1"), "V2");
+      writer.startNewLocalityGroup("LG2", "F3");
+      writer.append(new Key("003", "F3"), "V3");
+      writer.append(new Key("004", "F3"), "V4");
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("007", "F4"), "V5");
+      writer.append(new Key("009", "F4"), "V6");
+    }
+
+    var filename = new Path(testFile).getName();
+    var loadPlan = writer.getLoadPlan(filename);
+    assertEquals(1, loadPlan.getDestinations().size());
+
+    // The minimum and maximum rows happend in different locality groups, the load plan should
+    // reflect this
+    var expectedLoadPlan =
+        LoadPlan.builder().loadFileTo(filename, LoadPlan.RangeType.FILE, "001", "009").build();
+    assertEquals(expectedLoadPlan.toJson(), loadPlan.toJson());
+  }
+
+  @Test
+  public void testLoadPlanLocalityGroupsSplits() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    SortedSet<Text> splits =
+        Stream.of("001", "002", "003", "004", "005", "006", "007", "008", "009").map(Text::new)
+            .collect(Collectors.toCollection(TreeSet::new));
+    var splitResolver = LoadPlan.SplitResolver.from(splits);
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
+        .withSplitResolver(splitResolver).build();
+    try (writer) {
+      writer.startNewLocalityGroup("LG1", "F1");
+      writer.append(new Key("001", "F1"), "V1");
+      writer.append(new Key("005", "F1"), "V2");
+      writer.startNewLocalityGroup("LG2", "F3");
+      writer.append(new Key("003", "F3"), "V3");
+      writer.append(new Key("005", "F3"), "V3");
+      writer.append(new Key("007", "F3"), "V4");
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("007", "F4"), "V5");
+      writer.append(new Key("009", "F4"), "V6");
+    }
+
+    var filename = new Path(testFile).getName();
+    var loadPlan = writer.getLoadPlan(filename);
+    assertEquals(5, loadPlan.getDestinations().size());
+
+    var builder = LoadPlan.builder();
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, null, "001");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "004", "005");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "002", "003");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "006", "007");
+    builder.loadFileTo(filename, LoadPlan.RangeType.TABLE, "008", "009");
+    assertEquals(LoadPlanTest.toString(builder.build().getDestinations()),
+        LoadPlanTest.toString(loadPlan.getDestinations()));
+
+    loadPlan = LoadPlan.compute(new URI(testFile), splitResolver);
+    assertEquals(LoadPlanTest.toString(builder.build().getDestinations()),
+        LoadPlanTest.toString(loadPlan.getDestinations()));
+  }
+
+  @Test
+  public void testIncorrectSplitResolver() throws Exception {
+    // for some rows the returns table splits will not contain the row. This should cause an error.
+    LoadPlan.SplitResolver splitResolver =
+        row -> new LoadPlan.TableSplits(new Text("003"), new Text("005"));
+
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
+        .withSplitResolver(splitResolver).build();
+    try (writer) {
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("004", "F4"), "V2");
+      var e = assertThrows(IllegalStateException.class,
+          () -> writer.append(new Key("007", "F4"), "V2"));
+      assertTrue(e.getMessage().contains("(003,005]"));
+      assertTrue(e.getMessage().contains("007"));
+    }
+
+    var testFile2 = createTmpTestFile();
+    var writer2 = RFile.newWriter().to(testFile2).withFileSystem(localFs).build();
+    try (writer2) {
+      writer2.startDefaultLocalityGroup();
+      writer2.append(new Key("004", "F4"), "V2");
+      writer2.append(new Key("007", "F4"), "V2");
+    }
+
+    var e = assertThrows(IllegalStateException.class,
+        () -> LoadPlan.compute(new URI(testFile), splitResolver));
+    assertTrue(e.getMessage().contains("(003,005]"));
+    assertTrue(e.getMessage().contains("007"));
+  }
+
+  @Test
+  public void testGetLoadPlanBeforeClose() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    try (writer) {
+      var e = assertThrows(IllegalStateException.class,
+          () -> writer.getLoadPlan(new Path(testFile).getName()));
+      assertEquals("Attempted to get load plan before closing", e.getMessage());
+      writer.startDefaultLocalityGroup();
+      writer.append(new Key("004", "F4"), "V2");
+      var e2 = assertThrows(IllegalStateException.class,
+          () -> writer.getLoadPlan(new Path(testFile).getName()));
+      assertEquals("Attempted to get load plan before closing", e2.getMessage());
+    }
+  }
+
+  @Test
+  public void testGetLoadPlanWithPath() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs).build();
+    writer.close();
+
+    var e =
+        assertThrows(IllegalArgumentException.class, () -> writer.getLoadPlan(testFile.toString()));
+    assertTrue(e.getMessage().contains("Unexpected path"));
+    assertEquals(0, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
+  }
+
+  @Test
+  public void testComputeLoadPlanWithPath() throws Exception {
+    LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
+
+    SortedSet<Text> splits =
+        Stream.of("001", "002", "003", "004", "005", "006", "007", "008", "009").map(Text::new)
+            .collect(Collectors.toCollection(TreeSet::new));
+    var splitResolver = LoadPlan.SplitResolver.from(splits);
+
+    String testFile = createTmpTestFile();
+    var writer = RFile.newWriter().to(testFile).withFileSystem(localFs)
+        .withSplitResolver(splitResolver).build();
+    writer.startDefaultLocalityGroup();
+    writer.append(new Key("001", "V4"), "test");
+    writer.append(new Key("002", "V4"), "test");
+    writer.append(new Key("003", "V4"), "test");
+    writer.append(new Key("004", "V4"), "test");
+    writer.close();
+
+    var e = assertThrows(IllegalArgumentException.class, () -> writer.getLoadPlan(testFile));
+    assertTrue(e.getMessage().contains("Unexpected path"));
+    assertEquals(4, writer.getLoadPlan(new Path(testFile).getName()).getDestinations().size());
+    assertEquals(4, LoadPlan.compute(new URI(testFile), splitResolver).getDestinations().size());
+
+    String hdfsHost = "127.0.0.5:8080";
+    String fileUri = "hdfs://" + hdfsHost + "/bulk-xyx/file1.rf";
+    URI uri = new URI(fileUri);
+    var err = assertThrows(RuntimeException.class, () -> LoadPlan.compute(uri, splitResolver));
+    assertTrue(err.getMessage().contains("to " + hdfsHost + " failed on connection exception"));
+    assertTrue(Arrays.stream(err.getCause().getStackTrace())
+        .anyMatch(ste -> ste.getClassName().contains(DistributedFileSystem.class.getName())));
   }
 }

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.monitor.it;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.monitor.it.TagNameConstants.MONITOR;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -79,16 +80,18 @@ public class WebViewsIT extends JerseyTest {
     config.register(WebViewsIT.HashMapWriter.class);
   }
 
-  private static AtomicReference<Monitor> monitor = new AtomicReference<>(null);
+  private static final AtomicReference<Monitor> monitor = new AtomicReference<>(null);
 
   @BeforeAll
   public static void createMocks() throws TableNotFoundException {
+    System.setProperty(TestProperties.CONTAINER_PORT, "0");
+
     ServerContext contextMock = createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(contextMock.getInstanceID()).andReturn(InstanceId.of("foo")).atLeastOnce();
     expect(contextMock.getInstanceName()).andReturn("foo").anyTimes();
     expect(contextMock.getZooKeepers()).andReturn("foo:2181").anyTimes();
-    expect(contextMock.getTableName(TableId.of("foo"))).andReturn("bar").anyTimes();
+    expect(contextMock.getQualifiedTableName(TableId.of("foo"))).andReturn("bar").anyTimes();
 
     Monitor monitorMock = createMock(Monitor.class);
     expect(monitorMock.getContext()).andReturn(contextMock).anyTimes();
@@ -122,10 +125,9 @@ public class WebViewsIT extends JerseyTest {
    * a registered MessageBodyWriter capable of serializing/writing the object returned from your
    * endpoint. We're using a simple stubbed out inner class HashMapWriter for this.
    *
-   * @throws Exception not expected
    */
   @Test
-  public void testGetTablesConstraintPassing() throws Exception {
+  public void testGetTablesConstraintPassing() {
     // Using the mocks we can verify that the getModel method gets called via debugger
     // however it's difficult to continue to mock through the jersey MVC code for the properly built
     // response.
@@ -133,7 +135,7 @@ public class WebViewsIT extends JerseyTest {
     Response output = target("tables/foo").request().get();
     assertEquals(200, output.getStatus(), "should return status 200");
     String responseBody = output.readEntity(String.class);
-    assertTrue(responseBody.contains("tableID=foo") && responseBody.contains("table=bar"));
+    assertTrue(responseBody.contains("tableId=foo") && responseBody.contains("table=bar"));
   }
 
   /**
@@ -158,7 +160,7 @@ public class WebViewsIT extends JerseyTest {
         Annotation[] annotations, MediaType mediaType, MultivaluedMap<String,Object> httpHeaders,
         OutputStream entityStream) throws IOException, WebApplicationException {
       String s = hashMap.toString();
-      entityStream.write(s.getBytes());
+      entityStream.write(s.getBytes(UTF_8));
     }
   }
 }

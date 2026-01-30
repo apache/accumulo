@@ -34,7 +34,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 class IndexIterator implements SortedKeyValueIterator<Key,Value> {
 
   private Key key;
-  private Iterator<IndexEntry> indexIter;
+  private final Iterator<IndexEntry> indexIter;
 
   IndexIterator(Iterator<IndexEntry> indexIter) {
     this.indexIter = indexIter;

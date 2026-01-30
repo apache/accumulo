@@ -20,29 +20,35 @@ package org.apache.accumulo.core.file.blockfile.impl;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheUtil;
 import org.apache.accumulo.core.spi.cache.BlockCache;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 
-public class ScanCacheProvider implements CacheProvider {
+public final class ScanCacheProvider implements CacheProvider {
 
   private final BlockCache indexCache;
   private final BlockCache dataCache;
 
   public ScanCacheProvider(AccumuloConfiguration tableConfig, ScanDispatch dispatch,
       BlockCache indexCache, BlockCache dataCache) {
+
+    var loggingIndexCache = BlockCacheUtil.instrument(CacheType.INDEX, indexCache);
+    var loggingDataCache = BlockCacheUtil.instrument(CacheType.DATA, dataCache);
+
     switch (dispatch.getIndexCacheUsage()) {
       case ENABLED:
-        this.indexCache = indexCache;
+        this.indexCache = loggingIndexCache;
         break;
       case DISABLED:
         this.indexCache = null;
         break;
       case OPPORTUNISTIC:
-        this.indexCache = new OpportunisticBlockCache(indexCache);
+        this.indexCache = new OpportunisticBlockCache(loggingIndexCache);
         break;
       case TABLE:
         this.indexCache =
-            tableConfig.getBoolean(Property.TABLE_INDEXCACHE_ENABLED) ? indexCache : null;
+            tableConfig.getBoolean(Property.TABLE_INDEXCACHE_ENABLED) ? loggingIndexCache : null;
         break;
       default:
         throw new IllegalStateException();
@@ -50,22 +56,21 @@ public class ScanCacheProvider implements CacheProvider {
 
     switch (dispatch.getDataCacheUsage()) {
       case ENABLED:
-        this.dataCache = dataCache;
+        this.dataCache = loggingDataCache;
         break;
       case DISABLED:
         this.dataCache = null;
         break;
       case OPPORTUNISTIC:
-        this.dataCache = new OpportunisticBlockCache(dataCache);
+        this.dataCache = new OpportunisticBlockCache(loggingDataCache);
         break;
       case TABLE:
         this.dataCache =
-            tableConfig.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED) ? dataCache : null;
+            tableConfig.getBoolean(Property.TABLE_BLOCKCACHE_ENABLED) ? loggingDataCache : null;
         break;
       default:
         throw new IllegalStateException();
     }
-
   }
 
   @Override

@@ -18,27 +18,24 @@
  */
 package org.apache.accumulo.core.security;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.text.ParseException;
+
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 
 /**
  * An exception thrown when a visibility string cannot be parsed.
  */
 public class VisibilityParseException extends ParseException {
   private static final long serialVersionUID = 1L;
-  private String visibility;
+  private final String visibility;
 
   /**
-   * Creates a new exception.
-   *
-   * @param reason reason string
-   * @param visibility visibility that could not be parsed
-   * @param errorOffset offset into visibility where parsing failed
+   * @since 4.0.0
    */
-  public VisibilityParseException(String reason, byte[] visibility, int errorOffset) {
-    super(reason, errorOffset);
-    this.visibility = new String(visibility, UTF_8);
+  public VisibilityParseException(InvalidAccessExpressionException e) {
+    // TODO need to look at output for this
+    super(e.getDescription(), e.getIndex());
+    this.visibility = e.getPattern();
   }
 
   @Override

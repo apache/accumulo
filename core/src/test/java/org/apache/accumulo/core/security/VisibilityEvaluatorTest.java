@@ -21,7 +21,6 @@ package org.apache.accumulo.core.security;
 import static org.apache.accumulo.core.security.ColumnVisibility.quote;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -30,6 +29,7 @@ import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.util.ByteArraySet;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("deprecation")
 public class VisibilityEvaluatorTest {
 
   @Test
@@ -101,25 +101,6 @@ public class VisibilityEvaluatorTest {
   }
 
   @Test
-  public void testUnescape() {
-    assertEquals("a\"b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\"b")).toString());
-    assertEquals("a\\b", VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b")).toString());
-    assertEquals("a\\\"b",
-        VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\\\\"b")).toString());
-    assertEquals("\\\"",
-        VisibilityEvaluator.unescape(new ArrayByteSequence("\\\\\\\"")).toString());
-    assertEquals("a\\b\\c\\d",
-        VisibilityEvaluator.unescape(new ArrayByteSequence("a\\\\b\\\\c\\\\d")).toString());
-
-    final String message = "Expected failure to unescape invalid escape sequence";
-    final var invalidEscapeSeqList = List.of(new ArrayByteSequence("a\\b"),
-        new ArrayByteSequence("a\\b\\c"), new ArrayByteSequence("a\"b\\"));
-
-    invalidEscapeSeqList.forEach(seq -> assertThrows(IllegalArgumentException.class,
-        () -> VisibilityEvaluator.unescape(seq), message));
-  }
-
-  @Test
   public void testNonAscii() throws VisibilityParseException {
     VisibilityEvaluator ct = new VisibilityEvaluator(new Authorizations("五", "六", "八", "九", "五十"));
 
@@ -131,5 +112,40 @@ public class VisibilityEvaluatorTest {
     assertFalse(
         ct.evaluate(new ColumnVisibility(quote("五") + "&(" + quote("四") + "|" + quote("三") + ")")));
     assertFalse(ct.evaluate(new ColumnVisibility("\"五\"&(\"四\"|\"三\")")));
+  }
+
+  @Test
+  public void testBinary() throws VisibilityParseException {
+    for (int i = 0; i < 256; i++) {
+      if (i == '\\' || i == '"') {
+        // these have to be escaped
+        continue;
+      }
+
+      byte b = (byte) i;
+
+      byte[] exp1 = new byte[] {'"', b, 2, '"', '&', '"', (byte) 250, 6, '"'};
+      byte[] exp2 = new byte[] {'"', b, 2, '"', '|', '"', (byte) 250, 6, '"'};
+
+      var auths1 = new Authorizations(List.of(new byte[] {b, 2}, new byte[] {(byte) 250, 6}));
+      VisibilityEvaluator ve1 = new VisibilityEvaluator(auths1);
+      assertTrue(ve1.evaluate(new ColumnVisibility(exp1)));
+      assertTrue(ve1.evaluate(new ColumnVisibility(exp2)));
+
+      var auths2 = new Authorizations(List.of(new byte[] {b, 2}));
+      VisibilityEvaluator ve2 = new VisibilityEvaluator(auths2);
+      assertFalse(ve2.evaluate(new ColumnVisibility(exp1)));
+      assertTrue(ve2.evaluate(new ColumnVisibility(exp2)));
+
+      var auths3 = new Authorizations(List.of(new byte[] {b, 2, 0}));
+      VisibilityEvaluator ve3 = new VisibilityEvaluator(auths3);
+      assertFalse(ve3.evaluate(new ColumnVisibility(exp1)));
+      assertFalse(ve3.evaluate(new ColumnVisibility(exp2)));
+
+      var bs = new ArrayByteSequence(new byte[] {b, 2});
+      VisibilityEvaluator ve4 = new VisibilityEvaluator(auth -> auth.equals(bs));
+      assertFalse(ve4.evaluate(new ColumnVisibility(exp1)));
+      assertTrue(ve4.evaluate(new ColumnVisibility(exp2)));
+    }
   }
 }

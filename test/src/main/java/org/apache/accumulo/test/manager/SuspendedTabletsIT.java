@@ -19,16 +19,13 @@
 package org.apache.accumulo.test.manager;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.apache.accumulo.core.spi.balancer.TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.net.UnknownHostException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -46,26 +43,30 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
-import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
-import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.functional.TabletResourceGroupBalanceIT;
+import org.apache.accumulo.test.util.Wait;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -79,15 +80,17 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.SetMultimap;
 import com.google.common.net.HostAndPort;
 
-public class SuspendedTabletsIT extends ConfigurableMacBase {
+public class SuspendedTabletsIT extends AccumuloClusterHarness {
   private static final Logger log = LoggerFactory.getLogger(SuspendedTabletsIT.class);
   private static ExecutorService THREAD_POOL;
+  private static final String TEST_GROUP_NAME = "SUSPEND_TEST";
 
   public static final int TSERVERS = 3;
-  public static final long SUSPEND_DURATION = 80;
   public static final int TABLETS = 30;
 
-  private ProcessReference metadataTserverProcess;
+  private String defaultGroup;
+  private Set<String> testGroup = new HashSet<>();
+  private List<ProcessReference> tabletServerProcesses;
 
   @Override
   protected Duration defaultTimeout() {
@@ -95,146 +98,84 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   }
 
   @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
-    cfg.setProperty(Property.TABLE_SUSPEND_DURATION, SUSPEND_DURATION + "s");
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration fsConf) {
+    cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, "2");
+    cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, "10s");
+    cfg.setProperty(Property.TSERV_MIGRATE_MAXCONCURRENT, "50");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "5s");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
-    // Start with 1 tserver, we'll increase that later
-    cfg.setNumTservers(1);
-    // config custom balancer to keep all metadata on one server
-    cfg.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_OOB_CHECK_KEY, "1ms");
-    cfg.setProperty(Property.MANAGER_TABLET_BALANCER.getKey(),
-        HostAndPortRegexTableLoadBalancer.class.getName());
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
-  @Override
   @BeforeEach
   public void setUp() throws Exception {
-    super.setUp();
+    MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
+    ProcessReference defaultTabletServer =
+        mac.getProcesses().get(ServerType.TABLET_SERVER).iterator().next();
+    assertNotNull(defaultTabletServer);
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      // Wait for all tablet servers to come online and then choose the first server in the list.
-      // Update the balancer configuration to assign all metadata tablets to that server (and
-      // everything else to other servers).
-      InstanceOperations iops = client.instanceOperations();
-      List<String> tservers = iops.getTabletServers();
-      while (tservers == null || tservers.size() < 1) {
-        Thread.sleep(1000L);
-        tservers = client.instanceOperations().getTabletServers();
-      }
-      HostAndPort metadataServer = HostAndPort.fromString(tservers.get(0));
-      log.info("Configuring balancer to assign all metadata tablets to {}", metadataServer);
-      iops.setProperty(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + MetadataTable.NAME,
-          metadataServer.toString());
-
-      // Wait for the balancer to assign all metadata tablets to the chosen server.
-      ClientContext ctx = (ClientContext) client;
-      TabletLocations tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
-      while (tl.hosted.keySet().size() != 1 || !tl.hosted.containsKey(metadataServer)) {
-        log.info("Metadata tablets are not hosted on the correct server. Waiting for balancer...");
-        Thread.sleep(1000L);
-        tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
-      }
-      log.info("Metadata tablets are now hosted on {}", metadataServer);
-    }
-
-    // Since we started only a single tablet server, we know it's the one hosting the
-    // metadata table. Save its process reference off so we can exclude it later when
-    // killing tablet servers.
-    Collection<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER);
-    assertEquals(1, procs.size(), "Expected a single tserver process");
-    metadataTserverProcess = procs.iterator().next();
-
-    // Update the number of tservers and start the new tservers.
-    getCluster().getConfig().setNumTservers(TSERVERS);
+    mac.getConfig().getClusterServerConfiguration().addTabletServerResourceGroup(TEST_GROUP_NAME,
+        2);
     getCluster().start();
+
+    tabletServerProcesses = mac.getProcesses().get(ServerType.TABLET_SERVER).stream()
+        .filter(p -> !p.equals(defaultTabletServer)).collect(Collectors.toList());
+
+    Map<String,ResourceGroupId> hostAndGroup = TabletResourceGroupBalanceIT.getTServerGroups(mac);
+    hostAndGroup.forEach((k, v) -> {
+      if (v.equals(ResourceGroupId.DEFAULT)) {
+        defaultGroup = k;
+      } else {
+        testGroup.add(k);
+      }
+    });
+
+    assertNotNull(defaultGroup);
+    assertEquals(2, testGroup.size());
+
+    log.info("TabletServers in default group: {}", defaultGroup);
+    log.info("TabletServers in {} group: {}", TEST_GROUP_NAME, testGroup);
+  }
+
+  enum AfterSuspendAction {
+    RESUME("80s"),
+    // Set a long suspend time for testing offline table, want the suspension to be cleared because
+    // the tablet went offline and not the because the suspension timed out.
+    OFFLINE("800s");
+
+    public final String suspendTime;
+
+    AfterSuspendAction(String suspendTime) {
+      this.suspendTime = suspendTime;
+    }
   }
 
   @Test
   public void crashAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need a tserver to go away, get rid of it
     // via crashing
-    suspensionTestBody((ctx, locs, count) -> {
-      // Exclude the tablet server hosting the metadata table from the list and only
-      // kill tablet servers that are not hosting the metadata table.
-      List<ProcessReference> procs = getCluster().getProcesses().get(ServerType.TABLET_SERVER)
-          .stream().filter(p -> !metadataTserverProcess.equals(p)).collect(Collectors.toList());
-      Collections.shuffle(procs, RANDOM.get());
-      assertEquals(TSERVERS - 1, procs.size(), "Not enough tservers exist");
-      assertTrue(procs.size() >= count, "Attempting to kill more tservers (" + count
-          + ") than exist in the cluster (" + procs.size() + ")");
+    suspensionTestBody(new CrashTserverKiller(), AfterSuspendAction.RESUME);
+  }
 
-      for (int i = 0; i < count; ++i) {
-        ProcessReference pr = procs.get(i);
-        log.info("Crashing {}", pr.getProcess());
-        getCluster().killProcess(ServerType.TABLET_SERVER, pr);
-      }
-    });
+  @Test
+  public void crashAndOffline() throws Exception {
+    // Test to ensure that taking a table offline causes the suspension markers to be cleared.
+    // Suspension markers can prevent balancing and possibly cause other problems, so its good to
+    // clear them for offline tables.
+    suspensionTestBody(new CrashTserverKiller(), AfterSuspendAction.OFFLINE);
   }
 
   @Test
   public void shutdownAndResumeTserver() throws Exception {
     // Run the test body. When we get to the point where we need tservers to go away, stop them via
     // a clean shutdown.
-    suspensionTestBody((ctx, locs, count) -> {
-      Set<TServerInstance> tserverSet = new HashSet<>();
-      Set<TServerInstance> metadataServerSet = new HashSet<>();
+    suspensionTestBody(new ShutdownTserverKiller(), AfterSuspendAction.RESUME);
+  }
 
-      TabletLocator tl = TabletLocator.getLocator(ctx, MetadataTable.ID);
-      for (TabletLocationState tls : locs.locationStates.values()) {
-        if (tls.current != null) {
-          // add to set of all servers
-          tserverSet.add(tls.current.getServerInstance());
-
-          // get server that the current tablets metadata is on
-          TabletLocator.TabletLocation tab =
-              tl.locateTablet(ctx, tls.extent.toMetaRow(), false, false);
-          // add it to the set of servers with metadata
-          metadataServerSet.add(new TServerInstance(tab.getTserverLocation(),
-              Long.valueOf(tab.getTserverSession(), 16)));
-        }
-      }
-
-      // remove servers with metadata on them from the list of servers to be shutdown
-      assertEquals(1, metadataServerSet.size(), "Expecting a single tServer in metadataServerSet");
-      tserverSet.removeAll(metadataServerSet);
-
-      assertEquals(TSERVERS - 1, tserverSet.size(),
-          "Expecting " + (TSERVERS - 1) + " tServers in shutdown-list");
-
-      List<TServerInstance> tserversList = new ArrayList<>(tserverSet);
-      Collections.shuffle(tserversList, RANDOM.get());
-
-      for (int i1 = 0; i1 < count; ++i1) {
-        final String tserverName = tserversList.get(i1).getHostPortSession();
-        ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
-          log.info("Sending shutdown command to {} via ManagerClientService", tserverName);
-          client.shutdownTabletServer(null, ctx.rpcCreds(), tserverName, false);
-        });
-      }
-
-      log.info("Waiting for tserver process{} to die", count == 1 ? "" : "es");
-      for (int i2 = 0; i2 < 10; ++i2) {
-        List<ProcessReference> deadProcs = new ArrayList<>();
-        for (ProcessReference pr1 : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
-          Process p = pr1.getProcess();
-          if (!p.isAlive()) {
-            deadProcs.add(pr1);
-          }
-        }
-        for (ProcessReference pr2 : deadProcs) {
-          log.info("Process {} is dead, informing cluster control about this", pr2.getProcess());
-          getCluster().getClusterControl().killProcess(ServerType.TABLET_SERVER, pr2);
-          --count;
-        }
-        if (count == 0) {
-          return;
-        } else {
-          Thread.sleep(SECONDS.toMillis(2));
-        }
-      }
-      throw new IllegalStateException("Tablet servers didn't die!");
-    });
+  @Test
+  public void shutdownAndOffline() throws Exception {
+    // Test to ensure that taking a table offline causes the suspension markers to be cleared.
+    suspensionTestBody(new ShutdownTserverKiller(), AfterSuspendAction.OFFLINE);
   }
 
   /**
@@ -242,8 +183,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
    *
    * @param serverStopper callback which shuts down some tablet servers.
    */
-  private void suspensionTestBody(TServerKiller serverStopper) throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+  private void suspensionTestBody(TServerKiller serverStopper, AfterSuspendAction action)
+      throws Exception {
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
       ClientContext ctx = (ClientContext) client;
 
       String tableName = getUniqueNames(1)[0];
@@ -253,7 +196,13 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         splitPoints.add(new Text("" + i));
       }
       log.info("Creating table " + tableName);
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints);
+      Map<String,String> properties = new HashMap<>();
+      properties.put(TABLE_ASSIGNMENT_GROUP_PROPERTY, TEST_GROUP_NAME);
+      properties.put(Property.TABLE_SUSPEND_DURATION.getKey(), action.suspendTime);
+
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED);
+      ntc.setProperties(properties);
       ctx.tableOperations().create(tableName, ntc);
 
       // Wait for all of the tablets to hosted ...
@@ -263,9 +212,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
           ds = TabletLocations.retrieve(ctx, tableName)) {
         Thread.sleep(1000);
       }
+      log.info("Tablets hosted");
 
       // ... and balanced.
       ctx.instanceOperations().waitForBalance();
+      log.info("Tablets balanced.");
       do {
         // Keep checking until all tablets are hosted and spread out across the tablet servers
         Thread.sleep(1000);
@@ -276,10 +227,10 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       // and some are hosted on each of the tablet servers other than the one reserved for hosting
       // the metadata table.
       assertEquals(TSERVERS - 1, ds.hosted.keySet().size());
+      log.info("Tablet balance verified.");
 
       // Kill two tablet servers hosting our tablets. This should put tablets into suspended state,
       // and thus halt balancing.
-
       TabletLocations beforeDeathState = ds;
       log.info("Eliminating tablet servers");
       serverStopper.eliminateTabletServers(ctx, beforeDeathState, TSERVERS - 1);
@@ -301,27 +252,45 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         assertEquals(beforeDeathState.hosted.get(server), deadTabletsByServer.get(server));
       }
       assertEquals(TABLETS, ds.hostedCount + ds.suspendedCount);
-      // Restart the first tablet server, making sure it ends up on the same port
-      HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
-      log.info("Restarting " + restartedServer);
-      getCluster().getClusterControl().start(ServerType.TABLET_SERVER,
-          Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
-              Property.TSERV_PORTSEARCH.getKey(), "false"),
-          1);
 
-      // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
-      log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
-      while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
-      }
-      assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+      assertTrue(ds.suspendedCount > 0);
 
-      // Finally, after much longer, remaining suspended tablets should be reassigned.
-      log.info("Awaiting tablet reassignment for remaining tablets");
-      while (ds.hostedCount != TABLETS) {
-        Thread.sleep(1000);
-        ds = TabletLocations.retrieve(ctx, tableName);
+      if (action == AfterSuspendAction.OFFLINE) {
+        client.tableOperations().offline(tableName, true);
+
+        while (ds.suspendedCount > 0) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+          log.info("Waiting for suspended {}", ds.suspended);
+        }
+      } else if (action == AfterSuspendAction.RESUME) {
+        // Restart the first tablet server, making sure it ends up on the same port
+        HostAndPort restartedServer = deadTabletsByServer.keySet().iterator().next();
+        log.info("Restarting " + restartedServer);
+        ((MiniAccumuloClusterImpl) getCluster())._exec(TabletServer.class, ServerType.TABLET_SERVER,
+            Map.of(Property.TSERV_CLIENTPORT.getKey(), "" + restartedServer.getPort(),
+                Property.TSERV_PORTSEARCH.getKey(), "false"),
+            "-o", Property.TSERV_GROUP_NAME.getKey() + "=" + TEST_GROUP_NAME);
+
+        // Eventually, the suspended tablets should be reassigned to the newly alive tserver.
+        log.info("Awaiting tablet unsuspension for tablets belonging to " + restartedServer);
+        while (ds.suspended.containsKey(restartedServer) || ds.assignedCount != 0) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+        }
+        assertEquals(deadTabletsByServer.get(restartedServer), ds.hosted.get(restartedServer));
+
+        // Finally, after much longer, remaining suspended tablets should be reassigned.
+        log.info("Awaiting tablet reassignment for remaining tablets (suspension timeout)");
+        while (ds.hostedCount != TABLETS) {
+          Thread.sleep(1000);
+          ds = TabletLocations.retrieve(ctx, tableName);
+        }
+
+        // Ensure all suspension markers in the metadata table were cleared.
+        assertTrue(ds.suspended.isEmpty());
+      } else {
+        throw new IllegalStateException("Unknown action " + action);
       }
     }
   }
@@ -329,6 +298,48 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
   private interface TServerKiller {
     void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
         throws Exception;
+  }
+
+  private class ShutdownTserverKiller implements TServerKiller {
+
+    @Override
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception {
+      testGroup.forEach(ts -> {
+        try {
+          ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
+            log.info("Sending shutdown command to {} via ManagerClientService", ts);
+            client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
+          });
+        } catch (AccumuloSecurityException | AccumuloException e) {
+          throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
+        }
+      });
+
+      try (AccumuloClient client =
+          Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+        Wait.waitFor(
+            () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
+      }
+
+    }
+  }
+
+  private class CrashTserverKiller implements TServerKiller {
+
+    @Override
+    public void eliminateTabletServers(ClientContext ctx, TabletLocations locs, int count)
+        throws Exception {
+      tabletServerProcesses.forEach(proc -> {
+        try {
+          log.info("Killing processes: {}", proc);
+          ((MiniAccumuloClusterImpl) getCluster()).getClusterControl()
+              .killProcess(ServerType.TABLET_SERVER, proc);
+        } catch (ProcessNotFoundException | InterruptedException e) {
+          throw new RuntimeException("Error killing process: " + proc, e);
+        }
+      });
+    }
   }
 
   private static final AtomicInteger threadCounter = new AtomicInteger(0);
@@ -344,50 +355,8 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
     THREAD_POOL.shutdownNow();
   }
 
-  /**
-   * A version of {@link HostRegexTableLoadBalancer} that includes the tablet server port in
-   * addition to the host name when checking regular expressions. This is useful for testing when
-   * multiple tablet servers are running on the same host and one wishes to make pools from the
-   * tablet servers on that host.
-   */
-  public static class HostAndPortRegexTableLoadBalancer extends HostRegexTableLoadBalancer {
-    private static final Logger LOG =
-        LoggerFactory.getLogger(HostAndPortRegexTableLoadBalancer.class.getName());
-
-    @Override
-    protected List<String> getPoolNamesForHost(TabletServerId tabletServerId) {
-      final String host = tabletServerId.getHost();
-      String test = host;
-      if (!isIpBasedRegex()) {
-        try {
-          test = getNameFromIp(host);
-        } catch (UnknownHostException e1) {
-          LOG.error("Unable to determine host name for IP: " + host + ", setting to default pool",
-              e1);
-          return Collections.singletonList(DEFAULT_POOL);
-        }
-      }
-
-      // Add the port on the end
-      final String hostString = test + ":" + tabletServerId.getPort();
-      List<String> pools = getPoolNameToRegexPattern().entrySet().stream()
-          .filter(e -> e.getValue().matcher(hostString).matches()).map(Map.Entry::getKey)
-          .collect(Collectors.toList());
-      if (pools.isEmpty()) {
-        pools.add(DEFAULT_POOL);
-      }
-      return pools;
-    }
-
-    @Override
-    public long balance(BalanceParameters params) {
-      super.balance(params);
-      return 1000L; // Balance once per second during the test
-    }
-  }
-
   private static class TabletLocations {
-    public final Map<KeyExtent,TabletLocationState> locationStates = new HashMap<>();
+    public final Map<KeyExtent,TabletMetadata> locationStates = new HashMap<>();
     public final SetMultimap<HostAndPort,KeyExtent> hosted = HashMultimap.create();
     public final SetMultimap<HostAndPort,KeyExtent> suspended = HashMultimap.create();
     public int hostedCount = 0;
@@ -396,11 +365,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     public static TabletLocations retrieve(final ClientContext ctx, final String tableName)
         throws Exception {
-      return retrieve(ctx, tableName, MetadataTable.NAME);
-    }
-
-    public static TabletLocations retrieve(final ClientContext ctx, final String tableName,
-        final String metaName) throws Exception {
       int sleepTime = 200;
       int remainingAttempts = 30;
 
@@ -408,13 +372,13 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         try {
           FutureTask<TabletLocations> tlsFuture = new FutureTask<>(() -> {
             TabletLocations answer = new TabletLocations();
-            answer.scan(ctx, tableName, metaName);
+            answer.scan(ctx, tableName);
             return answer;
           });
           THREAD_POOL.execute(tlsFuture);
           return tlsFuture.get(5, SECONDS);
         } catch (TimeoutException ex) {
-          log.debug("Retrieval timed out", ex);
+          log.debug("Retrieval timed out.");
         } catch (Exception ex) {
           log.warn("Failed to scan metadata", ex);
         }
@@ -427,27 +391,29 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
     }
 
-    private void scan(ClientContext ctx, String tableName, String metaName) {
+    private void scan(ClientContext ctx, String tableName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
       String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (var scanner = new MetaDataTableScanner(ctx, new Range(), metaName)) {
+      var level = Ample.DataLevel.of(TableId.of(tableId));
+      try (var tablets = ctx.getAmple().readTablets().forLevel(level).build()) {
+        var scanner = tablets.iterator();
         while (scanner.hasNext()) {
-          TabletLocationState tls = scanner.next();
+          final TabletMetadata tm = scanner.next();
+          final KeyExtent ke = tm.getExtent();
 
-          if (!tls.extent.tableId().canonical().equals(tableId)) {
+          if (!tm.getTableId().canonical().equals(tableId)) {
             continue;
           }
-          locationStates.put(tls.extent, tls);
-          if (tls.suspend != null) {
-            suspended.put(tls.suspend.server, tls.extent);
+          locationStates.put(ke, tm);
+          if (tm.getSuspend() != null) {
+            suspended.put(tm.getSuspend().server, ke);
             ++suspendedCount;
-          } else if (tls.current != null) {
-            hosted.put(tls.current.getHostAndPort(), tls.extent);
+          } else if (tm.hasCurrent()) {
+            hosted.put(tm.getLocation().getHostAndPort(), ke);
             ++hostedCount;
-          } else if (tls.future != null) {
+          } else if (tm.getLocation() != null
+              && tm.getLocation().getType().equals(LocationType.FUTURE)) {
             ++assignedCount;
-          } else {
-            // unassigned case
           }
         }
       }

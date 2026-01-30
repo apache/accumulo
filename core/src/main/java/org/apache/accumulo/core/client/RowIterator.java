@@ -40,7 +40,7 @@ public class RowIterator implements Iterator<Iterator<Entry<Key,Value>>> {
    * Iterate over entries in a single row.
    */
   private static class SingleRowIter implements Iterator<Entry<Key,Value>> {
-    private PeekingIterator<Entry<Key,Value>> source;
+    private final PeekingIterator<Entry<Key,Value>> source;
     private Text currentRow = null;
     private long count = 0;
     private boolean disabled = false;

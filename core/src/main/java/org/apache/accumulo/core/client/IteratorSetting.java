@@ -51,11 +51,11 @@ import org.apache.hadoop.io.WritableUtils;
  * scanner.addScanIterator(cfg);
  * </pre>
  */
-public class IteratorSetting implements Writable {
+public final class IteratorSetting implements Writable {
   private int priority;
   private String name;
   private String iteratorClass;
-  private Map<String,String> properties;
+  private final Map<String,String> properties;
 
   /**
    * Get layer at which this iterator applies. See {@link #setPriority(int)} for how the priority is
@@ -289,10 +289,9 @@ public class IteratorSetting implements Writable {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof IteratorSetting)) {
+    if (!(obj instanceof IteratorSetting other)) {
       return false;
     }
-    IteratorSetting other = (IteratorSetting) obj;
     if (iteratorClass == null) {
       if (other.iteratorClass != null) {
         return false;

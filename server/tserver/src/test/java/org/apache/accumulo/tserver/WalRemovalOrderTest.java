@@ -18,10 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -29,35 +25,17 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.tserver.log.DfsLogger;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
 public class WalRemovalOrderTest {
 
-  private ServerContext context;
-
-  @BeforeEach
-  private void createMocks() {
-    context = createMock(ServerContext.class);
-    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-    replay(context);
-  }
-
-  @AfterEach
-  private void verifyMocks() {
-    verify(context);
-  }
-
   private DfsLogger mockLogger(String filename) {
     var mockLogEntry = LogEntry.fromPath(filename + "+1234/11111111-1111-1111-1111-111111111111");
-    return new DfsLogger(context, mockLogEntry);
+    return DfsLogger.fromLogEntry(mockLogEntry);
   }
 
   private LinkedHashSet<DfsLogger> mockLoggers(String... logs) {

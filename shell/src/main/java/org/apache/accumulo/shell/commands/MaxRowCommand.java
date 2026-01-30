@@ -19,16 +19,13 @@
 package org.apache.accumulo.shell.commands;
 
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class MaxRowCommand extends ScanCommand {
-
-  private static final Logger log = LoggerFactory.getLogger(MaxRowCommand.class);
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -37,17 +34,19 @@ public class MaxRowCommand extends ScanCommand {
 
     final Range range = getRange(cl);
     final Authorizations auths = getAuths(cl, shellState);
-    final Text startRow = range.getStartKey() == null ? null : range.getStartKey().getRow();
-    final Text endRow = range.getEndKey() == null ? null : range.getEndKey().getRow();
+    final Text lowerBound = range.getStartKey() == null ? null : range.getStartKey().getRow();
+    final Text upperBound = range.getEndKey() == null ? null : range.getEndKey().getRow();
+    final RowRange rowRange = RowRange.range(lowerBound, range.isStartKeyInclusive(), upperBound,
+        range.isEndKeyInclusive());
 
     try {
-      final Text max = shellState.getAccumuloClient().tableOperations().getMaxRow(tableName, auths,
-          startRow, range.isStartKeyInclusive(), endRow, range.isEndKeyInclusive());
+      final Text max =
+          shellState.getAccumuloClient().tableOperations().getMaxRow(tableName, auths, rowRange);
       if (max != null) {
         shellState.getWriter().println(max);
       }
     } catch (Exception e) {
-      log.debug("Could not get shell state.", e);
+      Shell.log.debug("Could not get shell state.", e);
     }
 
     return 0;

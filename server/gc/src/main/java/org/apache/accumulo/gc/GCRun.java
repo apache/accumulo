@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,8 +38,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -48,14 +50,14 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -64,7 +66,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -90,16 +92,19 @@ public class GCRun implements GarbageCollectionEnvironment {
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
+  private final Duration loggingInterval = Duration.ofMinutes(1);
   private long candidates = 0;
   private long inUse = 0;
   private long deleted = 0;
   private long errors = 0;
+  private AtomicInteger batchCount;
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
     this.log = LoggerFactory.getLogger(GCRun.class.getName() + "." + level.name());
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
+    this.batchCount = new AtomicInteger(0);
   }
 
   @Override
@@ -127,7 +132,8 @@ public class GCRun implements GarbageCollectionEnvironment {
       return;
     }
 
-    log.info("Attempting to delete gcCandidates of type {} from metadata", type);
+    log.info("Batch {} attempting to delete {} gcCandidates of type {} from metadata",
+        batchCount.get(), gcCandidates.size(), type);
     context.getAmple().deleteGcCandidates(level, gcCandidates, type);
   }
 
@@ -138,6 +144,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
     List<GcCandidate> candidatesBatch = new ArrayList<>();
+    batchCount.incrementAndGet();
 
     while (candidates.hasNext()) {
       GcCandidate candidate = candidates.next();
@@ -176,9 +183,8 @@ public class GCRun implements GarbageCollectionEnvironment {
     if (level == Ample.DataLevel.ROOT) {
       tabletStream = Stream.of(context.getAmple().readTablet(RootTable.EXTENT, DIR, FILES, SCANS));
     } else {
-      var tabletsMetadata = TabletsMetadata.builder(context).scanTable(level.metaTable())
-          .checkConsistency().fetch(DIR, FILES, SCANS).build();
-      tabletStream = tabletsMetadata.stream();
+      tabletStream = TabletsMetadata.builder(context).scanTable(level.metaTable())
+          .checkConsistency().fetch(DIR, FILES, SCANS).build().stream();
     }
 
     // there is a lot going on in this "one line" so see below for more info
@@ -208,13 +214,13 @@ public class GCRun implements GarbageCollectionEnvironment {
       // if dirName is populated, then we have a tablet directory aka srv:dir
       if (tm.getDirName() != null) {
         // add the tablet directory to the stream
-        var tabletDir = new ReferenceDirectory(tableId, tm.getDirName());
+        var tabletDir = ReferenceFile.forDirectory(tableId, tm.getDirName());
         fileStream = Stream.concat(fileStream, Stream.of(tabletDir));
       }
       return fileStream;
     });
 
-    var scanServerRefs = context.getAmple().getScanServerFileReferences()
+    var scanServerRefs = context.getAmple().scanServerRefs().list()
         .map(sfr -> ReferenceFile.forScan(sfr.getTableId(), sfr));
 
     return Stream.concat(tabletReferences, scanServerRefs);
@@ -222,19 +228,17 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @Override
   public Map<TableId,TableState> getTableIDs() throws InterruptedException {
-    final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
-    final ZooReader zr = context.getZooReader();
+    final ZooReader zr = context.getZooSession().asReader();
     int retries = 1;
     IllegalStateException ioe = null;
     while (retries <= 10) {
       try {
-        zr.sync(tablesPath);
+        zr.sync(Constants.ZTABLES);
         final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(tablesPath)) {
+        for (String table : zr.getChildren(Constants.ZTABLES)) {
           TableId tableId = TableId.of(table);
           TableState tableState = null;
-          String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
-              + tableId.canonical() + Constants.ZTABLE_STATE;
+          String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
           try {
             byte[] state = zr.getData(statePath);
             if (state == null) {
@@ -262,11 +266,11 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes)
-      throws TableNotFoundException {
+  public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes) {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
-        ? context.getZooKeeperRoot() + " for " + RootTable.NAME : level.metaTable();
+        ? ZooUtil.getRoot(context.getInstanceID()) + " for " + SystemTables.ROOT.tableName()
+        : level.metaTable();
 
     if (inSafeMode()) {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
@@ -282,15 +286,17 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     List<GcCandidate> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
-    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
+    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log, loggingInterval);
 
-    ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(config, Property.GC_DELETE_THREADS, false);
+    ThreadPoolExecutor deleteThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(config, Property.GC_DELETE_THREADS);
 
-    final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
+    final Map<Path,Path> replacements = context.getVolumeReplacements();
 
+    log.info("Batch {} attempting to delete {} gcCandidate files", batchCount.get(),
+        confirmedDeletes.size());
+    Timer timer = Timer.startNew();
     for (final GcCandidate delete : confirmedDeletes.values()) {
-
       Runnable deleteTask = () -> {
         boolean removeFlag = false;
 
@@ -314,7 +320,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-            log.debug("{} Deleting {}", fileActionPrefix, pathToDel);
+            log.debug("Batch {} {} Deleting {}", batchCount.get(), fileActionPrefix, pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
@@ -331,13 +337,12 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors++;
-              String[] parts = pathToDel.toString().split(Constants.ZTABLES)[1].split("/");
+              String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
               if (parts.length > 2) {
                 TableId tableId = TableId.of(parts[1]);
                 String tabletDir = parts[2];
-                context.getTableManager().updateTableStateCache(tableId);
                 TableState tableState = context.getTableManager().getTableState(tableId);
-                if (tableState != null && tableState != TableState.DELETING) {
+                if (tableState != TableState.UNKNOWN && tableState != TableState.DELETING) {
                   // clone directories don't always exist
                   if (!tabletDir.startsWith(Constants.CLONE_PREFIX)) {
                     log.debug("{} File doesn't exist: {}", fileActionPrefix, pathToDel);
@@ -367,7 +372,12 @@ public class GCRun implements GarbageCollectionEnvironment {
     deleteThreadPool.shutdown();
 
     try {
-      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+        if (timer.hasElapsed(loggingInterval)) {
+          log.info("Batch {} deleting file {} of {}", batchCount.get(),
+              deleteThreadPool.getCompletedTaskCount(), confirmedDeletes.size());
+          timer.restart();
+        }
       }
     } catch (InterruptedException e1) {
       log.error("{}", e1.getMessage(), e1);
@@ -411,7 +421,8 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @VisibleForTesting
   static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
-      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger) {
+      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
+      Duration loggingInterval) {
     Set<Path> seenVolumes = new HashSet<>();
 
     // when deleting a dir and all files in that dir, only need to delete the dir.
@@ -421,7 +432,11 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     String lastDirRel = null;
     Path lastDirAbs = null;
+    Timer progressTimer = Timer.startNew();
+    int progressCount = 0;
+    int totalDeletes = confirmedDeletes.size();
     while (cdIter.hasNext()) {
+      progressCount++;
       Map.Entry<String,GcCandidate> entry = cdIter.next();
       String relPath = entry.getKey();
       Path absPath = new Path(entry.getValue().getPath());
@@ -461,6 +476,10 @@ public class GCRun implements GarbageCollectionEnvironment {
           lastDirAbs = null;
         }
       }
+      if (progressTimer.hasElapsed(loggingInterval)) {
+        logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
+        progressTimer.restart();
+      }
     }
   }
 
@@ -471,16 +490,6 @@ public class GCRun implements GarbageCollectionEnvironment {
    */
   boolean inSafeMode() {
     return context.getConfiguration().getBoolean(Property.GC_SAFEMODE);
-  }
-
-  /**
-   * Checks if InUse Candidates can be removed.
-   *
-   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
-   */
-  @Override
-  public boolean canRemoveInUseCandidates() {
-    return context.getConfiguration().getBoolean(Property.GC_REMOVE_IN_USE_CANDIDATES);
   }
 
   /**
@@ -542,9 +551,9 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public Set<TableId> getCandidateTableIDs() throws InterruptedException {
     if (level == DataLevel.ROOT) {
-      return Set.of(RootTable.ID);
+      return Set.of(SystemTables.ROOT.tableId());
     } else if (level == DataLevel.METADATA) {
-      return Set.of(MetadataTable.ID);
+      return Set.of(SystemTables.METADATA.tableId());
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
       getTableIDs().forEach((k, v) -> {
@@ -554,8 +563,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           tableIds.add(k);
         }
       });
-      tableIds.remove(MetadataTable.ID);
-      tableIds.remove(RootTable.ID);
+      tableIds.remove(SystemTables.METADATA.tableId());
+      tableIds.remove(SystemTables.ROOT.tableId());
       return tableIds;
     } else {
       throw new IllegalArgumentException("Unexpected level in GC Env: " + this.level.name());

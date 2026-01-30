@@ -37,6 +37,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -85,7 +86,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
       LoggerFactory.getLogger(AccumuloConfigurationIsPropertySetTest.class);
   private static final InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-  private final SystemPropKey sysPropKey = SystemPropKey.of(instanceId);
+  private final SystemPropKey sysPropKey = SystemPropKey.of();
   private final ArrayList<Object> mocks = new ArrayList<>();
 
   private ZooPropStore propStore;
@@ -97,7 +98,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    context = getMockContextWithPropStore(instanceId, null, propStore);
+    context = getMockContextWithPropStore(instanceId, propStore);
     SiteConfiguration siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
   }
@@ -161,7 +162,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   @Test
   public void testNamespaceConfiguration() {
     var namespaceId = NamespaceId.of("namespace");
-    var nsPropKey = NamespacePropKey.of(instanceId, namespaceId);
+    var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var setOnParent = Set.of(TABLE_BLOOM_SIZE);
     var parent = new ConfigurationCopy(setToMap(setOnParent));
@@ -226,22 +227,39 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var conf = new SystemConfiguration(context, sysPropKey, parent);
 
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, inGetProperties(conf));
-    // these get added from the constructor via RuntimeFixedProperties and get checked in the
-    // isPropertySet impl; adding these to the expected list is a workaround until
-    // https://github.com/apache/accumulo/issues/3529 is fixed
-    shouldBeSet.addAll(Property.fixedProperties);
+    // also verify using isPropertySet
+    verifyIsSet(conf, shouldBeSet, shouldNotBeSet, conf::isPropertySet);
 
-    // verify using isPropertySet
+    // now set a few fixed properties on the parent to simulate a user setting a fixed property that
+    // requires a restart
+    var shouldBeSetMore = new HashSet<Property>(shouldBeSet);
+    Property.FIXED_PROPERTIES.stream().limit(5).forEach(p -> {
+      // use the default value so we can verify it's actually set, and not just looks set because it
+      // has the same value as the default
+      parent.set(p.getKey(), p.getDefaultValue());
+      shouldBeSetMore.add(p);
+    });
+    // make sure we actually added some
+    assertEquals(5, Sets.symmetricDifference(shouldBeSet, shouldBeSetMore).size());
+
+    // verify that the view of the configuration now includes the fixed properties, because we added
+    // them to the parent; however, in a real system, the parent is the SiteConfiguration, which is
+    // immutable, and this isn't possible; so this is just an easy way to verify that the values
+    // were actually altered (easier than mocking user edits to ZooKeeper)
+    var shouldNotBeSetMore = Sets.difference(ALL_PROPERTIES, shouldBeSetMore);
+    verifyIsSet(conf, shouldBeSetMore, shouldNotBeSetMore, inGetProperties(conf));
+    // now, verify that the configuration view is unchanged when looking at isPropertySet, because
+    // that is respecting the fact that these fixed properties were not set at startup
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, conf::isPropertySet);
   }
 
   @Test
   public void testTableConfiguration() {
     var namespaceId = NamespaceId.of("namespace");
-    var nsPropKey = NamespacePropKey.of(instanceId, namespaceId);
+    var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var tableId = TableId.of("3");
-    var tablePropKey = TablePropKey.of(instanceId, tableId);
+    var tablePropKey = TablePropKey.of(tableId);
 
     var setOnNamespace = Set.of(TABLE_FILE_MAX);
     var nsProps = new VersionedProperties(2, Instant.now(), setToMap(setOnNamespace));

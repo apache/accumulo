@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -67,7 +67,7 @@ public class RegExFilterTest {
     RegExFilter.setRegexs(is, ".*2", null, null, null, false);
 
     assertTrue(rei.validateOptions(is.getOptions()));
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -82,7 +82,7 @@ public class RegExFilterTest {
     RegExFilter.setRegexs(is, null, null, null, "amst", false, true); // Should only match hamster
 
     rei.validateOptions(is.getOptions());
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -95,7 +95,7 @@ public class RegExFilterTest {
 
     RegExFilter.setRegexs(is, null, "ya.*", null, null, false);
     assertTrue(rei.validateOptions(is.getOptions()));
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -108,7 +108,7 @@ public class RegExFilterTest {
 
     RegExFilter.setRegexs(is, null, null, ".*01", null, false);
     assertTrue(rei.validateOptions(is.getOptions()));
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -121,7 +121,7 @@ public class RegExFilterTest {
 
     RegExFilter.setRegexs(is, null, null, null, ".*at", false);
     assertTrue(rei.validateOptions(is.getOptions()));
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -133,7 +133,7 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, null, null, null, ".*ap", false);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertFalse(rei.hasTop());
@@ -142,7 +142,7 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, null, "ya.*", null, ".*at", false);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -154,7 +154,7 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, null, "ya.*", null, ".*ap", false);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertFalse(rei.hasTop());
@@ -163,7 +163,7 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, "boo1", null, null, null, false);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -177,7 +177,7 @@ public class RegExFilterTest {
     // -----------------------------------------------------
     is.clearOptions();
 
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -195,7 +195,7 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, "hamster", null, "hamster", "hamster", true);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -207,7 +207,7 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, null, "ya.*", "hamster", null, true);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -218,22 +218,23 @@ public class RegExFilterTest {
     is.clearOptions();
 
     RegExFilter.setRegexs(is, null, "ya.*", "hamster", null, true);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
-    rei.deepCopy(new DefaultIteratorEnvironment());
+    rei.deepCopy(ClientIteratorEnvironment.DEFAULT);
 
     // -----------------------------------------------------
     String multiByteText = new String("\u6d67\u6F68\u7067");
     String multiByteRegex = new String(".*\u6F68.*");
 
-    Key k4 = new Key("boo4".getBytes(), "hoo".getBytes(), "20080203".getBytes(), "".getBytes(), 1L);
+    Key k4 = new Key("boo4".getBytes(UTF_8), "hoo".getBytes(UTF_8), "20080203".getBytes(UTF_8),
+        "".getBytes(UTF_8), 1L);
     Value inVal = new Value(multiByteText);
     tm.put(k4, inVal);
 
     is.clearOptions();
 
     RegExFilter.setRegexs(is, null, null, null, multiByteRegex, true);
-    rei.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    rei.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     rei.seek(new Range(), EMPTY_COL_FAMS, false);
 
     assertTrue(rei.hasTop());
@@ -247,8 +248,11 @@ public class RegExFilterTest {
   public void testNullByteInKey() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    String s1 = "first", s2 = "second";
-    byte[] b1 = s1.getBytes(), b2 = s2.getBytes(), ball;
+    String s1 = "first";
+    String s2 = "second";
+    byte[] b1 = s1.getBytes(UTF_8);
+    byte[] b2 = s2.getBytes(UTF_8);
+    byte[] ball;
     ball = new byte[b1.length + b2.length + 1];
     System.arraycopy(b1, 0, ball, 0, b1.length);
     ball[b1.length] = (byte) 0;

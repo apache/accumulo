@@ -36,12 +36,16 @@ import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 import org.apache.hadoop.io.WritableUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This is the Key used to store and access individual values in Accumulo. A Key is a tuple composed
  * of a row, column family, column qualifier, column visibility, timestamp, and delete marker.
  * <p>
  * Keys are comparable and therefore have a sorted order defined by {@link #compareTo(Key)}.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Key implements WritableComparable<Key>, Cloneable {
 
   protected byte[] row;
@@ -54,7 +58,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Create a {@link Key} builder.
    *
-   * @since 2.0
+   * @since 2.0.0
    * @param copyBytes if the bytes of the {@link Key} components should be copied
    * @return the builder at the {@link KeyBuilder.RowStep}
    */
@@ -66,7 +70,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Create a {@link Key} builder. Using the builder makes it easy to mix types, like {@code String}
    * and {@code byte[]}, for different fields. Copy bytes defaults to true.
    *
-   * @since 2.0
+   * @since 2.0.0
    * @return the builder at the {@link KeyBuilder.RowStep}
    * @see #builder(boolean)
    */
@@ -552,6 +556,74 @@ public class Key implements WritableComparable<Key>, Cloneable {
         new Text(cv.getExpression()), ts);
   }
 
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column
+   * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
+   * This constructor creates a copy of the fields.
+   * <p>
+   * To avoid copying, use
+   * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
+   * instead.
+   *
+   * @see #builder()
+   * @since 4.0.0
+   */
+  public Key(ByteSequence row, ByteSequence cf, ByteSequence cq, ByteSequence cv, long ts) {
+    byte[] rowBytes;
+    byte[] cfBytes;
+    byte[] cqBytes;
+    byte[] cvBytes;
+
+    int rowOffset;
+    int cfOffset;
+    int cqOffset;
+    int cvOffset;
+
+    int rowLen;
+    int cfLen;
+    int cqLen;
+    int cvLen;
+
+    if (row.isBackedByArray()) {
+      rowBytes = row.getBackingArray();
+      rowOffset = row.offset();
+    } else {
+      rowBytes = row.toArray();
+      rowOffset = 0;
+    }
+    rowLen = row.length();
+
+    if (cf.isBackedByArray()) {
+      cfBytes = cf.getBackingArray();
+      cfOffset = cf.offset();
+    } else {
+      cfBytes = cf.toArray();
+      cfOffset = 0;
+    }
+    cfLen = cf.length();
+
+    if (cq.isBackedByArray()) {
+      cqBytes = cq.getBackingArray();
+      cqOffset = cq.offset();
+    } else {
+      cqBytes = cq.toArray();
+      cqOffset = 0;
+    }
+    cqLen = cq.length();
+
+    if (cv.isBackedByArray()) {
+      cvBytes = cv.getBackingArray();
+      cvOffset = cv.offset();
+    } else {
+      cvBytes = cv.toArray();
+      cvOffset = 0;
+    }
+    cvLen = cv.length();
+
+    init(rowBytes, rowOffset, rowLen, cfBytes, cfOffset, cfLen, cqBytes, cqOffset, cqLen, cvBytes,
+        cvOffset, cvLen, ts, false, true);
+  }
+
   private byte[] followingArray(byte[] ba) {
     byte[] fba = new byte[ba.length + 1];
     System.arraycopy(ba, 0, fba, 0, ba.length);
@@ -658,6 +730,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
+   * Writes the row ID into the given <code>ArrayByteSequence</code> without allocating new object
+   * by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to row data, rather
+   * than copying row data.
+   *
+   * @param r <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 4.0.0
+   */
+  public ArrayByteSequence getRowData(ArrayByteSequence r) {
+    r.reset(row, 0, row.length);
+    return r;
+  }
+
+  /**
    * Gets the row ID as a <code>Text</code> object.
    *
    * @return Text containing the row ID
@@ -684,6 +771,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
+  }
+
+  /**
+   * Writes the column family into the given <code>ArrayByteSequence</code> without allocating new
+   * object by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to column family
+   * data, rather than copying column family data.
+   *
+   * @param cf <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 4.0.0
+   */
+  public ArrayByteSequence getColumnFamilyData(ArrayByteSequence cf) {
+    cf.reset(colFamily, 0, colFamily.length);
+    return cf;
   }
 
   /**
@@ -727,6 +829,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
+  }
+
+  /**
+   * Writes the column qualifier into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column qualifier data, rather
+   * than copying column qualifier data.
+   *
+   * @param cq <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 4.0.0
+   */
+  public ArrayByteSequence getColumnQualifierData(ArrayByteSequence cq) {
+    cq.reset(colQualifier, 0, colQualifier.length);
+    return cq;
   }
 
   /**
@@ -805,6 +923,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnVisibilityData() {
     return new ArrayByteSequence(colVisibility);
+  }
+
+  /**
+   * Writes the column visibility into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column visibility data, rather
+   * than copying column visibility data.
+   *
+   * @param cv <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 4.0.0
+   */
+  public ArrayByteSequence getColumnVisibilityData(ArrayByteSequence cv) {
+    cv.reset(colVisibility, 0, colVisibility.length);
+    return cv;
   }
 
   /**
@@ -911,30 +1045,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @return true if specified parts of keys match, false otherwise
    */
   public boolean equals(Key other, PartialKey part) {
-    switch (part) {
-      case ROW:
-        return isEqual(row, other.row);
-      case ROW_COLFAM:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
-      case ROW_COLFAM_COLQUAL:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier);
-      case ROW_COLFAM_COLQUAL_COLVIS:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility);
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-        return isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-            && isEqual(colQualifier, other.colQualifier)
-            && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
-            && deleted == other.deleted;
-      default:
-        throw new IllegalArgumentException("Unrecognized partial key specification " + part);
-    }
+    return switch (part) {
+      case ROW -> isEqual(row, other.row);
+      case ROW_COLFAM -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
+      case ROW_COLFAM_COLQUAL -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
+          && isEqual(colQualifier, other.colQualifier);
+      case ROW_COLFAM_COLQUAL_COLVIS -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility);
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
+          && deleted == other.deleted;
+    };
   }
 
   /**
@@ -1058,7 +1184,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
     }
 
     if (len > maxLen) {
-      sb.append("... TRUNCATED");
+      sb.append("... TRUNCATED (length: ").append(len).append(")");
     }
 
     return sb;
@@ -1162,17 +1288,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
     last--;
 
     if (a1[last] == a2[last]) {
-      for (int i = 0; i < last; i++) {
-        if (a1[i] != a2[i]) {
-          return false;
-        }
-      }
+      return Arrays.equals(a1, a2);
     } else {
       return false;
     }
-
-    return true;
-
   }
 
   /**

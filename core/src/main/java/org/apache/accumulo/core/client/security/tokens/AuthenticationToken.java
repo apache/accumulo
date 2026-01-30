@@ -124,7 +124,7 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
   class Properties implements Destroyable, Map<String,char[]> {
 
     private boolean destroyed = false;
-    private HashMap<String,char[]> map = new HashMap<>();
+    private final HashMap<String,char[]> map = new HashMap<>();
 
     private void checkDestroyed() {
       if (destroyed) {
@@ -241,8 +241,9 @@ public interface AuthenticationToken extends Writable, Destroyable, Cloneable {
   }
 
   class TokenProperty implements Comparable<TokenProperty> {
-    private String key, description;
-    private boolean masked;
+    private final String key;
+    private final String description;
+    private final boolean masked;
 
     public TokenProperty(String name, String description, boolean mask) {
       this.key = name;

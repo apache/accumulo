@@ -45,12 +45,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -79,7 +78,7 @@ public class Upgrader10to11 implements Upgrader {
   public void upgradeZookeeper(final ServerContext context) {
     log.info("upgrade of ZooKeeper entries");
 
-    var zrw = context.getZooReaderWriter();
+    var zrw = context.getZooSession().asReaderWriter();
     var iid = context.getInstanceID();
 
     // if the replication base path (../tables/+rep) assume removed or never existed.
@@ -115,7 +114,8 @@ public class Upgrader10to11 implements Upgrader {
 
   List<String> readReplFilesFromMetadata(final ServerContext context) {
     List<String> results = new ArrayList<>();
-    try (Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       scanner.setRange(REP_TABLE_RANGE);
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -136,7 +136,7 @@ public class Upgrader10to11 implements Upgrader {
     }
     // write delete mutations
     boolean haveFailures = false;
-    try (BatchWriter writer = context.createBatchWriter(MetadataTable.NAME)) {
+    try (BatchWriter writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       for (String filename : replTableFiles) {
         Mutation m = createDelMutation(filename);
         log.debug("Adding delete marker for file: {}", filename);
@@ -165,7 +165,7 @@ public class Upgrader10to11 implements Upgrader {
    */
   private void deleteReplMetadataEntries(final ServerContext context) {
     try (BatchDeleter deleter =
-        context.createBatchDeleter(MetadataTable.NAME, Authorizations.EMPTY, 10)) {
+        context.createBatchDeleter(SystemTables.METADATA.tableName(), Authorizations.EMPTY, 10)) {
       deleter.setRanges(List.of(REP_TABLE_RANGE, REP_WAL_RANGE));
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException ex) {
@@ -216,7 +216,7 @@ public class Upgrader10to11 implements Upgrader {
    * {@code /accumulo/INSTANCE_ID/tables/+rep}
    */
   static String buildRepTablePath(final InstanceId iid) {
-    return ZooUtil.getRoot(iid) + ZTABLES + "/" + REPLICATION_ID.canonical();
+    return ZTABLES + "/" + REPLICATION_ID.canonical();
   }
 
   private void deleteReplicationTableZkEntries(ZooReaderWriter zrw, InstanceId iid) {
@@ -234,7 +234,7 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
-    PropStoreKey<TableId> metaKey = TablePropKey.of(iid, MetadataTable.ID);
+    var metaKey = TablePropKey.of(SystemTables.METADATA.tableId());
     var p = propStore.get(metaKey);
     var props = p.asMap();
     List<String> filtered = filterReplConfigKeys(props.keySet());

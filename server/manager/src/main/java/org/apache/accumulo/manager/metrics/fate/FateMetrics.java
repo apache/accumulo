@@ -18,28 +18,35 @@
  */
 package org.apache.accumulo.manager.metrics.fate;
 
+import static org.apache.accumulo.core.metrics.Metric.FATE_OPS;
+import static org.apache.accumulo.core.metrics.Metric.FATE_TX;
+import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
+
+import java.util.EnumMap;
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.FateExecutor;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 
-public class FateMetrics implements MetricsProducer {
+public abstract class FateMetrics<T extends FateMetricValues> implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 
@@ -48,121 +55,98 @@ public class FateMetrics implements MetricsProducer {
 
   private static final String OP_TYPE_TAG = "op.type";
 
-  private final ServerContext context;
-  private final ReadOnlyTStore<FateMetrics> zooStore;
-  private final String fateRootPath;
-  private final long refreshDelay;
+  protected final ServerContext context;
+  protected final ReadOnlyFateStore<FateMetrics<T>> readOnlyFateStore;
+  protected final long refreshDelay;
+  private final Set<FateExecutor<FateEnv>> fateExecutors;
+  private MeterRegistry registry;
 
-  private AtomicLong totalCurrentOpsGauge;
-  private AtomicLong totalOpsGauge;
-  private AtomicLong fateErrorsGauge;
-  private AtomicLong newTxGauge;
-  private AtomicLong submittedTxGauge;
-  private AtomicLong inProgressTxGauge;
-  private AtomicLong failedInProgressTxGauge;
-  private AtomicLong failedTxGauge;
-  private AtomicLong successfulTxGauge;
-  private AtomicLong unknownTxGauge;
+  protected final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
+  private final EnumMap<TStatus,AtomicLong> txStatusCounters = new EnumMap<>(TStatus.class);
 
-  public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
-
+  public FateMetrics(final ServerContext context, final long minimumRefreshDelay,
+      Set<FateExecutor<FateEnv>> fateExecutors) {
     this.context = context;
-    this.fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
+    this.readOnlyFateStore = Objects.requireNonNull(buildReadOnlyStore(context));
+    this.fateExecutors = fateExecutors;
 
-    try {
-      this.zooStore = new ZooStore<>(fateRootPath, context.getZooReaderWriter());
-    } catch (KeeperException ex) {
-      throw new IllegalStateException(
-          "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(
-          "FATE Metrics - Interrupt received while initializing zoo store");
+    for (TStatus status : TStatus.values()) {
+      txStatusCounters.put(status, new AtomicLong(0));
     }
-
   }
 
-  private void update() {
+  protected abstract ReadOnlyFateStore<FateMetrics<T>> buildReadOnlyStore(ServerContext context);
 
-    FateMetricValues metricValues =
-        FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
+  protected abstract T getMetricValues();
 
-    totalCurrentOpsGauge.set(metricValues.getCurrentFateOps());
-    totalOpsGauge.set(metricValues.getZkFateChildOpsTotal());
-    fateErrorsGauge.set(metricValues.getZkConnectionErrors());
+  protected void update() {
+    update(getMetricValues());
+  }
 
-    for (Entry<String,Long> vals : metricValues.getTxStateCounters().entrySet()) {
-      switch (ReadOnlyTStore.TStatus.valueOf(vals.getKey())) {
-        case NEW:
-          newTxGauge.set(vals.getValue());
-          break;
-        case SUBMITTED:
-          submittedTxGauge.set(vals.getValue());
-          break;
-        case IN_PROGRESS:
-          inProgressTxGauge.set(vals.getValue());
-          break;
-        case FAILED_IN_PROGRESS:
-          failedInProgressTxGauge.set(vals.getValue());
-          break;
-        case FAILED:
-          failedTxGauge.set(vals.getValue());
-          break;
-        case SUCCESSFUL:
-          successfulTxGauge.set(vals.getValue());
-          break;
-        case UNKNOWN:
-          unknownTxGauge.set(vals.getValue());
-          break;
-        default:
-          log.warn("Unhandled status type: {}", vals.getKey());
+  protected void update(T metricValues) {
+    totalCurrentOpsCount.set(metricValues.getCurrentFateOps());
+
+    for (Entry<TStatus,Long> entry : metricValues.getTxStateCounters().entrySet()) {
+      AtomicLong counter = txStatusCounters.get(entry.getKey());
+      if (counter != null) {
+        counter.set(entry.getValue());
+      } else {
+        log.warn("Unhandled TStatus: {}", entry.getKey());
       }
     }
 
-    metricValues.getOpTypeCounters().forEach((name, count) -> {
-      Metrics.gauge(METRICS_FATE_TYPE_IN_PROGRESS, Tags.of(OP_TYPE_TAG, name), count);
-    });
+    metricValues.getOpTypeCounters().forEach((name, count) -> Metrics
+        .gauge(FATE_TYPE_IN_PROGRESS.getName(), Tags.of(OP_TYPE_TAG, name), count));
+
+    // there may have been new fate executors added, so these need to be registered.
+    // fate executors removed will have their metrics removed from the registry before they are
+    // removed from the set.
+    if (registry != null) {
+      synchronized (fateExecutors) {
+        fateExecutors.forEach(fe -> {
+          var feMetrics = fe.getFateExecutorMetrics();
+          if (!feMetrics.isRegistered()) {
+            feMetrics.registerMetrics(registry);
+          }
+        });
+      }
+    }
   }
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
-    totalCurrentOpsGauge = registry.gauge(METRICS_FATE_TOTAL_IN_PROGRESS,
-        MetricsUtil.getCommonTags(), new AtomicLong(0));
-    totalOpsGauge =
-        registry.gauge(METRICS_FATE_OPS_ACTIVITY, MetricsUtil.getCommonTags(), new AtomicLong(0));
-    fateErrorsGauge = registry.gauge(METRICS_FATE_ERRORS,
-        Tags.concat(MetricsUtil.getCommonTags(), "type", "zk.connection"), new AtomicLong(0));
-    newTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-        ReadOnlyTStore.TStatus.NEW.name().toLowerCase()), new AtomicLong(0));
-    submittedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.SUBMITTED.name().toLowerCase()), new AtomicLong(0));
-    inProgressTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
-    failedInProgressTxGauge =
-        registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(), "state",
-            ReadOnlyTStore.TStatus.FAILED_IN_PROGRESS.name().toLowerCase()), new AtomicLong(0));
-    failedTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.FAILED.name().toLowerCase()), new AtomicLong(0));
-    successfulTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.SUCCESSFUL.name().toLowerCase()), new AtomicLong(0));
-    unknownTxGauge = registry.gauge(METRICS_FATE_TX, Tags.concat(MetricsUtil.getCommonTags(),
-        "state", ReadOnlyTStore.TStatus.UNKNOWN.name().toLowerCase()), new AtomicLong(0));
+    this.registry = registry;
+    String type = readOnlyFateStore.type().name().toLowerCase();
 
-    update();
+    Gauge.builder(FATE_OPS.getName(), totalCurrentOpsCount, AtomicLong::get)
+        .description(FATE_OPS.getDescription()).register(registry);
+
+    txStatusCounters.forEach((status, counter) -> Gauge
+        .builder(FATE_TX.getName(), counter, AtomicLong::get).description(FATE_TX.getDescription())
+        .tags("state", status.name().toLowerCase(), "instanceType", type).register(registry));
+
+    synchronized (fateExecutors) {
+      fateExecutors.forEach(fe -> fe.getFateExecutorMetrics().registerMetrics(registry));
+    }
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
-        .createScheduledExecutorService(1, "fateMetricsPoller", false);
+        .createScheduledExecutorService(1, type + "FateMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
+    // Only update as part of the scheduler thread.
+    // We have to call update() in a new thread because this method to
+    // register metrics is called on start up in the Manager before it's finished
+    // initializing, so we can't scan the User fate store until after startup is done.
+    // If we called update() here in this method directly we would get stuck forever.
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {
       try {
         update();
       } catch (Exception ex) {
-        log.info("Failed to update fate metrics due to exception", ex);
+        log.info("Failed to update {}fate metrics due to exception", type, ex);
       }
-    }, refreshDelay, refreshDelay, TimeUnit.MILLISECONDS);
+    }, 0, refreshDelay, TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 

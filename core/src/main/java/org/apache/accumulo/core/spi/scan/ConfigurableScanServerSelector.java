@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.spi.scan.RendezvousHasher.Mode.SERVER;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -26,22 +26,23 @@ import java.lang.reflect.Type;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.util.Timer;
 
 import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
 import com.google.common.collect.Sets;
-import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 import com.google.gson.reflect.TypeToken;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -80,7 +81,27 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * specified, the set of scan servers that did not specify a group will be used. Grouping scan
  * servers supports at least two use cases. First groups can be used to dedicate resources for
  * certain scans. Second groups can be used to have different hardware/VM types for scans, for
- * example could have some scans use expensive high memory VMs and others use cheaper burstable VMs.
+ * example could have some scans use expensive high memory VMs and others use cheaper burstable
+ * VMs.</li>
+ * <li><b>timeToWaitForScanServers : </b> When there are no scans servers, this setting determines
+ * how long to wait for scan servers to become available before falling back to tablet servers.
+ * Falling back to tablet servers may cause tablets to be loaded that are not currently loaded. When
+ * this setting is given a wait time and there are no scan servers, it will wait for scan servers to
+ * be available. This setting avoids loading tablets on tablet servers when scans servers are
+ * temporarily unavailable which could be caused by normal cluster activity. You can specify the
+ * wait time using different units to precisely control the wait duration. The supported units are:
+ * <ul>
+ * <li>"d" for days</li>
+ * <li>"h" for hours</li>
+ * <li>"m" for minutes</li>
+ * <li>"s" for seconds</li>
+ * <li>"ms" for milliseconds</li>
+ * </ul>
+ * If duration is not specified this setting defaults to 100 years, which for all practical purposes
+ * will never fall back to tablet servers. Waiting for scan servers is done via
+ * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}.
+ * To immediately fall back to tablet servers when no scan servers are present set this to
+ * zero.</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
  * <ul>
@@ -114,6 +135,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  *       "maxBusyTimeout":"20m",
  *       "busyTimeoutMultiplier":8,
  *       "group":"lowcost",
+ *       "timeToWaitForScanServers": "120s",
  *       "attemptPlans":[
  *         {"servers":"1", "busyTimeout":"10s"},
  *         {"servers":"3", "busyTimeout":"30s","salt":"42"},
@@ -133,16 +155,18 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </p>
  *
  * <p>
- * For the profile activated by {@code scan_type=slow} it start off by choosing randomly from 1 scan
- * server based on a hash of the tablet with no salt and a busy timeout of 10s. The second attempt
- * will choose from 3 scan servers based on a hash of the tablet plus the salt {@literal 42}.
- * Without the salt, the single scan servers from the first attempt would always be included in the
- * set of 3. With the salt the single scan server from the first attempt may not be included. The
- * third attempt will choose a scan server from 9 using the salt {@literal 84} and a busy timeout of
- * 60s. The different salt means the set of servers that attempts 2 and 3 choose from may be
- * disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as attempt 3 and
- * will keep increasing the busy timeout by multiplying 8 until the maximum of 20 minutes is
- * reached. For this profile it will choose from scan servers in the group {@literal lowcost}.
+ * For the profile activated by {@code scan_type=slow} it starts off by choosing randomly from 1
+ * scan server based on a hash of the tablet with no salt and a busy timeout of 10s. The second
+ * attempt will choose from 3 scan servers based on a hash of the tablet plus the salt
+ * {@literal 42}. Without the salt, the single scan servers from the first attempt would always be
+ * included in the set of 3. With the salt the single scan server from the first attempt may not be
+ * included. The third attempt will choose a scan server from 9 using the salt {@literal 84} and a
+ * busy timeout of 60s. The different salt means the set of servers that attempts 2 and 3 choose
+ * from may be disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as
+ * attempt 3 and will keep increasing the busy timeout by multiplying 8 until the maximum of 20
+ * minutes is reached. For this profile it will choose from scan servers in the group
+ * {@literal lowcost}. This profile also will not fallback to tablet servers when there are
+ * currently no scan servers, it will wait for scan servers to become available.
  * </p>
  *
  * @since 2.1.0
@@ -155,8 +179,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
       + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
 
-  private Supplier<Map<String,List<String>>> orderedScanServersSupplier;
-
+  private Supplier<Collection<ScanServerInfo>> serverSupplier;
   private Map<String,Profile> profiles;
   private Profile defaultProfile;
 
@@ -213,20 +236,24 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedBusyTimeout;
     }
+
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
       justification = "Object deserialized by GSON")
-  private static class Profile {
+  protected static class Profile {
     public List<AttemptPlan> attemptPlans;
     List<String> scanTypeActivations;
     boolean isDefault = false;
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
-    String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    String group = Constants.DEFAULT_RESOURCE_GROUP_NAME;
+    String timeToWaitForScanServers = 100 * 365 + "d";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;
+
+    transient Duration parsedTimeToWaitForScanServers;
 
     int getNumServers(int attempt, int totalServers) {
       int index = Math.min(attempt, attemptPlans.size() - 1);
@@ -238,6 +265,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
         return;
       }
       parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
+      parsedTimeToWaitForScanServers =
+          Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers));
       parsed = true;
     }
 
@@ -257,6 +286,19 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     public String getSalt(int attempts) {
       int index = Math.min(attempts, attemptPlans.size() - 1);
       return attemptPlans.get(index).salt;
+    }
+
+    Duration getTimeToWaitForScanServers() {
+      parse();
+      return parsedTimeToWaitForScanServers;
+    }
+
+    ResourceGroupId getGroupId() {
+      return ResourceGroupId.of(group);
+    }
+
+    List<AttemptPlan> getAttemptPlans() {
+      return attemptPlans;
     }
   }
 
@@ -291,17 +333,37 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     }
   }
 
+  private RendezvousHasher rendezvous;
+  private Timer lastRendezvousServerCheck;
+
+  private synchronized RendezvousHasher getRendezvous() {
+    final int cacheSize = 64 * 1024 * 1024;
+
+    if (rendezvous == null) {
+      rendezvous = new RendezvousHasher(ScanServersSnapshot.from(serverSupplier.get()), cacheSize);
+      lastRendezvousServerCheck = Timer.startNew();
+      return rendezvous;
+    }
+
+    // do not check for changes in the set of servers too frequently
+    if (lastRendezvousServerCheck.hasElapsed(5, TimeUnit.SECONDS)) {
+      // check if the set of servers changed
+      var snapshot = ScanServersSnapshot.from(serverSupplier.get());
+      if (!snapshot.equals(rendezvous.getSnapshot())) {
+        // The set of servers changed, so create a new rendezvous hasher because it caches
+        // information derived from the snapshot.
+        rendezvous = new RendezvousHasher(snapshot, cacheSize);
+      }
+
+      lastRendezvousServerCheck.restart();
+    }
+
+    return rendezvous;
+  }
+
   @Override
-  public void init(ScanServerSelector.InitParameters params) {
-    // avoid constantly resorting the scan servers, just do it periodically in case they change
-    orderedScanServersSupplier = Suppliers.memoizeWithExpiration(() -> {
-      Collection<ScanServerInfo> scanServers = params.getScanServers().get();
-      Map<String,List<String>> groupedServers = new HashMap<>();
-      scanServers.forEach(sserver -> groupedServers
-          .computeIfAbsent(sserver.getGroup(), k -> new ArrayList<>()).add(sserver.getAddress()));
-      groupedServers.values().forEach(ssAddrs -> Collections.sort(ssAddrs));
-      return groupedServers;
-    }, 100, TimeUnit.MILLISECONDS);
+  public synchronized void init(ScanServerSelector.InitParameters params) {
+    serverSupplier = params.getScanServers();
 
     var opts = params.getOptions();
 
@@ -317,7 +379,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     String scanType = params.getHints().get("scan_type");
 
-    Profile profile = null;
+    final Profile profile;
 
     if (scanType != null) {
       profile = profiles.getOrDefault(scanType, defaultProfile);
@@ -326,11 +388,29 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     }
 
     // only get this once and use it for the entire method so that the method uses a consistent
-    // snapshot
-    List<String> orderedScanServers =
-        orderedScanServersSupplier.get().getOrDefault(profile.group, List.of());
+    // snapshot of the servers
+    var rhasher = getRendezvous();
 
-    if (orderedScanServers.isEmpty()) {
+    Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
+
+    if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()
+        && !scanServerWaitTime.isZero()) {
+      // Wait for scan servers in the configured group to be present.
+      rhasher = params.waitUntil(() -> {
+        var r2 = getRendezvous();
+        if (r2.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
+          return Optional.empty();
+        } else {
+          return Optional.of(r2);
+        }
+      }, scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
+      // at this point the list should be non empty unless there is a bug
+      Preconditions
+          .checkState(!rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty());
+    }
+
+    if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
+      // there are no scan servers so fall back to the tablet server
       return new ScanServerSelections() {
         @Override
         public String getScanServer(TabletId tabletId) {
@@ -351,27 +431,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Map<TabletId,String> serversToUse = new HashMap<>();
 
-    // get the max number of busy attempts, treat errors as busy attempts
-    int attempts = params.getTablets().stream()
-        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
+    int maxAttempts = selectServers(params, profile, rhasher, serversToUse);
 
-    int numServers = profile.getNumServers(attempts, orderedScanServers.size());
-
-    for (TabletId tablet : params.getTablets()) {
-
-      String serverToUse = null;
-
-      var hashCode = hashTablet(tablet, profile.getSalt(attempts));
-
-      int serverIndex = (Math.abs(hashCode.asInt()) + RANDOM.get().nextInt(numServers))
-          % orderedScanServers.size();
-
-      serverToUse = orderedScanServers.get(serverIndex);
-
-      serversToUse.put(tablet, serverToUse);
-    }
-
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
 
     return new ScanServerSelections() {
       @Override
@@ -391,27 +453,33 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     };
   }
 
-  private HashCode hashTablet(TabletId tablet, String salt) {
-    var hasher = Hashing.murmur3_128().newHasher();
+  int selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
+      RendezvousHasher rhasher, Map<TabletId,String> serversToUse) {
+    int attempts = params.getTablets().stream()
+        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
 
-    if (tablet.getEndRow() != null) {
-      hasher.putBytes(tablet.getEndRow().getBytes(), 0, tablet.getEndRow().getLength());
-    } else {
-      hasher.putByte((byte) 5);
+    int numServers = profile.getNumServers(attempts,
+        rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).size());
+    for (TabletId tablet : params.getTablets()) {
+      List<String> rendezvousServers = rhasher.rendezvous(SERVER, profile.getGroupId(), tablet,
+          profile.getSalt(attempts), numServers);
+
+      var tabletAttempts = params.getAttempts(tablet);
+      if (!tabletAttempts.isEmpty()) {
+        // remove servers that failed in previous attempts
+        var attemptServers =
+            tabletAttempts.stream().map(ScanServerAttempt::getServer).collect(Collectors.toSet());
+        var copy = rendezvousServers.stream().filter(server -> !attemptServers.contains(server))
+            .collect(Collectors.toList());
+        if (!copy.isEmpty()) {
+          // pick from the servers that did not previously fail
+          rendezvousServers = copy;
+        } // else all servers have failed, so just try any one of them again
+      }
+      // pick a random server from the set of rendezvous servers
+      String serverToUse = rendezvousServers.get(RANDOM.get().nextInt(rendezvousServers.size()));
+      serversToUse.put(tablet, serverToUse);
     }
-
-    if (tablet.getPrevEndRow() != null) {
-      hasher.putBytes(tablet.getPrevEndRow().getBytes(), 0, tablet.getPrevEndRow().getLength());
-    } else {
-      hasher.putByte((byte) 7);
-    }
-
-    hasher.putString(tablet.getTable().canonical(), UTF_8);
-
-    if (salt != null && !salt.isEmpty()) {
-      hasher.putString(salt, UTF_8);
-    }
-
-    return hasher.hash();
+    return attempts;
   }
 }

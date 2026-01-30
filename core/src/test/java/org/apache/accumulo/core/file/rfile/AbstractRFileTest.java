@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -36,13 +37,15 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.FencedReader;
@@ -53,6 +56,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
+import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
@@ -61,10 +65,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.io.Text;
 
 public abstract class AbstractRFileTest {
 
-  protected static final SecureRandom random = new SecureRandom();
   protected static final Collection<ByteSequence> EMPTY_COL_FAMS = List.of();
 
   protected AccumuloConfiguration conf = null;
@@ -94,12 +98,16 @@ public abstract class AbstractRFileTest {
     }
 
     public void openWriter(boolean startDLG, int blockSize) throws IOException {
+      openWriter(startDLG, blockSize, 1000);
+    }
+
+    public void openWriter(boolean startDLG, int blockSize, int indexBlockSize) throws IOException {
       baos = new ByteArrayOutputStream();
       dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
       CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
           accumuloConfiguration.getAllCryptoProperties());
 
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, cs);
+      BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", conf, cs);
 
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
@@ -109,7 +117,7 @@ public abstract class AbstractRFileTest {
         sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
       }
 
-      writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
+      writer = new RFile.Writer(_cbw, blockSize, indexBlockSize, samplerConfig, sampler);
 
       if (startDLG) {
         writer.startDefaultLocalityGroup();
@@ -156,7 +164,7 @@ public abstract class AbstractRFileTest {
 
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.TSERV_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+      cc.set(Property.GENERAL_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
       try {
         manager = BlockCacheManagerFactory.getInstance(cc);
       } catch (ReflectiveOperationException e) {
@@ -166,8 +174,8 @@ public abstract class AbstractRFileTest {
       cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
       cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
       manager.start(BlockCacheConfiguration.forTabletServer(cc));
-      LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
-      LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
+      BlockCache indexCache = manager.getBlockCache(CacheType.INDEX);
+      BlockCache dataCache = manager.getBlockCache(CacheType.DATA);
 
       CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
           accumuloConfiguration.getAllCryptoProperties());
@@ -204,10 +212,7 @@ public abstract class AbstractRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstRow().compareTo(lastKey.getRow()) > 0) {
-        throw new IllegalStateException(
-            "First key out of order " + reader.getFirstRow() + " " + lastKey);
-      }
+      assertTrue(reader.getFileRange().rowRange.contains(lastKey));
 
       indexIter.next();
 
@@ -219,18 +224,21 @@ public abstract class AbstractRFileTest {
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
-
       }
 
-      if (!reader.getLastRow().equals(lastKey.getRow())) {
+      if (!reader.getFileRange().rowRange.getEndKey()
+          .equals(lastKey.followingKey(PartialKey.ROW))) {
         throw new IllegalStateException(
-            "Last key out of order " + reader.getLastRow() + " " + lastKey);
+            "Last key out of order " + reader.getFileRange().rowRange + " " + lastKey);
       }
+    } else {
+      assertTrue(reader.getFileRange().empty);
     }
   }
 
   static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
+    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
+        ts);
   }
 
   static Value newValue(String val) {
@@ -260,5 +268,33 @@ public abstract class AbstractRFileTest {
 
     assertFalse(eki.hasNext());
     assertFalse(evi.hasNext());
+  }
+
+  protected void verifyEstimated(FileSKVIterator reader) throws IOException {
+    // Test estimated entries for 1 row
+    long estimated = reader.estimateOverlappingEntries(new KeyExtent(TableId.of("1"),
+        new Text(formatString("r_", 1)), new Text(formatString("r_", 0))));
+    // One row contains 256 but the estimate will be more with overlapping index entries
+    assertEquals(264, estimated);
+
+    // Test for 2 rows
+    estimated = reader.estimateOverlappingEntries(new KeyExtent(TableId.of("1"),
+        new Text(formatString("r_", 2)), new Text(formatString("r_", 0))));
+    // Two rows contains 512 but the estimate will be more with overlapping index entries
+    assertEquals(516, estimated);
+
+    // 3 rows
+    // Actual should be 768, estimate is 772
+    estimated = reader.estimateOverlappingEntries(
+        new KeyExtent(TableId.of("1"), null, new Text(formatString("r_", 0))));
+    assertEquals(772, estimated);
+
+    // Tests when full number of entries should return
+    estimated = reader.estimateOverlappingEntries(new KeyExtent(TableId.of("1"), null, null));
+    assertEquals(1024, estimated);
+
+    estimated = reader.estimateOverlappingEntries(
+        new KeyExtent(TableId.of("1"), new Text(formatString("r_", 4)), null));
+    assertEquals(1024, estimated);
   }
 }

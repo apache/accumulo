@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.log;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.singletonList;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_FINISH;
 import static org.apache.accumulo.tserver.logger.LogEvents.COMPACTION_START;
 import static org.apache.accumulo.tserver.logger.LogEvents.DEFINE_TABLET;
@@ -33,6 +34,7 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.channels.ClosedChannelException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -56,9 +58,10 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.FileDecrypter;
 import org.apache.accumulo.core.spi.crypto.FileEncrypter;
-import org.apache.accumulo.core.spi.crypto.NoCryptoService;
+import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -75,7 +78,6 @@ import org.apache.hadoop.hdfs.protocol.DatanodeInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 
 /**
@@ -89,7 +91,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   /**
    * Simplified encryption technique supported in V4.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public static final String LOG_FILE_HEADER_V4 = "--- Log File Header (v4) ---";
 
@@ -117,12 +119,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     }
   }
 
-  private final LinkedBlockingQueue<DfsLogger.LogWork> workQueue = new LinkedBlockingQueue<>();
+  private final LinkedBlockingQueue<LogWork> workQueue = new LinkedBlockingQueue<>();
 
   private final Object closeLock = new Object();
 
-  private static final DfsLogger.LogWork CLOSED_MARKER =
-      new DfsLogger.LogWork(null, Durability.FLUSH);
+  private static final LogWork CLOSED_MARKER = new LogWork(null, Durability.FLUSH);
 
   private static final LogFileValue EMPTY = new LogFileValue();
 
@@ -131,9 +132,19 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   private class LogSyncingTask implements Runnable {
     private int expectedReplication = 0;
 
+    private final AtomicLong syncCounter;
+    private final AtomicLong flushCounter;
+    private final Duration slowFlushDuration;
+
+    LogSyncingTask(AtomicLong syncCounter, AtomicLong flushCounter, Duration slowFlushDuration) {
+      this.syncCounter = syncCounter;
+      this.flushCounter = flushCounter;
+      this.slowFlushDuration = slowFlushDuration;
+    }
+
     @Override
     public void run() {
-      ArrayList<DfsLogger.LogWork> work = new ArrayList<>();
+      ArrayList<LogWork> work = new ArrayList<>();
       boolean sawClosedMarker = false;
       while (!sawClosedMarker) {
         work.clear();
@@ -164,7 +175,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
-        long start = System.currentTimeMillis();
+        Timer timer = Timer.startNew();
         try {
           if (shouldHSync.isPresent()) {
             if (shouldHSync.orElseThrow()) {
@@ -178,11 +189,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         } catch (IOException | RuntimeException ex) {
           fail(work, ex, "synching");
         }
-        long duration = System.currentTimeMillis() - start;
-        if (duration > slowFlushMillis) {
-          String msg = new StringBuilder(128).append("Slow sync cost: ").append(duration)
-              .append(" ms, current pipeline: ").append(Arrays.toString(getPipeLine())).toString();
-          log.info(msg);
+        if (timer.hasElapsed(slowFlushDuration)) {
+          log.info("Slow sync cost: {} ms, current pipeline: {}", timer.elapsed(MILLISECONDS),
+              Arrays.toString(getPipeLine()));
           if (expectedReplication > 0) {
             int current = expectedReplication;
             try {
@@ -207,7 +216,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
           }
         }
 
-        for (DfsLogger.LogWork logWork : work) {
+        for (LogWork logWork : work) {
           if (logWork == CLOSED_MARKER) {
             sawClosedMarker = true;
           } else {
@@ -217,9 +226,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       }
     }
 
-    private void fail(ArrayList<DfsLogger.LogWork> work, Exception ex, String why) {
+    private void fail(ArrayList<LogWork> work, Exception ex, String why) {
       log.warn("Exception {} {}", why, ex, ex);
-      for (DfsLogger.LogWork logWork : work) {
+      for (LogWork logWork : work) {
         logWork.exception = ex;
       }
     }
@@ -290,21 +299,34 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     return logEntry.hashCode();
   }
 
-  private final ServerContext context;
   private FSDataOutputStream logFile;
   private DataOutputStream encryptingLogFile = null;
-  private LogEntry logEntry;
+  private final LogEntry logEntry;
   private Thread syncThread;
 
-  private AtomicLong syncCounter;
-  private AtomicLong flushCounter;
-  private final long slowFlushMillis;
   private long writes = 0;
 
-  public DfsLogger(ServerContext context, AtomicLong syncCounter, AtomicLong flushCounter) {
-    this(context, null);
-    this.syncCounter = syncCounter;
-    this.flushCounter = flushCounter;
+  /**
+   * Create a new DfsLogger with the provided characteristics.
+   */
+  public static DfsLogger createNew(ServerContext context, AtomicLong syncCounter,
+      AtomicLong flushCounter, String address) throws IOException {
+
+    String filename = UUID.randomUUID().toString();
+    String addressForFilename = address.replace(':', '+');
+
+    var chooserEnv =
+        new VolumeChooserEnvironmentImpl(VolumeChooserEnvironment.Scope.LOGGER, context);
+    String logPath =
+        context.getVolumeManager().choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
+            + Constants.WAL_DIR + Path.SEPARATOR + addressForFilename + Path.SEPARATOR + filename;
+
+    LogEntry log = LogEntry.fromPath(logPath);
+    DfsLogger dfsLogger = new DfsLogger(log);
+    long slowFlushMillis =
+        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+    dfsLogger.open(context, logPath, filename, address, syncCounter, flushCounter, slowFlushMillis);
+    return dfsLogger;
   }
 
   /**
@@ -312,10 +334,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param logEntry the "log" entry in +r/!0
    */
-  public DfsLogger(ServerContext context, LogEntry logEntry) {
-    this.context = context;
-    this.slowFlushMillis =
-        context.getConfiguration().getTimeInMillis(Property.TSERV_SLOW_FLUSH_MILLIS);
+  public static DfsLogger fromLogEntry(LogEntry logEntry) {
+    return new DfsLogger(logEntry);
+  }
+
+  private DfsLogger(LogEntry logEntry) {
     this.logEntry = logEntry;
   }
 
@@ -333,11 +356,6 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
 
-    if (magic4.length != magic3.length) {
-      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
-          + " != " + magic3.length);
-    }
-
     byte[] magicBuffer = new byte[magic4.length];
     try {
       input.readFully(magicBuffer);
@@ -345,8 +363,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
         FileDecrypter decrypter =
             CryptoUtils.getFileDecrypter(cryptoService, Scope.WAL, null, input);
         log.debug("Using {} for decrypting WAL", cryptoService.getClass().getSimpleName());
-        decryptingInput = cryptoService instanceof NoCryptoService ? input
-            : new DataInputStream(decrypter.decryptStream(input));
+        var stream = decrypter.decryptStream(input);
+        decryptingInput = stream instanceof DataInputStream ? (DataInputStream) stream
+            : new DataInputStream(stream);
       } else if (Arrays.equals(magicBuffer, magic3)) {
         // Read logs files from Accumulo 1.9 and throw an error if they are encrypted
         String cryptoModuleClassname = input.readUTF();
@@ -378,21 +397,16 @@ public final class DfsLogger implements Comparable<DfsLogger> {
    *
    * @param address The address of the host using this WAL
    */
-  public synchronized void open(String address) throws IOException {
-    String filename = UUID.randomUUID().toString();
+  private synchronized void open(ServerContext context, String logPath, String filename,
+      String address, AtomicLong syncCounter, AtomicLong flushCounter, long slowFlushMillis)
+      throws IOException {
     log.debug("Address is {}", address);
-    String logger = Joiner.on("+").join(address.split(":"));
 
     log.debug("DfsLogger.open() begin");
+
     VolumeManager fs = context.getVolumeManager();
 
-    var chooserEnv = new VolumeChooserEnvironmentImpl(
-        org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope.LOGGER, context);
-    String logPath = fs.choose(chooserEnv, context.getBaseUris()) + Path.SEPARATOR
-        + Constants.WAL_DIR + Path.SEPARATOR + logger + Path.SEPARATOR + filename;
-    this.logEntry = LogEntry.fromPath(logPath);
-
-    LoggerOperation op = null;
+    LoggerOperation op;
     var serverConf = context.getConfiguration();
     try {
       Path logfilePath = new Path(logPath);
@@ -433,11 +447,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       byte[] cryptoParams = encrypter.getDecryptionParameters();
       CryptoUtils.writeParams(cryptoParams, logFile);
 
-      /**
-       * Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS. The
-       * {@link #write(LogFileKey, LogFileValue)} method will flush crypto data or do nothing when
-       * crypto is not enabled.
-       **/
+      /*
+       * Always wrap the WAL in a NoFlushOutputStream to prevent extra flushing to HDFS. The method
+       * write(LogFileKey, LogFileValue) will flush crypto data or do nothing when crypto is not
+       * enabled.
+       */
       OutputStream encryptedStream = encrypter.encryptStream(new NoFlushOutputStream(logFile));
       if (encryptedStream instanceof NoFlushOutputStream) {
         encryptingLogFile = (NoFlushOutputStream) encryptedStream;
@@ -446,9 +460,9 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       }
 
       LogFileKey key = new LogFileKey();
-      key.event = OPEN;
-      key.tserverSession = filename;
-      key.filename = filename;
+      key.setEvent(OPEN);
+      key.setTserverSession(filename);
+      key.setFilename(filename);
       op = logKeyData(key, Durability.SYNC);
     } catch (Exception ex) {
       if (logFile != null) {
@@ -459,7 +473,8 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = Threads.createThread("Accumulo WALog thread " + this, new LogSyncingTask());
+    syncThread = Threads.createCriticalThread("Accumulo WALog thread " + this,
+        new LogSyncingTask(syncCounter, flushCounter, Duration.ofMillis(slowFlushMillis)));
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);
@@ -534,10 +549,10 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   public LoggerOperation defineTablet(CommitSession cs) throws IOException {
     // write this log to the METADATA table
     final LogFileKey key = new LogFileKey();
-    key.event = DEFINE_TABLET;
-    key.seq = cs.getWALogSeq();
-    key.tabletId = cs.getLogId();
-    key.tablet = cs.getExtent();
+    key.setEvent(DEFINE_TABLET);
+    key.setSeq(cs.getWALogSeq());
+    key.setTabletId(cs.getLogId());
+    key.setTablet(cs.getExtent());
     return logKeyData(key, Durability.LOG);
   }
 
@@ -554,7 +569,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   private LoggerOperation logFileData(List<Pair<LogFileKey,LogFileValue>> keys,
       Durability durability) throws IOException {
-    DfsLogger.LogWork work = new DfsLogger.LogWork(new CountDownLatch(1), durability);
+    LogWork work = new LogWork(new CountDownLatch(1), durability);
     try {
       for (Pair<LogFileKey,LogFileValue> pair : keys) {
         write(pair.getFirst(), pair.getSecond());
@@ -589,11 +604,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
     List<Pair<LogFileKey,LogFileValue>> data = new ArrayList<>();
     for (TabletMutations tabletMutations : mutations) {
       LogFileKey key = new LogFileKey();
-      key.event = MANY_MUTATIONS;
-      key.seq = tabletMutations.getSeq();
-      key.tabletId = tabletMutations.getTid();
+      key.setEvent(MANY_MUTATIONS);
+      key.setSeq(tabletMutations.getSeq());
+      key.setTabletId(tabletMutations.getTid());
       LogFileValue value = new LogFileValue();
-      value.mutations = tabletMutations.getMutations();
+      value.setMutations(tabletMutations.getMutations());
       data.add(new Pair<>(key, value));
       durability = maxDurability(tabletMutations.getDurability(), durability);
     }
@@ -602,11 +617,11 @@ public final class DfsLogger implements Comparable<DfsLogger> {
 
   public LoggerOperation log(CommitSession cs, Mutation m, Durability d) throws IOException {
     LogFileKey key = new LogFileKey();
-    key.event = MUTATION;
-    key.seq = cs.getWALogSeq();
-    key.tabletId = cs.getLogId();
+    key.setEvent(MUTATION);
+    key.setSeq(cs.getWALogSeq());
+    key.setTabletId(cs.getLogId());
     LogFileValue value = new LogFileValue();
-    value.mutations = singletonList(m);
+    value.setMutations(singletonList(m));
     return logFileData(singletonList(new Pair<>(key, value)), d);
   }
 
@@ -624,19 +639,19 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   public LoggerOperation minorCompactionFinished(long seq, int tid, Durability durability)
       throws IOException {
     LogFileKey key = new LogFileKey();
-    key.event = COMPACTION_FINISH;
-    key.seq = seq;
-    key.tabletId = tid;
+    key.setEvent(COMPACTION_FINISH);
+    key.setSeq(seq);
+    key.setTabletId(tid);
     return logKeyData(key, durability);
   }
 
   public LoggerOperation minorCompactionStarted(long seq, int tid, String fqfn,
       Durability durability) throws IOException {
     LogFileKey key = new LogFileKey();
-    key.event = COMPACTION_START;
-    key.seq = seq;
-    key.tabletId = tid;
-    key.filename = fqfn;
+    key.setEvent(COMPACTION_START);
+    key.setSeq(seq);
+    key.setTabletId(tid);
+    key.setFilename(fqfn);
     return logKeyData(key, durability);
   }
 

@@ -58,6 +58,9 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
       new TabletManagementClientServiceThriftClient("tablet");
 
+  public static final ServerProcessServiceThriftClient SERVER_PROCESS =
+      new ServerProcessServiceThriftClient("process");
+
   /**
    * execute method with supplied client returning object of type R
    *
@@ -80,7 +83,7 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
   private final String serviceName;
   private final TServiceClientFactory<C> clientFactory;
 
-  public ThriftClientTypes(String serviceName, TServiceClientFactory<C> factory) {
+  protected ThriftClientTypes(String serviceName, TServiceClientFactory<C> factory) {
     this.serviceName = serviceName;
     this.clientFactory = factory;
   }
@@ -122,4 +125,8 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
     throw new UnsupportedOperationException("This method has not been implemented");
   }
 
+  @Override
+  public String toString() {
+    return serviceName;
+  }
 }

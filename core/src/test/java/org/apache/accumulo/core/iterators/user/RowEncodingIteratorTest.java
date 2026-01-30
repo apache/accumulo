@@ -38,25 +38,13 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class RowEncodingIteratorTest {
-
-  private static final class DummyIteratorEnv implements IteratorEnvironment {
-    @Override
-    public IteratorUtil.IteratorScope getIteratorScope() {
-      return IteratorUtil.IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return false;
-    }
-  }
 
   private static final class RowEncodingIteratorImpl extends RowEncodingIterator {
 
@@ -139,7 +127,8 @@ public class RowEncodingIteratorTest {
     RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();
     Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "3K");
-    iter.init(src, bigBufferOpts, new DummyIteratorEnv());
+    iter.init(src, bigBufferOpts,
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build());
     iter.seek(range, new ArrayList<>(), false);
 
     assertTrue(iter.hasTop());
@@ -173,7 +162,8 @@ public class RowEncodingIteratorTest {
     RowEncodingIteratorImpl iter = new RowEncodingIteratorImpl();
     Map<String,String> bigBufferOpts = new HashMap<>();
     bigBufferOpts.put(RowEncodingIterator.MAX_BUFFER_SIZE_OPT, "1K");
-    iter.init(src, bigBufferOpts, new DummyIteratorEnv());
+    iter.init(src, bigBufferOpts,
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build());
     assertThrows(IllegalArgumentException.class, () -> iter.seek(range, new ArrayList<>(), false));
     // IllegalArgumentException should be thrown as we can't fit the whole row into its buffer
   }

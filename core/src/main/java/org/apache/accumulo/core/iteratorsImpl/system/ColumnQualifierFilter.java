@@ -32,8 +32,8 @@ import org.apache.accumulo.core.iterators.ServerFilter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 public class ColumnQualifierFilter extends ServerFilter {
-  private HashSet<ByteSequence> columnFamilies;
-  private HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers;
+  private final HashSet<ByteSequence> columnFamilies;
+  private final HashMap<ByteSequence,HashSet<ByteSequence>> columnsQualifiers;
 
   private ColumnQualifierFilter(SortedKeyValueIterator<Key,Value> iterator, Set<Column> columns) {
     super(iterator);
@@ -41,13 +41,13 @@ public class ColumnQualifierFilter extends ServerFilter {
     this.columnsQualifiers = new HashMap<>();
 
     columns.forEach(col -> {
-      if (col.columnQualifier != null) {
+      if (col.getColumnQualifier() != null) {
         this.columnsQualifiers
-            .computeIfAbsent(new ArrayByteSequence(col.columnQualifier), k -> new HashSet<>())
-            .add(new ArrayByteSequence(col.columnFamily));
+            .computeIfAbsent(new ArrayByteSequence(col.getColumnQualifier()), k -> new HashSet<>())
+            .add(new ArrayByteSequence(col.getColumnFamily()));
       } else {
         // this whole column family should pass
-        columnFamilies.add(new ArrayByteSequence(col.columnFamily));
+        columnFamilies.add(new ArrayByteSequence(col.getColumnFamily()));
       }
     });
   }

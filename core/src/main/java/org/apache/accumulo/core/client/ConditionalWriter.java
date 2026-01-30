@@ -33,8 +33,8 @@ public interface ConditionalWriter extends AutoCloseable {
   class Result {
 
     private Status status;
-    private ConditionalMutation mutation;
-    private String server;
+    private final ConditionalMutation mutation;
+    private final String server;
     private Exception exception;
 
     public Result(Status s, ConditionalMutation m, String server) {
@@ -62,8 +62,7 @@ public interface ConditionalWriter extends AutoCloseable {
         if (exception instanceof AccumuloException) {
           throw new AccumuloException(exception);
         }
-        if (exception instanceof AccumuloSecurityException) {
-          AccumuloSecurityException ase = (AccumuloSecurityException) exception;
+        if (exception instanceof AccumuloSecurityException ase) {
           throw new AccumuloSecurityException(ase.getUser(),
               SecurityErrorCode.valueOf(ase.getSecurityErrorCode().name()), ase.getTableInfo(),
               ase);
@@ -107,7 +106,7 @@ public interface ConditionalWriter extends AutoCloseable {
      */
     VIOLATED,
     /**
-     * error occurred after mutation was sent to server, its unknown if the mutation was written.
+     * Error occurred after mutation was sent to server, its unknown if the mutation was written.
      * Although the status of the mutation is unknown, Accumulo guarantees the mutation will not be
      * written at a later point in time.
      */
