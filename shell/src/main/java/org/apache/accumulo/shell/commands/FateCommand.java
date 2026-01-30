@@ -170,7 +170,8 @@ public class FateCommand extends Command {
     } else if (cl.hasOption(delete.getOpt())) {
       String[] txids = cl.getOptionValues(delete.getOpt());
       validateArgs(txids);
-      failedCommand = deleteTx(shellState.getWriter(), admin, zs, zk, managerLockPath, txids);
+      failedCommand =
+          deleteTx(shellState.getWriter(), admin, zs, zk, managerLockPath, tableLocksPath, txids);
     } else if (cl.hasOption(list.getOpt())) {
       printTx(shellState, admin, zs, zk, tableLocksPath, cl.getOptionValues(list.getOpt()), cl);
     } else if (cl.hasOption(print.getOpt())) {
@@ -237,11 +238,11 @@ public class FateCommand extends Command {
   }
 
   protected boolean deleteTx(PrintWriter out, AdminUtil<FateCommand> admin,
-      ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath, String[] args)
-      throws InterruptedException, KeeperException {
+      ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath,
+      ServiceLockPath zTableLocksPath, String[] args) throws InterruptedException, KeeperException {
     for (int i = 1; i < args.length; i++) {
       if (admin.prepDelete(zs, zk, zLockManagerPath, args[i])) {
-        admin.deleteLocks(zk, zLockManagerPath, args[i]);
+        admin.deleteLocks(zk, zTableLocksPath, args[i]);
       } else {
         out.printf("Could not delete transaction: %s%n", args[i]);
         return false;
