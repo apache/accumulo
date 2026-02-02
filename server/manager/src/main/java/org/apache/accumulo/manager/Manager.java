@@ -928,9 +928,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
     try {
       updateThriftServer(() -> {
-        return TServerUtils.createThriftServer(context, getBindAddress(),
-            Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
-            Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
+        return TServerUtils.createThriftServer(context, getBindAddress(), processor, "Manager",
+            Property.MANAGER_MINTHREADS, Property.MANAGER_MINTHREADS_TIMEOUT,
+            Property.MANAGER_THREADCHECK);
       }, false);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);

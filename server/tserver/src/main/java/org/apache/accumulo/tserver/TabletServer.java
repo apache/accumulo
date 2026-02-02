@@ -409,9 +409,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private void startServer(String address, TProcessor processor) throws UnknownHostException {
     updateThriftServer(() -> {
-      return TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT,
-          processor, this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH,
-          Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+      return TServerUtils.createThriftServer(getContext(), address, processor,
+          this.getClass().getSimpleName(), Property.TSERV_MINTHREADS,
+          Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
     }, true);
   }
 

@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.server.conf.store.impl;
 
-import static org.apache.accumulo.core.conf.Property.GC_PORT;
-import static org.apache.accumulo.core.conf.Property.MANAGER_CLIENTPORT;
-import static org.apache.accumulo.core.conf.Property.TSERV_CLIENTPORT;
+import static org.apache.accumulo.core.conf.Property.RPC_BIND_PORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.apache.accumulo.core.conf.Property.TSERV_SCAN_MAX_OPENFILES;
 import static org.easymock.EasyMock.anyObject;
@@ -391,11 +389,9 @@ public class ZooPropLoaderTest {
   public void captureExampleTest() throws Exception {
 
     Map<String,String> props = new HashMap<>();
-    props.put(TSERV_CLIENTPORT.getKey(), "1234");
+    props.put(RPC_BIND_PORT.getKey(), "20000-20005");
     props.put(TSERV_NATIVEMAP_ENABLED.getKey(), "false");
     props.put(TSERV_SCAN_MAX_OPENFILES.getKey(), "2345");
-    props.put(MANAGER_CLIENTPORT.getKey(), "3456");
-    props.put(GC_PORT.getKey(), "4567");
     VersionedProperties vProps = new VersionedProperties(8, Instant.now(), props);
 
     Capture<String> path = newCapture();

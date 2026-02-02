@@ -110,11 +110,23 @@ public class PropertyTest {
     HashSet<Integer> usedPorts = new HashSet<>();
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
-        int port = Integer.parseInt(prop.getDefaultValue());
-        assertTrue(Property.isValidProperty(prop.getKey(), Integer.toString(port)));
-        assertFalse(usedPorts.contains(port), "Port already in use: " + port);
-        usedPorts.add(port);
-        assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+        String defaultValue = prop.getDefaultValue();
+        try {
+          int port = Integer.parseInt(defaultValue);
+          assertTrue(Property.isValidProperty(prop.getKey(), Integer.toString(port)));
+          assertFalse(usedPorts.contains(port), "Port already in use: " + port);
+          usedPorts.add(port);
+          assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+        } catch (NumberFormatException e) {
+          int[] ports = PropertyType.PortRange.parse(defaultValue).toArray();
+          assertTrue(ports.length > 0, "Port range must contain at least one port");
+          for (int port : ports) {
+            assertTrue(PropertyType.PortRange.VALID_RANGE.contains(port),
+                "Port out of range of valid ports: " + port);
+            assertFalse(usedPorts.contains(port), "Port already in use: " + port);
+            usedPorts.add(port);
+          }
+        }
       }
     }
   }

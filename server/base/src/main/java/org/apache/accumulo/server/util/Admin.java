@@ -785,19 +785,25 @@ public class Admin implements KeywordExecutable {
     final ZooCache zc = context.getZooCache();
     Set<ServerId> runningServers;
 
+    int[] configuredPorts = context.getConfiguration().getPort(Property.RPC_BIND_PORT);
+    int fallbackPort = configuredPorts.length == 0 ? 0 : configuredPorts[0];
+
     for (String server : servers) {
       runningServers = context.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
       if (runningServers.size() == 1 && !force) {
         log.info("Only 1 tablet server running. Not attempting shutdown of {}", server);
         return;
       }
-      for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
-        HostAndPort address = AddressUtil.parseAddress(server, port);
-        final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
-        log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
-      }
+
+      int port = runningServers.stream()
+          .filter(si -> server.equals(si.toHostPortString()) || server.equals(si.getHost()))
+          .mapToInt(ServerId::getPort).findFirst().orElse(fallbackPort);
+
+      HostAndPort address = AddressUtil.parseAddress(server, port);
+      final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
+      log.info("Stopping server {}", finalServer);
+      ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+          .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
     }
   }
 

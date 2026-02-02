@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static org.apache.accumulo.core.conf.Property.GC_PORT;
+import static org.apache.accumulo.core.conf.Property.RPC_BIND_PORT;
 import static org.apache.accumulo.core.conf.Property.TSERV_NATIVEMAP_ENABLED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -77,8 +77,8 @@ public class RuntimeFixedPropertiesTest {
     assertTrue(fixed.hasChanged(Map.of(TSERV_NATIVEMAP_ENABLED.getKey(), "true")));
 
     // prop added - changed
-    assertTrue(fixed
-        .hasChanged(Map.of(TSERV_NATIVEMAP_ENABLED.getKey(), "false", GC_PORT.getKey(), "1234")));
+    assertTrue(fixed.hasChanged(
+        Map.of(TSERV_NATIVEMAP_ENABLED.getKey(), "false", RPC_BIND_PORT.getKey(), "20000")));
 
     // same - no change
     assertFalse(fixed.hasChanged(storedProps));
