@@ -29,8 +29,16 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  getManager().then(function () {
-    refreshManagerTable();
+  getStatus().then(function () {
+    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    // If the manager is down, show only the first row, otherwise refresh old values
+    $('#manager tr td').hide();
+    if (managerStatus === 'ERROR') {
+      $('#manager tr td:first').show();
+    } else {
+      $('#manager tr td:not(:first)').show();
+      refreshManagerTable();
+    }
   });
 }
 
@@ -45,24 +53,13 @@ function refresh() {
  * Refreshes the manager table
  */
 function refreshManagerTable() {
-  var data = sessionStorage.manager === undefined ? [] : JSON.parse(sessionStorage.manager);
-
-  $('#manager tr td:first').hide();
-  $('#manager tr td').hide();
-
-  // If the manager is down, show the first row, otherwise refresh old values
-  if (data.length === 0 || data.manager === 'No Managers running') {
-    $('#manager tr td:first').show();
-  } else {
-    $('#manager tr td:not(:first)').show();
+  getManager().then(function () {
+    var data = JSON.parse(sessionStorage.manager);
     var table = $('#manager td.right');
 
-    table.eq(0).html(bigNumberForQuantity(data.tables));
-    table.eq(1).html(bigNumberForQuantity(data.totalTabletServers));
-    table.eq(2).html(bigNumberForQuantity(data.deadTabletServersCount));
-    table.eq(3).html(bigNumberForQuantity(data.tablets));
-    table.eq(4).html(bigNumberForQuantity(data.numentries));
-    table.eq(5).html(bigNumberForQuantity(data.lookups));
-    table.eq(6).html(timeDuration(data.uptime));
-  }
+    table.eq(0).html(data.host);
+    table.eq(1).html(data.resourceGroup);
+    table.eq(2).html(dateFormat(data.timestamp));
+    table.eq(3).html('<a href="' + contextPath + 'rest-v2/manager/metrics">Metrics</a>');
+  });
 }
