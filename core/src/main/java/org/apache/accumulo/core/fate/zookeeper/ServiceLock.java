@@ -723,6 +723,9 @@ public class ServiceLock implements Watcher {
   /**
    * This method will delete all server locks for a given path according the predicate conditions.
    *
+   * @param zk zookeeper instance
+   * @param zPath can be a path directly to a host or a general path like @{link
+   *        org.apache.accumulo.core.Constants.ZTSERVERS} or a resource group
    * @param hostPortPredicate conditional predicate for determining if the lock should be removed.
    * @param messageOutput function for setting where the output from the lockPath goes
    * @param dryRun allows lock format validation and the messageOutput to be sent without actually
