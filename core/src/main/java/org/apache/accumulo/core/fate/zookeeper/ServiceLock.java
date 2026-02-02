@@ -159,7 +159,11 @@ public class ServiceLock implements Watcher {
 
     LockWatcherWrapper lww = new LockWatcherWrapper(lw);
 
-    lock(lww, data);
+    try {
+      lock(lww, data);
+    } catch (IllegalStateException e) {
+      lww.failedToAcquireLock(e);
+    }
 
     if (lww.acquiredLock) {
       return true;
