@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -36,39 +38,39 @@ import java.util.TreeMap;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
+import org.apache.hadoop.fs.Path;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.beust.jcommander.JCommander;
 import com.google.common.collect.Sets;
 
-public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
-
-  @BeforeAll
-  public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
-  }
-
-  @AfterAll
-  public static void teardown() {
-    SharedMiniClusterBase.stopMiniCluster();
-  }
-
+public class AdminCheckIT extends ConfigurableMacBase {
   private static final PrintStream ORIGINAL_OUT = System.out;
 
   @AfterEach
@@ -194,6 +196,7 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
 
     String expRunAllRunOrder =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
+            + "Running dummy check SERVER_CONFIG\nDummy check SERVER_CONFIG completed with status OK\n"
             + "Running dummy check TABLE_LOCKS\nDummy check TABLE_LOCKS completed with status OK\n"
             + "Running dummy check ROOT_METADATA\nDummy check ROOT_METADATA completed with status OK\n"
             + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status OK\n"
@@ -206,11 +209,13 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
             + "Running dummy check USER_FILES\nDummy check USER_FILES completed with status OK\n";
     // The dashes at the beginning and end of the string marks the begging and end of the
     // printed table allowing us to ensure the table only includes what is expected
-    String expRunAllStatusInfo = "-SYSTEM_CONFIG|OKTABLE_LOCKS|OKROOT_METADATA|OKROOT_TABLE|OK"
-        + "METADATA_TABLE|OKSYSTEM_FILES|OKUSER_FILES|OK-";
-    String expRunSubStatusInfo = "-SYSTEM_CONFIG|FILTERED_OUTTABLE_LOCKS|FILTERED_OUT"
-        + "ROOT_METADATA|FILTERED_OUTROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUT"
-        + "SYSTEM_FILES|OKUSER_FILES|OK-";
+    String expRunAllStatusInfo =
+        "-SYSTEM_CONFIG|OKSERVER_CONFIG|OKTABLE_LOCKS|OKROOT_METADATA|OKROOT_TABLE|OK"
+            + "METADATA_TABLE|OKSYSTEM_FILES|OKUSER_FILES|OK-";
+    String expRunSubStatusInfo =
+        "-SYSTEM_CONFIG|FILTERED_OUTSERVER_CONFIG|FILTERED_OUTTABLE_LOCKS|FILTERED_OUT"
+            + "ROOT_METADATA|FILTERED_OUTROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUT"
+            + "SYSTEM_FILES|OKUSER_FILES|OK-";
 
     assertTrue(out1.contains(expRunAllRunOrder));
     assertTrue(out2.contains(expRunAllRunOrder));
@@ -239,10 +244,10 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
   public void testAdminCheckRunWithCheckFailures() {
     // tests running checks with some failing
 
-    boolean[] rootTableFails = new boolean[] {true, true, true, false, true, true, true};
-    boolean[] systemConfigFails = new boolean[] {false, true, true, true, true, true, true};
+    boolean[] rootTableFails = new boolean[] {true, true, true, true, false, true, true, true};
+    boolean[] systemConfigFails = new boolean[] {false, true, true, true, true, true, true, true};
     boolean[] userFilesAndMetadataTableFails =
-        new boolean[] {true, true, true, true, false, true, false};
+        new boolean[] {true, true, true, true, true, false, true, false};
 
     // run all checks with ROOT_TABLE failing: only SYSTEM_CONFIG and ROOT_METADATA should pass
     // the rest should be filtered out as skipped due to dependency failure
@@ -264,6 +269,7 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
 
     String expRunOrder1 =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status OK\n"
+            + "Running dummy check SERVER_CONFIG\nDummy check SERVER_CONFIG completed with status OK\n"
             + "Running dummy check TABLE_LOCKS\nDummy check TABLE_LOCKS completed with status OK\n"
             + "Running dummy check ROOT_METADATA\nDummy check ROOT_METADATA completed with status OK\n"
             + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status FAILED";
@@ -280,8 +286,8 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
     assertTrue(out4.contains(expRunOrder3And4));
 
     assertNoOtherChecksRan(out1, true, Admin.CheckCommand.Check.SYSTEM_CONFIG,
-        Admin.CheckCommand.Check.TABLE_LOCKS, Admin.CheckCommand.Check.ROOT_TABLE,
-        Admin.CheckCommand.Check.ROOT_METADATA);
+        Admin.CheckCommand.Check.SERVER_CONFIG, Admin.CheckCommand.Check.TABLE_LOCKS,
+        Admin.CheckCommand.Check.ROOT_TABLE, Admin.CheckCommand.Check.ROOT_METADATA);
     assertNoOtherChecksRan(out2, true, Admin.CheckCommand.Check.SYSTEM_CONFIG);
     assertNoOtherChecksRan(out3, true, Admin.CheckCommand.Check.SYSTEM_CONFIG,
         Admin.CheckCommand.Check.ROOT_TABLE, Admin.CheckCommand.Check.USER_FILES);
@@ -293,16 +299,17 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
     out3 = out3.replaceAll("\\s+", "");
     out4 = out4.replaceAll("\\s+", "");
 
-    String expStatusInfo1 = "-SYSTEM_CONFIG|OKTABLE_LOCKS|OKROOT_METADATA|OKROOT_TABLE|FAILED"
-        + "METADATA_TABLE|SKIPPED_DEPENDENCY_FAILEDSYSTEM_FILES|SKIPPED_DEPENDENCY_FAILED"
-        + "USER_FILES|SKIPPED_DEPENDENCY_FAILED-";
-    String expStatusInfo2 = "-SYSTEM_CONFIG|FAILEDTABLE_LOCKS|SKIPPED_DEPENDENCY_FAILED"
-        + "ROOT_METADATA|SKIPPED_DEPENDENCY_FAILEDROOT_TABLE|SKIPPED_DEPENDENCY_FAILED"
-        + "METADATA_TABLE|SKIPPED_DEPENDENCY_FAILEDSYSTEM_FILES|SKIPPED_DEPENDENCY_FAILED"
-        + "USER_FILES|SKIPPED_DEPENDENCY_FAILED-";
-    String expStatusInfo3And4 = "-SYSTEM_CONFIG|OKTABLE_LOCKS|FILTERED_OUT"
-        + "ROOT_METADATA|FILTERED_OUTROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUT"
-        + "SYSTEM_FILES|FILTERED_OUTUSER_FILES|FAILED";
+    String expStatusInfo1 = "-SYSTEM_CONFIG|OKSERVER_CONFIG|OKTABLE_LOCKS|OKROOT_METADATA|OK"
+        + "ROOT_TABLE|FAILEDMETADATA_TABLE|SKIPPED_DEPENDENCY_FAILED"
+        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILED-";
+    String expStatusInfo2 = "-SYSTEM_CONFIG|FAILEDSERVER_CONFIG|SKIPPED_DEPENDENCY_FAILED"
+        + "TABLE_LOCKS|SKIPPED_DEPENDENCY_FAILEDROOT_METADATA|SKIPPED_DEPENDENCY_FAILED"
+        + "ROOT_TABLE|SKIPPED_DEPENDENCY_FAILEDMETADATA_TABLE|SKIPPED_DEPENDENCY_FAILED"
+        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILED-";
+    String expStatusInfo3And4 =
+        "-SYSTEM_CONFIG|OKSERVER_CONFIG|FILTERED_OUTTABLE_LOCKS|FILTERED_OUT"
+            + "ROOT_METADATA|FILTERED_OUTROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUT"
+            + "SYSTEM_FILES|FILTERED_OUTUSER_FILES|FAILED";
 
     assertTrue(out1.contains(expStatusInfo1));
     assertTrue(out2.contains(expStatusInfo2));
@@ -316,12 +323,11 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
    */
 
   @Test
-  public void testPassingTableLocksCheck() throws Exception {
-    // Tests the TABLE_LOCKS check in the case where all checks pass
+  public void testTableLocksCheck() throws Exception {
     String table = getUniqueNames(1)[0];
     Admin.CheckCommand.Check tableLocksCheck = Admin.CheckCommand.Check.TABLE_LOCKS;
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       client.tableOperations().create(table);
 
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
@@ -336,21 +342,43 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
       slowCompaction.setIterators(List.of(is));
       client.tableOperations().compact(table, slowCompaction);
 
+      // test passing case
       var p = getCluster().exec(Admin.class, "check", "run", tableLocksCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
       assertTrue(out.contains("locks are valid"));
       assertTrue(out.contains("Check TABLE_LOCKS completed with status OK"));
       assertNoOtherChecksRan(out, false, tableLocksCheck);
+
+      // test a failing case
+      // write an invalid table lock
+      final var context = getCluster().getServerContext();
+      final var zrw = context.getZooSession().asReaderWriter();
+      final var path = new ServiceLockPaths(context.getZooCache()).createTableLocksPath();
+      zrw.putPersistentData(path.toString() + "/foo", new byte[0], ZooUtil.NodeExistsPolicy.FAIL);
+      p = getCluster().exec(Admin.class, "check", "run", tableLocksCheck.name());
+      assertEquals(5, p.getProcess().waitFor());
+      out = p.readStdOut();
+      assertTrue(
+          out.contains("Some table and namespace locks are INVALID (the table/namespace DNE)"));
+      assertTrue(out.contains("Check TABLE_LOCKS completed with status FAILED"));
+      assertNoOtherChecksRan(out, false, tableLocksCheck);
     }
   }
 
   @Test
-  public void testPassingMetadataTableCheck() throws Exception {
-    // Tests the METADATA_TABLE check in the case where all checks pass
+  public void testMetadataTableCheck() throws Exception {
     Admin.CheckCommand.Check metaTableCheck = Admin.CheckCommand.Check.METADATA_TABLE;
+    String table = getUniqueNames(1)[0];
 
-    // no extra setup needed, just check the metadata table
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+
+      ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+      client.tableOperations().flush(table, null, null, true);
+    }
+
+    // test passing case
     var p = getCluster().exec(Admin.class, "check", "run", metaTableCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
@@ -360,13 +388,31 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
     assertTrue(out.contains("Looking for invalid columns"));
     assertTrue(out.contains("Check METADATA_TABLE completed with status OK"));
     assertNoOtherChecksRan(out, false, metaTableCheck);
+
+    // test a failing case
+    // delete a required column for the metadata of the table we created
+    final var context = getCluster().getServerContext();
+    final String tableId = context.tableOperations().tableIdMap().get(table);
+    final String tablet = tableId + "<";
+    try (var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
+      var mut = new Mutation(tablet);
+      mut.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+          MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
+      writer.addMutation(mut);
+    }
+    p = getCluster().exec(Admin.class, "check", "run", metaTableCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    out = p.readStdOut();
+    assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
+    assertTrue(out.contains("Check METADATA_TABLE completed with status FAILED"));
+    assertNoOtherChecksRan(out, false, metaTableCheck);
   }
 
   @Test
-  public void testPassingRootTableCheck() throws Exception {
-    // Tests the ROOT_TABLE check in the case where all checks pass
+  public void testRootTableCheck() throws Exception {
     Admin.CheckCommand.Check rootTableCheck = Admin.CheckCommand.Check.ROOT_TABLE;
 
+    // test passing case
     // no extra setup needed, just check the root table
     var p = getCluster().exec(Admin.class, "check", "run", rootTableCheck.name());
     assertEquals(0, p.getProcess().waitFor());
@@ -377,13 +423,31 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
     assertTrue(out.contains("Looking for invalid columns"));
     assertTrue(out.contains("Check ROOT_TABLE completed with status OK"));
     assertNoOtherChecksRan(out, false, rootTableCheck);
+
+    // test a failing case
+    // delete a required column for the metadata of the metadata table
+    final var context = getCluster().getServerContext();
+    final String tableId = SystemTables.METADATA.tableId().canonical();
+    final String tablet = tableId + "<";
+    try (var writer = context.createBatchWriter(SystemTables.ROOT.tableName())) {
+      var mut = new Mutation(tablet);
+      mut.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+          MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
+      writer.addMutation(mut);
+    }
+    p = getCluster().exec(Admin.class, "check", "run", rootTableCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    out = p.readStdOut();
+    assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
+    assertTrue(out.contains("Check ROOT_TABLE completed with status FAILED"));
+    assertNoOtherChecksRan(out, false, rootTableCheck);
   }
 
   @Test
-  public void testPassingRootMetadataCheck() throws Exception {
-    // Tests the ROOT_TABLE check in the case where all checks pass
+  public void testRootMetadataCheck() throws Exception {
     Admin.CheckCommand.Check rootMetaCheck = Admin.CheckCommand.Check.ROOT_METADATA;
 
+    // test passing case
     // no extra setup needed, just check the root table metadata
     var p = getCluster().exec(Admin.class, "check", "run", rootMetaCheck.name());
     assertEquals(0, p.getProcess().waitFor());
@@ -393,27 +457,67 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
     assertTrue(out.contains("Looking for invalid columns"));
     assertTrue(out.contains("Check ROOT_METADATA completed with status OK"));
     assertNoOtherChecksRan(out, false, rootMetaCheck);
+
+    // test a failing case
+    // delete a required column for the metadata of the root tablet
+    final var context = getCluster().getServerContext();
+    final var zrw = context.getZooSession().asReaderWriter();
+    var json = new String(zrw.getData(RootTable.ZROOT_TABLET), UTF_8);
+    var rtm = new RootTabletMetadata(json);
+    var tablet = rtm.toKeyValues().firstKey().getRow();
+    var mut = new Mutation(tablet);
+    mut.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
+        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
+    rtm.update(mut);
+    zrw.putPersistentData(RootTable.ZROOT_TABLET, rtm.toJson().getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.OVERWRITE);
+
+    p = getCluster().exec(Admin.class, "check", "run", rootMetaCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    out = p.readStdOut();
+    assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
+    assertTrue(out.contains("Check ROOT_METADATA completed with status FAILED"));
+    assertNoOtherChecksRan(out, false, rootMetaCheck);
   }
 
   @Test
-  public void testPassingSystemFilesCheck() throws Exception {
-    // Tests the SYSTEM_FILES check in the case where it should pass
+  public void testSystemFilesCheck() throws Exception {
     Admin.CheckCommand.Check sysFilesCheck = Admin.CheckCommand.Check.SYSTEM_FILES;
 
+    // test passing case
     // no extra setup needed, just run the check
     var p = getCluster().exec(Admin.class, "check", "run", sysFilesCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
+    assertTrue(out.contains("Check SYSTEM_FILES completed with status OK"));
+    assertNoOtherChecksRan(out, false, sysFilesCheck);
+
+    // test a failing case
+    // read the root table to find where the metadata table rfile is located in HDFS then delete it
+    Path path;
+    ServerContext context = getCluster().getServerContext();
+    try (var scanner = context.createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY)) {
+      scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+      var pathJsonData = scanner.iterator().next().getKey().getColumnQualifier().toString();
+      path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
+      getCluster().getServerContext().getVolumeManager().delete(path);
+    }
+    p = getCluster().exec(Admin.class, "check", "run", sysFilesCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    out = p.readStdOut();
+    assertTrue(out.contains("File " + path + " is missing"));
+    assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
+    assertTrue(out.contains("Check SYSTEM_FILES completed with status FAILED"));
     assertNoOtherChecksRan(out, false, sysFilesCheck);
   }
 
   @Test
-  public void testPassingUserFilesCheck() throws Exception {
-    // Tests the USER_FILES check in the case where it should pass
+  public void testUserFilesCheck() throws Exception {
     Admin.CheckCommand.Check userFilesCheck = Admin.CheckCommand.Check.USER_FILES;
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      // test passing case
       // create a table, insert some data, and flush so there's a file to check
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
@@ -424,11 +528,123 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
       assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
+      assertTrue(out.contains("Check USER_FILES completed with status OK"));
+      assertNoOtherChecksRan(out, false, userFilesCheck);
+
+      // test a failing case
+      // read the metadata for the table to find where the rfile is located in HDFS then delete it
+      Path path;
+      try (var scanner =
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
+        scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
+        var pathJsonData = scanner.iterator().next().getKey().getColumnQualifier().toString();
+        path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
+        getCluster().getServerContext().getVolumeManager().delete(path);
+      }
+      p = getCluster().exec(Admin.class, "check", "run", userFilesCheck.name());
+      assertEquals(5, p.getProcess().waitFor());
+      out = p.readStdOut();
+      assertTrue(out.contains("File " + path + " is missing"));
+      assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
+      assertTrue(out.contains("Check USER_FILES completed with status FAILED"));
       assertNoOtherChecksRan(out, false, userFilesCheck);
     }
   }
 
-  // TODO 4892 need failing tests...
+  @Test
+  public void testSystemConfigCheck() throws Exception {
+    Admin.CheckCommand.Check sysConfCheck = Admin.CheckCommand.Check.SYSTEM_CONFIG;
+
+    // test passing case
+    var p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
+    assertEquals(0, p.getProcess().waitFor());
+    String out = p.readStdOut();
+    assertTrue(out.contains("Checking ZooKeeper locks for Accumulo server processes"));
+    assertTrue(out.contains("Checking ZooKeeper table nodes"));
+    assertTrue(out.contains("Checking that WAL metadata in ZooKeeper is valid"));
+    assertTrue(out.contains("Check SYSTEM_CONFIG completed with status OK"));
+    assertNoOtherChecksRan(out, false, sysConfCheck);
+
+    // test a failing case
+    // delete the ZK data for the metadata table
+    var context = getCluster().getServerContext();
+    var zrw = context.getZooSession().asReaderWriter();
+    zrw.recursiveDelete(Constants.ZTABLES + "/" + SystemTables.METADATA.tableId(),
+        ZooUtil.NodeMissingPolicy.FAIL);
+
+    p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    out = p.readStdOut();
+    assertTrue(out.contains("Failed to find table ("
+        + (Map.entry(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId())) + ")"));
+    assertTrue(out.contains("Check SYSTEM_CONFIG completed with status FAILED"));
+    assertNoOtherChecksRan(out, false, sysConfCheck);
+  }
+
+  @Test
+  public void testSystemConfigCheck2() throws Exception {
+    // test a failing case
+    // delete a WAL in HDFS that is referenced in ZK
+
+    Admin.CheckCommand.Check sysConfCheck = Admin.CheckCommand.Check.SYSTEM_CONFIG;
+    var context = getCluster().getServerContext();
+    var zrw = context.getZooSession().asReaderWriter();
+    var rootWalsDir = WalStateManager.ZWALS;
+
+    // Need to ensure some form of mutation happens to a table so at least one WAL exists for us
+    // to delete. This call creates some data in the metadata table
+    getCluster().getServerContext().tableOperations().create(getUniqueNames(1)[0]);
+
+    // need to find a TServer with a WAL, so we can delete the WAL from DFS
+    String fullWalPathZk = null;
+    TServerInstance tServerInstance = null;
+    var tserversIter = zrw.getChildren(rootWalsDir).stream().iterator();
+    outer: while (tserversIter.hasNext()) {
+      var tserverInstanceStr = tserversIter.next();
+      var walPaths = zrw.getChildren(rootWalsDir + "/" + tserverInstanceStr);
+      if (!walPaths.isEmpty()) {
+        var walPathsIter = walPaths.iterator();
+        while (walPathsIter.hasNext()) {
+          var walPath = walPathsIter.next();
+          if (zrw.getData(rootWalsDir + "/" + tserverInstanceStr + "/" + walPath) != null) {
+            fullWalPathZk = rootWalsDir + "/" + tserverInstanceStr + "/" + walPath;
+            tServerInstance = new TServerInstance(tserverInstanceStr);
+            break outer;
+          }
+        }
+      }
+    }
+    assertNotNull(fullWalPathZk, "Could not find a WAL in ZK");
+    var wal = WalStateManager.parse(zrw.getData(fullWalPathZk));
+
+    // delete from HDFS
+    context.getVolumeManager().delete(wal.getSecond());
+
+    var p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
+    assertEquals(5, p.getProcess().waitFor());
+    var out = p.readStdOut();
+    assertTrue(out.contains(
+        "WAL metadata for tserver " + tServerInstance + " references a WAL that does not exist"));
+    assertTrue(out.contains("Check SYSTEM_CONFIG completed with status FAILED"));
+    assertNoOtherChecksRan(out, false, sysConfCheck);
+  }
+
+  @Test
+  public void testServerConfigCheck() throws Exception {
+    Admin.CheckCommand.Check servConfCheck = Admin.CheckCommand.Check.SERVER_CONFIG;
+
+    // test passing case
+    var p = getCluster().exec(Admin.class, "check", "run", servConfCheck.name());
+    assertEquals(0, p.getProcess().waitFor());
+    String out = p.readStdOut();
+    assertTrue(out.contains("Checking server configuration"));
+    assertTrue(out.contains("Checking that all configured properties are valid"));
+    assertTrue(out.contains("Checking that all required config properties are present"));
+    assertTrue(out.contains("Check SERVER_CONFIG completed with status OK"));
+    assertNoOtherChecksRan(out, false, servConfCheck);
+
+    // no simple way to test for a failure case
+  }
 
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) {
     String output;
@@ -511,6 +727,17 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
     }
   }
 
+  static class DummyServerConfigCheckRunner extends DummyCheckRunner {
+    public DummyServerConfigCheckRunner(boolean passes) {
+      super(passes);
+    }
+
+    @Override
+    public Admin.CheckCommand.Check getCheck() {
+      return Admin.CheckCommand.Check.SERVER_CONFIG;
+    }
+  }
+
   static class DummyTableLocksCheckRunner extends DummyCheckRunner {
     public DummyTableLocksCheckRunner(boolean passes) {
       super(passes);
@@ -584,15 +811,17 @@ public class AdminCheckIT_SimpleSuite extends SharedMiniClusterBase {
       this.checkRunners = new TreeMap<>();
       this.checkRunners.put(Check.SYSTEM_CONFIG,
           () -> new DummySystemConfigCheckRunner(checksPass[0]));
-      this.checkRunners.put(Check.TABLE_LOCKS, () -> new DummyTableLocksCheckRunner(checksPass[1]));
+      this.checkRunners.put(Check.SERVER_CONFIG,
+          () -> new DummyServerConfigCheckRunner(checksPass[1]));
+      this.checkRunners.put(Check.TABLE_LOCKS, () -> new DummyTableLocksCheckRunner(checksPass[2]));
       this.checkRunners.put(Check.ROOT_METADATA,
-          () -> new DummyRootMetadataCheckRunner(checksPass[2]));
-      this.checkRunners.put(Check.ROOT_TABLE, () -> new DummyRootTableCheckRunner(checksPass[3]));
+          () -> new DummyRootMetadataCheckRunner(checksPass[3]));
+      this.checkRunners.put(Check.ROOT_TABLE, () -> new DummyRootTableCheckRunner(checksPass[4]));
       this.checkRunners.put(Check.METADATA_TABLE,
-          () -> new DummyMetadataTableCheckRunner(checksPass[4]));
+          () -> new DummyMetadataTableCheckRunner(checksPass[5]));
       this.checkRunners.put(Check.SYSTEM_FILES,
-          () -> new DummySystemFilesCheckRunner(checksPass[5]));
-      this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[6]));
+          () -> new DummySystemFilesCheckRunner(checksPass[6]));
+      this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[7]));
     }
 
     @Override

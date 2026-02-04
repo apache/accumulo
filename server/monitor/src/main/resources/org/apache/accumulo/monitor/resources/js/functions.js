@@ -26,6 +26,7 @@
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const REST_V2_PREFIX = contextPath + 'rest-v2';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -349,7 +350,7 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
  * stores it on a sessionStorage variable
  */
 function getManager() {
-  return getJSONForTable(contextPath + 'rest/manager', 'manager');
+  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
 }
 
 /**
@@ -471,8 +472,6 @@ function clearAllTableCells(tableId) {
 }
 
 // NEW REST CALLS
-
-const REST_V2_PREFIX = contextPath + 'rest-v2';
 
 /**
  * REST GET call for /problems,

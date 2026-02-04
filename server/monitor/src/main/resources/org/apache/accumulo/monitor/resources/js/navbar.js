@@ -64,59 +64,47 @@ function updateElementStatus(elementId, status) {
  * @param {JSON} statusData object containing the status info for the servers
  */
 function updateServerNotifications(statusData) {
-  getManager().then(function () {
+  // setting manager status notification
+  if (statusData.managerStatus === STATUS.ERROR) {
+    updateElementStatus('managerStatusNotification', STATUS.ERROR);
+  } else if (statusData.managerStatus === STATUS.WARN) {
+    updateElementStatus('managerStatusNotification', STATUS.WARN);
+  } else if (statusData.managerStatus === STATUS.OK) {
+    updateElementStatus('managerStatusNotification', STATUS.OK);
+  } else {
+    console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
+  }
 
-    // gather information about the manager
-    const managerData = JSON.parse(sessionStorage.manager);
-    const managerState = managerData.managerState;
-    const managerGoalState = managerData.managerGoalState;
+  // setting tserver status notification
+  if (statusData.tServerStatus === STATUS.OK) {
+    updateElementStatus('serverStatusNotification', STATUS.OK);
+  } else if (statusData.tServerStatus === STATUS.WARN) {
+    updateElementStatus('serverStatusNotification', STATUS.WARN);
+  } else {
+    updateElementStatus('serverStatusNotification', STATUS.ERROR);
+  }
 
-    const isSafeMode = managerState === 'SAFE_MODE' || managerGoalState === 'SAFE_MODE';
-    const isCleanStop = managerState === 'CLEAN_STOP' || managerGoalState === 'CLEAN_STOP';
+  // setting gc status notification
+  if (statusData.gcStatus === STATUS.OK) {
+    updateElementStatus('gcStatusNotification', STATUS.OK);
+  } else {
+    updateElementStatus('gcStatusNotification', STATUS.ERROR);
+  }
 
-    // setting manager status notification
-    if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusNotification', STATUS.WARN);
-    } else if (statusData.managerStatus === STATUS.OK) {
-      updateElementStatus('managerStatusNotification', STATUS.OK);
-    } else {
-      console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
-    }
-
-    // setting tserver status notification
-    if (statusData.tServerStatus === STATUS.OK) {
-      updateElementStatus('serverStatusNotification', STATUS.OK);
-    } else if (statusData.tServerStatus === STATUS.WARN) {
-      updateElementStatus('serverStatusNotification', STATUS.WARN);
-    } else {
-      updateElementStatus('serverStatusNotification', STATUS.ERROR);
-    }
-
-    // setting gc status notification
-    if (statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('gcStatusNotification', STATUS.OK);
-    } else {
-      updateElementStatus('gcStatusNotification', STATUS.ERROR);
-    }
-
-    // Setting overall servers status notification
-    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
-      statusData.tServerStatus === STATUS.OK &&
-      statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('statusNotification', STATUS.OK);
-    } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
-      statusData.tServerStatus === STATUS.ERROR ||
-      statusData.gcStatus === STATUS.ERROR) {
-      updateElementStatus('statusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
-      statusData.tServerStatus === STATUS.WARN ||
-      statusData.gcStatus === STATUS.WARN) {
-      updateElementStatus('statusNotification', STATUS.WARN);
-    }
-
-  });
+  // Setting overall servers status notification
+  if (statusData.managerStatus === STATUS.OK &&
+    statusData.tServerStatus === STATUS.OK &&
+    statusData.gcStatus === STATUS.OK) {
+    updateElementStatus('statusNotification', STATUS.OK);
+  } else if (statusData.managerStatus === STATUS.ERROR ||
+    statusData.tServerStatus === STATUS.ERROR ||
+    statusData.gcStatus === STATUS.ERROR) {
+    updateElementStatus('statusNotification', STATUS.ERROR);
+  } else if (statusData.managerStatus === STATUS.WARN ||
+    statusData.tServerStatus === STATUS.WARN ||
+    statusData.gcStatus === STATUS.WARN) {
+    updateElementStatus('statusNotification', STATUS.WARN);
+  }
 }
 
 /**
@@ -140,7 +128,6 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  updateSystemAlerts();
 }
 
 /**
