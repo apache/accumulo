@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.util.EnumSet;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -91,29 +90,13 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
-    int priority = -1;
-    String classname = null;
-    Map<String,String> settings = new HashMap<>();
-
-    String root =
-        String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
-    String opt = root + ".opt.";
-    for (Entry<String,String> property : this.getProperties(namespace)) {
-      if (property.getKey().equals(root)) {
-        String[] parts = property.getValue().split(",");
-        if (parts.length != 2) {
-          throw new AccumuloException("Bad value for iterator setting: " + property.getValue());
-        }
-        priority = Integer.parseInt(parts[0]);
-        classname = parts[1];
-      } else if (property.getKey().startsWith(opt)) {
-        settings.put(property.getKey().substring(opt.length()), property.getValue());
+    Map<String,String> properties = Map.copyOf(this.getConfiguration(namespace));
+    for (IteratorSetting setting : IteratorSettingsUtil.parseIteratorSettings(properties, scope)) {
+      if (setting.getName().equals(name)) {
+        return setting;
       }
     }
-    if (priority <= 0 || classname == null) {
-      return null;
-    }
-    return new IteratorSetting(priority, name, classname, settings);
+    return null;
   }
 
   @Override
@@ -123,17 +106,13 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
-    for (Entry<String,String> property : this.getProperties(namespace)) {
-      String name = property.getKey();
-      String[] parts = name.split("\\.");
-      if (parts.length == 4) {
-        if (parts[0].equals("table") && parts[1].equals("iterator")) {
-          IteratorScope scope = IteratorScope.valueOf(parts[2]);
-          if (!result.containsKey(parts[3])) {
-            result.put(parts[3], EnumSet.noneOf(IteratorScope.class));
-          }
-          result.get(parts[3]).add(scope);
-        }
+    Map<String,String> properties = Map.copyOf(this.getConfiguration(namespace));
+    IteratorSettingsUtil.validateIteratorScopes(properties);
+    for (IteratorScope scope : IteratorScope.values()) {
+      for (IteratorSetting setting : IteratorSettingsUtil.parseIteratorSettings(properties, scope,
+          false)) {
+        result.computeIfAbsent(setting.getName(), k -> EnumSet.noneOf(IteratorScope.class))
+            .add(scope);
       }
     }
     return result;
@@ -146,38 +125,33 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
+    Map<String,String> props = Map.copyOf(this.getConfiguration(namespace));
+    IteratorSettingsUtil.validateIteratorScopes(props);
     for (IteratorScope scope : scopes) {
       String scopeStr =
           String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
       String nameStr = String.format("%s.%s", scopeStr, setting.getName());
       String optStr = String.format("%s.opt.", nameStr);
       Map<String,String> optionConflicts = new TreeMap<>();
-      for (Entry<String,String> property : this.getProperties(namespace)) {
-        if (property.getKey().startsWith(scopeStr)) {
-          if (property.getKey().equals(nameStr)) {
-            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
-                + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
-          }
-          if (property.getKey().startsWith(optStr)) {
-            optionConflicts.put(property.getKey(), property.getValue());
-          }
-          if (property.getKey().contains(".opt.")) {
-            continue;
-          }
-          String[] parts = property.getValue().split(",");
-          if (parts.length != 2) {
-            throw new AccumuloException("Bad value for existing iterator setting: "
-                + property.getKey() + "=" + property.getValue());
-          }
-          try {
-            if (Integer.parseInt(parts[0]) == setting.getPriority()) {
-              throw new AccumuloException(new IllegalArgumentException(
-                  "iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
-            }
-          } catch (NumberFormatException e) {
-            throw new AccumuloException("Bad value for existing iterator setting: "
-                + property.getKey() + "=" + property.getValue());
-          }
+
+      if (props.containsKey(nameStr)) {
+        throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
+            + setting.getName() + ": " + nameStr + "=" + props.get(nameStr)));
+      }
+
+      for (IteratorSetting existing : IteratorSettingsUtil.parseIteratorSettings(props, scope,
+          false)) {
+        if (existing.getPriority() == setting.getPriority()) {
+          String key = String.format("%s.%s", scopeStr, existing.getName());
+          String value = props.get(key);
+          throw new AccumuloException(
+              new IllegalArgumentException("iterator priority conflict: " + key + "=" + value));
+        }
+      }
+
+      for (Entry<String,String> property : props.entrySet()) {
+        if (property.getKey().startsWith(optStr)) {
+          optionConflicts.put(property.getKey(), property.getValue());
         }
       }
       if (!optionConflicts.isEmpty()) {
