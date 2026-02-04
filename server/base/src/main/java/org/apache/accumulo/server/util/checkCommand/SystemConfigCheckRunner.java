@@ -218,7 +218,11 @@ public class SystemConfigCheckRunner implements CheckRunner {
         // should be able to parse the WAL metadata
         final var fullWalPath = tserverPath + "/" + walPath;
         log.trace("Attempting to parse WAL metadata at {}", fullWalPath);
-        var parseRes = WalStateManager.parse(zrw.getData(fullWalPath));
+        var data = zrw.getData(fullWalPath);
+        if(data == null){
+          continue;
+        }
+        var parseRes = WalStateManager.parse(data);
         log.trace("Successfully parsed WAL metadata at {} result {}", fullWalPath, parseRes);
         if (parseRes.getFirst() == WalStateManager.WalState.OPEN
             || parseRes.getFirst() == WalStateManager.WalState.CLOSED) {
