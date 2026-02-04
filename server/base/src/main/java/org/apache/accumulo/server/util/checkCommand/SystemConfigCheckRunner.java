@@ -185,10 +185,10 @@ public class SystemConfigCheckRunner implements CheckRunner {
       // if the TServer is alive before AND after the DFS check AND any missing WAL is still in
       // use after the DFS check
       var actualMissing = Sets.intersection(instanceAndMissingWals.getValue(),
-                walsAfter.getOrDefault(instanceAndMissingWals.getKey(), Set.of()));
-      if(!actualMissing.isEmpty()){
+          walsAfter.getOrDefault(instanceAndMissingWals.getKey(), Set.of()));
+      if (!actualMissing.isEmpty()) {
         log.warn("WAL metadata for tserver {} references a WAL that does not exist : {}",
-                instanceAndMissingWals.getKey(), actualMissing);
+            instanceAndMissingWals.getKey(), actualMissing);
         status = Admin.CheckCommand.CheckStatus.FAILED;
       }
     }
@@ -218,7 +218,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
         final var fullWalPath = tserverPath + "/" + walPath;
         log.trace("Attempting to parse WAL metadata at {}", fullWalPath);
         var data = zrw.getData(fullWalPath);
-        if(data == null){
+        if (data == null) {
           continue;
         }
         var parseRes = WalStateManager.parse(data);
