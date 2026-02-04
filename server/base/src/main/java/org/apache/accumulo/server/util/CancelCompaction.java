@@ -44,7 +44,7 @@ public class CancelCompaction implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "cancel-compaction";
+    return "cancel";
   }
 
   @Override
@@ -54,7 +54,7 @@ public class CancelCompaction implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+    return UsageGroup.COMPACTION;
   }
 
   protected void cancelCompaction(ServerContext context, String ecid) {
@@ -76,7 +76,7 @@ public class CancelCompaction implements KeywordExecutable {
     ServerUtilOpts opts = new ServerUtilOpts();
 
     JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo cancel-compaction");
+    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
 
     CancelCommand cancelOps = new CancelCommand();
     cl.addCommand(cancelOps);

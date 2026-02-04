@@ -48,7 +48,7 @@ public class ListCompactors implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+    return UsageGroup.PROCESS;
   }
 
   protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {
@@ -68,7 +68,7 @@ public class ListCompactors implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo list-compactors");
+    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
     cl.parse(args);
 
     if (opts.help || cl.getParsedCommand() == null) {

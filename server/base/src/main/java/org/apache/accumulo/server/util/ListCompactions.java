@@ -164,7 +164,7 @@ public class ListCompactions implements KeywordExecutable {
 
   @Override
   public String keyword() {
-    return "list-compactions";
+    return "list";
   }
 
   @Override
@@ -174,7 +174,7 @@ public class ListCompactions implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+    return UsageGroup.COMPACTION;
   }
 
   protected List<RunningCompactionSummary> getRunningCompactions(ServerContext context,
@@ -216,7 +216,7 @@ public class ListCompactions implements KeywordExecutable {
   public void execute(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo list-compactions");
+    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
 
     RunningCommand runningOpts = new RunningCommand();
     cl.addCommand(runningOpts);

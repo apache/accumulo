@@ -54,6 +54,7 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.thrift.TException;
+import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -127,7 +128,7 @@ public class ExternalCompactionUtil {
     CompactionCoordinatorService.Client coordinatorClient;
     try {
       coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
-    } catch (Exception e) {
+    } catch (TTransportException e) {
       throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
     }
     return coordinatorClient;
