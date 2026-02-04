@@ -184,12 +184,11 @@ public class SystemConfigCheckRunner implements CheckRunner {
     for (var instanceAndMissingWals : missingWals.entrySet()) {
       // if the TServer is alive before AND after the DFS check AND any missing WAL is still in
       // use after the DFS check
-      if (walsBefore.get(instanceAndMissingWals.getKey()) != null
-          && walsAfter.get(instanceAndMissingWals.getKey()) != null
-          && !Sets.intersection(instanceAndMissingWals.getValue(),
-              walsAfter.get(instanceAndMissingWals.getKey())).isEmpty()) {
-        log.warn("WAL metadata for tserver {} references a WAL that does not exist",
-            instanceAndMissingWals.getKey());
+      var actualMissing = Sets.intersection(instanceAndMissingWals.getValue(),
+                walsAfter.getOrDefault(instanceAndMissingWals.getKey(), Set.of()));
+      if(!actualMissing.isEmpty()){
+        log.warn("WAL metadata for tserver {} references a WAL that does not exist : {}",
+                instanceAndMissingWals.getKey(), actualMissing);
         status = Admin.CheckCommand.CheckStatus.FAILED;
       }
     }
