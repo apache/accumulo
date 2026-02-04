@@ -431,7 +431,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File stdErr = logDir.resolve(clazz.getSimpleName() + "_" + hashcode + ".err").toFile();
 
     Process process = builder.redirectError(stdErr).redirectOutput(stdOut).start();
-
     cleanup.add(process);
 
     return new ProcessInfo(process, stdOut);

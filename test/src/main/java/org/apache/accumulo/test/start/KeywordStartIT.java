@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.start;
 
-import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -35,8 +34,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.accumulo.compactor.CompactorExecutable;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
@@ -68,6 +69,7 @@ import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.KeywordExecutable.UsageGroup;
 import org.apache.accumulo.tserver.ScanServerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
 import org.apache.accumulo.tserver.TabletServer;
@@ -91,7 +93,7 @@ public class KeywordStartIT {
    * There may be other ways to run annotation processors in your IDE, so this may not be necessary,
    * depending on your IDE and its configuration.
    */
-  private Map<String,KeywordExecutable> getKeywordExecutables() {
+  private Map<UsageGroup,Map<String,KeywordExecutable>> getKeywordExecutables() {
     var all = Main.getExecutables(ClassLoader.getSystemClassLoader());
     assumeTrue(!all.isEmpty());
     return all;
@@ -99,7 +101,9 @@ public class KeywordStartIT {
 
   @Test
   public void testKeywordsMatch() {
-    getKeywordExecutables().forEach((k, v) -> assertEquals(k, v.keyword()));
+    getKeywordExecutables().forEach((k, v) -> {
+      v.forEach((k2, v2) -> assertEquals(k2, v2.keyword()));
+    });
   }
 
   @Test
@@ -110,13 +114,29 @@ public class KeywordStartIT {
     NoOp three = new NoOp("three");
     List<NoOp> services = Arrays.asList(one, three, two, two, three, three, anotherOne);
     assertEquals(7, services.size());
-    Map<String,KeywordExecutable> results = Main.checkDuplicates(services);
-    assertTrue(results.containsKey(one.keyword()));
-    assertTrue(results.containsKey(anotherOne.keyword()));
-    assertFalse(results.containsKey(two.keyword()));
-    assertFalse(results.containsKey(three.keyword()));
-    assertEquals(2, results.size());
+    Map<UsageGroup,Map<String,KeywordExecutable>> results = Main.checkDuplicates(services);
+    assertTrue(results.get(UsageGroup.OTHER).containsKey(one.keyword()));
+    assertTrue(results.get(UsageGroup.OTHER).containsKey(anotherOne.keyword()));
+    assertFalse(results.get(UsageGroup.OTHER).containsKey(two.keyword()));
+    assertFalse(results.get(UsageGroup.OTHER).containsKey(three.keyword()));
+    assertEquals(2, results.get(UsageGroup.OTHER).size());
   }
+
+  private record CommandInfo(UsageGroup group, String keyword,
+      Class<? extends KeywordExecutable> clazz) implements Comparable<CommandInfo> {
+
+    @Override
+    public int compareTo(CommandInfo o) {
+      int result = this.group.compareTo(o.group);
+      if (result == 0) {
+        result = this.keyword.compareTo(o.keyword);
+        if (result == 0) {
+          result = this.clazz.getName().compareTo(o.clazz.getName());
+        }
+      }
+      return result;
+    }
+  };
 
   /**
    * This test guards against accidental renaming or incorrect naming of the keyword used to
@@ -126,48 +146,59 @@ public class KeywordStartIT {
   @Test
   public void testExpectedClasses() {
     assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
-    TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
-    expectSet.put("admin", Admin.class);
-    expectSet.put("check-compaction-config", CheckCompactionConfig.class);
-    expectSet.put("check-accumulo-properties", CheckAccumuloProperties.class);
-    expectSet.put("compactor", CompactorExecutable.class);
-    expectSet.put("create-empty", CreateEmpty.class);
-    expectSet.put("create-token", CreateToken.class);
-    expectSet.put("dump-zoo", DumpZookeeper.class);
-    expectSet.put("ec-admin", ECAdmin.class);
-    expectSet.put("gc", GCExecutable.class);
-    expectSet.put("generate-splits", GenerateSplits.class);
-    expectSet.put("help", Help.class);
-    expectSet.put("info", Info.class);
-    expectSet.put("init", Initialize.class);
-    expectSet.put("login-info", LoginProperties.class);
-    expectSet.put("manager", ManagerExecutable.class);
-    expectSet.put("minicluster", MiniClusterExecutable.class);
-    expectSet.put("monitor", MonitorExecutable.class);
-    expectSet.put("rfile-info", PrintInfo.class);
-    expectSet.put("shell", Shell.class);
-    expectSet.put("split-large", SplitLarge.class);
-    expectSet.put("sserver", ScanServerExecutable.class);
-    expectSet.put("tserver", TServerExecutable.class);
-    expectSet.put("upgrade", UpgradeUtil.class);
-    expectSet.put("version", Version.class);
-    expectSet.put("wal-info", LogReader.class);
-    expectSet.put("zoo-info-viewer", ZooInfoViewer.class);
-    expectSet.put("zoo-prop-editor", ZooPropEditor.class);
-    expectSet.put("zoo-zap", ZooZap.class);
-    expectSet.put("zookeeper", ZooKeeperMain.class);
+    SortedSet<CommandInfo> expectSet = new TreeSet<>();
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "admin", Admin.class));
+    expectSet.add(
+        new CommandInfo(UsageGroup.OTHER, "check-compaction-config", CheckCompactionConfig.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "check-accumulo-properties",
+        CheckAccumuloProperties.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "compactor", CompactorExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "create-empty", CreateEmpty.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "create-token", CreateToken.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "dump-zoo", DumpZookeeper.class));
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "ec-admin", ECAdmin.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "gc", GCExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "generate-splits", GenerateSplits.class));
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "help", Help.class));
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "info", Info.class));
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "init", Initialize.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "login-info", LoginProperties.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "manager", ManagerExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "minicluster", MiniClusterExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "monitor", MonitorExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "rfile-info", PrintInfo.class));
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "shell", Shell.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "split-large", SplitLarge.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "sserver", ScanServerExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "tserver", TServerExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "upgrade", UpgradeUtil.class));
+    expectSet.add(new CommandInfo(UsageGroup.CORE, "version", Version.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "wal-info", LogReader.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-info-viewer", ZooInfoViewer.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-prop-editor", ZooPropEditor.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-zap", ZooZap.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "zookeeper", ZooKeeperMain.class));
 
-    Iterator<Entry<String,Class<? extends KeywordExecutable>>> expectIter =
-        expectSet.entrySet().iterator();
-    TreeMap<String,KeywordExecutable> actualSet = new TreeMap<>(getKeywordExecutables());
-    Iterator<Entry<String,KeywordExecutable>> actualIter = actualSet.entrySet().iterator();
-    Entry<String,Class<? extends KeywordExecutable>> expected;
-    Entry<String,KeywordExecutable> actual;
+    Map<UsageGroup,Map<String,KeywordExecutable>> actualExecutables =
+        new TreeMap<>(getKeywordExecutables());
+    SortedSet<CommandInfo> actualSet = new TreeSet<>();
+    actualExecutables.entrySet().forEach((e) -> {
+      e.getValue().entrySet().forEach((e2) -> {
+        actualSet.add(new CommandInfo(e.getKey(), e2.getKey(), e2.getValue().getClass()));
+      });
+    });
+
+    Iterator<CommandInfo> expectIter = expectSet.iterator();
+    Iterator<CommandInfo> actualIter = actualSet.iterator();
+
+    CommandInfo expected;
+    CommandInfo actual;
     while (expectIter.hasNext() && actualIter.hasNext()) {
       expected = expectIter.next();
       actual = actualIter.next();
-      assertEquals(expected.getKey(), actual.getKey());
-      assertEquals(expected.getValue(), actual.getValue().getClass());
+      assertEquals(expected.group(), actual.group());
+      assertEquals(expected.keyword(), actual.keyword());
+      assertEquals(expected.clazz(), actual.clazz());
     }
     boolean moreExpected = expectIter.hasNext();
     if (moreExpected) {
@@ -223,16 +254,23 @@ public class KeywordStartIT {
         c -> assertTrue(hasMain(c), "Class " + c.getName() + " is missing a main method!"));
 
     // build a list of all classed that implement KeywordExecutable
-    var all = getKeywordExecutables().values().stream().map(Object::getClass).collect(toSet());
+    Map<UsageGroup,Map<String,KeywordExecutable>> actualExecutables =
+        new TreeMap<>(getKeywordExecutables());
+    Set<Class<? extends KeywordExecutable>> actualSet = new HashSet<>();
+    actualExecutables.entrySet().forEach((e) -> {
+      e.getValue().entrySet().forEach((e2) -> {
+        actualSet.add(e2.getValue().getClass());
+      });
+    });
 
     // remove the ones we already verified have a main method
-    assertTrue(all.removeAll(expectSet));
+    assertTrue(actualSet.removeAll(expectSet));
 
     // ensure there's still some left (there should be some that don't have a main method)
-    assertNotEquals(0, all.size());
+    assertNotEquals(0, actualSet.size());
 
     // for those remaining, make sure they *don't* have an unexpected main method
-    all.forEach(
+    actualSet.forEach(
         c -> assertFalse(hasMain(c), "Class " + c.getName() + " has an unexpected main method!"));
   }
 
