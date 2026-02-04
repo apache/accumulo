@@ -59,9 +59,11 @@ import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.CancelCompaction;
 import org.apache.accumulo.server.util.DumpZookeeper;
-import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
+import org.apache.accumulo.server.util.ListCompactions;
+import org.apache.accumulo.server.util.ListCompactors;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
@@ -156,7 +158,6 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "create-empty", CreateEmpty.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "create-token", CreateToken.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "dump-zoo", DumpZookeeper.class));
-    expectSet.add(new CommandInfo(UsageGroup.CORE, "ec-admin", ECAdmin.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "gc", GCExecutable.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "generate-splits", GenerateSplits.class));
     expectSet.add(new CommandInfo(UsageGroup.CORE, "help", Help.class));
@@ -178,6 +179,9 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-prop-editor", ZooPropEditor.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-zap", ZooZap.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "zookeeper", ZooKeeperMain.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "cancel-compaction", CancelCompaction.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "list-compactors", ListCompactors.class));
+    expectSet.add(new CommandInfo(UsageGroup.OTHER, "list-compactions", ListCompactions.class));
 
     Map<UsageGroup,Map<String,KeywordExecutable>> actualExecutables =
         new TreeMap<>(getKeywordExecutables());
@@ -232,7 +236,6 @@ public class KeywordStartIT {
     expectSet.add(CreateEmpty.class);
     expectSet.add(CreateToken.class);
     expectSet.add(DumpZookeeper.class);
-    expectSet.add(ECAdmin.class);
     expectSet.add(GenerateSplits.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
