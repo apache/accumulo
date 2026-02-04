@@ -55,7 +55,6 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckAccumuloProperties;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
-import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
@@ -151,8 +150,6 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(UsageGroup.CORE, "admin", Admin.class));
     expectSet.add(
         new CommandInfo(UsageGroup.OTHER, "check-compaction-config", CheckCompactionConfig.class));
-    expectSet
-        .add(new CommandInfo(UsageGroup.OTHER, "check-server-config", CheckServerConfig.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "check-accumulo-properties",
         CheckAccumuloProperties.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "compactor", CompactorExecutable.class));
@@ -232,7 +229,6 @@ public class KeywordStartIT {
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(Admin.class);
     expectSet.add(CheckCompactionConfig.class);
-    expectSet.add(CheckServerConfig.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(CreateToken.class);
     expectSet.add(DumpZookeeper.class);
