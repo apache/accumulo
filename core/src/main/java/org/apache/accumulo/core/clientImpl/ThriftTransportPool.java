@@ -41,6 +41,8 @@ import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.HostAndPort;
@@ -577,6 +579,7 @@ public class ThriftTransportPool {
     private static final long serialVersionUID = 1L;
   }
 
+  @NotThreadSafe
   private static class CachedTTransport extends TTransport {
 
     private final ThriftTransportKey cacheKey;

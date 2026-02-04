@@ -412,7 +412,7 @@ public class TabletServerResourceManager {
   public static class AssignmentWatcher implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(AssignmentWatcher.class);
 
-    private static long longAssignments = 0;
+    private static volatile long longAssignments = 0;
 
     private final Map<KeyExtent,RunnableStartedAt> activeAssignments;
     private final AccumuloConfiguration conf;

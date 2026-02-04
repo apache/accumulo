@@ -23,6 +23,8 @@ import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -33,6 +35,7 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.server.ServerContext;
 
+@NotThreadSafe
 public class ProblemReportingIterator implements InterruptibleIterator {
   private final SortedKeyValueIterator<Key,Value> source;
   private boolean sawError = false;

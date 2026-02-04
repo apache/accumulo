@@ -23,12 +23,15 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.InputStream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids
  * synchronization.
  */
+@NotThreadSafe
 public class SeekableByteArrayInputStream extends InputStream {
 
   // making this volatile for the following case

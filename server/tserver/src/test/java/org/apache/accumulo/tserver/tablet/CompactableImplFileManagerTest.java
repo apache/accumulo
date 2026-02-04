@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -478,6 +480,7 @@ public class CompactableImplFileManagerTest {
 
   }
 
+  @NotThreadSafe
   static class TestFileManager extends CompactableImpl.FileManager {
 
     public static final Duration SELECTION_EXPIRATION = Duration.ofMinutes(2);

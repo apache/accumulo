@@ -37,6 +37,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.annotation.concurrent.NotThreadSafe;
+
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.Sampler;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -531,6 +533,7 @@ public class InMemoryMap {
 
   private final Set<MemoryIterator> activeIters = Collections.synchronizedSet(new HashSet<>());
 
+  @NotThreadSafe
   class MemoryDataSource implements DataSource {
 
     private boolean switched = false;
