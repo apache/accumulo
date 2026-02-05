@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, document, sessionStorage, getManager, bigNumberForQuantity,
-    timeDuration, dateFormat, getStatus, ajaxReloadTable
+    timeDuration, dateFormat, getStatus, ajaxReloadTable, getManagerGoalStateFromSession
 */
 "use strict";
 
@@ -88,11 +88,25 @@ function refreshManagerBanners() {
     // show the manager error banner and hide manager table
     $('#managerRunningBanner').show();
     $('#managerStatusTable').hide();
+    $('#managerStateBanner').hide();
   } else {
     // otherwise, hide the error banner and show manager table
     $('#managerRunningBanner').hide();
     $('#managerStatusTable').show();
+    updateManagerGoalStateBanner();
   }
+}
+
+function updateManagerGoalStateBanner() {
+  getManager().always(function () {
+    const goalState = getManagerGoalStateFromSession();
+    if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
+      $('#manager-banner-message').text('Manager goal state: ' + goalState);
+      $('#managerStateBanner').show();
+    } else {
+      $('#managerStateBanner').hide();
+    }
+  });
 }
 
 /**
