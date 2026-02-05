@@ -69,8 +69,10 @@ public class FateWorker implements FateWorkerService.Iface {
             l -> ServiceLock.isLockHeld(context.getZooCache(), l);
     UserFateStore<FateEnv> store = new UserFateStore<>(context,
             SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
-    this.fate = new Fate<>(env, store, true, TraceRepo::toLogString,
+    this.fate = new Fate<>(env, store, false, TraceRepo::toLogString,
             context.getConfiguration(), context.getScheduledExecutor());
+    // TODO where will the 2 fate cleanup task run?
+
   }
 
   @Override
