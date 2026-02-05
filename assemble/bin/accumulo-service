@@ -27,8 +27,8 @@ Services:
   monitor                Accumulo monitor
   manager                Accumulo manager
   tserver                Accumulo tserver
-  compactor              Accumulo compactor (experimental)
-  sserver                Accumulo scan server (experimental)
+  compactor              Accumulo compactor
+  sserver                Accumulo scan server
 
 Commands:
   start                   Starts service(s)
@@ -111,7 +111,7 @@ function start_service() {
     rotate_log "$outfile"
     rotate_log "$errfile"
 
-    nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
+    nohup "${bin}/accumulo" "process" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
     echo "$!" >"${pid_file}"
 
   done

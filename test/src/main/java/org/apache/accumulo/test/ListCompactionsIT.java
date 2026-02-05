@@ -43,8 +43,8 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.ECAdmin;
-import org.apache.accumulo.server.util.ECAdmin.RunningCompactionSummary;
+import org.apache.accumulo.server.util.ListCompactions;
+import org.apache.accumulo.server.util.ListCompactions.RunningCompactionSummary;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -57,49 +57,32 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-public class ECAdminIT extends SharedMiniClusterBase {
+public class ListCompactionsIT extends SharedMiniClusterBase {
 
-  // Class exists for access to protected methods
-  private static class TestECAdmin extends ECAdmin {
-
-    @Override
-    protected void cancelCompaction(ServerContext context, String ecid) {
-      super.cancelCompaction(context, ecid);
-    }
-
-    @Override
-    protected void listCompactorsByQueue(ServerContext context) {
-      super.listCompactorsByQueue(context);
-    }
-
-    @Override
-    protected List<RunningCompactionSummary> runningCompactions(ServerContext context,
-        boolean details) {
-      return super.runningCompactions(context, details);
-    }
-  }
-
-  private static final class ECAdminITConfig implements MiniClusterConfigurationCallback {
-
+  private static final class ListCompactionsITConfig implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-      cfg.getClusterServerConfiguration().addCompactorResourceGroup(GROUP7, 1);
     }
+  }
 
+  private static class ListCompactionsWrapper extends ListCompactions {
+    @Override
+    protected List<RunningCompactionSummary> getRunningCompactions(ServerContext context,
+        boolean details) {
+      return super.getRunningCompactions(context, details);
+    }
   }
 
   @BeforeAll
   public static void beforeAll() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(new ECAdminITConfig());
+    SharedMiniClusterBase.startMiniClusterWithConfig(new ListCompactionsITConfig());
   }
 
   @AfterAll
   public static void afterAll() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
-
-  private final TestECAdmin eca = new TestECAdmin();
 
   @Test
   public void testListRunningCompactions() throws Exception {
@@ -130,7 +113,7 @@ public class ECAdminIT extends SharedMiniClusterBase {
       }
 
       final List<RunningCompactionSummary> running =
-          eca.runningCompactions(getCluster().getServerContext(), true);
+          new ListCompactionsWrapper().getRunningCompactions(getCluster().getServerContext(), true);
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
       running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
 

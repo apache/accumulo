@@ -49,33 +49,5 @@
           </thead>
           <tbody></tbody>
         </table>
-        <br />
-        <table id="badtservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br />
-            <span class="table-subcaption">The following tablet servers reported a status other than Online.</span><br />
-          </caption>
-          <thead>
-            <tr>
-              <th>Server</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <br />
-        <table id="deadtservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Dead Tablet Servers</span><br />
-            <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br />
-          </caption>
-          <thead>
-            <tr>
-              <th>Server</th>
-              <th class="date">Last Updated</th>
-              <th>Event</th>
-              <th>Clear</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
       </div>
     </div>

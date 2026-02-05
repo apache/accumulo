@@ -320,8 +320,8 @@ public class TableDiskUsage {
   }
 
   static class Opts extends ServerUtilOpts {
-    @Parameter(description = " <table> { <table> ... } ")
-    final List<String> tables = new ArrayList<>();
+    @Parameter(required = true, description = " <table> { <table> ... } ")
+    List<String> tables = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

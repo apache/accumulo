@@ -23,11 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
@@ -35,7 +33,6 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.FindOfflineTablets;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 
 public class RootMetadataCheckRunner implements MetadataCheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.ROOT_METADATA;
@@ -51,26 +48,13 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public Set<ColumnFQ> requiredColFQs() {
-    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN);
-  }
-
-  @Override
-  public Set<Text> requiredColFams() {
-    return Set.of(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-  }
-
-  @Override
   public String scanning() {
     return "root tablet metadata in ZooKeeper";
   }
 
   @Override
   public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws TableNotFoundException, InterruptedException, KeeperException {
+      boolean fixFiles) throws Exception {
     Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
     printRunning();
 
@@ -97,7 +81,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
 
   @Override
   public Admin.CheckCommand.CheckStatus checkRequiredColumns(ServerContext context,
-      Admin.CheckCommand.CheckStatus status) throws InterruptedException, KeeperException {
+      Admin.CheckCommand.CheckStatus status) throws Exception {
     final String json =
         new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);

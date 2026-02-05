@@ -22,18 +22,13 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -42,24 +37,16 @@ import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
-import com.google.common.net.HostAndPort;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-/**
- * Admin utility for external compactions
- */
 @AutoService(KeywordExecutable.class)
-public class ECAdmin implements KeywordExecutable {
+public class ListCompactions implements KeywordExecutable {
 
   public static class RunningCompactionSummary {
     private final String ecid;
@@ -165,15 +152,6 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private static final Logger log = LoggerFactory.getLogger(ECAdmin.class);
-
-  @Parameters(commandNames = "cancel",
-      commandDescription = "cancel the external compaction with given ECID")
-  static class CancelCommand {
-    @Parameter(names = "-ecid", description = "<ecid>", required = true)
-    String ecid;
-  }
-
   @Parameters(commandNames = "running", commandDescription = "list the running compactions")
   static class RunningCommand {
     @Parameter(names = {"-d", "--details"},
@@ -184,114 +162,26 @@ public class ECAdmin implements KeywordExecutable {
     boolean jsonOutput = false;
   }
 
-  @Parameters(commandNames = "listCompactors",
-      commandDescription = "list all compactors in zookeeper")
-  static class ListCompactorsCommand {}
-
-  public static void main(String[] args) {
-    new ECAdmin().execute(args);
-  }
-
   @Override
   public String keyword() {
-    return "ec-admin";
-  }
-
-  @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+    return "list";
   }
 
   @Override
   public String description() {
-    return "Executes administrative commands for external compactions";
+    return "List running compactions";
   }
 
-  @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
   @Override
-  public void execute(final String[] args) {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo ec-admin");
-
-    CancelCommand cancelOps = new CancelCommand();
-    cl.addCommand(cancelOps);
-
-    ListCompactorsCommand listCompactorsOpts = new ListCompactorsCommand();
-    cl.addCommand(listCompactorsOpts);
-
-    RunningCommand runningOpts = new RunningCommand();
-    cl.addCommand(runningOpts);
-
-    cl.parse(args);
-
-    if (opts.help || cl.getParsedCommand() == null) {
-      cl.usage();
-      return;
-    }
-
-    ServerContext context = opts.getServerContext();
-    try {
-      if (cl.getParsedCommand().equals("listCompactors")) {
-        listCompactorsByQueue(context);
-      } else if (cl.getParsedCommand().equals("cancel")) {
-        cancelCompaction(context, cancelOps.ecid);
-      } else if (cl.getParsedCommand().equals("running")) {
-        List<RunningCompactionSummary> compactions =
-            runningCompactions(context, runningOpts.details);
-        if (runningOpts.jsonOutput) {
-          try {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            System.out.println(gson.toJson(compactions));
-          } catch (Exception e) {
-            log.error("Error generating JSON output", e);
-          }
-        } else {
-          compactions.forEach(c -> c.print(System.out));
-        }
-      } else {
-        log.error("Unknown command {}", cl.getParsedCommand());
-        cl.usage();
-        System.exit(1);
-      }
-    } catch (Exception e) {
-      log.error("{}", e.getMessage(), e);
-      System.exit(1);
-    }
+  public UsageGroup usageGroup() {
+    return UsageGroup.COMPACTION;
   }
 
-  protected void cancelCompaction(ServerContext context, String ecid) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
-    ecid = ExternalCompactionId.from(ecid).canonical();
-    try {
-      coordinatorClient = getCoordinatorClient(context);
-      coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
-      System.out.println("Cancel sent to coordinator for " + ecid);
-    } catch (Exception e) {
-      throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
-    } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
-    }
-  }
-
-  protected void listCompactorsByQueue(ServerContext context) {
-    Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
-    if (compactors.isEmpty()) {
-      System.out.println("No Compactors found.");
-    } else {
-      Map<ResourceGroupId,List<ServerId>> m = new TreeMap<>();
-      compactors.forEach(csi -> {
-        m.putIfAbsent(csi.getResourceGroup(), new ArrayList<>()).add(csi);
-      });
-      m.forEach((q, c) -> System.out.println(q + ": " + c));
-    }
-  }
-
-  protected List<RunningCompactionSummary> runningCompactions(ServerContext context,
+  protected List<RunningCompactionSummary> getRunningCompactions(ServerContext context,
       boolean details) {
     CompactionCoordinatorService.Client coordinatorClient = null;
     try {
-      coordinatorClient = getCoordinatorClient(context);
+      coordinatorClient = ExternalCompactionUtil.getCoordinatorClient(context);
 
       // Fetch running compactions as a list and convert to a map
       TExternalCompactionMap running =
@@ -322,19 +212,36 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private CompactionCoordinatorService.Client getCoordinatorClient(ServerContext context) {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(context);
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
+  @Override
+  public void execute(String[] args) throws Exception {
+    ServerUtilOpts opts = new ServerUtilOpts();
+    JCommander cl = new JCommander(opts);
+    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
+
+    RunningCommand runningOpts = new RunningCommand();
+    cl.addCommand(runningOpts);
+
+    cl.parse(args);
+
+    if (opts.help || cl.getParsedCommand() == null) {
+      cl.usage();
+      return;
     }
-    HostAndPort address = coordinatorHost.orElseThrow();
-    CompactionCoordinatorService.Client coordinatorClient;
-    try {
-      coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);
-    } catch (Exception e) {
-      throw new IllegalStateException("Unable to get Compaction coordinator at " + address, e);
+
+    ServerContext context = opts.getServerContext();
+    List<RunningCompactionSummary> compactions =
+        getRunningCompactions(context, runningOpts.details);
+    if (runningOpts.jsonOutput) {
+      try {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        System.out.println(gson.toJson(compactions));
+      } catch (Exception e) {
+        System.out.println("Error generating JSON output");
+        e.printStackTrace();
+      }
+    } else {
+      compactions.forEach(c -> c.print(System.out));
     }
-    System.out.println("Connected to coordinator at " + address);
-    return coordinatorClient;
   }
+
 }

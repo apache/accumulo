@@ -74,7 +74,7 @@ class ScanTracingIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    getJvmArgs().forEach(cfg::addJvmOption);
+    cfg.getJvmOptions().addAll(getJvmArgs());
     // sized such that full table scans will not fit in the cache
     cfg.setProperty(Property.TSERV_DATACACHE_SIZE.getKey(), "8M");
     cfg.setProperty(Property.TSERV_SCAN_EXECUTORS_PREFIX.getKey() + "pool1.threads", "8");

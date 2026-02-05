@@ -206,6 +206,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
 
+  private final ManagerMetrics managerMetrics = new ManagerMetrics();
+
   static class TServerStatus {
     // This is the set of tservers that an attempt to gather status from was made
     final LiveTServersSnapshot snapshot;
@@ -540,7 +542,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       try {
         byte[] data =
             getContext().getZooSession().asReaderWriter().getData(Constants.ZMANAGER_GOAL_STATE);
-        return ManagerGoalState.valueOf(new String(data, UTF_8));
+        ManagerGoalState goal = ManagerGoalState.valueOf(new String(data, UTF_8));
+        try {
+          managerMetrics.updateManagerGoalState(goal);
+        } catch (IllegalStateException e) {
+          log.warn("Error updating goal state metric", e);
+        }
+        return goal;
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
         sleepUninterruptibly(1, SECONDS);
@@ -989,7 +997,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    ManagerMetrics managerMetrics = new ManagerMetrics();
     List<MetricsProducer> producers = new ArrayList<>();
     producers.add(balanceManager.getMetrics());
 

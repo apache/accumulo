@@ -101,6 +101,7 @@ import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.server.util.checkCommand.MetadataTableCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootMetadataCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootTableCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.ServerConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
@@ -191,6 +192,8 @@ public class Admin implements KeywordExecutable {
       // Caution should be taken when changing or adding any new checks: order is important
       SYSTEM_CONFIG(SystemConfigCheckRunner::new, "Validate the system config stored in ZooKeeper",
           Collections.emptyList()),
+      SERVER_CONFIG(ServerConfigCheckRunner::new, "Validate the server configuration",
+          Collections.singletonList(SYSTEM_CONFIG)),
       TABLE_LOCKS(TableLocksCheckRunner::new,
           "Ensures that table and namespace locks are valid and are associated with a FATE op",
           Collections.singletonList(SYSTEM_CONFIG)),
@@ -558,7 +561,7 @@ public class Admin implements KeywordExecutable {
         ServiceStatusCmd ssc = new ServiceStatusCmd();
         ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.showHosts);
       } else if (cl.getParsedCommand().equals("check")) {
-        executeCheckCommand(context, checkCommand, opts);
+        rc = executeCheckCommand(context, checkCommand, opts);
       } else if (cl.getParsedCommand().equals("stopManager")
           || cl.getParsedCommand().equals("stopAll")) {
         boolean everything = cl.getParsedCommand().equals("stopAll");
@@ -1372,7 +1375,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @VisibleForTesting
-  public static void executeCheckCommand(ServerContext context, CheckCommand cmd,
+  public static int executeCheckCommand(ServerContext context, CheckCommand cmd,
       ServerUtilOpts opts) throws Exception {
     validateAndTransformCheckCommand(cmd);
 
@@ -1381,8 +1384,10 @@ public class Admin implements KeywordExecutable {
     } else if (cmd.run) {
       var givenChecks = cmd.checks.stream()
           .map(name -> CheckCommand.Check.valueOf(name.toUpperCase())).collect(Collectors.toList());
-      executeRunCheckCommand(cmd, givenChecks, context, opts);
+      return executeRunCheckCommand(cmd, givenChecks, context, opts);
     }
+
+    return 0;
   }
 
   private static void validateAndTransformCheckCommand(CheckCommand cmd) {
@@ -1423,7 +1428,7 @@ public class Admin implements KeywordExecutable {
     System.out.println();
   }
 
-  private static void executeRunCheckCommand(CheckCommand cmd, List<CheckCommand.Check> givenChecks,
+  private static int executeRunCheckCommand(CheckCommand cmd, List<CheckCommand.Check> givenChecks,
       ServerContext context, ServerUtilOpts opts) throws Exception {
     // Get all the checks in the order they are declared in the enum
     final var allChecks = CheckCommand.Check.values();
@@ -1442,6 +1447,13 @@ public class Admin implements KeywordExecutable {
     }
 
     printChecksResults(checkStatus);
+
+    if (checkStatus.values().stream()
+        .anyMatch(status -> status == CheckCommand.CheckStatus.FAILED)) {
+      return 5;
+    } else {
+      return 0;
+    }
   }
 
   private static boolean depsFailed(CheckCommand.Check check,

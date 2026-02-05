@@ -153,6 +153,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private final MiniAccumuloClusterControl clusterControl;
   private final Supplier<ServerContext> context;
   private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
+  private final Set<String> defaultJvmOpts =
+      Set.of("-XX:+PerfDisableSharedMem", "-XX:+AlwaysPreTouch");
+  private final Map<String,String> defaultSystemProps =
+      Map.of("apple.awt.UIElement", "true", "java.net.preferIPv4Stack", "true");
 
   private boolean initialized = false;
   private volatile ExecutorService executor;
@@ -379,8 +383,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
     var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
-    var jvmOptions = Stream.concat(config.getJvmOptions().stream(), extraJvmOpts.stream());
-    var systemProps = config.getSystemProperties().entrySet().stream()
+
+    var jvmOptions =
+        Stream.concat(Stream.concat(defaultJvmOpts.stream(), config.getJvmOptions().stream()),
+            extraJvmOpts.stream());
+    var systemProps = Stream
+        .concat(defaultSystemProps.entrySet().stream(),
+            config.getSystemProperties().entrySet().stream())
         .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
 
     var classArgs = Stream.of(Main.class.getName(), clazz.getName());
@@ -422,7 +431,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File stdErr = logDir.resolve(clazz.getSimpleName() + "_" + hashcode + ".err").toFile();
 
     Process process = builder.redirectError(stdErr).redirectOutput(stdOut).start();
-
     cleanup.add(process);
 
     return new ProcessInfo(process, stdOut);
@@ -910,23 +918,44 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.managerProcess));
-    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.values().stream()
-        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    result.put(ServerType.COMPACTOR, references(control.compactorProcesses.values().stream()
-        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    if (control.scanServerProcesses != null) {
-      result.put(ServerType.SCAN_SERVER, references(control.scanServerProcesses.values().stream()
-          .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    }
-    if (control.zooKeeperProcess != null) {
-      result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
-    }
-    if (control.gcProcess != null) {
-      result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
-    }
-    if (control.monitor != null) {
-      result.put(ServerType.MONITOR, references(control.monitor));
+
+    for (ServerType type : ServerType.values()) {
+      switch (type) {
+        case COMPACTOR:
+          result.put(type, references(control.compactorProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case GARBAGE_COLLECTOR:
+          if (control.gcProcess != null) {
+            result.put(type, references(control.gcProcess));
+          }
+          break;
+        case MANAGER:
+          if (control.managerProcess != null) {
+            result.put(type, references(control.managerProcess));
+          }
+          break;
+        case MONITOR:
+          if (control.monitor != null) {
+            result.put(type, references(control.monitor));
+          }
+          break;
+        case SCAN_SERVER:
+          result.put(type, references(control.scanServerProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case TABLET_SERVER:
+          result.put(type, references(control.tabletServerProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case ZOOKEEPER:
+          if (control.zooKeeperProcess != null) {
+            result.put(type, references(control.zooKeeperProcess));
+          }
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled server type : " + type);
+      }
     }
     return result;
   }
