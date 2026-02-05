@@ -47,7 +47,8 @@ import org.slf4j.LoggerFactory;
 public class ManagerWorker extends AbstractServer {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerWorker.class);
-  private ServiceLock scanServerLock;
+  private volatile ServiceLock managerWorkerLock;
+  private FateWorker fateWorker;
 
   protected ManagerWorker(ConfigOpts opts, String[] args) {
     super(ServerId.Type.MANAGER_WORKER, opts, ServerContext::new, args);
@@ -55,7 +56,7 @@ public class ManagerWorker extends AbstractServer {
 
   protected void startClientService() throws UnknownHostException {
 
-    var fateWorker = new FateWorker(getContext());
+    fateWorker = new FateWorker(getContext(), this::getLock);
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
@@ -80,7 +81,7 @@ public class ManagerWorker extends AbstractServer {
           .createManagerWorkerPath(getResourceGroup(), getAdvertiseAddress());
       ServiceLockSupport.createNonHaServiceLockPath(ServerId.Type.MANAGER_WORKER, zoo, zLockPath);
       var serverLockUUID = UUID.randomUUID();
-      scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
+      managerWorkerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
       ServiceLock.LockWatcher lw = new ServiceLockSupport.ServiceLockWatcher(
           ServerId.Type.MANAGER_WORKER, () -> getShutdownComplete().get(),
           (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
@@ -95,25 +96,25 @@ public class ManagerWorker extends AbstractServer {
               getAdvertiseAddress().toString(), this.getResourceGroup()));
         }
 
-        if (scanServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          log.debug("Obtained scan server lock {}", scanServerLock.getLockPath());
-          return scanServerLock;
+        if (managerWorkerLock.tryLock(lw, new ServiceLockData(descriptors))) {
+          log.debug("Obtained scan server lock {}", managerWorkerLock.getLockPath());
+          return managerWorkerLock;
         }
-        log.info("Waiting for scan server lock");
+        log.info("Waiting for manager worker lock");
         sleepUninterruptibly(5, TimeUnit.SECONDS);
       }
       String msg = "Too many retries, exiting.";
       log.info(msg);
       throw new RuntimeException(msg);
     } catch (Exception e) {
-      log.info("Could not obtain scan server lock, exiting.", e);
+      log.info("Could not obtain manager worker lock, exiting.", e);
       throw new RuntimeException(e);
     }
   }
 
   @Override
   public ServiceLock getLock() {
-    return scanServerLock;
+    return managerWorkerLock;
   }
 
   @Override
@@ -132,11 +133,12 @@ public class ManagerWorker extends AbstractServer {
     try {
       startClientService();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the scan server client service", e1);
+      throw new RuntimeException("Failed to start the manager worker client service", e1);
     }
 
     ServiceLock lock = announceExistence();
     this.getContext().setServiceLock(lock);
+    fateWorker.setLock(lock);
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {

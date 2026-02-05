@@ -22,16 +22,26 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.accumulo.core.fate.thrift.TFatePartition;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.manager.fate.FateManager.FatePartition;
+import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.slf4j.Logger;
@@ -43,11 +53,24 @@ public class FateWorker implements FateWorkerService.Iface {
   private final ServerContext context;
   private final AuditedSecurityOperation security;
   private final Set<FatePartition> currentPartitions;
+  private volatile Fate<FateEnv> fate;
 
-  public FateWorker(ServerContext ctx) {
+
+  public FateWorker(ServerContext ctx, Supplier<ServiceLock> serviceLockSupplier) {
     this.context = ctx;
     this.security = ctx.getSecurityOperation();
     this.currentPartitions = Collections.synchronizedSet(new HashSet<>());
+    this.fate = null;
+  }
+
+  public void setLock(ServiceLock lock){
+    FateEnv env = new FateWorkerEnv(context, lock);
+    Predicate<ZooUtil.LockID> isLockHeld =
+            l -> ServiceLock.isLockHeld(context.getZooCache(), l);
+    UserFateStore<FateEnv> store = new UserFateStore<>(context,
+            SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
+    this.fate = new Fate<>(env, store, true, TraceRepo::toLogString,
+            context.getConfiguration(), context.getScheduledExecutor());
   }
 
   @Override
@@ -73,12 +96,13 @@ public class FateWorker implements FateWorkerService.Iface {
 
     var expectedSet = expected.stream().map(FatePartition::from).collect(Collectors.toSet());
     synchronized (currentPartitions) {
-      if (currentPartitions.equals(expectedSet)) {
+      if (currentPartitions.equals(expectedSet) && fate != null) {
         expectedSet.forEach(p -> log.info("old partition {}", p));
         currentPartitions.clear();
         desired.stream().map(FatePartition::from).forEach(currentPartitions::add);
         desired.stream().map(FatePartition::from).forEach(p -> log.info("new partition {}", p));
         log.info("Changed partitions from {} to {}", expectedSet, currentPartitions);
+        fate.setPartitions(Set.copyOf(currentPartitions));
         return true;
       } else {
         log.info("Did not change partitions to {} because {} != {}", desired, expectedSet,

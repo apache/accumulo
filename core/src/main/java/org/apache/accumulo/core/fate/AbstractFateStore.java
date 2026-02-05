@@ -161,7 +161,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       EnumSet.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
+  public void runnable(Set<FatePartition> partitions, AtomicBoolean keepWaiting,
+      Consumer<FateIdStatus> idConsumer) {
+
+    if(partitions.isEmpty()){
+      return;
+    }
 
     AtomicLong seen = new AtomicLong(0);
 
@@ -169,8 +174,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       final long beforeCount = unreservedRunnableCount.getCount();
       final boolean beforeDeferredOverflow = deferredOverflow.get();
 
-      try (Stream<FateIdStatus> inProgress = getTransactions(IN_PROGRESS_SET);
-          Stream<FateIdStatus> other = getTransactions(OTHER_RUNNABLE_SET)) {
+      try (Stream<FateIdStatus> inProgress = getTransactions(partitions, IN_PROGRESS_SET);
+          Stream<FateIdStatus> other = getTransactions(partitions, OTHER_RUNNABLE_SET)) {
         // read the in progress transaction first and then everything else in order to process those
         // first
         var transactions = Stream.concat(inProgress, other);
@@ -288,6 +293,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   protected abstract Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses);
+
+  protected abstract Stream<FateIdStatus> getTransactions(Set<FatePartition> partitions,
+      EnumSet<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
 

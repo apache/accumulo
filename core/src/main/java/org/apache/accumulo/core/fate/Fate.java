@@ -572,6 +572,13 @@ public class Fate<T> {
     store.close();
   }
 
+  public void setPartitions(Set<FatePartition> partitions){
+    synchronized (fateExecutors) {
+      // TODO would need to set these when executors change...
+      fateExecutors.forEach(fe -> fe.setPartitions(partitions));
+    }
+  }
+
   private boolean anyFateExecutorIsAlive() {
     synchronized (fateExecutors) {
       return fateExecutors.stream().anyMatch(FateExecutor::isAlive);

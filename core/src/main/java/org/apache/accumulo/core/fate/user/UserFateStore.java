@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -281,9 +283,20 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
+    return getTransactions(FatePartition.all(FateInstanceType.USER), statuses);
+  }
+
+  @Override
+  protected Stream<FateIdStatus> getTransactions(Set<FatePartition> partitions,
+      EnumSet<TStatus> statuses) {
+    return partitions.stream().flatMap(p -> getTransactions(p, statuses));
+  }
+
+  private Stream<FateIdStatus> getTransactions(FatePartition partition, EnumSet<TStatus> statuses) {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
-      scanner.setRange(new Range());
+      scanner
+          .setRange(new Range(getRowId(partition.start()), true, getRowId(partition.end()), true));
       RowFateStatusFilter.configureScanner(scanner, statuses);
       // columns fetched here must be in/added to TxAdminColumnFamily for locality group benefits
       TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);

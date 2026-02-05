@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -43,6 +44,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
@@ -81,6 +83,7 @@ public class FateExecutor<T> {
   private final Set<Fate.FateOperation> fateOps;
   private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
   private final FateExecutorMetrics<T> fateExecutorMetrics;
+  private final AtomicReference<Set<FatePartition>> partitions = new AtomicReference<>(Set.of());
 
   public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize,
       String name) {
@@ -298,6 +301,11 @@ public class FateExecutor<T> {
     return idleCountHistory;
   }
 
+  public void setPartitions(Set<FatePartition> partitions) {
+    Objects.requireNonNull(partitions);
+    this.partitions.set(Set.copyOf(partitions));
+  }
+
   /**
    * A single thread that finds transactions to work on and queues them up. Do not want each worker
    * thread going to the store and looking for work as it would place more load on the store.
@@ -308,7 +316,8 @@ public class FateExecutor<T> {
     public void run() {
       while (fate.getKeepRunning().get() && !isShutdown()) {
         try {
-          fate.getStore().runnable(fate.getKeepRunning(), fateIdStatus -> {
+          // TODO
+          fate.getStore().runnable(partitions.get(), fate.getKeepRunning(), fateIdStatus -> {
             // The FateId with the fate operation 'fateOp' is workable by this FateExecutor if
             // 1) This FateExecutor is assigned to work on 'fateOp' ('fateOp' is in 'fateOps')
             // 2) The transaction was cancelled while NEW. This is an edge case that needs to be

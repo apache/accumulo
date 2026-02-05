@@ -70,6 +70,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateCleaner;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
@@ -1275,6 +1276,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
+
+    if(store.type() == FateInstanceType.META){
+      fateInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
+    }// else do not run user transactions for now in the manager... it will have an empty set of partitions
 
     return fateInstance;
   }

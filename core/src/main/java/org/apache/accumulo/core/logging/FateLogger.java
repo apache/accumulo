@@ -23,6 +23,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.FateStore.Seeder;
@@ -140,8 +142,9 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
-        store.runnable(keepWaiting, idConsumer);
+      public void runnable(Set<FatePartition> partitions, AtomicBoolean keepWaiting,
+          Consumer<FateIdStatus> idConsumer) {
+        store.runnable(partitions, keepWaiting, idConsumer);
       }
 
       @Override

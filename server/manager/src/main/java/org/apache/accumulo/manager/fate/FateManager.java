@@ -29,8 +29,8 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
-import org.apache.accumulo.core.fate.thrift.TFatePartition;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -42,17 +42,6 @@ import org.apache.thrift.TException;
 import com.google.common.net.HostAndPort;
 
 public class FateManager {
-
-  record FatePartition(FateId start, FateId end) {
-
-    public TFatePartition toThrift() {
-      return new TFatePartition(start.canonical(), end.canonical());
-    }
-
-    public static FatePartition from(TFatePartition tfp) {
-      return new FatePartition(FateId.from(tfp.start), FateId.from(tfp.stop));
-    }
-  }
 
   private final ServerContext context;
 

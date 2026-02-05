@@ -273,7 +273,8 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
+  public void runnable(Set<FatePartition> partitions, AtomicBoolean keepWaiting,
+      Consumer<FateIdStatus> idConsumer) {
     throw new UnsupportedOperationException();
   }
 

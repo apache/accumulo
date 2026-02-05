@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 
+import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.manager.ManagerWorker;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -56,6 +57,13 @@ public class MultipleManagerIT extends ConfigurableMacBase {
     for (int i = 0; i < 3; i++) {
       managerWorkers.add(exec(ManagerWorker.class));
     }
+
+      try(var client = Accumulo.newClient().from(getClientProperties()).build()){
+        for(int i =0; i<30;i++){
+          client.tableOperations().create("t"+i);
+            log.info("Created table t{}", i);
+        }
+      }
 
     Thread.sleep(30_000);
     System.out.println("DONE");
