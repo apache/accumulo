@@ -48,17 +48,6 @@ public class NextBatchTask extends ScanTask<ScanBatch> {
     }
   }
 
-  private void recordException(SingleScanSession scanSession) {
-    if (scanSession != null && server.getScanMetrics() != null) {
-      String executorName = getExecutorName(scanSession);
-      server.getScanMetrics().incrementExecutorExceptions(executorName);
-    }
-  }
-
-  private String getExecutorName(SingleScanSession scanSession) {
-    return scanSession.scanParams.getScanDispatch().getExecutorName();
-  }
-
   @Override
   public void run() {
 

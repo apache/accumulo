@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.metrics;
 
 import static org.apache.accumulo.core.metrics.MetricsProducer.METRICS_SCAN_EXCEPTIONS;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -117,45 +118,50 @@ public class ScanExecutorExceptionsIT extends ConfigurableMacBase {
       int scanCount = performScanCountingEntries(client, tableName);
       log.info("Regular scan returned {} entries", scanCount);
 
+      boolean regularScanHadExceptions = checkMetricsForExceptions("regular scan");
+      assertTrue(regularScanHadExceptions, "Regular scan should have produced exception metrics");
+
       log.info("Performing batch scan");
       int batchScanCount = performBatchScanCountingEntries(client, tableName);
       log.info("Batch scan returned {} entries", batchScanCount);
 
-      List<String> statsDMetrics;
-      boolean foundMetric = false;
-      long highestExceptionCount = 0;
-      long startTime = System.currentTimeMillis();
-      long timeout = 30_000;
+      boolean batchScanHadExceptions = checkMetricsForExceptions("batch scan");
+      assertTrue(batchScanHadExceptions, "Batch scan should have produced exception metrics");
+    }
+  }
 
-      while (!foundMetric && (System.currentTimeMillis() - startTime) < timeout) {
-        statsDMetrics = sink.getLines();
+  private boolean checkMetricsForExceptions(String scanType) throws InterruptedException {
+    List<String> statsDMetrics;
+    boolean foundMetric = false;
+    long startTime = System.currentTimeMillis();
+    long timeout = 30_000;
 
-        if (!statsDMetrics.isEmpty()) {
-          for (String line : statsDMetrics) {
-            if (line.startsWith(METRICS_SCAN_EXCEPTIONS)) {
+    while (!foundMetric && (System.currentTimeMillis() - startTime) < timeout) {
+      statsDMetrics = sink.getLines();
+
+      if (!statsDMetrics.isEmpty()) {
+        for (String line : statsDMetrics) {
+          if (line.startsWith(METRICS_SCAN_EXCEPTIONS)) {
+            TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
+            String executor = metric.getTags().get("executor");
+            assertNotNull(executor,
+                "Executor tag should always be present in scan exception metrics");
+            long val = Long.parseLong(metric.getValue());
+            if (val > 0) {
               foundMetric = true;
-              TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
-              String executor = metric.getTags().get("executor");
-              if (executor != null) {
-                long val = Long.parseLong(metric.getValue());
-                highestExceptionCount = Math.max(highestExceptionCount, val);
-                log.info("Found scan exception metric for executor '{}': {}", executor, val);
-              }
+              log.info("Found {} scan exception metric for executor '{}': {}", scanType, executor,
+                  val);
             }
           }
         }
-
-        if (!foundMetric) {
-          Thread.sleep(1_000);
-        }
       }
 
-      log.info("Final exception count from metrics: {}", highestExceptionCount);
-
-      assertTrue(foundMetric, "Should have found scan exception metric");
-      assertTrue(highestExceptionCount > 0,
-          "Scan exception metric should have a count > 0, but was: " + highestExceptionCount);
+      if (!foundMetric) {
+        Thread.sleep(1_000);
+      }
     }
+
+    return foundMetric;
   }
 
   private int performScanCountingEntries(AccumuloClient client, String table) {
