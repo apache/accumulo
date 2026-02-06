@@ -112,6 +112,7 @@ import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
+import org.apache.accumulo.manager.split.SplitFileCache;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -558,10 +559,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   private Splitter splitter;
+  private SplitFileCache splitFileCache;
 
-  @Override
   public Splitter getSplitter() {
     return splitter;
+  }
+
+  @Override
+  public SplitFileCache getSplitFileCache() {
+    return splitFileCache;
   }
 
   public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
@@ -1119,6 +1125,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     this.splitter = new Splitter(this);
     this.splitter.start();
+    this.splitFileCache = new SplitFileCache(context);
 
     try {
       Predicate<ZooUtil.LockID> isLockHeld =

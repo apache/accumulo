@@ -111,7 +111,7 @@ public class UpdateTablets extends AbstractFateOperation {
     var newTablets = splitInfo.getTablets();
 
     var newTabletsFiles = getNewTabletFiles(fateId, newTablets, tabletMetadata,
-        file -> env.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
+        file -> env.getSplitFileCache().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
 
     addNewTablets(fateId, env, tabletMetadata, opid, newTablets, newTabletsFiles);
 
