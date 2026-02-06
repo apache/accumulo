@@ -25,8 +25,6 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -124,8 +122,8 @@ public class CheckForMetadataProblems {
     Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
     boolean sawProblems = false;
 
-    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build();
-        Scanner scanner = client.createScanner(tableNameToCheck, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        opts.getServerContext().createScanner(tableNameToCheck, Authorizations.EMPTY)) {
 
       scanner.setRange(TabletsSection.getRange());
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

@@ -18,20 +18,17 @@
  */
 package org.apache.accumulo.server.cli;
 
-import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 
-public class ServerUtilOpts extends ClientOpts {
+public class ServerUtilOpts extends Help {
 
   private ServerContext context;
 
   public synchronized ServerContext getServerContext() {
     if (context == null) {
-      context = getClientConfigFile() == null ? new ServerContext(SiteConfiguration.auto())
-          : ServerContext.withClientInfo(SiteConfiguration.auto(),
-              ClientInfo.from(getClientProps()));
+      context = new ServerContext(SiteConfiguration.auto());
     }
     return context;
   }
