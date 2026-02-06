@@ -1285,7 +1285,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
 
     if (store.type() == FateInstanceType.META) {
-      fateInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
+      fateInstance.setPartitions(Set.of(), Set.of(FatePartition.all(FateInstanceType.META)));
     } // else do not run user transactions for now in the manager... it will have an empty set of
       // partitions
 

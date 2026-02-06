@@ -81,7 +81,7 @@ public class FateManager {
         Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
         if (!Sets.difference(curr, partitions).isEmpty()) {
-          // This worker has extra partitions that are not desired, unload those
+          // This worker has extra partitions that are not desired
           var intersection = Sets.intersection(curr, partitions);
           if (!setWorkerPartitions(worker, curr, intersection)) {
             log.debug("Failed to set partitions for {} to {}", worker, intersection);

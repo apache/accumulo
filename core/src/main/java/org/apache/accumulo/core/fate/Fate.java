@@ -224,7 +224,8 @@ public class Fate<T> {
               fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
             log.debug("[{}] Adding FateExecutor for {} with {} threads", store.type(), fateOps,
                 poolSize);
-            var fateExecutor = new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName);
+            var fateExecutor =
+                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName);
             fateExecutors.add(fateExecutor);
             fateExecutor.setPartitions(currentPartitions);
           }
@@ -575,11 +576,23 @@ public class Fate<T> {
     store.close();
   }
 
-  public void setPartitions(Set<FatePartition> partitions) {
+  public Set<FatePartition> getPartitions() {
+    synchronized (fateExecutors) {
+      return currentPartitions;
+    }
+  }
+
+  public boolean setPartitions(Set<FatePartition> expected, Set<FatePartition> partitions) {
+    Objects.requireNonNull(expected);
     Objects.requireNonNull(partitions);
     synchronized (fateExecutors) {
-      currentPartitions = Set.copyOf(partitions);
-      fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
+      if (currentPartitions.equals(expected)) {
+        currentPartitions = Set.copyOf(partitions);
+        fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
+        return true;
+      } else {
+        return false;
+      }
     }
   }
 

@@ -80,8 +80,11 @@ public class FateWorker implements FateWorkerService.Iface {
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    synchronized (currentPartitions) {
-      return currentPartitions.stream().map(FatePartition::toThrift).toList();
+    var localFate = fate;
+    if (localFate == null) {
+      return List.of();
+    } else {
+      return localFate.getPartitions().stream().map(FatePartition::toThrift).toList();
     }
   }
 
@@ -93,21 +96,17 @@ public class FateWorker implements FateWorkerService.Iface {
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    var expectedSet = expected.stream().map(FatePartition::from).collect(Collectors.toSet());
-    synchronized (currentPartitions) {
-      if (currentPartitions.equals(expectedSet) && fate != null) {
-        expectedSet.forEach(p -> log.info("old partition {}", p));
-        currentPartitions.clear();
-        desired.stream().map(FatePartition::from).forEach(currentPartitions::add);
-        desired.stream().map(FatePartition::from).forEach(p -> log.info("new partition {}", p));
-        log.info("Changed partitions from {} to {}", expectedSet, currentPartitions);
-        fate.setPartitions(Set.copyOf(currentPartitions));
+    var localFate = fate;
+    if (localFate != null) {
+      var expectedSet = expected.stream().map(FatePartition::from).collect(Collectors.toSet());
+      var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
+      if (localFate.setPartitions(expectedSet, desiredSet)) {
+        log.info("Changed partitions from {} to {}", expectedSet, desiredSet);
         return true;
-      } else {
-        log.info("Did not change partitions to {} because {} != {}", desired, expectedSet,
-            currentPartitions);
-        return false;
       }
     }
+
+    log.info("Did not change partitions to {}", desired);
+    return false;
   }
 }
