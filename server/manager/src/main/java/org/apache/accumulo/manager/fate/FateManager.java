@@ -40,8 +40,15 @@ import org.apache.hadoop.util.Sets;
 import org.apache.thrift.TException;
 
 import com.google.common.net.HostAndPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+/**
+ * Partitions fate across manager assistant processes.  This is done by assigning ranges of the fate uuid key space to different processes.
+ */
 public class FateManager {
+
+  private static final Logger log = LoggerFactory.getLogger(FateManager.class);
 
   private final ServerContext context;
 
@@ -50,7 +57,7 @@ public class FateManager {
   }
 
   public void managerWorkers() throws Exception {
-    while (true) {
+    outer : while (true) {
       // TODO make configurable
       Thread.sleep(10_000);
 
@@ -61,8 +68,8 @@ public class FateManager {
 
       // TODO handle duplicate current assignments
 
-      System.out.println("current : " + currentAssignments);
-      System.out.println("desired : " + desiredParititions);
+        log.info("current : {}", currentAssignments);
+        log.info("desired : {}", desiredParititions);
 
       Map<HostAndPort,Set<FatePartition>> desired =
           computeDesiredAssignments(currentAssignments, desiredParititions);
@@ -83,7 +90,11 @@ public class FateManager {
           var curr = currentAssignments.getOrDefault(worker, Set.of());
           if (!curr.equals(partitions)) {
             var intersection = Sets.intersection(curr, partitions);
-            setWorkerPartitions(worker, curr, intersection);
+            if(!setWorkerPartitions(worker, curr, intersection)){
+              log.debug("Failed to set partitions for {} to {}", worker, intersection);
+              // could not set, so start completely over
+              continue outer;
+            }
             currentAssignments.put(worker, intersection);
           }
         }
@@ -95,19 +106,23 @@ public class FateManager {
         Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
         if (!curr.equals(partitions)) {
-          setWorkerPartitions(worker, curr, partitions);
+          if(!setWorkerPartitions(worker, curr, partitions)){
+            log.debug("Failed to set partitions for {} to {}", worker, partitions);
+            // could not set, so start completely over
+            continue outer;
+          }
         }
       }
     }
   }
 
-  private void setWorkerPartitions(HostAndPort address, Set<FatePartition> current,
+  private boolean setWorkerPartitions(HostAndPort address, Set<FatePartition> current,
       Set<FatePartition> desired) throws TException {
     // TODO make a compare and set type RPC that uses the current and desired
     FateWorkerService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
     try {
-      client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(),
+      return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(),
           current.stream().map(FatePartition::toThrift).toList(),
           desired.stream().map(FatePartition::toThrift).toList());
     } finally {
@@ -137,12 +152,12 @@ public class FateManager {
     // remove everything that is assigned
     currentAssignments.values().forEach(p -> p.forEach(availablePartitions::remove));
 
-    System.out.println("currentAssignments.size():" + currentAssignments.size());
-    System.out.println("desiredParititions.size():" + desiredParititions.size());
-    System.out.println("minPerWorker:" + minPerWorker);
-    System.out.println("maxPerWorker:" + maxPerWorker);
-    System.out.println("desiredWorkersWithMax:" + desiredWorkersWithMax);
-    System.out.println("availablePartitions:" + availablePartitions);
+      log.debug("currentAssignments.size():{}", currentAssignments.size());
+      log.debug("desiredParititions.size():{}", desiredParititions.size());
+      log.debug("minPerWorker:{}", minPerWorker);
+      log.debug("maxPerWorker:{}", maxPerWorker);
+      log.debug("desiredWorkersWithMax:{}", desiredWorkersWithMax);
+      log.debug("availablePartitions:{}", availablePartitions);
 
     // Find workers that currently have too many partitions assigned and place their excess in the
     // available set. Let workers keep what they have when its under the limit.
@@ -189,7 +204,7 @@ public class FateManager {
     }
 
     desiredAssignments.forEach((hp, parts) -> {
-      System.out.println(" desired " + hp + " " + parts.size() + " " + parts);
+      log.debug(" desired " + hp + " " + parts.size() + " " + parts);
     });
 
     return desiredAssignments;
@@ -212,7 +227,7 @@ public class FateManager {
     var workers =
         context.getServerPaths().getManagerWorker(DEFAULT_RG_ONLY, AddressSelector.all(), true);
 
-    System.out.println("workers : " + workers);
+    log.debug("workers : " + workers);
 
     Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
 

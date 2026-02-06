@@ -44,6 +44,9 @@ import org.apache.thrift.TProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * An assistant to the manager
+ */
 public class ManagerWorker extends AbstractServer {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerWorker.class);

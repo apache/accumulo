@@ -35,7 +35,6 @@ import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.accumulo.core.fate.thrift.TFatePartition;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -55,7 +54,6 @@ public class FateWorker implements FateWorkerService.Iface {
   private final Set<FatePartition> currentPartitions;
   private volatile Fate<FateEnv> fate;
 
-
   public FateWorker(ServerContext ctx, Supplier<ServiceLock> serviceLockSupplier) {
     this.context = ctx;
     this.security = ctx.getSecurityOperation();
@@ -63,14 +61,13 @@ public class FateWorker implements FateWorkerService.Iface {
     this.fate = null;
   }
 
-  public void setLock(ServiceLock lock){
+  public void setLock(ServiceLock lock) {
     FateEnv env = new FateWorkerEnv(context, lock);
-    Predicate<ZooUtil.LockID> isLockHeld =
-            l -> ServiceLock.isLockHeld(context.getZooCache(), l);
-    UserFateStore<FateEnv> store = new UserFateStore<>(context,
-            SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
-    this.fate = new Fate<>(env, store, false, TraceRepo::toLogString,
-            context.getConfiguration(), context.getScheduledExecutor());
+    Predicate<ZooUtil.LockID> isLockHeld = l -> ServiceLock.isLockHeld(context.getZooCache(), l);
+    UserFateStore<FateEnv> store =
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
+    this.fate = new Fate<>(env, store, false, TraceRepo::toLogString, context.getConfiguration(),
+        context.getScheduledExecutor());
     // TODO where will the 2 fate cleanup task run?
 
   }

@@ -572,7 +572,7 @@ public class Fate<T> {
     store.close();
   }
 
-  public void setPartitions(Set<FatePartition> partitions){
+  public void setPartitions(Set<FatePartition> partitions) {
     synchronized (fateExecutors) {
       // TODO would need to set these when executors change...
       fateExecutors.forEach(fe -> fe.setPartitions(partitions));

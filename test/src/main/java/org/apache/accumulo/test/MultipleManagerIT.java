@@ -18,16 +18,26 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.manager.ManagerWorker;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class MultipleManagerIT extends ConfigurableMacBase {
@@ -58,12 +68,50 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       managerWorkers.add(exec(ManagerWorker.class));
     }
 
-      try(var client = Accumulo.newClient().from(getClientProperties()).build()){
-        for(int i =0; i<30;i++){
-          client.tableOperations().create("t"+i);
-            log.info("Created table t{}", i);
-        }
+    try (var client = Accumulo.newClient().from(getClientProperties()).build()) {
+      var splits = IntStream.range(1, 10).mapToObj(i -> String.format("%03d", i)).map(Text::new)
+          .collect(Collectors.toCollection(TreeSet::new));
+      var tableOpFutures = new ArrayList<Future<?>>();
+      for (int i = 0; i < 30; i++) {
+        var table = "t" + i;
+        // TODO seeing in the logs that fate operations for the same table are running on different processes, however there is a 5 second delay because there is no notification mechanism
+
+        // TODO its hard to find everything related to a table id in the logs, especially when the table id is like "b"
+        var tableOpsFuture = executor.submit(() -> {
+          client.tableOperations().create(table);
+          log.info("Created table {}", table);
+          var expectedRows = new HashSet<String>();
+          try (var writer = client.createBatchWriter(table)) {
+            for (int r = 0; r < 10; r++) {
+              var row = String.format("%03d", r);
+              expectedRows.add(row);
+              Mutation m = new Mutation(row);
+              m.put("f", "q", "v");
+              writer.addMutation(m);
+            }
+          }
+          log.info("Wrote data to table {}", table);
+          client.tableOperations().addSplits(table, splits);
+          log.info("Split table {}", table); // TODO split operation does not log table id and fate opid anywhere
+          client.tableOperations().compact(table, new CompactionConfig().setWait(true));
+          log.info("Compacted table {}", table);
+          client.tableOperations().merge(table, null, null);
+          log.info("Merged table {}", table);
+          try (var scanner = client.createScanner(table)) {
+            var rowsSeen = scanner.stream().map(e -> e.getKey().getRowData().toString())
+                .collect(Collectors.toSet());
+            assertEquals(expectedRows, rowsSeen);
+            log.info("verified table {}", table);
+          }
+          return null;
+        });
+        tableOpFutures.add(tableOpsFuture);
       }
+
+      for(var tof : tableOpFutures){
+        tof.get();
+      }
+    }
 
     Thread.sleep(30_000);
     System.out.println("DONE");

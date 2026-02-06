@@ -164,7 +164,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   public void runnable(Set<FatePartition> partitions, AtomicBoolean keepWaiting,
       Consumer<FateIdStatus> idConsumer) {
 
-    if(partitions.isEmpty()){
+    if (partitions.isEmpty()) {
       return;
     }
 
