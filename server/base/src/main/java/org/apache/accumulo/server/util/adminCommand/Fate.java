@@ -83,6 +83,11 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(Fate.class);
 
+  // This only exists because it is called from ITs
+  public static void main(String[] args) throws Exception {
+    new Fate().execute(args);
+  }
+
   /**
    * Wrapper around the fate stores
    */

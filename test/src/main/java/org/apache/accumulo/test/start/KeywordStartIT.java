@@ -164,7 +164,7 @@ public class KeywordStartIT {
     assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
     SortedSet<CommandInfo> expectSet = new TreeSet<>();
     expectSet.add(new CommandInfo(UsageGroup.ADMIN, "change-secret", ChangeSecret.class));
-    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "check-server", CheckServer.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "check", CheckServer.class));
     expectSet.add(
         new CommandInfo(UsageGroup.OTHER, "check-compaction-config", CheckCompactionConfig.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "check-accumulo-properties",
@@ -261,6 +261,7 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(CheckCompactionConfig.class);
+    expectSet.add(CheckServer.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(CreateToken.class);
     expectSet.add(DumpConfig.class);
@@ -268,6 +269,7 @@ public class KeywordStartIT {
     expectSet.add(GenerateSplits.class);
     expectSet.add(Info.class);
     expectSet.add(Initialize.class);
+    expectSet.add(Fate.class);
     expectSet.add(LogReader.class);
     expectSet.add(LoginProperties.class);
     expectSet.add(MiniAccumuloRunner.class);
