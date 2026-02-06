@@ -547,7 +547,7 @@ public class Admin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
       } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
-        VerifyTabletAssignments.execute(opts.getClientProps(), verifyTabletAssignmentsOpts.verbose);
+        VerifyTabletAssignments.execute(context, verifyTabletAssignmentsOpts.verbose);
       } else if (cl.getParsedCommand().equals("changeSecret")) {
         ChangeSecret.execute(context, conf);
       } else if (cl.getParsedCommand().equals("deleteZooInstance")) {
