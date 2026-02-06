@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
@@ -142,7 +142,7 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(Set<FatePartition> partitions, AtomicBoolean keepWaiting,
+      public void runnable(Set<FatePartition> partitions, BooleanSupplier keepWaiting,
           Consumer<FateIdStatus> idConsumer) {
         store.runnable(partitions, keepWaiting, idConsumer);
       }

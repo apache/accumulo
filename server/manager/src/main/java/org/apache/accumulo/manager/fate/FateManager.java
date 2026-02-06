@@ -47,7 +47,8 @@ import com.google.common.net.HostAndPort;
 
 /**
  * Partitions fate across manager assistant processes. This is done by assigning ranges of the fate
- * uuid key space to different processes.
+ * uuid key space to different processes. The partitions are logical and do not correspond to the
+ * physical partitioning of the fate table.
  */
 public class FateManager {
 
@@ -163,6 +164,10 @@ public class FateManager {
     return desiredAssignments;
   }
 
+  /**
+   * Computes a single partition for each worker such that the partition cover all possible UUIDs
+   * and evenly divide the UUIDs.
+   */
   private Set<FatePartition> getDesiredPartitions(int numWorkers) {
     Preconditions.checkArgument(numWorkers >= 0);
 
@@ -184,9 +189,9 @@ public class FateManager {
           FateId.from(FateInstanceType.USER, endUuid)));
     }
 
-    // last one is
     long start = ((numWorkers - 1) * jump) << 4;
     UUID startUuid = new UUID(start, 0);
+    // last partition has a special end uuid that is all f nibbles.
     UUID endUuid = new UUID(-1, -1);
     desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
         FateId.from(FateInstanceType.USER, endUuid)));

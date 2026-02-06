@@ -45,6 +45,7 @@ import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
@@ -316,8 +317,12 @@ public class FateExecutor<T> {
     public void run() {
       while (fate.getKeepRunning().get() && !isShutdown()) {
         try {
-          // TODO
-          fate.getStore().runnable(partitions.get(), fate.getKeepRunning(), fateIdStatus -> {
+          var localPartitions = partitions.get();
+          // if the set of partitions changes, we should stop looking for work w/ the old set of
+          // partitions
+          BooleanSupplier keepRunning =
+              () -> fate.getKeepRunning().get() && localPartitions == partitions.get();
+          fate.getStore().runnable(localPartitions, keepRunning, fateIdStatus -> {
             // The FateId with the fate operation 'fateOp' is workable by this FateExecutor if
             // 1) This FateExecutor is assigned to work on 'fateOp' ('fateOp' is in 'fateOps')
             // 2) The transaction was cancelled while NEW. This is an edge case that needs to be
@@ -328,7 +333,7 @@ public class FateExecutor<T> {
             var fateOp = fateIdStatus.getFateOperation().orElse(null);
             if ((fateOp != null && fateOps.contains(fateOp))
                 || txCancelledWhileNew(status, fateOp)) {
-              while (fate.getKeepRunning().get() && !isShutdown()) {
+              while (keepRunning.getAsBoolean() && !isShutdown()) {
                 try {
                   // The reason for calling transfer instead of queueing is avoid rescanning the
                   // storage layer and adding the same thing over and over. For example if all

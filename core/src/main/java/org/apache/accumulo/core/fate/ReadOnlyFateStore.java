@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -164,7 +164,7 @@ public interface ReadOnlyFateStore<T> {
    * is found or until the keepWaiting parameter is false. It will return once all runnable ids
    * found were passed to the consumer.
    */
-  void runnable(Set<FatePartition> partitions, AtomicBoolean keepWaiting,
+  void runnable(Set<FatePartition> partitions, BooleanSupplier keepWaiting,
       Consumer<FateIdStatus> idConsumer);
 
   /**

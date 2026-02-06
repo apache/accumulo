@@ -51,12 +51,14 @@ public class MultipleManagerIT extends ConfigurableMacBase {
   public void test() throws Exception {
 
     List<Process> managerWorkers = new ArrayList<>();
+    // start two fate workers initially
     for (int i = 0; i < 2; i++) {
       managerWorkers.add(exec(ManagerWorker.class));
     }
 
     var executor = Executors.newCachedThreadPool();
 
+    // This assigns fate partitions to fate worker processes, run it in a background thread.
     var fateMgr = new FateManager(getServerContext());
     var future = executor.submit(() -> {
       fateMgr.managerWorkers();
@@ -64,6 +66,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
     });
 
     Thread.sleep(30_000);
+    // start more fate workers, should see the partitions be shuffled eventually
     for (int i = 0; i < 3; i++) {
       managerWorkers.add(exec(ManagerWorker.class));
     }
@@ -76,9 +79,11 @@ public class MultipleManagerIT extends ConfigurableMacBase {
         var table = "t" + i;
         // TODO seeing in the logs that fate operations for the same table are running on different
         // processes, however there is a 5 second delay because there is no notification mechanism
+        // currently.
 
         // TODO its hard to find everything related to a table id in the logs, especially when the
-        // table id is like "b"
+        // table id is like "b". Was tring to follow a single table across multiple manager workers
+        // processes.
         var tableOpsFuture = executor.submit(() -> {
           client.tableOperations().create(table);
           log.info("Created table {}", table);
