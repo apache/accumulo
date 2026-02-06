@@ -65,6 +65,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.gson.JsonParser;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -585,6 +586,11 @@ public class Fate<T> {
   public boolean setPartitions(Set<FatePartition> expected, Set<FatePartition> partitions) {
     Objects.requireNonNull(expected);
     Objects.requireNonNull(partitions);
+    Preconditions.checkArgument(
+        partitions.stream().allMatch(
+            fp -> fp.start().getType() == store.type() && fp.end().getType() == store.type()),
+        "type mismatch type:%s partitions:%s", store.type(), partitions);
+
     synchronized (fateExecutors) {
       if (currentPartitions.equals(expected)) {
         currentPartitions = Set.copyOf(partitions);

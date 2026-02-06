@@ -113,6 +113,19 @@ public class FateManager {
     }
   }
 
+  /**
+   * Sets the complete set of partitions a server should work on. It will only succeed if the
+   * current set we pass in matches the severs actual current set of partitions. Passing the current
+   * set avoids some race conditions w/ previously queued network messages, it's a distributed
+   * compare and set mechanism that can detect changes.
+   *
+   * @param address The server to set partitions on
+   * @param current What we think the servers current set of fate partitions are.
+   * @param desired The new set of fate partitions this server should start working. It should only
+   *        work on these and nothing else.
+   * @return true if the partitions were set false if they were not set.
+   * @throws TException
+   */
   private boolean setWorkerPartitions(HostAndPort address, Set<FatePartition> current,
       Set<FatePartition> desired) throws TException {
     // TODO make a compare and set type RPC that uses the current and desired
@@ -177,6 +190,10 @@ public class FateManager {
 
     // create a single partition per worker that equally divides the space
     HashSet<FatePartition> desired = new HashSet<>();
+    // All the shifting is because java does not have unsigned integers. Want to evenly partition
+    // [0,2^64) into numWorker ranges, but can not directly do that. Work w/ 60 bit unsigned
+    // integers to partition the space and then shift over by 4. Used 60 bits instead of 63 so it
+    // nicely aligns w/ hex in the uuid.
     long jump = ((1L << 60)) / numWorkers;
     for (int i = 0; i < numWorkers - 1; i++) {
       long start = (i * jump) << 4;
