@@ -179,9 +179,9 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-prop-editor", ZooPropEditor.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-zap", ZooZap.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "zookeeper", ZooKeeperMain.class));
-    expectSet.add(new CommandInfo(UsageGroup.OTHER, "cancel-compaction", CancelCompaction.class));
-    expectSet.add(new CommandInfo(UsageGroup.OTHER, "list-compactors", ListCompactors.class));
-    expectSet.add(new CommandInfo(UsageGroup.OTHER, "list-compactions", ListCompactions.class));
+    expectSet.add(new CommandInfo(UsageGroup.COMPACTION, "cancel", CancelCompaction.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "list-compactors", ListCompactors.class));
+    expectSet.add(new CommandInfo(UsageGroup.COMPACTION, "list", ListCompactions.class));
 
     Map<UsageGroup,Map<String,KeywordExecutable>> actualExecutables =
         new TreeMap<>(getKeywordExecutables());
