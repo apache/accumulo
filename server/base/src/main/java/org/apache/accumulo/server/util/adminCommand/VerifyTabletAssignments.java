@@ -26,13 +26,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.Range;
@@ -56,6 +53,7 @@ import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.VerifyTabletAssignments.VerifyTabletAssignmentsOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -102,15 +100,12 @@ public class VerifyTabletAssignments extends ServerKeywordExecutable<VerifyTable
 
   @Override
   public void execute(JCommander cl, VerifyTabletAssignmentsOpts options) throws Exception {
-    execute(options.getClientProps(), options.verbose);
-  }
-
-  private void execute(Properties clientProps, boolean verbose) throws Exception {
+    ServerContext context = options.getServerContext();
     Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
-        for (String table : client.tableOperations().list()) {
-          checkTable((ClientContext) client, verbose, table, null);
+      try {
+        for (String table : context.tableOperations().list()) {
+          checkTable(context, options.verbose, table, null);
         }
       } finally {
         span.end();
