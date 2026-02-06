@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -36,15 +37,17 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.util.Sets;
 import org.apache.thrift.TException;
-
-import com.google.common.net.HostAndPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
+
 /**
- * Partitions fate across manager assistant processes.  This is done by assigning ranges of the fate uuid key space to different processes.
+ * Partitions fate across manager assistant processes. This is done by assigning ranges of the fate
+ * uuid key space to different processes.
  */
 public class FateManager {
 
@@ -56,47 +59,38 @@ public class FateManager {
     this.context = context;
   }
 
+  // TODO remove, here for testing
+  public static final AtomicBoolean stop = new AtomicBoolean(false);
+
   public void managerWorkers() throws Exception {
-    outer : while (true) {
+    outer: while (!stop.get()) {
       // TODO make configurable
-      Thread.sleep(10_000);
+      Thread.sleep(3_000);
 
       // TODO could support RG... could user ServerId
       // This map will contain all current workers even their partitions are empty
       Map<HostAndPort,Set<FatePartition>> currentAssignments = getCurrentAssignments();
-      Set<FatePartition> desiredParititions = getDesiredPartitions();
-
-      // TODO handle duplicate current assignments
-
-        log.info("current : {}", currentAssignments);
-        log.info("desired : {}", desiredParititions);
+      Set<FatePartition> desiredParititions = getDesiredPartitions(currentAssignments.size());
 
       Map<HostAndPort,Set<FatePartition>> desired =
           computeDesiredAssignments(currentAssignments, desiredParititions);
 
       // are there any workers with extra partitions? If so need to unload those first.
-      boolean haveExtra = desired.entrySet().stream().anyMatch(e -> {
-        HostAndPort worker = e.getKey();
+      for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+        HostAndPort worker = entry.getKey();
+        Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
-        var extra = Sets.difference(curr, e.getValue());
-        return !extra.isEmpty();
-      });
-
-      if (haveExtra) {
-        // force unload of extra partitions to make them available for other workers
-        for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
-          HostAndPort worker = entry.getKey();
-          Set<FatePartition> partitions = entry.getValue();
-          var curr = currentAssignments.getOrDefault(worker, Set.of());
-          if (!curr.equals(partitions)) {
-            var intersection = Sets.intersection(curr, partitions);
-            if(!setWorkerPartitions(worker, curr, intersection)){
-              log.debug("Failed to set partitions for {} to {}", worker, intersection);
-              // could not set, so start completely over
-              continue outer;
-            }
-            currentAssignments.put(worker, intersection);
+        if (!Sets.difference(curr, partitions).isEmpty()) {
+          // This worker has extra partitions that are not desired, unload those
+          var intersection = Sets.intersection(curr, partitions);
+          if (!setWorkerPartitions(worker, curr, intersection)) {
+            log.debug("Failed to set partitions for {} to {}", worker, intersection);
+            // could not set, so start completely over
+            continue outer;
+          } else {
+            log.debug("Set partitions for {} to {} from {}", worker, intersection, curr);
           }
+          currentAssignments.put(worker, intersection);
         }
       }
 
@@ -106,10 +100,12 @@ public class FateManager {
         Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
         if (!curr.equals(partitions)) {
-          if(!setWorkerPartitions(worker, curr, partitions)){
+          if (!setWorkerPartitions(worker, curr, partitions)) {
             log.debug("Failed to set partitions for {} to {}", worker, partitions);
             // could not set, so start completely over
             continue outer;
+          } else {
+            log.debug("Set partitions for {} to {} from {}", worker, partitions, curr);
           }
         }
       }
@@ -137,71 +133,28 @@ public class FateManager {
   private Map<HostAndPort,Set<FatePartition>> computeDesiredAssignments(
       Map<HostAndPort,Set<FatePartition>> currentAssignments,
       Set<FatePartition> desiredParititions) {
-    // min number of partitions a single worker must have
-    int minPerWorker = desiredParititions.size() / currentAssignments.size();
-    // max number of partitions a single worker can have
-    int maxPerWorker =
-        minPerWorker + Math.min(desiredParititions.size() % currentAssignments.size(), 1);
-    // number of workers that can have the max partitions
-    int desiredWorkersWithMax =
-        desiredParititions.size() - minPerWorker * currentAssignments.size();
 
+    Preconditions.checkArgument(currentAssignments.size() == desiredParititions.size());
     Map<HostAndPort,Set<FatePartition>> desiredAssignments = new HashMap<>();
-    Set<FatePartition> availablePartitions = new HashSet<>(desiredParititions);
 
-    // remove everything that is assigned
-    currentAssignments.values().forEach(p -> p.forEach(availablePartitions::remove));
+    var copy = new HashSet<>(desiredParititions);
 
-      log.debug("currentAssignments.size():{}", currentAssignments.size());
-      log.debug("desiredParititions.size():{}", desiredParititions.size());
-      log.debug("minPerWorker:{}", minPerWorker);
-      log.debug("maxPerWorker:{}", maxPerWorker);
-      log.debug("desiredWorkersWithMax:{}", desiredWorkersWithMax);
-      log.debug("availablePartitions:{}", availablePartitions);
-
-    // Find workers that currently have too many partitions assigned and place their excess in the
-    // available set. Let workers keep what they have when its under the limit.
-    int numWorkersWithMax = 0;
-    for (var worker : currentAssignments.keySet()) {
-      var assignments = new HashSet<FatePartition>();
-      var curr = currentAssignments.getOrDefault(worker, Set.of());
-      // The number of partitions this worker can have, anything in excess should be added to
-      // available
-      int canHave = numWorkersWithMax < desiredWorkersWithMax ? maxPerWorker : minPerWorker;
-
-      var iter = curr.iterator();
-      for (int i = 0; i < canHave && iter.hasNext(); i++) {
-        assignments.add(iter.next());
+    currentAssignments.forEach((hp, partitions) -> {
+      if (!partitions.isEmpty()) {
+        var firstPart = partitions.iterator().next();
+        if (copy.contains(firstPart)) {
+          desiredAssignments.put(hp, Set.of(firstPart));
+          copy.remove(firstPart);
+        }
       }
-      iter.forEachRemaining(availablePartitions::add);
+    });
 
-      desiredAssignments.put(worker, assignments);
-      if (curr.size() >= maxPerWorker) {
-        numWorkersWithMax++;
+    var iter = copy.iterator();
+    currentAssignments.forEach((hp, partitions) -> {
+      if (!desiredAssignments.containsKey(hp)) {
+        desiredAssignments.put(hp, Set.of(iter.next()));
       }
-    }
-
-    // Distribute available partitions to workers that do not have the minimum.
-    var availIter = availablePartitions.iterator();
-    for (var worker : currentAssignments.keySet()) {
-      var assignments = desiredAssignments.get(worker);
-      while (assignments.size() < minPerWorker) {
-        // This should always have next if the creation of available partitions was done correctly.
-        assignments.add(availIter.next());
-      }
-    }
-
-    // Distribute available partitions to workers that do not have the max until no more partitions
-    // available.
-    for (var worker : currentAssignments.keySet()) {
-      var assignments = desiredAssignments.get(worker);
-      while (assignments.size() < maxPerWorker && availIter.hasNext()) {
-        assignments.add(availIter.next());
-      }
-      if (!availIter.hasNext()) {
-        break;
-      }
-    }
+    });
 
     desiredAssignments.forEach((hp, parts) -> {
       log.debug(" desired " + hp + " " + parts.size() + " " + parts);
@@ -210,15 +163,33 @@ public class FateManager {
     return desiredAssignments;
   }
 
-  private Set<FatePartition> getDesiredPartitions() {
-    HashSet<FatePartition> desired = new HashSet<>();
-    // TODO created based on the number of available servers
-    for (long i = 0; i <= 15; i++) {
-      UUID start = new UUID((i << 60), -0);
-      UUID stop = new UUID((i << 60) | (-1L >>> 4), -1);
-      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, start),
-          FateId.from(FateInstanceType.USER, stop)));
+  private Set<FatePartition> getDesiredPartitions(int numWorkers) {
+    Preconditions.checkArgument(numWorkers >= 0);
+
+    if (numWorkers == 0) {
+      return Set.of();
     }
+
+    // create a single partition per worker that equally divides the space
+    HashSet<FatePartition> desired = new HashSet<>();
+    long jump = ((1L << 60)) / numWorkers;
+    for (int i = 0; i < numWorkers - 1; i++) {
+      long start = (i * jump) << 4;
+      long end = ((i + 1) * jump) << 4;
+
+      UUID startUuid = new UUID(start, 0);
+      UUID endUuid = new UUID(end, 0);
+
+      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
+          FateId.from(FateInstanceType.USER, endUuid)));
+    }
+
+    // last one is
+    long start = ((numWorkers - 1) * jump) << 4;
+    UUID startUuid = new UUID(start, 0);
+    UUID endUuid = new UUID(-1, -1);
+    desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
+        FateId.from(FateInstanceType.USER, endUuid)));
 
     return desired;
   }

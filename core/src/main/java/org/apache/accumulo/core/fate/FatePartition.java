@@ -46,7 +46,18 @@ public record FatePartition(FateId start, FateId end) {
     };
   }
 
+  private static final UUID LAST_UUID = new UUID(-1, -1);
+
+  public boolean isEndInclusive() {
+    return end.getTxUUID().equals(LAST_UUID);
+  }
+
   public boolean contains(FateId fateId) {
-    return start.compareTo(fateId) >= 0 && end.compareTo(fateId) <= 0;
+    if (isEndInclusive()) {
+      return start.compareTo(fateId) >= 0 && end.compareTo(fateId) <= 0;
+    } else {
+      return start.compareTo(fateId) >= 0 && end.compareTo(fateId) < 0;
+    }
+
   }
 }

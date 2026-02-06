@@ -295,8 +295,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   private Stream<FateIdStatus> getTransactions(FatePartition partition, EnumSet<TStatus> statuses) {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
-      scanner
-          .setRange(new Range(getRowId(partition.start()), true, getRowId(partition.end()), true));
+      var range = new Range(getRowId(partition.start()), true, getRowId(partition.end()),
+          partition.isEndInclusive());
+      scanner.setRange(range);
       RowFateStatusFilter.configureScanner(scanner, statuses);
       // columns fetched here must be in/added to TxAdminColumnFamily for locality group benefits
       TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);

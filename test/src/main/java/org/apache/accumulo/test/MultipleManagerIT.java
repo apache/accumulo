@@ -74,9 +74,11 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       var tableOpFutures = new ArrayList<Future<?>>();
       for (int i = 0; i < 30; i++) {
         var table = "t" + i;
-        // TODO seeing in the logs that fate operations for the same table are running on different processes, however there is a 5 second delay because there is no notification mechanism
+        // TODO seeing in the logs that fate operations for the same table are running on different
+        // processes, however there is a 5 second delay because there is no notification mechanism
 
-        // TODO its hard to find everything related to a table id in the logs, especially when the table id is like "b"
+        // TODO its hard to find everything related to a table id in the logs, especially when the
+        // table id is like "b"
         var tableOpsFuture = executor.submit(() -> {
           client.tableOperations().create(table);
           log.info("Created table {}", table);
@@ -92,7 +94,8 @@ public class MultipleManagerIT extends ConfigurableMacBase {
           }
           log.info("Wrote data to table {}", table);
           client.tableOperations().addSplits(table, splits);
-          log.info("Split table {}", table); // TODO split operation does not log table id and fate opid anywhere
+          log.info("Split table {}", table); // TODO split operation does not log table id and fate
+                                             // opid anywhere
           client.tableOperations().compact(table, new CompactionConfig().setWait(true));
           log.info("Compacted table {}", table);
           client.tableOperations().merge(table, null, null);
@@ -108,12 +111,17 @@ public class MultipleManagerIT extends ConfigurableMacBase {
         tableOpFutures.add(tableOpsFuture);
       }
 
-      for(var tof : tableOpFutures){
+      for (var tof : tableOpFutures) {
         tof.get();
       }
     }
 
-    Thread.sleep(30_000);
+    FateManager.stop.set(true);
+
+    future.get();
+
+    executor.shutdown();
+
     System.out.println("DONE");
     // TODO kill processes
   }

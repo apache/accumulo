@@ -36,6 +36,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -90,6 +91,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   // Visible for FlakyFate test object
   protected final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  private Set<FatePartition> currentPartitions = Set.of();
 
   public enum TxInfo {
     FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -222,8 +224,9 @@ public class Fate<T> {
               fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
             log.debug("[{}] Adding FateExecutor for {} with {} threads", store.type(), fateOps,
                 poolSize);
-            fateExecutors.add(
-                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName));
+            var fateExecutor = new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName);
+            fateExecutors.add(fateExecutor);
+            fateExecutor.setPartitions(currentPartitions);
           }
         }
       }
@@ -573,9 +576,10 @@ public class Fate<T> {
   }
 
   public void setPartitions(Set<FatePartition> partitions) {
+    Objects.requireNonNull(partitions);
     synchronized (fateExecutors) {
-      // TODO would need to set these when executors change...
-      fateExecutors.forEach(fe -> fe.setPartitions(partitions));
+      currentPartitions = Set.copyOf(partitions);
+      fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
     }
   }
 

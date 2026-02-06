@@ -34,7 +34,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.EventPublisher;
-import org.apache.accumulo.manager.split.Splitter;
+import org.apache.accumulo.manager.split.SplitFileCache;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -47,6 +47,7 @@ public class FateWorkerEnv implements FateEnv {
   private final ExecutorService renamePool;
   private final ServiceLock serviceLock;
   private final LiveTServerSet tservers;
+  private final SplitFileCache splitCache;
 
   FateWorkerEnv(ServerContext ctx, ServiceLock lock) {
     this.ctx = ctx;
@@ -55,6 +56,7 @@ public class FateWorkerEnv implements FateEnv {
     this.renamePool = Executors.newFixedThreadPool(2);
     this.serviceLock = lock;
     this.tservers = new LiveTServerSet(ctx);
+    this.splitCache = new SplitFileCache(ctx);
   }
 
   @Override
@@ -147,8 +149,8 @@ public class FateWorkerEnv implements FateEnv {
   }
 
   @Override
-  public Splitter getSplitter() {
-    throw new UnsupportedOperationException();
+  public SplitFileCache getSplitFileCache() {
+    return splitCache;
   }
 
   @Override
