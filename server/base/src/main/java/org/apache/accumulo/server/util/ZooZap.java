@@ -237,8 +237,8 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  static Optional<ServiceLockPath> filterSingleton(ServerContext context, ServiceLockPath path,
-      AddressSelector addressSelector) {
+  public static Optional<ServiceLockPath> filterSingleton(ServerContext context,
+      ServiceLockPath path, AddressSelector addressSelector) {
     Optional<ServiceLockData> sld = context.getZooCache().getLockData(path);
     return sld.filter(lockData -> {
       for (var service : ServiceLockData.ThriftService.values()) {

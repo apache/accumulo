@@ -16,29 +16,60 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import java.util.Iterator;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.Path;
 
-public class ListVolumesUsed {
+import com.beust.jcommander.JCommander;
+import com.google.auto.service.AutoService;
 
-  public static void main(String[] args) throws Exception {
-    listVolumes(new ServerContext(SiteConfiguration.auto()));
+@AutoService(KeywordExecutable.class)
+public class ListVolumesUsed extends ServerKeywordExecutable<ServerUtilOpts> {
+
+  public ListVolumesUsed() {
+    super(new ServerUtilOpts());
   }
 
-  private static String getTableURI(String rootTabletDir) {
+  @Override
+  public String keyword() {
+    return "list-volumes";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "list volumes currently in use";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
+    listTable(Ample.DataLevel.ROOT, context);
+    System.out.println();
+    listTable(Ample.DataLevel.METADATA, context);
+    System.out.println();
+    listTable(Ample.DataLevel.USER, context);
+  }
+
+  private String getTableURI(String rootTabletDir) {
     Path ret = FileType.TABLE.getVolume(new Path(rootTabletDir));
     if (ret == null) {
       return "RELATIVE";
@@ -46,7 +77,7 @@ public class ListVolumesUsed {
     return ret.toString();
   }
 
-  private static String getLogURI(String logEntry) {
+  private String getLogURI(String logEntry) {
     Path ret = FileType.WAL.getVolume(new Path(logEntry));
     if (ret == null) {
       return "RELATIVE";
@@ -54,11 +85,11 @@ public class ListVolumesUsed {
     return ret.toString();
   }
 
-  private static void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
+  private void getLogURIs(TreeSet<String> volumes, LogEntry logEntry) {
     volumes.add(getLogURI(logEntry.getPath()));
   }
 
-  private static void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
+  private void listTable(Ample.DataLevel level, ServerContext context) throws Exception {
 
     System.out.println("Listing volumes referenced in " + level + " tablets section");
 
@@ -98,14 +129,6 @@ public class ListVolumesUsed {
     for (String volume : volumes) {
       System.out.println("\tVolume : " + volume);
     }
-  }
-
-  public static void listVolumes(ServerContext context) throws Exception {
-    listTable(Ample.DataLevel.ROOT, context);
-    System.out.println();
-    listTable(Ample.DataLevel.METADATA, context);
-    System.out.println();
-    listTable(Ample.DataLevel.USER, context);
   }
 
 }

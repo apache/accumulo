@@ -41,8 +41,8 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ZooZap;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -107,7 +107,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public void adminStopAll() throws IOException {
-    Process p = cluster.exec(Admin.class, "stopAll").getProcess();
+    Process p = cluster.exec(StopAll.class).getProcess();
     try {
       p.waitFor();
     } catch (InterruptedException e) {

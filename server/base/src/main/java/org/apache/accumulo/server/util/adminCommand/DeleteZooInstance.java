@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -29,36 +29,80 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.DeleteZooInstance.DeleteZooInstanceOpts;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DeleteZooInstance {
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
+
+@AutoService(KeywordExecutable.class)
+public class DeleteZooInstance extends ServerKeywordExecutable<DeleteZooInstanceOpts> {
 
   private static final Logger log = LoggerFactory.getLogger(DeleteZooInstance.class);
 
-  public static void execute(final ServerContext context, final boolean clean,
-      final String instance, final String auth) throws InterruptedException, KeeperException {
+  static class DeleteZooInstanceOpts extends ServerUtilOpts {
+    @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
+    String instance;
 
-    if (auth != null) {
-      context.getZooSession().addAccumuloDigestAuth(auth);
+    @Parameter(names = {"-c", "--clean"},
+        description = "Cleans Zookeeper by deleting all old instances. This will not delete the instance pointed to by the local accumulo.properties file")
+    boolean clean = false;
+
+    @Parameter(names = {"--password"},
+        description = "The system secret, if different than instance.secret in accumulo.properties",
+        password = true)
+    String auth;
+  }
+
+  public DeleteZooInstance() {
+    super(new DeleteZooInstanceOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "delete-instance";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Deletes specific instance name or id from zookeeper or cleans up all old instances.";
+  }
+
+  @Override
+  public void execute(JCommander cl, DeleteZooInstanceOpts options) throws Exception {
+
+    ServerContext context = options.getServerContext();
+
+    if (options.auth != null) {
+      context.getZooSession().addAccumuloDigestAuth(options.auth);
     }
 
-    if (clean) {
+    if (options.clean) {
       // If clean is set to true then a specific instance should not be set
-      if (instance != null) {
+      if (options.instance != null) {
         throw new IllegalArgumentException(
             "Cannot set clean flag to true and also an instance name");
       }
       cleanAllOld(context);
     } else {
       // If all old is false then we require a specific instance
-      Objects.requireNonNull(instance, "Instance name must not be null");
-      removeInstance(context, instance);
+      Objects.requireNonNull(options.instance, "Instance name must not be null");
+      removeInstance(context, options.instance);
     }
   }
 
-  private static void removeInstance(ServerContext context, final String instance)
+  private void removeInstance(ServerContext context, final String instance)
       throws InterruptedException, KeeperException {
     var zrw = context.getZooSession().asReaderWriter();
     // try instance name:
@@ -93,8 +137,7 @@ public class DeleteZooInstance {
     }
   }
 
-  private static void cleanAllOld(ServerContext context)
-      throws InterruptedException, KeeperException {
+  private void cleanAllOld(ServerContext context) throws InterruptedException, KeeperException {
     var zrw = context.getZooSession().asReaderWriter();
     for (String child : zrw.getChildren(Constants.ZROOT)) {
       if (Constants.ZINSTANCES.equals("/" + child)) {
@@ -112,7 +155,7 @@ public class DeleteZooInstance {
     }
   }
 
-  private static boolean checkCurrentInstance(ServerContext context, String instanceName,
+  private boolean checkCurrentInstance(ServerContext context, String instanceName,
       String instanceId) {
     boolean operate = true;
     // If the instance given is the current instance we should verify the user actually wants to
@@ -128,20 +171,20 @@ public class DeleteZooInstance {
     return operate;
   }
 
-  private static String getRootChildPath(String child) {
+  private String getRootChildPath(String child) {
     return Constants.ZROOT + "/" + child;
   }
 
-  private static String getInstancePath(final String instanceName) {
+  private String getInstancePath(final String instanceName) {
     return Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
   }
 
-  private static List<String> getInstances(final ZooReaderWriter zk)
+  private List<String> getInstances(final ZooReaderWriter zk)
       throws InterruptedException, KeeperException {
     return zk.getChildren(Constants.ZROOT + Constants.ZINSTANCES);
   }
 
-  private static void deleteRetry(ZooReaderWriter zk, String path)
+  private void deleteRetry(ZooReaderWriter zk, String path)
       throws InterruptedException, KeeperException {
     for (int i = 0; i < 10; i++) {
       try {

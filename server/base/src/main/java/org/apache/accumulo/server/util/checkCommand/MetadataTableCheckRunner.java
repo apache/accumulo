@@ -27,13 +27,14 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
+import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
+import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
 import org.apache.hadoop.io.Text;
 
 public class MetadataTableCheckRunner implements MetadataCheckRunner {
-  private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.METADATA_TABLE;
+  private static final Check check = Check.METADATA_TABLE;
 
   @Override
   public String tableName() {
@@ -51,14 +52,14 @@ public class MetadataTableCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+      throws Exception {
+    CheckStatus status = CheckStatus.OK;
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
     if (FindOfflineTablets.findOffline(context, null, true, true, log::trace, log::warn) != 0) {
-      status = Admin.CheckCommand.CheckStatus.FAILED;
+      status = CheckStatus.FAILED;
     } else {
       log.trace("All good... No offline tablets found");
     }
@@ -66,7 +67,7 @@ public class MetadataTableCheckRunner implements MetadataCheckRunner {
     log.trace("********** Checking some references **********");
     if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(tableName(), opts, log::trace,
         log::warn)) {
-      status = Admin.CheckCommand.CheckStatus.FAILED;
+      status = CheckStatus.FAILED;
     }
 
     log.trace("********** Looking for missing columns **********");
@@ -83,7 +84,7 @@ public class MetadataTableCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.Check getCheck() {
+  public Check getCheck() {
     return check;
   }
 }

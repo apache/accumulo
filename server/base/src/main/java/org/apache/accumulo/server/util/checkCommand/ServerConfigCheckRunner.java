@@ -25,15 +25,16 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
+import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
 
 public class ServerConfigCheckRunner implements CheckRunner {
-  private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.SERVER_CONFIG;
+  private static final Check check = Check.SERVER_CONFIG;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+      throws Exception {
+    CheckStatus status = CheckStatus.OK;
     printRunning();
 
     log.trace("********** Checking server configuration **********");
@@ -47,7 +48,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
       var val = entry.getValue();
       if (!Property.isValidProperty(key, val)) {
         log.warn("Invalid property (key={} val={}) found in the config", key, val);
-        status = Admin.CheckCommand.CheckStatus.FAILED;
+        status = CheckStatus.FAILED;
       }
     }
 
@@ -71,7 +72,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
       // it's valid
       if (confPropVal == null || confPropVal.isEmpty()) {
         log.warn("Required property {} is not set!", reqProp);
-        status = Admin.CheckCommand.CheckStatus.FAILED;
+        status = CheckStatus.FAILED;
       }
     }
 
@@ -80,7 +81,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.Check getCheck() {
+  public Check getCheck() {
     return check;
   }
 }

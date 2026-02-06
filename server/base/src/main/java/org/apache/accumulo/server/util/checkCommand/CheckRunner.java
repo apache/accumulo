@@ -20,7 +20,8 @@ package org.apache.accumulo.server.util.checkCommand;
 
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
+import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,14 +38,14 @@ public interface CheckRunner {
    * @return the {@link org.apache.accumulo.server.util.Admin.CheckCommand.CheckStatus} resulting
    *         from running the check
    */
-  Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception;
+  CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+      throws Exception;
 
   /**
    *
    * @return the check that this check runner runs
    */
-  Admin.CheckCommand.Check getCheck();
+  Check getCheck();
 
   default void printRunning() {
     String running = "Running check " + getCheck();
@@ -53,7 +54,7 @@ public interface CheckRunner {
     log.trace("-".repeat(running.length()));
   }
 
-  default void printCompleted(Admin.CheckCommand.CheckStatus status) {
+  default void printCompleted(CheckStatus status) {
     String completed = "Check " + getCheck() + " completed with status " + status;
     log.trace("-".repeat(completed.length()));
     log.trace(completed);

@@ -58,7 +58,6 @@ import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.CancelCompaction;
 import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.Info;
@@ -68,6 +67,21 @@ import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
+import org.apache.accumulo.server.util.adminCommand.ChangeSecret;
+import org.apache.accumulo.server.util.adminCommand.CheckServer;
+import org.apache.accumulo.server.util.adminCommand.DeleteZooInstance;
+import org.apache.accumulo.server.util.adminCommand.DumpConfig;
+import org.apache.accumulo.server.util.adminCommand.Fate;
+import org.apache.accumulo.server.util.adminCommand.ListInstances;
+import org.apache.accumulo.server.util.adminCommand.ListVolumesUsed;
+import org.apache.accumulo.server.util.adminCommand.Locks;
+import org.apache.accumulo.server.util.adminCommand.PingServer;
+import org.apache.accumulo.server.util.adminCommand.RestoreZookeeper;
+import org.apache.accumulo.server.util.adminCommand.ServiceStatus;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
+import org.apache.accumulo.server.util.adminCommand.StopManager;
+import org.apache.accumulo.server.util.adminCommand.StopServers;
+import org.apache.accumulo.server.util.adminCommand.VerifyTabletAssignments;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -149,7 +163,8 @@ public class KeywordStartIT {
   public void testExpectedClasses() {
     assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
     SortedSet<CommandInfo> expectSet = new TreeSet<>();
-    expectSet.add(new CommandInfo(UsageGroup.CORE, "admin", Admin.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "change-secret", ChangeSecret.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "check-server", CheckServer.class));
     expectSet.add(
         new CommandInfo(UsageGroup.OTHER, "check-compaction-config", CheckCompactionConfig.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "check-accumulo-properties",
@@ -157,31 +172,45 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "compactor", CompactorExecutable.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "create-empty", CreateEmpty.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "create-token", CreateToken.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "delete-instance", DeleteZooInstance.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "dump-config", DumpConfig.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "dump-zoo", DumpZookeeper.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "fate", Fate.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "gc", GCExecutable.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "generate-splits", GenerateSplits.class));
     expectSet.add(new CommandInfo(UsageGroup.CORE, "help", Help.class));
     expectSet.add(new CommandInfo(UsageGroup.CORE, "info", Info.class));
     expectSet.add(new CommandInfo(UsageGroup.CORE, "init", Initialize.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "list-instances", ListInstances.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "list-volumes", ListVolumesUsed.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "locks", Locks.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "login-info", LoginProperties.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "manager", ManagerExecutable.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "minicluster", MiniClusterExecutable.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "monitor", MonitorExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "ping", PingServer.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "restore-zookeeper", RestoreZookeeper.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "rfile-info", PrintInfo.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "service-status", ServiceStatus.class));
     expectSet.add(new CommandInfo(UsageGroup.CORE, "shell", Shell.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "split-large", SplitLarge.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "sserver", ScanServerExecutable.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "stop-all", StopAll.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "stop-manager", StopManager.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "stop-servers", StopServers.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "tserver", TServerExecutable.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "upgrade", UpgradeUtil.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "verify-tablet-assignments",
+        VerifyTabletAssignments.class));
     expectSet.add(new CommandInfo(UsageGroup.CORE, "version", Version.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "wal-info", LogReader.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-info-viewer", ZooInfoViewer.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-prop-editor", ZooPropEditor.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "zoo-zap", ZooZap.class));
     expectSet.add(new CommandInfo(UsageGroup.PROCESS, "zookeeper", ZooKeeperMain.class));
-    expectSet.add(new CommandInfo(UsageGroup.OTHER, "cancel-compaction", CancelCompaction.class));
-    expectSet.add(new CommandInfo(UsageGroup.OTHER, "list-compactors", ListCompactors.class));
-    expectSet.add(new CommandInfo(UsageGroup.OTHER, "list-compactions", ListCompactions.class));
+    expectSet.add(new CommandInfo(UsageGroup.COMPACTION, "cancel", CancelCompaction.class));
+    expectSet.add(new CommandInfo(UsageGroup.PROCESS, "list-compactors", ListCompactors.class));
+    expectSet.add(new CommandInfo(UsageGroup.COMPACTION, "list", ListCompactions.class));
 
     Map<UsageGroup,Map<String,KeywordExecutable>> actualExecutables =
         new TreeMap<>(getKeywordExecutables());
@@ -231,10 +260,10 @@ public class KeywordStartIT {
         "Sanity check for test failed. Somehow the test class has a main method");
 
     HashSet<Class<?>> expectSet = new HashSet<>();
-    expectSet.add(Admin.class);
     expectSet.add(CheckCompactionConfig.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(CreateToken.class);
+    expectSet.add(DumpConfig.class);
     expectSet.add(DumpZookeeper.class);
     expectSet.add(GenerateSplits.class);
     expectSet.add(Info.class);
@@ -246,6 +275,8 @@ public class KeywordStartIT {
     expectSet.add(PrintInfo.class);
     expectSet.add(Shell.class);
     expectSet.add(SimpleGarbageCollector.class);
+    expectSet.add(StopAll.class);
+    expectSet.add(StopServers.class);
     expectSet.add(SplitLarge.class);
     expectSet.add(TabletServer.class);
     expectSet.add(ZooKeeperMain.class);
