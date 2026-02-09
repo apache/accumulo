@@ -29,15 +29,16 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class TableLocksCheckRunner implements CheckRunner {
-  private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.TABLE_LOCKS;
+  private static final Check check = Check.TABLE_LOCKS;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+      throws Exception {
+    CheckStatus status = CheckStatus.OK;
     printRunning();
 
     log.trace("********** Checking some references **********");
@@ -48,17 +49,18 @@ public class TableLocksCheckRunner implements CheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.Check getCheck() {
+  public Check getCheck() {
     return check;
   }
 
-  private static Admin.CheckCommand.CheckStatus checkTableLocks(ServerContext context,
-      Admin.CheckCommand.CheckStatus status) throws Exception {
-    final AdminUtil<Admin> admin = new AdminUtil<>();
+  private static CheckStatus checkTableLocks(ServerContext context, CheckStatus status)
+      throws Exception {
+    final AdminUtil<TableLocksCheckRunner> admin = new AdminUtil<>();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final var zk = context.getZooSession();
-    try (final MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, null, null); final UserFateStore<
-        Admin> ufs = new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null)) {
+    try (final MetaFateStore<TableLocksCheckRunner> mfs = new MetaFateStore<>(zk, null, null);
+        final UserFateStore<TableLocksCheckRunner> ufs =
+            new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null)) {
 
       log.trace("Ensuring table and namespace locks are valid...");
 
@@ -72,7 +74,7 @@ public class TableLocksCheckRunner implements CheckRunner {
         lockedIds.removeAll(tableIds);
         lockedIds.removeAll(namespaceIds);
         if (!lockedIds.isEmpty()) {
-          status = Admin.CheckCommand.CheckStatus.FAILED;
+          status = CheckStatus.FAILED;
           log.warn("...Some table and namespace locks are INVALID (the table/namespace DNE): "
               + lockedIds);
         } else {
@@ -90,7 +92,7 @@ public class TableLocksCheckRunner implements CheckRunner {
                 zTableLocksPath, null, null, null);
         if (!fateStatus.getDanglingHeldLocks().isEmpty()
             || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
-          status = Admin.CheckCommand.CheckStatus.FAILED;
+          status = CheckStatus.FAILED;
           log.warn("The following locks did not have an associated FATE operation\n");
           for (Map.Entry<FateId,List<String>> entry : fateStatus.getDanglingHeldLocks()
               .entrySet()) {

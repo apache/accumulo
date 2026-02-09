@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -38,7 +37,10 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -50,16 +52,40 @@ import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
+import com.beust.jcommander.JCommander;
+import com.google.auto.service.AutoService;
+
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class ChangeSecret {
+@AutoService(KeywordExecutable.class)
+public class ChangeSecret extends ServerKeywordExecutable<ServerUtilOpts> {
 
-  public static void execute(final ServerContext context, final AccumuloConfiguration conf)
-      throws Exception {
+  public ChangeSecret() {
+    super(new ServerUtilOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "change-secret";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Changes the unique secret given to the instance that all servers must know.";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
 
     try (var fs = context.getVolumeManager()) {
-      ServerDirs serverDirs = new ServerDirs(conf, new Configuration());
+      ServerDirs serverDirs = new ServerDirs(context.getConfiguration(), new Configuration());
       verifyHdfsWritePermission(serverDirs, fs);
 
       String oldPass = String.valueOf(System.console().readPassword("Old secret: "));
@@ -84,11 +110,11 @@ public class ChangeSecret {
     }
   }
 
-  interface Visitor {
+  private interface Visitor {
     void visit(ZooReader zoo, String path) throws Exception;
   }
 
-  private static void recurse(ZooReader zoo, String root, Visitor v) {
+  private void recurse(ZooReader zoo, String root, Visitor v) {
     try {
       v.visit(zoo, root);
       for (String child : zoo.getChildren(root)) {
@@ -99,8 +125,7 @@ public class ChangeSecret {
     }
   }
 
-  private static void verifyAccumuloIsDown(ServerContext context, String oldPassword)
-      throws Exception {
+  private void verifyAccumuloIsDown(ServerContext context, String oldPassword) throws Exception {
     var conf = context.getSiteConfiguration();
     try (var oldZk =
         new ZooSession(ChangeSecret.class.getSimpleName() + ".verifyAccumuloIsDown(oldPassword)",
@@ -123,8 +148,8 @@ public class ChangeSecret {
     }
   }
 
-  private static void rewriteZooKeeperInstance(final ServerContext context,
-      final InstanceId newInstanceId, String oldPass, String newPass) throws Exception {
+  private void rewriteZooKeeperInstance(final ServerContext context, final InstanceId newInstanceId,
+      String oldPass, String newPass) throws Exception {
     var conf = context.getSiteConfiguration();
     try (
         var oldZk = new ZooSession(
@@ -169,7 +194,7 @@ public class ChangeSecret {
     }
   }
 
-  private static void updateHdfs(ServerDirs serverDirs, VolumeManager fs, InstanceId newInstanceId)
+  private void updateHdfs(ServerDirs serverDirs, VolumeManager fs, InstanceId newInstanceId)
       throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
@@ -186,8 +211,7 @@ public class ChangeSecret {
     }
   }
 
-  private static void verifyHdfsWritePermission(ServerDirs serverDirs, VolumeManager fs)
-      throws Exception {
+  private void verifyHdfsWritePermission(ServerDirs serverDirs, VolumeManager fs) throws Exception {
     for (Volume v : fs.getVolumes()) {
       final Path instanceId = serverDirs.getInstanceIdLocation(v);
       FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceId);
@@ -195,7 +219,7 @@ public class ChangeSecret {
     }
   }
 
-  private static void checkHdfsAccessPermissions(FileStatus stat, FsAction mode) throws Exception {
+  private void checkHdfsAccessPermissions(FileStatus stat, FsAction mode) throws Exception {
     FsPermission perm = stat.getPermission();
     UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
     String user = ugi.getShortUserName();
@@ -217,7 +241,7 @@ public class ChangeSecret {
         stat.getPath(), stat.getOwner(), stat.getGroup(), stat.isDirectory() ? "d" : "-", perm));
   }
 
-  private static void deleteInstance(ServerContext context, String oldPass) throws Exception {
+  private void deleteInstance(ServerContext context, String oldPass) throws Exception {
     var conf = context.getSiteConfiguration();
     try (var oldZk = new ZooSession(ChangeSecret.class.getSimpleName() + ".deleteInstance()",
         conf.get(Property.INSTANCE_ZK_HOST),

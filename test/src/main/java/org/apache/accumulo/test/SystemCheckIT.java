@@ -56,21 +56,21 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckCommandOpts;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.fs.Path;
-import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import com.beust.jcommander.JCommander;
 import com.google.common.collect.Sets;
 
-public class AdminCheckIT extends ConfigurableMacBase {
+public class SystemCheckIT extends ConfigurableMacBase {
   private static final PrintStream ORIGINAL_OUT = System.out;
 
   @AfterEach
@@ -89,37 +89,35 @@ public class AdminCheckIT extends ConfigurableMacBase {
   public void testAdminCheckList() throws Exception {
     // verifies output of list command
 
-    var p = getCluster().exec(Admin.class, "check", "list");
+    var p = getCluster().exec(SystemCheck.class, "list");
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
 
     // Checks that the header is correct and that all checks are in the output
     assertTrue(
         out.contains("Check Name") && out.contains("Description") && out.contains("Depends on"));
-    List<Admin.CheckCommand.Check> checksSeen = new ArrayList<>();
+    List<Check> checksSeen = new ArrayList<>();
     Arrays.stream(out.split("\\s+")).forEach(word -> {
       try {
-        checksSeen.add(Admin.CheckCommand.Check.valueOf(word));
+        checksSeen.add(Check.valueOf(word));
       } catch (IllegalArgumentException e) {
         // skip
       }
     });
-    assertTrue(checksSeen.containsAll(List.of(Admin.CheckCommand.Check.values())));
+    assertTrue(checksSeen.containsAll(List.of(Check.values())));
   }
 
   @Test
   public void testAdminCheckListAndRunTogether() throws Exception {
     // Tries to execute list and run together; should not work
 
-    var p = getCluster().exec(Admin.class, "check", "list", "run");
+    var p = getCluster().exec(SystemCheck.class, "list", "run");
     assertNotEquals(0, p.getProcess().waitFor());
-    p = getCluster().exec(Admin.class, "check", "run", "list");
+    p = getCluster().exec(SystemCheck.class, "run", "list");
     assertNotEquals(0, p.getProcess().waitFor());
-    p = getCluster().exec(Admin.class, "check", "run",
-        Admin.CheckCommand.Check.SYSTEM_CONFIG.name(), "list");
+    p = getCluster().exec(SystemCheck.class, "run", Check.SYSTEM_CONFIG.name(), "list");
     assertNotEquals(0, p.getProcess().waitFor());
-    p = getCluster().exec(Admin.class, "check", "list",
-        Admin.CheckCommand.Check.SYSTEM_CONFIG.name(), "run");
+    p = getCluster().exec(SystemCheck.class, "list", Check.SYSTEM_CONFIG.name(), "run");
     assertNotEquals(0, p.getProcess().waitFor());
   }
 
@@ -128,70 +126,69 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // tests providing invalid args to check
 
     // extra args to list
-    var p = getCluster().exec(Admin.class, "check", "list", "abc");
+    var p = getCluster().exec(SystemCheck.class, "list", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
-    p = getCluster().exec(Admin.class, "check", "list",
-        Admin.CheckCommand.Check.SYSTEM_CONFIG.name());
+    p = getCluster().exec(SystemCheck.class, "list", Check.SYSTEM_CONFIG.name());
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
-    p = getCluster().exec(Admin.class, "check", "list", "-p", "abc");
+    p = getCluster().exec(SystemCheck.class, "list", "--name_pattern", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
     // invalid check to run
-    p = getCluster().exec(Admin.class, "check", "run", "123");
+    p = getCluster().exec(SystemCheck.class, "run", "123");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("IllegalArgumentException"));
     // no provided pattern
-    p = getCluster().exec(Admin.class, "check", "run", "-p");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("ParameterException"));
     // no checks match pattern
-    p = getCluster().exec(Admin.class, "check", "run", "-p", "abc");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("No checks matched the given pattern"));
     // invalid pattern
-    p = getCluster().exec(Admin.class, "check", "run", "-p", "[abc");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", "[abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("PatternSyntaxException"));
     // more than one arg provided to pattern
-    p = getCluster().exec(Admin.class, "check", "run", "-p", ".*files", ".*files");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", ".*files", ".*files");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("Expected one argument (the regex pattern)"));
     // no list or run provided
-    p = getCluster().exec(Admin.class, "check");
+    p = getCluster().exec(SystemCheck.class);
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("Must use either 'list' or 'run'"));
   }
 
   @Test
-  public void testAdminCheckRunNoCheckFailures() {
+  public void testAdminCheckRunNoCheckFailures() throws Exception {
     // tests running the checks with none failing on run
-    Admin.CheckCommand.Check rootTableCheck = Admin.CheckCommand.Check.ROOT_TABLE;
-    Admin.CheckCommand.Check systemFilesCheck = Admin.CheckCommand.Check.SYSTEM_FILES;
-    Admin.CheckCommand.Check userFilesCheck = Admin.CheckCommand.Check.USER_FILES;
+    Check rootTableCheck = Check.ROOT_TABLE;
+    Check systemFilesCheck = Check.SYSTEM_FILES;
+    Check userFilesCheck = Check.USER_FILES;
 
-    boolean[] allChecksPass = new boolean[Admin.CheckCommand.Check.values().length];
+    boolean[] allChecksPass = new boolean[Check.values().length];
     Arrays.fill(allChecksPass, true);
 
     // no checks specified: should run all
-    String out1 = executeCheckCommand(new String[] {"check", "run"}, allChecksPass);
+    String out1 = executeCheckCommand(new String[] {"run"}, allChecksPass);
     // all checks specified: should run all
-    String[] allChecksArgs = new String[Admin.CheckCommand.Check.values().length + 2];
-    allChecksArgs[0] = "check";
-    allChecksArgs[1] = "run";
-    for (int i = 2; i < allChecksArgs.length; i++) {
-      allChecksArgs[i] = Admin.CheckCommand.Check.values()[i - 2].name();
+    String[] allChecksArgs = new String[Check.values().length + 1];
+    allChecksArgs[0] = "run";
+    for (int i = 1; i < allChecksArgs.length; i++) {
+      allChecksArgs[i] = Check.values()[i - 1].name();
     }
     String out2 = executeCheckCommand(allChecksArgs, allChecksPass);
     // this pattern: should run all
     String out3 =
-        executeCheckCommand(new String[] {"check", "run", "-p", "[A-Z]+_[A-Z]+"}, allChecksPass);
+        executeCheckCommand(new String[] {"run", "--name_pattern", "[A-Z]+_[A-Z]+"}, allChecksPass);
     // run subset of checks
-    String out4 = executeCheckCommand(new String[] {"check", "run", rootTableCheck.name(),
-        systemFilesCheck.name(), userFilesCheck.name()}, allChecksPass);
+    String out4 = executeCheckCommand(
+        new String[] {"run", rootTableCheck.name(), systemFilesCheck.name(), userFilesCheck.name()},
+        allChecksPass);
     // run same subset of checks but using a pattern to specify the checks (case shouldn't matter)
-    String out5 = executeCheckCommand(new String[] {"check", "run", "-p", "ROOT_TABLE|.*files"},
+    String out5 = executeCheckCommand(new String[] {"run", "--name_pattern", "ROOT_TABLE|.*files"},
         allChecksPass);
 
     String expRunAllRunOrder =
@@ -241,7 +238,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void testAdminCheckRunWithCheckFailures() {
+  public void testAdminCheckRunWithCheckFailures() throws Exception {
     // tests running checks with some failing
 
     boolean[] rootTableFails = new boolean[] {true, true, true, true, false, true, true, true};
@@ -251,20 +248,20 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
     // run all checks with ROOT_TABLE failing: only SYSTEM_CONFIG and ROOT_METADATA should pass
     // the rest should be filtered out as skipped due to dependency failure
-    String out1 = executeCheckCommand(new String[] {"check", "run"}, rootTableFails);
+    String out1 = executeCheckCommand(new String[] {"run"}, rootTableFails);
     // run all checks with SYSTEM_CONFIG failing: only SYSTEM_CONFIG should run and fail
     // the rest should be filtered out as skipped due to dependency failure
-    String out2 = executeCheckCommand(new String[] {"check", "run"}, systemConfigFails);
+    String out2 = executeCheckCommand(new String[] {"run"}, systemConfigFails);
     // run subset of checks: SYSTEM_CONFIG, ROOT_TABLE, USER_FILES with USER_FILES and
     // METADATA_TABLE failing
     // should successfully run SYSTEM_CONFIG, ROOT_TABLE, fail to run USER_FILES and
     // filter out the rest
-    String out3 = executeCheckCommand(
-        new String[] {"check", "run", "SYSTEM_CONFIG", "ROOT_TABLE", "USER_FILES"},
-        userFilesAndMetadataTableFails);
+    String out3 =
+        executeCheckCommand(new String[] {"run", "SYSTEM_CONFIG", "ROOT_TABLE", "USER_FILES"},
+            userFilesAndMetadataTableFails);
     // run same subset but specified using pattern
     String out4 = executeCheckCommand(
-        new String[] {"check", "run", "-p", "SYSTEM_CONFIG|ROOT_TABLE|USER_FILES"},
+        new String[] {"run", "--name_pattern", "SYSTEM_CONFIG|ROOT_TABLE|USER_FILES"},
         userFilesAndMetadataTableFails);
 
     String expRunOrder1 =
@@ -285,14 +282,11 @@ public class AdminCheckIT extends ConfigurableMacBase {
     assertTrue(out3.contains(expRunOrder3And4));
     assertTrue(out4.contains(expRunOrder3And4));
 
-    assertNoOtherChecksRan(out1, true, Admin.CheckCommand.Check.SYSTEM_CONFIG,
-        Admin.CheckCommand.Check.SERVER_CONFIG, Admin.CheckCommand.Check.TABLE_LOCKS,
-        Admin.CheckCommand.Check.ROOT_TABLE, Admin.CheckCommand.Check.ROOT_METADATA);
-    assertNoOtherChecksRan(out2, true, Admin.CheckCommand.Check.SYSTEM_CONFIG);
-    assertNoOtherChecksRan(out3, true, Admin.CheckCommand.Check.SYSTEM_CONFIG,
-        Admin.CheckCommand.Check.ROOT_TABLE, Admin.CheckCommand.Check.USER_FILES);
-    assertNoOtherChecksRan(out4, true, Admin.CheckCommand.Check.SYSTEM_CONFIG,
-        Admin.CheckCommand.Check.ROOT_TABLE, Admin.CheckCommand.Check.USER_FILES);
+    assertNoOtherChecksRan(out1, true, Check.SYSTEM_CONFIG, Check.SERVER_CONFIG, Check.TABLE_LOCKS,
+        Check.ROOT_TABLE, Check.ROOT_METADATA);
+    assertNoOtherChecksRan(out2, true, Check.SYSTEM_CONFIG);
+    assertNoOtherChecksRan(out3, true, Check.SYSTEM_CONFIG, Check.ROOT_TABLE, Check.USER_FILES);
+    assertNoOtherChecksRan(out4, true, Check.SYSTEM_CONFIG, Check.ROOT_TABLE, Check.USER_FILES);
 
     out1 = out1.replaceAll("\\s+", "");
     out2 = out2.replaceAll("\\s+", "");
@@ -325,7 +319,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
   @Test
   public void testTableLocksCheck() throws Exception {
     String table = getUniqueNames(1)[0];
-    Admin.CheckCommand.Check tableLocksCheck = Admin.CheckCommand.Check.TABLE_LOCKS;
+    Check tableLocksCheck = Check.TABLE_LOCKS;
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       client.tableOperations().create(table);
@@ -343,7 +337,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       client.tableOperations().compact(table, slowCompaction);
 
       // test passing case
-      var p = getCluster().exec(Admin.class, "check", "run", tableLocksCheck.name());
+      var p = getCluster().exec(SystemCheck.class, "run", tableLocksCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
       assertTrue(out.contains("locks are valid"));
@@ -356,8 +350,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
       final var zrw = context.getZooSession().asReaderWriter();
       final var path = new ServiceLockPaths(context.getZooCache()).createTableLocksPath();
       zrw.putPersistentData(path.toString() + "/foo", new byte[0], ZooUtil.NodeExistsPolicy.FAIL);
-      p = getCluster().exec(Admin.class, "check", "run", tableLocksCheck.name());
-      assertEquals(5, p.getProcess().waitFor());
+      p = getCluster().exec(SystemCheck.class, "run", tableLocksCheck.name());
+      assertEquals(1, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(
           out.contains("Some table and namespace locks are INVALID (the table/namespace DNE)"));
@@ -368,7 +362,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testMetadataTableCheck() throws Exception {
-    Admin.CheckCommand.Check metaTableCheck = Admin.CheckCommand.Check.METADATA_TABLE;
+    Check metaTableCheck = Check.METADATA_TABLE;
     String table = getUniqueNames(1)[0];
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
@@ -379,7 +373,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     // test passing case
-    var p = getCluster().exec(Admin.class, "check", "run", metaTableCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", metaTableCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Looking for offline tablets"));
@@ -400,8 +394,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
           MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
       writer.addMutation(mut);
     }
-    p = getCluster().exec(Admin.class, "check", "run", metaTableCheck.name());
-    assertEquals(5, p.getProcess().waitFor());
+    p = getCluster().exec(SystemCheck.class, "run", metaTableCheck.name());
+    assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
     assertTrue(out.contains("Check METADATA_TABLE completed with status FAILED"));
@@ -410,11 +404,11 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testRootTableCheck() throws Exception {
-    Admin.CheckCommand.Check rootTableCheck = Admin.CheckCommand.Check.ROOT_TABLE;
+    Check rootTableCheck = Check.ROOT_TABLE;
 
     // test passing case
     // no extra setup needed, just check the root table
-    var p = getCluster().exec(Admin.class, "check", "run", rootTableCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", rootTableCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Looking for offline tablets"));
@@ -435,8 +429,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
           MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
       writer.addMutation(mut);
     }
-    p = getCluster().exec(Admin.class, "check", "run", rootTableCheck.name());
-    assertEquals(5, p.getProcess().waitFor());
+    p = getCluster().exec(SystemCheck.class, "run", rootTableCheck.name());
+    assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
     assertTrue(out.contains("Check ROOT_TABLE completed with status FAILED"));
@@ -445,11 +439,11 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testRootMetadataCheck() throws Exception {
-    Admin.CheckCommand.Check rootMetaCheck = Admin.CheckCommand.Check.ROOT_METADATA;
+    Check rootMetaCheck = Check.ROOT_METADATA;
 
     // test passing case
     // no extra setup needed, just check the root table metadata
-    var p = getCluster().exec(Admin.class, "check", "run", rootMetaCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", rootMetaCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Looking for offline tablets"));
@@ -472,8 +466,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     zrw.putPersistentData(RootTable.ZROOT_TABLET, rtm.toJson().getBytes(UTF_8),
         ZooUtil.NodeExistsPolicy.OVERWRITE);
 
-    p = getCluster().exec(Admin.class, "check", "run", rootMetaCheck.name());
-    assertEquals(5, p.getProcess().waitFor());
+    p = getCluster().exec(SystemCheck.class, "run", rootMetaCheck.name());
+    assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
     assertTrue(out.contains("Check ROOT_METADATA completed with status FAILED"));
@@ -482,11 +476,11 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testSystemFilesCheck() throws Exception {
-    Admin.CheckCommand.Check sysFilesCheck = Admin.CheckCommand.Check.SYSTEM_FILES;
+    Check sysFilesCheck = Check.SYSTEM_FILES;
 
     // test passing case
     // no extra setup needed, just run the check
-    var p = getCluster().exec(Admin.class, "check", "run", sysFilesCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", sysFilesCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
@@ -503,8 +497,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
       path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
       getCluster().getServerContext().getVolumeManager().delete(path);
     }
-    p = getCluster().exec(Admin.class, "check", "run", sysFilesCheck.name());
-    assertEquals(5, p.getProcess().waitFor());
+    p = getCluster().exec(SystemCheck.class, "run", sysFilesCheck.name());
+    assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("File " + path + " is missing"));
     assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
@@ -514,7 +508,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testUserFilesCheck() throws Exception {
-    Admin.CheckCommand.Check userFilesCheck = Admin.CheckCommand.Check.USER_FILES;
+    Check userFilesCheck = Check.USER_FILES;
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // test passing case
@@ -524,7 +518,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
       client.tableOperations().flush(table, null, null, true);
 
-      var p = getCluster().exec(Admin.class, "check", "run", userFilesCheck.name());
+      var p = getCluster().exec(SystemCheck.class, "run", userFilesCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
       assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
@@ -541,8 +535,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
         path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
         getCluster().getServerContext().getVolumeManager().delete(path);
       }
-      p = getCluster().exec(Admin.class, "check", "run", userFilesCheck.name());
-      assertEquals(5, p.getProcess().waitFor());
+      p = getCluster().exec(SystemCheck.class, "run", userFilesCheck.name());
+      assertEquals(1, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(out.contains("File " + path + " is missing"));
       assertTrue(Pattern.compile("missing files: 1, total files: [1-9]+").matcher(out).find());
@@ -553,10 +547,10 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testSystemConfigCheck() throws Exception {
-    Admin.CheckCommand.Check sysConfCheck = Admin.CheckCommand.Check.SYSTEM_CONFIG;
+    Check sysConfCheck = Check.SYSTEM_CONFIG;
 
     // test passing case
-    var p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Checking ZooKeeper locks for Accumulo server processes"));
@@ -572,8 +566,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     zrw.recursiveDelete(Constants.ZTABLES + "/" + SystemTables.METADATA.tableId(),
         ZooUtil.NodeMissingPolicy.FAIL);
 
-    p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
-    assertEquals(5, p.getProcess().waitFor());
+    p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
+    assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Failed to find table ("
         + (Map.entry(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId())) + ")"));
@@ -586,7 +580,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // test a failing case
     // delete a WAL in HDFS that is referenced in ZK
 
-    Admin.CheckCommand.Check sysConfCheck = Admin.CheckCommand.Check.SYSTEM_CONFIG;
+    Check sysConfCheck = Check.SYSTEM_CONFIG;
     var context = getCluster().getServerContext();
     var zrw = context.getZooSession().asReaderWriter();
     var rootWalsDir = WalStateManager.ZWALS;
@@ -620,8 +614,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // delete from HDFS
     context.getVolumeManager().delete(wal.getSecond());
 
-    var p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
-    assertEquals(5, p.getProcess().waitFor());
+    var p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
+    assertEquals(1, p.getProcess().waitFor());
     var out = p.readStdOut();
     assertTrue(out.contains(
         "WAL metadata for tserver " + tServerInstance + " references a WAL that does not exist"));
@@ -631,10 +625,10 @@ public class AdminCheckIT extends ConfigurableMacBase {
 
   @Test
   public void testServerConfigCheck() throws Exception {
-    Admin.CheckCommand.Check servConfCheck = Admin.CheckCommand.Check.SERVER_CONFIG;
+    Check servConfCheck = Check.SERVER_CONFIG;
 
     // test passing case
-    var p = getCluster().exec(Admin.class, "check", "run", servConfCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", servConfCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Checking server configuration"));
@@ -646,50 +640,41 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // no simple way to test for a failure case
   }
 
-  private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) {
+  private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) throws Exception {
     String output;
-    Admin admin = createMockAdmin(checksPass);
+    SystemCheck check = createDummyCheckCommand(checksPass);
 
     try (ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(outStream)) {
       System.setOut(printStream);
-      admin.execute(checkCmdArgs);
+      try {
+        check.execute(checkCmdArgs);
+      } catch (IllegalStateException e) {
+        // This will happen if one of the commands fails.
+        // The output is checked by the calling command,
+        // so eat this exception.
+      }
       output = outStream.toString();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
-      EasyMock.verify(admin);
       System.setOut(ORIGINAL_OUT);
     }
 
     return output;
   }
 
-  private Admin createMockAdmin(boolean[] checksPass) {
-    // mocking admin.execute() to just execute "check" with our dummy check command
-    Admin admin = EasyMock.createMock(Admin.class);
-    admin.execute(EasyMock.anyObject(String[].class));
-    EasyMock.expectLastCall().andAnswer((IAnswer<Void>) () -> {
-      String[] args = EasyMock.getCurrentArgument(0);
-      ServerUtilOpts opts = new ServerUtilOpts();
-      JCommander cl = new JCommander(opts);
-      Admin.CheckCommand dummyCheckCommand = new DummyCheckCommand(checksPass);
-      cl.addCommand("check", dummyCheckCommand);
-      cl.parse(args);
-      Admin.executeCheckCommand(getCluster().getServerContext(), dummyCheckCommand, opts);
-      return null;
-    });
-    EasyMock.replay(admin);
-    return admin;
+  private SystemCheck createDummyCheckCommand(boolean[] checksPass) throws Exception {
+    DummyCheckCommand opts = new DummyCheckCommand(checksPass);
+    SystemCheck check = new SystemCheck(opts);
+    return check;
   }
 
   /**
    * Asserts that no checks (other than those provided) ran.
    */
-  private void assertNoOtherChecksRan(String out, boolean isDummyCheck,
-      Admin.CheckCommand.Check... checks) {
-    Set<Admin.CheckCommand.Check> otherChecks =
-        Sets.difference(Set.of(Admin.CheckCommand.Check.values()), Set.of(checks));
+  private void assertNoOtherChecksRan(String out, boolean isDummyCheck, Check... checks) {
+    Set<Check> otherChecks = Sets.difference(Set.of(Check.values()), Set.of(checks));
     for (var check : otherChecks) {
       assertFalse(
           out.contains("Running " + (isDummyCheck ? "dummy " : "") + "check " + check.name()));
@@ -704,10 +689,9 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-        boolean fixFiles) throws Exception {
-      Admin.CheckCommand.CheckStatus status =
-          passes ? Admin.CheckCommand.CheckStatus.OK : Admin.CheckCommand.CheckStatus.FAILED;
+    public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+        throws Exception {
+      CheckStatus status = passes ? CheckStatus.OK : CheckStatus.FAILED;
 
       System.out.println("Running dummy check " + getCheck());
       // no work to perform in the dummy check runner
@@ -722,8 +706,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.SYSTEM_CONFIG;
+    public Check getCheck() {
+      return Check.SYSTEM_CONFIG;
     }
   }
 
@@ -733,8 +717,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.SERVER_CONFIG;
+    public Check getCheck() {
+      return Check.SERVER_CONFIG;
     }
   }
 
@@ -744,8 +728,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.TABLE_LOCKS;
+    public Check getCheck() {
+      return Check.TABLE_LOCKS;
     }
   }
 
@@ -755,8 +739,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.ROOT_METADATA;
+    public Check getCheck() {
+      return Check.ROOT_METADATA;
     }
   }
 
@@ -766,8 +750,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.ROOT_TABLE;
+    public Check getCheck() {
+      return Check.ROOT_TABLE;
     }
   }
 
@@ -777,8 +761,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.METADATA_TABLE;
+    public Check getCheck() {
+      return Check.METADATA_TABLE;
     }
   }
 
@@ -788,8 +772,8 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.SYSTEM_FILES;
+    public Check getCheck() {
+      return Check.SYSTEM_FILES;
     }
   }
 
@@ -799,12 +783,12 @@ public class AdminCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public Admin.CheckCommand.Check getCheck() {
-      return Admin.CheckCommand.Check.USER_FILES;
+    public Check getCheck() {
+      return Check.USER_FILES;
     }
   }
 
-  static class DummyCheckCommand extends Admin.CheckCommand {
+  class DummyCheckCommand extends CheckCommandOpts {
     final Map<Check,Supplier<CheckRunner>> checkRunners;
 
     public DummyCheckCommand(boolean[] checksPass) {
@@ -822,6 +806,14 @@ public class AdminCheckIT extends ConfigurableMacBase {
       this.checkRunners.put(Check.SYSTEM_FILES,
           () -> new DummySystemFilesCheckRunner(checksPass[6]));
       this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[7]));
+    }
+
+    @Override
+    public synchronized ServerContext getServerContext() {
+      // Don't use the MiniAccumuloCluster's ServerContext
+      // because ServerKeywordExecutable will close it
+      // and cause errors during subsequent IT operations.
+      return new ServerContext(getCluster().getServerContext().getSiteConfiguration());
     }
 
     @Override

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -30,17 +30,23 @@ import java.util.LinkedList;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.RestoreZookeeper.RestoreZooCommandOpts;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class RestoreZookeeper {
+@AutoService(KeywordExecutable.class)
+public class RestoreZookeeper extends ServerKeywordExecutable<RestoreZooCommandOpts> {
 
   private static class Restore extends DefaultHandler {
     ZooReaderWriter zk = null;
@@ -107,25 +113,48 @@ public class RestoreZookeeper {
     }
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "code runs in same security context as user who provided input")
-  public static void execute(final AccumuloConfiguration conf, final String file,
-      final boolean overwrite) throws Exception {
-    try (var zk = new ZooSession(RestoreZookeeper.class.getSimpleName(), conf)) {
-      var zrw = zk.asReaderWriter();
+  static class RestoreZooCommandOpts extends ServerUtilOpts {
+    @Parameter(names = "--overwrite")
+    boolean overwrite = false;
 
-      InputStream in = System.in;
-      if (file != null) {
-        in = Files.newInputStream(Path.of(file));
-      }
+    @Parameter(names = "--file")
+    String file;
+  }
 
-      SAXParserFactory factory = SAXParserFactory.newInstance();
-      // Prevent external entities by failing on any doctypes. We don't expect any doctypes, so this
-      // is a simple switch to remove any chance of external entities causing problems.
-      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-      SAXParser parser = factory.newSAXParser();
-      parser.parse(in, new Restore(zrw, overwrite));
-      in.close();
+  public RestoreZookeeper() {
+    super(new RestoreZooCommandOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "restore-zookeeper";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Restore Zookeeper data from a file.";
+  }
+
+  @Override
+  public void execute(JCommander cl, RestoreZooCommandOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
+
+    InputStream in = System.in;
+    if (options.file != null) {
+      in = Files.newInputStream(Path.of(options.file));
     }
+
+    SAXParserFactory factory = SAXParserFactory.newInstance();
+    // Prevent external entities by failing on any doctypes. We don't expect any doctypes, so this
+    // is a simple switch to remove any chance of external entities causing problems.
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    SAXParser parser = factory.newSAXParser();
+    parser.parse(in, new Restore(context.getZooSession().asReaderWriter(), options.overwrite));
+    in.close();
   }
 }
