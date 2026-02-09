@@ -810,7 +810,10 @@ public class CheckServerIT extends ConfigurableMacBase {
 
     @Override
     public synchronized ServerContext getServerContext() {
-      return getCluster().getServerContext();
+      // Don't use the MiniAccumuloCluster's ServerContext
+      // because ServerKeywordExecutable will close it
+      // and cause errors during subsequent IT operations.
+      return new ServerContext(getCluster().getServerContext().getSiteConfiguration());
     }
 
     @Override

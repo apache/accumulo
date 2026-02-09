@@ -123,7 +123,9 @@ public class CheckServer extends ServerKeywordExecutable<CheckCommandOpts> {
     }
 
     /**
-     * This should not be called directly; use {@link CheckCommand#getCheckRunner(Check)} instead
+     * This should not be called directly; use {@link CheckCommandOpts#getCheckRunner(Check)}
+     * instead
+     *
      *
      * @return the interface for running a check
      */

@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -46,11 +47,13 @@ public abstract class ServerKeywordExecutable<O extends ServerUtilOpts>
       return;
     }
     // Login as the server on secure HDFS
-    AccumuloConfiguration conf = options.getServerContext().getConfiguration();
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(conf);
+    try (ServerContext context = options.getServerContext()) {
+      AccumuloConfiguration conf = options.getServerContext().getConfiguration();
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(conf);
+      }
+      execute(cl, options);
     }
-    execute(cl, options);
   }
 
   public abstract void execute(JCommander cl, O options) throws Exception;
