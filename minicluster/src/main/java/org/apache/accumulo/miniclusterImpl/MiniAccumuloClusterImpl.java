@@ -786,6 +786,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return Stream.of(procs).map(ProcessReference::new).collect(toList());
   }
 
+  @SuppressWarnings("removal")
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
