@@ -308,7 +308,7 @@ function parse_config() {
 
   RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
   debug "Printing resource groups to $RG_FILE"
-  "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
+  "$accumulo_cmd" other zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
   read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
   debug "All resource groups: ${all_resource_groups[*]}"
 
@@ -466,7 +466,7 @@ function control_services() {
         fi
       done
       # Try to cleanly stop the TabletServers and Manager
-      if ! "$accumulo_cmd" admin stopAll; then
+      if ! "$accumulo_cmd" admin stop-all; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
         sleep 10
@@ -720,7 +720,7 @@ function prune() {
     exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json >"$service_json" 2>/dev/null || (echo "Error calling 'admin serviceStatus'" && exit 1)
+  "$accumulo_cmd" admin service-status --json >"$service_json" 2>/dev/null || (echo "Error calling 'admin serviceStatus'" && exit 1)
 
   local var_name
   local hosts
