@@ -69,7 +69,7 @@ public class ListInstances extends ServerKeywordExecutable<Opts> {
     String keepers = null;
   }
 
-  static int errors = 0;
+  int errors = 0;
 
   public ListInstances() {
     super(new Opts());

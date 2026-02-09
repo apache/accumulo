@@ -154,6 +154,11 @@ public class CheckServer extends ServerKeywordExecutable<CheckCommandOpts> {
     super(new CheckCommandOpts());
   }
 
+  // Visible for testing
+  public <T extends CheckCommandOpts> CheckServer(T testOpts) {
+    super(testOpts);
+  }
+
   @Override
   public String keyword() {
     return "check";

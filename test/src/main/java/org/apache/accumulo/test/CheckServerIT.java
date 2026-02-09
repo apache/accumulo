@@ -65,12 +65,9 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.fs.Path;
-import org.easymock.EasyMock;
-import org.easymock.IAnswer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
-import com.beust.jcommander.JCommander;
 import com.google.common.collect.Sets;
 
 public class CheckServerIT extends ConfigurableMacBase {
@@ -177,10 +174,10 @@ public class CheckServerIT extends ConfigurableMacBase {
     // no checks specified: should run all
     String out1 = executeCheckCommand(new String[] {"run"}, allChecksPass);
     // all checks specified: should run all
-    String[] allChecksArgs = new String[Check.values().length + 2];
-    allChecksArgs[1] = "run";
-    for (int i = 2; i < allChecksArgs.length; i++) {
-      allChecksArgs[i] = Check.values()[i - 2].name();
+    String[] allChecksArgs = new String[Check.values().length + 1];
+    allChecksArgs[0] = "run";
+    for (int i = 1; i < allChecksArgs.length; i++) {
+      allChecksArgs[i] = Check.values()[i - 1].name();
     }
     String out2 = executeCheckCommand(allChecksArgs, allChecksPass);
     // this pattern: should run all
@@ -645,36 +642,31 @@ public class CheckServerIT extends ConfigurableMacBase {
 
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) throws Exception {
     String output;
-    CheckServer check = createMockCheck(checksPass);
+    CheckServer check = createDummyCheckCommand(checksPass);
 
     try (ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(outStream)) {
       System.setOut(printStream);
-      check.execute(checkCmdArgs);
+      try {
+        check.execute(checkCmdArgs);
+      } catch (IllegalStateException e) {
+        // This will happen if one of the commands fails.
+        // The output is checked by the calling command,
+        // so eat this exception.
+      }
       output = outStream.toString();
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     } finally {
-      EasyMock.verify(check);
       System.setOut(ORIGINAL_OUT);
     }
 
     return output;
   }
 
-  private CheckServer createMockCheck(boolean[] checksPass) throws Exception {
-    // mocking admin.execute() to just execute "check" with our dummy check command
-    CheckServer check = EasyMock.createMock(CheckServer.class);
-    check.execute(EasyMock.anyObject(String[].class));
-    EasyMock.expectLastCall().andAnswer((IAnswer<Void>) () -> {
-      String[] args = EasyMock.getCurrentArgument(0);
-      CheckCommandOpts opts = new CheckCommandOpts();
-      JCommander cl = new JCommander(opts);
-      cl.parse(args);
-      check.execute(cl, opts);
-      return null;
-    });
-    EasyMock.replay(check);
+  private CheckServer createDummyCheckCommand(boolean[] checksPass) throws Exception {
+    DummyCheckCommand opts = new DummyCheckCommand(checksPass);
+    CheckServer check = new CheckServer(opts);
     return check;
   }
 
@@ -796,7 +788,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     }
   }
 
-  static class DummyCheckCommand extends CheckCommandOpts {
+  class DummyCheckCommand extends CheckCommandOpts {
     final Map<Check,Supplier<CheckRunner>> checkRunners;
 
     public DummyCheckCommand(boolean[] checksPass) {
@@ -814,6 +806,11 @@ public class CheckServerIT extends ConfigurableMacBase {
       this.checkRunners.put(Check.SYSTEM_FILES,
           () -> new DummySystemFilesCheckRunner(checksPass[6]));
       this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[7]));
+    }
+
+    @Override
+    public synchronized ServerContext getServerContext() {
+      return getCluster().getServerContext();
     }
 
     @Override
