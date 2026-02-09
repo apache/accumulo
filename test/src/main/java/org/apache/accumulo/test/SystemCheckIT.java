@@ -56,10 +56,10 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
-import org.apache.accumulo.server.util.adminCommand.CheckServer;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckCommandOpts;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckCommandOpts;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
@@ -70,7 +70,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
-public class CheckServerIT extends ConfigurableMacBase {
+public class SystemCheckIT extends ConfigurableMacBase {
   private static final PrintStream ORIGINAL_OUT = System.out;
 
   @AfterEach
@@ -89,7 +89,7 @@ public class CheckServerIT extends ConfigurableMacBase {
   public void testAdminCheckList() throws Exception {
     // verifies output of list command
 
-    var p = getCluster().exec(CheckServer.class, "list");
+    var p = getCluster().exec(SystemCheck.class, "list");
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
 
@@ -111,13 +111,13 @@ public class CheckServerIT extends ConfigurableMacBase {
   public void testAdminCheckListAndRunTogether() throws Exception {
     // Tries to execute list and run together; should not work
 
-    var p = getCluster().exec(CheckServer.class, "list", "run");
+    var p = getCluster().exec(SystemCheck.class, "list", "run");
     assertNotEquals(0, p.getProcess().waitFor());
-    p = getCluster().exec(CheckServer.class, "run", "list");
+    p = getCluster().exec(SystemCheck.class, "run", "list");
     assertNotEquals(0, p.getProcess().waitFor());
-    p = getCluster().exec(CheckServer.class, "run", Check.SYSTEM_CONFIG.name(), "list");
+    p = getCluster().exec(SystemCheck.class, "run", Check.SYSTEM_CONFIG.name(), "list");
     assertNotEquals(0, p.getProcess().waitFor());
-    p = getCluster().exec(CheckServer.class, "list", Check.SYSTEM_CONFIG.name(), "run");
+    p = getCluster().exec(SystemCheck.class, "list", Check.SYSTEM_CONFIG.name(), "run");
     assertNotEquals(0, p.getProcess().waitFor());
   }
 
@@ -126,37 +126,37 @@ public class CheckServerIT extends ConfigurableMacBase {
     // tests providing invalid args to check
 
     // extra args to list
-    var p = getCluster().exec(CheckServer.class, "list", "abc");
+    var p = getCluster().exec(SystemCheck.class, "list", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
-    p = getCluster().exec(CheckServer.class, "list", Check.SYSTEM_CONFIG.name());
+    p = getCluster().exec(SystemCheck.class, "list", Check.SYSTEM_CONFIG.name());
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
-    p = getCluster().exec(CheckServer.class, "list", "--name_pattern", "abc");
+    p = getCluster().exec(SystemCheck.class, "list", "--name_pattern", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("'list' does not expect any further arguments"));
     // invalid check to run
-    p = getCluster().exec(CheckServer.class, "run", "123");
+    p = getCluster().exec(SystemCheck.class, "run", "123");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("IllegalArgumentException"));
     // no provided pattern
-    p = getCluster().exec(CheckServer.class, "run", "--name_pattern");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("ParameterException"));
     // no checks match pattern
-    p = getCluster().exec(CheckServer.class, "run", "--name_pattern", "abc");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("No checks matched the given pattern"));
     // invalid pattern
-    p = getCluster().exec(CheckServer.class, "run", "--name_pattern", "[abc");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", "[abc");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("PatternSyntaxException"));
     // more than one arg provided to pattern
-    p = getCluster().exec(CheckServer.class, "run", "--name_pattern", ".*files", ".*files");
+    p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", ".*files", ".*files");
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("Expected one argument (the regex pattern)"));
     // no list or run provided
-    p = getCluster().exec(CheckServer.class);
+    p = getCluster().exec(SystemCheck.class);
     assertNotEquals(0, p.getProcess().waitFor());
     assertTrue(p.readStdOut().contains("Must use either 'list' or 'run'"));
   }
@@ -337,7 +337,7 @@ public class CheckServerIT extends ConfigurableMacBase {
       client.tableOperations().compact(table, slowCompaction);
 
       // test passing case
-      var p = getCluster().exec(CheckServer.class, "run", tableLocksCheck.name());
+      var p = getCluster().exec(SystemCheck.class, "run", tableLocksCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
       assertTrue(out.contains("locks are valid"));
@@ -350,7 +350,7 @@ public class CheckServerIT extends ConfigurableMacBase {
       final var zrw = context.getZooSession().asReaderWriter();
       final var path = new ServiceLockPaths(context.getZooCache()).createTableLocksPath();
       zrw.putPersistentData(path.toString() + "/foo", new byte[0], ZooUtil.NodeExistsPolicy.FAIL);
-      p = getCluster().exec(CheckServer.class, "run", tableLocksCheck.name());
+      p = getCluster().exec(SystemCheck.class, "run", tableLocksCheck.name());
       assertEquals(1, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(
@@ -373,7 +373,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     }
 
     // test passing case
-    var p = getCluster().exec(CheckServer.class, "run", metaTableCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", metaTableCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Looking for offline tablets"));
@@ -394,7 +394,7 @@ public class CheckServerIT extends ConfigurableMacBase {
           MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
       writer.addMutation(mut);
     }
-    p = getCluster().exec(CheckServer.class, "run", metaTableCheck.name());
+    p = getCluster().exec(SystemCheck.class, "run", metaTableCheck.name());
     assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
@@ -408,7 +408,7 @@ public class CheckServerIT extends ConfigurableMacBase {
 
     // test passing case
     // no extra setup needed, just check the root table
-    var p = getCluster().exec(CheckServer.class, "run", rootTableCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", rootTableCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Looking for offline tablets"));
@@ -429,7 +429,7 @@ public class CheckServerIT extends ConfigurableMacBase {
           MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
       writer.addMutation(mut);
     }
-    p = getCluster().exec(CheckServer.class, "run", rootTableCheck.name());
+    p = getCluster().exec(SystemCheck.class, "run", rootTableCheck.name());
     assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
@@ -443,7 +443,7 @@ public class CheckServerIT extends ConfigurableMacBase {
 
     // test passing case
     // no extra setup needed, just check the root table metadata
-    var p = getCluster().exec(CheckServer.class, "run", rootMetaCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", rootMetaCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Looking for offline tablets"));
@@ -466,7 +466,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     zrw.putPersistentData(RootTable.ZROOT_TABLET, rtm.toJson().getBytes(UTF_8),
         ZooUtil.NodeExistsPolicy.OVERWRITE);
 
-    p = getCluster().exec(CheckServer.class, "run", rootMetaCheck.name());
+    p = getCluster().exec(SystemCheck.class, "run", rootMetaCheck.name());
     assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Tablet " + tablet + " is missing required columns"));
@@ -480,7 +480,7 @@ public class CheckServerIT extends ConfigurableMacBase {
 
     // test passing case
     // no extra setup needed, just run the check
-    var p = getCluster().exec(CheckServer.class, "run", sysFilesCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", sysFilesCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
@@ -497,7 +497,7 @@ public class CheckServerIT extends ConfigurableMacBase {
       path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
       getCluster().getServerContext().getVolumeManager().delete(path);
     }
-    p = getCluster().exec(CheckServer.class, "run", sysFilesCheck.name());
+    p = getCluster().exec(SystemCheck.class, "run", sysFilesCheck.name());
     assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("File " + path + " is missing"));
@@ -518,7 +518,7 @@ public class CheckServerIT extends ConfigurableMacBase {
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
       client.tableOperations().flush(table, null, null, true);
 
-      var p = getCluster().exec(CheckServer.class, "run", userFilesCheck.name());
+      var p = getCluster().exec(SystemCheck.class, "run", userFilesCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       String out = p.readStdOut();
       assertTrue(Pattern.compile("missing files: 0, total files: [1-9]+").matcher(out).find());
@@ -535,7 +535,7 @@ public class CheckServerIT extends ConfigurableMacBase {
         path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
         getCluster().getServerContext().getVolumeManager().delete(path);
       }
-      p = getCluster().exec(CheckServer.class, "run", userFilesCheck.name());
+      p = getCluster().exec(SystemCheck.class, "run", userFilesCheck.name());
       assertEquals(1, p.getProcess().waitFor());
       out = p.readStdOut();
       assertTrue(out.contains("File " + path + " is missing"));
@@ -550,7 +550,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     Check sysConfCheck = Check.SYSTEM_CONFIG;
 
     // test passing case
-    var p = getCluster().exec(CheckServer.class, "run", sysConfCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Checking ZooKeeper locks for Accumulo server processes"));
@@ -566,7 +566,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     zrw.recursiveDelete(Constants.ZTABLES + "/" + SystemTables.METADATA.tableId(),
         ZooUtil.NodeMissingPolicy.FAIL);
 
-    p = getCluster().exec(CheckServer.class, "run", sysConfCheck.name());
+    p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
     assertEquals(1, p.getProcess().waitFor());
     out = p.readStdOut();
     assertTrue(out.contains("Failed to find table ("
@@ -614,7 +614,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     // delete from HDFS
     context.getVolumeManager().delete(wal.getSecond());
 
-    var p = getCluster().exec(CheckServer.class, "run", sysConfCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", sysConfCheck.name());
     assertEquals(1, p.getProcess().waitFor());
     var out = p.readStdOut();
     assertTrue(out.contains(
@@ -628,7 +628,7 @@ public class CheckServerIT extends ConfigurableMacBase {
     Check servConfCheck = Check.SERVER_CONFIG;
 
     // test passing case
-    var p = getCluster().exec(CheckServer.class, "run", servConfCheck.name());
+    var p = getCluster().exec(SystemCheck.class, "run", servConfCheck.name());
     assertEquals(0, p.getProcess().waitFor());
     String out = p.readStdOut();
     assertTrue(out.contains("Checking server configuration"));
@@ -642,7 +642,7 @@ public class CheckServerIT extends ConfigurableMacBase {
 
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) throws Exception {
     String output;
-    CheckServer check = createDummyCheckCommand(checksPass);
+    SystemCheck check = createDummyCheckCommand(checksPass);
 
     try (ByteArrayOutputStream outStream = new ByteArrayOutputStream();
         PrintStream printStream = new PrintStream(outStream)) {
@@ -664,9 +664,9 @@ public class CheckServerIT extends ConfigurableMacBase {
     return output;
   }
 
-  private CheckServer createDummyCheckCommand(boolean[] checksPass) throws Exception {
+  private SystemCheck createDummyCheckCommand(boolean[] checksPass) throws Exception {
     DummyCheckCommand opts = new DummyCheckCommand(checksPass);
-    CheckServer check = new CheckServer(opts);
+    SystemCheck check = new SystemCheck(opts);
     return check;
   }
 

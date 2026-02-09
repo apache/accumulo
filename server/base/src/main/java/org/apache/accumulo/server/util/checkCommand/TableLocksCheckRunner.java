@@ -29,8 +29,8 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class TableLocksCheckRunner implements CheckRunner {
   private static final Check check = Check.TABLE_LOCKS;

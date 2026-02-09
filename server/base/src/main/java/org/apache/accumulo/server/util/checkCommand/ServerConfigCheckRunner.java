@@ -25,8 +25,8 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class ServerConfigCheckRunner implements CheckRunner {
   private static final Check check = Check.SERVER_CONFIG;

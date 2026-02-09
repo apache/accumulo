@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckCommandOpts;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckCommandOpts;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.server.util.checkCommand.MetadataTableCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootMetadataCheckRunner;
@@ -50,11 +50,11 @@ import com.google.auto.service.AutoService;
 import com.google.common.base.Preconditions;
 
 @AutoService(KeywordExecutable.class)
-public class CheckServer extends ServerKeywordExecutable<CheckCommandOpts> {
+public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
 
   // This only exists because it is called from ITs
   public static void main(String[] args) throws Exception {
-    new CheckServer().execute(args);
+    new SystemCheck().execute(args);
   }
 
   public static class CheckCommandOpts extends ServerUtilOpts {
@@ -152,12 +152,12 @@ public class CheckServer extends ServerKeywordExecutable<CheckCommandOpts> {
     OK, FAILED, SKIPPED_DEPENDENCY_FAILED, FILTERED_OUT;
   }
 
-  public CheckServer() {
+  public SystemCheck() {
     super(new CheckCommandOpts());
   }
 
   // Visible for testing
-  public <T extends CheckCommandOpts> CheckServer(T testOpts) {
+  public <T extends CheckCommandOpts> SystemCheck(T testOpts) {
     super(testOpts);
   }
 

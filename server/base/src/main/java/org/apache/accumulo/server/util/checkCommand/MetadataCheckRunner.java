@@ -40,7 +40,7 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.hadoop.io.Text;
 
 public interface MetadataCheckRunner extends CheckRunner {

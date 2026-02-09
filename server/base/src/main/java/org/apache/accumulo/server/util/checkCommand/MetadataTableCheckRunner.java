@@ -29,8 +29,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.hadoop.io.Text;
 
 public class MetadataTableCheckRunner implements MetadataCheckRunner {

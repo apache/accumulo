@@ -24,7 +24,7 @@ import java.nio.file.Path;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 

@@ -20,8 +20,8 @@ package org.apache.accumulo.server.util.checkCommand;
 
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.Check;
-import org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ public interface CheckRunner {
    * @param opts server util opts. Only applicable for the checks on the root and metadata tables
    * @param fixFiles remove dangling file pointers. Only applicable for the checks on the system and
    *        user files
-   * @return the {@link org.apache.accumulo.server.util.adminCommand.CheckServer.CheckStatus}
+   * @return the {@link org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus}
    *         resulting from running the check
    */
   CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)

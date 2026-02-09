@@ -68,7 +68,6 @@ import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.server.util.adminCommand.ChangeSecret;
-import org.apache.accumulo.server.util.adminCommand.CheckServer;
 import org.apache.accumulo.server.util.adminCommand.DeleteZooInstance;
 import org.apache.accumulo.server.util.adminCommand.DumpConfig;
 import org.apache.accumulo.server.util.adminCommand.Fate;
@@ -81,6 +80,7 @@ import org.apache.accumulo.server.util.adminCommand.ServiceStatus;
 import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.accumulo.server.util.adminCommand.StopManager;
 import org.apache.accumulo.server.util.adminCommand.StopServers;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck;
 import org.apache.accumulo.server.util.adminCommand.VerifyTabletAssignments;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.start.Main;
@@ -164,7 +164,7 @@ public class KeywordStartIT {
     assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
     SortedSet<CommandInfo> expectSet = new TreeSet<>();
     expectSet.add(new CommandInfo(UsageGroup.ADMIN, "change-secret", ChangeSecret.class));
-    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "check", CheckServer.class));
+    expectSet.add(new CommandInfo(UsageGroup.ADMIN, "check", SystemCheck.class));
     expectSet.add(
         new CommandInfo(UsageGroup.OTHER, "check-compaction-config", CheckCompactionConfig.class));
     expectSet.add(new CommandInfo(UsageGroup.OTHER, "check-accumulo-properties",
@@ -261,7 +261,7 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(CheckCompactionConfig.class);
-    expectSet.add(CheckServer.class);
+    expectSet.add(SystemCheck.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(CreateToken.class);
     expectSet.add(DumpConfig.class);
