@@ -77,7 +77,7 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testClientPropertiesFile() throws Exception {
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", getRootPassword(), "--config-file",
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(), "--config-file",
         getCluster().getClientPropsPath()});
     assertTrue(shell.getExitCode() == 0);
   }
@@ -86,7 +86,7 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testClientProperties() throws Exception {
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", getRootPassword(), "--config-file",
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(), "--config-file",
         getCluster().getClientPropsPath()});
     assertTrue(shell.getExitCode() == 0);
   }
@@ -95,7 +95,7 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testClientPropertiesBadPassword() throws Exception {
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", "BADPW", "--config-file",
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", "BADPW", "--config-file",
         getCluster().getClientPropsPath()});
     assertTrue(shell.getExitCode() != 0);
   }
@@ -110,7 +110,7 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", getRootPassword(),
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(),
         "--auth-timeout", "1", "--config-file", getCluster().getClientPropsPath()});
     assertTrue(shell.getExitCode() == 0);
     Thread.sleep(90000);
