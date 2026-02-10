@@ -109,8 +109,9 @@ public class ShellOptionsJC extends ClientOpts {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "user-provided paths intentional")
-  public String getClientPropertiesFile() {
-    String configFile = getClientConfigFile();
+  @Override
+  public String getClientConfigFile() {
+    String configFile = super.getClientConfigFile();
     if (configFile == null) {
       List<String> searchPaths = new LinkedList<>();
       searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");

@@ -348,14 +348,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
     this.setTableName("");
 
     if (accumuloClient == null) {
-      final String principal;
-      try {
-        principal = options.principal;
-      } catch (Exception e) {
-        logError(e.getMessage());
-        exitCode = 1;
-        return false;
-      }
+      final String principal = ClientProperty.AUTH_PRINCIPAL.getValue(clientProperties);
       final AuthenticationToken token = ClientProperty.getAuthenticationToken(clientProperties);
       try {
         this.setTableName("");
