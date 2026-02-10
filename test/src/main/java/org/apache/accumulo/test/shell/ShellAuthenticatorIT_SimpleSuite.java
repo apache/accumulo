@@ -77,8 +77,8 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testClientPropertiesFile() throws Exception {
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(), "--config-file",
-        getCluster().getClientPropsPath()});
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(),
+        "--config-file", getCluster().getClientPropsPath()});
     assertTrue(shell.getExitCode() == 0);
   }
 
@@ -86,8 +86,8 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testClientProperties() throws Exception {
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(), "--config-file",
-        getCluster().getClientPropsPath()});
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "--password", getRootPassword(),
+        "--config-file", getCluster().getClientPropsPath()});
     assertTrue(shell.getExitCode() == 0);
   }
 
