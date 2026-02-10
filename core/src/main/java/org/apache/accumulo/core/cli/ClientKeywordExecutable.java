@@ -23,11 +23,12 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
-public abstract class ClientKeywordExecutable<O extends ClientOpts> implements KeywordExecutable {
+public abstract class ClientKeywordExecutable<OPTS extends ClientOpts>
+    implements KeywordExecutable {
 
-  private final O options;
+  private final OPTS options;
 
-  public ClientKeywordExecutable(O options) {
+  public ClientKeywordExecutable(OPTS options) {
     this.options = options;
   }
 
@@ -50,6 +51,6 @@ public abstract class ClientKeywordExecutable<O extends ClientOpts> implements K
     execute(cl, options);
   }
 
-  public abstract void execute(JCommander cl, O options) throws Exception;
+  public abstract void execute(JCommander cl, OPTS options) throws Exception;
 
 }

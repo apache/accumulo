@@ -206,7 +206,7 @@ import io.opentelemetry.context.Scope;
  * and quoted strings with escape sequences
  */
 @AutoService(KeywordExecutable.class)
-public class Shell extends ClientKeywordExecutable<ShellOptions> {
+public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
 
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
@@ -272,11 +272,11 @@ public class Shell extends ClientKeywordExecutable<ShellOptions> {
 
   // no arg constructor should do minimal work since it's used in Main ServiceLoader
   public Shell() {
-    super(new ShellOptions());
+    super(new ShellOptionsJC());
   }
 
   public Shell(LineReader reader) {
-    super(new ShellOptions());
+    super(new ShellOptionsJC());
     this.reader = reader;
     this.terminal = reader.getTerminal();
     this.writer = terminal.writer();
@@ -318,7 +318,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptions> {
    * @return true if the shell was successfully configured, false otherwise.
    * @throws IOException if problems occur creating the LineReader
    */
-  public boolean config(JCommander jc, ShellOptions options) throws IOException {
+  public boolean config(JCommander jc, ShellOptionsJC options) throws IOException {
     if (this.terminal == null) {
       this.terminal =
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
@@ -490,7 +490,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptions> {
   }
 
   @Override
-  public void execute(JCommander cl, ShellOptions options) throws Exception {
+  public void execute(JCommander cl, ShellOptionsJC options) throws Exception {
     try {
       if (config(cl, options)) {
         start();

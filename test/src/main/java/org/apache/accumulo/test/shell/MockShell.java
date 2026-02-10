@@ -28,7 +28,7 @@ import java.io.OutputStream;
 
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
@@ -50,7 +50,7 @@ public class MockShell {
     }
 
     @Override
-    public void execute(JCommander cl, ShellOptions options) throws Exception {
+    public void execute(JCommander cl, ShellOptionsJC options) throws Exception {
       config(cl, options);
     }
 

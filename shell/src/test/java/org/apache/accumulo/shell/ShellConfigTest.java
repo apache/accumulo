@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.shell;
 
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileDescriptor;
@@ -103,7 +104,7 @@ public class ShellConfigTest {
   @Test
   public void testBadArg() throws Exception {
     shell.execute(args("--bogus"));
-    assertTrue(shell.getExitCode() != 0);
+    assertNotEquals(0, shell.getExitCode());
     // JCommander versions after 1.60 will cause the Shell to detect the arg as Unrecognized option
     assertTrue(output.get().startsWith("ERROR"), "Did not print Error");
     assertTrue(output.get().contains("Usage"), "Did not print usage");
