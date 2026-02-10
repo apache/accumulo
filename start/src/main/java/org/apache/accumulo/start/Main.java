@@ -198,8 +198,8 @@ public class Main {
     System.out.println("    accumulo classpath");
     System.out.println("    accumulo jshell (<argument> ...)");
     System.out.println("    accumulo className (<argument> ...)");
-    System.out.println("    accumulo <group>* <command> [--help] (<argument> ...)\n\n");
-    System.out.println("    * group may be omitted for commands with 'CLIENT' group");
+    System.out.println("    accumulo <group>* <command> [--help] (<argument> ...)");
+    System.out.println("    * group may be omitted for commands with 'CLIENT' group\n\n");
 
     Map<UsageGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
     executables.entrySet().forEach(e -> {
