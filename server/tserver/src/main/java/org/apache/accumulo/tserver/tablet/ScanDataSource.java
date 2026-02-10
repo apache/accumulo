@@ -262,7 +262,7 @@ class ScanDataSource implements DataSource {
               }
             }
             try {
-              IteratorConfigUtil.checkIteratorConflicts(
+              IteratorConfigUtil.checkIteratorConflicts(tablet.getExtent().toString(),
                   getIteratorSetting(scanParamIterInfo,
                       scanParams.getSsio().get(scanParamIterInfo.getIterName())),
                   EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings),

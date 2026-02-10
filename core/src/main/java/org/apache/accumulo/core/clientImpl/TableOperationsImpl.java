@@ -116,7 +116,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummarizerConfiguration;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -1009,11 +1008,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
-      IteratorConfigUtil.checkIteratorConflicts(Map.copyOf(this.getConfiguration(tableName)),
-          property, value);
-
       setPropertyNoChecks(tableName, property, value);
-
       checkLocalityGroups(tableName, property);
     } catch (TableNotFoundException | IllegalArgumentException e) {
       throw new AccumuloException(e);
@@ -1040,11 +1035,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // point. Because of these potential issues, create an immutable snapshot of the map so that
     // from here on the code is assured to always be dealing with the same map.
     vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
-
-    for (var property : vProperties.getProperties().entrySet()) {
-      IteratorConfigUtil.checkIteratorConflicts(configBeforeMut, property.getKey(),
-          property.getValue());
-    }
 
     try {
       // Send to server

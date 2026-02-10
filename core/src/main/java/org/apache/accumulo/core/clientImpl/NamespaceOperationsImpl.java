@@ -57,7 +57,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -187,8 +186,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(value != null, "value is null");
 
     try {
-      IteratorConfigUtil.checkIteratorConflicts(tableOps, this, namespace, property, value);
-
       ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
           client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
               namespace, property, value));
@@ -217,11 +214,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     // point. Because of these potential issues, create an immutable snapshot of the map so that
     // from here on the code is assured to always be dealing with the same map.
     vProperties.setProperties(Map.copyOf(vProperties.getProperties()));
-
-    for (var property : vProperties.getProperties().entrySet()) {
-      IteratorConfigUtil.checkIteratorConflicts(tableOps, this, namespace, property.getKey(),
-          property.getValue());
-    }
 
     try {
       // Send to server
@@ -382,8 +374,6 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       throws AccumuloSecurityException, AccumuloException, NamespaceNotFoundException {
     // testClassLoad validates the namespace name
     testClassLoad(namespace, setting.getIteratorClass(), SortedKeyValueIterator.class.getName());
-    IteratorConfigUtil.checkIteratorConflictsWithTablesInNamespace(tableOps, namespace, setting,
-        scopes);
     super.attachIterator(namespace, setting, scopes);
   }
 

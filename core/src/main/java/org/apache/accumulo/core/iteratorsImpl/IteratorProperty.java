@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.iteratorsImpl;
 
+import java.util.Map;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -37,25 +39,31 @@ public class IteratorProperty {
 
   private final String optionKey;
   private final String optionValue;
+  private final String property;
+  private final String value;
 
   private IteratorProperty(String iterName, IteratorUtil.IteratorScope scope, int priority,
-      String className) {
+      String className, String property, String value) {
     this.name = iterName;
     this.scope = scope;
     this.priority = priority;
     this.className = className;
     this.optionKey = null;
     this.optionValue = null;
+    this.property = property;
+    this.value = value;
   }
 
   private IteratorProperty(String iterName, IteratorUtil.IteratorScope scope, String optionName,
-      String optionValue) {
+      String optionValue, String property, String value) {
     this.name = iterName;
     this.scope = scope;
     this.priority = -1;
     this.className = null;
     this.optionKey = optionName;
     this.optionValue = optionValue;
+    this.property = property;
+    this.value = value;
   }
 
   public boolean isOption() {
@@ -86,6 +94,10 @@ public class IteratorProperty {
     return priority;
   }
 
+  public String getProperty() {
+    return property;
+  }
+
   public IteratorUtil.IteratorScope getScope() {
     return scope;
   }
@@ -104,6 +116,15 @@ public class IteratorProperty {
     if (!b) {
       throw new IllegalArgumentException("Illegal iterator property: " + property + "=" + value);
     }
+  }
+
+  @Override
+  public String toString() {
+    return property + "=" + value;
+  }
+
+  public static IteratorProperty parse(Map.Entry<String,String> entry) {
+    return parse(entry.getKey(), entry.getValue());
   }
 
   /**
@@ -127,10 +148,11 @@ public class IteratorProperty {
     if (iterPropParts.length == 4) {
       String[] valTokens = value.split(",");
       check(valTokens.length == 2, property, value);
-      return new IteratorProperty(iterName, scope, Integer.parseInt(valTokens[0]), valTokens[1]);
+      return new IteratorProperty(iterName, scope, Integer.parseInt(valTokens[0]), valTokens[1],
+          property, value);
     } else if (iterPropParts.length == 6) {
       check(iterPropParts[4].equals("opt"), property, value);
-      return new IteratorProperty(iterName, scope, iterPropParts[5], value);
+      return new IteratorProperty(iterName, scope, iterPropParts[5], value, property, value);
     } else {
       throw new IllegalArgumentException("Illegal iterator property: " + property + "=" + value);
     }

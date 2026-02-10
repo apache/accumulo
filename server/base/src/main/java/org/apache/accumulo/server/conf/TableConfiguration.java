@@ -49,6 +49,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class TableConfiguration extends ZooBasedConfiguration {
 
   private final static Logger log = LoggerFactory.getLogger(TableConfiguration.class);
@@ -71,6 +73,19 @@ public class TableConfiguration extends ZooBasedConfiguration {
         Map<String,Map<String,String>> allOpts = new HashMap<>();
         List<IterInfo> iters =
             IteratorConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
+        // check for duplicate priorities
+        if (!iters.isEmpty()) {
+          for (int i = 1; i < iters.size(); i++) {
+            IterInfo last = iters.get(i - 1);
+            IterInfo curr = iters.get(i);
+            // This code assumes the list of iterators is sorted on priority
+            Preconditions.checkState(last.getPriority() <= curr.getPriority());
+            if (last.getPriority() == curr.getPriority()) {
+              // duplicate priority
+              log.warn("iterator priority conflict seen for tableId:{} {} {}", tableId, last, curr);
+            }
+          }
+        }
         return new ParsedIteratorConfig(iters, allOpts, ClassLoaderUtil.tableContext(conf));
       }));
     }
