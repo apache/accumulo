@@ -51,12 +51,14 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -65,6 +67,7 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
@@ -402,6 +405,51 @@ public class FateIT {
     callStarted.await();
     // cancel the transaction
     assertFalse(fate.cancel(txid));
+  }
+
+  /**
+   * Test that verifies that fate table locks are created and deleted from the correct ZooKeeper
+   * path
+   */
+  @Test
+  public void testTableLockDeleteUsesCorrectZKPath() throws Exception {
+
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    AdminUtil<Admin> admin = new AdminUtil<>(true);
+
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
+
+    long txId = fate.startTransaction();
+    String formattedTxId = FateTxId.formatTid(txId);
+    LOG.debug("Starting test testDeleteUsesCorrectZKPath {}", formattedTxId);
+    assertEquals(NEW, getTxStatus(zk, txId));
+    fate.seedTransaction("TestOperation", txId, new TestOperation(NS, TID), false,
+        "Test Delete Op");
+    assertEquals(SUBMITTED, getTxStatus(zk, txId));
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be in progress
+    Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txId));
+
+    assertFalse(fate.cancel(txId));
+
+    var tableLocksPath = ServiceLock.path(ZK_ROOT + Constants.ZTABLE_LOCKS);
+    assertFalse(zk.getChildren(tableLocksPath.toString()).isEmpty(),
+        "Table locks at " + tableLocksPath + "do not exist");
+    for (var tableName : zk.getChildren(tableLocksPath.toString())) {
+      for (var tableLock : zk.getChildren(
+          ServiceLock.path(ZK_ROOT + Constants.ZTABLE_LOCKS + "/" + tableName).toString())) {
+        LOG.debug("Found table {} with fate lock {}", tableName, tableLock);
+      }
+    }
+
+    admin.deleteLocks(zk, tableLocksPath, FateTxId.toHexString(formattedTxId));
+    for (var tableName : zk.getChildren(tableLocksPath.toString())) {
+      var fateTableLocks = tableLocksPath + "/" + tableName;
+      assertTrue(zk.getChildren(fateTableLocks).isEmpty(), " table fate locks are still present");
+    }
   }
 
   @Test

@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.util.FastFormat;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class FateTxId {
@@ -49,6 +50,18 @@ public class FateTxId {
   public static long fromString(String fmtTid) {
     Preconditions.checkArgument(fmtTid.startsWith(PREFIX) && fmtTid.endsWith(SUFFIX));
     return Long.parseLong(getHex(fmtTid), 16);
+  }
+
+  /**
+   * Returns the hex value of the FateTxId from a formatted fate transaction
+   *
+   * @param fmtTid formatted fate transaction
+   * @return hex value of long txId
+   */
+  @VisibleForTesting
+  public static String toHexString(String fmtTid) {
+    Preconditions.checkArgument(isFormatedTid(fmtTid));
+    return getHex(fmtTid);
   }
 
   /**

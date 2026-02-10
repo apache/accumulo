@@ -519,7 +519,13 @@ public class AdminUtil<T> {
     return state;
   }
 
-  public void deleteLocks(ZooReaderWriter zk, ServiceLock.ServiceLockPath path, String txidStr)
+  /**
+   * Removes locks at specific serviceLockPaths
+   * <p>
+   * When removing fate table locks, the txIdStr value must be the fate txId in hex format. See
+   * {@link FateTxId#toHexString(String)}
+   */
+  public void deleteLocks(ZooReaderWriter zk, ServiceLock.ServiceLockPath path, String txIdStr)
       throws KeeperException, InterruptedException {
     // delete any locks assoc w/ fate operation
     List<String> lockedIds = zk.getChildren(path.toString());
@@ -530,7 +536,7 @@ public class AdminUtil<T> {
         String lockPath = path + "/" + id + "/" + node;
         byte[] data = zk.getData(path + "/" + id + "/" + node);
         String[] lda = new String(data, UTF_8).split(":");
-        if (lda[1].equals(txidStr)) {
+        if (lda[1].equals(txIdStr)) {
           zk.recursiveDelete(lockPath, NodeMissingPolicy.SKIP);
         }
       }
