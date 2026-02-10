@@ -366,7 +366,19 @@ public class IteratorConfigUtil {
           && iterScopesToCheck.contains(iterProp.getScope())) {
         var iterSetting =
             iteratorSettings.getOrDefault(iterProp.getScope(), Map.of()).get(iterProp.getName());
-        if (iterSetting != null) {
+        if (iterSetting == null) {
+          if (iterToCheck.getName().equals(iterProp.getName())) {
+            // this is a dangling property that has the same name as the iterator being added.
+            String msg = String.format(
+                "%s iterator name conflict at %s scope. %s conflicts with existing %s", logContext,
+                iterProp.getScope(), iterToCheck, iterProp);
+            if (shouldThrow) {
+              throw new AccumuloException(new IllegalArgumentException(msg));
+            } else {
+              log.warn(msg + WARNING_MSG);
+            }
+          }
+        } else {
           iterSetting.addOption(iterProp.getOptionKey(), iterProp.getOptionValue());
         }
       }
