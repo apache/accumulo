@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.shell;
 
+/**
+ * Abstract class to encompass the Options available on the Accumulo Shell
+ */
 public abstract class ShellOptions {
 
   // Global options flags
@@ -27,5 +30,4 @@ public abstract class ShellOptions {
   public static final String resourceGroupOption = "rg";
   public static final String helpOption = "?";
   public static final String helpLongOption = "help";
-
 }
