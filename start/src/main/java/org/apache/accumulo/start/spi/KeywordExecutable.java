@@ -44,10 +44,6 @@ import java.util.ServiceLoader;
  */
 public interface KeywordExecutable {
 
-  enum UsageGroup {
-    ADMIN, COMPACTION, CORE, PROCESS, OTHER
-  }
-
   /**
    * @return Keyword which identifies this service
    */
@@ -64,7 +60,7 @@ public interface KeywordExecutable {
    * @return Usage group for this command
    */
   default UsageGroup usageGroup() {
-    return UsageGroup.OTHER;
+    return UsageGroups.OTHER;
   }
 
   /**

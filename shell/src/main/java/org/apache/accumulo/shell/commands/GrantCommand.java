@@ -27,7 +27,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -128,7 +128,7 @@ public class GrantCommand extends TableOperation {
 
     systemOpt = new Option("s", "system", false, "grant a system permission");
 
-    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,
+    optNamespace = new Option(ShellOptionsJC.namespaceOption, "namespace", true,
         "name of a namespace to operate on");
     optNamespace.setArgName("namespace");
 
@@ -138,7 +138,7 @@ public class GrantCommand extends TableOperation {
     group.addOption(optNamespace);
 
     o.addOptionGroup(group);
-    userOpt = new Option(ShellOptions.userOption, "user", true, "user to operate on");
+    userOpt = new Option(ShellOptionsJC.userOption, "user", true, "user to operate on");
     userOpt.setArgName("username");
     userOpt.setRequired(true);
     o.addOption(userOpt);

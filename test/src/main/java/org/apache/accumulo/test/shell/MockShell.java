@@ -28,6 +28,7 @@ import java.io.OutputStream;
 
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Terminal;
@@ -35,33 +36,49 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
+
 public class MockShell {
+
   private static final Logger shellLog = LoggerFactory.getLogger(MockShell.class);
   private static final ErrorMessageCallback noop = new ErrorMessageCallback();
 
+  public static class TestShell extends Shell {
+
+    public TestShell(LineReader reader) {
+      super(reader);
+    }
+
+    @Override
+    public void execute(JCommander cl, ShellOptionsJC options) throws Exception {
+      config(cl, options);
+    }
+
+  }
+
   final TestOutputStream output;
   final StringInputStream input;
-  public Shell shell;
+  public TestShell shell;
   public LineReader reader;
   public Terminal terminal;
 
   MockShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
-      throws IOException {
+      throws Exception {
     ClientInfo info = ClientInfo.from(configFile.toPath());
     // start the shell
     output = new TestOutputStream();
     input = new StringInputStream();
     terminal = new DumbTerminal(input, output);
     reader = LineReaderBuilder.builder().terminal(terminal).build();
-    shell = new Shell(reader);
+    shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
     if (info.saslEnabled()) {
       // Pull the kerberos principal out when we're using SASL
-      shell.config("-u", user, "-z", instanceName, zookeepers, "--config-file",
-          configFile.getAbsolutePath());
+      shell.execute(new String[] {"-u", user, "-z", instanceName, zookeepers, "--config-file",
+          configFile.getAbsolutePath()});
     } else {
-      shell.config("-u", user, "-p", rootPass, "-z", instanceName, zookeepers, "--config-file",
-          configFile.getAbsolutePath());
+      shell.execute(new String[] {"-u", user, "-p", rootPass, "-z", instanceName, zookeepers,
+          "--config-file", configFile.getAbsolutePath()});
     }
     exec("quit", true);
     shell.start();

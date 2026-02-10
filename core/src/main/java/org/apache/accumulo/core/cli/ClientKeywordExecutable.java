@@ -16,35 +16,40 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager;
+package org.apache.accumulo.core.cli;
 
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
 
-import com.google.auto.service.AutoService;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 
-@AutoService(KeywordExecutable.class)
-public class ManagerExecutable implements KeywordExecutable {
+public abstract class ClientKeywordExecutable<O extends ClientOpts> implements KeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "manager";
+  private final O options;
+
+  public ClientKeywordExecutable(O options) {
+    this.options = options;
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroups.PROCESS;
+  public final void execute(String[] args) throws Exception {
+    JCommander cl = new JCommander(this.options);
+    cl.setProgramName(
+        "accumulo " + (usageGroup().key().isBlank() ? "" : usageGroup().key() + " ") + keyword());
+    try {
+      cl.parse(args);
+    } catch (ParameterException e) {
+      cl.usage();
+      return;
+    }
+
+    if (this.options.help) {
+      cl.usage();
+      return;
+    }
+    execute(cl, options);
   }
 
-  @Override
-  public String description() {
-    return "Starts Accumulo Manager";
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    Manager.main(args);
-  }
+  public abstract void execute(JCommander cl, O options) throws Exception;
 
 }

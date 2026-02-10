@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -77,7 +77,7 @@ public class AddAuthsCommand extends Command {
     setOrClear.addOption(scanOptAuths);
     setOrClear.setRequired(true);
     o.addOptionGroup(setOrClear);
-    userOpt = new Option(ShellOptions.userOption, "user", true, "user to operate on");
+    userOpt = new Option(ShellOptionsJC.userOption, "user", true, "user to operate on");
     userOpt.setArgName("user");
     o.addOption(userOpt);
     return o;

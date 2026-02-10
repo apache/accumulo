@@ -41,6 +41,8 @@ import org.apache.accumulo.server.util.adminCommand.ServiceStatus.ServiceStatusC
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
 import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +78,7 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+    return UsageGroups.ADMIN;
   }
 
   @Override

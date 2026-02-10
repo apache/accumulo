@@ -16,33 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.gc;
+package org.apache.accumulo.test.start;
 
-import org.apache.accumulo.start.spi.KeywordExecutable;
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.util.Set;
+
 import org.apache.accumulo.start.spi.UsageGroup;
 import org.apache.accumulo.start.spi.UsageGroups;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
-import com.google.auto.service.AutoService;
+@Tag(SUNNY_DAY)
+public class UsageGroupsIT {
 
-@AutoService(KeywordExecutable.class)
-public class GCExecutable implements KeywordExecutable {
-  @Override
-  public String keyword() {
-    return "gc";
-  }
-
-  @Override
-  public UsageGroup usageGroup() {
-    return UsageGroups.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo garbage collector";
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    SimpleGarbageCollector.main(args);
+  @Test
+  public void testUsageGroups() {
+    Set<UsageGroup> groups = UsageGroups.getUsageGroups();
+    assertEquals(6, groups.size());
+    assertTrue(groups.contains(UsageGroups.ADMIN));
+    assertTrue(groups.contains(UsageGroups.CLIENT));
+    assertTrue(groups.contains(UsageGroups.COMPACTION));
+    assertTrue(groups.contains(UsageGroups.CORE));
+    assertTrue(groups.contains(UsageGroups.OTHER));
+    assertTrue(groups.contains(UsageGroups.PROCESS));
   }
 }

@@ -31,7 +31,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -60,8 +60,8 @@ public class DUCommand extends Command {
 
     final SortedSet<String> tables = new TreeSet<>(Arrays.asList(cl.getArgs()));
 
-    if (cl.hasOption(ShellOptions.tableOption)) {
-      tables.add(cl.getOptionValue(ShellOptions.tableOption));
+    if (cl.hasOption(ShellOptionsJC.tableOption)) {
+      tables.add(cl.getOptionValue(ShellOptionsJC.tableOption));
     }
 
     if (cl.hasOption(optNamespace.getOpt())) {
@@ -131,7 +131,7 @@ public class DUCommand extends Command {
     optHumanReadble.setArgName("human readable output");
 
     optNamespace =
-        new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace");
+        new Option(ShellOptionsJC.namespaceOption, "namespace", true, "name of a namespace");
     optNamespace.setArgName("namespace");
 
     o.addOption(OptUtil.tableOpt("table to examine"));

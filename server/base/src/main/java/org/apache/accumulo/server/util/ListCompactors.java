@@ -29,12 +29,18 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ListCompactors implements KeywordExecutable {
+public class ListCompactors extends ServerKeywordExecutable<ServerUtilOpts> {
+
+  public ListCompactors() {
+    super(new ServerUtilOpts());
+  }
 
   @Override
   public String keyword() {
@@ -48,7 +54,7 @@ public class ListCompactors implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
+    return UsageGroups.PROCESS;
   }
 
   protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {
@@ -65,18 +71,8 @@ public class ListCompactors implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
-    cl.parse(args);
-
-    if (opts.help || cl.getParsedCommand() == null) {
-      cl.usage();
-      return;
-    }
-
-    var map = listCompactorsByQueue(opts.getServerContext());
+  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
+    var map = listCompactorsByQueue(options.getServerContext());
     if (map.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
@@ -87,4 +83,5 @@ public class ListCompactors implements KeywordExecutable {
       });
     }
   }
+
 }

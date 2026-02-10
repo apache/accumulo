@@ -19,6 +19,8 @@
 package org.apache.accumulo.tserver;
 
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.google.auto.service.AutoService;
 
@@ -32,7 +34,7 @@ public class TServerExecutable implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
+    return UsageGroups.PROCESS;
   }
 
   @Override

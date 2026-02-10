@@ -32,6 +32,8 @@ import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 import org.apache.hadoop.fs.Path;
 
 import com.beust.jcommander.JCommander;
@@ -51,7 +53,7 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerUtilOpts> {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+    return UsageGroups.ADMIN;
   }
 
   @Override

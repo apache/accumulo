@@ -43,6 +43,8 @@ import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -168,7 +170,7 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+    return UsageGroups.ADMIN;
   }
 
   @Override

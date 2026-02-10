@@ -16,17 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell;
+package org.apache.accumulo.start.spi;
 
-/**
- * Abstract class to encompass the Options available on the Accumulo Shell
- */
-public abstract class ShellOptions {
-  // Global options flags
-  public static final String userOption = "u";
-  public static final String tableOption = "t";
-  public static final String namespaceOption = "ns";
-  public static final String resourceGroupOption = "rg";
-  public static final String helpOption = "?";
-  public static final String helpLongOption = "help";
+public interface UsageGroup extends Comparable<UsageGroup> {
+
+  String key();
+
+  String title();
+
+  String description();
+
+  @Override
+  default int compareTo(UsageGroup o) {
+    int result = this.key().compareTo(o.key());
+    if (result == 0) {
+      result = this.title().compareTo(o.title());
+      if (result == 0) {
+        result = this.description().compareTo(o.description());
+      }
+    }
+    return result;
+  }
+
 }

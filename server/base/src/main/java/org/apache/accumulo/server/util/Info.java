@@ -25,6 +25,8 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 import org.apache.zookeeper.KeeperException;
 
 import com.google.auto.service.AutoService;
@@ -39,7 +41,7 @@ public class Info implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+    return UsageGroups.CORE;
   }
 
   @Override

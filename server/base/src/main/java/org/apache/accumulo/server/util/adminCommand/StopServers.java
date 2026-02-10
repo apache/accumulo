@@ -46,6 +46,8 @@ import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.server.util.adminCommand.StopServers.StopServersOpts;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,7 +88,7 @@ public class StopServers extends ServerKeywordExecutable<StopServersOpts> {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+    return UsageGroups.ADMIN;
   }
 
   @Override

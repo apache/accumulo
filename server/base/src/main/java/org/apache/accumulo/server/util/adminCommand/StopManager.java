@@ -24,6 +24,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
@@ -42,7 +44,7 @@ public class StopManager extends ServerKeywordExecutable<ServerUtilOpts> {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+    return UsageGroups.ADMIN;
   }
 
   @Override

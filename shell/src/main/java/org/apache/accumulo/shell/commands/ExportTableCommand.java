@@ -27,7 +27,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -57,7 +57,7 @@ public class ExportTableCommand extends Command {
   public Options getOptions() {
     final Options o = new Options();
 
-    tableOpt = new Option(ShellOptions.tableOption, "table", true, "table to export");
+    tableOpt = new Option(ShellOptionsJC.tableOption, "table", true, "table to export");
 
     tableOpt.setArgName("table");
 

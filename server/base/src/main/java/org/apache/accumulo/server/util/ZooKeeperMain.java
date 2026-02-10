@@ -23,6 +23,8 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.start.spi.UsageGroup;
+import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
@@ -52,7 +54,7 @@ public class ZooKeeperMain implements KeywordExecutable {
 
   @Override
   public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
+    return UsageGroups.PROCESS;
   }
 
   @Override

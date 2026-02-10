@@ -37,7 +37,7 @@ import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -177,8 +177,8 @@ public class ListTabletsCommand extends Command {
       return tableSet;
     }
 
-    if (cl.hasOption(ShellOptions.tableOption)) {
-      String table = cl.getOptionValue(ShellOptions.tableOption);
+    if (cl.hasOption(ShellOptionsJC.tableOption)) {
+      String table = cl.getOptionValue(ShellOptionsJC.tableOption);
       String idString = tableIdMap.get(table);
       if (idString != null) {
         tableSet.add(new TableInfo(table));
@@ -253,7 +253,7 @@ public class ListTabletsCommand extends Command {
     opts.addOption(optTablePattern);
 
     optNamespace =
-        new Option(ShellOptions.namespaceOption, "namespace", true, "name of a namespace");
+        new Option(ShellOptionsJC.namespaceOption, "namespace", true, "name of a namespace");
     optNamespace.setArgName("namespace");
     opts.addOption(optNamespace);
 

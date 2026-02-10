@@ -26,6 +26,7 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 
 public abstract class ServerKeywordExecutable<O extends ServerUtilOpts>
     implements KeywordExecutable {
@@ -39,8 +40,14 @@ public abstract class ServerKeywordExecutable<O extends ServerUtilOpts>
   @Override
   public final void execute(String[] args) throws Exception {
     JCommander cl = new JCommander(this.options);
-    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
-    cl.parse(args);
+    cl.setProgramName("accumulo " + usageGroup().key() + " " + keyword());
+    try {
+      cl.parse(args);
+    } catch (ParameterException e) {
+      System.out.println("Error parsing arguments");
+      cl.usage();
+      return;
+    }
 
     if (this.options.help) {
       cl.usage();

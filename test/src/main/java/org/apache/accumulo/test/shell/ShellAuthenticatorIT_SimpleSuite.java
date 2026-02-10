@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.test.shell.MockShell.TestShell;
 import org.apache.accumulo.test.shell.ShellIT.StringInputStream;
 import org.apache.accumulo.test.shell.ShellIT.TestOutputStream;
 import org.jline.reader.LineReader;
@@ -53,7 +52,7 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
 
   private StringInputStream input;
   private TestOutputStream output;
-  private Shell shell;
+  private TestShell shell;
   private LineReader reader;
   private Terminal terminal;
 
@@ -75,40 +74,45 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testClientPropertiesFile() throws IOException {
-    shell = new Shell(reader);
+  public void testClientPropertiesFile() throws Exception {
+    shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(shell.config("--config-file", getCluster().getClientPropsPath()));
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", getRootPassword(), "--config-file",
+        getCluster().getClientPropsPath()});
+    assertTrue(shell.getExitCode() == 0);
   }
 
   @Test
-  public void testClientProperties() throws IOException {
-    shell = new Shell(reader);
+  public void testClientProperties() throws Exception {
+    shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(shell.config("-u", getAdminPrincipal(), "-p", getRootPassword(), "-zi",
-        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers()));
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", getRootPassword(), "--config-file",
+        getCluster().getClientPropsPath()});
+    assertTrue(shell.getExitCode() == 0);
   }
 
   @Test
-  public void testClientPropertiesBadPassword() throws IOException {
-    shell = new Shell(reader);
+  public void testClientPropertiesBadPassword() throws Exception {
+    shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    assertFalse(shell.config("-u", getAdminPrincipal(), "-p", "BADPW", "-zi",
-        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers()));
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", "BADPW", "--config-file",
+        getCluster().getClientPropsPath()});
+    assertTrue(shell.getExitCode() != 0);
   }
 
   @Test
-  public void testAuthTimeoutPropertiesFile() throws IOException, InterruptedException {
+  public void testAuthTimeoutPropertiesFile() throws Exception {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
     input = new StringInputStream();
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
-    shell = new Shell(reader);
+    shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    assertTrue(
-        shell.config("--auth-timeout", "1", "--config-file", getCluster().getClientPropsPath()));
+    shell.execute(new String[] {"-u", getAdminPrincipal(), "-p", getRootPassword(),
+        "--auth-timeout", "1", "--config-file", getCluster().getClientPropsPath()});
+    assertTrue(shell.getExitCode() == 0);
     Thread.sleep(90000);
     shell.execCommand("whoami", false, false);
     assertTrue(output.get().contains("root"));

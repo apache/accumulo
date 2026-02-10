@@ -46,7 +46,7 @@ import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
-import org.apache.accumulo.shell.ShellOptions;
+import org.apache.accumulo.shell.ShellOptionsJC;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -496,7 +496,7 @@ public class ConfigCommand extends Command {
     final OptionGroup og = new OptionGroup();
     final OptionGroup tgroup = new OptionGroup();
 
-    tableOpt = new Option(ShellOptions.tableOption, "table", true,
+    tableOpt = new Option(ShellOptionsJC.tableOption, "table", true,
         "table to display/set/delete properties for");
     deleteOpt =
         new Option("d", "delete", true, "delete a per-table, per-namespace, or system property");
@@ -511,9 +511,9 @@ public class ConfigCommand extends Command {
     disablePaginationOpt =
         new Option("np", "no-pagination", false, "disables pagination of output");
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
-    namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
+    namespaceOpt = new Option(ShellOptionsJC.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-    resourceGroupOpt = new Option(ShellOptions.resourceGroupOption, "resourceGroup", true,
+    resourceGroupOpt = new Option(ShellOptionsJC.resourceGroupOption, "resourceGroup", true,
         "resource group from which to set or delete properties");
     propFileOpt = new Option("pf", "propFile", true, "file containing properties to set");
 
