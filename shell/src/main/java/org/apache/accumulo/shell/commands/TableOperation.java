@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptionsJC;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.accumulo.shell.Token;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -118,10 +118,10 @@ public abstract class TableOperation extends Command {
     optTablePattern.setArgName("pattern");
 
     optTableName =
-        new Option(ShellOptionsJC.tableOption, "table", true, "name of a table to operate on");
+        new Option(ShellOptions.tableOption, "table", true, "name of a table to operate on");
     optTableName.setArgName("tableName");
 
-    optNamespace = new Option(ShellOptionsJC.namespaceOption, "namespace", true,
+    optNamespace = new Option(ShellOptions.namespaceOption, "namespace", true,
         "name of a namespace to operate on");
     optNamespace.setArgName("namespace");
 

@@ -36,7 +36,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class ShellOptionsJC extends ClientOpts {
+public class ShellOptions extends ClientOpts {
 
   // Global options flags
   public static final String userOption = "u";

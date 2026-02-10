@@ -27,7 +27,7 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
-import org.apache.accumulo.shell.ShellOptionsJC;
+import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
@@ -100,7 +100,7 @@ public class UserPermissionsCommand extends Command {
   @Override
   public Options getOptions() {
     Options o = new Options();
-    userOpt = new Option(ShellOptionsJC.userOption, "user", true, "user to operate on");
+    userOpt = new Option(ShellOptions.userOption, "user", true, "user to operate on");
     userOpt.setArgName("user");
     o.addOption(userOpt);
     return o;

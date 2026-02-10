@@ -20,8 +20,8 @@ package org.apache.accumulo.shell;
 
 import static java.nio.charset.StandardCharsets.ISO_8859_1;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.shell.ShellOptionsJC.helpLongOption;
-import static org.apache.accumulo.shell.ShellOptionsJC.helpOption;
+import static org.apache.accumulo.shell.ShellOptions.helpLongOption;
+import static org.apache.accumulo.shell.ShellOptions.helpOption;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -206,7 +206,7 @@ import io.opentelemetry.context.Scope;
  * and quoted strings with escape sequences
  */
 @AutoService(KeywordExecutable.class)
-public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
+public class Shell extends ClientKeywordExecutable<ShellOptions> {
 
   public static final Logger log = LoggerFactory.getLogger(Shell.class);
   private static final Logger audit = LoggerFactory.getLogger(Shell.class.getName() + ".audit");
@@ -272,11 +272,11 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
 
   // no arg constructor should do minimal work since it's used in Main ServiceLoader
   public Shell() {
-    super(new ShellOptionsJC());
+    super(new ShellOptions());
   }
 
   public Shell(LineReader reader) {
-    super(new ShellOptionsJC());
+    super(new ShellOptions());
     this.reader = reader;
     this.terminal = reader.getTerminal();
     this.writer = terminal.writer();
@@ -318,7 +318,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
    * @return true if the shell was successfully configured, false otherwise.
    * @throws IOException if problems occur creating the LineReader
    */
-  public boolean config(JCommander jc, ShellOptionsJC options) throws IOException {
+  public boolean config(JCommander jc, ShellOptions options) throws IOException {
     if (this.terminal == null) {
       this.terminal =
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
@@ -490,7 +490,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
   }
 
   @Override
-  public void execute(JCommander cl, ShellOptionsJC options) throws Exception {
+  public void execute(JCommander cl, ShellOptions options) throws Exception {
     try {
       if (config(cl, options)) {
         start();
