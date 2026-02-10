@@ -100,7 +100,8 @@ public class FateCommandTest {
     @Override
     protected boolean deleteTx(PrintWriter out, AdminUtil<FateCommand> admin,
         ZooStore<FateCommand> zs, ZooReaderWriter zk, ServiceLockPath zLockManagerPath,
-        String[] args) throws InterruptedException, KeeperException {
+        ServiceLockPath zTableLocksPath, String[] args)
+        throws InterruptedException, KeeperException {
       deleteCalled = true;
       return true;
     }
