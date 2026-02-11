@@ -29,17 +29,17 @@ public class FateWorkerService {
 
   public interface Iface {
 
-    public java.util.List<TFatePartition> getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public TFatePartitions getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public boolean setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TFatePartition> current, java.util.List<TFatePartition> desired) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public boolean setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long updateId, java.util.List<TFatePartition> desired) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TFatePartition>> resultHandler) throws org.apache.thrift.TException;
+    public void getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TFatePartitions> resultHandler) throws org.apache.thrift.TException;
 
-    public void setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TFatePartition> current, java.util.List<TFatePartition> desired, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
+    public void setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long updateId, java.util.List<TFatePartition> desired, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -66,7 +66,7 @@ public class FateWorkerService {
     }
 
     @Override
-    public java.util.List<TFatePartition> getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public TFatePartitions getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getPartitions(tinfo, credentials);
       return recv_getPartitions();
@@ -80,7 +80,7 @@ public class FateWorkerService {
       sendBase("getPartitions", args);
     }
 
-    public java.util.List<TFatePartition> recv_getPartitions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public TFatePartitions recv_getPartitions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getPartitions_result result = new getPartitions_result();
       receiveBase(result, "getPartitions");
@@ -94,18 +94,18 @@ public class FateWorkerService {
     }
 
     @Override
-    public boolean setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TFatePartition> current, java.util.List<TFatePartition> desired) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public boolean setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long updateId, java.util.List<TFatePartition> desired) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_setPartitions(tinfo, credentials, current, desired);
+      send_setPartitions(tinfo, credentials, updateId, desired);
       return recv_setPartitions();
     }
 
-    public void send_setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TFatePartition> current, java.util.List<TFatePartition> desired) throws org.apache.thrift.TException
+    public void send_setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long updateId, java.util.List<TFatePartition> desired) throws org.apache.thrift.TException
     {
       setPartitions_args args = new setPartitions_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
-      args.setCurrent(current);
+      args.setUpdateId(updateId);
       args.setDesired(desired);
       sendBase("setPartitions", args);
     }
@@ -143,17 +143,17 @@ public class FateWorkerService {
     }
 
     @Override
-    public void getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TFatePartition>> resultHandler) throws org.apache.thrift.TException {
+    public void getPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TFatePartitions> resultHandler) throws org.apache.thrift.TException {
       checkReady();
       getPartitions_call method_call = new getPartitions_call(tinfo, credentials, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getPartitions_call extends org.apache.thrift.async.TAsyncMethodCall<java.util.List<TFatePartition>> {
+    public static class getPartitions_call extends org.apache.thrift.async.TAsyncMethodCall<TFatePartitions> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      public getPartitions_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TFatePartition>> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getPartitions_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.thrift.async.AsyncMethodCallback<TFatePartitions> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
@@ -170,7 +170,7 @@ public class FateWorkerService {
       }
 
       @Override
-      public java.util.List<TFatePartition> getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+      public TFatePartitions getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -181,9 +181,9 @@ public class FateWorkerService {
     }
 
     @Override
-    public void setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TFatePartition> current, java.util.List<TFatePartition> desired, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
+    public void setPartitions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long updateId, java.util.List<TFatePartition> desired, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      setPartitions_call method_call = new setPartitions_call(tinfo, credentials, current, desired, resultHandler, this, ___protocolFactory, ___transport);
+      setPartitions_call method_call = new setPartitions_call(tinfo, credentials, updateId, desired, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -191,13 +191,13 @@ public class FateWorkerService {
     public static class setPartitions_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Boolean> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private java.util.List<TFatePartition> current;
+      private long updateId;
       private java.util.List<TFatePartition> desired;
-      public setPartitions_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TFatePartition> current, java.util.List<TFatePartition> desired, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public setPartitions_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long updateId, java.util.List<TFatePartition> desired, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
-        this.current = current;
+        this.updateId = updateId;
         this.desired = desired;
       }
 
@@ -207,7 +207,7 @@ public class FateWorkerService {
         setPartitions_args args = new setPartitions_args();
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
-        args.setCurrent(current);
+        args.setUpdateId(updateId);
         args.setDesired(desired);
         args.write(prot);
         prot.writeMessageEnd();
@@ -298,7 +298,7 @@ public class FateWorkerService {
       public setPartitions_result getResult(I iface, setPartitions_args args) throws org.apache.thrift.TException {
         setPartitions_result result = new setPartitions_result();
         try {
-          result.success = iface.setPartitions(args.tinfo, args.credentials, args.current, args.desired);
+          result.success = iface.setPartitions(args.tinfo, args.credentials, args.updateId, args.desired);
           result.setSuccessIsSet(true);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
@@ -325,7 +325,7 @@ public class FateWorkerService {
       return processMap;
     }
 
-    public static class getPartitions<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getPartitions_args, java.util.List<TFatePartition>> {
+    public static class getPartitions<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getPartitions_args, TFatePartitions> {
       public getPartitions() {
         super("getPartitions");
       }
@@ -336,11 +336,11 @@ public class FateWorkerService {
       }
 
       @Override
-      public org.apache.thrift.async.AsyncMethodCallback<java.util.List<TFatePartition>> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<TFatePartitions> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<java.util.List<TFatePartition>>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<TFatePartitions>() { 
           @Override
-          public void onComplete(java.util.List<TFatePartition> o) {
+          public void onComplete(TFatePartitions o) {
             getPartitions_result result = new getPartitions_result();
             result.success = o;
             try {
@@ -391,7 +391,7 @@ public class FateWorkerService {
       }
 
       @Override
-      public void start(I iface, getPartitions_args args, org.apache.thrift.async.AsyncMethodCallback<java.util.List<TFatePartition>> resultHandler) throws org.apache.thrift.TException {
+      public void start(I iface, getPartitions_args args, org.apache.thrift.async.AsyncMethodCallback<TFatePartitions> resultHandler) throws org.apache.thrift.TException {
         iface.getPartitions(args.tinfo, args.credentials,resultHandler);
       }
     }
@@ -464,7 +464,7 @@ public class FateWorkerService {
 
       @Override
       public void start(I iface, setPartitions_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
-        iface.setPartitions(args.tinfo, args.credentials, args.current, args.desired,resultHandler);
+        iface.setPartitions(args.tinfo, args.credentials, args.updateId, args.desired,resultHandler);
       }
     }
 
@@ -968,13 +968,13 @@ public class FateWorkerService {
   public static class getPartitions_result implements org.apache.thrift.TBase<getPartitions_result, getPartitions_result._Fields>, java.io.Serializable, Cloneable, Comparable<getPartitions_result>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("getPartitions_result");
 
-    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.LIST, (short)0);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getPartitions_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getPartitions_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable java.util.List<TFatePartition> success; // required
+    public @org.apache.thrift.annotation.Nullable TFatePartitions success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -1047,8 +1047,7 @@ public class FateWorkerService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFatePartition.class))));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFatePartitions.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -1059,7 +1058,7 @@ public class FateWorkerService {
     }
 
     public getPartitions_result(
-      java.util.List<TFatePartition> success,
+      TFatePartitions success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -1072,11 +1071,7 @@ public class FateWorkerService {
      */
     public getPartitions_result(getPartitions_result other) {
       if (other.isSetSuccess()) {
-        java.util.List<TFatePartition> __this__success = new java.util.ArrayList<TFatePartition>(other.success.size());
-        for (TFatePartition other_element : other.success) {
-          __this__success.add(new TFatePartition(other_element));
-        }
-        this.success = __this__success;
+        this.success = new TFatePartitions(other.success);
       }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
@@ -1094,28 +1089,12 @@ public class FateWorkerService {
       this.sec = null;
     }
 
-    public int getSuccessSize() {
-      return (this.success == null) ? 0 : this.success.size();
-    }
-
     @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<TFatePartition> getSuccessIterator() {
-      return (this.success == null) ? null : this.success.iterator();
-    }
-
-    public void addToSuccess(TFatePartition elem) {
-      if (this.success == null) {
-        this.success = new java.util.ArrayList<TFatePartition>();
-      }
-      this.success.add(elem);
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.util.List<TFatePartition> getSuccess() {
+    public TFatePartitions getSuccess() {
       return this.success;
     }
 
-    public getPartitions_result setSuccess(@org.apache.thrift.annotation.Nullable java.util.List<TFatePartition> success) {
+    public getPartitions_result setSuccess(@org.apache.thrift.annotation.Nullable TFatePartitions success) {
       this.success = success;
       return this;
     }
@@ -1167,7 +1146,7 @@ public class FateWorkerService {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((java.util.List<TFatePartition>)value);
+          setSuccess((TFatePartitions)value);
         }
         break;
 
@@ -1334,6 +1313,9 @@ public class FateWorkerService {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
     }
 
     private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
@@ -1373,19 +1355,9 @@ public class FateWorkerService {
           }
           switch (schemeField.id) {
             case 0: // SUCCESS
-              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-                {
-                  org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<TFatePartition>(_list0.size);
-                  @org.apache.thrift.annotation.Nullable TFatePartition _elem1;
-                  for (int _i2 = 0; _i2 < _list0.size; ++_i2)
-                  {
-                    _elem1 = new TFatePartition();
-                    _elem1.read(iprot);
-                    struct.success.add(_elem1);
-                  }
-                  iprot.readListEnd();
-                }
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TFatePartitions();
+                struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
@@ -1418,14 +1390,7 @@ public class FateWorkerService {
         oprot.writeStructBegin(STRUCT_DESC);
         if (struct.success != null) {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
-          {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (TFatePartition _iter3 : struct.success)
-            {
-              _iter3.write(oprot);
-            }
-            oprot.writeListEnd();
-          }
+          struct.success.write(oprot);
           oprot.writeFieldEnd();
         }
         if (struct.sec != null) {
@@ -1460,13 +1425,7 @@ public class FateWorkerService {
         }
         oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
-          {
-            oprot.writeI32(struct.success.size());
-            for (TFatePartition _iter4 : struct.success)
-            {
-              _iter4.write(oprot);
-            }
-          }
+          struct.success.write(oprot);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
@@ -1478,17 +1437,8 @@ public class FateWorkerService {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
-          {
-            org.apache.thrift.protocol.TList _list5 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<TFatePartition>(_list5.size);
-            @org.apache.thrift.annotation.Nullable TFatePartition _elem6;
-            for (int _i7 = 0; _i7 < _list5.size; ++_i7)
-            {
-              _elem6 = new TFatePartition();
-              _elem6.read(iprot);
-              struct.success.add(_elem6);
-            }
-          }
+          struct.success = new TFatePartitions();
+          struct.success.read(iprot);
           struct.setSuccessIsSet(true);
         }
         if (incoming.get(1)) {
@@ -1510,7 +1460,7 @@ public class FateWorkerService {
 
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CURRENT_FIELD_DESC = new org.apache.thrift.protocol.TField("current", org.apache.thrift.protocol.TType.LIST, (short)3);
+    private static final org.apache.thrift.protocol.TField UPDATE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("updateId", org.apache.thrift.protocol.TType.I64, (short)3);
     private static final org.apache.thrift.protocol.TField DESIRED_FIELD_DESC = new org.apache.thrift.protocol.TField("desired", org.apache.thrift.protocol.TType.LIST, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setPartitions_argsStandardSchemeFactory();
@@ -1518,14 +1468,14 @@ public class FateWorkerService {
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable java.util.List<TFatePartition> current; // required
+    public long updateId; // required
     public @org.apache.thrift.annotation.Nullable java.util.List<TFatePartition> desired; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
-      CURRENT((short)3, "current"),
+      UPDATE_ID((short)3, "updateId"),
       DESIRED((short)4, "desired");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
@@ -1546,8 +1496,8 @@ public class FateWorkerService {
             return TINFO;
           case 2: // CREDENTIALS
             return CREDENTIALS;
-          case 3: // CURRENT
-            return CURRENT;
+          case 3: // UPDATE_ID
+            return UPDATE_ID;
           case 4: // DESIRED
             return DESIRED;
           default:
@@ -1593,6 +1543,8 @@ public class FateWorkerService {
     }
 
     // isset id assignments
+    private static final int __UPDATEID_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -1600,9 +1552,8 @@ public class FateWorkerService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.CURRENT, new org.apache.thrift.meta_data.FieldMetaData("current", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFatePartition.class))));
+      tmpMap.put(_Fields.UPDATE_ID, new org.apache.thrift.meta_data.FieldMetaData("updateId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
       tmpMap.put(_Fields.DESIRED, new org.apache.thrift.meta_data.FieldMetaData("desired", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
               new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TFatePartition.class))));
@@ -1616,13 +1567,14 @@ public class FateWorkerService {
     public setPartitions_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      java.util.List<TFatePartition> current,
+      long updateId,
       java.util.List<TFatePartition> desired)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
-      this.current = current;
+      this.updateId = updateId;
+      setUpdateIdIsSet(true);
       this.desired = desired;
     }
 
@@ -1630,19 +1582,14 @@ public class FateWorkerService {
      * Performs a deep copy on <i>other</i>.
      */
     public setPartitions_args(setPartitions_args other) {
+      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
-      if (other.isSetCurrent()) {
-        java.util.List<TFatePartition> __this__current = new java.util.ArrayList<TFatePartition>(other.current.size());
-        for (TFatePartition other_element : other.current) {
-          __this__current.add(new TFatePartition(other_element));
-        }
-        this.current = __this__current;
-      }
+      this.updateId = other.updateId;
       if (other.isSetDesired()) {
         java.util.List<TFatePartition> __this__desired = new java.util.ArrayList<TFatePartition>(other.desired.size());
         for (TFatePartition other_element : other.desired) {
@@ -1661,7 +1608,8 @@ public class FateWorkerService {
     public void clear() {
       this.tinfo = null;
       this.credentials = null;
-      this.current = null;
+      setUpdateIdIsSet(false);
+      this.updateId = 0;
       this.desired = null;
     }
 
@@ -1715,45 +1663,27 @@ public class FateWorkerService {
       }
     }
 
-    public int getCurrentSize() {
-      return (this.current == null) ? 0 : this.current.size();
+    public long getUpdateId() {
+      return this.updateId;
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public java.util.Iterator<TFatePartition> getCurrentIterator() {
-      return (this.current == null) ? null : this.current.iterator();
-    }
-
-    public void addToCurrent(TFatePartition elem) {
-      if (this.current == null) {
-        this.current = new java.util.ArrayList<TFatePartition>();
-      }
-      this.current.add(elem);
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.util.List<TFatePartition> getCurrent() {
-      return this.current;
-    }
-
-    public setPartitions_args setCurrent(@org.apache.thrift.annotation.Nullable java.util.List<TFatePartition> current) {
-      this.current = current;
+    public setPartitions_args setUpdateId(long updateId) {
+      this.updateId = updateId;
+      setUpdateIdIsSet(true);
       return this;
     }
 
-    public void unsetCurrent() {
-      this.current = null;
+    public void unsetUpdateId() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __UPDATEID_ISSET_ID);
     }
 
-    /** Returns true if field current is set (has been assigned a value) and false otherwise */
-    public boolean isSetCurrent() {
-      return this.current != null;
+    /** Returns true if field updateId is set (has been assigned a value) and false otherwise */
+    public boolean isSetUpdateId() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __UPDATEID_ISSET_ID);
     }
 
-    public void setCurrentIsSet(boolean value) {
-      if (!value) {
-        this.current = null;
-      }
+    public void setUpdateIdIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __UPDATEID_ISSET_ID, value);
     }
 
     public int getDesiredSize() {
@@ -1816,11 +1746,11 @@ public class FateWorkerService {
         }
         break;
 
-      case CURRENT:
+      case UPDATE_ID:
         if (value == null) {
-          unsetCurrent();
+          unsetUpdateId();
         } else {
-          setCurrent((java.util.List<TFatePartition>)value);
+          setUpdateId((java.lang.Long)value);
         }
         break;
 
@@ -1845,8 +1775,8 @@ public class FateWorkerService {
       case CREDENTIALS:
         return getCredentials();
 
-      case CURRENT:
-        return getCurrent();
+      case UPDATE_ID:
+        return getUpdateId();
 
       case DESIRED:
         return getDesired();
@@ -1867,8 +1797,8 @@ public class FateWorkerService {
         return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
-      case CURRENT:
-        return isSetCurrent();
+      case UPDATE_ID:
+        return isSetUpdateId();
       case DESIRED:
         return isSetDesired();
       }
@@ -1906,12 +1836,12 @@ public class FateWorkerService {
           return false;
       }
 
-      boolean this_present_current = true && this.isSetCurrent();
-      boolean that_present_current = true && that.isSetCurrent();
-      if (this_present_current || that_present_current) {
-        if (!(this_present_current && that_present_current))
+      boolean this_present_updateId = true;
+      boolean that_present_updateId = true;
+      if (this_present_updateId || that_present_updateId) {
+        if (!(this_present_updateId && that_present_updateId))
           return false;
-        if (!this.current.equals(that.current))
+        if (this.updateId != that.updateId)
           return false;
       }
 
@@ -1939,9 +1869,7 @@ public class FateWorkerService {
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetCurrent()) ? 131071 : 524287);
-      if (isSetCurrent())
-        hashCode = hashCode * 8191 + current.hashCode();
+      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(updateId);
 
       hashCode = hashCode * 8191 + ((isSetDesired()) ? 131071 : 524287);
       if (isSetDesired())
@@ -1978,12 +1906,12 @@ public class FateWorkerService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.compare(isSetCurrent(), other.isSetCurrent());
+      lastComparison = java.lang.Boolean.compare(isSetUpdateId(), other.isSetUpdateId());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCurrent()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.current, other.current);
+      if (isSetUpdateId()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.updateId, other.updateId);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -2038,12 +1966,8 @@ public class FateWorkerService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("current:");
-      if (this.current == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.current);
-      }
+      sb.append("updateId:");
+      sb.append(this.updateId);
       first = false;
       if (!first) sb.append(", ");
       sb.append("desired:");
@@ -2078,6 +2002,8 @@ public class FateWorkerService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
@@ -2122,21 +2048,10 @@ public class FateWorkerService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 3: // CURRENT
-              if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-                {
-                  org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                  struct.current = new java.util.ArrayList<TFatePartition>(_list8.size);
-                  @org.apache.thrift.annotation.Nullable TFatePartition _elem9;
-                  for (int _i10 = 0; _i10 < _list8.size; ++_i10)
-                  {
-                    _elem9 = new TFatePartition();
-                    _elem9.read(iprot);
-                    struct.current.add(_elem9);
-                  }
-                  iprot.readListEnd();
-                }
-                struct.setCurrentIsSet(true);
+            case 3: // UPDATE_ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.updateId = iprot.readI64();
+                struct.setUpdateIdIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -2144,14 +2059,14 @@ public class FateWorkerService {
             case 4: // DESIRED
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list11 = iprot.readListBegin();
-                  struct.desired = new java.util.ArrayList<TFatePartition>(_list11.size);
-                  @org.apache.thrift.annotation.Nullable TFatePartition _elem12;
-                  for (int _i13 = 0; _i13 < _list11.size; ++_i13)
+                  org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
+                  struct.desired = new java.util.ArrayList<TFatePartition>(_list8.size);
+                  @org.apache.thrift.annotation.Nullable TFatePartition _elem9;
+                  for (int _i10 = 0; _i10 < _list8.size; ++_i10)
                   {
-                    _elem12 = new TFatePartition();
-                    _elem12.read(iprot);
-                    struct.desired.add(_elem12);
+                    _elem9 = new TFatePartition();
+                    _elem9.read(iprot);
+                    struct.desired.add(_elem9);
                   }
                   iprot.readListEnd();
                 }
@@ -2186,25 +2101,16 @@ public class FateWorkerService {
           struct.credentials.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.current != null) {
-          oprot.writeFieldBegin(CURRENT_FIELD_DESC);
-          {
-            oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.current.size()));
-            for (TFatePartition _iter14 : struct.current)
-            {
-              _iter14.write(oprot);
-            }
-            oprot.writeListEnd();
-          }
-          oprot.writeFieldEnd();
-        }
+        oprot.writeFieldBegin(UPDATE_ID_FIELD_DESC);
+        oprot.writeI64(struct.updateId);
+        oprot.writeFieldEnd();
         if (struct.desired != null) {
           oprot.writeFieldBegin(DESIRED_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.desired.size()));
-            for (TFatePartition _iter15 : struct.desired)
+            for (TFatePartition _iter11 : struct.desired)
             {
-              _iter15.write(oprot);
+              _iter11.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -2235,7 +2141,7 @@ public class FateWorkerService {
         if (struct.isSetCredentials()) {
           optionals.set(1);
         }
-        if (struct.isSetCurrent()) {
+        if (struct.isSetUpdateId()) {
           optionals.set(2);
         }
         if (struct.isSetDesired()) {
@@ -2248,21 +2154,15 @@ public class FateWorkerService {
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
-        if (struct.isSetCurrent()) {
-          {
-            oprot.writeI32(struct.current.size());
-            for (TFatePartition _iter16 : struct.current)
-            {
-              _iter16.write(oprot);
-            }
-          }
+        if (struct.isSetUpdateId()) {
+          oprot.writeI64(struct.updateId);
         }
         if (struct.isSetDesired()) {
           {
             oprot.writeI32(struct.desired.size());
-            for (TFatePartition _iter17 : struct.desired)
+            for (TFatePartition _iter12 : struct.desired)
             {
-              _iter17.write(oprot);
+              _iter12.write(oprot);
             }
           }
         }
@@ -2283,29 +2183,19 @@ public class FateWorkerService {
           struct.setCredentialsIsSet(true);
         }
         if (incoming.get(2)) {
-          {
-            org.apache.thrift.protocol.TList _list18 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.current = new java.util.ArrayList<TFatePartition>(_list18.size);
-            @org.apache.thrift.annotation.Nullable TFatePartition _elem19;
-            for (int _i20 = 0; _i20 < _list18.size; ++_i20)
-            {
-              _elem19 = new TFatePartition();
-              _elem19.read(iprot);
-              struct.current.add(_elem19);
-            }
-          }
-          struct.setCurrentIsSet(true);
+          struct.updateId = iprot.readI64();
+          struct.setUpdateIdIsSet(true);
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list21 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.desired = new java.util.ArrayList<TFatePartition>(_list21.size);
-            @org.apache.thrift.annotation.Nullable TFatePartition _elem22;
-            for (int _i23 = 0; _i23 < _list21.size; ++_i23)
+            org.apache.thrift.protocol.TList _list13 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.desired = new java.util.ArrayList<TFatePartition>(_list13.size);
+            @org.apache.thrift.annotation.Nullable TFatePartition _elem14;
+            for (int _i15 = 0; _i15 < _list13.size; ++_i15)
             {
-              _elem22 = new TFatePartition();
-              _elem22.read(iprot);
-              struct.desired.add(_elem22);
+              _elem14 = new TFatePartition();
+              _elem14.read(iprot);
+              struct.desired.add(_elem14);
             }
           }
           struct.setDesiredIsSet(true);

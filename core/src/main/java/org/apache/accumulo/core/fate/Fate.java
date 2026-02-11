@@ -583,8 +583,7 @@ public class Fate<T> {
     }
   }
 
-  public boolean setPartitions(Set<FatePartition> expected, Set<FatePartition> partitions) {
-    Objects.requireNonNull(expected);
+  public Set<FatePartition> setPartitions(Set<FatePartition> partitions) {
     Objects.requireNonNull(partitions);
     Preconditions.checkArgument(
         partitions.stream().allMatch(
@@ -592,13 +591,10 @@ public class Fate<T> {
         "type mismatch type:%s partitions:%s", store.type(), partitions);
 
     synchronized (fateExecutors) {
-      if (currentPartitions.equals(expected)) {
-        currentPartitions = Set.copyOf(partitions);
-        fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
-        return true;
-      } else {
-        return false;
-      }
+      var old = currentPartitions;
+      currentPartitions = Set.copyOf(partitions);
+      fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
+      return old;
     }
   }
 

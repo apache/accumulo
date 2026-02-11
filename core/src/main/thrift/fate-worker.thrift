@@ -22,6 +22,11 @@ namespace cpp org.apache.accumulo.core.fate.thrift
 include "client.thrift"
 include "security.thrift"
 
+struct TFatePartitions {
+  1:i64 updateId
+  2:list<TFatePartition> partitions
+}
+
 struct TFatePartition {
   1:string start
   2:string stop
@@ -29,7 +34,7 @@ struct TFatePartition {
 
 service FateWorkerService {
 
-  list<TFatePartition> getPartitions(
+  TFatePartitions getPartitions(
     1:client.TInfo tinfo,
     2:security.TCredentials credentials
   ) throws (
@@ -39,7 +44,7 @@ service FateWorkerService {
   bool setPartitions(
     1:client.TInfo tinfo,
     2:security.TCredentials credentials,
-    3:list<TFatePartition> expected,
+    3:i64 updateId,
     4:list<TFatePartition> desired
    ) throws (
      1:client.ThriftSecurityException sec

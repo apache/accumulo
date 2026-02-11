@@ -70,13 +70,16 @@ public class FateManager {
 
       // TODO could support RG... could user ServerId
       // This map will contain all current workers even their partitions are empty
-      Map<HostAndPort,Set<FatePartition>> currentAssignments = getCurrentAssignments();
+      Map<HostAndPort,CurrentPartitions> currentPartitions = getCurrentAssignments();
+      Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
+      currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
       Set<FatePartition> desiredParititions = getDesiredPartitions(currentAssignments.size());
 
       Map<HostAndPort,Set<FatePartition>> desired =
           computeDesiredAssignments(currentAssignments, desiredParititions);
 
       // are there any workers with extra partitions? If so need to unload those first.
+      int unloads = 0;
       for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
         HostAndPort worker = entry.getKey();
         Set<FatePartition> partitions = entry.getValue();
@@ -84,15 +87,22 @@ public class FateManager {
         if (!Sets.difference(curr, partitions).isEmpty()) {
           // This worker has extra partitions that are not desired
           var intersection = Sets.intersection(curr, partitions);
-          if (!setWorkerPartitions(worker, curr, intersection)) {
+          if (!setWorkerPartitions(worker, currentPartitions.get(worker).updateId(),
+              intersection)) {
             log.debug("Failed to set partitions for {} to {}", worker, intersection);
             // could not set, so start completely over
             continue outer;
           } else {
             log.debug("Set partitions for {} to {} from {}", worker, intersection, curr);
+            unloads++;
           }
-          currentAssignments.put(worker, intersection);
         }
+      }
+
+      if (unloads > 0) {
+        // some tablets were unloaded, so start over and get new update ids and the current
+        // partitions
+        continue outer;
       }
 
       // Load all partitions on all workers..
@@ -101,7 +111,7 @@ public class FateManager {
         Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
         if (!curr.equals(partitions)) {
-          if (!setWorkerPartitions(worker, curr, partitions)) {
+          if (!setWorkerPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
             log.debug("Failed to set partitions for {} to {}", worker, partitions);
             // could not set, so start completely over
             continue outer;
@@ -114,26 +124,24 @@ public class FateManager {
   }
 
   /**
-   * Sets the complete set of partitions a server should work on. It will only succeed if the
-   * current set we pass in matches the severs actual current set of partitions. Passing the current
-   * set avoids some race conditions w/ previously queued network messages, it's a distributed
-   * compare and set mechanism that can detect changes.
+   * Sets the complete set of partitions a server should work on. It will only succeed if the update
+   * id is valid. The update id avoids race conditions w/ previously queued network messages, it's a
+   * distributed compare and set mechanism that can detect changes.
    *
    * @param address The server to set partitions on
-   * @param current What we think the servers current set of fate partitions are.
+   * @param updateId What we think the servers current set of fate partitions are.
    * @param desired The new set of fate partitions this server should start working. It should only
    *        work on these and nothing else.
    * @return true if the partitions were set false if they were not set.
    * @throws TException
    */
-  private boolean setWorkerPartitions(HostAndPort address, Set<FatePartition> current,
+  private boolean setWorkerPartitions(HostAndPort address, long updateId,
       Set<FatePartition> desired) throws TException {
     // TODO make a compare and set type RPC that uses the current and desired
     FateWorkerService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
     try {
-      return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(),
-          current.stream().map(FatePartition::toThrift).toList(),
+      return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
     } finally {
       ThriftUtil.returnClient(client, context);
@@ -216,13 +224,16 @@ public class FateManager {
     return desired;
   }
 
-  private Map<HostAndPort,Set<FatePartition>> getCurrentAssignments() throws TException {
+  record CurrentPartitions(long updateId, Set<FatePartition> partitions) {
+  }
+
+  private Map<HostAndPort,CurrentPartitions> getCurrentAssignments() throws TException {
     var workers =
         context.getServerPaths().getManagerWorker(DEFAULT_RG_ONLY, AddressSelector.all(), true);
 
     log.debug("workers : " + workers);
 
-    Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
+    Map<HostAndPort,CurrentPartitions> currentAssignments = new HashMap<>();
 
     for (var worker : workers) {
       var address = HostAndPort.fromString(worker.getServer());
@@ -232,8 +243,9 @@ public class FateManager {
       try {
 
         var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());
-        var partitions = tparitions.stream().map(FatePartition::from).collect(Collectors.toSet());
-        currentAssignments.put(address, partitions);
+        var partitions =
+            tparitions.partitions.stream().map(FatePartition::from).collect(Collectors.toSet());
+        currentAssignments.put(address, new CurrentPartitions(tparitions.updateId, partitions));
       } finally {
         ThriftUtil.returnClient(client, context);
       }

@@ -34,11 +34,13 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.accumulo.core.fate.thrift.TFatePartition;
+import org.apache.accumulo.core.fate.thrift.TFatePartitions;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerContext;
@@ -72,8 +74,10 @@ public class FateWorker implements FateWorkerService.Iface {
 
   }
 
+  private volatile long expectedUpdateId = 0;
+
   @Override
-  public List<TFatePartition> getPartitions(TInfo tinfo, TCredentials credentials)
+  public TFatePartitions getPartitions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -81,32 +85,47 @@ public class FateWorker implements FateWorkerService.Iface {
     }
 
     var localFate = fate;
+
+    // generate a new one time use update id
+    long updateId = LazySingletons.RANDOM.get().nextLong();
+    while (updateId == 0) {
+      updateId = LazySingletons.RANDOM.get().nextLong();
+    }
+
+    // invalidate any outstanding updates and set the new update id
+    expectedUpdateId = updateId;
+
     if (localFate == null) {
-      return List.of();
+      return new TFatePartitions(updateId, List.of());
     } else {
-      return localFate.getPartitions().stream().map(FatePartition::toThrift).toList();
+      return new TFatePartitions(updateId,
+          localFate.getPartitions().stream().map(FatePartition::toThrift).toList());
     }
   }
 
   @Override
-  public boolean setPartitions(TInfo tinfo, TCredentials credentials, List<TFatePartition> expected,
+  public boolean setPartitions(TInfo tinfo, TCredentials credentials, long updateId,
       List<TFatePartition> desired) throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    var localFate = fate;
-    if (localFate != null) {
-      var expectedSet = expected.stream().map(FatePartition::from).collect(Collectors.toSet());
-      var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
-      if (localFate.setPartitions(expectedSet, desiredSet)) {
-        log.info("Changed partitions from {} to {}", expectedSet, desiredSet);
-        return true;
+    synchronized (this) {
+      if (updateId != 0 && updateId == expectedUpdateId) {
+        // Zero is not an accepted update id, so set to zero which makes it so that an update id can
+        // only be used once.
+        expectedUpdateId = 0;
+        var localFate = fate;
+        if (localFate != null) {
+          var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
+          var oldPartitions = localFate.setPartitions(desiredSet);
+          log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
+          return true;
+        }
       }
+      log.info("Did not change partitions to {}", desired);
+      return false;
     }
-
-    log.info("Did not change partitions to {}", desired);
-    return false;
   }
 }
