@@ -29,10 +29,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -57,6 +60,9 @@ public class IteratorConfigUtil {
   public static final Comparator<IterInfo> ITER_INFO_COMPARATOR =
       Comparator.comparingInt(IterInfo::getPriority)
           .thenComparing(iterInfo -> iterInfo.getIterName() == null ? "" : iterInfo.getIterName());
+
+  private static final String WARNING_MSG =
+      ". Iterator was set as requested, but may lead to non-deterministic behavior.";
 
   /**
    * Fetch the correct configuration key prefix for the given scope. Throws an
@@ -123,24 +129,15 @@ public class IteratorConfigUtil {
       Map<String,Map<String,String>> allOptions, AccumuloConfiguration conf) {
     Map<String,String> properties = conf.getAllPropertiesWithPrefix(getProperty(scope));
     ArrayList<IterInfo> iterators = new ArrayList<>(iters);
-    final Property scopeProperty = getProperty(scope);
-    final String scopePropertyKey = scopeProperty.getKey();
 
     for (Entry<String,String> entry : properties.entrySet()) {
-      String suffix = entry.getKey().substring(scopePropertyKey.length());
-      String[] suffixSplit = suffix.split("\\.", 3);
-
-      if (suffixSplit.length == 1) {
-        String[] sa = entry.getValue().split(",");
-        int prio = Integer.parseInt(sa[0]);
-        String className = sa[1];
-        iterators.add(new IterInfo(prio, className, suffixSplit[0]));
-      } else if (suffixSplit.length == 3 && suffixSplit[1].equals("opt")) {
-        String iterName = suffixSplit[0];
-        String optName = suffixSplit[2];
-        allOptions.computeIfAbsent(iterName, k -> new HashMap<>()).put(optName, entry.getValue());
+      var iterProp = IteratorProperty.parse(entry.getKey(), entry.getValue());
+      if (iterProp.isOption()) {
+        allOptions.computeIfAbsent(iterProp.getName(), k -> new HashMap<>())
+            .put(iterProp.getOptionKey(), iterProp.getOptionValue());
       } else {
-        throw new IllegalArgumentException("Invalid iterator format: " + entry.getKey());
+        iterators
+            .add(new IterInfo(iterProp.getPriority(), iterProp.getClassName(), iterProp.getName()));
       }
     }
 
@@ -273,5 +270,122 @@ public class IteratorConfigUtil {
         .asSubclass(SortedKeyValueIterator.class);
     log.trace("Iterator class {} loaded from classpath", iterInfo.className);
     return clazz;
+  }
+
+  /**
+   * Checks if new properties being set have iterator priorities that conflict with each other or
+   * with existing properties. If any are found then logs a warning. Does not log warnings if
+   * existing properties conflict with existing properties.
+   */
+  public static void checkIteratorPriorityConflicts(String errorContext,
+      Map<String,String> newProperties, Map<String,String> existingProperties) {
+    var merged = new HashMap<>(existingProperties);
+    merged.putAll(newProperties);
+    Map<IteratorScope,
+        Map<Integer,List<IteratorProperty>>> scopeGroups = merged.entrySet().stream()
+            .map(IteratorProperty::parse).filter(Objects::nonNull).filter(ip -> !ip.isOption())
+            .collect(Collectors.groupingBy(IteratorProperty::getScope,
+                Collectors.groupingBy(IteratorProperty::getPriority)));
+    scopeGroups.forEach((scope, prioGroups) -> {
+      prioGroups.forEach((priority, iterProps) -> {
+        if (iterProps.size() > 1) {
+          // Two iterator definitions with the same priority, check to see if these are from the new
+          // properties.
+          if (iterProps.stream()
+              .anyMatch(iterProp -> newProperties.containsKey(iterProp.getProperty()))) {
+            log.warn("For {}, newly set property introduced an iterator priority conflict : {}",
+                errorContext, iterProps);
+          }
+        }
+      });
+    });
+  }
+
+  public static void checkIteratorConflicts(String logContext, IteratorSetting iterToCheck,
+      EnumSet<IteratorScope> iterScopesToCheck,
+      Map<IteratorScope,List<IteratorSetting>> existingIters, boolean shouldThrow)
+      throws AccumuloException {
+    // The reason for the 'shouldThrow' var is to prevent newly added 2.x checks from breaking
+    // existing user code. Just log the problem and proceed. Major version > 2 will always throw
+    for (var scope : iterScopesToCheck) {
+      var existingItersForScope = existingIters.get(scope);
+      if (existingItersForScope == null) {
+        continue;
+      }
+      for (var existingIter : existingItersForScope) {
+        // not a conflict if exactly the same
+        if (iterToCheck.equals(existingIter)) {
+          continue;
+        }
+        if (iterToCheck.getName().equals(existingIter.getName())) {
+          String msg =
+              String.format("%s iterator name conflict at %s scope. %s conflicts with existing %s",
+                  logContext, scope, iterToCheck, existingIter);
+          if (shouldThrow) {
+            throw new AccumuloException(new IllegalArgumentException(msg));
+          } else {
+            log.warn(msg + WARNING_MSG);
+          }
+        }
+        if (iterToCheck.getPriority() == existingIter.getPriority()) {
+          String msg = String.format(
+              "%s iterator priority conflict at %s scope. %s conflicts with existing %s",
+              logContext, scope, iterToCheck, existingIter);
+          if (shouldThrow) {
+            throw new AccumuloException(new IllegalArgumentException(msg));
+          } else {
+            log.warn(msg + WARNING_MSG);
+          }
+        }
+      }
+    }
+  }
+
+  public static void checkIteratorConflicts(String logContext, Map<String,String> props,
+      IteratorSetting iterToCheck, EnumSet<IteratorScope> iterScopesToCheck, boolean shouldThrow)
+      throws AccumuloException {
+    // parse the props map
+    Map<IteratorScope,Map<String,IteratorSetting>> iteratorSettings = new HashMap<>();
+    Map<IteratorScope,List<IteratorSetting>> existingIters = new HashMap<>();
+
+    for (var prop : props.entrySet()) {
+      var iterProp = IteratorProperty.parse(prop.getKey(), prop.getValue());
+      if (iterProp != null && !iterProp.isOption()
+          && iterScopesToCheck.contains(iterProp.getScope())) {
+        var iterSetting = iterProp.toSetting();
+        iteratorSettings.computeIfAbsent(iterProp.getScope(), s -> new HashMap<>())
+            .put(iterProp.getName(), iterSetting);
+        existingIters.computeIfAbsent(iterProp.getScope(), s -> new ArrayList<>()).add(iterSetting);
+      }
+    }
+
+    // check for conflicts
+    // any iterator option property not part of an existing iterator is an option conflict
+    for (var prop : props.entrySet()) {
+      var iterProp = IteratorProperty.parse(prop.getKey(), prop.getValue());
+      if (iterProp != null && iterProp.isOption()
+          && iterScopesToCheck.contains(iterProp.getScope())) {
+        var iterSetting =
+            iteratorSettings.getOrDefault(iterProp.getScope(), Map.of()).get(iterProp.getName());
+        if (iterSetting == null) {
+          if (iterToCheck.getName().equals(iterProp.getName())) {
+            // this is a dangling property that has the same name as the iterator being added.
+            String msg = String.format(
+                "%s iterator name conflict at %s scope. %s conflicts with existing %s", logContext,
+                iterProp.getScope(), iterToCheck, iterProp);
+            if (shouldThrow) {
+              throw new AccumuloException(new IllegalArgumentException(msg));
+            } else {
+              log.warn(msg + WARNING_MSG);
+            }
+          }
+        } else {
+          iterSetting.addOption(iterProp.getOptionKey(), iterProp.getOptionValue());
+        }
+      }
+    }
+
+    // check if the given iterator conflicts with any existing iterators
+    checkIteratorConflicts(logContext, iterToCheck, iterScopesToCheck, existingIters, shouldThrow);
   }
 }

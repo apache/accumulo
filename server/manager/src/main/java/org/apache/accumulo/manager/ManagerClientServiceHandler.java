@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil.checkIteratorPriorityConflicts;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
@@ -271,6 +273,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
+      checkIteratorPriorityConflicts("table:" + tableName + " tableId:" + tableId,
+          properties.getProperties(), manager.getContext().getNamespaceConfiguration(namespaceId)
+              .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
       PropUtil.replaceProperties(manager.getContext(),
           TablePropKey.of(manager.getContext(), tableId), properties.getVersion(),
           properties.getProperties());
@@ -503,6 +508,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
+      checkIteratorPriorityConflicts("namespace:" + ns + " namespaceId:" + namespaceId,
+          properties.getProperties(), manager.getContext().getConfiguration()
+              .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
       PropUtil.replaceProperties(manager.getContext(),
           NamespacePropKey.of(manager.getContext(), namespaceId), properties.getVersion(),
           properties.getProperties());
@@ -545,8 +553,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         PropUtil.removeProperties(manager.getContext(),
             NamespacePropKey.of(manager.getContext(), namespaceId), List.of(property));
       } else {
-        PropUtil.setProperties(manager.getContext(),
-            NamespacePropKey.of(manager.getContext(), namespaceId), Map.of(property, value));
+        var context = manager.getContext();
+        checkIteratorPriorityConflicts("namespace:" + namespace + " namespaceId:" + namespaceId,
+            Map.of(property, value), context.getNamespaceConfiguration(namespaceId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+        PropUtil.setProperties(context, NamespacePropKey.of(manager.getContext(), namespaceId),
+            Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
@@ -577,7 +589,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         if (value == null || value.isEmpty()) {
           value = "";
         }
-        PropUtil.setProperties(manager.getContext(), TablePropKey.of(manager.getContext(), tableId),
+        var context = manager.getContext();
+        checkIteratorPriorityConflicts("table:" + tableName + "tableId:" + tableId,
+            Map.of(property, value), context.getTableConfiguration(tableId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+        PropUtil.setProperties(context, TablePropKey.of(manager.getContext(), tableId),
             Map.of(property, value));
       } else {
         throw new UnsupportedOperationException("table operation:" + op.name());

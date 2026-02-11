@@ -63,6 +63,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateOperation;
 import org.apache.accumulo.core.manager.thrift.FateService;
@@ -90,6 +91,7 @@ import org.apache.accumulo.manager.tableOps.rename.RenameTable;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.manager.tableOps.tableImport.ImportTable;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.state.MergeInfo;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.fs.FSDataOutputStream;
@@ -216,16 +218,12 @@ class FateServiceHandler implements FateService.Iface {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
         }
 
+        var namespaceIterProps = manager.getContext().getNamespaceConfiguration(namespaceId)
+            .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX);
+        IteratorConfigUtil.checkIteratorPriorityConflicts("create table:" + tableName, options,
+            namespaceIterProps);
         for (Map.Entry<String,String> entry : options.entrySet()) {
-          if (!Property.isValidProperty(entry.getKey(), entry.getValue())) {
-            String errorMessage = "Property or value not valid ";
-            if (!Property.isValidTablePropertyKey(entry.getKey())) {
-              errorMessage = "Invalid Table Property ";
-            }
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                errorMessage + entry.getKey() + "=" + entry.getValue());
-          }
+          validateTableProperty(entry.getKey(), entry.getValue(), tableName, tableOp);
         }
 
         goalMessage += "Create table " + tableName + " " + initialTableState + " with " + splitCount
@@ -329,18 +327,21 @@ class FateServiceHandler implements FateService.Iface {
             continue;
           }
 
-          if (!Property.isValidProperty(entry.getKey(), entry.getValue())) {
-            String errorMessage = "Property or value not valid ";
-            if (!Property.isValidTablePropertyKey(entry.getKey())) {
-              errorMessage = "Invalid Table Property ";
-            }
-            throw new ThriftTableOperationException(null, tableName, tableOp,
-                TableOperationExceptionType.OTHER,
-                errorMessage + entry.getKey() + "=" + entry.getValue());
-          }
+          validateTableProperty(entry.getKey(), entry.getValue(), tableName, tableOp);
 
           propertiesToSet.put(entry.getKey(), entry.getValue());
         }
+
+        // Calculate what the new cloned tables properties will eventually look like
+        var srcTableProps = new HashMap<>(manager.getContext().getPropStore()
+            .get(TablePropKey.of(manager.getContext(), srcTableId)).asMap());
+        srcTableProps.putAll(propertiesToSet);
+        srcTableProps.keySet().removeAll(propertiesToExclude);
+        var namespaceProps = manager.getContext().getNamespaceConfiguration(namespaceId)
+            .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX);
+        IteratorConfigUtil.checkIteratorPriorityConflicts(
+            "clone table source tableId:" + srcTableId + " tablename:" + tableName, srcTableProps,
+            namespaceProps);
 
         goalMessage += "Clone table " + srcTableId + " to " + tableName;
         if (keepOffline) {
@@ -841,6 +842,19 @@ class FateServiceHandler implements FateService.Iface {
       log.error("Error in FateServiceHandler while writing splits to {}: {}", splitsPath,
           e.getMessage());
       throw e;
+    }
+  }
+
+  private void validateTableProperty(String propKey, String propVal, String tableName,
+      TableOperation tableOp) throws ThriftTableOperationException {
+    // validating property as valid table property
+    if (!Property.isValidProperty(propKey, propVal)) {
+      String errorMessage = "Property or value not valid ";
+      if (!Property.isValidTablePropertyKey(propKey)) {
+        errorMessage = "Invalid Table Property ";
+      }
+      throw new ThriftTableOperationException(null, tableName, tableOp,
+          TableOperationExceptionType.OTHER, errorMessage + propKey + "=" + propVal);
     }
   }
 

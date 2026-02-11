@@ -198,30 +198,31 @@ public class NewTableConfiguration {
       var initTableProps = IteratorConfigUtil.getInitialTableProperties();
       // check the properties for conflicts with default iterators
       var defaultIterSettings = IteratorConfigUtil.getInitialTableIteratorSettings();
-      // if a default prop already exists, don't want to consider that a conflict
-      var noDefaultsPropMap = new HashMap<>(propertyMap);
-      noDefaultsPropMap.entrySet().removeIf(entry -> initTableProps.get(entry.getKey()) != null
-          && initTableProps.get(entry.getKey()).equals(entry.getValue()));
-      defaultIterSettings.forEach((setting, scopes) -> {
+      for (var defaultIterSetting : defaultIterSettings.entrySet()) {
+        var setting = defaultIterSetting.getKey();
+        var scopes = defaultIterSetting.getValue();
         try {
-          TableOperationsHelper.checkIteratorConflicts(noDefaultsPropMap, setting, scopes);
+          TableOperationsHelper.checkIteratorConflicts(propertyMap, setting, scopes);
         } catch (AccumuloException e) {
-          throw new IllegalStateException(String.format(
+          throw new IllegalArgumentException(String.format(
               "conflict with default table iterator: scopes: %s setting: %s", scopes, setting), e);
         }
-      });
+      }
 
       // check the properties for conflicts with default properties (non-iterator)
       var nonIterDefaults = IteratorConfigUtil.getInitialTableProperties();
       nonIterDefaults.keySet().removeAll(IteratorConfigUtil.getInitialTableIterators().keySet());
-      nonIterDefaults.forEach((dk, dv) -> {
+      for (var nonIterDefault : nonIterDefaults.entrySet()) {
+        var dk = nonIterDefault.getKey();
+        var dv = nonIterDefault.getValue();
         var valInPropMap = propertyMap.get(dk);
-        Preconditions.checkState(valInPropMap == null || valInPropMap.equals(dv), String.format(
+        Preconditions.checkArgument(valInPropMap == null || valInPropMap.equals(dv), String.format(
             "conflict for property %s : %s (default val) != %s (set val)", dk, dv, valInPropMap));
-      });
+      }
 
       propertyMap.putAll(initTableProps);
     }
+
     return Collections.unmodifiableMap(propertyMap);
   }
 
