@@ -74,7 +74,7 @@ public class FateWorker implements FateWorkerService.Iface {
 
   }
 
-  private volatile long expectedUpdateId = 0;
+  private volatile Long expectedUpdateId = null;
 
   @Override
   public TFatePartitions getPartitions(TInfo tinfo, TCredentials credentials)
@@ -88,9 +88,6 @@ public class FateWorker implements FateWorkerService.Iface {
 
     // generate a new one time use update id
     long updateId = LazySingletons.RANDOM.get().nextLong();
-    while (updateId == 0) {
-      updateId = LazySingletons.RANDOM.get().nextLong();
-    }
 
     // invalidate any outstanding updates and set the new update id
     expectedUpdateId = updateId;
@@ -112,10 +109,9 @@ public class FateWorker implements FateWorkerService.Iface {
     }
 
     synchronized (this) {
-      if (updateId != 0 && updateId == expectedUpdateId) {
-        // Zero is not an accepted update id, so set to zero which makes it so that an update id can
-        // only be used once.
-        expectedUpdateId = 0;
+      if (expectedUpdateId != null && updateId == expectedUpdateId) {
+        // Set to null which makes it so that an update id can only be used once.
+        expectedUpdateId = null;
         var localFate = fate;
         if (localFate != null) {
           var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
@@ -124,7 +120,7 @@ public class FateWorker implements FateWorkerService.Iface {
           return true;
         }
       }
-      log.info("Did not change partitions to {}", desired);
+      log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{}", desired, expectedUpdateId, updateId);
       return false;
     }
   }
