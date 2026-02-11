@@ -22,7 +22,7 @@ var gcTable;
 /**
  * Creates active compactions table
  */
-$(document).ready(function () {
+$(function () {
   // Create a table for compactions list
   gcTable = $('#gcActivity').DataTable({
     "ajax": {

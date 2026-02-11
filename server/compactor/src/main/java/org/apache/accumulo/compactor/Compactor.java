@@ -18,24 +18,30 @@
  */
 package org.apache.accumulo.compactor;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_COMPLETED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TERMINATION;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_IN_PROGRESS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -44,11 +50,14 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -63,27 +72,34 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.ServiceLockWatcher;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockSupport;
+import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
+import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -93,27 +109,26 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.ServerServices;
-import org.apache.accumulo.core.util.ServerServices.Service;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.GarbageCollectionLogger;
-import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
+import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
@@ -122,8 +137,9 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
@@ -131,8 +147,7 @@ import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
-public class Compactor extends AbstractServer
-    implements MetricsProducer, CompactorService.Iface, ServerProcessService.Iface {
+public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
   public interface FileCompactorRunnable extends Runnable {
     /**
@@ -145,8 +160,6 @@ public class Compactor extends AbstractServer
 
     Duration getCompactionAge();
   }
-
-  private static final SecureRandom random = new SecureRandom();
 
   private static class ConsecutiveErrorHistory extends HashMap<TableId,HashMap<String,AtomicLong>> {
 
@@ -193,30 +206,18 @@ public class Compactor extends AbstractServer
     }
   }
 
-  public static class CompactorServerOpts extends ServerOpts {
-    @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
-    private String queueName = null;
-
-    public String getQueueName() {
-      return queueName;
-    }
-  }
-
   private static final Logger LOG = LoggerFactory.getLogger(Compactor.class);
-  private static final long TIME_BETWEEN_GC_CHECKS = 5000;
 
   private static final long TEN_MEGABYTES = 10485760;
 
   protected static final CompactionJobHolder JOB_HOLDER = new CompactionJobHolder();
 
-  private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   private final UUID compactorId = UUID.randomUUID();
-  private final String queueName;
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
 
   private ServiceLock compactorLock;
-  private ServerAddress compactorAddress = null;
+  private final PausedCompactionMetrics pausedMetrics = new PausedCompactionMetrics();
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
   private final ConsecutiveErrorHistory errorHistory = new ConsecutiveErrorHistory();
@@ -225,10 +226,14 @@ public class Compactor extends AbstractServer
   private final AtomicLong failed = new AtomicLong(0);
   private final AtomicLong terminated = new AtomicLong(0);
 
-  protected Compactor(CompactorServerOpts opts, String[] args) {
-    super("compactor", opts, args);
-    queueName = opts.getQueueName();
-    ClusterConfigParser.validateGroupNames(Set.of(queueName));
+  @VisibleForTesting
+  protected Compactor(ConfigOpts opts, String[] args) {
+    super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
+  }
+
+  @Override
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return conf.get(Property.COMPACTOR_GROUP_NAME);
   }
 
   private long getTotalEntriesRead() {
@@ -237,6 +242,10 @@ public class Compactor extends AbstractServer
 
   private long getTotalEntriesWritten() {
     return FileCompactor.getTotalEntriesWritten();
+  }
+
+  private long compactionInProgress() {
+    return compactionRunning.get() ? 1 : 0;
   }
 
   private double getConsecutiveFailures() {
@@ -262,39 +271,39 @@ public class Compactor extends AbstractServer
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    FunctionCounter.builder(METRICS_COMPACTOR_ENTRIES_READ, this, Compactor::getTotalEntriesRead)
-        .description("Number of entries read by all compactions that have run on this compactor")
-        .register(registry);
+    final String rgName = getResourceGroup().canonical();
+    FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
+        .description(COMPACTOR_ENTRIES_READ.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     FunctionCounter
-        .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
-        .description("Number of entries written by all compactions that have run on this compactor")
-        .register(registry);
+        .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
+        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+    Gauge.builder(COMPACTOR_MAJC_IN_PROGRESS.getName(), this, Compactor::compactionInProgress)
+        .description(COMPACTOR_MAJC_IN_PROGRESS.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
+        .description(COMPACTOR_MAJC_STUCK.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+    FunctionCounter.builder(COMPACTOR_MAJC_CANCELLED.getName(), this, Compactor::getCancellations)
+        .description(COMPACTOR_MAJC_CANCELLED.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+    FunctionCounter.builder(COMPACTOR_MAJC_COMPLETED.getName(), this, Compactor::getCompletions)
+        .description(COMPACTOR_MAJC_COMPLETED.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+    FunctionCounter.builder(COMPACTOR_MAJC_FAILED.getName(), this, Compactor::getFailures)
+        .description(COMPACTOR_MAJC_FAILED.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     FunctionCounter
-        .builder(METRICS_COMPACTOR_COMPACTIONS_CANCELLED, this, Compactor::getCancellations)
-        .description("Number compactions that have been cancelled on this compactor")
-        .register(registry);
-    FunctionCounter
-        .builder(METRICS_COMPACTOR_COMPACTIONS_COMPLETED, this, Compactor::getCompletions)
-        .description("Number compactions that have succeeded on this compactor").register(registry);
-    FunctionCounter.builder(METRICS_COMPACTOR_COMPACTIONS_FAILED, this, Compactor::getFailures)
-        .description("Number compactions that have failed on this compactor").register(registry);
-    FunctionCounter.builder(METRICS_COMPACTOR_FAILURES_TERMINATION, this, Compactor::getTerminated)
-        .description("Will report 1 if the Compactor terminates due to consecutive failure, else 0")
-        .register(registry);
-    Gauge.builder(METRICS_COMPACTOR_FAILURES_CONSECUTIVE, this, Compactor::getConsecutiveFailures)
-        .description(
-            "Number of consecutive compaction failures. Resets to zero on a successful compaction")
-        .register(registry);
-    LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
-        .description("Number and duration of stuck major compactions").register(registry);
+        .builder(COMPACTOR_MAJC_FAILURES_TERMINATION.getName(), this, Compactor::getTerminated)
+        .description(COMPACTOR_MAJC_FAILURES_TERMINATION.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+    Gauge
+        .builder(COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getName(), this,
+            Compactor::getConsecutiveFailures)
+        .description(COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getDescription())
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     CompactionWatcher.setTimer(timer);
-  }
-
-  protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
@@ -321,26 +330,30 @@ public class Compactor extends AbstractServer
           return;
         }
 
-        if (job.getKind() == TCompactionKind.USER) {
-          String zTablePath = Constants.ZROOT + "/" + getContext().getInstanceID()
-              + Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
-          byte[] id = getContext().getZooCache().get(zTablePath);
-          if (id == null) {
-            // table probably deleted
-            LOG.info("Cancelling compaction {} for table that no longer exists {}", ecid, extent);
-            JOB_HOLDER.cancel(job.getExternalCompactionId());
-          } else {
-            var cancelId = Long.parseLong(new String(id, UTF_8));
+        var tableState = getContext().getTableState(extent.tableId());
+        if (tableState != TableState.ONLINE) {
+          LOG.info("Cancelling compaction {} because table state is {}", ecid, tableState);
+          JOB_HOLDER.cancel(job.getExternalCompactionId());
+          return;
+        }
 
-            if (cancelId >= job.getUserCompactionId()) {
-              LOG.info("Cancelling compaction {} because user compaction was canceled", ecid);
-              JOB_HOLDER.cancel(job.getExternalCompactionId());
-            }
+        if (job.getKind() == TCompactionKind.USER) {
+
+          var cconf =
+              CompactionConfigStorage.getConfig(getContext(), FateId.fromThrift(job.getFateId()));
+
+          if (cconf == null) {
+            LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}",
+                ecid, FateId.fromThrift(job.getFateId()), extent);
+            JOB_HOLDER.cancel(job.getExternalCompactionId());
           }
         }
-      } catch (RuntimeException e) {
+      } catch (RuntimeException | KeeperException e) {
         LOG.warn("Failed to check if compaction {} for {} was canceled.",
             job.getExternalCompactionId(), KeyExtent.fromThrift(job.getExtent()), e);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
       }
     }
   }
@@ -355,37 +368,26 @@ public class Compactor extends AbstractServer
   protected void announceExistence(HostAndPort clientAddress)
       throws KeeperException, InterruptedException {
 
-    String hostPort = ExternalCompactionUtil.getHostPortString(clientAddress);
-
-    ZooReaderWriter zoo = getContext().getZooReaderWriter();
-    String compactorQueuePath =
-        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.queueName;
-    String zPath = compactorQueuePath + "/" + hostPort;
-
-    try {
-      zoo.mkdirs(compactorQueuePath);
-      zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException e) {
-      if (e.code() == KeeperException.Code.NOAUTH) {
-        LOG.error("Failed to write to ZooKeeper. Ensure that"
-            + " accumulo.properties, specifically instance.secret, is consistent.");
-      }
-      throw e;
-    }
-
-    compactorLock = new ServiceLock(getContext().getZooReaderWriter().getZooKeeper(),
-        ServiceLock.path(zPath), compactorId);
-
-    LockWatcher lw = new ServiceLockWatcher("compactor", () -> getShutdownComplete().get(),
-        (name) -> gcLogger.logGCInfo(getConfiguration()));
+    final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
+    final ServiceLockPath path =
+        getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
+    ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
+    compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
+    LockWatcher lw = new ServiceLockWatcher(Type.COMPACTOR, () -> getShutdownComplete().get(),
+        (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 
     try {
-      byte[] lockContent =
-          new ServerServices(hostPort, Service.COMPACTOR_CLIENT).toString().getBytes(UTF_8);
       for (int i = 0; i < 25; i++) {
-        zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(path.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
-        if (compactorLock.tryLock(lw, lockContent)) {
+        ServiceDescriptors descriptors = new ServiceDescriptors();
+        for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
+            ThriftService.COMPACTOR}) {
+          descriptors.addService(new ServiceDescriptor(compactorId, svc,
+              ExternalCompactionUtil.getHostPortString(clientAddress), this.getResourceGroup()));
+        }
+
+        if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {
           LOG.debug("Obtained Compactor lock {}", compactorLock.getLockPath());
           return;
         }
@@ -401,24 +403,25 @@ public class Compactor extends AbstractServer
     }
   }
 
+  protected CompactorService.Iface getCompactorThriftHandlerInterface() {
+    return this;
+  }
+
   /**
    * Start this Compactors thrift service to handle incoming client requests
    *
-   * @return address of this compactor client service
    * @throws UnknownHostException host unknown
    */
-  protected ServerAddress startCompactorClientService() throws UnknownHostException {
-    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, this, getContext());
-    @SuppressWarnings("deprecation")
-    var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
-        Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), getBindAddress(),
-        Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
-        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
-        maxMessageSizeProperty);
-    LOG.info("address = {}", sp.address);
-    return sp;
+  protected void startCompactorClientService() throws UnknownHostException {
+    ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
+    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler,
+        getCompactorThriftHandlerInterface(), getContext());
+    updateThriftServer(() -> {
+      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
+          Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
+          Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
+          Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
+    }, true);
   }
 
   /**
@@ -484,17 +487,16 @@ public class Compactor extends AbstractServer
    * Notify the CompactionCoordinator the job failed
    *
    * @param job current compaction job
-   * @param exception cause of failure
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
-  protected void updateCompactionFailed(TExternalCompactionJob job, String exception)
-      throws RetriesExceededException {
+  protected void updateCompactionFailed(TExternalCompactionJob job, TCompactionState why,
+      String message) throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, exception);
+                job.getExternalCompactionId(), job.extent, message, why);
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -547,9 +549,8 @@ public class Compactor extends AbstractServer
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), queueName,
-                ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
-                eci.toString());
+                getContext().rpcCreds(), this.getResourceGroup().canonical(),
+                ExternalCompactionUtil.getHostPortString(getAdvertiseAddress()), eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
@@ -595,12 +596,12 @@ public class Compactor extends AbstractServer
     return new FileCompactorRunnable() {
 
       private final AtomicReference<FileCompactor> compactor = new AtomicReference<>();
-      private volatile long startTimeNanos = -1;
+      private volatile Timer compactionStartTime;
 
       @Override
       public void initialize() throws RetriesExceededException {
         LOG.info("Starting up compaction runnable for job: {}", job);
-        this.startTimeNanos = System.nanoTime();
+        this.compactionStartTime = Timer.startNew();
         TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
             "Compaction started", -1, -1, -1, getCompactionAge().toNanos());
         updateCompactionState(job, update);
@@ -616,7 +617,8 @@ public class Compactor extends AbstractServer
           aConfig = tConfig;
         }
 
-        final TabletFile outputFile = new TabletFile(new Path(job.getOutputFile()));
+        final ReferencedTabletFile outputFile =
+            new ReferencedTabletFile(new Path(job.getOutputFile()));
 
         final Map<StoredTabletFile,DataFileValue> files = new TreeMap<>();
         job.getFiles().forEach(f -> {
@@ -636,9 +638,10 @@ public class Compactor extends AbstractServer
         job.getIteratorSettings().getIterators()
             .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
-        final ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
-        compactor.set(new FileCompactor(getContext(), extent, files, outputFile,
-            job.isPropagateDeletes(), cenv, iters, aConfig, tConfig.getCryptoService()));
+        final ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, getResourceGroup());
+        compactor.set(
+            new FileCompactor(getContext(), extent, files, outputFile, job.isPropagateDeletes(),
+                cenv, iters, aConfig, tConfig.getCryptoService(), pausedMetrics));
 
       }
 
@@ -688,11 +691,11 @@ public class Compactor extends AbstractServer
 
       @Override
       public Duration getCompactionAge() {
-        if (startTimeNanos == -1) {
+        if (compactionStartTime == null) {
           // compaction hasn't started yet
           return Duration.ZERO;
         }
-        return Duration.ofNanos(System.nanoTime() - startTimeNanos);
+        return compactionStartTime.elapsed();
       }
 
     };
@@ -712,7 +715,7 @@ public class Compactor extends AbstractServer
     FileSystem fs = getContext().getVolumeManager().getFileSystemByPath(file.getPath());
 
     try (FileSKVIterator reader =
-        fileFactory.newReaderBuilder().forFile(file.getPathStr(), fs, fs.getConf(), cryptoService)
+        fileFactory.newReaderBuilder().forFile(file, fs, fs.getConf(), cryptoService)
             .withTableConfiguration(tableConf).dropCachesBehind().build()) {
       return reader.estimateOverlappingEntries(extent);
     } catch (IOException ioe) {
@@ -735,7 +738,6 @@ public class Compactor extends AbstractServer
   }
 
   protected long getWaitTimeBetweenCompactionChecks(int numCompactors) {
-    // get the total number of compactors assigned to this queue
     long minWait = getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
     // Aim for around 3 compactors checking in per min wait time.
     long sleepTime = numCompactors * minWait / 3;
@@ -746,14 +748,14 @@ public class Compactor extends AbstractServer
         sleepTime);
     // Add some random jitter to the sleep time, that averages out to sleep time. This will spread
     // compactors out evenly over time.
-    sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * random.nextDouble());
+    sleepTime = (long) (.9 * sleepTime + sleepTime * .2 * RANDOM.get().nextDouble());
     LOG.trace("Sleeping {}ms based on {} compactors", sleepTime, numCompactors);
     return sleepTime;
   }
 
   protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
     return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress, queueName);
+        clientAddress, getResourceGroup());
   }
 
   private void performFailureProcessing(ConsecutiveErrorHistory errorHistory)
@@ -802,11 +804,10 @@ public class Compactor extends AbstractServer
   public void run() {
 
     try {
-      compactorAddress = startCompactorClientService();
+      startCompactorClientService();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
-    updateAdvertiseAddress(compactorAddress.getAddress());
     final HostAndPort clientAddress = getAdvertiseAddress();
 
     try {
@@ -814,246 +815,255 @@ public class Compactor extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
+    this.getContext().setServiceLock(compactorLock);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    metricsInfo.addMetricsProducers(this);
+    final LogSorter logSorter = new LogSorter(this);
+    metricsInfo.addMetricsProducers(this, pausedMetrics, logSorter);
     metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
     var schedExecutor = getContext().getScheduledExecutor();
-    startGCLogger(schedExecutor);
+
     startCancelChecker(schedExecutor,
         getConfiguration().getTimeInMillis(Property.COMPACTOR_CANCEL_CHECK_INTERVAL));
 
     LOG.info("Compactor started, waiting for work");
-    try {
 
-      final AtomicReference<Throwable> err = new AtomicReference<>();
+    final AtomicReference<Throwable> err = new AtomicReference<>();
+    long nextSortLogsCheckTime = System.currentTimeMillis();
 
-      while (!isShutdownRequested()) {
-        if (Thread.currentThread().isInterrupted()) {
-          LOG.info("Server process thread has been interrupted, shutting down");
-          break;
-        }
-        try {
-          // mark compactor as idle while not in the compaction loop
-          updateIdleStatus(true);
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        // mark compactor as idle while not in the compaction loop
+        updateIdleStatus(true);
 
-          currentCompactionId.set(null);
-          err.set(null);
-          JOB_HOLDER.reset();
+        currentCompactionId.set(null);
+        err.set(null);
+        JOB_HOLDER.reset();
 
-          performFailureProcessing(errorHistory);
-
-          TExternalCompactionJob job;
+        if (System.currentTimeMillis() > nextSortLogsCheckTime) {
+          // Attempt to process all existing log sorting work serially in this thread.
+          // When no work remains, this call will return so that we can look for compaction
+          // work.
+          LOG.debug("Checking to see if any recovery logs need sorting");
           try {
-            TNextCompactionJob next = getNextJob(getNextId());
-            job = next.getJob();
-            if (!job.isSetExternalCompactionId()) {
-              LOG.trace("No external compactions in queue {}", this.queueName);
-              UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
-              continue;
-            }
-            if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {
-              throw new IllegalStateException("Returned eci " + job.getExternalCompactionId()
-                  + " does not match supplied eci " + currentCompactionId.get());
-            }
-          } catch (RetriesExceededException e2) {
-            LOG.warn("Retries exceeded getting next job. Retrying...");
+            nextSortLogsCheckTime = logSorter.sortLogsIfNeeded();
+          } catch (KeeperException e) {
+            LOG.error("Error sorting logs", e);
+          }
+        }
+
+        performFailureProcessing(errorHistory);
+
+        TExternalCompactionJob job;
+        try {
+          TNextCompactionJob next = getNextJob(getNextId());
+          job = next.getJob();
+          if (!job.isSetExternalCompactionId()) {
+            LOG.trace("No external compactions in queue {}", this.getResourceGroup());
+            UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
             continue;
           }
-          LOG.debug("Received next compaction job: {}", job);
+          if (!job.getExternalCompactionId().equals(currentCompactionId.get().toString())) {
+            throw new IllegalStateException("Returned eci " + job.getExternalCompactionId()
+                + " does not match supplied eci " + currentCompactionId.get());
+          }
+        } catch (RetriesExceededException e2) {
+          LOG.warn("Retries exceeded getting next job. Retrying...");
+          continue;
+        }
+        LOG.debug("Received next compaction job: {}", job);
 
-          final LongAdder totalInputEntries = new LongAdder();
-          final LongAdder totalInputBytes = new LongAdder();
-          final CountDownLatch started = new CountDownLatch(1);
-          final CountDownLatch stopped = new CountDownLatch(1);
+        final LongAdder totalInputEntries = new LongAdder();
+        final LongAdder totalInputBytes = new LongAdder();
+        final CountDownLatch started = new CountDownLatch(1);
+        final CountDownLatch stopped = new CountDownLatch(1);
 
-          final FileCompactorRunnable fcr =
-              createCompactionJob(job, totalInputEntries, totalInputBytes, started, stopped, err);
+        final FileCompactorRunnable fcr =
+            createCompactionJob(job, totalInputEntries, totalInputBytes, started, stopped, err);
 
-          final Thread compactionThread = Threads.createNonCriticalThread(
-              "Compaction job for tablet " + job.getExtent().toString(), fcr);
+        final Thread compactionThread = Threads.createNonCriticalThread(
+            "Compaction job for tablet " + job.getExtent().toString(), fcr);
 
-          JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
+        JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
+
+        try {
+          // mark compactor as busy while compacting
+          updateIdleStatus(false);
 
           try {
-            // mark compactor as busy while compacting
-            updateIdleStatus(false);
-
             // Need to call FileCompactorRunnable.initialize after calling JOB_HOLDER.set
             fcr.initialize();
-
-            compactionThread.start(); // start the compactionThread
-            started.await(); // wait until the compactor is started
-            final long inputEntries = totalInputEntries.sum();
-            final long waitTime = calculateProgressCheckTime(totalInputBytes.sum());
-            LOG.debug("Progress checks will occur every {} seconds", waitTime);
-            String percentComplete = "unknown";
-
-            while (!stopped.await(waitTime, TimeUnit.SECONDS)) {
-              List<CompactionInfo> running =
-                  org.apache.accumulo.server.compaction.FileCompactor.getRunningCompactions();
-              if (!running.isEmpty()) {
-                // Compaction has started. There should only be one in the list
-                CompactionInfo info = running.get(0);
-                if (info != null) {
-                  final long entriesRead = info.getEntriesRead();
-                  final long entriesWritten = info.getEntriesWritten();
-                  if (inputEntries > 0) {
-                    percentComplete = Float.toString((entriesRead / (float) inputEntries) * 100);
-                  }
-                  String message = String.format(
-                      "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
-                      entriesRead, inputEntries, percentComplete, "%", entriesWritten);
-                  watcher.run();
-                  try {
-                    LOG.debug("Updating coordinator with compaction progress: {}.", message);
-                    TCompactionStatusUpdate update = new TCompactionStatusUpdate(
-                        TCompactionState.IN_PROGRESS, message, inputEntries, entriesRead,
-                        entriesWritten, fcr.getCompactionAge().toNanos());
-                    updateCompactionState(job, update);
-                  } catch (RetriesExceededException e) {
-                    LOG.warn("Error updating coordinator with compaction progress, error: {}",
-                        e.getMessage());
-                  }
-                }
-              } else {
-                LOG.debug("Waiting on compaction thread to finish, but no RUNNING compaction");
-              }
-            }
-            compactionThread.join();
-            LOG.trace("Compaction thread finished.");
-            // Run the watcher again to clear out the finished compaction and set the
-            // stuck count to zero.
-            watcher.run();
-
-            if (err.get() != null) {
-              // maybe the error occured because the table was deleted or something like that, so
-              // force a cancel check to possibly reduce noise in the logs
-              checkIfCanceled();
-            }
-
-            if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
-                || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
-              LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
-              try {
-                TCompactionStatusUpdate update =
-                    new TCompactionStatusUpdate(TCompactionState.CANCELLED, "Compaction cancelled",
-                        -1, -1, -1, fcr.getCompactionAge().toNanos());
-                updateCompactionState(job, update);
-                updateCompactionFailed(job, null);
-                cancelled.incrementAndGet();
-              } catch (RetriesExceededException e) {
-                LOG.error("Error updating coordinator with compaction cancellation.", e);
-              } finally {
-                currentCompactionId.set(null);
-              }
-            } else if (err.get() != null) {
-              final KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
-              try {
-                LOG.info("Updating coordinator with compaction failure: id: {}, extent: {}",
-                    job.getExternalCompactionId(), fromThriftExtent);
-                TCompactionStatusUpdate update = new TCompactionStatusUpdate(
-                    TCompactionState.FAILED, "Compaction failed due to: " + err.get().getMessage(),
-                    -1, -1, -1, fcr.getCompactionAge().toNanos());
-                updateCompactionState(job, update);
-                updateCompactionFailed(job, err.get().getClass().getName());
-                failed.incrementAndGet();
-                errorHistory.addError(fromThriftExtent.tableId(), err.get());
-              } catch (RetriesExceededException e) {
-                LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
-                    job.getExternalCompactionId(), fromThriftExtent, e);
-              } finally {
-                currentCompactionId.set(null);
-              }
-            } else {
-              try {
-                LOG.trace("Updating coordinator with compaction completion.");
-                updateCompactionCompleted(job, JOB_HOLDER.getStats());
-                completed.incrementAndGet();
-                // job completed successfully, clear the error history
-                errorHistory.clear();
-              } catch (RetriesExceededException e) {
-                LOG.error(
-                    "Error updating coordinator with compaction completion, cancelling compaction.",
-                    e);
-                try {
-                  cancel(job.getExternalCompactionId());
-                } catch (TException e1) {
-                  LOG.error("Error cancelling compaction.", e1);
-                }
-              } finally {
-                currentCompactionId.set(null);
-              }
-            }
-          } catch (RuntimeException e1) {
+          } catch (RetriesExceededException e) {
             LOG.error(
-                "Compactor thread was interrupted waiting for compaction to start, cancelling job",
-                e1);
+                "Error starting FileCompactableRunnable, cancelling compaction and moving to next job.",
+                e);
             try {
               cancel(job.getExternalCompactionId());
-            } catch (TException e2) {
-              LOG.error("Error cancelling compaction.", e2);
+            } catch (TException e1) {
+              LOG.error("Error cancelling compaction.", e1);
             }
-          } finally {
-            currentCompactionId.set(null);
+            continue;
+          }
 
-            // mark compactor as idle after compaction completes
-            updateIdleStatus(true);
+          compactionThread.start(); // start the compactionThread
+          started.await(); // wait until the compactor is started
+          final long inputEntries = totalInputEntries.sum();
+          final long waitTime = calculateProgressCheckTime(totalInputBytes.sum());
+          LOG.debug("Progress checks will occur every {} seconds", waitTime);
+          String percentComplete = "unknown";
 
-            // In the case where there is an error in the foreground code the background compaction
-            // may still be running. Must cancel it before starting another iteration of the loop to
-            // avoid multiple threads updating shared state.
-            while (compactionThread.isAlive()) {
-              compactionThread.interrupt();
-              compactionThread.join(1000);
+          while (!stopped.await(waitTime, TimeUnit.SECONDS)) {
+            List<CompactionInfo> running =
+                org.apache.accumulo.server.compaction.FileCompactor.getRunningCompactions();
+            if (!running.isEmpty()) {
+              // Compaction has started. There should only be one in the list
+              CompactionInfo info = running.get(0);
+              if (info != null) {
+                final long entriesRead = info.getEntriesRead();
+                final long entriesWritten = info.getEntriesWritten();
+                if (inputEntries > 0) {
+                  percentComplete = Float.toString((entriesRead / (float) inputEntries) * 100);
+                }
+                String message = String.format(
+                    "Compaction in progress, read %d of %d input entries ( %s %s ), written %d entries",
+                    entriesRead, inputEntries, percentComplete, "%", entriesWritten);
+                watcher.run();
+                try {
+                  LOG.debug("Updating coordinator with compaction progress: {}.", message);
+                  TCompactionStatusUpdate update = new TCompactionStatusUpdate(
+                      TCompactionState.IN_PROGRESS, message, inputEntries, entriesRead,
+                      entriesWritten, fcr.getCompactionAge().toNanos());
+                  updateCompactionState(job, update);
+                } catch (RetriesExceededException e) {
+                  LOG.warn("Error updating coordinator with compaction progress, error: {}",
+                      e.getMessage());
+                }
+              }
+            } else {
+              LOG.debug("Waiting on compaction thread to finish, but no RUNNING compaction");
             }
           }
-        } catch (InterruptedException e) {
-          LOG.info("Interrupt Exception received, shutting down");
-          gracefulShutdown(getContext().rpcCreds());
-        }
-      } // end while
-    } catch (Exception e) {
-      LOG.error("Unhandled error occurred in Compactor", e);
-    } finally {
-      // Shutdown local thrift server
-      LOG.debug("Stopping Thrift Servers");
-      if (compactorAddress.server != null) {
-        compactorAddress.server.stop();
-      }
+          compactionThread.join();
+          LOG.trace("Compaction thread finished.");
+          // Run the watcher again to clear out the finished compaction and set the
+          // stuck count to zero.
+          watcher.run();
 
-      try {
-        LOG.debug("Closing filesystems");
-        VolumeManager mgr = getContext().getVolumeManager();
-        if (null != mgr) {
-          mgr.close();
-        }
-      } catch (IOException e) {
-        LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
-      }
+          if (err.get() != null) {
+            // maybe the error occured because the table was deleted or something like that, so
+            // force a cancel check to possibly reduce noise in the logs
+            checkIfCanceled();
+          }
 
-      gcLogger.logGCInfo(getConfiguration());
-      super.close();
-      getShutdownComplete().set(true);
-      LOG.info("stop requested. exiting ... ");
-      try {
-        if (null != compactorLock) {
-          compactorLock.unlock();
+          if (compactionThread.isInterrupted() || JOB_HOLDER.isCancelled()
+              || (err.get() != null && err.get().getClass().equals(InterruptedException.class))) {
+            LOG.warn("Compaction thread was interrupted, sending CANCELLED state");
+            try {
+              TCompactionStatusUpdate update =
+                  new TCompactionStatusUpdate(TCompactionState.CANCELLED, "Compaction cancelled",
+                      -1, -1, -1, fcr.getCompactionAge().toNanos());
+              updateCompactionState(job, update);
+              updateCompactionFailed(job, TCompactionState.CANCELLED, "Compaction cancelled");
+              cancelled.incrementAndGet();
+            } catch (RetriesExceededException e) {
+              LOG.error("Error updating coordinator with compaction cancellation.", e);
+            } finally {
+              currentCompactionId.set(null);
+            }
+          } else if (err.get() != null) {
+            final KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+            try {
+              LOG.info("Updating coordinator with compaction failure: id: {}, extent: {}",
+                  job.getExternalCompactionId(), fromThriftExtent);
+              TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.FAILED,
+                  "Compaction failed due to: " + err.get().getMessage(), -1, -1, -1,
+                  fcr.getCompactionAge().toNanos());
+              updateCompactionState(job, update);
+              updateCompactionFailed(job, TCompactionState.FAILED,
+                  "Compaction failed due to: " + err.get().getMessage());
+              failed.incrementAndGet();
+              errorHistory.addError(fromThriftExtent.tableId(), err.get());
+            } catch (RetriesExceededException e) {
+              LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
+                  job.getExternalCompactionId(), fromThriftExtent, e);
+            } finally {
+              currentCompactionId.set(null);
+            }
+          } else {
+            try {
+              LOG.trace("Updating coordinator with compaction completion.");
+              updateCompactionCompleted(job, JOB_HOLDER.getStats());
+              completed.incrementAndGet();
+              // job completed successfully, clear the error history
+              errorHistory.clear();
+            } catch (RetriesExceededException e) {
+              LOG.error(
+                  "Error updating coordinator with compaction completion, cancelling compaction.",
+                  e);
+              try {
+                cancel(job.getExternalCompactionId());
+              } catch (TException e1) {
+                LOG.error("Error cancelling compaction.", e1);
+              }
+            } finally {
+              currentCompactionId.set(null);
+            }
+          }
+        } catch (RuntimeException e1) {
+          LOG.error(
+              "Compactor thread was interrupted waiting for compaction to start, cancelling job",
+              e1);
+          try {
+            cancel(job.getExternalCompactionId());
+          } catch (TException e2) {
+            LOG.error("Error cancelling compaction.", e2);
+          }
+        } finally {
+          currentCompactionId.set(null);
+
+          // mark compactor as idle after compaction completes
+          updateIdleStatus(true);
+
+          // In the case where there is an error in the foreground code the background compaction
+          // may still be running. Must cancel it before starting another iteration of the loop to
+          // avoid multiple threads updating shared state.
+          while (compactionThread.isAlive()) {
+            compactionThread.interrupt();
+            compactionThread.join(1000);
+          }
         }
-      } catch (Exception e) {
-        LOG.warn("Failed to release compactor lock", e);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(getContext().rpcCreds());
       }
+    } // end while, shutdown requested
+
+    // Shutdown local thrift server
+    LOG.debug("Stopping Thrift Servers");
+    if (getThriftServer() != null) {
+      getThriftServer().stop();
     }
 
+    try {
+      LOG.debug("Closing filesystems");
+      VolumeManager mgr = getContext().getVolumeManager();
+      if (null != mgr) {
+        mgr.close();
+      }
+    } catch (IOException e) {
+      LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+    }
   }
 
   public static void main(String[] args) throws Exception {
-    try (Compactor compactor = new Compactor(new CompactorServerOpts(), args)) {
-      compactor.runServer();
-    }
+    AbstractServer.startServer(new Compactor(new ConfigOpts(), args), LOG);
   }
 
   @Override
@@ -1132,5 +1142,4 @@ public class Compactor extends AbstractServer
   public ServiceLock getLock() {
     return compactorLock;
   }
-
 }

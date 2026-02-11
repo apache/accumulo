@@ -18,12 +18,12 @@
  */
 /* JSLint global definitions */
 /*global
-    $, document, sessionStorage, getTServers, clearDeadServers, refreshNavBar,
-    getRecoveryList, bigNumberForQuantity, timeDuration, dateFormat, ajaxReloadTable
+    $, sessionStorage, getTServers, getRecoveryList, bigNumberForQuantity, timeDuration,
+    ajaxReloadTable
 */
 "use strict";
 
-var tserversTable, deadTServersTable, badTServersTable;
+var tserversTable;
 var recoveryList = [];
 
 /**
@@ -70,40 +70,10 @@ function refreshTServersTable() {
 }
 
 /**
- * Refreshes data in the deadtservers table
- */
-function refreshDeadTServersTable() {
-  ajaxReloadTable(deadTServersTable);
-
-  // Only show the table if there are non-empty rows
-  if ($('#deadtservers tbody .dataTables_empty').length) {
-    $('#deadtservers_wrapper').hide();
-  } else {
-    $('#deadtservers_wrapper').show();
-  }
-}
-
-/**
- * Refreshes data in the badtservers table
- */
-function refreshBadTServersTable() {
-  ajaxReloadTable(badTServersTable);
-
-  // Only show the table if there are non-empty rows
-  if ($('#badtservers tbody .dataTables_empty').length) {
-    $('#badtservers_wrapper').hide();
-  } else {
-    $('#badtservers_wrapper').show();
-  }
-}
-
-/**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTServers() {
   getTServers().then(function () {
-    refreshBadTServersTable();
-    refreshDeadTServersTable();
     refreshTServersTable();
   });
 }
@@ -116,20 +86,9 @@ function refresh() {
 }
 
 /**
- * Makes the REST POST call to clear dead table server
- *
- * @param {string} server Dead TServer to clear
- */
-function clearDeadTServers(server) {
-  clearDeadServers(server);
-  refreshTServers();
-  refreshNavBar();
-}
-
-/**
  * Creates initial tables
  */
-$(document).ready(function () {
+$(function () {
 
   refreshRecoveryList();
 
@@ -183,12 +142,6 @@ $(document).ready(function () {
         "type": "numeric",
         "orderData": [16, 17]
       },
-      // major compaction column will be sorted by number of running, then by number of queued
-      {
-        "targets": [10],
-        "type": "numeric",
-        "orderData": [18, 19]
-      }
     ],
     "columns": [{
         "data": "hostname",
@@ -228,9 +181,6 @@ $(document).ready(function () {
         "data": "minorCombo"
       },
       {
-        "data": "majorCombo"
-      },
-      {
         "data": "indexCacheHitRate"
       },
       {
@@ -254,14 +204,6 @@ $(document).ready(function () {
       {
         "data": "minorQueued",
         "visible": false
-      },
-      {
-        "data": "majorRunning",
-        "visible": false
-      },
-      {
-        "data": "majorQueued",
-        "visible": false
       }
     ],
     "rowCallback": function (row, data, index) {
@@ -275,69 +217,6 @@ $(document).ready(function () {
         $(row).css('background-color', 'gold');
       }
     }
-  });
-
-  // Create a table for deadServers list
-  deadTServersTable = $('#deadtservers').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/tservers',
-      "dataSrc": "deadServers"
-    },
-    "stateSave": true,
-    "columnDefs": [{
-      "targets": "date",
-      "render": function (data, type) {
-        if (type === 'display' && data > 0) {
-          data = dateFormat(data);
-        }
-        return data;
-      }
-    }],
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "lastStatus"
-      },
-      {
-        "data": "status"
-      },
-      {
-        "data": "server",
-        "type": "html",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = '<a href="javascript:clearDeadTServers(\'' + data + '\');">clear</a>';
-          }
-          return data;
-        }
-      }
-    ]
-  });
-
-  // Create a table for badServers list
-  badTServersTable = $('#badtservers').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/tservers',
-      "dataSrc": "badServers"
-    },
-    "stateSave": true,
-    "columnDefs": [{
-      "targets": "date",
-      "render": function (data, type) {
-        if (type === 'display' && data > 0) {
-          data = dateFormat(data);
-        }
-        return data;
-      }
-    }],
-    "columns": [{
-        "data": "id"
-      },
-      {
-        "data": "status"
-      }
-    ]
   });
 
   refreshTServers();

@@ -30,12 +30,12 @@ import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 
 /**
- * This class selects which files a user compaction will compact. It can also be configured per
- * table to periodically select files to compact.
+ * This class selects which files a user compaction will compact.
  *
  * @since 2.1.0
  */
@@ -60,6 +60,12 @@ public interface CompactionSelector {
         Predicate<SummarizerConfiguration> summarySelector);
 
     TableId getTableId();
+
+    /**
+     * @return the tablet id of the tablet being compacted
+     * @since 3.0.0
+     */
+    TabletId getTabletId();
 
     Optional<SortedKeyValueIterator<Key,Value>> getSample(CompactableFile cf,
         SamplerConfiguration sc);

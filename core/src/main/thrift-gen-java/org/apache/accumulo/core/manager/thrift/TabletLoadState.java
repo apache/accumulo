@@ -30,8 +30,7 @@ public enum TabletLoadState implements org.apache.thrift.TEnum {
   LOAD_FAILURE(1),
   UNLOADED(2),
   UNLOAD_FAILURE_NOT_SERVING(3),
-  UNLOAD_ERROR(4),
-  CHOPPED(5);
+  UNLOAD_ERROR(4);
 
   private final int value;
 
@@ -64,8 +63,6 @@ public enum TabletLoadState implements org.apache.thrift.TEnum {
         return UNLOAD_FAILURE_NOT_SERVING;
       case 4:
         return UNLOAD_ERROR;
-      case 5:
-        return CHOPPED;
       default:
         return null;
     }

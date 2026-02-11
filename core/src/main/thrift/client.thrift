@@ -20,7 +20,6 @@ namespace java org.apache.accumulo.core.clientImpl.thrift
 namespace cpp org.apache.accumulo.core.clientImpl.thrift
 
 include "security.thrift"
-include "trace.thrift"
 
 enum TableOperation {
   CREATE
@@ -40,6 +39,8 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
+  SET_TABLET_AVAILABILITY
+  SPLIT
 }
 
 enum TableOperationExceptionType {
@@ -47,18 +48,19 @@ enum TableOperationExceptionType {
   NOTFOUND
   OFFLINE
   BULK_BAD_INPUT_DIRECTORY
-  BULK_BAD_ERROR_DIRECTORY
+  OBSOLETE_BULK_BAD_ERROR_DIRECTORY
   BAD_RANGE
   OTHER
   NAMESPACE_EXISTS
   NAMESPACE_NOTFOUND
   INVALID_NAME
-  BULK_BAD_LOAD_MAPPING
+  OBSOLETE_BULK_BAD_LOAD_MAPPING
   BULK_CONCURRENT_MERGE
 }
 
 enum ConfigurationType {
-  CURRENT
+  PROCESS
+  SYSTEM
   SITE
   DEFAULT
 }
@@ -98,6 +100,10 @@ exception ThriftTableOperationException {
   5:string description
 }
 
+exception ThriftResourceGroupNotExistsException {
+  1:string resourceGroupName
+}
+
 exception ThriftNotActiveServiceException {
   1:string serv
   2:string description
@@ -117,32 +123,11 @@ struct TVersionedProperties {
    2:map<string, string> properties
 }
 
+struct TInfo {
+  1:map<string,string> headers
+}
+
 service ClientService {
-
-  // system management methods
-  string getRootTabletLocation()
-  string getInstanceId()
-  string getZooKeepers()
-
-  // deprecated for new bulkImport
-  list<string> bulkImportFiles(
-    1:trace.TInfo tinfo
-    8:security.TCredentials credentials
-    3:i64 tid
-    4:string tableId
-    5:list<string> files
-    6:string errorDir
-    7:bool setTime
-  ) throws (
-    1:ThriftSecurityException sec
-    2:ThriftTableOperationException tope
-  )
-
-  // ensures that nobody is working on the transaction id above
-  bool isActive(
-    1:trace.TInfo tinfo
-    2:i64 tid
-  )
 
   void ping(
     2:security.TCredentials credentials
@@ -160,14 +145,14 @@ service ClientService {
 
   // user management methods
   set<string> listLocalUsers(
-    2:trace.TInfo tinfo
+    2:TInfo tinfo
     3:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   void createLocalUser(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:binary password
@@ -176,7 +161,7 @@ service ClientService {
   )
 
   void dropLocalUser(
-    3:trace.TInfo tinfo
+    3:TInfo tinfo
     4:security.TCredentials credentials
     2:string principal
   ) throws (
@@ -184,7 +169,7 @@ service ClientService {
   )
 
   void changeLocalUserPassword(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:binary password
@@ -194,14 +179,14 @@ service ClientService {
 
   // authentication-related methods
   bool authenticate(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   bool authenticateUser(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:security.TCredentials toAuth
   ) throws (
@@ -210,7 +195,7 @@ service ClientService {
 
   // authorization-related methods
   void changeAuthorizations(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:list<binary> authorizations
@@ -219,7 +204,7 @@ service ClientService {
   )
 
   list<binary> getUserAuthorizations(
-    3:trace.TInfo tinfo
+    3:TInfo tinfo
     4:security.TCredentials credentials
     2:string principal
   ) throws (
@@ -228,7 +213,7 @@ service ClientService {
 
   // permissions-related methods
   bool hasSystemPermission(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:i8 sysPerm
@@ -237,7 +222,7 @@ service ClientService {
   )
 
   bool hasTablePermission(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
@@ -248,7 +233,7 @@ service ClientService {
   )
 
   bool hasNamespacePermission(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
@@ -259,7 +244,7 @@ service ClientService {
   )
 
   void grantSystemPermission(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:i8 permission
@@ -268,7 +253,7 @@ service ClientService {
   )
 
   void revokeSystemPermission(
-    4:trace.TInfo tinfo
+    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:i8 permission
@@ -277,7 +262,7 @@ service ClientService {
   )
 
   void grantTablePermission(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
@@ -288,7 +273,7 @@ service ClientService {
   )
 
   void revokeTablePermission(
-    5:trace.TInfo tinfo
+    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
@@ -299,7 +284,7 @@ service ClientService {
   )
 
   void grantNamespacePermission(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
@@ -310,7 +295,7 @@ service ClientService {
   )
 
   void revokeNamespacePermission(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
@@ -322,7 +307,7 @@ service ClientService {
 
   // configuration methods
   map<string, string> getConfiguration(
-    2:trace.TInfo tinfo
+    2:TInfo tinfo
     3:security.TCredentials credentials
     1:ConfigurationType type
   ) throws (
@@ -330,21 +315,30 @@ service ClientService {
   )
 
   map<string, string> getSystemProperties(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedSystemProperties(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
+  TVersionedProperties getVersionedResourceGroupProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:ThriftSecurityException sec
+    2:ThriftResourceGroupNotExistsException rgne
+  )
+
   map<string, string> getTableConfiguration(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
@@ -353,7 +347,7 @@ service ClientService {
   )
 
   map<string, string> getTableProperties(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
@@ -362,7 +356,7 @@ service ClientService {
   )
 
   TVersionedProperties getVersionedTableProperties(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
@@ -371,7 +365,7 @@ service ClientService {
   )
 
   map<string, string> getNamespaceConfiguration(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
@@ -380,7 +374,7 @@ service ClientService {
   )
 
   map<string, string> getNamespaceProperties(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
@@ -389,7 +383,7 @@ service ClientService {
   )
 
   TVersionedProperties getVersionedNamespaceProperties(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
@@ -398,14 +392,14 @@ service ClientService {
   )
 
   bool checkClass(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     4:security.TCredentials credentials
     2:string className
     3:string interfaceMatch
   )
 
   bool checkTableClass(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     5:security.TCredentials credentials
     2:string tableId
     3:string className
@@ -416,7 +410,7 @@ service ClientService {
   )
 
   bool checkNamespaceClass(
-    1:trace.TInfo tinfo
+    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string namespaceId
     4:string className

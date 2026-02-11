@@ -24,11 +24,14 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -43,7 +46,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
@@ -68,9 +70,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
@@ -89,6 +92,7 @@ import org.apache.accumulo.shell.commands.CompactCommand;
 import org.apache.accumulo.shell.commands.ConfigCommand;
 import org.apache.accumulo.shell.commands.ConstraintCommand;
 import org.apache.accumulo.shell.commands.CreateNamespaceCommand;
+import org.apache.accumulo.shell.commands.CreateResourceGroupCommand;
 import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
@@ -97,6 +101,7 @@ import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
+import org.apache.accumulo.shell.commands.DeleteResourceGroupCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
@@ -108,10 +113,10 @@ import org.apache.accumulo.shell.commands.ExecfileCommand;
 import org.apache.accumulo.shell.commands.ExitCommand;
 import org.apache.accumulo.shell.commands.ExportTableCommand;
 import org.apache.accumulo.shell.commands.ExtensionCommand;
-import org.apache.accumulo.shell.commands.FateCommand;
 import org.apache.accumulo.shell.commands.FlushCommand;
 import org.apache.accumulo.shell.commands.FormatterCommand;
 import org.apache.accumulo.shell.commands.GetAuthsCommand;
+import org.apache.accumulo.shell.commands.GetAvailabilityCommand;
 import org.apache.accumulo.shell.commands.GetGroupsCommand;
 import org.apache.accumulo.shell.commands.GetSplitsCommand;
 import org.apache.accumulo.shell.commands.GrantCommand;
@@ -126,6 +131,7 @@ import org.apache.accumulo.shell.commands.InsertCommand;
 import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
+import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.shell.commands.ListTabletsCommand;
@@ -147,6 +153,7 @@ import org.apache.accumulo.shell.commands.RenameTableCommand;
 import org.apache.accumulo.shell.commands.RevokeCommand;
 import org.apache.accumulo.shell.commands.ScanCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
+import org.apache.accumulo.shell.commands.SetAvailabilityCommand;
 import org.apache.accumulo.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.shell.commands.SetIterCommand;
 import org.apache.accumulo.shell.commands.SetShellIterCommand;
@@ -236,8 +243,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
-  private long authTimeout;
-  private long lastUserActivity = System.nanoTime();
+  private Duration authTimeout;
+  private final Timer lastUserActivity = Timer.startNew();
   private boolean logErrorsToConsole = false;
   private boolean askAgain = false;
   private boolean usedClientProps = false;
@@ -267,8 +274,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     this.writer = terminal.writer();
   }
 
-  // this is visible only for FateCommandTest, otherwise, should be private or inline
-  protected boolean authenticateUser(AccumuloClient client, AuthenticationToken token)
+  private boolean authenticateUser(AccumuloClient client, AuthenticationToken token)
       throws AccumuloException, AccumuloSecurityException {
     return client.securityOperations().authenticateUser(client.whoami(), token);
   }
@@ -341,10 +347,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       return false;
     }
 
-    if (options.isDebugEnabled()) {
-      log.warn("Configure debugging through your logging configuration file");
-    }
-    authTimeout = TimeUnit.MINUTES.toNanos(options.getAuthTimeout());
+    authTimeout = Duration.ofMinutes(options.getAuthTimeout());
     disableAuthTimeout = options.isAuthTimeoutDisabled();
 
     clientProperties = options.getClientProperties();
@@ -405,38 +408,33 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     rootToken = new Token();
 
-    @SuppressWarnings("deprecation")
     Command[] dataCommands = {new DeleteCommand(), new DeleteManyCommand(), new DeleteRowsCommand(),
-        new EGrepCommand(), new FormatterCommand(),
-        new org.apache.accumulo.shell.commands.InterpreterCommand(), new GrepCommand(),
-        new ImportDirectoryCommand(), new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
-    @SuppressWarnings("deprecation")
+        new EGrepCommand(), new FormatterCommand(), new GrepCommand(), new ImportDirectoryCommand(),
+        new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands =
-        {new ClasspathCommand(), new org.apache.accumulo.shell.commands.DebugCommand(),
-            new ListScansCommand(), new ListCompactionsCommand(), new TraceCommand(),
-            new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
-    @SuppressWarnings("deprecation")
-    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand(),
-        new org.apache.accumulo.shell.commands.ScriptCommand()};
+        {new ClasspathCommand(), new ListScansCommand(), new ListCompactionsCommand(),
+            new TraceCommand(), new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
+    Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands =
         {new AboutCommand(), new HelpCommand(), new InfoCommand(), new QuestionCommand()};
-    @SuppressWarnings("deprecation")
-    Command[] iteratorCommands = {new DeleteIterCommand(),
-        new org.apache.accumulo.shell.commands.DeleteScanIterCommand(), new ListIterCommand(),
-        new SetIterCommand(), new org.apache.accumulo.shell.commands.SetScanIterCommand(),
-        new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
+    Command[] iteratorCommands =
+        {new DeleteIterCommand(), new ListIterCommand(), new SetIterCommand(),
+            new SetShellIterCommand(), new ListShellIterCommand(), new DeleteShellIterCommand()};
     Command[] otherCommands = {new HiddenCommand()};
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
-    Command[] stateCommands = {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(),
-        new FateCommand(), new NoTableCommand(), new SleepCommand(), new TableCommand(),
-        new UserCommand(), new WhoAmICommand()};
+    Command[] resourceGroupCommands = {new CreateResourceGroupCommand(),
+        new DeleteResourceGroupCommand(), new ListResourceGroupsCommand()};
+    Command[] stateCommands =
+        {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
+            new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
         new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
         new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
-        new OnlineCommand(), new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
+        new SetAvailabilityCommand(), new GetAvailabilityCommand(), new OnlineCommand(),
+        new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
         new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
         new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
@@ -452,6 +450,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     commandGrouping.put("-- Help Commands ------------------------", helpCommands);
     commandGrouping.put("-- Iterator Configuration ---------------", iteratorCommands);
     commandGrouping.put("-- Permissions Administration Commands --", permissionsCommands);
+    commandGrouping.put("-- Resource Group Commands --------------", resourceGroupCommands);
     commandGrouping.put("-- Shell State Commands -----------------", stateCommands);
     commandGrouping.put("-- Table Administration Commands --------", tableCommands);
     commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);
@@ -495,37 +494,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     } else {
       throw new IllegalArgumentException("No table or namespace specified");
     }
-    String tableContext = getTableContextFromProps(tableProps);
+    String tableContext = tableProps.get(Property.TABLE_CLASSLOADER_CONTEXT.getKey());
 
     if (tableContext != null && !tableContext.isEmpty()) {
       ClassLoaderUtil.initContextFactory(new ConfigurationCopy(
           shellState.getAccumuloClient().instanceOperations().getSystemConfiguration()));
     }
     return ClassLoaderUtil.getClassLoader(tableContext);
-  }
-
-  private static String getTableContextFromProps(Map<String,String> props) {
-    String tableContext = null;
-    for (Entry<String,String> entry : props.entrySet()) {
-      // look for either the old property or the new one, but
-      // if the new one is set, stop looking and let it take precedence
-      if (entry.getKey().equals(Property.TABLE_CLASSLOADER_CONTEXT.getKey())
-          && entry.getValue() != null && !entry.getValue().isEmpty()) {
-        return entry.getValue();
-      }
-      @SuppressWarnings("removal")
-      Property TABLE_CLASSPATH = Property.TABLE_CLASSPATH;
-      if (entry.getKey().equals(TABLE_CLASSPATH.getKey())) {
-        // don't return even if this is set; instead,
-        // keep looking, in case we find the newer property set
-        tableContext = entry.getValue();
-        if (tableContext != null && !tableContext.isEmpty()) {
-          log.warn("Deprecated table context property detected. '{}' should be replaced by '{}'",
-              TABLE_CLASSPATH.getKey(), Property.TABLE_CLASSLOADER_CONTEXT.getKey());
-        }
-      }
-    }
-    return tableContext;
   }
 
   @Override
@@ -585,9 +560,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
-      log.warn("Unable to make directory for history at {}", accumuloDir);
+    Path accumuloDir = Path.of(configDir);
+    if (Files.notExists(accumuloDir)) {
+      try {
+        Files.createDirectories(accumuloDir);
+      } catch (IOException e) {
+        log.warn("Unable to make directory for history at {}", accumuloDir, e);
+      }
     }
 
     // Disable shell highlighting
@@ -600,7 +579,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
     // Set history file
-    reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.setVariable(LineReader.HISTORY_FILE, Path.of(historyPath));
 
     // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
@@ -688,7 +667,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       sb.append("- Authorization timeout: disabled\n");
     } else {
       sb.append("- Authorization timeout: ")
-          .append(String.format("%ds%n", TimeUnit.NANOSECONDS.toSeconds(authTimeout)));
+          .append(String.format("%ds%n", authTimeout.toSeconds()));
     }
     if (!scanIteratorOptions.isEmpty()) {
       for (Entry<String,List<IteratorSetting>> entry : scanIteratorOptions.entrySet()) {
@@ -766,9 +745,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           return;
         }
 
-        long duration = System.nanoTime() - lastUserActivity;
         if (!(sc instanceof ExitCommand) && !ignoreAuthTimeout
-            && (duration < 0 || duration > authTimeout)) {
+            && lastUserActivity.hasElapsed(authTimeout)) {
           writer.println("Shell has been idle for too long. Please re-authenticate.");
           boolean authFailed = true;
           do {
@@ -791,7 +769,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               }
             }
           } while (authFailed);
-          lastUserActivity = System.nanoTime();
+          lastUserActivity.restart();
         }
 
         // Get the options from the command on how to parse the string
@@ -1052,8 +1030,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
         justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      try {
+        writer = new PrintWriter(new BufferedWriter(
+            new OutputStreamWriter(Files.newOutputStream(Path.of(filename)), UTF_8)));
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error creating output stream for file: " + filename, e);
+      }
     }
 
     @Override
@@ -1155,7 +1137,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
-    int COL1 = 50, COL2 = 14;
+    int COL1 = 50;
+    int COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, terminal.getWidth() - COL1 - COL2 - 6));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));

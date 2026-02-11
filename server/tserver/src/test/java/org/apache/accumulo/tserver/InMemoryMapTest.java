@@ -23,8 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
@@ -74,6 +76,7 @@ public class InMemoryMapTest extends WithTestNames {
   public static ServerContext getServerContext() {
     Configuration hadoopConf = new Configuration();
     ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     TableConfiguration tConf = EasyMock.createMock(TableConfiguration.class);
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
@@ -87,7 +90,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
@@ -708,7 +711,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
-  public void testDifferentSampleConfig() {
+  public void testDifferentSampleConfig() throws IOException {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
 
@@ -728,7 +731,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
-  public void testNoSampleConfig() {
+  public void testNoSampleConfig() throws IOException {
     InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r", "cf:cq", 5, "b");
@@ -799,12 +802,14 @@ public class InMemoryMapTest extends WithTestNames {
         () -> finalIter.seek(new Range(), Set.of(), false));
   }
 
-  private String[] uniqueDirPaths(int numOfDirs) {
+  private String[] uniqueDirPaths(int numOfDirs) throws IOException {
     String[] newDirs = new String[numOfDirs];
     for (int i = 0; i < newDirs.length; i++) {
-      File newDir = new File(tempDir, testName() + i);
-      assertTrue(newDir.isDirectory() || newDir.mkdir(), "Failed to create directory: " + newDir);
-      newDirs[i] = newDir.getAbsolutePath();
+      Path newDir = tempDir.resolve(testName() + i);
+      if (!Files.isDirectory(newDir)) {
+        Files.createDirectories(newDir);
+      }
+      newDirs[i] = newDir.toAbsolutePath().toString();
     }
     return newDirs;
   }

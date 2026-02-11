@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -102,7 +103,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
     private static final Property prop = Property.TABLE_SPLIT_THRESHOLD;
     private AccumuloConfiguration tableConf;
     private CountDownLatch countDown;
-    private int iterations, randMax;
+    private int iterations;
+    private int randMax;
 
     public TableConfRunner(int randMax, int iterations, AccumuloConfiguration tableConf,
         CountDownLatch countDown) {
@@ -124,7 +126,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
 
       String t = Thread.currentThread().getName() + " ";
       try {
-        random.ints(iterations, 0, randMax).forEach(choice -> {
+        RANDOM.get().ints(iterations, 0, randMax).forEach(choice -> {
           if (choice < 1) {
             tableConf.invalidateCache();
           } else {

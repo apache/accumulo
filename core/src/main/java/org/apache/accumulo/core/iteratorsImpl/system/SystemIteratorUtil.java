@@ -32,10 +32,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TIteratorSetting;
-import org.apache.thrift.TDeserializer;
-import org.apache.thrift.TException;
-import org.apache.thrift.TSerializer;
-import org.apache.thrift.protocol.TBinaryProtocol;
 
 /**
  * System utility class. Not for client use.
@@ -60,39 +56,6 @@ public class SystemIteratorUtil {
     }
 
     return new IteratorConfig(tisList);
-  }
-
-  public static List<IteratorSetting> toIteratorSettings(IteratorConfig ic) {
-    List<IteratorSetting> ret = new ArrayList<>();
-    for (TIteratorSetting tIteratorSetting : ic.getIterators()) {
-      ret.add(toIteratorSetting(tIteratorSetting));
-    }
-
-    return ret;
-  }
-
-  public static byte[] encodeIteratorSettings(IteratorConfig iterators) {
-    try {
-      TSerializer tser = new TSerializer(new TBinaryProtocol.Factory());
-      return tser.serialize(iterators);
-    } catch (TException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  public static byte[] encodeIteratorSettings(List<IteratorSetting> iterators) {
-    return encodeIteratorSettings(toIteratorConfig(iterators));
-  }
-
-  public static List<IteratorSetting> decodeIteratorSettings(byte[] enc) {
-    IteratorConfig ic = new IteratorConfig();
-    try {
-      TDeserializer tdser = new TDeserializer(new TBinaryProtocol.Factory());
-      tdser.deserialize(ic, enc);
-    } catch (TException e) {
-      throw new RuntimeException(e);
-    }
-    return toIteratorSettings(ic);
   }
 
   public static SortedKeyValueIterator<Key,Value> setupSystemScanIterators(

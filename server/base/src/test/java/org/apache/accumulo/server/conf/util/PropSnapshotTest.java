@@ -32,9 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
@@ -45,12 +43,10 @@ import org.junit.jupiter.api.Test;
 
 class PropSnapshotTest {
 
-  private InstanceId instanceId;
   private PropStore propStore;
 
   @BeforeEach
   public void init() {
-    instanceId = InstanceId.of(UUID.randomUUID());
     propStore = createMock(ZooPropStore.class);
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
@@ -64,17 +60,17 @@ class PropSnapshotTest {
   @Test
   public void getTest() {
     // init props
-    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of())))
         .andReturn(new VersionedProperties(123, Instant.now(), Map.of("k1", "v1", "k2", "v2")))
         .once();
     // after update
-    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of())))
         .andReturn(new VersionedProperties(124, Instant.now(), Map.of("k3", "v3"))).once();
-    propStore.invalidate(SystemPropKey.of(instanceId));
+    propStore.invalidate(SystemPropKey.of());
     expectLastCall().atLeastOnce();
 
     replay(propStore);
-    PropSnapshot snapshot = PropSnapshot.create(SystemPropKey.of(instanceId), propStore);
+    PropSnapshot snapshot = PropSnapshot.create(SystemPropKey.of(), propStore);
 
     assertEquals("v1", snapshot.getVersionedProperties().asMap().get("k1"));
     assertEquals("v2", snapshot.getVersionedProperties().asMap().get("k2"));
@@ -90,7 +86,7 @@ class PropSnapshotTest {
   @Test
   public void eventChangeTest() {
 
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))
@@ -99,7 +95,7 @@ class PropSnapshotTest {
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(100, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false")))
         .once();
-    propStore.invalidate(SystemPropKey.of(instanceId));
+    propStore.invalidate(SystemPropKey.of());
     expectLastCall().atLeastOnce();
 
     replay(propStore);
@@ -116,7 +112,7 @@ class PropSnapshotTest {
   @Test
   public void deleteEventTest() {
 
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(123, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true")))

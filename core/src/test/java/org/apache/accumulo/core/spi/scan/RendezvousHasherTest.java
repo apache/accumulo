@@ -29,14 +29,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.scan.RendezvousHasher.Mode;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.net.HostAndPort;
+
 public class RendezvousHasherTest {
+  private static final ResourceGroupId G1 = ResourceGroupId.of("g1");
+  private static final ResourceGroupId G2 = ResourceGroupId.of("g2");
+
   @Test
   public void testSameServerCountPerHost() {
-    Map<String,Set<String>> serversByGroup = new HashMap<>();
+    Map<ResourceGroupId,Set<String>> serversByGroup = new HashMap<>();
 
     Set<String> g1Servers = new HashSet<>();
     for (int h = 0; h < 10; h++) {
@@ -45,20 +50,20 @@ public class RendezvousHasherTest {
         g1Servers.add(host + ":" + p);
       }
     }
-    serversByGroup.put("g1", g1Servers);
+    serversByGroup.put(G1, g1Servers);
 
     Set<String> g2Servers = Set.of("g2h1:5000", "g2h1:5001", "g2h1:5002");
-    serversByGroup.put("g2", g2Servers);
+    serversByGroup.put(G2, g2Servers);
 
     ScanServersSnapshot snapshot = ScanServersSnapshot.from(serversByGroup);
     RendezvousHasher hasher = new RendezvousHasher(snapshot, 1_000_000);
 
     for (int i = 1; i < 5; i++) {
-      var g2rh = hasher.rendezvous(Mode.SERVER, "g2", nti("1", "e"), "s1", i);
+      var g2rh = hasher.rendezvous(Mode.SERVER, G2, nti("1", "e"), "s1", i);
       assertEquals(Math.min(i, 3), g2rh.size());
       assertTrue(g2Servers.containsAll(g2rh));
 
-      g2rh = hasher.rendezvous(Mode.HOST, "g2", nti("1", "e"), "s1", i);
+      g2rh = hasher.rendezvous(Mode.HOST, G2, nti("1", "e"), "s1", i);
       assertEquals(List.of("g2h1"), g2rh);
     }
 
@@ -68,13 +73,13 @@ public class RendezvousHasherTest {
 
     for (int t = 0; t < 200; t++) {
       var tablet = nti("1", "" + t);
-      var servers_s1_1 = Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s1", 1));
-      var servers_s1_2 = Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s1", 2));
-      var servers_s1_3 = Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s1", 3));
+      var servers_s1_1 = Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s1", 1));
+      var servers_s1_2 = Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s1", 2));
+      var servers_s1_3 = Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s1", 3));
       // the same tablet and salt should hash to the same servers
-      assertEquals(servers_s1_1, Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s1", 1)));
-      assertEquals(servers_s1_2, Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s1", 2)));
-      assertEquals(servers_s1_3, Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s1", 3)));
+      assertEquals(servers_s1_1, Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s1", 1)));
+      assertEquals(servers_s1_2, Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s1", 2)));
+      assertEquals(servers_s1_3, Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s1", 3)));
       assertEquals(1, servers_s1_1.size());
       assertEquals(2, servers_s1_2.size());
       assertEquals(3, servers_s1_3.size());
@@ -90,13 +95,13 @@ public class RendezvousHasherTest {
         useCounts.merge(server, 1, Integer::sum);
       }
 
-      var hosts_s1_1 = hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 1);
-      var hosts_s1_2 = hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 2);
-      var hosts_s1_3 = hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 3);
+      var hosts_s1_1 = hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 1);
+      var hosts_s1_2 = hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 2);
+      var hosts_s1_3 = hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 3);
       // the same tablet and salt should hash to the same hosts
-      assertEquals(hosts_s1_1, hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 1));
-      assertEquals(hosts_s1_2, hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 2));
-      assertEquals(hosts_s1_3, hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 3));
+      assertEquals(hosts_s1_1, hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 1));
+      assertEquals(hosts_s1_2, hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 2));
+      assertEquals(hosts_s1_3, hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 3));
       assertEquals(1, hosts_s1_1.size());
       assertEquals(2, hosts_s1_2.size());
       assertEquals(3, hosts_s1_3.size());
@@ -114,8 +119,8 @@ public class RendezvousHasherTest {
           servers_s1_3.stream().map(s -> HostAndPort.fromString(s).getHost()).collect(toSet())));
 
       // try a different salt, should usually result in different servers
-      var servers_s2_3 = Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s2", 3));
-      assertEquals(servers_s2_3, Set.copyOf(hasher.rendezvous(Mode.SERVER, "g1", tablet, "s2", 3)));
+      var servers_s2_3 = Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s2", 3));
+      assertEquals(servers_s2_3, Set.copyOf(hasher.rendezvous(Mode.SERVER, G1, tablet, "s2", 3)));
       assertEquals(3, servers_s2_3.size());
       assertTrue(g1Servers.containsAll(servers_s2_3));
       if (!servers_s1_3.equals(servers_s2_3)) {
@@ -134,7 +139,7 @@ public class RendezvousHasherTest {
 
   @Test
   public void testDifferentServerCountPerHost() {
-    Map<String,Set<String>> serversByGroup = new HashMap<>();
+    Map<ResourceGroupId,Set<String>> serversByGroup = new HashMap<>();
 
     Set<String> g1Servers = new HashSet<>();
     // 10 host with 10 servers
@@ -154,7 +159,7 @@ public class RendezvousHasherTest {
     g1Servers.add("gh1d:1000");
     g1Servers.add("gh1d:1001");
 
-    serversByGroup.put("g1", g1Servers);
+    serversByGroup.put(G1, g1Servers);
 
     ScanServersSnapshot snapshot = ScanServersSnapshot.from(serversByGroup);
     RendezvousHasher hasher = new RendezvousHasher(snapshot, 1_000_000);
@@ -163,7 +168,7 @@ public class RendezvousHasherTest {
 
     for (int t = 0; t < 10_000; t++) {
       var tablet = nti("1", "" + t);
-      var hosts_s1_3 = hasher.rendezvous(Mode.HOST, "g1", tablet, "s1", 3);
+      var hosts_s1_3 = hasher.rendezvous(Mode.HOST, G1, tablet, "s1", 3);
       for (var host : hosts_s1_3) {
         useCounts.merge(host, 1, Integer::sum);
       }

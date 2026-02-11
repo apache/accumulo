@@ -21,33 +21,49 @@ package org.apache.accumulo.server.constraints;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletOperationId;
+import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -57,6 +73,7 @@ import org.slf4j.LoggerFactory;
 public class MetadataConstraints implements Constraint {
 
   private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
+  private static final byte[] BULK_COL_BYTES = BulkFileColumnFamily.STR_NAME.getBytes(UTF_8);
 
   private static final boolean[] validTableNameChars = new boolean[256];
   static {
@@ -69,14 +86,25 @@ public class MetadataConstraints implements Constraint {
   // @formatter:off
   private static final Set<ColumnFQ> validColumnQuals =
       Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
-          TabletColumnFamily.OLD_PREV_ROW_COLUMN,
+          Upgrade11to12.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
-          TabletColumnFamily.SPLIT_RATIO_COLUMN,
+          Upgrade11to12.SPLIT_RATIO_COLUMN,
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
-          ServerColumnFamily.COMPACT_COLUMN);
+          ServerColumnFamily.FLUSH_NONCE_COLUMN,
+          ServerColumnFamily.OPID_COLUMN,
+          ServerColumnFamily.MIGRATION_COLUMN,
+          TabletColumnFamily.AVAILABILITY_COLUMN,
+          TabletColumnFamily.REQUESTED_COLUMN,
+          ServerColumnFamily.SELECTED_COLUMN,
+          SplitColumnFamily.UNSPLITTABLE_COLUMN,
+          TabletColumnFamily.MERGEABILITY_COLUMN,
+          Upgrade11to12.COMPACT_COL);
+
+  @SuppressWarnings("deprecation")
+  private static final Text CHOPPED = ChoppedColumnFamily.NAME;
 
   private static final Set<Text> validColumnFams =
       Set.of(BulkFileColumnFamily.NAME,
@@ -86,206 +114,145 @@ public class MetadataConstraints implements Constraint {
           CurrentLocationColumnFamily.NAME,
           LastLocationColumnFamily.NAME,
           FutureLocationColumnFamily.NAME,
-          ChoppedColumnFamily.NAME,
           ClonedColumnFamily.NAME,
-          ExternalCompactionColumnFamily.NAME);
+          ExternalCompactionColumnFamily.NAME,
+          CompactedColumnFamily.NAME,
+          CHOPPED,
+          MergedColumnFamily.NAME,
+          UserCompactionRequestedColumnFamily.NAME
+      );
   // @formatter:on
 
-  private static boolean isValidColumn(ColumnUpdate cu) {
+  private static boolean isValidColumn(Text family, Text qualifier) {
 
-    if (validColumnFams.contains(new Text(cu.getColumnFamily()))) {
+    if (validColumnFams.contains(family)) {
       return true;
     }
 
-    return validColumnQuals.contains(new ColumnFQ(cu));
+    return validColumnQuals.contains(new ColumnFQ(family, qualifier));
   }
 
-  private static ArrayList<Short> addViolation(ArrayList<Short> lst, int violation) {
-    if (lst == null) {
-      lst = new ArrayList<>();
-    }
+  private static void addViolation(ArrayList<Short> lst, int violation) {
     lst.add((short) violation);
-    return lst;
   }
 
-  private static ArrayList<Short> addIfNotPresent(ArrayList<Short> lst, int intViolation) {
-    if (lst == null) {
-      return addViolation(null, intViolation);
+  private static void addIfNotPresent(ArrayList<Short> lst, int violation) {
+    if (!lst.contains((short) violation)) {
+      addViolation(lst, violation);
     }
-    short violation = (short) intViolation;
-    if (!lst.contains(violation)) {
-      return addViolation(lst, intViolation);
-    }
-    return lst;
   }
 
+  /*
+   * Validates the data file metadata is valid for a StoredTabletFile.
+   */
+  private static void validateDataFileMetadata(ArrayList<Short> violations, String metadata,
+      Consumer<StoredTabletFile> stfConsumer) {
+    try {
+      stfConsumer.accept(StoredTabletFile.of(metadata));
+    } catch (RuntimeException e) {
+      addViolation(violations, 3100);
+    }
+  }
+
+  /**
+   * Same as defined in {@link Constraint#check(Environment, Mutation)}, but returns an empty list
+   * instead of null if there are no violations
+   *
+   * @param env constraint environment
+   * @param mutation mutation to check
+   * @return list of violations, or empty list if no violations
+   */
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
     final ServerContext context = ((SystemEnvironment) env).getServerContext();
+    final ArrayList<Short> violations = new ArrayList<>();
+    final Collection<ColumnUpdate> colUpdates = mutation.getUpdates();
+    final byte[] row = mutation.getRow();
+    final List<ColumnUpdate> bulkFileColUpdates;
+    final BulkFileColData bfcValidationData;
 
-    ArrayList<Short> violations = null;
-
-    Collection<ColumnUpdate> colUpdates = mutation.getUpdates();
-
-    // check the row, it should contains at least one ; or end with <
-    boolean containsSemiC = false;
-
-    byte[] row = mutation.getRow();
+    // avoids creating unnecessary objects
+    if (hasBulkCol(colUpdates)) {
+      bulkFileColUpdates = new ArrayList<>();
+      bfcValidationData = new BulkFileColData();
+    } else {
+      bulkFileColUpdates = null;
+      bfcValidationData = null;
+    }
 
     // always allow rows that fall within reserved areas
     if (row.length > 0 && row[0] == '~') {
-      return null;
-    }
-    if (row.length > 2 && row[0] == '!' && row[1] == '!' && row[2] == '~') {
-      return null;
+      return violations;
     }
 
-    for (byte b : row) {
-      if (b == ';') {
-        containsSemiC = true;
-      }
-
-      if (b == ';' || b == '<') {
-        break;
-      }
-
-      if (!validTableNameChars[0xff & b]) {
-        violations = addIfNotPresent(violations, 4);
-      }
-    }
-
-    if (containsSemiC) {
-      if (row.length == 0) {
-        violations = addIfNotPresent(violations, 4);
-      }
-    } else {
-      // see if last row char is <
-      if (row.length == 0 || row[row.length - 1] != '<') {
-        violations = addIfNotPresent(violations, 4);
-      }
-    }
-
-    if (row.length > 0 && row[0] == '!') {
-      if (row.length < 3 || row[1] != '0' || (row[2] != '<' && row[2] != ';')) {
-        violations = addIfNotPresent(violations, 4);
-      }
-    }
-
-    // ensure row is not less than Constants.METADATA_TABLE_ID
-    if (new Text(row).compareTo(new Text(MetadataTable.ID.canonical())) < 0) {
-      violations = addViolation(violations, 5);
-    }
-
-    boolean checkedBulk = false;
+    validateTabletRow(violations, row);
 
     for (ColumnUpdate columnUpdate : colUpdates) {
       Text columnFamily = new Text(columnUpdate.getColumnFamily());
+      Text columnQualifier = new Text(columnUpdate.getColumnQualifier());
 
       if (columnUpdate.isDeleted()) {
-        if (!isValidColumn(columnUpdate)) {
-          violations = addViolation(violations, 2);
+        if (!isValidColumn(columnFamily, columnQualifier)) {
+          addViolation(violations, 2);
         }
         continue;
       }
 
-      if (columnUpdate.getValue().length == 0 && !columnFamily.equals(ScanFileColumnFamily.NAME)) {
-        violations = addViolation(violations, 6);
-      }
+      validateColValLen(violations, columnUpdate);
 
-      if (columnFamily.equals(DataFileColumnFamily.NAME)) {
-        try {
-          DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
-
-          if (dfv.getSize() < 0 || dfv.getNumEntries() < 0) {
-            violations = addViolation(violations, 1);
-          }
-        } catch (NumberFormatException | ArrayIndexOutOfBoundsException nfe) {
-          violations = addViolation(violations, 1);
-        }
-      } else if (columnFamily.equals(ScanFileColumnFamily.NAME)) {
-        // Do nothing if ScanFile ref
-      } else if (columnFamily.equals(BulkFileColumnFamily.NAME)) {
-        if (!columnUpdate.isDeleted() && !checkedBulk) {
-          // splits, which also write the time reference, are allowed to write this reference even
-          // when
-          // the transaction is not running because the other half of the tablet is holding a
-          // reference
-          // to the file.
-          boolean isSplitMutation = false;
+      switch (columnFamily.toString()) {
+        case TabletColumnFamily.STR_NAME:
+          validateTabletFamily(violations, columnUpdate, mutation);
+          break;
+        case ServerColumnFamily.STR_NAME:
+          validateServerFamily(violations, columnUpdate, context, bfcValidationData);
+          break;
+        case CurrentLocationColumnFamily.STR_NAME:
           // When a tablet is assigned, it re-writes the metadata. It should probably only update
-          // the location information,
-          // but it writes everything. We allow it to re-write the bulk information if it is setting
-          // the location.
+          // the location information, but it writes everything. We allow it to re-write the bulk
+          // information if it is setting the location.
           // See ACCUMULO-1230.
-          boolean isLocationMutation = false;
-
-          HashSet<Text> dataFiles = new HashSet<>();
-          HashSet<Text> loadedFiles = new HashSet<>();
-
-          String tidString = new String(columnUpdate.getValue(), UTF_8);
-          int otherTidCount = 0;
-
-          for (ColumnUpdate update : mutation.getUpdates()) {
-            if (new ColumnFQ(update).equals(ServerColumnFamily.DIRECTORY_COLUMN)) {
-              isSplitMutation = true;
-            } else if (new Text(update.getColumnFamily())
-                .equals(CurrentLocationColumnFamily.NAME)) {
-              isLocationMutation = true;
-            } else if (new Text(update.getColumnFamily()).equals(DataFileColumnFamily.NAME)) {
-              dataFiles.add(new Text(update.getColumnQualifier()));
-            } else if (new Text(update.getColumnFamily()).equals(BulkFileColumnFamily.NAME)) {
-              loadedFiles.add(new Text(update.getColumnQualifier()));
-
-              if (!new String(update.getValue(), UTF_8).equals(tidString)) {
-                otherTidCount++;
-              }
-            }
+          if (bfcValidationData != null) {
+            bfcValidationData.setIsLocationMutation(true);
           }
-
-          if (!isSplitMutation && !isLocationMutation) {
-            if (otherTidCount > 0 || !dataFiles.equals(loadedFiles)) {
-              violations = addViolation(violations, 8);
-            }
+          break;
+        case SuspendLocationColumn.STR_NAME:
+          validateSuspendLocationFamily(violations, columnUpdate);
+          break;
+        case BulkFileColumnFamily.STR_NAME:
+          // defer validating the bulk file column updates until the end (relies on checks done
+          // on other column updates)
+          if (bulkFileColUpdates != null) {
+            bulkFileColUpdates.add(columnUpdate);
           }
-
-          checkedBulk = true;
-        }
-      } else {
-        if (!isValidColumn(columnUpdate)) {
-          violations = addViolation(violations, 2);
-        } else if (new ColumnFQ(columnUpdate).equals(TabletColumnFamily.PREV_ROW_COLUMN)
-            && columnUpdate.getValue().length > 0
-            && (violations == null || !violations.contains((short) 4))) {
-          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
-
-          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
-
-          boolean prevEndRowLessThanEndRow =
-              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
-
-          if (!prevEndRowLessThanEndRow) {
-            violations = addViolation(violations, 3);
+          break;
+        case DataFileColumnFamily.STR_NAME:
+          validateDataFileFamily(violations, columnUpdate, bfcValidationData);
+          break;
+        case ScanFileColumnFamily.STR_NAME:
+          validateScanFileFamily(violations, columnUpdate);
+          break;
+        case CompactedColumnFamily.STR_NAME:
+          validateCompactedFamily(violations, columnUpdate);
+          break;
+        case UserCompactionRequestedColumnFamily.STR_NAME:
+          validateUserCompactionRequestedFamily(violations, columnUpdate);
+          break;
+        case SplitColumnFamily.STR_NAME:
+          validateSplitFamily(violations, columnUpdate);
+          break;
+        default:
+          if (!isValidColumn(columnFamily, columnQualifier)) {
+            addViolation(violations, 2);
           }
-        } else if (new ColumnFQ(columnUpdate).equals(ServerColumnFamily.LOCK_COLUMN)) {
-          boolean lockHeld = false;
-          String lockId = new String(columnUpdate.getValue(), UTF_8);
-
-          try {
-            lockHeld = ServiceLock.isLockHeld(context.getZooCache(),
-                new ZooUtil.LockID(context.getZooKeeperRoot(), lockId));
-          } catch (Exception e) {
-            log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
-          }
-
-          if (!lockHeld) {
-            violations = addViolation(violations, 7);
-          }
-        }
       }
     }
 
-    if (violations != null) {
-      log.debug("violating metadata mutation : {}", new String(mutation.getRow(), UTF_8));
+    validateBulkFileFamily(violations, bulkFileColUpdates, bfcValidationData);
+
+    if (!violations.isEmpty()) {
+      log.debug("violating metadata mutation : {} {}", new String(mutation.getRow(), UTF_8),
+          violations);
       for (ColumnUpdate update : mutation.getUpdates()) {
         log.debug(" update: {}:{} value {}", new String(update.getColumnFamily(), UTF_8),
             new String(update.getColumnQualifier(), UTF_8),
@@ -298,25 +265,271 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-    switch (violationCode) {
-      case 1:
-        return "data file size must be a non-negative integer";
-      case 2:
-        return "Invalid column name given.";
-      case 3:
-        return "Prev end row is greater than or equal to end row.";
-      case 4:
-        return "Invalid metadata row format";
-      case 5:
-        return "Row can not be less than " + MetadataTable.ID;
-      case 6:
-        return "Empty values are not allowed for any " + MetadataTable.NAME + " column";
-      case 7:
-        return "Lock not held in zookeeper by writer";
-      case 8:
-        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
+    return switch (violationCode) {
+      case 1 -> "data file size must be a non-negative integer";
+      case 2 -> "Invalid column name given.";
+      case 3 -> "Prev end row is greater than or equal to end row.";
+      case 4 -> "Invalid metadata row format";
+      case 5 -> "Row can not be less than " + SystemTables.METADATA.tableId();
+      case 6 ->
+        "Empty values are not allowed for any " + SystemTables.METADATA.tableName() + " column";
+      case 7 -> "Lock not held in zookeeper by writer";
+      case 8 -> "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
+      case 3100 -> "Invalid data file metadata format";
+      case 3101 -> "Suspended timestamp is not valid";
+      case 3102 -> "Invalid directory column value";
+      case 4000 -> "Malformed operation id";
+      case 4001 -> "Malformed file selection value";
+      case 4002 -> "Invalid compacted column";
+      case 4003 -> "Invalid user compaction requested column";
+      case 4004 -> "Invalid unsplittable column";
+      case 4005 -> "Malformed availability value";
+      case 4006 -> "Malformed mergeability value";
+      case 4007 -> "Malformed migration value";
+      default -> null;
+    };
+  }
+
+  private void validateColValLen(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
+    Text columnFamily = new Text(columnUpdate.getColumnFamily());
+    Text columnQualifier = new Text(columnUpdate.getColumnQualifier());
+    if (columnUpdate.getValue().length == 0 && !(columnFamily.equals(ScanFileColumnFamily.NAME)
+        || columnFamily.equals(LogColumnFamily.NAME)
+        || TabletColumnFamily.REQUESTED_COLUMN.equals(columnFamily, columnQualifier)
+        || columnFamily.equals(CompactedColumnFamily.NAME)
+        || columnFamily.equals(UserCompactionRequestedColumnFamily.NAME))) {
+      addViolation(violations, 6);
     }
-    return null;
+  }
+
+  private void validateTabletRow(ArrayList<Short> violations, byte[] row) {
+    // check the row, it should contain at least one ";" or end with "<". Row should also
+    // not be less than AccumuloTable.METADATA.tableId().
+    boolean containsSemiC = false;
+
+    for (byte b : row) {
+      if (b == ';') {
+        containsSemiC = true;
+      }
+
+      if (b == ';' || b == '<') {
+        break;
+      }
+
+      if (!validTableNameChars[0xff & b]) {
+        addIfNotPresent(violations, 4);
+      }
+    }
+
+    if (!containsSemiC) {
+      // see if last row char is <
+      if (row.length == 0 || row[row.length - 1] != '<') {
+        addIfNotPresent(violations, 4);
+      }
+    }
+
+    if (row.length > 0 && row[0] == '!') {
+      if (row.length < 3 || row[1] != '0' || (row[2] != '<' && row[2] != ';')) {
+        addIfNotPresent(violations, 4);
+      }
+    }
+
+    // ensure row is not less than AccumuloTable.METADATA.tableId()
+    if (Arrays.compare(row, SystemTables.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
+      addViolation(violations, 5);
+    }
+  }
+
+  private void validateTabletFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate,
+      Mutation mutation) {
+    String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
+
+    switch (qualStr) {
+      case (TabletColumnFamily.PREV_ROW_QUAL):
+        if (columnUpdate.getValue().length > 0 && !violations.contains((short) 4)) {
+          KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
+          Text per = TabletColumnFamily.decodePrevEndRow(new Value(columnUpdate.getValue()));
+          boolean prevEndRowLessThanEndRow =
+              per == null || ke.endRow() == null || per.compareTo(ke.endRow()) < 0;
+
+          if (!prevEndRowLessThanEndRow) {
+            addViolation(violations, 3);
+          }
+        }
+        break;
+      case (TabletColumnFamily.AVAILABILITY_QUAL):
+        try {
+          TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 4005);
+        }
+        break;
+      case (TabletColumnFamily.MERGEABILITY_QUAL):
+        try {
+          TabletMergeabilityMetadata.fromValue(new Value(columnUpdate.getValue()));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 4006);
+        }
+        break;
+    }
+  }
+
+  private void validateServerFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate,
+      ServerContext context, BulkFileColData bfcValidationData) {
+    String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
+
+    switch (qualStr) {
+      case ServerColumnFamily.LOCK_QUAL:
+        boolean lockHeld = false;
+        String lockId = new String(columnUpdate.getValue(), UTF_8);
+
+        try {
+          lockHeld =
+              ServiceLock.isLockHeld(context.getZooCache(), ZooUtil.LockID.deserialize(lockId));
+        } catch (Exception e) {
+          log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
+        }
+
+        if (!lockHeld) {
+          addViolation(violations, 7);
+        }
+        break;
+      case ServerColumnFamily.DIRECTORY_QUAL:
+        try {
+          ServerColumnFamily.validateDirCol(new String(columnUpdate.getValue(), UTF_8));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, (short) 3102);
+        }
+        break;
+      case ServerColumnFamily.OPID_QUAL:
+        try {
+          // Loading the TabletOperationId will also validate it
+          var id = TabletOperationId.from(new String(columnUpdate.getValue(), UTF_8));
+          if (id.getType() == TabletOperationType.SPLITTING) {
+            // splits, which also write the time reference, are allowed to write this reference
+            // even when the transaction is not running because the other half of the tablet is
+            // holding a reference to the file.
+            if (bfcValidationData != null) {
+              bfcValidationData.setIsSplitMutation(true);
+            }
+          }
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 4000);
+        }
+        break;
+      case ServerColumnFamily.SELECTED_QUAL:
+        try {
+          SelectedFiles.from(new String(columnUpdate.getValue(), UTF_8));
+        } catch (RuntimeException e) {
+          addViolation(violations, 4001);
+        }
+        break;
+      case ServerColumnFamily.MIGRATION_QUAL:
+        try {
+          new TServerInstance(new String(columnUpdate.getValue(), UTF_8));
+        } catch (Exception e) {
+          addViolation(violations, 4007);
+        }
+    }
+  }
+
+  private void validateSuspendLocationFamily(ArrayList<Short> violations,
+      ColumnUpdate columnUpdate) {
+    String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
+    String suspendColQualStr = SuspendLocationColumn.SUSPEND_QUAL;
+
+    if (qualStr.equals(suspendColQualStr)) {
+      try {
+        SuspendingTServer.fromValue(new Value(columnUpdate.getValue()));
+      } catch (IllegalArgumentException e) {
+        addViolation(violations, 3101);
+      }
+    }
+  }
+
+  private void validateDataFileFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate,
+      BulkFileColData bfcValidationData) {
+    Consumer<StoredTabletFile> stfConsumer =
+        bfcValidationData == null ? stf -> {} : bfcValidationData::addDataFile;
+    validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(), UTF_8),
+        stfConsumer);
+
+    try {
+      DataFileValue dfv = new DataFileValue(columnUpdate.getValue());
+
+      if (dfv.getSize() < 0 || dfv.getNumEntries() < 0) {
+        addViolation(violations, 1);
+      }
+    } catch (NumberFormatException | ArrayIndexOutOfBoundsException nfe) {
+      addViolation(violations, 1);
+    }
+  }
+
+  private void validateScanFileFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
+    validateDataFileMetadata(violations, new String(columnUpdate.getColumnQualifier(), UTF_8),
+        stf -> {});
+  }
+
+  private void validateBulkFileFamily(ArrayList<Short> violations,
+      Collection<ColumnUpdate> bulkFileColUpdates, BulkFileColData bfcValidationData) {
+    if (bulkFileColUpdates != null && !bulkFileColUpdates.isEmpty()) {
+      for (ColumnUpdate bulkFileColUpdate : bulkFileColUpdates) {
+        validateDataFileMetadata(violations,
+            new String(bulkFileColUpdate.getColumnQualifier(), UTF_8),
+            bfcValidationData::addLoadedFile);
+
+        bfcValidationData.addTidSeen(new String(bulkFileColUpdate.getValue(), UTF_8));
+      }
+
+      if (!bfcValidationData.getIsSplitMutation() && !bfcValidationData.getIsLocationMutation()) {
+        for (String tidString : bfcValidationData.getTidsSeen()) {
+          try {
+            // attempt to parse value
+            BulkFileColumnFamily.getBulkLoadTid(new Value(tidString));
+          } catch (Exception e) {
+            addViolation(violations, 8);
+          }
+        }
+        if (bfcValidationData.getTidsSeen().size() > 1
+            || !bfcValidationData.dataFilesEqualsLoadedFiles()) {
+          addViolation(violations, 8);
+        }
+      }
+    }
+  }
+
+  private void validateCompactedFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
+    if (!FateId.isFateId(new String(columnUpdate.getColumnQualifier(), UTF_8))) {
+      addViolation(violations, 4002);
+    }
+  }
+
+  private void validateUserCompactionRequestedFamily(ArrayList<Short> violations,
+      ColumnUpdate columnUpdate) {
+    if (!FateId.isFateId(new String(columnUpdate.getColumnQualifier(), UTF_8))) {
+      addViolation(violations, 4003);
+    }
+  }
+
+  private void validateSplitFamily(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
+    String qualStr = new String(columnUpdate.getColumnQualifier(), UTF_8);
+
+    if (qualStr.equals(SplitColumnFamily.UNSPLITTABLE_QUAL)) {
+      try {
+        UnSplittableMetadata.toUnSplittable(new String(columnUpdate.getValue(), UTF_8));
+      } catch (RuntimeException e) {
+        addViolation(violations, 4004);
+      }
+    }
+  }
+
+  private boolean hasBulkCol(Collection<ColumnUpdate> colUpdates) {
+    for (ColumnUpdate colUpdate : colUpdates) {
+      if (Arrays.equals(colUpdate.getColumnFamily(), BULK_COL_BYTES)) {
+        return true;
+      }
+    }
+    return false;
   }
 
 }

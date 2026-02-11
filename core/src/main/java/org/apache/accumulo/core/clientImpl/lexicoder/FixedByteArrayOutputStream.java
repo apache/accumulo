@@ -27,7 +27,7 @@ import java.io.OutputStream;
 public class FixedByteArrayOutputStream extends OutputStream {
 
   private int i;
-  byte[] out;
+  final byte[] out;
 
   public FixedByteArrayOutputStream(byte[] out) {
     this.out = out;

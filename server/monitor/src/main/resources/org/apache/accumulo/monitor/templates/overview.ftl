@@ -34,85 +34,23 @@
                 <td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td>
               </tr>
               <tr>
-                <td class="left"><a href="tables">Tables</a></td>
+                <td class="left">Server</td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left"><a href="tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="left">Resource&nbsp;Group</td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left"><a href="tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="left">Last&nbsp;Contact</td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left">Tablets</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Entries</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Lookups</td>
-                <td class="right"></td>
-              </tr>
-              <tr>
-                <td class="left">Uptime</td>
+                <td class="left">Metrics</td>
                 <td class="right"></td>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-sm-6">
-          <div class="plotHeading">Ingest (Entries/s)</div>
-          <div id="ingest_entries" class="plot"></div>
-        </div>
-        <div class="col-sm-6">
-          <div class="plotHeading">Scan (Entries/s)</div>
-          <div id="scan_entries" class="plot"></div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-sm-6">
-          <div class="plotHeading">Ingest (MB/s)</div>
-          <div id="ingest_mb" class="plot"></div>
-        </div>
-        <div class="col-sm-6">
-          <div class="plotHeading">Scan (MB/s)</div>
-          <div id="scan_mb" class="plot"></div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-sm-6">
-          <div class="plotHeading">Load Average</div>
-          <div id="load_avg" class="plot"></div>
-        </div>
-        <div class="col-sm-6">
-          <div class="plotHeading">Seeks</div>
-          <div id="seeks" class="plot"></div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-sm-6">
-          <div class="plotHeading">Minor Compactions</div>
-          <div id="minor" class="plot"></div>
-        </div>
-        <div class="col-sm-6">
-          <div class="plotHeading">Major Compactions</div>
-          <div id="major" class="plot"></div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-sm-6">
-          <div class="plotHeading">Index Cache Hit Rate</div>
-          <div id="index_cache" class="plot"></div>
-        </div>
-        <div class="col-sm-6">
-          <div class="plotHeading">Data Cache Hit Rate</div>
-          <div id="data_cache" class="plot"></div>
         </div>
       </div>

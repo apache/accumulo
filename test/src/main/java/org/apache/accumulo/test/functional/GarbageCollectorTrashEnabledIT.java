@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -38,8 +39,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
 import org.junit.jupiter.api.Test;
 
-// verify that trash is used if our property is set to not ignore it (the default)
-// and Hadoop is configured to enable it
+// verify that trash is used if Hadoop is configured to use it
 public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
 
   @Override
@@ -49,7 +49,7 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-
+    // By default Hadoop trash is disabled - fs.trash.interval defaults to 0; override that here
     Map<String,String> hadoopOverrides = new HashMap<>();
     hadoopOverrides.put(CommonConfigurationKeysPublic.FS_TRASH_INTERVAL_KEY, "5");
     cfg.setHadoopConfOverrides(hadoopOverrides);
@@ -57,13 +57,8 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
 
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
-    @SuppressWarnings("removal")
-    Property p = Property.GC_TRASH_IGNORE;
-    cfg.setProperty(p, "false"); // default, use trash if configured
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TABLE_MAJC_RATIO, "5.0");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "180s");
   }
 
   @Test
@@ -72,6 +67,8 @@ public class GarbageCollectorTrashEnabledIT extends GarbageCollectorTrashBase {
     final FileSystem fs = super.getCluster().getFileSystem();
     super.makeTrashDir(fs);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      c.namespaceOperations().setProperty(Namespace.DEFAULT.name(),
+          Property.TABLE_MAJC_RATIO.getKey(), "5.0");
       ArrayList<StoredTabletFile> files = super.loadData(super.getServerContext(), c, table);
       assertFalse(files.isEmpty());
       c.tableOperations().compact(table, new CompactionConfig());

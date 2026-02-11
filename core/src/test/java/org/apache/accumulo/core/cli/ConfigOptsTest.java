@@ -44,7 +44,8 @@ public class ConfigOptsTest {
   @Test
   public void testGetAddress_None() {
     opts.parseArgs(ConfigOptsTest.class.getName(), new String[] {});
-    assertEquals("", opts.getSiteConfiguration().get(Property.RPC_PROCESS_BIND_ADDRESS));
+    assertEquals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue(),
+        opts.getSiteConfiguration().get(Property.RPC_PROCESS_BIND_ADDRESS));
   }
 
   @Test
@@ -60,9 +61,9 @@ public class ConfigOptsTest {
   public void testOverrideMultiple() {
     opts.parseArgs(ConfigOptsTest.class.getName(),
         new String[] {"-o", Property.RPC_PROCESS_BIND_ADDRESS.getKey() + "=1.2.3.4", "-o",
-            Property.SSERV_CLIENTPORT.getKey() + "=8888"});
+            Property.COMPACTOR_GROUP_NAME.getKey() + "=test"});
     assertEquals("1.2.3.4", opts.getSiteConfiguration().get(Property.RPC_PROCESS_BIND_ADDRESS));
-    assertEquals("8888", opts.getSiteConfiguration().get(Property.SSERV_CLIENTPORT));
+    assertEquals("test", opts.getSiteConfiguration().get(Property.COMPACTOR_GROUP_NAME));
   }
 
 }

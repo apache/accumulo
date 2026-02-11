@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -51,7 +53,6 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -77,7 +78,7 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
   public static class SleepyConstraint implements Constraint {
 
-    private static final SecureRandom rand = new SecureRandom();
+    private static final SecureRandom rand = RANDOM.get();
 
     private static final long SLEEP_TIME = 4000;
 
@@ -96,7 +97,11 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
       // the purpose of this constraint is to just randomly hold up inserts on the server side
       if (rand.nextBoolean()) {
-        UtilWaitThread.sleep(SLEEP_TIME);
+        try {
+          Thread.sleep(SLEEP_TIME);
+        } catch (InterruptedException ex) {
+          throw new IllegalStateException("Interrupted during sleep", ex);
+        }
       }
 
       return null;
@@ -139,12 +144,26 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(props).build()) {
       c.tableOperations().create(table, ntc);
 
-      List<Future<?>> futures = new ArrayList<>();
+      int numTasks = 100;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      // synchronize start of a portion of the tasks
+      CountDownLatch startLatch = new CountDownLatch(32);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
-      for (int i = 0; i < 100; i++) {
-        futures.add(
-            executor.submit(createWriteTask(i * 1000, c, table, timeout, useConditionalWriter)));
+      for (int i = 0; i < numTasks; i++) {
+        final int row = i * 1000;
+        futures.add(executor.submit(() -> {
+          try {
+            startLatch.countDown();
+            startLatch.await();
+            createWriteTask(row, c, table, timeout, useConditionalWriter).call();
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        }));
       }
+      assertEquals(numTasks, futures.size());
 
       if (killTservers) {
         Thread.sleep(250);

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,10 +33,10 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,6 +47,8 @@ import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -99,7 +100,6 @@ public class PrepBulkImportTest {
   public void runTest(Map<KeyExtent,String> loadRanges, List<KeyExtent> tabletRanges,
       int maxTablets, int skipDistance) throws Exception {
     TabletIterFactory tabletIterFactory = new TabletIterFactory() {
-
       @Override
       public Iterator<KeyExtent> newTabletIter(Text startRow) {
         int start = -1;
@@ -119,19 +119,14 @@ public class PrepBulkImportTest {
       }
 
       @Override
-      public void close() {}
+      public void close() {
+        // nothing to close
+      }
     };
 
-    var sortedExtents = loadRanges.keySet().stream().sorted().collect(Collectors.toList());
-    String minPrevEndRow =
-        Optional.ofNullable(sortedExtents.get(0).prevEndRow()).map(Text::toString).orElse(null);
-    String maxPrevEndRow = Optional.ofNullable(sortedExtents.get(sortedExtents.size() - 1).endRow())
-        .map(Text::toString).orElse(null);
-
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets,
-          10001, skipDistance);
-      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
+      PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 0,
+          FateId.from(FateInstanceType.USER, UUID.randomUUID().toString()), skipDistance);
     }
   }
 

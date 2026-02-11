@@ -79,7 +79,6 @@ public enum FilePrefix {
       }
     }
     throw new IllegalArgumentException("Unknown prefix type: " + prefix);
-
   }
 
   public static FilePrefix fromFileName(String fileName) {

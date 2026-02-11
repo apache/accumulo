@@ -24,9 +24,10 @@ import java.net.UnknownHostException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
+
+import com.google.common.net.HostAndPort;
 
 public class ServerProcessServiceThriftClient extends ThriftClientTypes<Client> {
 

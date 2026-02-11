@@ -81,12 +81,7 @@ class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
   }
 
   @Override
-  public Key getFirstKey() throws IOException {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Key getLastKey() throws IOException {
+  public FileRange getFileRange() {
     throw new UnsupportedOperationException();
   }
 

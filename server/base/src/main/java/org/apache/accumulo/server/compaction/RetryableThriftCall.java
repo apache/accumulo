@@ -18,9 +18,7 @@
  */
 package org.apache.accumulo.server.compaction;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.NeedsRetryDelay;
@@ -36,21 +34,8 @@ public class RetryableThriftCall<T> {
 
     public RetriesExceededException() {}
 
-    public RetriesExceededException(String message, Throwable cause, boolean enableSuppression,
-        boolean writableStackTrace) {
-      super(message, cause, enableSuppression, writableStackTrace);
-    }
-
-    public RetriesExceededException(String message, Throwable cause) {
-      super(message, cause);
-    }
-
     public RetriesExceededException(String message) {
       super(message);
-    }
-
-    public RetriesExceededException(Throwable cause) {
-      super(cause);
     }
 
   }
@@ -78,8 +63,8 @@ public class RetryableThriftCall<T> {
     } else {
       builder = Retry.builder().maxRetries(maxNumRetries);
     }
-    this.retry = builder.retryAfter(start, MILLISECONDS).incrementBy(0, MILLISECONDS)
-        .maxWait(maxWaitTime, MILLISECONDS).backOffFactor(2).logInterval(1, TimeUnit.MINUTES)
+    this.retry = builder.retryAfter(Duration.ofMillis(start)).incrementBy(Duration.ZERO)
+        .maxWait(Duration.ofMillis(maxWaitTime)).backOffFactor(2).logInterval(Duration.ofMinutes(1))
         .createRetry();
   }
 

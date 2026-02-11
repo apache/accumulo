@@ -23,22 +23,27 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Reader corresponding to BlockedOutputStream. Expects all data to be in the form of size (int)
  * data (size bytes) junk (however many bytes it takes to complete a block)
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class BlockedInputStream extends InputStream {
   byte[] array;
   // ReadPos is where to start reading
   // WritePos is the last position written to
-  int readPos, writePos;
+  int readPos;
+  int writePos;
   DataInputStream in;
   int blockSize;
   boolean finished = false;
 
   public BlockedInputStream(InputStream in, int blockSize, int maxSize) {
     if (blockSize == 0) {
-      throw new RuntimeException("Invalid block size");
+      throw new IllegalArgumentException("Invalid block size");
     }
     if (in instanceof DataInputStream) {
       this.in = (DataInputStream) in;
@@ -67,7 +72,7 @@ public class BlockedInputStream extends InputStream {
     if (readPos == array.length) {
       readPos = 0;
     } else if (readPos > array.length) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Unexpected state, this should only ever increase or cycle on the boundary!");
     }
     return toRet;
@@ -121,7 +126,7 @@ public class BlockedInputStream extends InputStream {
       finished = true;
       return false;
     } else if (size == 0) {
-      throw new RuntimeException(
+      throw new IllegalStateException(
           "Empty block written, this shouldn't happen with this BlockedOutputStream.");
     }
 

@@ -45,11 +45,6 @@ public class ExternalCopmactionIdTest {
     var ecid2 = ExternalCompactionId.generate(uuid2);
     assertNotEquals(ecid1, ecid2);
     assertNotEquals(ecid1.hashCode(), ecid2.hashCode());
-
-    assertEquals(uuid1.toString().charAt(0), ecid1.getFirstUUIDChar());
-    assertEquals(uuid1.toString().charAt(0),
-        ExternalCompactionId.from(uuid1.toString()).getFirstUUIDChar());
-    assertEquals(uuid2.toString().charAt(0), ecid2.getFirstUUIDChar());
   }
 
   @Test

@@ -32,7 +32,9 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.data.ResourceGroupId;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * An immutable snapshot of information about scan servers
@@ -62,34 +64,34 @@ class ScanServersSnapshot {
 
   // All code in this class assumes this map is an immutable snapshot and computes derivative data
   // structures from its data as needed.
-  private final Map<String,Set<String>> serversByGroup;
-  private final Map<String,PerHostInfo> perHostInfo;
-  private final Map<String,List<String>> serversByGroupList;
+  private final Map<ResourceGroupId,Set<String>> serversByGroup;
+  private final Map<ResourceGroupId,PerHostInfo> perHostInfo;
+  private final Map<ResourceGroupId,List<String>> serversByGroupList;
 
-  private ScanServersSnapshot(Map<String,Set<String>> serversByGroup) {
+  private ScanServersSnapshot(Map<ResourceGroupId,Set<String>> serversByGroup) {
     this.serversByGroup = serversByGroup;
     this.perHostInfo = new ConcurrentHashMap<>();
     this.serversByGroupList = new ConcurrentHashMap<>();
   }
 
-  Set<String> getServersForGroup(String group) {
+  Set<String> getServersForGroup(ResourceGroupId group) {
     return serversByGroup.getOrDefault(group, Set.of());
   }
 
-  List<String> getServersForGroupAsList(String group) {
+  List<String> getServersForGroupAsList(ResourceGroupId group) {
     // compute the list as needed since it is not always needed
     return serversByGroupList.computeIfAbsent(group, g -> List.copyOf(getServersForGroup(g)));
   }
 
-  private PerHostInfo getPerHostInfo(String group) {
+  private PerHostInfo getPerHostInfo(ResourceGroupId group) {
     return perHostInfo.computeIfAbsent(group, g -> new PerHostInfo(getServersForGroup(g)));
   }
 
-  List<String> getHostsForGroup(String group) {
+  List<String> getHostsForGroup(ResourceGroupId group) {
     return getPerHostInfo(group).hosts;
   }
 
-  List<String> getServersForHost(String group, String host) {
+  List<String> getServersForHost(ResourceGroupId group, String host) {
     return getPerHostInfo(group).getServersForHost(host);
   }
 
@@ -117,8 +119,8 @@ class ScanServersSnapshot {
     return new ScanServersSnapshot(initialSnapshot);
   }
 
-  static ScanServersSnapshot from(Map<String,Set<String>> serversByGroup) {
-    var copy = new HashMap<String,Set<String>>();
+  static ScanServersSnapshot from(Map<ResourceGroupId,Set<String>> serversByGroup) {
+    var copy = new HashMap<ResourceGroupId,Set<String>>();
     serversByGroup.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
     return new ScanServersSnapshot(Map.copyOf(copy));
   }

@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.concurrent.ExecutionException;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
@@ -39,14 +38,15 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.Lists;
 
 /**
@@ -95,8 +95,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * SortedKeyValueIterator.
    */
   public static class ValueIterator implements Iterator<Value> {
-    Key topKey;
-    SortedKeyValueIterator<Key,Value> source;
+    final Key topKey;
+    final SortedKeyValueIterator<Key,Value> source;
     boolean hasNext;
 
     /**
@@ -187,12 +187,12 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =
-      CacheBuilder.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
+      Caches.getInstance().createNewBuilder(CacheName.COMBINER_LOGGED_MSGS, true)
+          .expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
-    if (isMajorCompaction && !reduceOnFullCompactionOnly) {
-      try {
-        loggedMsgCache.get(this.getClass().getName(), () -> {
+    if (isMajorCompaction && !reduceOnFullCompactionOnly
+        && loggedMsgCache.get(this.getClass().getName(), k -> {
           sawDeleteLog.error(
               "Combiner of type {} saw a delete during a"
                   + " partial compaction. This could cause undesired results. See"
@@ -200,10 +200,11 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
               Combiner.this.getClass().getSimpleName());
           // the value is not used and does not matter
           return Boolean.TRUE;
-        });
-      } catch (ExecutionException e) {
-        throw new RuntimeException(e);
-      }
+        })) {
+      // do nothing;
+      // this is a workaround to ignore the return value of the cache, since we're relying only on
+      // the side-effect of logging when the cache entry expires;
+      // if the cached value is present, it's value is always true
     }
   }
 
@@ -316,8 +317,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     Combiner newInstance;
     try {
       newInstance = this.getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
     newInstance.setSource(getSource().deepCopy(env));
     newInstance.combiners = combiners;

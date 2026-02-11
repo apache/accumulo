@@ -19,7 +19,7 @@
 package org.apache.accumulo.tserver.tablet;
 
 import org.apache.accumulo.core.file.FilePrefix;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.tserver.MinorCompactionReason;
@@ -68,15 +68,16 @@ class MinorCompactionTask implements Runnable {
         } finally {
           span2.end();
         }
-        TabletFile newFile = null;
-        TabletFile tmpFile = null;
+        ReferencedTabletFile newFile = null;
+        ReferencedTabletFile tmpFile = null;
         Span span3 = TraceUtil.startSpan(this.getClass(), "start");
         try (Scope scope3 = span3.makeCurrent()) {
           while (true) {
             try {
               if (newFile == null) {
-                newFile = tablet.getNextMapFilename(FilePrefix.FLUSH);
-                tmpFile = new TabletFile(new Path(newFile.getPathStr() + "_tmp"));
+                newFile = tablet.getNextDataFilename(FilePrefix.FLUSH);
+                tmpFile =
+                    new ReferencedTabletFile(new Path(newFile.getNormalizedPathStr() + "_tmp"));
               }
               /*
                * the purpose of the minor compaction start event is to keep track of the filename...
@@ -87,7 +88,7 @@ class MinorCompactionTask implements Runnable {
                * for the minor compaction
                */
               tablet.getTabletServer().minorCompactionStarted(commitSession,
-                  commitSession.getWALogSeq() + 1, newFile.getMetaInsert());
+                  commitSession.getWALogSeq() + 1, newFile.insert().getMetadataPath());
               break;
             } catch (Exception e) {
               // Catching Exception here rather than something more specific as we can't allow the
@@ -127,10 +128,6 @@ class MinorCompactionTask implements Runnable {
         throw e;
       } finally {
         span.end();
-      }
-
-      if (tablet.needsSplit(tablet.getSplitComputations())) {
-        tablet.getTabletServer().executeSplit(tablet);
       }
     } catch (Exception e) {
       log.error("Unknown error during minor compaction for extent: {}", tablet.getExtent(), e);

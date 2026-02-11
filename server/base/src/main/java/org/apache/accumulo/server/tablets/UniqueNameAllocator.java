@@ -19,8 +19,12 @@
 package org.apache.accumulo.server.tablets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -29,6 +33,8 @@ import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 /**
  * Allocates unique names for an accumulo instance. The names are unique for the lifetime of the
@@ -39,30 +45,43 @@ import org.slf4j.LoggerFactory;
 public class UniqueNameAllocator {
 
   private static final Logger log = LoggerFactory.getLogger(UniqueNameAllocator.class);
-  private static final SecureRandom random = new SecureRandom();
   private static final Property MIN_PROP = Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN;
   private static final Property MAX_PROP = Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX;
   private static final int DEFAULT_MIN = DefaultConfiguration.getInstance().getCount(MIN_PROP);
 
   private final ServerContext context;
-  private final String nextNamePath;
 
   private long next = 0;
+  // exclusive end of allocated names
   private long maxAllocated = 0;
 
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
-    nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
   }
 
   public synchronized String getNextName() {
-    while (next >= maxAllocated) {
-      final int allocate = getAllocation();
+    return getNextNames(1).next();
+  }
+
+  /**
+   * @param needed the number of names needed
+   * @return a thread safe iterator that can be called up to the number of names requested
+   */
+  public synchronized Iterator<String> getNextNames(int needed) {
+    Preconditions.checkArgument(needed >= 0, "needed=%s is <0", needed);
+
+    if (needed == 0) {
+      return Collections.emptyIterator();
+    }
+
+    while ((next + needed) > maxAllocated) {
+      final int allocate = getAllocation(needed);
       try {
-        byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
-          long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
-          return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
-        });
+        byte[] max = context.getZooSession().asReaderWriter().mutateExisting(Constants.ZNEXT_FILE,
+            currentValue -> {
+              long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
+              return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
+            });
 
         maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;
@@ -71,11 +90,50 @@ public class UniqueNameAllocator {
         throw new IllegalStateException(e);
       }
     }
-    return new String(FastFormat.toZeroPaddedString(next++, 7, Character.MAX_RADIX, new byte[0]),
-        UTF_8);
+
+    final long start = next;
+    next += needed;
+    Preconditions.checkState(next <= maxAllocated);
+    return new NameIterator(start, next);
   }
 
-  private int getAllocation() {
+  /**
+   * Thread safe iterator that avoids creating all of the string objects ahead of time
+   */
+  static class NameIterator implements Iterator<String> {
+
+    private final AtomicLong iterNext;
+    private final long end;
+
+    /**
+     *
+     * @param start inclusive start
+     * @param end exclusive end
+     */
+    NameIterator(long start, long end) {
+      Preconditions.checkArgument(start < end);
+      Preconditions.checkArgument(start >= 0);
+      this.iterNext = new AtomicLong(start);
+      this.end = end;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return iterNext.get() < end;
+    }
+
+    @Override
+    public String next() {
+      long name = iterNext.getAndIncrement();
+      if (name >= end) {
+        throw new NoSuchElementException();
+      }
+      return new String(FastFormat.toZeroPaddedString(name, 7, Character.MAX_RADIX, new byte[0]),
+          UTF_8);
+    }
+  }
+
+  private int getAllocation(int needed) {
     int minAllocation = context.getConfiguration().getCount(MIN_PROP);
     int maxAllocation = context.getConfiguration().getCount(MAX_PROP);
 
@@ -91,7 +149,10 @@ public class UniqueNameAllocator {
       maxAllocation = minAllocation;
     }
 
-    int actualBatchSize = minAllocation + random.nextInt((maxAllocation - minAllocation) + 1);
+    int actualBatchSize = minAllocation + RANDOM.get().nextInt((maxAllocation - minAllocation) + 1);
+    if (needed >= actualBatchSize) {
+      actualBatchSize += needed;
+    }
     log.debug("Allocating {} filenames", actualBatchSize);
     return actualBatchSize;
   }

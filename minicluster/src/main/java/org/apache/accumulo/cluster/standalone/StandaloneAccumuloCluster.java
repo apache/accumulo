@@ -20,20 +20,20 @@ package org.apache.accumulo.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.clientImpl.ClientConfConverter;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -44,6 +44,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -56,14 +59,19 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       Collections.unmodifiableList(Arrays.asList(ServerType.MANAGER, ServerType.TABLET_SERVER,
           ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
-  private ClientInfo info;
-  private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
-  private Path tmp;
-  private List<ClusterUser> users;
+  private final ClientInfo info;
+  private String accumuloHome;
+  private String clientAccumuloConfDir;
+  private String serverAccumuloConfDir;
+  private String hadoopConfDir;
+  private final Path tmp;
+  private final List<ClusterUser> users;
   private String clientCmdPrefix;
   private String serverCmdPrefix;
-  private SiteConfiguration siteConfig;
-  private ServerContext context;
+  private final SiteConfiguration siteConfig;
+  private final Supplier<ServerContext> contextSupplier;
+  private volatile State clusterState = State.STOPPED;
+  private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -73,8 +81,11 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.tmp = tmp;
     this.users = users;
     this.serverAccumuloConfDir = serverAccumuloConfDir;
-    siteConfig =
-        SiteConfiguration.fromFile(new File(serverAccumuloConfDir, "accumulo.properties")).build();
+    siteConfig = SiteConfiguration
+        .fromFile(
+            java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toFile())
+        .build();
+    this.contextSupplier = Suppliers.memoize(() -> ServerContext.withClientInfo(siteConfig, info));
   }
 
   public String getAccumuloHome() {
@@ -130,12 +141,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  public synchronized ServerContext getServerContext() {
-    if (context == null) {
-      context = ServerContext.override(siteConfig, info.getInstanceName(), info.getZooKeepers(),
-          info.getZooKeepersSessionTimeOut());
-    }
-    return context;
+  public ServerContext getServerContext() {
+    serverContextCreated.set(true);
+    return contextSupplier.get();
   }
 
   @Override
@@ -144,14 +152,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   }
 
   @Override
-  @Deprecated(since = "2.0.0")
-  public org.apache.accumulo.core.client.ClientConfiguration getClientConfig() {
-    return ClientConfConverter.toClientConf(info.getProperties());
-  }
-
-  @Override
   public Properties getClientProperties() {
-    return info.getProperties();
+    return info.getClientProperties();
   }
 
   @Override
@@ -162,6 +164,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public void start() throws IOException {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot start a cluster that is terminated.");
     StandaloneClusterControl control = getClusterControl();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the
@@ -172,10 +176,13 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     for (ServerType type : ALL_SERVER_TYPES) {
       control.startAllServers(type);
     }
+    clusterState = State.STARTED;
   }
 
   @Override
   public void stop() throws IOException {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
     StandaloneClusterControl control = getClusterControl();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the
@@ -184,6 +191,22 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     for (ServerType type : ALL_SERVER_TYPES) {
       control.stopAllServers(type);
     }
+    clusterState = State.STOPPED;
+  }
+
+  @Override
+  public void terminate() throws Exception {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
+
+    if (clusterState != State.STOPPED) {
+      stop();
+    }
+
+    if (serverContextCreated.get()) {
+      getServerContext().close();
+    }
+    clusterState = State.TERMINATED;
   }
 
   public Configuration getHadoopConfiguration() {
@@ -226,13 +249,14 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getAccumuloPropertiesPath() {
-    return new File(serverAccumuloConfDir, "accumulo.properties").toString();
+    return java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toString();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getClientPropsPath() {
-    return new File(clientAccumuloConfDir, "accumulo-client.properties").toString();
+    return java.nio.file.Path.of(clientAccumuloConfDir).resolve("accumulo-client.properties")
+        .toString();
   }
 }

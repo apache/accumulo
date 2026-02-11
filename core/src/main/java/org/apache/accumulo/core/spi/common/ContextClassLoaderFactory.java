@@ -78,16 +78,16 @@ public interface ContextClassLoaderFactory {
   default void init(ContextClassLoaderEnvironment env) {}
 
   /**
-   * Get the class loader for the given contextName. Callers should not cache the ClassLoader result
-   * as it may change if/when the ClassLoader reloads. Implementations should throw a
+   * Get the class loader for the given context. Callers should not cache the ClassLoader result as
+   * it may change if/when the ClassLoader reloads. Implementations should throw a
    * ContextClassLoaderException if the provided contextName is not supported or fails to be
    * constructed.
    *
-   * @param contextName the name of the context that represents a class loader that is managed by
-   *        this factory. Currently, Accumulo will only call this method for non-null and non-empty
+   * @param context the name of the context that represents a class loader that is managed by this
+   *        factory. Currently, Accumulo will only call this method for non-null and non-empty
    *        context. For empty or null context, Accumulo will use the system classloader without
    *        consulting this plugin.
-   * @return the class loader for the given contextName
+   * @return the class loader for the given context
    */
-  ClassLoader getClassLoader(String contextName) throws ContextClassLoaderException;
+  ClassLoader getClassLoader(String context) throws ContextClassLoaderException;
 }

@@ -24,19 +24,31 @@ import java.util.Set;
 
 public class StatusSummary {
 
-  private final ServiceStatusReport.ReportKey serviceType;
+  // marked transient to exclude from json serialization
+  private final transient ServiceStatusReport.ReportKey serviceType;
   private final Map<String,Integer> resourceGroups;
   private final Map<String,Set<String>> serviceByGroups;
   private final int serviceCount;
   private final int errorCount;
 
+  // Default constructor required for Gson
+  @SuppressWarnings("unused")
+  private StatusSummary() {
+    serviceType = null;
+    resourceGroups = Map.of();
+    serviceByGroups = Map.of();
+    serviceCount = 0;
+    errorCount = 0;
+  }
+
   public StatusSummary(ServiceStatusReport.ReportKey serviceType,
       final Map<String,Integer> resourceGroups, final Map<String,Set<String>> serviceByGroups,
-      final int serviceCount, final int errorCount) {
+      final int errorCount) {
     this.serviceType = serviceType;
     this.resourceGroups = resourceGroups;
     this.serviceByGroups = serviceByGroups;
-    this.serviceCount = serviceCount;
+    this.serviceCount =
+        serviceByGroups.values().stream().map(Set::size).reduce(Integer::sum).orElse(0);
     this.errorCount = errorCount;
   }
 
@@ -64,19 +76,14 @@ public class StatusSummary {
     return errorCount;
   }
 
-  public StatusSummary withoutHosts() {
-    return new StatusSummary(serviceType, resourceGroups, Map.of(), serviceCount, errorCount);
-  }
-
   @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StatusSummary)) {
+    if (!(o instanceof StatusSummary that)) {
       return false;
     }
-    StatusSummary that = (StatusSummary) o;
     return serviceCount == that.serviceCount && errorCount == that.errorCount
         && serviceType == that.serviceType && Objects.equals(resourceGroups, that.resourceGroups)
         && Objects.equals(serviceByGroups, that.serviceByGroups);

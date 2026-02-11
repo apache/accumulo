@@ -19,12 +19,13 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.harness.AccumuloITBase.random;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -80,7 +80,7 @@ public class TestBinaryRows {
     return l;
   }
 
-  public static class Opts extends ServerUtilOpts {
+  public static class Opts extends ClientOpts {
     @Parameter(names = "--mode",
         description = "either 'ingest', 'delete', 'randomLookups', 'split',"
             + " 'verify', 'verifyDeleted'",
@@ -96,8 +96,10 @@ public class TestBinaryRows {
 
   public static void runTest(AccumuloClient accumuloClient, Opts opts) throws Exception {
 
-    final Text CF = new Text("cf"), CQ = new Text("cq");
-    final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
+    final Text CF = new Text("cf");
+    final Text CQ = new Text("cq");
+    final byte[] CF_BYTES = "cf".getBytes(UTF_8);
+    final byte[] CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
       try (BatchWriter bw = accumuloClient.createBatchWriter(opts.tableName)) {
         boolean delete = opts.mode.equals("delete");
@@ -166,7 +168,7 @@ public class TestBinaryRows {
       long t1 = System.currentTimeMillis();
 
       for (int i = 0; i < numLookups; i++) {
-        long row = ((random.nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
+        long row = ((RANDOM.get().nextLong() & 0x7fffffffffffffffL) % opts.num) + opts.start;
 
         try (Scanner s = accumuloClient.createScanner(opts.tableName, opts.auths)) {
           Key startKey = new Key(encodeLong(row), CF_BYTES, CQ_BYTES, new byte[0], Long.MAX_VALUE);

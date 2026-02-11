@@ -35,24 +35,21 @@ public class Constants {
   // Zookeeper locations
   public static final String ZROOT = "/accumulo";
   public static final String ZINSTANCES = "/instances";
+  public static final String ZUSERS = "/users";
 
   public static final String ZTABLES = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
-  public static final String ZTABLE_NAME = "/name";
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
-  public static final String ZTABLE_COMPACT_ID = "/compact-id";
-  public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
   public static final String ZNAMESPACES = "/namespaces";
-  public static final String ZNAMESPACE_NAME = "/name";
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
-  public static final String ZMANAGER_REPLICATION_COORDINATOR_ADDR = ZMANAGERS + "/repl_coord_addr";
   public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
 
   public static final String ZGC = "/gc";
@@ -62,39 +59,31 @@ public class Constants {
   public static final String ZMONITOR_LOCK = ZMONITOR + "/lock";
   public static final String ZMONITOR_HTTP_ADDR = ZMONITOR + "/http_addr";
 
-  // used by < 2.1 table and namespace configurations
-  public static final String ZCONF_LEGACY = "/conf";
   public static final String ZCONFIG = "/config";
 
   public static final String ZTSERVERS = "/tservers";
 
   public static final String ZSSERVERS = "/sservers";
 
-  public static final String ZCOMPACTORS = "/compactors";
+  // tracks config for running compactions
+  public static final String ZCOMPACTIONS = "/compactions";
 
-  public static final String ZCOORDINATOR = "/coordinators";
-  public static final String ZCOORDINATOR_LOCK = ZCOORDINATOR + "/lock";
+  public static final String ZCOMPACTORS = "/compactors";
 
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
-
-  public static final String ZTRACERS = "/tracers";
-
-  public static final String ZPROBLEMS = "/problems";
-
-  public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
 
   public static final String ZFATE = "/fate";
 
   public static final String ZNEXT_FILE = "/next_file";
 
-  // TODO: Remove when Property.TSERV_WORKQ_THREADS is removed
-  public static final String ZBULK_FAILED_COPYQ = "/bulk_failed_copyq";
-
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
   public static final String ZRECOVERY = "/recovery";
 
   public static final String ZPREPARE_FOR_UPGRADE = "/upgrade_ready";
+  public static final String ZUPGRADE_PROGRESS = "/upgrade_progress";
+
+  public static final String ZRESOURCEGROUPS = "/resource_groups";
 
   /**
    * Base znode for storing secret keys that back delegation tokens
@@ -102,6 +91,9 @@ public class Constants {
   public static final String ZDELEGATION_TOKEN_KEYS = "/delegation_token_keys";
 
   public static final String ZTABLE_LOCKS = "/table_locks";
+  public static final String ZMINI_LOCK = "/mini";
+  public static final String ZADMIN_LOCK = "/admin/lock";
+  public static final String ZTEST_LOCK = "/test/lock";
 
   public static final String BULK_PREFIX = "b-";
   public static final String BULK_RENAME_FILE = "renames.json";
@@ -120,7 +112,6 @@ public class Constants {
 
   public static final int MAX_DATA_TO_PRINT = 64;
   public static final String CORE_PACKAGE_NAME = "org.apache.accumulo.core";
-  public static final String MAPFILE_EXTENSION = "map";
   public static final String GENERATED_TABLET_DIRECTORY_PREFIX = "t-";
 
   public static final String EXPORT_METADATA_FILE = "metadata.bin";
@@ -132,5 +123,7 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
+
+  public static final String DEFAULT_RESOURCE_GROUP_NAME = "default";
   public static final String DEFAULT_COMPACTION_SERVICE_NAME = "default";
 }

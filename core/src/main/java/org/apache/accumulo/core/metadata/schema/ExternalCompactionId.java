@@ -26,7 +26,7 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
 
   // A common prefix is nice when grepping logs for external compaction ids. The prefix also serves
   // as a nice sanity check on data coming in over the network and from persistent storage.
-  private static final String PREFIX = "ECID:";
+  public static final String PREFIX = "ECID-";
 
   private ExternalCompactionId(UUID uuid) {
     super(PREFIX + uuid);
@@ -65,16 +65,5 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
       ecid = PREFIX + ecid;
     }
     return of(ecid);
-  }
-
-  private static final int FIRST_UUID_CHAR_OFFSET = PREFIX.length();
-
-  /**
-   * @return first character of the UUID portion of the ExternalCompactionId.
-   */
-  public Character getFirstUUIDChar() {
-    // ExternalCompactionId string has a prefix of "ECID:", so
-    // we want the 6th character (index 5)
-    return canonical().charAt(FIRST_UUID_CHAR_OFFSET);
   }
 }

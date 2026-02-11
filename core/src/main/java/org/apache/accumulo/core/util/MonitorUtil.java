@@ -32,14 +32,14 @@ public class MonitorUtil {
 
   public static String getLocation(ClientContext context)
       throws KeeperException, InterruptedException {
-    return getLocation(context.getZooReader(), context);
+    return getLocation(context.getZooSession().asReader(), context);
   }
 
   @VisibleForTesting
   static String getLocation(ZooReader zr, ClientContext context)
       throws KeeperException, InterruptedException {
     try {
-      byte[] loc = zr.getData(context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR);
+      byte[] loc = zr.getData(Constants.ZMONITOR_HTTP_ADDR);
       return loc == null ? null : new String(loc, UTF_8);
     } catch (NoNodeException e) {
       // If there's no node advertising the monitor, there's no monitor.

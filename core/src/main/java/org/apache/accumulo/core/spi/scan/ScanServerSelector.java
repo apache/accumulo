@@ -25,6 +25,7 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -46,7 +47,7 @@ public interface ScanServerSelector {
   /**
    * The scan server group name that will be used when one is not specified.
    */
-  String DEFAULT_SCAN_SERVER_GROUP_NAME = "default";
+  String DEFAULT_SCAN_SERVER_GROUP_NAME = Constants.DEFAULT_RESOURCE_GROUP_NAME;
 
   /**
    * This method is called once after a {@link ScanServerSelector} is instantiated.

@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -31,7 +33,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -54,9 +56,7 @@ public class TestMultiTableIngest {
     int i = 0;
     for (String table : tableNames) {
       // wait for table to exist
-      while (!client.tableOperations().exists(table)) {
-        UtilWaitThread.sleep(100);
-      }
+      Wait.waitFor(() -> client.tableOperations().exists(table), SECONDS.toMillis(30), 100);
       try (Scanner scanner = client.createScanner(table, opts.auths)) {
         int count = i;
         for (Entry<Key,Value> elt : scanner) {

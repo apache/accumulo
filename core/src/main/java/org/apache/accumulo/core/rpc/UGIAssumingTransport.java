@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.rpc;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -37,7 +38,7 @@ import org.apache.thrift.transport.TTransportException;
  * Lifted from Apache Hive 0.14
  */
 public class UGIAssumingTransport extends FilterTransport {
-  protected UserGroupInformation ugi;
+  protected final UserGroupInformation ugi;
 
   public UGIAssumingTransport(TTransport wrapped, UserGroupInformation ugi) {
     super(wrapped);
@@ -56,8 +57,10 @@ public class UGIAssumingTransport extends FilterTransport {
         }
         return null;
       });
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
     }
 
     // Make sure the transport exception gets (re)thrown if it happened

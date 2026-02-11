@@ -20,15 +20,19 @@ package org.apache.accumulo.core.dataImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.RowRangeUtil.requireKeyExtentDataRange;
+import static org.apache.accumulo.core.util.RowRangeUtil.stripZeroTail;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
@@ -46,20 +50,21 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.BinaryComparable;
+import org.apache.hadoop.io.DataInputBuffer;
+import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
 /**
  * keeps track of information needed to identify a tablet
  */
-public class KeyExtent implements Comparable<KeyExtent> {
+public final class KeyExtent implements Comparable<KeyExtent> {
 
   private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
 
@@ -279,10 +284,9 @@ public class KeyExtent implements Comparable<KeyExtent> {
     if (o == this) {
       return true;
     }
-    if (!(o instanceof KeyExtent)) {
+    if (!(o instanceof KeyExtent oke)) {
       return false;
     }
-    KeyExtent oke = (KeyExtent) o;
     return tableId().equals(oke.tableId()) && Objects.equals(endRow(), oke.endRow())
         && Objects.equals(prevEndRow(), oke.prevEndRow());
   }
@@ -380,13 +384,72 @@ public class KeyExtent implements Comparable<KeyExtent> {
    * <p>
    * For example, if this extent represented a range of data from <code>A</code> to <code>Z</code>
    * for a user table, <code>T</code>, this would compute the range to scan
-   * <code>accumulo.metadata</code> that would include all the the metadata for <code>T</code>'s
-   * tablets that contain data in the range <code>(A,Z]</code>.
+   * <code>accumulo.metadata</code> that would include all the metadata for <code>T</code>'s tablets
+   * that contain data in the range <code>(A,Z]</code>.
    */
   public Range toMetaRange() {
     Text metadataPrevRow =
         TabletsSection.encodeRow(tableId(), prevEndRow() == null ? EMPTY_TEXT : prevEndRow());
     return new Range(metadataPrevRow, prevEndRow() == null, toMetaRow(), true);
+  }
+
+  /**
+   * Creates a KeyExtent which represents the intersection of this KeyExtent and the passed in
+   * range.
+   * <p>
+   * <b>Note:</b> The range provided must be a range that is derived from a KeyExtent. This means
+   * the range must be in the format of a row range and also requires an exclusive start key, which
+   * is the format that {@link #toDataRange()} uses
+   *
+   * @param range range to clip to
+   * @return the intersection of this KeyExtent and the given range
+   * @throws IllegalArgumentException if the KeyExtent and range do not overlap
+   */
+  public KeyExtent clip(Range range) {
+    return clip(range, false);
+  }
+
+  /**
+   * Creates a KeyExtent which represents the intersection of this KeyExtent and the passed in
+   * range. Unlike {@link #clip(Range)}, this method can optionally return null if the given range
+   * and this KeyExtent do not overlap, instead of throwing an exception. The returnNullIfDisjoint
+   * parameter controls this behavior.
+   * <p>
+   * <b>Note:</b> The range provided must be a range that is derived from a KeyExtent. This means
+   * the range must be in the format of a row range and also requires an exclusive start key, which
+   * is the format that {@link #toDataRange()} uses
+   *
+   * @param range range to clip to
+   * @param returnNullIfDisjoint true to return null if ranges are disjoint, false to throw an
+   *        exception
+   * @return the intersection of this KeyExtent and the given range, or null if given range and this
+   *         KeyExtent do not overlap and returnNullIfDisjoint is true
+   * @throws IllegalArgumentException if the KeyExtent and range does not overlap and
+   *         returnNullIfDisjoint is false
+   *
+   * @see KeyExtent#clip(Range)
+   **/
+  public KeyExtent clip(Range range, boolean returnNullIfDisjoint) {
+    // This will require a range that matches a row range generated by toDataRange()
+    // This range itself will be required to be an inclusive start and exclusive end
+    // The start and end rows will be required to be exclusive keys (ending in 0x00)
+    requireKeyExtentDataRange(range);
+
+    // If returnNullIfDisjoint is false then this will throw an exception if
+    // the ranges are disjoint, otherwise we can just return null
+    final Range clippedRange = this.toDataRange().clip(range, returnNullIfDisjoint);
+    if (clippedRange == null) {
+      return null;
+    }
+
+    // Build the new KeyExtent with the clipped range. We need to strip off the ending byte
+    // which will essentially reverse what toDataRange() does
+    Text endRow = clippedRange.getEndKey() != null
+        ? new Text(stripZeroTail(clippedRange.getEndKey().getRowData()).toArray()) : null;
+    Text prevEndRow = clippedRange.getStartKey() != null
+        ? new Text(stripZeroTail(clippedRange.getStartKey().getRowData()).toArray()) : null;
+
+    return new KeyExtent(tableId, endRow, prevEndRow);
   }
 
   private boolean startsAfter(KeyExtent other) {
@@ -475,12 +538,16 @@ public class KeyExtent implements Comparable<KeyExtent> {
     return prevExtent.endRow().equals(prevEndRow());
   }
 
+  public boolean isSystemTable() {
+    return SystemTables.containsTableId(tableId());
+  }
+
   public boolean isMeta() {
-    return tableId().equals(MetadataTable.ID) || isRootTablet();
+    return tableId().equals(SystemTables.METADATA.tableId()) || isRootTablet();
   }
 
   public boolean isRootTablet() {
-    return tableId().equals(RootTable.ID);
+    return tableId().equals(SystemTables.ROOT.tableId());
   }
 
   public String obscured() {
@@ -488,12 +555,34 @@ public class KeyExtent implements Comparable<KeyExtent> {
     try {
       digester = MessageDigest.getInstance(OBSCURING_HASH_ALGORITHM);
     } catch (NoSuchAlgorithmException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     if (endRow() != null && endRow().getLength() > 0) {
       digester.update(endRow().getBytes(), 0, endRow().getLength());
     }
     return Base64.getEncoder().encodeToString(digester.digest());
+  }
+
+  public String toBase64() {
+    DataOutputBuffer buffer = new DataOutputBuffer();
+    try {
+      writeTo(buffer);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+
+    return Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+  }
+
+  public static KeyExtent fromBase64(String encoded) {
+    byte[] data = Base64.getDecoder().decode(encoded);
+    DataInputBuffer buffer = new DataInputBuffer();
+    buffer.reset(data, data.length);
+    try {
+      return KeyExtent.readFrom(buffer);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 
 }

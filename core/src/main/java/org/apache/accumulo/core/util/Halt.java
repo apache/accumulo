@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.util;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
@@ -40,7 +40,7 @@ public class Halt {
     halt(status, msg, null, runnable);
   }
 
-  public static void halt(final int status, final String msg, final Throwable exception,
+  private static void halt(final int status, final String msg, final Throwable exception,
       final Runnable runnable) {
     try {
 

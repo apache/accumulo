@@ -35,16 +35,16 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
+import org.apache.accumulo.core.file.rfile.RFile.RFileSKVIterator;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.StreamCapabilities;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
@@ -60,18 +60,17 @@ public class RFileOperations extends FileOperations {
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
   private static final AtomicBoolean SYNC_CAPABILITY_LOGGED = new AtomicBoolean(false);
 
-  private static RFile.Reader getReader(FileOptions options) throws IOException {
+  private static RFileSKVIterator getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
-        .fsPath(options.getFileSystem(), new Path(options.getFilename()), options.dropCacheBehind)
+        .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-        .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
-        .cryptoService(options.getCryptoService());
-    return new RFile.Reader(cb);
+        .cacheProvider(options.cacheProvider).cryptoService(options.getCryptoService());
+    return RFile.getReader(cb, options.getFile());
   }
 
   @Override
   protected long getFileSize(FileOptions options) throws IOException {
-    return options.getFileSystem().getFileStatus(new Path(options.getFilename())).getLen();
+    return options.getFileSystem().getFileStatus(options.getFile().getPath()).getLen();
   }
 
   @Override
@@ -81,7 +80,7 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openReader(FileOptions options) throws IOException {
-    RFile.Reader reader = getReader(options);
+    FileSKVIterator reader = getReader(options);
 
     if (options.isSeekToBeginning()) {
       reader.seek(new Range((Key) null, null), EMPTY_CF_SET, false);
@@ -92,7 +91,7 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
-    RFile.Reader reader = getReader(options);
+    FileSKVIterator reader = getReader(options);
     reader.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
     return reader;
   }
@@ -140,14 +139,14 @@ public class RFileOperations extends FileOperations {
       }
       int bufferSize = conf.getInt("io.file.buffer.size", 4096);
 
-      String file = options.getFilename();
+      TabletFile file = options.getFile();
       FileSystem fs = options.getFileSystem();
 
       var ecEnable = EcEnabled.valueOf(
           options.getTableConfiguration().get(Property.TABLE_ENABLE_ERASURE_CODES).toUpperCase());
 
       if (fs instanceof DistributedFileSystem) {
-        var builder = ((DistributedFileSystem) fs).createFile(new Path(file)).bufferSize(bufferSize)
+        var builder = ((DistributedFileSystem) fs).createFile(file.getPath()).bufferSize(bufferSize)
             .blockSize(block).overwrite(false);
 
         if (options.dropCacheBehind) {
@@ -182,28 +181,28 @@ public class RFileOperations extends FileOperations {
         outputStream = builder.build();
       } else if (options.dropCacheBehind) {
         EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-        outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
+        outputStream = fs.create(file.getPath(), FsPermission.getDefault(), set, bufferSize,
             (short) rep, block, null);
       } else {
-        outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+        outputStream = fs.create(file.getPath(), false, bufferSize, (short) rep, block);
       }
 
       if (options.dropCacheBehind) {
         try {
           // Tell the DataNode that the file does not need to be cached in the OS page cache
           outputStream.setDropBehind(Boolean.TRUE);
-          LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.filename);
+          LOG.trace("Called setDropBehind(TRUE) for stream writing file {}", options.file);
         } catch (UnsupportedOperationException e) {
-          LOG.debug("setDropBehind not enabled for file: {}", options.filename);
+          LOG.debug("setDropBehind not enabled for file: {}", options.file);
         } catch (IOException e) {
-          LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.filename,
+          LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.file,
               e.getMessage());
         }
       }
 
       TableId tid = options.getTableId();
-      if (tid != null && !SYNC_CAPABILITY_LOGGED.get()
-          && (RootTable.ID.equals(tid) || MetadataTable.ID.equals(tid))) {
+      if (tid != null && !SYNC_CAPABILITY_LOGGED.get() && (SystemTables.ROOT.tableId().equals(tid)
+          || SystemTables.METADATA.tableId().equals(tid))) {
         if (!outputStream.hasCapability(StreamCapabilities.HSYNC)) {
           SYNC_CAPABILITY_LOGGED.set(true);
           LOG.warn("File created for table {} does not support hsync. If dfs.datanode.synconclose"
@@ -213,8 +212,7 @@ public class RFileOperations extends FileOperations {
       }
     }
 
-    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, options.cryptoService);
+    BCFile.Writer _cbw = new BCFile.Writer(outputStream, compression, conf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

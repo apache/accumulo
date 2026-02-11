@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.thrift.TKey;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
@@ -327,5 +329,84 @@ public class KeyTest {
     Key textColVisibilityKey2 =
         new Key(new Text(row), new Text(colFamily), new Text(colQualifier), colVisibility2, ts);
     assertEquals(bytesColVisibilityKey2, textColVisibilityKey2);
+  }
+
+  private static class TestByteSequence extends ArrayByteSequence {
+
+    private static final long serialVersionUID = 1234L;
+
+    public TestByteSequence(String s) {
+      super(s);
+    }
+
+    @Override
+    public boolean isBackedByArray() {
+      return false;
+    }
+  }
+
+  @Test
+  public void testByteSequenceConstructor() {
+    var row1 = new ArrayByteSequence("Row");
+    var row2 = new ArrayByteSequence("TheRowData").subSequence(3, 6);
+    var row3 = new TestByteSequence("Row");
+
+    var fam1 = new ArrayByteSequence("Family");
+    var fam2 = new ArrayByteSequence("SomeFamilyData").subSequence(4, 10);
+    var fam3 = new TestByteSequence("Family");
+
+    var qual1 = new ArrayByteSequence("Qual");
+    var qual2 = new ArrayByteSequence("TheQualData").subSequence(3, 7);
+    var qual3 = new TestByteSequence("Qual");
+
+    var vis1 = new ArrayByteSequence("Vis");
+    var vis2 = new ArrayByteSequence("AVisData").subSequence(1, 4);
+    var vis3 = new TestByteSequence("Vis");
+
+    var expectedKey = new Key("Row", "Family", "Qual", "Vis", 4);
+
+    for (var r : List.of(row1, row2, row3)) {
+      for (var f : List.of(fam1, fam2, fam3)) {
+        for (var q : List.of(qual1, qual2, qual3)) {
+          for (var v : List.of(vis1, vis2, vis3)) {
+            var actualKey = new Key(r, f, q, v, 4);
+            assertEquals(expectedKey, actualKey);
+            var actualKey2 =
+                Key.builder().row(r).family(f).qualifier(q).visibility(v).timestamp(4).build();
+            assertEquals(expectedKey, actualKey2);
+          }
+        }
+      }
+    }
+
+  }
+
+  @Test
+  public void testHashCode() {
+    // Test consistency
+    Key key = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8),
+        "cv".getBytes(UTF_8), 0, false);
+    int hashCode1 = key.hashCode();
+    int hashCode2 = key.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    Key k1 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8),
+        "cv".getBytes(UTF_8), 0, false);
+    Key k2 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8),
+        "cv".getBytes(UTF_8), 0, false);
+    assertEquals(k1.hashCode(), k2.hashCode());
+
+    // Testing even distribution
+    List<Key> keys = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      keys.add(new Key(("r1" + i).getBytes(UTF_8), ("cf" + i).getBytes(UTF_8),
+          ("cq" + i).getBytes(UTF_8), ("cv" + i).getBytes(UTF_8), 0, false));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Key k : keys) {
+      hashCodes.add(k.hashCode());
+    }
+    assertEquals(keys.size(), hashCodes.size(), 10);
   }
 }

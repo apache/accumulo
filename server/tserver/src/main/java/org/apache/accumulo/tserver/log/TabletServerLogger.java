@@ -22,7 +22,9 @@ import static java.util.Collections.singletonList;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WAL_CREATOR_POOL;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.channels.ClosedChannelException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -39,24 +41,30 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.protobuf.ProtobufUtil;
+import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
+import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.logging.LoggingBlockCache;
+import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
-import org.apache.accumulo.server.util.ReplicationTableUtil;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
+import org.apache.accumulo.tserver.TabletServerResourceManager;
 import org.apache.accumulo.tserver.log.DfsLogger.LoggerOperation;
-import org.apache.accumulo.tserver.log.DfsLogger.ServerResources;
 import org.apache.accumulo.tserver.tablet.CommitSession;
 import org.apache.hadoop.fs.Path;
+import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 
 /**
  * Central logging facility for the TServerInfo.
@@ -103,6 +111,8 @@ public class TabletServerLogger {
   private Retry createRetry = null;
 
   private final RetryFactory writeRetryFactory;
+
+  private final Cache<LogEntry,ResolvedSortedLog> sortedLogCache;
 
   private abstract static class TestCallWithWriteLock {
     abstract boolean test();
@@ -157,6 +167,7 @@ public class TabletServerLogger {
     this.createRetry = null;
     this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
+    this.sortedLogCache = Caffeine.newBuilder().expireAfterWrite(3, TimeUnit.SECONDS).build();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -186,17 +197,15 @@ public class TabletServerLogger {
   }
 
   /**
-   * Get the current WAL file
+   * Get the current log entry
    *
-   * @return The name of the current log, or null if there is no current log.
+   * @return the current log entry, or null if there is no current log
    */
-  public String getLogFile() {
+  @Nullable
+  public LogEntry getLogEntry() {
     logIdLock.readLock().lock();
     try {
-      if (currentLog == null) {
-        return null;
-      }
-      return currentLog.getFileName();
+      return currentLog == null ? null : currentLog.getLogEntry();
     } finally {
       logIdLock.readLock().unlock();
     }
@@ -220,7 +229,7 @@ public class TabletServerLogger {
       if (next instanceof DfsLogger) {
         currentLog = (DfsLogger) next;
         logId.incrementAndGet();
-        log.info("Using next log {}", currentLog.getFileName());
+        log.info("Using next log {}", currentLog.getLogEntry());
 
         // When we successfully create a WAL, make sure to reset the Retry.
         if (createRetry != null) {
@@ -228,7 +237,6 @@ public class TabletServerLogger {
         }
 
         this.createTime = System.currentTimeMillis();
-        return;
       } else {
         throw new RuntimeException("Error: unexpected type seen: " + next);
       }
@@ -264,97 +272,92 @@ public class TabletServerLogger {
       return;
     }
     nextLogMaker = ThreadPools.getServerThreadPools().getPoolBuilder(TSERVER_WAL_CREATOR_POOL)
-        .numCoreThreads(1).build();
-    nextLogMaker.execute(new Runnable() {
-      @Override
-      public void run() {
-        final ServerResources conf = tserver.getServerConfig();
-        final VolumeManager fs = conf.getVolumeManager();
-        while (!nextLogMaker.isShutdown()) {
-          log.debug("Creating next WAL");
-          DfsLogger alog = null;
+        .numCoreThreads(1).enableThreadPoolMetrics().build();
+    nextLogMaker.execute(() -> {
+      final VolumeManager fs = tserver.getVolumeManager();
+      while (!nextLogMaker.isShutdown()) {
+        log.debug("Creating next WAL");
+        DfsLogger alog = null;
 
-          try {
-            alog = new DfsLogger(tserver.getContext(), conf, syncCounter, flushCounter);
-            alog.open(tserver.getClientAddressString());
-          } catch (Exception t) {
-            log.error("Failed to open WAL", t);
-            // the log is not advertised in ZK yet, so we can just delete it if it exists
-            if (alog != null) {
-              try {
-                alog.close();
-              } catch (Exception e) {
-                log.error("Failed to close WAL after it failed to open", e);
-              }
-
-              try {
-                Path path = alog.getPath();
-                if (fs.exists(path)) {
-                  fs.delete(path);
-                }
-              } catch (Exception e) {
-                log.warn("Failed to delete a WAL that failed to open", e);
-              }
-            }
-
+        try {
+          alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
+              tserver.getAdvertiseAddress().toString());
+        } catch (Exception t) {
+          log.error("Failed to open WAL", t);
+          // the log is not advertised in ZK yet, so we can just delete it if it exists
+          if (alog != null) {
             try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
-              // will log this then halt the VM.
-              throw new Error("Next log maker thread interrupted", ex);
-            }
-
-            continue;
-          }
-
-          String fileName = alog.getFileName();
-          log.debug("Created next WAL {}", fileName);
-
-          try {
-            tserver.addNewLogMarker(alog);
-          } catch (Exception t) {
-            log.error("Failed to add new WAL marker for " + fileName, t);
-
-            try {
-              // Intentionally not deleting walog because it may have been advertised in ZK. See
-              // #949
               alog.close();
             } catch (Exception e) {
               log.error("Failed to close WAL after it failed to open", e);
             }
 
-            // it's possible the log was advertised in ZK even though we got an
-            // exception. If there's a chance the WAL marker may have been created,
-            // this will ensure it's closed. Either the close will be written and
-            // the GC will clean it up, or the tserver is about to die due to sesson
-            // expiration and the GC will also clean it up.
             try {
-              tserver.walogClosed(alog);
+              Path path = alog.getPath();
+              if (fs.exists(path)) {
+                fs.delete(path);
+              }
             } catch (Exception e) {
-              log.error("Failed to close WAL that failed to open: " + fileName, e);
+              log.warn("Failed to delete a WAL that failed to open", e);
             }
-
-            try {
-              nextLog.offer(t, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
-              // will log this then halt the VM.
-              throw new Error("Next log maker thread interrupted", ex);
-            }
-
-            continue;
           }
 
           try {
-            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: {}", fileName);
-            }
-          } catch (InterruptedException e) {
+            nextLog.offer(t, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
             // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
             // will log this then halt the VM.
-            throw new Error("Next log maker thread interrupted", e);
+            throw new Error("Next log maker thread interrupted", ex);
           }
+
+          continue;
+        }
+
+        log.debug("Created next WAL {}", alog.getLogEntry());
+
+        try {
+          tserver.addNewLogMarker(alog);
+        } catch (Exception t) {
+          log.error("Failed to add new WAL marker for " + alog.getLogEntry(), t);
+
+          try {
+            // Intentionally not deleting walog because it may have been advertised in ZK. See
+            // #949
+            alog.close();
+          } catch (Exception e) {
+            log.error("Failed to close WAL after it failed to open", e);
+          }
+
+          // it's possible the log was advertised in ZK even though we got an
+          // exception. If there's a chance the WAL marker may have been created,
+          // this will ensure it's closed. Either the close will be written and
+          // the GC will clean it up, or the tserver is about to die due to sesson
+          // expiration and the GC will also clean it up.
+          try {
+            tserver.walogClosed(alog);
+          } catch (Exception e) {
+            log.error("Failed to close WAL that failed to open: " + alog.getLogEntry(), e);
+          }
+
+          try {
+            nextLog.offer(t, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
+            // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+            // will log this then halt the VM.
+            throw new Error("Next log maker thread interrupted", ex);
+          }
+
+          continue;
+        }
+
+        try {
+          while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
+            log.info("Our WAL was not used for 12 hours: {}", alog.getLogEntry());
+          }
+        } catch (InterruptedException e) {
+          // Throw an Error, not an Exception, so the AccumuloUncaughtExceptionHandler
+          // will log this then halt the VM.
+          throw new Error("Next log maker thread interrupted", e);
         }
       }
     });
@@ -371,7 +374,7 @@ public class TabletServerLogger {
         } catch (DfsLogger.LogClosedException ex) {
           // ignore
         } catch (Exception ex) {
-          log.error("Unable to cleanly close log " + currentLog.getFileName() + ": " + ex, ex);
+          log.error("Unable to cleanly close log " + currentLog.getLogEntry() + ": " + ex, ex);
         } finally {
           this.tserver.walogClosed(currentLog);
           currentLog = null;
@@ -414,23 +417,6 @@ public class TabletServerLogger {
               } finally {
                 commitSession.finishUpdatingLogsUsed();
               }
-
-              // Need to release
-              KeyExtent extent = commitSession.getExtent();
-              @SuppressWarnings("deprecation")
-              boolean replicationEnabled =
-                  org.apache.accumulo.core.replication.ReplicationConfigurationUtil
-                      .isEnabled(extent, tserver.getTableConfiguration(extent));
-              if (replicationEnabled) {
-                @SuppressWarnings("deprecation")
-                Status status = org.apache.accumulo.server.replication.StatusUtil
-                    .openWithUnknownLength(System.currentTimeMillis());
-                log.debug("Writing " + ProtobufUtil.toString(status) + " to metadata table for "
-                    + copy.getFileName());
-                // Got some new WALs, note this in the metadata table
-                ReplicationTableUtil.updateFiles(tserver.getContext(), commitSession.getExtent(),
-                    copy.getFileName(), status);
-              }
             }
           }
         }
@@ -469,7 +455,7 @@ public class TabletServerLogger {
         if (sawWriteFailure != null) {
           log.info("WAL write failure, validating server lock in ZooKeeper", sawWriteFailure);
           if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
-            Halt.halt(-1, "Writing to WAL has failed and TabletServer lock does not exist",
+            Halt.halt(1, "Writing to WAL has failed and TabletServer lock does not exist",
                 sawWriteFailure);
           }
         }
@@ -502,19 +488,6 @@ public class TabletServerLogger {
         close();
       }
     });
-  }
-
-  /**
-   * Log a single mutation. This method expects mutations that have a durability other than NONE.
-   */
-  public void log(final CommitSession commitSession, final Mutation m, final Durability durability)
-      throws IOException {
-    if (durability == Durability.DEFAULT || durability == Durability.NONE) {
-      throw new IllegalArgumentException("Unexpected durability " + durability);
-    }
-    write(singletonList(commitSession), false, logger -> logger.log(commitSession, m, durability),
-        writeRetryFactory.createRetry());
-    logSizeEstimate.addAndGet(m.numBytes());
   }
 
   /**
@@ -553,11 +526,49 @@ public class TabletServerLogger {
     return seq;
   }
 
-  public void recover(ServerContext context, KeyExtent extent, List<Path> recoveryDirs,
+  private List<ResolvedSortedLog> resolve(Collection<LogEntry> walogs) {
+    List<ResolvedSortedLog> sortedLogs = new ArrayList<>(walogs.size());
+    for (var logEntry : walogs) {
+      var sortedLog = sortedLogCache.get(logEntry, le1 -> {
+        try {
+          return ResolvedSortedLog.resolve(le1, tserver.getVolumeManager());
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      });
+
+      sortedLogs.add(sortedLog);
+    }
+    return sortedLogs;
+  }
+
+  private CacheProvider createCacheProvider(TabletServerResourceManager resourceMgr) {
+    return new BasicCacheProvider(
+        LoggingBlockCache.wrap(CacheType.INDEX, resourceMgr.getIndexCache()),
+        LoggingBlockCache.wrap(CacheType.DATA, resourceMgr.getDataCache()));
+  }
+
+  public boolean needsRecovery(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs)
+      throws IOException {
+    try {
+      var resourceMgr = tserver.getResourceManager();
+      var cacheProvider = createCacheProvider(resourceMgr);
+      SortedLogRecovery recovery =
+          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+      return recovery.needsRecovery(extent, resolve(walogs));
+    } catch (Exception e) {
+      throw new IOException(e);
+    }
+  }
+
+  public void recover(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
-      SortedLogRecovery recovery = new SortedLogRecovery(context);
-      recovery.recover(extent, recoveryDirs, tabletFiles, mr);
+      var resourceMgr = tserver.getResourceManager();
+      var cacheProvider = createCacheProvider(resourceMgr);
+      SortedLogRecovery recovery =
+          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+      recovery.recover(extent, resolve(walogs), tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }

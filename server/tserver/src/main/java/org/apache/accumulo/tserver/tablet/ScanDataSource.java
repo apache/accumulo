@@ -20,12 +20,15 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -43,7 +46,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.StatsIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.trace.TraceAttributes;
@@ -152,7 +155,7 @@ class ScanDataSource implements DataSource {
   private SortedKeyValueIterator<Key,Value> createIterator()
       throws IOException, ReflectiveOperationException {
 
-    Map<TabletFile,DataFileValue> files;
+    Map<StoredTabletFile,DataFileValue> files;
 
     SamplerConfigurationImpl samplerConfig = scanParams.getSamplerConfigurationImpl();
 
@@ -187,21 +190,21 @@ class ScanDataSource implements DataSource {
       expectedDeletionCount = tablet.getDataSourceDeletions();
 
       memIters = tablet.getMemIterators(samplerConfig);
-      Pair<Long,Map<TabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
+      Pair<Long,Map<StoredTabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
       Preconditions.checkState(fileReservationId >= 0);
       files = reservation.getSecond();
     }
 
-    List<InterruptibleIterator> mapfiles =
+    List<InterruptibleIterator> datafiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
-    List.of(mapfiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
+    List.of(datafiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
 
     List<SortedKeyValueIterator<Key,Value>> iters =
-        new ArrayList<>(mapfiles.size() + memIters.size());
+        new ArrayList<>(datafiles.size() + memIters.size());
 
-    iters.addAll(mapfiles);
+    iters.addAll(datafiles);
     iters.addAll(memIters);
 
     HeapIterator multiIter;
@@ -243,6 +246,31 @@ class ScanDataSource implements DataSource {
       } else {
         // Scan time iterator options were set, so need to merge those with pre-parsed table
         // iterator options.
+
+        // First ensure the set iterators do not conflict with the existing table iterators.
+        List<IteratorSetting> picIteratorSettings = null;
+        for (var scanParamIterInfo : scanParams.getSsiList()) {
+          // Quick check for a potential iterator conflict (does not consider iterator scope).
+          // This avoids the more expensive check method call most of the time.
+          if (pic.getUniqueNames().contains(scanParamIterInfo.getIterName())
+              || pic.getUniquePriorities().contains(scanParamIterInfo.getPriority())) {
+            if (picIteratorSettings == null) {
+              picIteratorSettings = new ArrayList<>(pic.getIterInfo().size());
+              for (var picIterInfo : pic.getIterInfo()) {
+                picIteratorSettings.add(
+                    getIteratorSetting(picIterInfo, pic.getOpts().get(picIterInfo.getIterName())));
+              }
+            }
+            try {
+              IteratorConfigUtil.checkIteratorConflicts(tablet.getExtent().toString(),
+                  getIteratorSetting(scanParamIterInfo,
+                      scanParams.getSsio().get(scanParamIterInfo.getIterName())),
+                  EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings));
+            } catch (AccumuloException e) {
+              throw new IllegalArgumentException(e);
+            }
+          }
+        }
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
         IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
@@ -270,6 +298,18 @@ class ScanDataSource implements DataSource {
     } else {
       return visFilter;
     }
+  }
+
+  private IteratorSetting getIteratorSetting(IterInfo iterInfo, Map<String,String> iterOpts) {
+    IteratorSetting setting;
+    if (iterOpts != null) {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName(), iterOpts);
+    } else {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName());
+    }
+    return setting;
   }
 
   private void returnIterators() {

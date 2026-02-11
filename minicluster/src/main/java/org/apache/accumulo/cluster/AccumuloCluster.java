@@ -36,6 +36,10 @@ import org.apache.hadoop.fs.Path;
  */
 public interface AccumuloCluster {
 
+  enum State {
+    STARTED, STOPPED, TERMINATED;
+  }
+
   /**
    * @return Accumulo instance name
    */
@@ -47,6 +51,9 @@ public interface AccumuloCluster {
   String getZooKeepers();
 
   /**
+   * An AccumuloCluster can be started and stopped. Callers that keep a reference to the
+   * ServerContext may experience errors when trying to use it while the cluster is stopped.
+   *
    * @return ServerContext
    */
   ServerContext getServerContext();
@@ -56,14 +63,6 @@ public interface AccumuloCluster {
    * @since 2.0.0
    */
   AccumuloClient createAccumuloClient(String user, AuthenticationToken token);
-
-  /**
-   * Get the client configuration for the cluster
-   *
-   * @deprecated since 2.0.0, replaced by {@link #getClientProperties()}}
-   */
-  @Deprecated(since = "2.0.0")
-  org.apache.accumulo.core.client.ClientConfiguration getClientConfig();
 
   /**
    * @return client connection info for cluster
@@ -103,6 +102,11 @@ public interface AccumuloCluster {
    * Stop the AccumuloCluster
    */
   void stop() throws Exception;
+
+  /**
+   * Cleans up the AccumuloCluster, stopping it if necessary. Cannot be restarted after this call.
+   */
+  void terminate() throws Exception;
 
   /**
    * @return the {@link FileSystem} in use by this cluster

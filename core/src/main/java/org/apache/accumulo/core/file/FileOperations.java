@@ -32,22 +32,23 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileOutputCommitter;
 
-import com.google.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 
 public abstract class FileOperations {
 
   private static final String HADOOP_JOBHISTORY_LOCATION = "_logs"; // dir related to
                                                                     // hadoop.job.history.user.location
 
-  private static final Set<String> validExtensions =
-      Set.of(Constants.MAPFILE_EXTENSION, RFile.EXTENSION);
+  private static final Set<String> validExtensions = Set.of(RFile.EXTENSION);
 
   // Sometimes we want to know what files accumulo bulk processing creates
   private static final Set<String> bulkWorkingFiles =
@@ -169,13 +170,12 @@ public abstract class FileOperations {
     return new ReaderBuilder();
   }
 
-  public static class FileOptions {
+  protected static class FileOptions {
     // objects used by all
     public final AccumuloConfiguration tableConfiguration;
-    public final String filename;
+    public final TabletFile file;
     public final FileSystem fs;
     public final Configuration fsConf;
-    public final RateLimiter rateLimiter;
     // writer only objects
     private final TableId tableId;
     public final String compression;
@@ -192,17 +192,16 @@ public abstract class FileOperations {
     public final boolean inclusive;
     public final boolean dropCacheBehind;
 
-    public FileOptions(TableId tableId, AccumuloConfiguration tableConfiguration, String filename,
-        FileSystem fs, Configuration fsConf, RateLimiter rateLimiter, String compression,
+    protected FileOptions(TableId tableId, AccumuloConfiguration tableConfiguration,
+        TabletFile file, FileSystem fs, Configuration fsConf, String compression,
         FSDataOutputStream outputStream, boolean enableAccumuloStart, CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning, CryptoService cryptoService,
         Range range, Set<ByteSequence> columnFamilies, boolean inclusive, boolean dropCacheBehind) {
       this.tableId = tableId;
       this.tableConfiguration = tableConfiguration;
-      this.filename = filename;
+      this.file = Objects.requireNonNull(file);
       this.fs = fs;
       this.fsConf = fsConf;
-      this.rateLimiter = rateLimiter;
       this.compression = compression;
       this.outputStream = outputStream;
       this.enableAccumuloStart = enableAccumuloStart;
@@ -224,8 +223,8 @@ public abstract class FileOperations {
       return tableConfiguration;
     }
 
-    public String getFilename() {
-      return filename;
+    public TabletFile getFile() {
+      return file;
     }
 
     public FileSystem getFileSystem() {
@@ -234,10 +233,6 @@ public abstract class FileOperations {
 
     public Configuration getConfiguration() {
       return fsConf;
-    }
-
-    public RateLimiter getRateLimiter() {
-      return rateLimiter;
     }
 
     public String getCompression() {
@@ -287,10 +282,9 @@ public abstract class FileOperations {
   public static class FileHelper {
     private TableId tableId;
     private AccumuloConfiguration tableConfiguration;
-    private String filename;
+    private TabletFile file;
     private FileSystem fs;
     private Configuration fsConf;
-    private RateLimiter rateLimiter;
     private CryptoService cryptoService;
     private boolean dropCacheBehind = false;
 
@@ -309,18 +303,13 @@ public abstract class FileOperations {
       return this;
     }
 
-    protected FileHelper filename(String filename) {
-      this.filename = Objects.requireNonNull(filename);
+    protected FileHelper file(TabletFile file) {
+      this.file = Objects.requireNonNull(file);
       return this;
     }
 
     protected FileHelper tableConfiguration(AccumuloConfiguration tableConfiguration) {
       this.tableConfiguration = Objects.requireNonNull(tableConfiguration);
-      return this;
-    }
-
-    protected FileHelper rateLimiter(RateLimiter rateLimiter) {
-      this.rateLimiter = rateLimiter;
       return this;
     }
 
@@ -336,28 +325,27 @@ public abstract class FileOperations {
 
     protected FileOptions toWriterBuilderOptions(String compression,
         FSDataOutputStream outputStream, boolean startEnabled) {
-      return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter,
-          compression, outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null,
-          null, true, dropCacheBehind);
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, compression,
+          outputStream, startEnabled, NULL_PROVIDER, null, false, cryptoService, null, null, true,
+          dropCacheBehind);
     }
 
     protected FileOptions toReaderBuilderOptions(CacheProvider cacheProvider,
         Cache<String,Long> fileLenCache, boolean seekToBeginning) {
-      return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter, null,
-          null, false, cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache,
-          seekToBeginning, cryptoService, null, null, true, dropCacheBehind);
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
+          cacheProvider == null ? NULL_PROVIDER : cacheProvider, fileLenCache, seekToBeginning,
+          cryptoService, null, null, true, dropCacheBehind);
     }
 
     protected FileOptions toIndexReaderBuilderOptions(Cache<String,Long> fileLenCache) {
-      return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter, null,
-          null, false, NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true,
-          dropCacheBehind);
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
+          NULL_PROVIDER, fileLenCache, false, cryptoService, null, null, true, dropCacheBehind);
     }
 
     protected FileOptions toScanReaderBuilderOptions(Range range, Set<ByteSequence> columnFamilies,
         boolean inclusive) {
-      return new FileOptions(tableId, tableConfiguration, filename, fs, fsConf, rateLimiter, null,
-          null, false, NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive,
+      return new FileOptions(tableId, tableConfiguration, file, fs, fsConf, null, null, false,
+          NULL_PROVIDER, null, false, cryptoService, range, columnFamilies, inclusive,
           dropCacheBehind);
     }
 
@@ -375,15 +363,17 @@ public abstract class FileOperations {
     private boolean enableAccumuloStart = true;
 
     public WriterTableConfiguration forOutputStream(String extension,
-        FSDataOutputStream outputStream, Configuration fsConf, CryptoService cs) {
+        FSDataOutputStream outputStream, Configuration fsConf, CryptoService cs)
+        throws IOException {
       this.outputStream = outputStream;
-      filename("foo" + extension).fsConf(fsConf).cryptoService(cs);
+      file(UnreferencedTabletFile.of(fsConf, new Path("foo/foo" + extension))).fsConf(fsConf)
+          .cryptoService(cs);
       return this;
     }
 
-    public WriterTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+    public WriterTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
-      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
@@ -405,11 +395,6 @@ public abstract class FileOperations {
 
     public WriterBuilder withCompression(String compression) {
       this.compression = compression;
-      return this;
-    }
-
-    public WriterBuilder withRateLimiter(RateLimiter rateLimiter) {
-      rateLimiter(rateLimiter);
       return this;
     }
 
@@ -435,9 +420,9 @@ public abstract class FileOperations {
     private Cache<String,Long> fileLenCache;
     private boolean seekToBeginning = false;
 
-    public ReaderTableConfiguration forFile(String filename, FileSystem fs, Configuration fsConf,
+    public ReaderTableConfiguration forFile(TabletFile file, FileSystem fs, Configuration fsConf,
         CryptoService cs) {
-      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
@@ -458,11 +443,6 @@ public abstract class FileOperations {
 
     public ReaderBuilder withFileLenCache(Cache<String,Long> fileLenCache) {
       this.fileLenCache = fileLenCache;
-      return this;
-    }
-
-    public ReaderBuilder withRateLimiter(RateLimiter rateLimiter) {
-      rateLimiter(rateLimiter);
       return this;
     }
 
@@ -503,9 +483,9 @@ public abstract class FileOperations {
 
     private Cache<String,Long> fileLenCache = null;
 
-    public IndexReaderTableConfiguration forFile(String filename, FileSystem fs,
+    public IndexReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
-      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 
@@ -535,9 +515,9 @@ public abstract class FileOperations {
     private Set<ByteSequence> columnFamilies;
     private boolean inclusive;
 
-    public ScanReaderTableConfiguration forFile(String filename, FileSystem fs,
+    public ScanReaderTableConfiguration forFile(TabletFile file, FileSystem fs,
         Configuration fsConf, CryptoService cs) {
-      filename(filename).fs(fs).fsConf(fsConf).cryptoService(cs);
+      file(file).fs(fs).fsConf(fsConf).cryptoService(cs);
       return this;
     }
 

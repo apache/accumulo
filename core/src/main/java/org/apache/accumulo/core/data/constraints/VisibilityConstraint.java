@@ -24,12 +24,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 
+import org.apache.accumulo.access.InvalidAccessExpressionException;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 
 /**
  * A constraint that checks the visibility of columns against the actor's authorizations. Violation
@@ -48,14 +46,12 @@ public class VisibilityConstraint implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-    switch (violationCode) {
-      case 1:
-        return "Malformed column visibility";
-      case 2:
-        return "User does not have authorization on column visibility";
-    }
+    return switch (violationCode) {
+      case 1 -> "Malformed column visibility";
+      case 2 -> "User does not have authorization on column visibility";
+      default -> null;
+    };
 
-    return null;
   }
 
   @Override
@@ -67,7 +63,7 @@ public class VisibilityConstraint implements Constraint {
       ok = new HashSet<>();
     }
 
-    VisibilityEvaluator ve = null;
+    BytesAccess.BytesEvaluator ve = null;
 
     for (ColumnUpdate update : updates) {
 
@@ -81,14 +77,15 @@ public class VisibilityConstraint implements Constraint {
         try {
 
           if (ve == null) {
-            ve = new VisibilityEvaluator(env.getAuthorizationsContainer());
+            var authContainer = env.getAuthorizationsContainer();
+            ve = BytesAccess.newEvaluator(authContainer);
           }
 
-          if (!ve.evaluate(new ColumnVisibility(cv))) {
+          if (!ve.canAccess(cv)) {
             return Collections.singletonList((short) 2);
           }
 
-        } catch (BadArgumentException | VisibilityParseException bae) {
+        } catch (InvalidAccessExpressionException iaee) {
           return Collections.singletonList((short) 1);
         }
 

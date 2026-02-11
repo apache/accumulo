@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import java.util.Properties;
-
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -32,22 +30,12 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretM
  */
 public class SaslServerConnectionParams extends SaslConnectionParams {
 
-  private AuthenticationTokenSecretManager secretManager;
-
-  public SaslServerConnectionParams(AccumuloConfiguration conf, AuthenticationToken token) {
-    this(conf, token, null);
-  }
+  private final AuthenticationTokenSecretManager secretManager;
 
   public SaslServerConnectionParams(AccumuloConfiguration conf, AuthenticationToken token,
       AuthenticationTokenSecretManager secretManager) {
     super(conf, token);
-    setSecretManager(secretManager);
-  }
-
-  public SaslServerConnectionParams(Properties clientProps, AuthenticationToken token,
-      AuthenticationTokenSecretManager secretManager) {
-    super(clientProps, token);
-    setSecretManager(secretManager);
+    this.secretManager = secretManager;
   }
 
   @Override
@@ -63,9 +51,5 @@ public class SaslServerConnectionParams extends SaslConnectionParams {
 
   public AuthenticationTokenSecretManager getSecretManager() {
     return secretManager;
-  }
-
-  public void setSecretManager(AuthenticationTokenSecretManager secretManager) {
-    this.secretManager = secretManager;
   }
 }

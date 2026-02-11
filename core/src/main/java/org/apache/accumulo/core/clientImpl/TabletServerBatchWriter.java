@@ -19,8 +19,6 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
@@ -31,6 +29,7 @@ import java.io.IOException;
 import java.lang.management.CompilationMXBean;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -46,22 +45,24 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -74,12 +75,11 @@ import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.TApplicationException;
@@ -90,6 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
+import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -507,7 +508,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         wait();
       }
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -668,7 +669,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final ThreadPoolExecutor binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
-    private final Map<TableId,TabletLocator> locators;
+    private final Map<TableId,ClientTabletCache> locators;
 
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
@@ -681,10 +682,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private synchronized TabletLocator getLocator(TableId tableId) {
-      TabletLocator ret = locators.get(tableId);
+    private synchronized ClientTabletCache getLocator(TableId tableId) {
+      ClientTabletCache ret = locators.get(tableId);
       if (ret == null) {
-        ret = new TimeoutTabletLocator(timeout, context, tableId);
+        ret = new TimeoutClientTabletCache(timeout, context, tableId);
         locators.put(tableId, ret);
       }
 
@@ -698,7 +699,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         Set<Entry<TableId,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
         for (Entry<TableId,List<Mutation>> entry : es) {
           tableId = entry.getKey();
-          TabletLocator locator = getLocator(tableId);
+          ClientTabletCache locator = getLocator(tableId);
           List<Mutation> tableMutations = entry.getValue();
 
           if (tableMutations != null) {
@@ -725,7 +726,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null),
             SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
-      } catch (TableDeletedException | TableNotFoundException | TableOfflineException e) {
+      } catch (InvalidTabletHostingRequestException | TableDeletedException | TableNotFoundException
+          | TableOfflineException e) {
         updateUnknownErrors(e.getMessage(), e);
       }
 
@@ -916,14 +918,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
         } catch (IOException e) {
           log.debug("failed to send mutations to {}", location, e);
 
-          HashSet<TableId> tables = new HashSet<>();
-          for (KeyExtent ke : mutationBatch.keySet()) {
-            tables.add(ke.tableId());
-          }
-
-          for (TableId table : tables) {
-            getLocator(table).invalidateCache(context, location);
-          }
+          mutationBatch.keySet().stream().collect(Collectors.groupingBy(KeyExtent::tableId))
+              .forEach((k, v) -> getLocator(k).invalidateCache(v));
 
           failedMutations.add(tsm);
         } finally {
@@ -947,13 +943,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
       // happen after the batch writer closes. See #3721
       try {
         final HostAndPort parsedServer = HostAndPort.fromString(location);
-        final TabletClientService.Iface client;
+        final TabletIngestClientService.Iface client;
 
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis()) {
-          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context,
               timeoutTracker.getTimeOut());
         } else {
-          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
         }
 
         try {
@@ -987,7 +983,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           // the write completed successfully so no need to close the session
           sessionCloser.clearSession();
 
-          // @formatter:off
+        // @formatter:off
             Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
@@ -995,7 +991,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             // @formatter:on
           updatedConstraintViolations(updateErrors.violationSummaries.stream()
               .map(ConstraintViolationSummary::new).collect(toList()));
-          // @formatter:off
+        // @formatter:off
             updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
@@ -1089,22 +1085,20 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
       private void cancelSession() throws InterruptedException, ThriftSecurityException {
 
-        Retry retry = Retry.builder().infiniteRetries().retryAfter(100, MILLISECONDS)
-            .incrementBy(100, MILLISECONDS).maxWait(60, SECONDS).backOffFactor(1.5)
-            .logInterval(3, MINUTES).createRetry();
+        Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+            .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofMinutes(1)).backOffFactor(1.5)
+            .logInterval(Duration.ofMinutes(3)).createRetry();
 
         final HostAndPort parsedServer = HostAndPort.fromString(location);
 
-        long startTime = System.nanoTime();
-
-        boolean useCloseUpdate = false;
+        Timer timer = Timer.startNew();
 
         // If somethingFailed is true then the batch writer will throw an exception on close or
         // flush, so no need to close this session. Only want to close the session for retryable
         // exceptions.
         while (!somethingFailed.get()) {
 
-          TabletClientService.Client client = null;
+          TabletIngestClientService.Client client = null;
 
           // Check if a lock is held by any tserver at the host and port. It does not need to be the
           // exact tserver instance that existed when the session was created because if a new
@@ -1119,26 +1113,17 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
           try {
             if (timeout < context.getClientTimeoutInMillis()) {
-              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context,
+              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context,
                   timeout);
             } else {
-              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
+              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
             }
-
-            if (useCloseUpdate) {
-              // This compatability handling for accumulo version 2.1.2 and earlier that did not
-              // have cancelUpdate. Can remove this in 3.1.
-              client.closeUpdate(TraceUtil.traceInfo(), usid.getAsLong());
-              retry.logCompletion(log, "Closed failed write session " + location + " " + usid);
+            if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
+              retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
               break;
             } else {
-              if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
-                retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
-                break;
-              } else {
-                retry.waitForNextAttempt(log,
-                    "Attempting to cancel failed write session " + location + " " + usid);
-              }
+              retry.waitForNextAttempt(log,
+                  "Attempting to cancel failed write session " + location + " " + usid);
             }
           } catch (NoSuchScanIDException e) {
             retry.logCompletion(log,
@@ -1146,30 +1131,20 @@ public class TabletServerBatchWriter implements AutoCloseable {
             // The session no longer exists, so done
             break;
           } catch (TApplicationException tae) {
-            if (tae.getType() == TApplicationException.UNKNOWN_METHOD && !useCloseUpdate) {
-              useCloseUpdate = true;
-              log.debug(
-                  "Accumulo server {} does not have cancelUpdate, falling back to closeUpdate.",
-                  location);
-              retry.waitForNextAttempt(log, "Attempting to cancel failed write session " + location
-                  + " " + usid + " " + tae.getMessage());
-            } else {
-              // no need to bother closing session in this case
-              updateServerErrors(location, tae);
-              break;
-            }
+            // no need to bother closing session in this case
+            updateServerErrors(location, tae);
+            break;
           } catch (ThriftSecurityException e) {
             throw e;
           } catch (TException e) {
-            String op = useCloseUpdate ? "close" : "cancel";
-            retry.waitForNextAttempt(log, "Attempting to " + op + " failed write session "
-                + location + " " + usid + " " + e.getMessage());
+            retry.waitForNextAttempt(log, "Attempting to cancel failed write session " + location
+                + " " + usid + " " + e.getMessage());
           } finally {
             ThriftUtil.returnClient(client, context);
           }
 
           // if a timeout is set on the batch writer, then do not retry longer than the timeout
-          if (TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime) > timeout) {
+          if (timer.hasElapsed(timeout, MILLISECONDS)) {
             log.debug("Giving up on canceling session {} {} and timing out.", location, usid);
             throw new TimedOutException(Set.of(location));
           }

@@ -128,7 +128,7 @@ public class ServerIteratorOptionsTest {
     Set<KeyExtent> extents2 =
         ServerIteratorOptions.decompressOption(iterSetting.getOptions(), "k1", dataInput -> {
           int num = dataInput.readInt();
-          HashSet<KeyExtent> es = new HashSet<KeyExtent>();
+          HashSet<KeyExtent> es = new HashSet<>(num);
           for (int i = 0; i < num; i++) {
             es.add(KeyExtent.readFrom(dataInput));
           }
@@ -173,7 +173,7 @@ public class ServerIteratorOptionsTest {
     Set<KeyExtent> extents2 =
         ServerIteratorOptions.decompressOption(iterSetting.getOptions(), "k1", dataInput -> {
           int num = dataInput.readInt();
-          HashSet<KeyExtent> es = new HashSet<KeyExtent>();
+          HashSet<KeyExtent> es = new HashSet<>(num);
           for (int i = 0; i < num; i++) {
             es.add(KeyExtent.readFrom(dataInput));
           }

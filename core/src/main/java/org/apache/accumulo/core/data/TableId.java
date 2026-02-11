@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.data;
 
-import java.util.concurrent.ExecutionException;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * A strongly typed representation of a table ID. This class cannot be used to get a table ID from a
@@ -35,7 +35,8 @@ public class TableId extends AbstractId<TableId> {
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of TableId objects in the JVM at any given moment
   // WeakReferences are used because we don't need them to stick around any longer than they need to
-  static final Cache<String,TableId> cache = CacheBuilder.newBuilder().weakValues().build();
+  static final Cache<String,TableId> cache =
+      Caches.getInstance().createNewBuilder(CacheName.TABLE_ID, false).weakValues().build();
 
   private TableId(final String canonical) {
     super(canonical);
@@ -48,11 +49,6 @@ public class TableId extends AbstractId<TableId> {
    * @return TableId object
    */
   public static TableId of(final String canonical) {
-    try {
-      return cache.get(canonical, () -> new TableId(canonical));
-    } catch (ExecutionException e) {
-      throw new AssertionError(
-          "This should never happen: ID constructor should never return null.");
-    }
+    return cache.get(canonical, k -> new TableId(canonical));
   }
 }

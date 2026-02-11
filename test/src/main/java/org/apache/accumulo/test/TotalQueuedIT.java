@@ -18,29 +18,31 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
+
+import com.google.common.net.HostAndPort;
 
 public class TotalQueuedIT extends ConfigurableMacBase {
 
@@ -51,7 +53,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     // use mini DFS so walogs sync and flush will work
     cfg.useMiniDFS(true);
     // property is a fixed property (requires restart to be picked up), so set here in initial cfg
@@ -69,19 +71,19 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
       c.tableOperations().setProperty(tableName, Property.TABLE_FILE_MAX.getKey(), "999");
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(1));
       // get an idea of how fast the syncs occur
       byte[] row = new byte[250];
       BatchWriterConfig cfg = new BatchWriterConfig();
       cfg.setMaxWriteThreads(10);
-      cfg.setMaxLatency(1, TimeUnit.SECONDS);
+      cfg.setMaxLatency(1, SECONDS);
       cfg.setMaxMemory(1024 * 1024);
       long realSyncs = getSyncs(c);
       long now = System.currentTimeMillis();
       long bytesSent = 0;
       try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
         for (int i = 0; i < N; i++) {
-          random.nextBytes(row);
+          RANDOM.get().nextBytes(row);
           Mutation m = new Mutation(row);
           m.put("", "", "");
           bw.addMutation(m);
@@ -102,7 +104,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
           "" + LARGE_QUEUE_SIZE);
       c.tableOperations().flush(tableName, null, null, true);
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(1));
 
       // property changed is a fixed property (requires restart to be picked up), restart TServers
       c.tableOperations().offline(tableName, true);
@@ -114,7 +116,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
         now = System.currentTimeMillis();
         bytesSent = 0;
         for (int i = 0; i < N; i++) {
-          random.nextBytes(row);
+          RANDOM.get().nextBytes(row);
           Mutation m = new Mutation(row);
           m.put("", "", "");
           bw.addMutation(m);
@@ -135,9 +137,10 @@ public class TotalQueuedIT extends ConfigurableMacBase {
 
   private long getSyncs(AccumuloClient c) throws Exception {
     ServerContext context = getServerContext();
-    for (String address : c.instanceOperations().getTabletServers()) {
-      TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
-          HostAndPort.fromString(address), context);
+    for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
+      TabletServerClientService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+              HostAndPort.fromParts(tserver.getHost(), tserver.getPort()), context);
       TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
       return status.syncs;
     }

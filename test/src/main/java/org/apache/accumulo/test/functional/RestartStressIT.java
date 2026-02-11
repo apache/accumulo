@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.Accumulo;
@@ -52,7 +51,6 @@ public class RestartStressIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> opts = cfg.getSiteConfig();
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
-    opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     opts.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
     opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     opts.put(Property.MANAGER_RECOVERY_DELAY.getKey(), "1s");
@@ -77,7 +75,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
       svc.shutdown();
     }
 
-    while (!svc.awaitTermination(10, TimeUnit.SECONDS)) {
+    while (!svc.awaitTermination(10, SECONDS)) {
       log.info("Waiting for threadpool to terminate");
     }
   }
@@ -103,7 +101,7 @@ public class RestartStressIT extends AccumuloClusterHarness {
       });
 
       for (int i = 0; i < 2; i++) {
-        sleepUninterruptibly(10, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(10));
         control.stopAllServers(ServerType.TABLET_SERVER);
         control.startAllServers(ServerType.TABLET_SERVER);
       }

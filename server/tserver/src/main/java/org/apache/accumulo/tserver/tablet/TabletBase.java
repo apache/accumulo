@@ -21,14 +21,13 @@ package org.apache.accumulo.tserver.tablet;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -45,7 +44,7 @@ import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -53,12 +52,14 @@ import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.trace.ScanInstrumentation;
 import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.TooManyFilesException;
+import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
 import org.apache.accumulo.tserver.InMemoryMap;
 import org.apache.accumulo.tserver.TabletHostingServer;
 import org.apache.accumulo.tserver.TabletServerResourceManager;
@@ -83,9 +84,9 @@ public abstract class TabletBase {
   protected final ServerContext context;
   private final TabletHostingServer server;
 
-  protected AtomicLong lookupCount = new AtomicLong(0);
-  protected AtomicLong queryResultCount = new AtomicLong(0);
-  protected AtomicLong queryResultBytes = new AtomicLong(0);
+  protected final AtomicLong lookupCount = new AtomicLong(0);
+  protected final AtomicLong queryResultCount = new AtomicLong(0);
+  protected final AtomicLong queryResultBytes = new AtomicLong(0);
   protected final LongAdder scannedCount = new LongAdder();
 
   protected final Set<ScanDataSource> activeScans = new HashSet<>();
@@ -94,10 +95,13 @@ public abstract class TabletBase {
 
   protected final TableConfiguration tableConfiguration;
 
+  private final boolean isUserTable;
+
   public TabletBase(TabletHostingServer server, KeyExtent extent) {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
+    this.isUserTable = !SystemTables.containsTableId(extent.tableId());
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -128,7 +132,7 @@ public abstract class TabletBase {
 
   public abstract boolean isClosed();
 
-  public abstract SortedMap<StoredTabletFile,DataFileValue> getDatafiles();
+  public abstract Map<StoredTabletFile,DataFileValue> getDatafiles();
 
   public abstract void addToYieldMetric(int i);
 
@@ -141,7 +145,7 @@ public abstract class TabletBase {
 
   public abstract void returnMemIterators(List<InMemoryMap.MemoryIterator> iters);
 
-  public abstract Pair<Long,Map<TabletFile,DataFileValue>> reserveFilesForScan();
+  public abstract Pair<Long,Map<StoredTabletFile,DataFileValue>> reserveFilesForScan();
 
   public abstract void returnFilesForScan(long scanId);
 
@@ -221,7 +225,7 @@ public abstract class TabletBase {
     try (var scope = span.makeCurrent(); var scanScope = ScanInstrumentation.enable(span)) {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       this.lookupCount.incrementAndGet();
-      this.server.getScanMetrics().incrementLookupCount(1);
+      this.server.getScanMetrics().incrementLookupCount();
       result = lookup(iter, ranges, results, scanParams, maxResultSize);
       // must close data source before recording scan trace in order to flush all file read stats
       dataSource.close(false);
@@ -233,7 +237,7 @@ public abstract class TabletBase {
       throw e;
     } finally {
       // code in finally block because always want
-      // to return mapfiles, even when exception is thrown
+      // to return data files, even when exception is thrown
       dataSource.close(sawException);
       span.end();
 
@@ -279,16 +283,27 @@ public abstract class TabletBase {
   Batch nextBatch(SortedKeyValueIterator<Key,Value> iter, Range range, ScanParameters scanParams)
       throws IOException {
 
-    // log.info("In nextBatch..");
+    while (context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+      return isUserTable;
+    }, () -> {
+      log.info("Not starting next batch because low on memory, extent: {}", extent);
+      server.getScanMetrics().incrementScanPausedForLowMemory();
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+            "Interrupted while waiting for low memory condition to resolve", e);
+      }
+    })) {}
 
     long batchTimeOut = scanParams.getBatchTimeOut();
-
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
 
     if (batchTimeOut == Long.MAX_VALUE || batchTimeOut <= 0) {
       batchTimeOut = 0;
     }
+
+    CountDownTimer runTimer = CountDownTimer.startNew(Duration.ofMillis(batchTimeOut));
     List<KVEntry> results = new ArrayList<>();
     Key key = null;
 
@@ -327,9 +342,17 @@ public abstract class TabletBase {
       resultSize += kvEntry.estimateMemoryUsed();
       resultBytes += kvEntry.numBytes();
 
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) >= timeToRun;
+      boolean timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
-      if (resultSize >= maxResultsSize || results.size() >= scanParams.getMaxEntries() || timesUp) {
+      boolean runningLowOnMemory =
+          context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+            return isUserTable;
+          }, () -> {
+            log.info("Not continuing next batch because low on memory, extent: {}", extent);
+            server.getScanMetrics().incrementEarlyReturnForLowMemory();
+          });
+      if (runningLowOnMemory || resultSize >= maxResultsSize
+          || results.size() >= scanParams.getMaxEntries() || timesUp) {
         continueKey = new Key(key);
         skipContinueKey = true;
         break;
@@ -368,6 +391,20 @@ public abstract class TabletBase {
   private Tablet.LookupResult lookup(SortedKeyValueIterator<Key,Value> mmfi, List<Range> ranges,
       List<KVEntry> results, ScanParameters scanParams, long maxResultsSize) throws IOException {
 
+    while (context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+      return isUserTable;
+    }, () -> {
+      log.info("Not starting lookup because low on memory, extent: {}", extent);
+      server.getScanMetrics().incrementScanPausedForLowMemory();
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(
+            "Interrupted while waiting for low memory condition to resolve", e);
+      }
+    })) {}
+
     Tablet.LookupResult lookupResult = new Tablet.LookupResult();
 
     boolean exceededMemoryUsage = false;
@@ -380,12 +417,11 @@ public abstract class TabletBase {
 
     long batchTimeOut = scanParams.getBatchTimeOut();
 
-    long timeToRun = TimeUnit.MILLISECONDS.toNanos(batchTimeOut);
-    long startNanos = System.nanoTime();
-
     if (batchTimeOut <= 0 || batchTimeOut == Long.MAX_VALUE) {
       batchTimeOut = 0;
     }
+
+    CountDownTimer runTimer = CountDownTimer.startNew(Duration.ofMillis(batchTimeOut));
 
     // determine if the iterator supported yielding
     YieldCallback<Key> yield = new YieldCallback<>();
@@ -394,9 +430,16 @@ public abstract class TabletBase {
 
     for (Range range : ranges) {
 
-      boolean timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
+      boolean timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
-      if (exceededMemoryUsage || tabletClosed || timesUp || yielded) {
+      boolean runningLowOnMemory =
+          context.getLowMemoryDetector().isRunningLowOnMemory(context, DetectionScope.SCAN, () -> {
+            return isUserTable;
+          }, () -> {
+            log.info("Not continuing lookup because low on memory, extent: {}", extent);
+            server.getScanMetrics().incrementEarlyReturnForLowMemory();
+          });
+      if (runningLowOnMemory || exceededMemoryUsage || tabletClosed || timesUp || yielded) {
         lookupResult.unfinishedRanges.add(range);
         continue;
       }
@@ -425,9 +468,16 @@ public abstract class TabletBase {
 
           exceededMemoryUsage = lookupResult.bytesAdded > maxResultsSize;
 
-          timesUp = batchTimeOut > 0 && (System.nanoTime() - startNanos) > timeToRun;
+          timesUp = batchTimeOut > 0 && runTimer.isExpired();
 
-          if (exceededMemoryUsage || timesUp) {
+          runningLowOnMemory = context.getLowMemoryDetector().isRunningLowOnMemory(context,
+              DetectionScope.SCAN, () -> {
+                return isUserTable;
+              }, () -> {
+                log.info("Not continuing lookup because low on memory, extent: {}", extent);
+                server.getScanMetrics().incrementEarlyReturnForLowMemory();
+              });
+          if (runningLowOnMemory || exceededMemoryUsage || timesUp) {
             addUnfinishedRange(lookupResult, range, key);
             break;
           }

@@ -18,107 +18,128 @@
  */
 package org.apache.accumulo.server;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
+import java.net.UnknownHostException;
 import java.util.OptionalInt;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricSource;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.thrift.TException;
+import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
+import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
+  public static interface ThriftServerSupplier {
+    ServerAddress get() throws UnknownHostException;
+  }
+
+  public static void startServer(AbstractServer server, Logger LOG) throws Exception {
+    server.runServer();
+  }
+
+  private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
-  private HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g. ZK,
-                                        // metadata, etc).
+  private volatile ServerAddress thriftServer;
+  private final AtomicReference<HostAndPort> advertiseAddress; // used for everything but the Thrift
+                                                               // server (e.g. ZK, metadata, etc).
   private final String bindAddress; // used for the Thrift server
+  private final ResourceGroupId resourceGroup;
   private final Logger log;
   private final ProcessMetrics processMetrics;
-  protected final long idleReportingPeriodNanos;
-  private volatile long idlePeriodStartNanos = 0L;
+  protected final long idleReportingPeriodMillis;
+  private volatile Timer idlePeriodTimer = null;
   private volatile Thread serverThread;
   private volatile Thread verificationThread;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  protected AbstractServer(String appName, ServerOpts opts, String[] args) {
-    this.log = LoggerFactory.getLogger(getClass().getName());
-    this.applicationName = appName;
-    opts.parseArgs(appName, args);
+  protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
+      BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
+      String[] args) {
+    log = LoggerFactory.getLogger(getClass());
+    this.applicationName = serverType.name();
+    opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    boolean oldBindParameterSpecifiedOnCmdLine = false;
-    boolean newBindParameterSpecified = false;
-    for (String arg : args) {
-      if (arg.equals("-a") || arg.equals("--address")) {
-        oldBindParameterSpecifiedOnCmdLine = true;
-      } else if (siteConfig.isPropertySet(Property.RPC_PROCESS_BIND_ADDRESS)) {
-        newBindParameterSpecified = true;
-      }
-    }
-    if (oldBindParameterSpecifiedOnCmdLine && newBindParameterSpecified) {
-      throw new IllegalStateException("Argument '-a' cannot be used with property 'rpc.bind.addr'");
-    }
     final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
     // If new bind parameter passed on command line or in file, then use it.
-    if (newBindParameterSpecified
-        || !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (newBindParameter != null
+        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       this.bindAddress = newBindParameter;
-    } else if (oldBindParameterSpecifiedOnCmdLine) {
-      this.bindAddress = opts.getAddress();
     } else {
-      this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
+      this.bindAddress = ConfigOpts.BIND_ALL_ADDRESSES;
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
       HostAndPort advertHP = HostAndPort.fromString(advertAddr);
-      if (advertHP.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
+      if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
-      advertiseAddress = advertHP;
+      advertiseAddress = new AtomicReference<>(advertHP);
     } else {
-      advertiseAddress = null;
+      advertiseAddress = new AtomicReference<>();
     }
-    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
+    log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
+    this.resourceGroup = ResourceGroupId.of(getResourceGroupPropertyValue(siteConfig));
     SecurityUtil.serverLogin(siteConfig);
-    context = new ServerContext(siteConfig);
-    final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
+    context = serverContextFactory.apply(siteConfig, resourceGroup);
     try {
-      if (context.getZooReader().exists(upgradePrepNode)) {
+      if (context.getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
         throw new IllegalStateException(
             "Instance has been prepared for upgrade to a minor or major version greater than "
                 + Constants.VERSION + ", no servers can be started."
                 + " To undo this state and abort upgrade preparations delete the zookeeper node: "
-                + upgradePrepNode);
+                + Constants.ZPREPARE_FOR_UPGRADE);
       }
     } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException(
-          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper", e);
+      throw new IllegalStateException("Error checking for upgrade preparation node ("
+          + Constants.ZPREPARE_FOR_UPGRADE + ") in zookeeper", e);
     }
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
-    context.init(appName);
+    context.init(applicationName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     TraceUtil.setProcessTracing(
         context.getConfiguration().getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED));
@@ -126,9 +147,36 @@ public abstract class AbstractServer
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
     }
-    processMetrics = new ProcessMetrics();
-    idleReportingPeriodNanos = TimeUnit.MILLISECONDS.toNanos(
-        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL));
+    final LowMemoryDetector lmd = context.getLowMemoryDetector();
+    ScheduledFuture<?> future = context.getScheduledExecutor().scheduleWithFixedDelay(
+        () -> lmd.logGCInfo(context.getConfiguration()), 0,
+        lmd.getIntervalMillis(context.getConfiguration()), MILLISECONDS);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+    processMetrics = new ProcessMetrics(context);
+    idleReportingPeriodMillis =
+        context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL);
+    switch (serverType) {
+      case COMPACTOR:
+        metricSource = MetricSource.COMPACTOR;
+        break;
+      case GARBAGE_COLLECTOR:
+        metricSource = MetricSource.GARBAGE_COLLECTOR;
+        break;
+      case MANAGER:
+        metricSource = MetricSource.MANAGER;
+        break;
+      case MONITOR:
+        metricSource = null;
+        break;
+      case SCAN_SERVER:
+        metricSource = MetricSource.SCAN_SERVER;
+        break;
+      case TABLET_SERVER:
+        metricSource = MetricSource.TABLET_SERVER;
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled server type: " + serverType);
+    }
   }
 
   /**
@@ -138,24 +186,33 @@ public abstract class AbstractServer
    *
    * @param isIdle whether the server is idle
    */
-  protected void updateIdleStatus(boolean isIdle) {
-    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodNanos == 0;
-    boolean isIdlePeriodNotStarted = idlePeriodStartNanos == 0;
+  // public for ExitCodesIT
+  public void updateIdleStatus(boolean isIdle) {
+    boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodMillis == 0;
+    boolean hasIdlePeriodStarted = idlePeriodTimer != null;
     boolean hasExceededIdlePeriod =
-        (System.nanoTime() - idlePeriodStartNanos) > idleReportingPeriodNanos;
+        hasIdlePeriodStarted && idlePeriodTimer.hasElapsed(idleReportingPeriodMillis, MILLISECONDS);
 
     if (shouldResetIdlePeriod) {
       // Reset idle period and set idle metric to false
-      idlePeriodStartNanos = 0;
+      idlePeriodTimer = null;
       processMetrics.setIdleValue(false);
-    } else if (isIdlePeriodNotStarted) {
+    } else if (!hasIdlePeriodStarted) {
       // Start tracking idle period
-      idlePeriodStartNanos = System.nanoTime();
+      idlePeriodTimer = Timer.startNew();
     } else if (hasExceededIdlePeriod) {
       // Set idle metric to true and reset the start of the idle period
       processMetrics.setIdleValue(true);
-      idlePeriodStartNanos = 0;
+      idlePeriodTimer = null;
     }
+  }
+
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
+  }
+
+  public ResourceGroupId getResourceGroup() {
+    return resourceGroup;
   }
 
   @Override
@@ -217,7 +274,10 @@ public abstract class AbstractServer
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    serverThread = new Thread(TraceUtil.wrap(this), applicationName);
+    serverThread = new Thread(TraceUtil.wrap(() -> {
+      this.run();
+      close();
+    }), applicationName);
     serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
     serverThread.start();
     serverThread.join();
@@ -234,33 +294,71 @@ public abstract class AbstractServer
       if (thrown instanceof Exception) {
         throw (Exception) thrown;
       }
-      throw new RuntimeException("Weird throwable type thrown", thrown);
+      throw new IllegalStateException("Weird throwable type thrown", thrown);
     }
   }
 
+  /**
+   * Called
+   */
   @Override
   public void registerMetrics(MeterRegistry registry) {
     // makes mocking subclasses easier
     if (processMetrics != null) {
       processMetrics.registerMetrics(registry);
     }
+    getContext().setMeterRegistry(registry);
   }
 
   public HostAndPort getAdvertiseAddress() {
-    return advertiseAddress;
+    return advertiseAddress.get();
   }
 
   public String getBindAddress() {
     return bindAddress;
   }
 
-  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
-    if (advertiseAddress == null) {
-      advertiseAddress = thriftBindAddress;
-    } else if (!advertiseAddress.hasPort()) {
-      advertiseAddress =
-          HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
+  // public for ExitCodesIT
+  public TServer getThriftServer() {
+    if (thriftServer == null) {
+      return null;
     }
+    return thriftServer.server;
+  }
+
+  protected ServerAddress getThriftServerAddress() {
+    return thriftServer;
+  }
+
+  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    advertiseAddress.accumulateAndGet(thriftBindAddress, (curr, update) -> {
+      if (curr == null) {
+        return thriftBindAddress;
+      } else if (!curr.hasPort()) {
+        return HostAndPort.fromParts(curr.getHost(), update.getPort());
+      } else {
+        return curr;
+      }
+    });
+  }
+
+  /**
+   * Updates internal ThriftServer reference and optionally starts the Thrift server. Updates the
+   * advertise address based on the address to which the ThriftServer is bound
+   *
+   * @param supplier ThriftServer
+   * @param start true to start the server, else false
+   * @throws UnknownHostException thrown from ThriftServer when binding to bad address
+   */
+  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
+      throws UnknownHostException {
+    thriftServer = supplier.get();
+    if (start) {
+      thriftServer.startThriftServer("Thrift Client Server");
+      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+          thriftServer.address);
+    }
+    updateAdvertiseAddress(thriftServer.address);
   }
 
   public ServerContext getContext() {
@@ -273,6 +371,48 @@ public abstract class AbstractServer
 
   public String getApplicationName() {
     return applicationName;
+  }
+
+  @Override
+  public MetricResponse getMetrics(TInfo tinfo, TCredentials credentials) throws TException {
+
+    if (!context.getSecurityOperation().authenticateUser(credentials, credentials)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
+    final MetricResponseWrapper response = new MetricResponseWrapper(builder);
+
+    if (getAdvertiseAddress() == null) {
+      log.error(
+          "Advertise address is not set, this should have been done after starting the Thrift service.");
+      return response;
+    }
+
+    if (metricSource == null) {
+      // Metrics not reported for Monitor type
+      return response;
+    }
+
+    response.setServerType(metricSource);
+    response.setServer(getAdvertiseAddress().toString());
+    response.setResourceGroup(getResourceGroup().canonical());
+    response.setTimestamp(System.currentTimeMillis());
+
+    if (context.getMetricsInfo().isMetricsEnabled()) {
+      Metrics.globalRegistry.getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")) {
+          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+              response::writeDistributionSummary, response::writeLongTaskTimer,
+              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+              response::writeMeter);
+        }
+      });
+    }
+
+    builder.clear();
+    return response;
   }
 
   /**
@@ -299,7 +439,7 @@ public abstract class AbstractServer
                 log.trace(
                     "ServiceLockVerificationThread - checking ServiceLock existence in ZooKeeper");
                 if (lock != null && !lock.verifyLockAtSource()) {
-                  Halt.halt(-1, "Lock verification thread could not find lock");
+                  Halt.halt(1, "Lock verification thread could not find lock");
                 }
                 // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
                 // so that this thread does not get immediately rescheduled.
@@ -324,16 +464,32 @@ public abstract class AbstractServer
 
   @Override
   public void close() {
-    if (context != null) {
-      context.close();
+
+    if (closed.compareAndSet(false, true)) {
+
+      // Must set shutdown as completed before calling ServerContext.close().
+      // ServerContext.close() calls ClientContext.close() ->
+      // ZooSession.close() which removes all of the ephemeral nodes and
+      // forces the watches to fire. The ServiceLockWatcher has a reference
+      // to shutdownComplete and will terminate the JVM with a 0 exit code
+      // if true. Otherwise it will exit with a non-zero exit code.
+      getShutdownComplete().set(true);
+
+      if (context != null) {
+        context.getLowMemoryDetector().logGCInfo(getConfiguration());
+        context.close();
+      }
     }
   }
 
   protected void waitForUpgrade() throws InterruptedException {
     while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {
-      LOG.info("Waiting for upgrade to complete.");
+      log.info("Waiting for upgrade to complete.");
       Thread.sleep(1000);
     }
   }
 
+  public void requestShutdownForTests() {
+    shutdownRequested.set(true);
+  }
 }

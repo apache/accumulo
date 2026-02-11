@@ -18,20 +18,18 @@
  */
 package org.apache.accumulo.test.tracing;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.stream.Collectors;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Hex;
+import org.eclipse.jetty.io.Content;
+import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Request;
+import org.eclipse.jetty.server.Response;
 import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.handler.AbstractHandler;
+import org.eclipse.jetty.util.Callback;
 
 /**
  * Open telemetry tracing data sink for testing. Processes can send http/protobuf trace data to this
@@ -42,25 +40,24 @@ public class TraceCollector {
 
   private final LinkedBlockingQueue<SpanData> spanQueue = new LinkedBlockingQueue<>();
 
-  private class TraceHandler extends AbstractHandler {
-    @Override
-    public void handle(String target, Request baseRequest, HttpServletRequest request,
-        HttpServletResponse response) throws IOException {
+  private class TraceHandler extends Handler.Abstract {
 
-      if (!target.equals("/v1/traces")) {
-        System.err.println("unexpected target : " + target);
+    @Override
+    public boolean handle(Request request, Response response, Callback callback) throws Exception {
+      if (!request.getHttpURI().getPath().equals("/v1/traces")) {
+        System.err.println("unexpected target : " + request.getHttpURI().getPath());
         response.setStatus(404);
-        response.getOutputStream().close();
-        return;
+        callback.succeeded();
+        return true;
       }
 
-      var body = request.getInputStream().readAllBytes();
-      try {
+      try (var in = Content.Source.asInputStream(request)) {
+        var body = in.readAllBytes();
         var etsr =
             io.opentelemetry.proto.collector.trace.v1.ExportTraceServiceRequest.parseFrom(body);
         var spans =
             etsr.getResourceSpansList().stream().flatMap(r -> r.getScopeSpansList().stream())
-                .flatMap(r -> r.getSpansList().stream()).collect(Collectors.toList());
+                .flatMap(r -> r.getSpansList().stream()).toList();
 
         spans.forEach(s -> {
           var traceId = Hex.encodeHexString(s.getTraceId().toByteArray(), true);
@@ -86,7 +83,8 @@ public class TraceCollector {
       }
 
       response.setStatus(200);
-      response.getOutputStream().close();
+      callback.succeeded();
+      return true;
     }
   }
 

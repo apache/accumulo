@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -35,8 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -63,7 +61,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setClientProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT, "15s");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -84,12 +82,14 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
-      for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
+      for (String table : new String[] {SystemTables.METADATA.tableName(),
+          SystemTables.ROOT.tableName()}) {
         client.tableOperations().flush(table, null, null, true);
       }
       log.debug("Checking entries for {}", tableName);
       assertEquals(1, count(tableName, client));
-      for (String table : new String[] {MetadataTable.NAME, RootTable.NAME}) {
+      for (String table : new String[] {SystemTables.METADATA.tableName(),
+          SystemTables.ROOT.tableName()}) {
         log.debug("Checking logs for {}", table);
         assertEquals(0, countLogs(client), "Found logs for " + table);
       }
@@ -101,11 +101,11 @@ public class CleanWalIT extends AccumuloClusterHarness {
       }
       assertEquals(0, count(tableName, client));
       client.tableOperations().flush(tableName, null, null, true);
-      client.tableOperations().flush(MetadataTable.NAME, null, null, true);
-      client.tableOperations().flush(RootTable.NAME, null, null, true);
+      client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        sleepUninterruptibly(3, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(3));
       } finally {
         getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
       }
@@ -115,7 +115,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
   private int countLogs(AccumuloClient client) throws TableNotFoundException {
     int count = 0;
-    try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(LogColumnFamily.NAME);
       scanner.setRange(TabletsSection.getRange());
       for (Entry<Key,Value> entry : scanner) {

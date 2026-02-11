@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -158,8 +159,10 @@ public abstract class RowFilter extends WrappingIterator {
     try {
       newInstance = getClass().getDeclaredConstructor().newInstance();
       newInstance.init(getSource().deepCopy(env), options, env);
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
     newInstance.decisionIterator = new RowIterator(getSource().deepCopy(env));
     return newInstance;

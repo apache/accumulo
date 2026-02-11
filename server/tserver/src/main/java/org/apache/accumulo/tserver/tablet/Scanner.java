@@ -178,7 +178,7 @@ public class Scanner {
     } finally {
       try {
         // code in finally block because always want
-        // to return mapfiles, even when exception is thrown
+        // to return datafiles, even when exception is thrown
         if (dataSource != null) {
           if (sawException || !scanParams.isIsolated()) {
             dataSource.close(sawException);

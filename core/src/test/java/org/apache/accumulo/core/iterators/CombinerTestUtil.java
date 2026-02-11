@@ -24,6 +24,6 @@ public class CombinerTestUtil {
   }
 
   public static long cacheSize() {
-    return Combiner.loggedMsgCache.size();
+    return Combiner.loggedMsgCache.estimatedSize();
   }
 }

@@ -54,6 +54,8 @@ jobs:
       run: src/build/ci/find-startMini-without-stopMini.sh
     - name: Check for unapproved use of abstract classes ending in IT
       run: src/build/ci/find-unapproved-abstract-ITs.sh
+    - name: Check for unapproved package naming conventions
+      run: src/build/ci/check-module-package-conventions.sh
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
@@ -67,8 +69,8 @@ jobs:
         profile:
           - {name: 'unit-tests',    javaver: 17, args: 'verify -PskipQA -DskipTests=false'}
           - {name: 'qa-checks',     javaver: 17, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
-          - {name: 'compat',        javaver: 17, args: 'package -DskipTests -Dversion.hadoop=3.0.3 -Dversion.zookeeper=3.5.10'}
-          - {name: 'errorprone',    javaver: 17, args: 'verify -Derrorprone -PskipQA'}
+          - {name: 'compat',        javaver: 17, args: 'package -DskipTests -Dversion.hadoop=3.0.3 -Dversion.zookeeper=3.6.4'}
+          - {name: 'errorprone',    javaver: 17, args: 'verify -Perrorprone,skipQA'}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:

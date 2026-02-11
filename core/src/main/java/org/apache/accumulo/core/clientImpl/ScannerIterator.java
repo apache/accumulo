@@ -28,11 +28,15 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanState;
+import org.apache.accumulo.core.clientImpl.ThriftScanner.ScanTimedOutException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.Range;
@@ -146,7 +150,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     readAheadOperation = context.submitScannerReadAheadTask(this::readBatch);
   }
 
-  private List<KeyValue> readBatch() throws Exception {
+  private List<KeyValue> readBatch() throws ScanTimedOutException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
 
     List<KeyValue> batch;
 
@@ -179,11 +184,10 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
       }
     } catch (ExecutionException ee) {
       wrapExecutionException(ee);
-      throw new RuntimeException(ee);
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(ee);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ScanTimedOutException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
 
     if (!nextBatch.isEmpty()) {
@@ -207,8 +211,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     if (ee.getCause() instanceof IsolationException) {
       throw new IsolationException(ee);
     }
-    if (ee.getCause() instanceof TableDeletedException) {
-      TableDeletedException cause = (TableDeletedException) ee.getCause();
+    if (ee.getCause() instanceof TableDeletedException cause) {
       throw new TableDeletedException(cause.getTableId(), cause);
     }
     if (ee.getCause() instanceof TableOfflineException) {

@@ -69,10 +69,4 @@ public class SslWithClientAuthIT extends SslIT {
   public void bulk() throws Exception {
     super.bulk();
   }
-
-  @Override
-  @Test
-  public void mapReduce() throws Exception {
-    super.mapReduce();
-  }
 }

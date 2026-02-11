@@ -41,8 +41,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -69,7 +69,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   private String getTableName(TableId tableId) {
     try {
-      return context.getTableName(tableId);
+      return context.getQualifiedTableName(tableId);
     } catch (TableNotFoundException e) {
       return "Unknown Table with ID " + tableId;
     }
@@ -84,8 +84,8 @@ public class AuditedSecurityOperation extends SecurityOperation {
   }
 
   private boolean shouldAudit(TCredentials credentials, TableId tableId) {
-    return (audit.isInfoEnabled() || audit.isWarnEnabled()) && !tableId.equals(MetadataTable.ID)
-        && shouldAudit(credentials);
+    return (audit.isInfoEnabled() || audit.isWarnEnabled())
+        && !tableId.equals(SystemTables.METADATA.tableId()) && shouldAudit(credentials);
   }
 
   // Is INFO the right level to check? Do we even need that check?
@@ -673,18 +673,18 @@ public class AuditedSecurityOperation extends SecurityOperation {
       "action: %s; targetTable: %s:%s";
 
   @Override
-  public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,
+  public boolean canChangeTableState(TCredentials credentials, TableId tableId, TFateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     String operation = null;
-    if (op == FateOperation.TABLE_ONLINE) {
+    if (op == TFateOperation.TABLE_ONLINE) {
       operation = "onlineTable";
     }
-    if (op == FateOperation.TABLE_OFFLINE) {
+    if (op == TFateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
     }
     try {
-      boolean result = super.canOnlineOfflineTable(credentials, tableId, op, namespaceId);
+      boolean result = super.canChangeTableState(credentials, tableId, op, namespaceId);
       audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,
           tableId);
       return result;

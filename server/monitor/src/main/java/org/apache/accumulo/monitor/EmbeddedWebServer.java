@@ -23,13 +23,13 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.commons.validator.routines.UrlValidator;
+import org.eclipse.jetty.ee10.servlet.ServletContextHandler;
+import org.eclipse.jetty.ee10.servlet.ServletHolder;
 import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.server.SslConnectionFactory;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
 import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,6 +55,10 @@ public class EmbeddedWebServer {
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
 
     connector = new ServerConnector(server, getConnectionFactories(conf, secure));
+    // Capture connection statistics
+    connector.addBean(monitor.getConnectionStatisticsBean());
+    // Listen for connection events
+    connector.addBean(monitor);
     connector.setHost(monitor.getBindAddress());
     connector.setPort(port);
 

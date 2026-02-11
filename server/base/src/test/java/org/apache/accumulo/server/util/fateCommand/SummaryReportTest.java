@@ -23,16 +23,18 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,16 +46,20 @@ class SummaryReportTest {
   @Test
   public void blankReport() {
     Map<String,String> idMap = Map.of("1", "ns1", "2", "tbl1");
-    FateSummaryReport report = new FateSummaryReport(idMap, null);
+    FateSummaryReport report = new FateSummaryReport(idMap, null, null, null);
+
     assertNotNull(report);
-    assertTrue(report.getReportTime() != 0);
+    assertNotEquals(0, report.getReportTime());
     assertEquals(Map.of(), report.getStatusCounts());
     assertEquals(Map.of(), report.getCmdCounts());
     assertEquals(Map.of(), report.getStepCounts());
     assertEquals(Set.of(), report.getFateDetails());
     assertEquals(Set.of(), report.getStatusFilterNames());
+    assertEquals(Set.of(), report.getInstanceTypesFilterNames());
+    assertEquals(Set.of(), report.getFateIdFilter());
     assertNotNull(report.toJson());
     assertNotNull(report.formatLines());
+
     log.info("json: {}", report.toJson());
     log.info("formatted: {}", report.formatLines());
   }
@@ -65,24 +71,26 @@ class SummaryReportTest {
 
     AdminUtil.TransactionStatus status1 = createMock(AdminUtil.TransactionStatus.class);
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
-    expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn(null).anyTimes();
-    expect(status1.getTxName()).andReturn(null).anyTimes();
-    expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
+    expect(status1.getFateOp()).andReturn(null).anyTimes();
+    expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:" + UUID.randomUUID())).anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();
 
     replay(status1);
     Map<String,String> idMap = Map.of("1", "ns1", "2", "");
-    FateSummaryReport report = new FateSummaryReport(idMap, null);
+    FateSummaryReport report = new FateSummaryReport(idMap, null, null, null);
     report.gatherTxnStatus(status1);
 
     assertNotNull(report);
-    assertTrue(report.getReportTime() != 0);
+    assertNotEquals(0, report.getReportTime());
     assertEquals(Map.of("IN_PROGRESS", 1), report.getStatusCounts());
     assertEquals(Map.of("?", 1), report.getCmdCounts());
     assertEquals(Map.of("?", 1), report.getStepCounts());
     assertEquals(Set.of(), report.getStatusFilterNames());
+    assertEquals(Set.of(), report.getInstanceTypesFilterNames());
+    assertEquals(Set.of(), report.getFateIdFilter());
     assertNotNull(report.toJson());
     assertNotNull(report.formatLines());
 

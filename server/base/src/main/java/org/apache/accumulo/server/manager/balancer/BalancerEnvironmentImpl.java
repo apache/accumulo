@@ -21,16 +21,22 @@ package org.apache.accumulo.server.manager.balancer;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.clientImpl.TabletInformationCollector;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -44,15 +50,16 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements BalancerEnvironment {
   private static final Logger log = LoggerFactory.getLogger(BalancerEnvironmentImpl.class);
@@ -63,7 +70,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
 
   @Override
   public Map<String,TableId> getTableIdMap() {
-    return getContext().getTableNameToIdMap();
+    return getContext().createQualifiedTableNameToIdMap();
   }
 
   @Override
@@ -74,11 +81,13 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   @Override
   public Map<TabletId,TabletServerId> listTabletLocations(TableId tableId) {
     Map<TabletId,TabletServerId> tablets = new LinkedHashMap<>();
-    for (var tm : TabletsMetadata.builder(getContext()).forTable(tableId).fetch(LOCATION, PREV_ROW)
-        .build()) {
-      tablets.put(new TabletIdImpl(tm.getExtent()),
-          TabletServerIdImpl.fromThrift(Optional.ofNullable(tm.getLocation())
-              .map(TabletMetadata.Location::getServerInstance).orElse(null)));
+    try (TabletsMetadata tabletsMetadata =
+        TabletsMetadata.builder(getContext()).forTable(tableId).fetch(LOCATION, PREV_ROW).build()) {
+      for (var tm : tabletsMetadata) {
+        tablets.put(new TabletIdImpl(tm.getExtent()),
+            TabletServerIdImpl.fromThrift(Optional.ofNullable(tm.getLocation())
+                .map(TabletMetadata.Location::getServerInstance).orElse(null)));
+      }
     }
     return tablets;
   }
@@ -88,7 +97,8 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
     log.trace("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
-      TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
+      TabletServerClientService.Client client = ThriftUtil.getClient(
+          ThriftClientTypes.TABLET_SERVER,
           HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()), getContext());
       try {
         return client
@@ -105,6 +115,14 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       throw new AccumuloException(e);
     }
     return null;
+  }
+
+  @Override
+  public Stream<TabletInformation> getTabletInformation(TableId tableId, List<RowRange> ranges,
+      TabletInformation.Field... fields) {
+    EnumSet<TabletInformation.Field> fieldSet = fields.length == 0
+        ? EnumSet.allOf(TabletInformation.Field.class) : EnumSet.copyOf(Arrays.asList(fields));
+    return TabletInformationCollector.getTabletInformation(getContext(), tableId, ranges, fieldSet);
   }
 
   @Override

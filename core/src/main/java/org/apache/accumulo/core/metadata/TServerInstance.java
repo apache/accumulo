@@ -22,8 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * A tablet is assigned to a tablet server at the given address as long as it is alive and well.
@@ -31,7 +32,7 @@ import org.apache.hadoop.io.Text;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance> {
+public final class TServerInstance implements Comparable<TServerInstance> {
 
   private final HostAndPort hostAndPort;
   private final String hostPort;
@@ -61,11 +62,11 @@ public class TServerInstance implements Comparable<TServerInstance> {
   }
 
   public TServerInstance(String address, long session) {
-    this(AddressUtil.parseAddress(address, false), Long.toHexString(session));
+    this(AddressUtil.parseAddress(address), Long.toHexString(session));
   }
 
   public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get(), UTF_8), false), session.toString());
+    this(AddressUtil.parseAddress(new String(address.get(), UTF_8)), session.toString());
   }
 
   @Override

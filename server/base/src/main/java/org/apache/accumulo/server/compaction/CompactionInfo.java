@@ -38,12 +38,14 @@ public class CompactionInfo {
   private final String localityGroup;
   private final long entriesRead;
   private final long entriesWritten;
+  private final long timesPaused;
   private final TCompactionReason reason;
 
   CompactionInfo(FileCompactor compactor) {
     this.localityGroup = compactor.getCurrentLocalityGroup();
     this.entriesRead = compactor.getEntriesRead();
     this.entriesWritten = compactor.getEntriesWritten();
+    this.timesPaused = compactor.getTimesPaused();
     this.reason = compactor.getReason();
     this.compactor = compactor;
   }
@@ -64,11 +66,15 @@ public class CompactionInfo {
     return entriesWritten;
   }
 
+  public long getTimesPaused() {
+    return timesPaused;
+  }
+
   public Thread getThread() {
     return compactor.getThread();
   }
 
-  public String getOutputFile() {
+  public StoredTabletFile getOutputFile() {
     return compactor.getOutputFile();
   }
 
@@ -96,10 +102,10 @@ public class CompactionInfo {
           iterSetting.getName()));
       iterOptions.put(iterSetting.getName(), iterSetting.getOptions());
     }
-    List<String> files = compactor.getFilesToCompact().stream().map(StoredTabletFile::getPathStr)
-        .collect(Collectors.toList());
+    List<String> files = compactor.getFilesToCompact().stream()
+        .map(StoredTabletFile::getNormalizedPathStr).collect(Collectors.toList());
     return new ActiveCompaction(compactor.extent.toThrift(), compactor.getAge().toMillis(), files,
-        compactor.getOutputFile(), type, reason, localityGroup, entriesRead, entriesWritten, iiList,
-        iterOptions);
+        compactor.getOutputFile().getMetadataPath(), type, reason, localityGroup, entriesRead,
+        entriesWritten, iiList, iterOptions, timesPaused);
   }
 }

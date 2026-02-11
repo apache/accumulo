@@ -23,13 +23,15 @@ import java.util.EnumSet;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-public class DeleteTable extends ManagerRepo {
+public class DeleteTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -42,23 +44,25 @@ public class DeleteTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, false, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, true, true, TableOperation.DELETE);
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    return Utils.reserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ, false,
+        TableOperation.DELETE)
+        + Utils.reserveTable(env.getContext(), tableId, fateId, LockType.WRITE, true,
+            TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) {
     final EnumSet<TableState> expectedCurrStates =
         EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
     env.getTableManager().transitionTableState(tableId, TableState.DELETING, expectedCurrStates);
-    env.getEventCoordinator().event("deleting table %s ", tableId);
-    return new CleanUp(tableId, namespaceId);
+    env.getEventPublisher().event(tableId, "deleting table %s %s", tableId, fateId);
+    return new ReserveTablets(tableId, namespaceId);
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, true);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  public void undo(FateId fateId, FateEnv env) {
+    Utils.unreserveTable(env.getContext(), tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env.getContext(), namespaceId, fateId, LockType.READ);
   }
 }

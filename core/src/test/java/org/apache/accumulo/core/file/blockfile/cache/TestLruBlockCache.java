@@ -18,14 +18,13 @@
  */
 package org.apache.accumulo.core.file.blockfile.cache;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.security.SecureRandom;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -50,9 +49,8 @@ import org.junit.jupiter.api.Test;
  * Tests will ensure it grows and shrinks in size properly, evictions run when they're supposed to
  * and do what they should, and that cached blocks are accessible when expected to be.
  */
+@SuppressWarnings("deprecation")
 public class TestLruBlockCache {
-
-  private static final SecureRandom random = new SecureRandom();
 
   @Test
   public void testConfiguration() {
@@ -506,7 +504,7 @@ public class TestLruBlockCache {
   private Block[] generateRandomBlocks(int numBlocks, long maxSize) {
     Block[] blocks = new Block[numBlocks];
     for (int i = 0; i < numBlocks; i++) {
-      blocks[i] = new Block("block" + i, random.nextInt((int) maxSize) + 1);
+      blocks[i] = new Block("block" + i, RANDOM.get().nextInt((int) maxSize) + 1);
     }
     return blocks;
   }

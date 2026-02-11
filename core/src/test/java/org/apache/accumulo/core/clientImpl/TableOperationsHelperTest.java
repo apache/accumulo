@@ -31,12 +31,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
@@ -46,9 +48,12 @@ import org.apache.accumulo.core.client.admin.ImportConfiguration;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -79,6 +84,9 @@ public class TableOperationsHelperTest {
     public void addSplits(String tableName, SortedSet<Text> partitionKeys) {}
 
     @Override
+    public void putSplits(String tableName, SortedMap<Text,TabletMergeability> partitionKeys) {}
+
+    @Override
     public Collection<Text> listSplits(String tableName) {
       return null;
     }
@@ -89,8 +97,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-        boolean startInclusive, Text endRow, boolean endInclusive) {
+    public Text getMaxRow(String tableName, Authorizations auths, RowRange range) {
       return null;
     }
 
@@ -188,13 +195,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    @Deprecated(since = "2.0.0")
-    public void importDirectory(String tableName, String dir, String failureDir, boolean setTime) {}
-
-    @Override
-    public void offline(String tableName) {
-
-    }
+    public void offline(String tableName) {}
 
     @Override
     public boolean isOnline(String tableName) {
@@ -205,12 +206,15 @@ public class TableOperationsHelperTest {
     public void online(String tableName) {}
 
     @Override
-    public void offline(String tableName, boolean wait) {
-
-    }
+    public void offline(String tableName, boolean wait) {}
 
     @Override
     public void online(String tableName, boolean wait) {}
+
+    @Override
+    public void setTabletAvailability(String tableName, RowRange rowRange,
+        TabletAvailability tabletAvailability)
+        throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
 
     @Override
     public void clearLocatorCache(String tableName) {}
@@ -280,6 +284,12 @@ public class TableOperationsHelperTest {
     public List<SummarizerConfiguration> listSummarizers(String tableName) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String getNamespace(String table) {
+      throw new UnsupportedOperationException();
+    }
+
   }
 
   protected TableOperationsHelper getHelper() {

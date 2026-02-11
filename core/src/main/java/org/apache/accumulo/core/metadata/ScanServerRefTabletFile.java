@@ -24,103 +24,60 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ScanServerFileReferenceSection;
-import org.apache.accumulo.core.util.UuidUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.base.Preconditions;
+public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
-public class ScanServerRefTabletFile extends TabletFile {
-
-  @SuppressWarnings("deprecation")
-  private static final String OLD_PREFIX =
-      org.apache.accumulo.core.metadata.schema.MetadataSchema.OldScanServerFileReferenceSection
-          .getRowPrefix();
-  private final String prefix;
   private final Value NULL_VALUE = new Value(new byte[0]);
   private final Text serverAddress;
   private final Text uuid;
 
   public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
     super(new Path(URI.create(file)));
-    // For new data, always use the current prefix
-    prefix = ScanServerFileReferenceSection.getRowPrefix();
     this.serverAddress = new Text(serverAddress);
     uuid = new Text(serverLockUUID.toString());
   }
 
+  public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
+    super(new Path(URI.create(file)));
+    this.serverAddress = new Text(serverAddress);
+    this.uuid = new Text(serverLockUUID.toString());
+  }
+
   public ScanServerRefTabletFile(Key k) {
-    super(new Path(URI.create(extractFile(k))));
+    super(new Path(URI.create(k.getColumnQualifier().toString())));
     serverAddress = k.getColumnFamily();
-    if (isOldPrefix(k)) {
-      prefix = OLD_PREFIX;
-      uuid = new Text(k.getColumnQualifier().toString());
-    } else {
-      prefix = ScanServerFileReferenceSection.getRowPrefix();
-      var row = k.getRow().toString();
-      Preconditions.checkArgument(row.startsWith(prefix), "Unexpected row prefix %s ", row);
-      var uuidStr = row.substring(prefix.length());
-      Preconditions.checkArgument(UuidUtil.isUUID(uuidStr, 0), "Row suffix is not uuid %s", row);
-      uuid = new Text(uuidStr);
-    }
+    uuid = k.getRow();
   }
 
   public Mutation putMutation() {
-    // Only write scan refs in the new format
-    Mutation mutation = new Mutation(prefix + uuid.toString());
+    Mutation mutation = new Mutation(uuid.toString());
     mutation.put(serverAddress, getFilePath(), getValue());
     return mutation;
   }
 
   public Mutation putDeleteMutation() {
-    Mutation mutation;
-    if (Objects.equals(prefix, OLD_PREFIX)) {
-      mutation = new Mutation(prefix + this.getPath().toString());
-      mutation.putDelete(serverAddress, uuid);
-    } else {
-      mutation = new Mutation(prefix + uuid.toString());
-      mutation.putDelete(serverAddress, getFilePath());
-    }
+    Mutation mutation = new Mutation(uuid.toString());
+    mutation.putDelete(serverAddress, getFilePath());
     return mutation;
   }
 
-  private static String extractFile(Key k) {
-    if (isOldPrefix(k)) {
-      return k.getRow().toString().substring(OLD_PREFIX.length());
-    } else {
-      return k.getColumnQualifier().toString();
-    }
-  }
-
-  /**
-   * Returns the correctly formatted range for a unique uuid
-   *
-   * @param uuid ServerLockUUID of a Scan Server
-   * @return Range for a single scan server
-   */
-  public static Range getRange(UUID uuid) {
-    Objects.requireNonNull(uuid);
-    return new Range(MetadataSchema.ScanServerFileReferenceSection.getRowPrefix() + uuid);
-  }
-
-  private static boolean isOldPrefix(Key k) {
-    return k.getRow().toString().startsWith(OLD_PREFIX);
+  public Text getFilePath() {
+    return new Text(this.getNormalizedPathStr());
   }
 
   public UUID getServerLockUUID() {
     return UUID.fromString(uuid.toString());
   }
 
-  public Text getFilePath() {
-    return new Text(this.getPath().toString());
-  }
-
   public Value getValue() {
     return NULL_VALUE;
+  }
+
+  public Text getServerAddress() {
+    return serverAddress;
   }
 
   @Override
@@ -149,7 +106,7 @@ public class ScanServerRefTabletFile extends TabletFile {
 
   @Override
   public String toString() {
-    return "ScanServerRefTabletFile [file=" + this.getPath().toString() + ", server address="
+    return "ScanServerRefTabletFile [file=" + this.getNormalizedPathStr() + ", server address="
         + serverAddress + ", server lock uuid=" + uuid + "]";
   }
 

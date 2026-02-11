@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.spi.scan;
 
 import static org.apache.accumulo.core.spi.scan.RendezvousHasher.Mode.HOST;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,8 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.util.HostAndPort;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Extension of the {@link ConfigurableScanServerSelector} that can be used when there are multiple
@@ -97,7 +100,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
     return previousFailures;
   }
 
-  List<String> removeFailedHost(String group, Map<String,Set<String>> prevFailures,
+  List<String> removeFailedHost(ResourceGroupId group, Map<String,Set<String>> prevFailures,
       List<String> rendezvousHosts, ScanServersSnapshot serversSnapshot) {
     if (prevFailures.isEmpty()) {
       return rendezvousHosts;
@@ -139,15 +142,16 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
       RendezvousHasher rhasher, Map<String,Set<String>> prevFailures) {
     final var snapshot = rhasher.getSnapshot();
     final int numHostToUse =
-        profile.getNumServers(hostAttempt, snapshot.getHostsForGroup(profile.group).size());
-    List<String> rendezvousHosts =
-        rhasher.rendezvous(HOST, profile.group, tablet, profile.getSalt(hostAttempt), numHostToUse);
-    rendezvousHosts = removeFailedHost(profile.group, prevFailures, rendezvousHosts, snapshot);
+        profile.getNumServers(hostAttempt, snapshot.getHostsForGroup(profile.getGroupId()).size());
+    List<String> rendezvousHosts = rhasher.rendezvous(HOST, profile.getGroupId(), tablet,
+        profile.getSalt(hostAttempt), numHostToUse);
+    rendezvousHosts =
+        removeFailedHost(profile.getGroupId(), prevFailures, rendezvousHosts, snapshot);
     if (rendezvousHosts.isEmpty()) {
       return List.of();
     }
-    var hostToUse = rendezvousHosts.get(RANDOM.nextInt(rendezvousHosts.size()));
-    List<String> hostServers = snapshot.getServersForHost(profile.group, hostToUse);
+    var hostToUse = rendezvousHosts.get(RANDOM.get().nextInt(rendezvousHosts.size()));
+    List<String> hostServers = snapshot.getServersForHost(profile.getGroupId(), hostToUse);
     return removeFailedServers(prevFailures.getOrDefault(hostToUse, Set.of()), hostServers);
   }
 
@@ -165,7 +169,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
         List<String> scanServers =
             getServersForHostAttempt(hostAttempt, tablet, profile, rhasher, prevFailures);
         if (!scanServers.isEmpty()) {
-          String serverToUse = scanServers.get(RANDOM.nextInt(scanServers.size()));
+          String serverToUse = scanServers.get(RANDOM.get().nextInt(scanServers.size()));
           serversToUse.put(tablet, serverToUse);
           break;
         }
@@ -177,7 +181,7 @@ public class ConfigurableScanServerHostSelector extends ConfigurableScanServerSe
         List<String> scanServers = getServersForHostAttempt(profile.getAttemptPlans().size() - 1,
             tablet, profile, rhasher, Map.of());
         if (!scanServers.isEmpty()) {
-          String serverToUse = scanServers.get(RANDOM.nextInt(scanServers.size()));
+          String serverToUse = scanServers.get(RANDOM.get().nextInt(scanServers.size()));
           serversToUse.put(tablet, serverToUse);
         }
       }

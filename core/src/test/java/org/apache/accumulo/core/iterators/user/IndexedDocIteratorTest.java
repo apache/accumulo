@@ -19,11 +19,11 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -36,8 +36,8 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.rfile.AbstractRFileTest.TestRFile;
 import org.apache.accumulo.core.file.rfile.RFileTest;
-import org.apache.accumulo.core.file.rfile.RFileTest.TestRFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
@@ -47,7 +47,6 @@ import org.junit.jupiter.api.Test;
 
 public class IndexedDocIteratorTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final byte[] nullByte = {0};
 
@@ -94,7 +93,7 @@ public class IndexedDocIteratorTest {
         doc.append(nullByte, 0, 1);
         doc.append(String.format("%010d", docid).getBytes(UTF_8), 0, 10);
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (random.nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
@@ -117,7 +116,7 @@ public class IndexedDocIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (random.nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(cf);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
@@ -130,7 +129,7 @@ public class IndexedDocIteratorTest {
           }
         }
         sb.append(" docID=").append(doc);
-        Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes()));
+        Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes(UTF_8)));
         map.put(k, new Value(sb.toString()));
       }
     }
@@ -150,7 +149,7 @@ public class IndexedDocIteratorTest {
   private SortedKeyValueIterator<Key,Value> createIteratorStack(float hitRatio, int numRows,
       int numDocsPerRow, Text[] columnFamilies, Text[] otherColumnFamilies, HashSet<Text> docs,
       Text[] negatedColumns) throws IOException {
-    // write a map file
+    // write a data file
     trf.openWriter(false);
 
     TreeMap<Key,Value> inMemoryMap = createSortedMap(hitRatio, numRows, numDocsPerRow,

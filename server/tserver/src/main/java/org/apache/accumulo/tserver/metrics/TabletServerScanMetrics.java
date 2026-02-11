@@ -18,6 +18,22 @@
  */
 package org.apache.accumulo.tserver.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_CLOSE;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_CONTINUE;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_OPEN_FILES;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_PAUSED_FOR_MEM;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_QUERIES;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_QUERY_SCAN_RESULTS;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_QUERY_SCAN_RESULTS_BYTES;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESULTS;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RETURN_FOR_MEM;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_SCANNED_ENTRIES;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_START;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_TIMES;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_YIELDS;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_ZOMBIE_THREADS;
+
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
@@ -26,8 +42,8 @@ import java.util.function.IntSupplier;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.server.metrics.NoopMetrics;
 
-import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.DistributionSummary;
+import io.micrometer.core.instrument.FunctionCounter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
@@ -38,50 +54,32 @@ public class TabletServerScanMetrics implements MetricsProducer {
   private Timer scans = NoopMetrics.useNoopTimer();
   private DistributionSummary resultsPerScan = NoopMetrics.useNoopDistributionSummary();
   private DistributionSummary yields = NoopMetrics.useNoopDistributionSummary();
-  private Counter startScanCalls = NoopMetrics.useNoopCounter();
-  private Counter continueScanCalls = NoopMetrics.useNoopCounter();;
-  private Counter closeScanCalls = NoopMetrics.useNoopCounter();;
-  private Counter busyTimeoutCount = NoopMetrics.useNoopCounter();;
+  private final AtomicLong startScanCalls = new AtomicLong(0);
+  private final AtomicLong continueScanCalls = new AtomicLong(0);
+  private final AtomicLong closeScanCalls = new AtomicLong(0);
+  private final AtomicLong busyTimeoutCount = new AtomicLong(0);
+  private final AtomicLong pausedForMemory = new AtomicLong(0);
+  private final AtomicLong earlyReturnForMemory = new AtomicLong(0);
   private final AtomicLong zombieScanThreads = new AtomicLong(0);
   private final LongAdder lookupCount = new LongAdder();
   private final LongAdder queryResultCount = new LongAdder();
   private final LongAdder queryResultBytes = new LongAdder();
   private final LongAdder scannedCount = new LongAdder();
 
-  public void incrementLookupCount(long amount) {
-    this.lookupCount.add(amount);
-  }
-
-  public long getLookupCount() {
-    return this.lookupCount.sum();
+  public void incrementLookupCount() {
+    this.lookupCount.increment();
   }
 
   public void incrementQueryResultCount(long amount) {
     this.queryResultCount.add(amount);
   }
 
-  public long getQueryResultCount() {
-    return this.queryResultCount.sum();
-  }
-
   public void incrementQueryResultBytes(long amount) {
     this.queryResultBytes.add(amount);
   }
 
-  public long getQueryByteCount() {
-    return this.queryResultBytes.sum();
-  }
-
-  public void incrementScannedCount(long amount) {
-    this.scannedCount.add(amount);
-  }
-
   public LongAdder getScannedCounter() {
     return this.scannedCount;
-  }
-
-  public long getScannedCount() {
-    return this.scannedCount.sum();
   }
 
   public void addScan(long value) {
@@ -96,20 +94,28 @@ public class TabletServerScanMetrics implements MetricsProducer {
     yields.record(value);
   }
 
-  public void incrementStartScan(double value) {
-    startScanCalls.increment(value);
+  public void incrementStartScan() {
+    startScanCalls.incrementAndGet();
   }
 
-  public void incrementContinueScan(double value) {
-    continueScanCalls.increment(value);
+  public void incrementContinueScan() {
+    continueScanCalls.incrementAndGet();
   }
 
-  public void incrementCloseScan(double value) {
-    closeScanCalls.increment(value);
+  public void incrementCloseScan() {
+    closeScanCalls.incrementAndGet();
   }
 
-  public void incrementBusy(double value) {
-    busyTimeoutCount.increment(value);
+  public void incrementBusy() {
+    busyTimeoutCount.incrementAndGet();
+  }
+
+  public void incrementScanPausedForLowMemory() {
+    pausedForMemory.incrementAndGet();
+  }
+
+  public void incrementEarlyReturnForLowMemory() {
+    earlyReturnForMemory.incrementAndGet();
   }
 
   public void setZombieScanThreads(long count) {
@@ -126,36 +132,40 @@ public class TabletServerScanMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(METRICS_SCAN_OPEN_FILES, openFiles::getAsInt)
-        .description("Number of files open for scans").register(registry);
-    scans = Timer.builder(METRICS_SCAN_TIMES).description("Scans").register(registry);
-    resultsPerScan = DistributionSummary.builder(METRICS_SCAN_RESULTS)
-        .description("Results per scan").register(registry);
-    yields =
-        DistributionSummary.builder(METRICS_SCAN_YIELDS).description("yields").register(registry);
-    startScanCalls = Counter.builder(METRICS_SCAN_START)
-        .description("calls to start a scan / multiscan").register(registry);
-    continueScanCalls = Counter.builder(METRICS_SCAN_CONTINUE)
-        .description("calls to continue a scan / multiscan").register(registry);
-    closeScanCalls = Counter.builder(METRICS_SCAN_CLOSE)
-        .description("calls to close a scan / multiscan").register(registry);
-    busyTimeoutCount = Counter.builder(METRICS_SCAN_BUSY_TIMEOUT_COUNTER)
-        .description("The number of scans where a busy timeout happened").register(registry);
-    Gauge.builder(METRICS_SCAN_QUERIES, this, TabletServerScanMetrics::getLookupCount)
-        .description("Number of queries").register(registry);
-    Gauge
-        .builder(METRICS_SCAN_QUERY_SCAN_RESULTS, this,
-            TabletServerScanMetrics::getQueryResultCount)
-        .description("Query rate (entries/sec)").register(registry);
-    Gauge
-        .builder(METRICS_SCAN_QUERY_SCAN_RESULTS_BYTES, this,
-            TabletServerScanMetrics::getQueryByteCount)
-        .description("Query rate (bytes/sec)").register(registry);
-    Gauge.builder(METRICS_SCAN_SCANNED_ENTRIES, this, TabletServerScanMetrics::getScannedCount)
-        .description("Scanned rate").register(registry);
-    Gauge.builder(METRICS_SCAN_ZOMBIE_THREADS, this, TabletServerScanMetrics::getZombieThreadsCount)
-        .description("Number of scan threads that have no associated client session")
+    Gauge.builder(SCAN_OPEN_FILES.getName(), openFiles::getAsInt)
+        .description(SCAN_OPEN_FILES.getDescription()).register(registry);
+    scans = Timer.builder(SCAN_TIMES.getName()).description(SCAN_TIMES.getDescription())
         .register(registry);
+    resultsPerScan = DistributionSummary.builder(SCAN_RESULTS.getName())
+        .description(SCAN_RESULTS.getDescription()).register(registry);
+    yields = DistributionSummary.builder(SCAN_YIELDS.getName())
+        .description(SCAN_YIELDS.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_START.getName(), this.startScanCalls, AtomicLong::get)
+        .description(SCAN_START.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_CONTINUE.getName(), this.continueScanCalls, AtomicLong::get)
+        .description(SCAN_CONTINUE.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_CLOSE.getName(), this.closeScanCalls, AtomicLong::get)
+        .description(SCAN_CLOSE.getDescription()).register(registry);
+    FunctionCounter
+        .builder(SCAN_BUSY_TIMEOUT_COUNT.getName(), this.busyTimeoutCount, AtomicLong::get)
+        .description(SCAN_BUSY_TIMEOUT_COUNT.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_QUERIES.getName(), this.lookupCount, LongAdder::sum)
+        .description(SCAN_QUERIES.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_SCANNED_ENTRIES.getName(), this.scannedCount, LongAdder::sum)
+        .description(SCAN_SCANNED_ENTRIES.getDescription()).register(registry);
+    FunctionCounter.builder(SCAN_PAUSED_FOR_MEM.getName(), this.pausedForMemory, AtomicLong::get)
+        .description(SCAN_PAUSED_FOR_MEM.getDescription()).register(registry);
+    FunctionCounter
+        .builder(SCAN_RETURN_FOR_MEM.getName(), this.earlyReturnForMemory, AtomicLong::get)
+        .description(SCAN_RETURN_FOR_MEM.getDescription()).register(registry);
+    Gauge.builder(SCAN_QUERY_SCAN_RESULTS.getName(), this.queryResultCount, LongAdder::sum)
+        .description(SCAN_QUERY_SCAN_RESULTS.getDescription()).register(registry);
+    Gauge.builder(SCAN_QUERY_SCAN_RESULTS_BYTES.getName(), this.queryResultBytes, LongAdder::sum)
+        .description(SCAN_QUERY_SCAN_RESULTS_BYTES.getDescription()).register(registry);
+    Gauge
+        .builder(SCAN_ZOMBIE_THREADS.getName(), this,
+            TabletServerScanMetrics::getZombieThreadsCount)
+        .description(SCAN_ZOMBIE_THREADS.getDescription()).register(registry);
   }
 
 }

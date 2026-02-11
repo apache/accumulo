@@ -39,6 +39,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   private static final org.apache.thrift.protocol.TField ENTRIES_WRITTEN_FIELD_DESC = new org.apache.thrift.protocol.TField("entriesWritten", org.apache.thrift.protocol.TType.I64, (short)9);
   private static final org.apache.thrift.protocol.TField SSI_LIST_FIELD_DESC = new org.apache.thrift.protocol.TField("ssiList", org.apache.thrift.protocol.TType.LIST, (short)10);
   private static final org.apache.thrift.protocol.TField SSIO_FIELD_DESC = new org.apache.thrift.protocol.TField("ssio", org.apache.thrift.protocol.TType.MAP, (short)11);
+  private static final org.apache.thrift.protocol.TField TIMES_PAUSED_FIELD_DESC = new org.apache.thrift.protocol.TField("timesPaused", org.apache.thrift.protocol.TType.I64, (short)12);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ActiveCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ActiveCompactionTupleSchemeFactory();
@@ -62,6 +63,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   public long entriesWritten; // required
   public @org.apache.thrift.annotation.Nullable java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList; // required
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio; // required
+  public long timesPaused; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -83,7 +85,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     ENTRIES_READ((short)8, "entriesRead"),
     ENTRIES_WRITTEN((short)9, "entriesWritten"),
     SSI_LIST((short)10, "ssiList"),
-    SSIO((short)11, "ssio");
+    SSIO((short)11, "ssio"),
+    TIMES_PAUSED((short)12, "timesPaused");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -121,6 +124,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           return SSI_LIST;
         case 11: // SSIO
           return SSIO;
+        case 12: // TIMES_PAUSED
+          return TIMES_PAUSED;
         default:
           return null;
       }
@@ -167,6 +172,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
   private static final int __AGE_ISSET_ID = 0;
   private static final int __ENTRIESREAD_ISSET_ID = 1;
   private static final int __ENTRIESWRITTEN_ISSET_ID = 2;
+  private static final int __TIMESPAUSED_ISSET_ID = 3;
   private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
@@ -199,6 +205,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
             new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
                 new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
                 new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)))));
+    tmpMap.put(_Fields.TIMES_PAUSED, new org.apache.thrift.meta_data.FieldMetaData("timesPaused", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ActiveCompaction.class, metaDataMap);
   }
@@ -217,7 +225,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     long entriesRead,
     long entriesWritten,
     java.util.List<org.apache.accumulo.core.dataImpl.thrift.IterInfo> ssiList,
-    java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio)
+    java.util.Map<java.lang.String,java.util.Map<java.lang.String,java.lang.String>> ssio,
+    long timesPaused)
   {
     this();
     this.extent = extent;
@@ -234,6 +243,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     setEntriesWrittenIsSet(true);
     this.ssiList = ssiList;
     this.ssio = ssio;
+    this.timesPaused = timesPaused;
+    setTimesPausedIsSet(true);
   }
 
   /**
@@ -285,6 +296,7 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       }
       this.ssio = __this__ssio;
     }
+    this.timesPaused = other.timesPaused;
   }
 
   @Override
@@ -308,6 +320,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     this.entriesWritten = 0;
     this.ssiList = null;
     this.ssio = null;
+    setTimesPausedIsSet(false);
+    this.timesPaused = 0;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -638,6 +652,29 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     }
   }
 
+  public long getTimesPaused() {
+    return this.timesPaused;
+  }
+
+  public ActiveCompaction setTimesPaused(long timesPaused) {
+    this.timesPaused = timesPaused;
+    setTimesPausedIsSet(true);
+    return this;
+  }
+
+  public void unsetTimesPaused() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __TIMESPAUSED_ISSET_ID);
+  }
+
+  /** Returns true if field timesPaused is set (has been assigned a value) and false otherwise */
+  public boolean isSetTimesPaused() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __TIMESPAUSED_ISSET_ID);
+  }
+
+  public void setTimesPausedIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TIMESPAUSED_ISSET_ID, value);
+  }
+
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -729,6 +766,14 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       }
       break;
 
+    case TIMES_PAUSED:
+      if (value == null) {
+        unsetTimesPaused();
+      } else {
+        setTimesPaused((java.lang.Long)value);
+      }
+      break;
+
     }
   }
 
@@ -769,6 +814,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     case SSIO:
       return getSsio();
 
+    case TIMES_PAUSED:
+      return getTimesPaused();
+
     }
     throw new java.lang.IllegalStateException();
   }
@@ -803,6 +851,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       return isSetSsiList();
     case SSIO:
       return isSetSsio();
+    case TIMES_PAUSED:
+      return isSetTimesPaused();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -919,6 +969,15 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         return false;
     }
 
+    boolean this_present_timesPaused = true;
+    boolean that_present_timesPaused = true;
+    if (this_present_timesPaused || that_present_timesPaused) {
+      if (!(this_present_timesPaused && that_present_timesPaused))
+        return false;
+      if (this.timesPaused != that.timesPaused)
+        return false;
+    }
+
     return true;
   }
 
@@ -963,6 +1022,8 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
     hashCode = hashCode * 8191 + ((isSetSsio()) ? 131071 : 524287);
     if (isSetSsio())
       hashCode = hashCode * 8191 + ssio.hashCode();
+
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(timesPaused);
 
     return hashCode;
   }
@@ -1085,6 +1146,16 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         return lastComparison;
       }
     }
+    lastComparison = java.lang.Boolean.compare(isSetTimesPaused(), other.isSetTimesPaused());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetTimesPaused()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.timesPaused, other.timesPaused);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
     return 0;
   }
 
@@ -1184,6 +1255,10 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       sb.append(this.ssio);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("timesPaused:");
+    sb.append(this.timesPaused);
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -1254,13 +1329,13 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           case 3: // INPUT_FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list52 = iprot.readListBegin();
-                struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list52.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _elem53;
-                for (int _i54 = 0; _i54 < _list52.size; ++_i54)
+                org.apache.thrift.protocol.TList _list0 = iprot.readListBegin();
+                struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list0.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _elem1;
+                for (int _i2 = 0; _i2 < _list0.size; ++_i2)
                 {
-                  _elem53 = iprot.readString();
-                  struct.inputFiles.add(_elem53);
+                  _elem1 = iprot.readString();
+                  struct.inputFiles.add(_elem1);
                 }
                 iprot.readListEnd();
               }
@@ -1320,14 +1395,14 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           case 10: // SSI_LIST
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list55 = iprot.readListBegin();
-                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list55.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem56;
-                for (int _i57 = 0; _i57 < _list55.size; ++_i57)
+                org.apache.thrift.protocol.TList _list3 = iprot.readListBegin();
+                struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list3.size);
+                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem4;
+                for (int _i5 = 0; _i5 < _list3.size; ++_i5)
                 {
-                  _elem56 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
-                  _elem56.read(iprot);
-                  struct.ssiList.add(_elem56);
+                  _elem4 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
+                  _elem4.read(iprot);
+                  struct.ssiList.add(_elem4);
                 }
                 iprot.readListEnd();
               }
@@ -1339,31 +1414,39 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
           case 11: // SSIO
             if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
               {
-                org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin();
-                struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map58.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key59;
-                @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val60;
-                for (int _i61 = 0; _i61 < _map58.size; ++_i61)
+                org.apache.thrift.protocol.TMap _map6 = iprot.readMapBegin();
+                struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map6.size);
+                @org.apache.thrift.annotation.Nullable java.lang.String _key7;
+                @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val8;
+                for (int _i9 = 0; _i9 < _map6.size; ++_i9)
                 {
-                  _key59 = iprot.readString();
+                  _key7 = iprot.readString();
                   {
-                    org.apache.thrift.protocol.TMap _map62 = iprot.readMapBegin();
-                    _val60 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map62.size);
-                    @org.apache.thrift.annotation.Nullable java.lang.String _key63;
-                    @org.apache.thrift.annotation.Nullable java.lang.String _val64;
-                    for (int _i65 = 0; _i65 < _map62.size; ++_i65)
+                    org.apache.thrift.protocol.TMap _map10 = iprot.readMapBegin();
+                    _val8 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map10.size);
+                    @org.apache.thrift.annotation.Nullable java.lang.String _key11;
+                    @org.apache.thrift.annotation.Nullable java.lang.String _val12;
+                    for (int _i13 = 0; _i13 < _map10.size; ++_i13)
                     {
-                      _key63 = iprot.readString();
-                      _val64 = iprot.readString();
-                      _val60.put(_key63, _val64);
+                      _key11 = iprot.readString();
+                      _val12 = iprot.readString();
+                      _val8.put(_key11, _val12);
                     }
                     iprot.readMapEnd();
                   }
-                  struct.ssio.put(_key59, _val60);
+                  struct.ssio.put(_key7, _val8);
                 }
                 iprot.readMapEnd();
               }
               struct.setSsioIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
+          case 12: // TIMES_PAUSED
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.timesPaused = iprot.readI64();
+              struct.setTimesPausedIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -1396,9 +1479,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(INPUT_FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.inputFiles.size()));
-          for (java.lang.String _iter66 : struct.inputFiles)
+          for (java.lang.String _iter14 : struct.inputFiles)
           {
-            oprot.writeString(_iter66);
+            oprot.writeString(_iter14);
           }
           oprot.writeListEnd();
         }
@@ -1434,9 +1517,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(SSI_LIST_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.ssiList.size()));
-          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter67 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter15 : struct.ssiList)
           {
-            _iter67.write(oprot);
+            _iter15.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1446,15 +1529,15 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         oprot.writeFieldBegin(SSIO_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP, struct.ssio.size()));
-          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter68 : struct.ssio.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter16 : struct.ssio.entrySet())
           {
-            oprot.writeString(_iter68.getKey());
+            oprot.writeString(_iter16.getKey());
             {
-              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter68.getValue().size()));
-              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter69 : _iter68.getValue().entrySet())
+              oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, _iter16.getValue().size()));
+              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter17 : _iter16.getValue().entrySet())
               {
-                oprot.writeString(_iter69.getKey());
-                oprot.writeString(_iter69.getValue());
+                oprot.writeString(_iter17.getKey());
+                oprot.writeString(_iter17.getValue());
               }
               oprot.writeMapEnd();
             }
@@ -1463,6 +1546,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
         }
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(TIMES_PAUSED_FIELD_DESC);
+      oprot.writeI64(struct.timesPaused);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -1515,7 +1601,10 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (struct.isSetSsio()) {
         optionals.set(10);
       }
-      oprot.writeBitSet(optionals, 11);
+      if (struct.isSetTimesPaused()) {
+        optionals.set(11);
+      }
+      oprot.writeBitSet(optionals, 12);
       if (struct.isSetExtent()) {
         struct.extent.write(oprot);
       }
@@ -1525,9 +1614,9 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (struct.isSetInputFiles()) {
         {
           oprot.writeI32(struct.inputFiles.size());
-          for (java.lang.String _iter70 : struct.inputFiles)
+          for (java.lang.String _iter18 : struct.inputFiles)
           {
-            oprot.writeString(_iter70);
+            oprot.writeString(_iter18);
           }
         }
       }
@@ -1552,35 +1641,38 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       if (struct.isSetSsiList()) {
         {
           oprot.writeI32(struct.ssiList.size());
-          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter71 : struct.ssiList)
+          for (org.apache.accumulo.core.dataImpl.thrift.IterInfo _iter19 : struct.ssiList)
           {
-            _iter71.write(oprot);
+            _iter19.write(oprot);
           }
         }
       }
       if (struct.isSetSsio()) {
         {
           oprot.writeI32(struct.ssio.size());
-          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter72 : struct.ssio.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.util.Map<java.lang.String,java.lang.String>> _iter20 : struct.ssio.entrySet())
           {
-            oprot.writeString(_iter72.getKey());
+            oprot.writeString(_iter20.getKey());
             {
-              oprot.writeI32(_iter72.getValue().size());
-              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter73 : _iter72.getValue().entrySet())
+              oprot.writeI32(_iter20.getValue().size());
+              for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter21 : _iter20.getValue().entrySet())
               {
-                oprot.writeString(_iter73.getKey());
-                oprot.writeString(_iter73.getValue());
+                oprot.writeString(_iter21.getKey());
+                oprot.writeString(_iter21.getValue());
               }
             }
           }
         }
+      }
+      if (struct.isSetTimesPaused()) {
+        oprot.writeI64(struct.timesPaused);
       }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ActiveCompaction struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(11);
+      java.util.BitSet incoming = iprot.readBitSet(12);
       if (incoming.get(0)) {
         struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
         struct.extent.read(iprot);
@@ -1592,13 +1684,13 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TList _list74 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-          struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list74.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _elem75;
-          for (int _i76 = 0; _i76 < _list74.size; ++_i76)
+          org.apache.thrift.protocol.TList _list22 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+          struct.inputFiles = new java.util.ArrayList<java.lang.String>(_list22.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _elem23;
+          for (int _i24 = 0; _i24 < _list22.size; ++_i24)
           {
-            _elem75 = iprot.readString();
-            struct.inputFiles.add(_elem75);
+            _elem23 = iprot.readString();
+            struct.inputFiles.add(_elem23);
           }
         }
         struct.setInputFilesIsSet(true);
@@ -1629,43 +1721,47 @@ public class ActiveCompaction implements org.apache.thrift.TBase<ActiveCompactio
       }
       if (incoming.get(9)) {
         {
-          org.apache.thrift.protocol.TList _list77 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list77.size);
-          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem78;
-          for (int _i79 = 0; _i79 < _list77.size; ++_i79)
+          org.apache.thrift.protocol.TList _list25 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.ssiList = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.IterInfo>(_list25.size);
+          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.IterInfo _elem26;
+          for (int _i27 = 0; _i27 < _list25.size; ++_i27)
           {
-            _elem78 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
-            _elem78.read(iprot);
-            struct.ssiList.add(_elem78);
+            _elem26 = new org.apache.accumulo.core.dataImpl.thrift.IterInfo();
+            _elem26.read(iprot);
+            struct.ssiList.add(_elem26);
           }
         }
         struct.setSsiListIsSet(true);
       }
       if (incoming.get(10)) {
         {
-          org.apache.thrift.protocol.TMap _map80 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP); 
-          struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map80.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key81;
-          @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val82;
-          for (int _i83 = 0; _i83 < _map80.size; ++_i83)
+          org.apache.thrift.protocol.TMap _map28 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.MAP); 
+          struct.ssio = new java.util.HashMap<java.lang.String,java.util.Map<java.lang.String,java.lang.String>>(2*_map28.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key29;
+          @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,java.lang.String> _val30;
+          for (int _i31 = 0; _i31 < _map28.size; ++_i31)
           {
-            _key81 = iprot.readString();
+            _key29 = iprot.readString();
             {
-              org.apache.thrift.protocol.TMap _map84 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-              _val82 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map84.size);
-              @org.apache.thrift.annotation.Nullable java.lang.String _key85;
-              @org.apache.thrift.annotation.Nullable java.lang.String _val86;
-              for (int _i87 = 0; _i87 < _map84.size; ++_i87)
+              org.apache.thrift.protocol.TMap _map32 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+              _val30 = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map32.size);
+              @org.apache.thrift.annotation.Nullable java.lang.String _key33;
+              @org.apache.thrift.annotation.Nullable java.lang.String _val34;
+              for (int _i35 = 0; _i35 < _map32.size; ++_i35)
               {
-                _key85 = iprot.readString();
-                _val86 = iprot.readString();
-                _val82.put(_key85, _val86);
+                _key33 = iprot.readString();
+                _val34 = iprot.readString();
+                _val30.put(_key33, _val34);
               }
             }
-            struct.ssio.put(_key81, _val82);
+            struct.ssio.put(_key29, _val30);
           }
         }
         struct.setSsioIsSet(true);
+      }
+      if (incoming.get(11)) {
+        struct.timesPaused = iprot.readI64();
+        struct.setTimesPausedIsSet(true);
       }
     }
   }

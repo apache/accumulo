@@ -35,7 +35,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.thrift.server.TServer;
@@ -58,15 +58,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TServerUtilsTest {
 
   private ServerContext context;
+  private ZooSession zk;
   private MetricsInfo metricsInfo;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   @BeforeEach
   public void createMockServerContext() {
     context = createMock(ServerContext.class);
-    expect(context.getZooReader()).andReturn(null).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    zk = createMock(ZooSession.class);
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReader()).andReturn(null).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(null).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
@@ -93,6 +95,7 @@ public class TServerUtilsTest {
   public void testStartServerZeroPort() throws Exception {
     TServer server = null;
     conf.set(Property.TSERV_CLIENTPORT, "0");
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -111,6 +114,7 @@ public class TServerUtilsTest {
     TServer server = null;
     int port = getFreePort(1024);
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -131,6 +135,7 @@ public class TServerUtilsTest {
     InetAddress addr = InetAddress.getByName("localhost");
     // Bind to the port
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port));
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
       assertThrows(UnknownHostException.class, this::startServer);
@@ -145,7 +150,6 @@ public class TServerUtilsTest {
     // Bind to the port
     InetAddress addr = InetAddress.getByName("localhost");
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(port[0]));
-    conf.set(Property.TSERV_PORTSEARCH, "true");
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -166,14 +170,13 @@ public class TServerUtilsTest {
   public void testStartServerNonDefaultPorts() throws Exception {
     TServer server = null;
 
-    // This test finds 6 free ports in more-or-less a contiguous way and then
+    // This test finds 5 free ports in more-or-less a contiguous way and then
     // uses those port numbers to Accumulo services in the below (ascending) sequence
     // 0. TServer default client port (this test binds to this port to force a port search)
     // 1. GC
     // 2. Manager
     // 3. Monitor
-    // 4. Manager Replication Coordinator
-    // 5. One free port - this is the one that we expect the TServer to finally use
+    // 4. One free port - this is the one that we expect the TServer to finally use
     int[] ports = findTwoFreeSequentialPorts(1024);
     int tserverDefaultPort = ports[0];
     conf.set(Property.TSERV_CLIENTPORT, Integer.toString(tserverDefaultPort));
@@ -187,13 +190,7 @@ public class TServerUtilsTest {
     conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
 
     ports = findTwoFreeSequentialPorts(monitorPort + 1);
-    int managerReplCoordPort = ports[0];
-    @SuppressWarnings("deprecation")
-    Property p = Property.MANAGER_REPLICATION_COORDINATOR_PORT;
-    conf.set(p, Integer.toString(managerReplCoordPort));
-    int tserverFinalPort = ports[1];
-
-    conf.set(Property.TSERV_PORTSEARCH, "true");
+    int tserverFinalPort = ports[0];
 
     // Ensure that the TServer client port we set above is NOT in the reserved ports
     Map<Integer,Property> reservedPorts =
@@ -205,7 +202,6 @@ public class TServerUtilsTest {
     assertTrue(reservedPorts.containsKey(gcPort));
     assertTrue(reservedPorts.containsKey(managerPort));
     assertTrue(reservedPorts.containsKey(monitorPort));
-    assertTrue(reservedPorts.containsKey(managerReplCoordPort));
 
     InetAddress addr = InetAddress.getByName("localhost");
     try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {
@@ -230,6 +226,7 @@ public class TServerUtilsTest {
     int[] port = findTwoFreeSequentialPorts(1024);
     String portRange = port[0] + "-" + port[1];
     conf.set(Property.TSERV_CLIENTPORT, portRange);
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try {
       ServerAddress address = startServer();
       assertNotNull(address);
@@ -253,6 +250,7 @@ public class TServerUtilsTest {
     String portRange = port[0] + "-" + port[1];
     // Bind to the port
     conf.set(Property.TSERV_CLIENTPORT, portRange);
+    conf.set(Property.TSERV_PORTSEARCH, "false");
     try (ServerSocket s = new ServerSocket(port[0], 50, addr)) {
       assertNotNull(s);
       ServerAddress address = startServer();
@@ -292,21 +290,21 @@ public class TServerUtilsTest {
         // keep trying
       }
     }
-    throw new RuntimeException("Unable to find open port");
+    throw new IllegalStateException("Unable to find open port");
   }
 
   private ServerAddress startServer() throws Exception {
-    ClientServiceHandler clientHandler = new ClientServiceHandler(context, null);
+    ClientServiceHandler clientHandler = new ClientServiceHandler(context);
     Iface rpcProxy = TraceUtil.wrapService(clientHandler);
     Processor<Iface> processor = new Processor<>(rpcProxy);
     // "localhost" explicitly to make sure we can always bind to that interface (avoids DNS
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(context, hostname, Property.TSERV_CLIENTPORT, processor,
-        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK,
-        Property.RPC_MAX_MESSAGE_SIZE);
-
+    ServerAddress sa = TServerUtils.createThriftServer(context, hostname, Property.TSERV_CLIENTPORT,
+        processor, "TServerUtilsTest", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sa.startThriftServer("TServerUtilsTestThread");
+    return sa;
   }
 }

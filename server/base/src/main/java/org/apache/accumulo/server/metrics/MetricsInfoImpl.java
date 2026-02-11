@@ -20,7 +20,6 @@ package org.apache.accumulo.server.metrics;
 
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -31,15 +30,14 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
@@ -50,8 +48,6 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.core.instrument.distribution.DistributionStatisticConfig;
 
 public class MetricsInfoImpl implements MetricsInfo {
 
@@ -129,6 +125,22 @@ public class MetricsInfoImpl implements MetricsInfo {
       return;
     }
 
+    var userTags = context.getConfiguration().get(Property.GENERAL_MICROMETER_USER_TAGS);
+    if (!userTags.isEmpty()) {
+      tags = new ArrayList<>(tags);
+      String[] userTagList = userTags.split(",");
+      for (String userTag : userTagList) {
+        String[] tagParts = userTag.split("=");
+        if (tagParts.length == 2) {
+          Tag tag = Tag.of(tagParts[0], tagParts[1]);
+          tags.add(tag);
+        } else {
+          LOG.warn("Malformed user metric tag: {} in property {}", userTag,
+              Property.GENERAL_MICROMETER_USER_TAGS.getKey());
+        }
+      }
+    }
+
     commonTags = List.copyOf(tags);
 
     LOG.info("Metrics initialization. common tags: {}", commonTags);
@@ -138,18 +150,6 @@ public class MetricsInfoImpl implements MetricsInfo {
     boolean jvmMetricsEnabled =
         context.getConfiguration().getBoolean(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED);
 
-    MeterFilter replicationFilter = new MeterFilter() {
-      @Override
-      public DistributionStatisticConfig configure(Meter.Id id,
-          @NonNull DistributionStatisticConfig config) {
-        if (id.getName().equals("replicationQueue")) {
-          return DistributionStatisticConfig.builder().percentiles(0.5, 0.75, 0.9, 0.95, 0.99)
-              .expiry(Duration.ofMinutes(10)).build().merge(config);
-        }
-        return config;
-      }
-    };
-
     // user specified registries
     String userRegistryFactories =
         context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
@@ -157,7 +157,6 @@ public class MetricsInfoImpl implements MetricsInfo {
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
-        registry.config().meterFilter(replicationFilter);
         registry.config().commonTags(commonTags);
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
@@ -202,33 +201,18 @@ public class MetricsInfoImpl implements MetricsInfo {
     producers.forEach(p -> p.registerMetrics(Metrics.globalRegistry));
   }
 
-  // support for org.apache.accumulo.core.metrics.MeterRegistryFactory can be removed in 3.1
   @VisibleForTesting
-  @SuppressWarnings("deprecation")
   static MeterRegistry getRegistryFromFactory(final String factoryName, final ServerContext context)
       throws ReflectiveOperationException {
     try {
       LOG.info("look for meter spi registry factory {}", factoryName);
-      Class<? extends org.apache.accumulo.core.spi.metrics.MeterRegistryFactory> clazz =
-          ClassLoaderUtil.loadClass(factoryName,
-              org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.class);
-      org.apache.accumulo.core.spi.metrics.MeterRegistryFactory factory =
-          clazz.getDeclaredConstructor().newInstance();
-      org.apache.accumulo.core.spi.metrics.MeterRegistryFactory.InitParameters initParameters =
-          new MeterRegistryEnvPropImpl(context);
+      Class<? extends MeterRegistryFactory> clazz =
+          ClassLoaderUtil.loadClass(factoryName, MeterRegistryFactory.class);
+      MeterRegistryFactory factory = clazz.getDeclaredConstructor().newInstance();
+      MeterRegistryFactory.InitParameters initParameters = new MeterRegistryEnvPropImpl(context);
       return factory.create(initParameters);
     } catch (ClassCastException ex) {
       // empty. On exception try deprecated version
-    }
-    try {
-      LOG.info("find legacy meter registry factory {}", factoryName);
-      Class<? extends org.apache.accumulo.core.metrics.MeterRegistryFactory> clazz = ClassLoaderUtil
-          .loadClass(factoryName, org.apache.accumulo.core.metrics.MeterRegistryFactory.class);
-      org.apache.accumulo.core.metrics.MeterRegistryFactory factory =
-          clazz.getDeclaredConstructor().newInstance();
-      return factory.create();
-    } catch (ClassCastException ex) {
-      // empty. No valid metrics factory, fall through and then throw exception.
     }
     throw new ClassNotFoundException(
         "Could not find appropriate class implementing a MetricsFactory for: " + factoryName);

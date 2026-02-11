@@ -60,7 +60,6 @@ public class TCredentialsUpdatingInvocationHandler<I> implements InvocationHandl
   @Override
   public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
     updateArgs(args);
-
     return invokeMethod(method, args);
   }
 

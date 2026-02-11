@@ -22,15 +22,14 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -38,7 +37,7 @@ import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-class ImportPopulateZookeeper extends ManagerRepo {
+class ImportPopulateZookeeper extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -49,9 +48,9 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, tid, true, false,
-        TableOperation.IMPORT);
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    return Utils.reserveTable(environment.getContext(), tableInfo.tableId, fateId, LockType.WRITE,
+        false, TableOperation.IMPORT);
   }
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
@@ -69,29 +68,20 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
-    // reserve the table name in zookeeper or fail
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
-    Utils.getTableNameLock().lock();
-    try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.namespaceId,
-          tableInfo.tableId, TableOperation.CREATE);
+    var context = env.getContext();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
+        TableOperation.IMPORT);
+    env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
 
-      String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
-      NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
-      env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
-
-      env.getContext().clearTableListCache();
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    context.clearTableListCache();
 
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(env.getContext(), TablePropKey.of(env.getContext(), tableInfo.tableId),
-          getExportedProps(volMan));
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId), getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
@@ -102,9 +92,10 @@ class ImportPopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
-    env.getTableManager().removeTable(tableInfo.tableId);
-    Utils.unreserveTable(env, tableInfo.tableId, tid, true);
-    env.getContext().clearTableListCache();
+  public void undo(FateId fateId, FateEnv env) throws Exception {
+    var context = env.getContext();
+    env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);
+    context.clearTableListCache();
   }
 }

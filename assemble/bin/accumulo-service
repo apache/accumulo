@@ -26,11 +26,9 @@ Services:
   gc                     Accumulo garbage collector
   monitor                Accumulo monitor
   manager                Accumulo manager
-  master                 Deprecated. Use 'manager' instead
   tserver                Accumulo tserver
-  compaction-coordinator Accumulo compaction coordinator (experimental)
-  compactor              Accumulo compactor (experimental)
-  sserver                Accumulo scan server (experimental)
+  compactor              Accumulo compactor
+  sserver                Accumulo scan server
 
 Commands:
   start                   Starts service(s)
@@ -63,16 +61,10 @@ function rotate_log() {
 function get_group() {
   # Find the group parameter if any
   local group="default"
-  local group_param=""
   local param
   for param in "$@"; do
-    if [[ -n $group_param ]]; then
-      # grab the group if the previous arg was the group param
-      group="$param"
-      break
-    elif [[ $param == '-q' || $param == '-g' ]]; then
-      # found the group parameter, the next arg is the group
-      group_param=$param
+    if [[ $param =~ ^[a-z]*[.]group=(.*)$ ]]; then
+      group="${BASH_REMATCH[1]}"
     fi
   done
   echo "$group"
@@ -119,7 +111,7 @@ function start_service() {
     rotate_log "$outfile"
     rotate_log "$errfile"
 
-    nohup "${bin}/accumulo" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
+    nohup "${bin}/accumulo" "process" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
     echo "$!" >"${pid_file}"
 
   done
@@ -283,11 +275,6 @@ function main() {
   local service_name=""
   local all_flag=false
 
-  if [[ $service_type == "master" ]]; then
-    echo "WARN : Use of 'master' service name is deprecated; use 'manager' instead."
-    service_type="manager"
-  fi
-
   if [[ -f "${conf}/accumulo-env.sh" ]]; then
     #shellcheck source=../conf/accumulo-env.sh
     source "${conf}/accumulo-env.sh"
@@ -305,14 +292,14 @@ function main() {
       all_flag=true
     else
       # A named service has been specified
-      if [[ $1 != "-a" ]]; then
+      if [[ $1 != "-o" ]]; then
         service_name="$1"
       fi
     fi
   fi
 
   case "$service_type" in
-    gc | manager | monitor | tserver | compaction-coordinator | compactor | sserver)
+    gc | manager | monitor | tserver | compactor | sserver)
       if [[ -z $command_name ]]; then
         invalid_args "<command> cannot be empty"
       fi

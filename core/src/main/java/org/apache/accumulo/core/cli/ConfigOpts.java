@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -39,6 +39,8 @@ public class ConfigOpts extends Help {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
 
+  public static final String BIND_ALL_ADDRESSES = "0.0.0.0";
+
   @Parameter(names = {"-p", "-props", "--props"}, description = "Sets path to accumulo.properties."
       + "The classpath will be searched if this property is not set")
   private String propsPath;
@@ -56,7 +58,10 @@ public class ConfigOpts extends Help {
 
   @Parameter(names = "-o", splitter = NullSplitter.class,
       description = "Overrides configuration set in accumulo.properties (but NOT system-wide config"
-          + " set in Zookeeper). Expected format: -o <key>=<value>")
+          + " set in Zookeeper). This is useful when you have process specific configuration items"
+          + " that are one-offs from a shared common configuration. Setting the bind address,"
+          + " for example, can be done with the arguments \"-o general.process.bind.addr=127.0.0.1\"."
+          + " Expected format: -o <key>=<value> [-o <key>=<value>]")
   private List<String> overrides = new ArrayList<>();
 
   private SiteConfiguration siteConfig = null;
@@ -67,7 +72,8 @@ public class ConfigOpts extends Help {
     if (siteConfig == null) {
       String propsPath = getPropertiesPath();
       siteConfig = (propsPath == null ? SiteConfiguration.fromEnv()
-          : SiteConfiguration.fromFile(new File(propsPath))).withOverrides(getOverrides()).build();
+          : SiteConfiguration.fromFile(Path.of(propsPath).toFile())).withOverrides(getOverrides())
+          .build();
     }
     return siteConfig;
   }

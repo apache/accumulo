@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -28,14 +28,16 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Scanner;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -75,7 +77,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // configure only one tserver from mini; mini won't less us configure 0, so instead, we will
     // start only 1, and kill it to start our own in the desired simulation environment
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     cfg.setProperty(Property.GENERAL_RPC_TIMEOUT, "5s");
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.FALSE.toString());
@@ -157,16 +159,17 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
   public String test(int seconds, boolean expectTserverDied) throws Exception {
     assumeTrue(sharedLibBuilt.get(), "Shared library did not build");
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (client.instanceOperations().getTabletServers().isEmpty()) {
+      while (client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty()) {
         // wait until the tserver that we need to kill is running
         Thread.sleep(50);
       }
 
       // create our own tablet server with the special test library
+      Path confDirPath = cluster.getConfig().getDir().toPath();
       String javaHome = System.getProperty("java.home");
       String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
       String classpath = System.getProperty("java.class.path");
-      classpath = new File(cluster.getConfig().getDir(), "conf") + File.pathSeparator + classpath;
+      classpath = confDirPath.resolve("conf").toAbsolutePath() + File.pathSeparator + classpath;
       String className = TabletServer.class.getName();
       ProcessBuilder builder = new ProcessBuilder(javaBin, Main.class.getName(), className);
       Map<String,String> env = builder.environment();
@@ -186,26 +189,28 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       try {
         stderrCollector.start();
         stdoutCollector.start();
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
         // don't need the regular tablet server
         cluster.killProcess(ServerType.TABLET_SERVER,
             cluster.getProcesses().get(ServerType.TABLET_SERVER).iterator().next());
-        sleepUninterruptibly(1, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(1));
         client.tableOperations().create("test_ingest");
-        assertEquals(1, client.instanceOperations().getTabletServers().size());
+        assertEquals(1, client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size());
         int rows = 100_000;
         ingest =
             cluster.exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--rows", rows + "")
                 .getProcess();
-        sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+        Thread.sleep(500);
 
         // block I/O with some side-channel trickiness
-        File trickFile = new File(trickFilename);
+        Path trickFile = Path.of(trickFilename);
         try {
-          assertTrue(trickFile.createNewFile());
-          sleepUninterruptibly(seconds, TimeUnit.SECONDS);
+          Files.createFile(trickFile);
+          assertTrue(Files.exists(trickFile));
+          Thread.sleep(SECONDS.toMillis(seconds));
         } finally {
-          if (!trickFile.delete()) {
+          Files.deleteIfExists(trickFile);
+          if (Files.exists(trickFile)) {
             log.error("Couldn't delete {}", trickFile);
           }
         }
@@ -216,7 +221,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
           params.rows = rows;
           VerifyIngest.verifyIngest(client, params);
         } else {
-          sleepUninterruptibly(5, TimeUnit.SECONDS);
+          Thread.sleep(SECONDS.toMillis(5));
           tserver.waitFor();
           stderrCollector.join();
           stdoutCollector.join();

@@ -233,8 +233,11 @@ class ScanTracingIT extends ConfigurableMacBase {
       assertClose(results.scanSize, stats.getBytesReturned(), .05);
       if (secondScanFitsInCache && i == 1) {
         assertEquals(0, stats.getFileBytesRead(), stats::toString);
+        assertEquals(0, stats.getDataCacheMisses(), stats::toString);
       } else {
-        assertClose((long) (stats.getBytesRead() * .005), stats.getFileBytesRead(), .2);
+        assertTrue(
+            stats.getFileBytesRead() > 0 && stats.getFileBytesRead() < stats.getBytesRead() * .01,
+            stats::toString);
       }
       if (cacheData) {
         assertEquals(0, stats.getDataCacheBypasses(), stats::toString);

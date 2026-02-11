@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -35,15 +35,14 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.Iterators;
 
@@ -51,7 +50,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterImplTest {
-  private static File testDir;
+
+  @TempDir
+  private static Path tempDir;
 
   private static MiniAccumuloClusterImpl accumulo;
 
@@ -62,16 +63,10 @@ public class MiniAccumuloClusterImplTest {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterImplTest.class.getName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-
     MiniAccumuloConfigImpl config =
-        new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
+        new MiniAccumuloConfigImpl(tempDir.toFile(), "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
-    config.setNumTservers(NUM_TSERVERS);
+    config.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
@@ -107,9 +102,11 @@ public class MiniAccumuloClusterImplTest {
   @Timeout(60)
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
+    // Expecting default AccumuloTables + TEST_TABLE
+    int expectedNumTables = SystemTables.values().length + 1;
     while (true) {
       stats = accumulo.getManagerMonitorInfo();
-      if (stats.tableMap.size() <= 2) {
+      if (stats.tableMap.size() < expectedNumTables) {
         continue;
       }
 
@@ -123,10 +120,14 @@ public class MiniAccumuloClusterImplTest {
     assertTrue(validGoals.contains(stats.goalState),
         "manager goal state should be in " + validGoals + ". is " + stats.goalState);
     assertNotNull(stats.tableMap, "should have a table map.");
-    assertTrue(stats.tableMap.containsKey(RootTable.ID.canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.ROOT.tableId().canonical()),
         "root table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(MetadataTable.ID.canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.METADATA.tableId().canonical()),
         "meta table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(SystemTables.FATE.tableId().canonical()),
+        "fate table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(SystemTables.SCAN_REF.tableId().canonical()),
+        "scan ref table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(testTableID),
         "our test table should exist in " + stats.tableMap.keySet());
     assertNotNull(stats.tServerInfo, "there should be tservers.");

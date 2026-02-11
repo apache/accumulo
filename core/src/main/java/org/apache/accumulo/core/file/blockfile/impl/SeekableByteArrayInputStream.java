@@ -22,8 +22,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
 import java.io.InputStream;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiFunction;
+import java.util.function.IntBinaryOperator;
 
 /**
  * This class is like byte array input stream with two differences. It supports seeking and avoids
@@ -31,24 +32,16 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class SeekableByteArrayInputStream extends InputStream {
 
-  // making this volatile for the following case
-  // * thread 1 creates and initializes byte array
-  // * thread 2 reads from bye array
-  // spotbugs complains about this because thread2 may not see any changes to the byte array after
-  // thread 1 set the volatile,
-  // however the expectation is that the byte array is static. In the case of it being static,
-  // volatile ensures that
-  // thread 2 sees all of thread 1 changes before setting the volatile.
-  @SuppressFBWarnings(value = "VO_VOLATILE_REFERENCE_TO_ARRAY",
-      justification = "see explanation above")
-  private volatile byte[] buffer;
-  private int cur;
-  private int max;
+  private final byte[] buffer;
+  private final AtomicInteger cur = new AtomicInteger(0);
+  private final int max;
 
   @Override
   public int read() {
-    if (cur < max) {
-      return buffer[cur++] & 0xff;
+    // advance the pointer by 1 if we haven't reached the end
+    final int currentValue = cur.getAndAccumulate(1, (v, x) -> v < max ? v + x : v);
+    if (currentValue < max) {
+      return buffer[currentValue] & 0xff;
     } else {
       return -1;
     }
@@ -68,7 +61,20 @@ public class SeekableByteArrayInputStream extends InputStream {
       return 0;
     }
 
-    int avail = max - cur;
+    // compute how much to read, based on what's left available
+    IntBinaryOperator add = (cur1, length1) -> {
+      final int available = max - cur1;
+      if (available <= 0) {
+        return cur1;
+      } else if (length1 > available) {
+        length1 = available;
+      }
+      return cur1 + length1;
+    };
+
+    final int currentValue = cur.getAndAccumulate(length, add);
+
+    final int avail = max - currentValue;
 
     if (avail <= 0) {
       return -1;
@@ -78,29 +84,29 @@ public class SeekableByteArrayInputStream extends InputStream {
       length = avail;
     }
 
-    System.arraycopy(buffer, cur, b, offset, length);
-    cur += length;
+    System.arraycopy(buffer, currentValue, b, offset, length);
     return length;
   }
 
   @Override
   public long skip(long requestedSkip) {
-    int actualSkip = max - cur;
-    if (requestedSkip < actualSkip) {
-      if (requestedSkip < 0) {
-        actualSkip = 0;
-      } else {
-        actualSkip = (int) requestedSkip;
-      }
-    }
 
-    cur += actualSkip;
-    return actualSkip;
+    // actual skip is at least 0, but no more than what's available
+    BiFunction<Integer,Integer,Integer> skipValue =
+        (current, skip) -> Math.max(0, Math.min(max - current, skip));
+
+    // compute how much to advance, based on actual amount skipped
+    IntBinaryOperator add = (cur1, skip) -> cur1 + skipValue.apply(cur1, skip);
+
+    // advance the pointer and return the actual amount skipped
+    int currentValue = cur.getAndAccumulate((int) requestedSkip, add);
+
+    return skipValue.apply(currentValue, (int) requestedSkip);
   }
 
   @Override
   public int available() {
-    return max - cur;
+    return max - cur.get();
   }
 
   @Override
@@ -124,14 +130,12 @@ public class SeekableByteArrayInputStream extends InputStream {
   public SeekableByteArrayInputStream(byte[] buf) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = 0;
     this.max = buf.length;
   }
 
   public SeekableByteArrayInputStream(byte[] buf, int maxOffset) {
     requireNonNull(buf, "bug argument was null");
     this.buffer = buf;
-    this.cur = 0;
     this.max = maxOffset;
   }
 
@@ -139,11 +143,11 @@ public class SeekableByteArrayInputStream extends InputStream {
     if (position < 0 || position >= max) {
       throw new IllegalArgumentException("position = " + position + " maxOffset = " + max);
     }
-    this.cur = position;
+    this.cur.set(position);
   }
 
   public int getPosition() {
-    return this.cur;
+    return this.cur.get();
   }
 
   byte[] getBuffer() {

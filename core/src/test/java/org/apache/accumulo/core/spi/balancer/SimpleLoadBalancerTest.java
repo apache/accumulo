@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -58,8 +59,8 @@ public class SimpleLoadBalancerTest {
     List<TabletId> tablets = new ArrayList<>();
 
     TServerStatus getStatus() {
-      org.apache.accumulo.core.master.thrift.TabletServerStatus result =
-          new org.apache.accumulo.core.master.thrift.TabletServerStatus();
+      org.apache.accumulo.core.manager.thrift.TabletServerStatus result =
+          new org.apache.accumulo.core.manager.thrift.TabletServerStatus();
       result.tableMap = new HashMap<>();
       for (TabletId tabletId : tablets) {
         TableInfo info = result.tableMap.get(tabletId.getTable().canonical());
@@ -87,8 +88,7 @@ public class SimpleLoadBalancerTest {
       for (TabletId tabletId : servers.get(tserver).tablets) {
         if (tabletId.getTable().equals(tableId)) {
           KeyExtent extent = new KeyExtent(tableId, tabletId.getEndRow(), tabletId.getPrevEndRow());
-          TabletStats stats =
-              new TabletStats(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
+          TabletStats stats = new TabletStats(new TabletStats(extent.toThrift(), null, 0L, 0., 0.));
           result.add(new TabletStatisticsImpl(stats));
         }
       }
@@ -203,8 +203,10 @@ public class SimpleLoadBalancerTest {
     // balance until we can't balance no more!
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER.name(), Map.of()));
+      SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
+      balancer.balance(
+          new BalanceParamsImpl(tservers, Map.of(ResourceGroupId.DEFAULT, tservers.keySet()),
+              migrations, migrationsOut, DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -246,8 +248,10 @@ public class SimpleLoadBalancerTest {
     // balance until we can't balance no more!
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER.name(), Map.of()));
+      SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
+      balancer.balance(
+          new BalanceParamsImpl(tservers, Map.of(ResourceGroupId.DEFAULT, tservers.keySet()),
+              migrations, migrationsOut, DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }

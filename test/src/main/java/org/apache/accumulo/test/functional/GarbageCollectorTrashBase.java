@@ -26,11 +26,12 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.server.ServerContext;
@@ -51,14 +52,14 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
   protected ArrayList<StoredTabletFile> getFilesForTable(ServerContext ctx, AccumuloClient client,
       String tableName) {
     String tid = client.tableOperations().tableIdMap().get(tableName);
-    TabletsMetadata tms =
-        ctx.getAmple().readTablets().forTable(TableId.of(tid)).fetch(ColumnType.FILES).build();
-    ArrayList<StoredTabletFile> files = new ArrayList<>();
-    tms.forEach(tm -> {
-      files.addAll(tm.getFiles());
-    });
-    LOG.debug("Tablet files: {}", files);
-    return files;
+    try (TabletsMetadata tms =
+        ctx.getAmple().readTablets().forTable(TableId.of(tid)).fetch(ColumnType.FILES).build()) {
+      ArrayList<StoredTabletFile> files =
+          tms.stream().flatMap(tabletMetadata -> tabletMetadata.getFiles().stream())
+              .collect(Collectors.toCollection(ArrayList::new));
+      LOG.debug("Tablet files: {}", files);
+      return files;
+    }
   }
 
   protected ArrayList<StoredTabletFile> loadData(ServerContext ctx, AccumuloClient client,
@@ -112,7 +113,7 @@ public class GarbageCollectorTrashBase extends ConfigurableMacBase {
         if (lfs.isDirectory()) {
           continue;
         }
-        TabletFile tf = new TabletFile(lfs.getPath());
+        ReferencedTabletFile tf = new ReferencedTabletFile(lfs.getPath());
         LOG.debug("File in trash: {}, tableId: {}", lfs.getPath(), tf.getTableId());
         if (tid.equals(tf.getTableId())) {
           count++;

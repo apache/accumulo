@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -68,6 +69,12 @@ public interface TabletBalancer {
      * Assigns {@code tabletId} to {@code tabletServerId}.
      */
     void addAssignment(TabletId tabletId, TabletServerId tabletServerId);
+
+    /**
+     * @return map of resource group name to set of TServerInstance objects
+     * @since 4.0.0
+     */
+    Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups();
   }
 
   /**
@@ -96,15 +103,19 @@ public interface TabletBalancer {
     List<TabletMigration> migrationsOut();
 
     /**
-     * Accumulo may partition tables in different ways and pass subsets of tables to the balancer
-     * via {@link #getTablesToBalance()}. Each partition is given a unique name that is always the
-     * same for a given partition. Balancer can use this to determine if they are being called for
-     * the same or a different partition if tracking state between balance calls.
+     * @return map of resource group name to set of TServerInstance objects
+     * @since 4.0.0
+     */
+    Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups();
+
+    /**
+     * Return the DataLevel name for which the Manager is currently balancing. Balancers should
+     * return migrations for tables within the current DataLevel.
      *
-     * @return name of current partition of tables to balance.
+     * @return name of current balancing iteration data level
      * @since 2.1.4
      */
-    String partitionName();
+    String currentLevel();
 
     /**
      * This is the set of tables the balancer should consider. Balancing any tables outside of this
@@ -140,4 +151,54 @@ public interface TabletBalancer {
    * @return the time, in milliseconds, to wait before re-balancing.
    */
   long balance(BalanceParameters params);
+
+  /**
+   * Provides access to information related to a tablet that is currently assigned to a tablet
+   * server.
+   *
+   * @since 4.0.0
+   */
+  interface CurrentAssignment {
+    TabletId getTablet();
+
+    TabletServerId getTabletServer();
+
+    ResourceGroupId getResourceGroup();
+  }
+
+  /**
+   * <p>
+   * The manager periodically scans all tablets looking for tablets that are assigned to dead tablet
+   * servers or unassigned. During the scan this method is also called for tablets that are
+   * currently assigned to a live tserver to see if they should be unassigned and reassigned. If
+   * this method returns true the tablet will be unloaded from the tablet sever and then later the
+   * tablet will be passed to {@link #getAssignments(AssignmentParameters)}.
+   * </p>
+   *
+   * <p>
+   * One example use case for this method is a balancer that partitions tablet servers into groups.
+   * If the balancers config is changed such that a table that was assigned to tablet server group A
+   * should now be assigned to tablet server B, then this method can return true for the tablets in
+   * that table assigned to tablet server group A. After those tablets are unloaded and passed to
+   * the {@link #getAssignments(AssignmentParameters)} method it can reassign them to tablet server
+   * group B.
+   * </p>
+   *
+   * <p>
+   * Accumulo may instantiate this plugin in different processes and call this method. When the
+   * manager looks for tablets that needs reassignment it currently uses an Accumulo iterator to
+   * scan the metadata table and filter tablets. That iterator may run on multiple tablets servers
+   * and call this plugin. Keep this in mind when implementing this plugin and considering keeping
+   * state between calls to this method.
+   * </p>
+   *
+   * <p>
+   * This new method may be used instead of or in addition to {@link #balance(BalanceParameters)}
+   * </p>
+   *
+   * @since 4.0.0
+   */
+  default boolean needsReassignment(CurrentAssignment currentAssignment) {
+    return false;
+  }
 }

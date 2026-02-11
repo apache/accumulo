@@ -21,12 +21,11 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import org.apache.accumulo.miniclusterImpl.ClusterServerConfiguration;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ZooKeeperBindException;
@@ -94,11 +94,13 @@ public class ConfigurableMacBase extends AccumuloITBase {
     FileUtils.deleteQuietly(sslDir);
     assertTrue(sslDir.mkdir());
 
-    File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
-    File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
-    File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
-    final String rootKeystorePassword = "root_keystore_password",
-        truststorePassword = "truststore_password";
+    java.nio.file.Path sslDirPath = sslDir.toPath();
+    File rootKeystoreFile = sslDirPath.resolve("root-" + cfg.getInstanceName() + ".jks").toFile();
+    File localKeystoreFile = sslDirPath.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
+    File publicTruststoreFile =
+        sslDirPath.resolve("public-" + cfg.getInstanceName() + ".jks").toFile();
+    final String rootKeystorePassword = "root_keystore_password";
+    final String truststorePassword = "truststore_password";
     try {
       String hostname = InetAddress.getLocalHost().getHostName();
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
@@ -147,13 +149,17 @@ public class ConfigurableMacBase extends AccumuloITBase {
         lastException);
   }
 
+  public ClusterServerConfiguration getMiniClusterDescription() {
+    return new ClusterServerConfiguration();
+  }
+
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   protected void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
     File nativePathInDevTree = NativeMapIT.nativeMapLocation();
-    File nativePathInMapReduce = new File(System.getProperty("user.dir"));
+    File nativePathInMapReduce = java.nio.file.Path.of(System.getProperty("user.dir")).toFile();
     cfg.setNativeLibPaths(nativePathInDevTree.getAbsolutePath(), nativePathInMapReduce.toString());
     Configuration coreSite = new Configuration(false);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
@@ -166,15 +172,16 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
-      File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
-      if (csFile.exists()) {
-        coreSite.addResource(new Path(csFile.getAbsolutePath()));
+      java.nio.file.Path csFile =
+          cluster.getConfig().getConfDir().toPath().resolve("core-site.xml");
+      if (Files.exists(csFile)) {
+        coreSite.addResource(new Path(csFile.toAbsolutePath().toString()));
       }
-      File tmp = new File(csFile.getAbsolutePath() + ".tmp");
-      OutputStream out = new BufferedOutputStream(new FileOutputStream(tmp));
-      coreSite.writeXml(out);
-      out.close();
-      assertTrue(tmp.renameTo(csFile));
+      java.nio.file.Path tmp = java.nio.file.Path.of(csFile.toAbsolutePath() + ".tmp");
+      try (OutputStream out = Files.newOutputStream(tmp)) {
+        coreSite.writeXml(out);
+      }
+      Files.move(tmp, csFile);
     }
     beforeClusterStart(cfg);
   }
@@ -184,6 +191,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     if (cluster != null) {
       try {
         cluster.stop();
+        cluster.terminate();
       } catch (Exception e) {
         // ignored
       }

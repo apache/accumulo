@@ -39,13 +39,11 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
@@ -61,9 +59,8 @@ import org.junit.jupiter.api.Test;
 public class ZooPropLoaderTest {
 
   private PropCacheCaffeineImplTest.TestTicker ticker;
-  private InstanceId instanceId;
-  private ServerContext context;
-  private PropStoreKey<?> propStoreKey;
+  private ZooSession zk;
+  private PropStoreKey propStoreKey;
   private VersionedPropCodec propCodec;
 
   // mocks
@@ -75,27 +72,26 @@ public class ZooPropLoaderTest {
   @BeforeEach
   public void initCommonMocks() {
     ticker = new PropCacheCaffeineImplTest.TestTicker();
-    instanceId = InstanceId.of(UUID.randomUUID());
 
-    propStoreKey = TablePropKey.of(instanceId, TableId.of("1abc"));
+    propStoreKey = TablePropKey.of(TableId.of("1abc"));
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
-    context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
-
+    zk = createMock(ZooSession.class);
     zrw = createMock(ZooReaderWriter.class);
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+    replay(zk);
 
     propStoreWatcher = createMock(PropStoreWatcher.class);
 
     // loader used in tests
-    loader = new ZooPropLoader(zrw, propCodec, propStoreWatcher);
+    loader = new ZooPropLoader(zk, propCodec, propStoreWatcher);
 
   }
 
   @AfterEach
   public void verifyCommonMocks() {
-    verify(context, zrw, propStoreWatcher);
+    verify(zk, zrw, propStoreWatcher);
   }
 
   @Test
@@ -114,7 +110,7 @@ public class ZooPropLoaderTest {
       return (bytes);
     }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     assertNotNull(loader.load(propStoreKey));
   }
@@ -147,7 +143,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -175,7 +171,7 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalZkChangeEvent(eq(propStoreKey));
     expectLastCall();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -206,7 +202,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).times(2);
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -253,7 +249,7 @@ public class ZooPropLoaderTest {
     propStoreWatcher.signalCacheChangeEvent(anyObject());
     expectLastCall().anyTimes();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -275,7 +271,7 @@ public class ZooPropLoaderTest {
   @Test
   public void getIfCachedTest() {
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -286,8 +282,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeTest() throws Exception {
-    final var sysPropKey = SystemPropKey.of(instanceId);
-    final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
+    final var sysPropKey = SystemPropKey.of();
+    final var tablePropKey = TablePropKey.of(TableId.of("t1"));
 
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);
@@ -316,7 +312,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -334,8 +330,8 @@ public class ZooPropLoaderTest {
 
   @Test
   public void removeAllTest() throws Exception {
-    final var sysPropKey = SystemPropKey.of(instanceId);
-    final var tablePropKey = TablePropKey.of(instanceId, TableId.of("t1"));
+    final var sysPropKey = SystemPropKey.of();
+    final var tablePropKey = TablePropKey.of(TableId.of("t1"));
 
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);
@@ -364,7 +360,7 @@ public class ZooPropLoaderTest {
           return (bytes);
         }).once();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -382,7 +378,7 @@ public class ZooPropLoaderTest {
 
   @Test
   public void getIfCachedNotPresentTest() {
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     PropCacheCaffeineImpl cache =
         new PropCacheCaffeineImpl.Builder(loader).forTests(ticker).build();
@@ -413,7 +409,7 @@ public class ZooPropLoaderTest {
       return propCodec.toBytes(vProps);
     }).anyTimes();
 
-    replay(context, zrw, propStoreWatcher);
+    replay(zrw, propStoreWatcher);
 
     Stat statCheck = new Stat();
     statCheck.setVersion(9);

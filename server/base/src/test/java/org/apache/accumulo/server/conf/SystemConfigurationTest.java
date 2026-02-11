@@ -31,6 +31,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -42,11 +43,14 @@ import java.util.UUID;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +58,7 @@ public class SystemConfigurationTest {
 
   private InstanceId instanceId;
 
+  private ServerContext context;
   private PropStore propStore;
 
   private SystemConfiguration sysConfig;
@@ -61,7 +66,7 @@ public class SystemConfigurationTest {
   @BeforeEach
   public void initMocks() {
     instanceId = InstanceId.of(UUID.randomUUID());
-    ServerContext context = createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
     propStore = createMock(ZooPropStore.class);
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
@@ -74,11 +79,11 @@ public class SystemConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
-    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     replay(propStore);
 
     ConfigurationCopy defaultConfig =
@@ -86,6 +91,11 @@ public class SystemConfigurationTest {
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
     sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
+  }
+
+  @AfterEach
+  public void verifyMocks() {
+    verify(context, propStore);
   }
 
   @Test
@@ -96,8 +106,7 @@ public class SystemConfigurationTest {
 
   @Test
   public void testFromFixed() {
-
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
@@ -134,6 +143,60 @@ public class SystemConfigurationTest {
     assertTrue(sysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
+  }
+
+  @Test
+  public void testRGOverride() {
+    reset(propStore);
+    var sysPropKey = SystemPropKey.of();
+    var defaultRGPropKey = ResourceGroupPropKey.DEFAULT;
+    var testRGPropKey = ResourceGroupPropKey.of(ResourceGroupId.of("test"));
+    VersionedProperties sysProps =
+        new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
+            TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).atLeastOnce();
+    expect(propStore.get(eq(defaultRGPropKey))).andReturn(new VersionedProperties()).anyTimes();
+    VersionedProperties testRGProps = new VersionedProperties(1, Instant.now(),
+        Map.of(TABLE_BLOOM_ENABLED.getKey(), "false", TABLE_BLOOM_SIZE.getKey(), "4096"));
+    expect(propStore.get(eq(testRGPropKey))).andReturn(testRGProps).atLeastOnce();
+    propStore.invalidate(sysPropKey);
+    expectLastCall().atLeastOnce();
+    // this test is ignoring listeners
+    propStore.registerAsListener(anyObject(), anyObject());
+    expectLastCall().anyTimes();
+    replay(propStore);
+
+    sysConfig.zkChangeEvent(sysPropKey);
+    sysConfig.zkChangeEvent(defaultRGPropKey);
+
+    assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
+    assertEquals("19", sysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
+    assertEquals("1048576", sysConfig.get(TABLE_BLOOM_SIZE)); // default
+
+    assertFalse(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertTrue(sysConfig.isPropertySet(GC_PORT)); // fixed sys config
+    assertTrue(sysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
+    assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
+
+    SystemConfiguration testSysConfig =
+        new SystemConfiguration(context, sysPropKey, sysConfig.getParent());
+    ResourceGroupConfiguration rgConfig =
+        new ResourceGroupConfiguration(context, testRGPropKey, testSysConfig);
+
+    assertEquals("9997", rgConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("1234", rgConfig.get(GC_PORT)); // fixed sys config
+    assertEquals("19", rgConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertEquals("false", rgConfig.get(TABLE_BLOOM_ENABLED)); // sys config
+    assertEquals("4096", rgConfig.get(TABLE_BLOOM_SIZE)); // default
+
+    assertFalse(rgConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertTrue(rgConfig.isPropertySet(GC_PORT)); // fixed sys config
+    assertTrue(rgConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertTrue(rgConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
+    assertTrue(rgConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
 
   }
 }

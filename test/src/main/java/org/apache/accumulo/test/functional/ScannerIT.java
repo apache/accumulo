@@ -37,13 +37,14 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.CloseScannerIT;
 import org.apache.accumulo.test.util.Wait;
@@ -74,7 +75,7 @@ public class ScannerIT extends ConfigurableMacBase {
 
       IteratorSetting cfg;
       Iterator<Entry<Key,Value>> iterator;
-      long nanosWithWait = 0;
+      Duration durationWithWait = Duration.ZERO;
       try (Scanner s = c.createScanner(table, new Authorizations())) {
 
         cfg = new IteratorSetting(100, SlowIterator.class);
@@ -88,19 +89,22 @@ public class ScannerIT extends ConfigurableMacBase {
         s.setRange(new Range());
 
         iterator = s.iterator();
-        long startTime = System.nanoTime();
-        while (iterator.hasNext()) {
-          nanosWithWait += System.nanoTime() - startTime;
+        Timer hasNextTimer = Timer.startNew();
+        while (true) {
+          hasNextTimer.restart();
+          boolean hasNext = iterator.hasNext();
+          durationWithWait = durationWithWait.plus(hasNextTimer.elapsed());
+          if (!hasNext) {
+            break;
+          }
 
           // While we "do work" in the client, we should be fetching the next result
-          UtilWaitThread.sleep(100L);
+          Thread.sleep(100L);
           iterator.next();
-          startTime = System.nanoTime();
         }
-        nanosWithWait += System.nanoTime() - startTime;
       }
 
-      long nanosWithNoWait = 0;
+      Duration durationWithNoWait = Duration.ZERO;
       try (Scanner s = c.createScanner(table, new Authorizations())) {
         s.addScanIterator(cfg);
         s.setRange(new Range());
@@ -108,21 +112,25 @@ public class ScannerIT extends ConfigurableMacBase {
         s.setReadaheadThreshold(0L);
 
         iterator = s.iterator();
-        long startTime = System.nanoTime();
-        while (iterator.hasNext()) {
-          nanosWithNoWait += System.nanoTime() - startTime;
+        Timer hasNextTimer = Timer.startNew();
+        while (true) {
+          hasNextTimer.restart();
+          boolean hasNext = iterator.hasNext();
+          durationWithNoWait = durationWithNoWait.plus(hasNextTimer.elapsed());
+          if (!hasNext) {
+            break;
+          }
 
           // While we "do work" in the client, we should be fetching the next result
-          UtilWaitThread.sleep(100L);
+          Thread.sleep(100L);
           iterator.next();
-          startTime = System.nanoTime();
         }
-        nanosWithNoWait += System.nanoTime() - startTime;
 
         // The "no-wait" time should be much less than the "wait-time"
-        assertTrue(nanosWithNoWait < nanosWithWait,
-            "Expected less time to be taken with immediate readahead (" + nanosWithNoWait
-                + ") than without immediate readahead (" + nanosWithWait + ")");
+        assertTrue(durationWithNoWait.compareTo(durationWithWait) < 0,
+            "Expected less time to be taken with immediate readahead ("
+                + durationWithNoWait.toNanos() + ") than without immediate readahead ("
+                + durationWithWait.toNanos() + ")");
       }
     }
   }
@@ -136,14 +144,6 @@ public class ScannerIT extends ConfigurableMacBase {
     final String tableName = getUniqueNames(1)[0] + "_" + consistency;
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
-
-      if (serverType == SCAN_SERVER) {
-        getCluster().getConfig().setNumScanServers(1);
-        getCluster().getClusterControl().startAllServers(SCAN_SERVER);
-        // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
-        // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(() -> !accumuloClient.instanceOperations().getScanServers().isEmpty());
-      }
 
       accumuloClient.tableOperations().create(tableName);
 
@@ -213,30 +213,21 @@ public class ScannerIT extends ConfigurableMacBase {
           assertEquals(0, countActiveScans(accumuloClient, serverType, tableName));
         }
       }
-    } finally {
-      if (serverType == SCAN_SERVER) {
-        getCluster().getConfig().setNumScanServers(0);
-        getCluster().getClusterControl().stopAllServers(SCAN_SERVER);
-      }
     }
   }
 
   public static long countActiveScans(AccumuloClient c, ServerType serverType, String tableName)
       throws Exception {
-    final Collection<String> servers;
+    final Collection<ServerId> servers;
     if (serverType == TABLET_SERVER) {
-      servers = c.instanceOperations().getTabletServers();
+      servers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     } else if (serverType == SCAN_SERVER) {
-      servers = c.instanceOperations().getScanServers();
+      servers = c.instanceOperations().getServers(ServerId.Type.SCAN_SERVER);
     } else {
       throw new IllegalArgumentException("Unsupported server type " + serverType);
     }
 
-    long count = 0;
-    for (String server : servers) {
-      count += c.instanceOperations().getActiveScans(server).stream()
-          .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
-    }
-    return count;
+    return c.instanceOperations().getActiveScans(servers).stream()
+        .filter(activeScan -> activeScan.getTable().equals(tableName)).count();
   }
 }

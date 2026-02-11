@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_FACTORY;
 import static org.apache.accumulo.core.crypto.CryptoUtils.getFileDecrypter;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.TABLE;
 import static org.apache.accumulo.core.spi.crypto.CryptoEnvironment.Scope.WAL;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -48,6 +49,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -92,7 +94,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class CryptoTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final int MARKER_INT = 0xCADEFEDD;
   private static final String MARKER_STRING = "1 2 3 4 5 6 7 8 a b c d e f g h ";
   private static final Configuration hadoopConf = new Configuration();
@@ -414,11 +415,11 @@ public class CryptoTest {
       NoSuchProviderException, NoSuchPaddingException, InvalidKeyException {
     // verify valid key sizes (corresponds to 128, 192, and 256 bits)
     for (int i : new int[] {16, 24, 32}) {
-      verifyKeySizeForCBC(random, i);
+      verifyKeySizeForCBC(RANDOM.get(), i);
     }
     // verify invalid key sizes
     for (int i : new int[] {1, 2, 8, 11, 15, 64, 128}) {
-      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(random, i));
+      assertThrows(InvalidKeyException.class, () -> verifyKeySizeForCBC(RANDOM.get(), i));
     }
   }
 
@@ -434,8 +435,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsWrapAndUnwrap()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    java.security.Key kek = AESCryptoService.generateKey(random, 16);
-    java.security.Key fek = AESCryptoService.generateKey(random, 16);
+    java.security.Key kek = AESCryptoService.generateKey(RANDOM.get(), 16);
+    java.security.Key fek = AESCryptoService.generateKey(RANDOM.get(), 16);
     byte[] wrapped = AESCryptoService.wrapKey(fek, kek);
     assertFalse(Arrays.equals(fek.getEncoded(), wrapped));
     java.security.Key unwrapped = AESCryptoService.unwrapKey(wrapped, kek);
@@ -445,8 +446,8 @@ public class CryptoTest {
   @Test
   public void testAESKeyUtilsFailUnwrapWithWrongKEK()
       throws NoSuchAlgorithmException, NoSuchProviderException {
-    java.security.Key kek = AESCryptoService.generateKey(random, 16);
-    java.security.Key fek = AESCryptoService.generateKey(random, 16);
+    java.security.Key kek = AESCryptoService.generateKey(RANDOM.get(), 16);
+    java.security.Key fek = AESCryptoService.generateKey(RANDOM.get(), 16);
     byte[] wrongBytes = kek.getEncoded();
     wrongBytes[0]++;
     java.security.Key wrongKek = new SecretKeySpec(wrongBytes, "AES");
@@ -539,14 +540,20 @@ public class CryptoTest {
 
     var executor = Executors.newCachedThreadPool();
 
-    List<Future<Boolean>> verifyFutures = new ArrayList<>();
+    final int numTasks = 32;
+    List<Future<Boolean>> verifyFutures = new ArrayList<>(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
 
     FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
 
     // verify that each input stream returned by decrypter.decryptStream() is independent when used
     // by multiple threads
-    for (int i = 0; i < 32; i++) {
+    for (int i = 0; i < numTasks; i++) {
       var future = executor.submit(() -> {
+        startLatch.countDown();
+        startLatch.await();
         try (ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
             DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in))) {
           byte[] dataRead = new byte[plainText.length];
@@ -556,6 +563,7 @@ public class CryptoTest {
       });
       verifyFutures.add(future);
     }
+    assertEquals(numTasks, verifyFutures.size());
 
     for (var future : verifyFutures) {
       assertTrue(future.get());

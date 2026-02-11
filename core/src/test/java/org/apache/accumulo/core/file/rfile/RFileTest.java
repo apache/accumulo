@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.file.rfile;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -30,11 +31,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.security.SecureRandom;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -42,14 +43,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -65,17 +64,15 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCache;
-import org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -87,8 +84,6 @@ import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.PositionedReadable;
 import org.apache.hadoop.fs.Seekable;
 import org.apache.hadoop.io.Text;
@@ -104,14 +99,12 @@ import com.google.common.primitives.Bytes;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-public class RFileTest {
+public class RFileTest extends AbstractRFileTest {
 
-  private static final SecureRandom random = new SecureRandom();
-  private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {
@@ -179,169 +172,6 @@ public class RFileTest {
 
   }
 
-  private static void checkIndex(Reader reader) throws IOException {
-    FileSKVIterator indexIter = reader.getIndex();
-
-    if (indexIter.hasTop()) {
-      Key lastKey = new Key(indexIter.getTopKey());
-
-      if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new RuntimeException(
-            "First key out of order " + reader.getFirstKey() + " " + lastKey);
-      }
-
-      indexIter.next();
-
-      while (indexIter.hasTop()) {
-        if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new RuntimeException(
-              "Indext out of order " + lastKey + " " + indexIter.getTopKey());
-        }
-
-        lastKey = new Key(indexIter.getTopKey());
-        indexIter.next();
-
-      }
-
-      if (!reader.getLastKey().equals(lastKey)) {
-        throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
-      }
-    }
-  }
-
-  public static class TestRFile {
-
-    protected Configuration conf = new Configuration();
-    public RFile.Writer writer;
-    protected ByteArrayOutputStream baos;
-    protected FSDataOutputStream dos;
-    protected SeekableByteArrayInputStream bais;
-    protected FSDataInputStream in;
-    protected AccumuloConfiguration accumuloConfiguration;
-    public Reader reader;
-    public SortedKeyValueIterator<Key,Value> iter;
-    private BlockCacheManager manager;
-
-    public TestRFile(AccumuloConfiguration accumuloConfiguration) {
-      this.accumuloConfiguration = accumuloConfiguration;
-      if (this.accumuloConfiguration == null) {
-        this.accumuloConfiguration = DefaultConfiguration.getInstance();
-      }
-    }
-
-    public void openWriter(boolean startDLG) throws IOException {
-      openWriter(startDLG, 1000);
-    }
-
-    public void openWriter(boolean startDLG, int blockSize) throws IOException {
-      baos = new ByteArrayOutputStream();
-      dos = new FSDataOutputStream(baos, new FileSystem.Statistics("a"));
-      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
-          accumuloConfiguration.getAllCryptoProperties());
-
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf, cs);
-
-      SamplerConfigurationImpl samplerConfig =
-          SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
-      Sampler sampler = null;
-
-      if (samplerConfig != null) {
-        sampler = SamplerFactory.newSampler(samplerConfig, accumuloConfiguration);
-      }
-
-      writer = new RFile.Writer(_cbw, blockSize, 1000, samplerConfig, sampler);
-
-      if (startDLG) {
-        writer.startDefaultLocalityGroup();
-      }
-    }
-
-    public void openWriter() throws IOException {
-      openWriter(1000);
-    }
-
-    public void openWriter(int blockSize) throws IOException {
-      openWriter(true, blockSize);
-    }
-
-    public void closeWriter() throws IOException {
-      dos.flush();
-      writer.close();
-      dos.close();
-      if (baos != null) {
-        baos.close();
-      }
-    }
-
-    public void openReader() throws IOException {
-      openReader(true);
-    }
-
-    public void openReader(boolean cfsi) throws IOException {
-      int fileLength = 0;
-      byte[] data = null;
-      data = baos.toByteArray();
-
-      bais = new SeekableByteArrayInputStream(data);
-      in = new FSDataInputStream(bais);
-      fileLength = data.length;
-
-      DefaultConfiguration dc = DefaultConfiguration.getInstance();
-      ConfigurationCopy cc = new ConfigurationCopy(dc);
-      cc.set(Property.GENERAL_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
-      try {
-        manager = BlockCacheManagerFactory.getInstance(cc);
-      } catch (Exception e) {
-        throw new RuntimeException("Error creating BlockCacheManager", e);
-      }
-      cc.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
-      cc.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
-      cc.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
-      manager.start(BlockCacheConfiguration.forTabletServer(cc));
-      LruBlockCache indexCache = (LruBlockCache) manager.getBlockCache(CacheType.INDEX);
-      LruBlockCache dataCache = (LruBlockCache) manager.getBlockCache(CacheType.DATA);
-
-      CryptoService cs = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.TABLE,
-          accumuloConfiguration.getAllCryptoProperties());
-
-      CachableBuilder cb = new CachableBuilder().input(in, "source-1").length(fileLength).conf(conf)
-          .cacheProvider(new BasicCacheProvider(indexCache, dataCache)).cryptoService(cs);
-      reader = new RFile.Reader(cb);
-      if (cfsi) {
-        iter = new ColumnFamilySkippingIterator(reader);
-      }
-
-      checkIndex(reader);
-    }
-
-    public void closeReader() throws IOException {
-      reader.close();
-      in.close();
-      if (null != manager) {
-        manager.stop();
-      }
-    }
-
-    public void seek(Key nk) throws IOException {
-      iter.seek(new Range(nk, null), EMPTY_COL_FAMS, false);
-    }
-  }
-
-  static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
-        ts);
-  }
-
-  static Value newValue(String val) {
-    return new Value(val);
-  }
-
-  static String formatString(String prefix, int i) {
-    return String.format(prefix + "%06d", i);
-  }
-
-  private AccumuloConfiguration conf = null;
-
   @Test
   public void test1() throws IOException {
 
@@ -355,7 +185,8 @@ public class RFileTest {
     trf.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertNull(trf.reader.getLastKey());
+    assertTrue(trf.reader.getFileRange().empty);
+    assertNull(trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -392,7 +223,7 @@ public class RFileTest {
     trf.iter.next();
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(new Range("r1", "r1"), trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -528,12 +359,14 @@ public class RFileTest {
       }
     }
 
-    assertEquals(expectedKeys.get(expectedKeys.size() - 1), trf.reader.getLastKey());
+    assertEquals(
+        new Range(expectedKeys.get(0).getRow(), expectedKeys.get(expectedKeys.size() - 1).getRow()),
+        trf.reader.getFileRange().rowRange);
 
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
     for (int i = 0; i < 12; i++) {
-      index = random.nextInt(expectedKeys.size());
+      index = RANDOM.get().nextInt(expectedKeys.size());
       trf.seek(expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trf.iter.hasTop());
@@ -553,22 +386,6 @@ public class RFileTest {
     assertEquals(20, count);
 
     trf.closeReader();
-  }
-
-  private void verify(TestRFile trf, Iterator<Key> eki, Iterator<Value> evi) throws IOException {
-
-    while (trf.iter.hasTop()) {
-      Key ek = eki.next();
-      Value ev = evi.next();
-
-      assertEquals(ek, trf.iter.getTopKey());
-      assertEquals(ev, trf.iter.getTopValue());
-
-      trf.iter.next();
-    }
-
-    assertFalse(eki.hasNext());
-    assertFalse(evi.hasNext());
   }
 
   @Test
@@ -620,7 +437,7 @@ public class RFileTest {
     assertEquals(newKey("r1", "cf1", "cq1", "L1", 55), trf.iter.getTopKey());
     assertEquals(newValue("foo1"), trf.iter.getTopValue());
 
-    assertEquals(newKey("r1", "cf1", "cq4", "L1", 56), trf.reader.getLastKey());
+    assertEquals(new Range("r1", "r1"), trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -653,7 +470,8 @@ public class RFileTest {
       assertFalse(trf.iter.hasTop());
     }
 
-    assertEquals(newKey(formatString("r_", 499), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(new Range(formatString("r_", 0), formatString("r_", 499)),
+        trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -719,7 +537,8 @@ public class RFileTest {
         newKey(formatString("r_", 2), "cf1", "cq1", "L1", 55), false), EMPTY_COL_FAMS, false);
     assertFalse(trf.iter.hasTop());
 
-    assertEquals(newKey(formatString("r_", 49), "cf1", "cq1", "L1", 55), trf.reader.getLastKey());
+    assertEquals(new Range(formatString("r_", 2), formatString("r_", 49)),
+        trf.reader.getFileRange().rowRange);
 
     trf.reader.close();
   }
@@ -1028,6 +847,9 @@ public class RFileTest {
 
     trf.closeReader();
 
+    assertTrue(trf.reader.getFileRange().empty);
+    assertNull(trf.reader.getFileRange().rowRange);
+
     // another empty locality group test
     trf = new TestRFile(conf);
 
@@ -1052,6 +874,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0000", "0002"), trf.reader.getFileRange().rowRange);
 
     // another empty locality group test
     trf = new TestRFile(conf);
@@ -1078,6 +902,9 @@ public class RFileTest {
 
     trf.closeReader();
 
+    // test getting row range whe some locality groups are empty
+    assertEquals(new Range("0001", "0003"), trf.reader.getFileRange().rowRange);
+
     // another empty locality group test
     trf = new TestRFile(conf);
 
@@ -1102,6 +929,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0007", "0008"), trf.reader.getFileRange().rowRange);
 
     // another empty locality group test
     trf = new TestRFile(conf);
@@ -1137,6 +966,8 @@ public class RFileTest {
     assertFalse(trf.iter.hasTop());
 
     trf.closeReader();
+
+    assertEquals(new Range("0000", "0008"), trf.reader.getFileRange().rowRange);
   }
 
   @Test
@@ -1253,6 +1084,10 @@ public class RFileTest {
       assertFalse(trf.iter.hasTop());
       assertFalse(reader2.hasTop());
     }
+
+    // should get the min and max row across all locality groups
+    assertEquals(new Range(formatString("i", 0), formatString("i", 1023)),
+        trf.reader.getFileRange().rowRange);
 
     trf.closeReader();
   }
@@ -1626,13 +1461,13 @@ public class RFileTest {
 
     for (int count = 0; count < 100; count++) {
 
-      int start = random.nextInt(2300);
+      int start = RANDOM.get().nextInt(2300);
       Range range = new Range(newKey(formatString("r_", start), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", start + 100), "cf1", "cq1", "L1", 42));
 
       trf.reader.seek(range, cfs, false);
 
-      int numToScan = random.nextInt(100);
+      int numToScan = RANDOM.get().nextInt(100);
 
       for (int j = 0; j < numToScan; j++) {
         assertTrue(trf.reader.hasTop());
@@ -1648,8 +1483,8 @@ public class RFileTest {
       // seek a little forward from the last range and read a few keys within the unconsumed portion
       // of the last range
 
-      int start2 = start + numToScan + random.nextInt(3);
-      int end2 = start2 + random.nextInt(3);
+      int start2 = start + numToScan + RANDOM.get().nextInt(3);
+      int end2 = start2 + RANDOM.get().nextInt(3);
 
       range = new Range(newKey(formatString("r_", start2), "cf1", "cq1", "L1", 42),
           newKey(formatString("r_", end2), "cf1", "cq1", "L1", 42));
@@ -1665,6 +1500,39 @@ public class RFileTest {
 
     }
 
+    trf.closeReader();
+  }
+
+  @Test
+  public void testEstimateOverlappingEntries() throws IOException {
+    TestRFile trf = new TestRFile(conf);
+    // lower block sizes so estimates are closer
+    trf.openWriter(true, 100, 100);
+
+    // generate 1024 entries
+    int count = 0;
+    for (int row = 0; row < 4; row++) {
+      String rowS = formatString("r_", row);
+      for (int cf = 0; cf < 4; cf++) {
+        String cfS = formatString("cf_", cf);
+        for (int cq = 0; cq < 4; cq++) {
+          String cqS = formatString("cq_", cq);
+          for (int cv = 'A'; cv < 'A' + 4; cv++) {
+            String cvS = "" + (char) cv;
+            for (int ts = 4; ts > 0; ts--) {
+              Key k = newKey(rowS, cfS, cqS, cvS, ts);
+              Value v = newValue("" + count);
+              trf.writer.append(k, v);
+              count++;
+            }
+          }
+        }
+      }
+    }
+    trf.closeWriter();
+
+    trf.openReader();
+    verifyEstimated(trf.reader);
     trf.closeReader();
   }
 
@@ -1705,7 +1573,7 @@ public class RFileTest {
     byte[] data = baos.toByteArray();
     SeekableByteArrayInputStream bais = new SeekableByteArrayInputStream(data);
     FSDataInputStream in2 = new FSDataInputStream(bais);
-    aconf.set(Property.GENERAL_CACHE_MANAGER_IMPL, LruBlockCacheManager.class.getName());
+    aconf.set(Property.GENERAL_CACHE_MANAGER_IMPL, TinyLfuBlockCacheManager.class.getName());
     aconf.set(Property.TSERV_DEFAULT_BLOCKSIZE, Long.toString(100000));
     aconf.set(Property.TSERV_DATACACHE_SIZE, Long.toString(100000000));
     aconf.set(Property.TSERV_INDEXCACHE_SIZE, Long.toString(100000000));
@@ -1908,25 +1776,19 @@ public class RFileTest {
 
   private Key newKey(int r, int c) {
     String row = String.format("r%06d", r);
-    switch (c) {
-      case 0:
-        return new Key(row, "user", "addr");
-      case 1:
-        return new Key(row, "user", "name");
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (c) {
+      case 0 -> new Key(row, "user", "addr");
+      case 1 -> new Key(row, "user", "name");
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   private Value newValue(int r, int c) {
-    switch (c) {
-      case 0:
-        return new Value("123" + r + " west st");
-      case 1:
-        return new Value("bob" + r);
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (c) {
+      case 0 -> new Value("123" + r + " west st");
+      case 1 -> new Value("bob" + r);
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   private static void hash(Hasher hasher, Key key, Value val) {
@@ -1985,24 +1847,24 @@ public class RFileTest {
       boolean endInclusive = false;
       int endIndex = sampleData.size();
 
-      if (random.nextBoolean()) {
-        startIndex = random.nextInt(sampleData.size());
+      if (RANDOM.get().nextBoolean()) {
+        startIndex = RANDOM.get().nextInt(sampleData.size());
         startKey = sampleData.get(startIndex).getKey();
-        startInclusive = random.nextBoolean();
+        startInclusive = RANDOM.get().nextBoolean();
         if (!startInclusive) {
           startIndex++;
         }
       }
 
-      if (startIndex < endIndex && random.nextBoolean()) {
-        endIndex -= random.nextInt(endIndex - startIndex);
+      if (startIndex < endIndex && RANDOM.get().nextBoolean()) {
+        endIndex -= RANDOM.get().nextInt(endIndex - startIndex);
         endKey = sampleData.get(endIndex - 1).getKey();
-        endInclusive = random.nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
         if (!endInclusive) {
           endIndex--;
         }
       } else if (startIndex == endIndex) {
-        endInclusive = random.nextBoolean();
+        endInclusive = RANDOM.get().nextBoolean();
       }
 
       sample.seek(new Range(startKey, startInclusive, endKey, endInclusive), columnFamilies,
@@ -2287,8 +2149,8 @@ public class RFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(
-        TabletsSection.encodeRow(MetadataTable.ID, TabletsSection.getRange().getEndKey().getRow()));
+    Text tableExtent = new Text(TabletsSection.encodeRow(SystemTables.METADATA.tableId(),
+        TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
     Key tableDirKey = new Key(tableExtent, ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
@@ -2306,7 +2168,7 @@ public class RFileTest {
     mfw.append(tablePrevRowKey, TabletColumnFamily.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent = new Text(TabletsSection.encodeRow(MetadataTable.ID, null));
+    Text defaultExtent = new Text(TabletsSection.encodeRow(SystemTables.METADATA.tableId(), null));
 
     // default's directory
     Key defaultDirKey =
@@ -2329,18 +2191,17 @@ public class RFileTest {
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream =
-          new FileOutputStream(new File(tempDir, "testEncryptedRootFile.rf"));
-      fileOutputStream.write(testRfile.baos.toByteArray());
-      fileOutputStream.flush();
-      fileOutputStream.close();
+      try (OutputStream fileOutputStream =
+          Files.newOutputStream(tempDir.resolve("testEncryptedRootFile.rf"))) {
+        fileOutputStream.write(testRfile.baos.toByteArray());
+      }
     }
 
     testRfile.openReader();
     testRfile.iter.seek(new Range((Key) null, null), EMPTY_COL_FAMS, false);
     assertTrue(testRfile.iter.hasTop());
 
-    assertNotNull(testRfile.reader.getLastKey());
+    assertNotNull(testRfile.reader.getFileRange().rowRange);
 
     testRfile.closeReader();
 

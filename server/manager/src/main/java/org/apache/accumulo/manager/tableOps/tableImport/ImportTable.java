@@ -39,12 +39,15 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.manager.tableOps.tableExport.ExportTable;
 import org.apache.accumulo.server.AccumuloDataVersion;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,7 +57,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Serialization updated for supporting multiple volumes in import table from 1L to 2L.
  */
-public class ImportTable extends ManagerRepo {
+public class ImportTable extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(ImportTable.class);
 
   private static final long serialVersionUID = 2L;
@@ -73,19 +76,20 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
     long result = 0;
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      result += Utils.reserveHdfsDirectory(environment, new Path(dm.exportDir).toString(), tid);
+      result += Utils.reserveHdfsDirectory(environment.getContext(),
+          new Path(dm.exportDir).toString(), fateId);
     }
-    result += Utils.reserveNamespace(environment, tableInfo.namespaceId, tid, false, true,
-        TableOperation.IMPORT);
+    result += Utils.reserveNamespace(environment.getContext(), tableInfo.namespaceId, fateId,
+        LockType.READ, true, TableOperation.IMPORT);
     return result;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
-    checkVersions(env);
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    checkVersions(env.getContext());
 
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
@@ -93,32 +97,28 @@ public class ImportTable extends ManagerRepo {
 
     // assuming only the manager process is creating tables
 
-    Utils.getIdLock().lock();
-    try {
-      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), TableId::of);
-      return new ImportSetupPermissions(tableInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), TableId::of);
+    return new ImportSetupPermissions(tableInfo);
+
   }
 
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",
       justification = "closing intermediate readers would close the ZipInputStream")
-  public void checkVersions(Manager env) throws AcceptableThriftTableOperationException {
+  public void checkVersions(ServerContext ctx) throws AcceptableThriftTableOperationException {
     Set<String> exportDirs =
         tableInfo.directories.stream().map(dm -> dm.exportDir).collect(Collectors.toSet());
 
     log.debug("Searching for export file in {}", exportDirs);
 
-    Integer exportVersion = null;
+    tableInfo.exportedVersion = null;
     Integer dataVersion = null;
 
     try {
-      Path exportFilePath = TableOperationsImpl.findExportFile(env.getContext(), exportDirs);
+      Path exportFilePath = TableOperationsImpl.findExportFile(ctx, exportDirs);
       tableInfo.exportFile = exportFilePath.toString();
       log.info("Export file is {}", tableInfo.exportFile);
 
-      ZipInputStream zis = new ZipInputStream(env.getVolumeManager().open(exportFilePath));
+      ZipInputStream zis = new ZipInputStream(ctx.getVolumeManager().open(exportFilePath));
       ZipEntry zipEntry;
       while ((zipEntry = zis.getNextEntry()) != null) {
         if (zipEntry.getName().equals(Constants.EXPORT_INFO_FILE)) {
@@ -127,7 +127,7 @@ public class ImportTable extends ManagerRepo {
           while ((line = in.readLine()) != null) {
             String[] sa = line.split(":", 2);
             if (sa[0].equals(ExportTable.EXPORT_VERSION_PROP)) {
-              exportVersion = Integer.parseInt(sa[1]);
+              tableInfo.exportedVersion = Integer.parseInt(sa[1]);
             } else if (sa[0].equals(ExportTable.DATA_VERSION_PROP)) {
               dataVersion = Integer.parseInt(sa[1]);
             }
@@ -142,10 +142,10 @@ public class ImportTable extends ManagerRepo {
           "Failed to read export metadata " + e.getMessage());
     }
 
-    if (exportVersion == null || exportVersion > ExportTable.VERSION) {
+    if (tableInfo.exportedVersion == null || tableInfo.exportedVersion > ExportTable.CURR_VERSION) {
       throw new AcceptableThriftTableOperationException(null, tableInfo.tableName,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER,
-          "Incompatible export version " + exportVersion);
+          "Incompatible export version " + tableInfo.exportedVersion);
     }
 
     if (dataVersion == null || dataVersion > AccumuloDataVersion.get()) {
@@ -156,12 +156,12 @@ public class ImportTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+      Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceId, fateId, LockType.READ);
   }
 
   static List<ImportedTableInfo.DirectoryMapping> parseExportDir(Set<String> exportDirs) {

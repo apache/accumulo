@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.compaction;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -34,6 +36,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 
@@ -58,27 +61,25 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
-import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
-import org.apache.accumulo.server.problems.ProblemReport;
+import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,10 +104,6 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     IteratorScope getIteratorScope();
 
-    RateLimiter getReadLimiter();
-
-    RateLimiter getWriteLimiter();
-
     SystemIteratorEnvironment createIteratorEnv(ServerContext context,
         AccumuloConfiguration acuTableConf, TableId tableId);
 
@@ -116,7 +113,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private final Map<StoredTabletFile,DataFileValue> filesToCompact;
-  private final TabletFile outputFile;
+  private final ReferencedTabletFile outputFile;
   private final boolean propagateDeletes;
   private final AccumuloConfiguration acuTableConf;
   private final CompactionEnv env;
@@ -124,10 +121,13 @@ public class FileCompactor implements Callable<CompactionStats> {
   protected final KeyExtent extent;
   private final List<IteratorSetting> iterators;
   private final CryptoService cryptoService;
+  private final PausedCompactionMetrics metrics;
 
   // things to report
   private String currentLocalityGroup = "";
-  private volatile long startTime = -1;
+  private volatile Timer startTime;
+
+  private final AtomicInteger timesPaused = new AtomicInteger(0);
 
   private final AtomicLong currentEntriesRead = new AtomicLong(0);
   private final AtomicLong currentEntriesWritten = new AtomicLong(0);
@@ -140,7 +140,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private static final LongAdder totalEntriesRead = new LongAdder();
   private static final LongAdder totalEntriesWritten = new LongAdder();
-  private static volatile long lastUpdateTime = 0;
+  private static final Timer lastUpdateTime = Timer.startNew();
 
   private final DateFormat dateFormatter = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss.SSS");
 
@@ -205,6 +205,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   private void clearCurrentEntryCounts() {
     currentEntriesRead.set(0);
     currentEntriesWritten.set(0);
+    timesPaused.set(0);
   }
 
   private void updateGlobalEntryCounts() {
@@ -251,12 +252,11 @@ public class FileCompactor implements Callable<CompactionStats> {
    * is rate limited, so it will not cause issues if called too frequently.
    */
   private static void updateTotalEntries() {
-    long currentTime = System.nanoTime();
-    if (currentTime - lastUpdateTime < Duration.ofMillis(100).toNanos()) {
+    if (!lastUpdateTime.hasElapsed(100, MILLISECONDS)) {
       return;
     }
     runningCompactions.forEach(FileCompactor::updateGlobalEntryCounts);
-    lastUpdateTime = currentTime;
+    lastUpdateTime.restart();
   }
 
   protected static final Set<FileCompactor> runningCompactions =
@@ -271,9 +271,9 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   public FileCompactor(ServerContext context, KeyExtent extent,
-      Map<StoredTabletFile,DataFileValue> files, TabletFile outputFile, boolean propagateDeletes,
-      CompactionEnv env, List<IteratorSetting> iterators, AccumuloConfiguration tableConfiguation,
-      CryptoService cs) {
+      Map<StoredTabletFile,DataFileValue> files, ReferencedTabletFile outputFile,
+      boolean propagateDeletes, CompactionEnv env, List<IteratorSetting> iterators,
+      AccumuloConfiguration tableConfiguation, CryptoService cs, PausedCompactionMetrics metrics) {
     this.context = context;
     this.extent = extent;
     this.fs = context.getVolumeManager();
@@ -284,6 +284,7 @@ public class FileCompactor implements Callable<CompactionStats> {
     this.env = env;
     this.iterators = iterators;
     this.cryptoService = cs;
+    this.metrics = metrics;
   }
 
   public VolumeManager getVolumeManager() {
@@ -294,8 +295,8 @@ public class FileCompactor implements Callable<CompactionStats> {
     return extent;
   }
 
-  protected String getOutputFile() {
-    return outputFile.toString();
+  protected StoredTabletFile getOutputFile() {
+    return outputFile.insert();
   }
 
   protected Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuTableConf)
@@ -315,7 +316,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     CompactionStats majCStats = new CompactionStats();
 
-    startTime = System.nanoTime();
+    startTime = Timer.startNew();
 
     boolean remove = runningCompactions.add(this);
 
@@ -350,14 +351,16 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
-      final boolean dropCacheBehindOutput = !RootTable.ID.equals(this.extent.tableId())
-          && !MetadataTable.ID.equals(this.extent.tableId())
-          && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
-              || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
+      final boolean dropCacheBehindOutput =
+          !SystemTables.ROOT.tableId().equals(this.extent.tableId())
+              && !SystemTables.METADATA.tableId().equals(this.extent.tableId())
+              && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
+                  || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 
       WriterBuilder outBuilder = fileFactory.newWriterBuilder().forTable(this.extent.tableId())
-          .forFile(outputFile.getMetaInsert(), ns, ns.getConf(), cryptoService)
-          .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
+          .forFile(outputFile, ns, ns.getConf(), cryptoService)
+          .withTableConfiguration(acuTableConf);
+
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
@@ -399,10 +402,11 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       log.trace(String.format(
           "Compaction %s %,d read | %,d written | %,6d entries/sec"
-              + " | %,6.3f secs | %,12d bytes | %9.3f byte/sec",
+              + " | %,6.3f secs | %,12d bytes | %9.3f byte/sec | %,d paused",
           extent, majCStats.getEntriesRead(), majCStats.getEntriesWritten(),
           (int) (majCStats.getEntriesRead() / ((t2 - t1) / 1000.0)), (t2 - t1) / 1000.0,
-          mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0)));
+          mfwTmp.getLength(), mfwTmp.getLength() / ((t2 - t1) / 1000.0),
+          majCStats.getTimesPaused()));
 
       majCStats.setFileSize(mfwTmp.getLength());
       return majCStats;
@@ -469,26 +473,26 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
-    for (StoredTabletFile mapFile : filesToCompact.keySet()) {
+    for (StoredTabletFile dataFile : filesToCompact.keySet()) {
       try {
 
         FileOperations fileFactory = FileOperations.getInstance();
-        FileSystem fs = this.fs.getFileSystemByPath(mapFile.getPath());
+        FileSystem fs = this.fs.getFileSystemByPath(dataFile.getPath());
         FileSKVIterator reader;
 
         boolean dropCacheBehindCompactionInputFile = false;
         if (dropCacheFilePrefixes.containsAll(EnumSet.allOf(FilePrefix.class))) {
           dropCacheBehindCompactionInputFile = true;
         } else {
-          FilePrefix type = FilePrefix.fromFileName(mapFile.getFileName());
+          FilePrefix type = FilePrefix.fromFileName(dataFile.getFileName());
           if (dropCacheFilePrefixes.contains(type)) {
             dropCacheBehindCompactionInputFile = true;
           }
         }
 
-        ReaderBuilder readerBuilder = fileFactory.newReaderBuilder()
-            .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
-            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter());
+        ReaderBuilder readerBuilder =
+            fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
+                .withTableConfiguration(acuTableConf);
         if (dropCacheBehindCompactionInputFile) {
           readerBuilder.dropCachesBehind();
         }
@@ -496,28 +500,22 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         readers.add(reader);
 
-        SortedKeyValueIterator<Key,Value> iter = new ProblemReportingIterator(context,
-            extent.tableId(), mapFile.getPathStr(), false, reader);
-        ((ProblemReportingIterator) iter).setInterruptFlag(interruptFlag);
+        InterruptibleIterator iter = new ProblemReportingIterator(extent.tableId(),
+            dataFile.getNormalizedPathStr(), false, reader);
+        iter.setInterruptFlag(interruptFlag);
 
-        if (filesToCompact.get(mapFile).isTimeSet()) {
-          iter = new TimeSettingIterator(iter, filesToCompact.get(mapFile).getTime());
-        }
+        iter = filesToCompact.get(dataFile).wrapFileIterator(iter);
 
         iters.add(iter);
 
       } catch (Exception e) {
-
-        ProblemReports.getInstance(context).report(
-            new ProblemReport(extent.tableId(), ProblemType.FILE_READ, mapFile.getPathStr(), e));
-
-        log.warn("Some problem opening map file {} {}", mapFile, e.getMessage(), e);
-        // failed to open some map file... close the ones that were opened
+        TabletLogger.fileReadFailed(dataFile.toString(), extent, e);
+        // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {
             reader.close();
           } catch (Exception e2) {
-            log.warn("Failed to close map file", e2);
+            log.warn("Failed to close data file", e2);
           }
         }
 
@@ -526,7 +524,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         if (e instanceof IOException) {
           throw (IOException) e;
         }
-        throw new IOException("Failed to open map data files", e);
+        throw new IOException("Failed to open data files", e);
       }
     }
 
@@ -567,9 +565,31 @@ public class FileCompactor implements Callable<CompactionStats> {
         mfw.startDefaultLocalityGroup();
       }
 
+      DetectionScope scope =
+          env.getIteratorScope() == IteratorScope.minc ? DetectionScope.MINC : DetectionScope.MAJC;
       Span writeSpan = TraceUtil.startSpan(this.getClass(), "write");
       try (Scope write = writeSpan.makeCurrent()) {
         while (itr.hasTop() && env.isCompactionEnabled()) {
+
+          while (context.getLowMemoryDetector().isRunningLowOnMemory(context, scope, () -> {
+            return !extent.isMeta();
+          }, () -> {
+            log.info("Pausing compaction because low on memory, extent: {}", extent);
+            timesPaused.incrementAndGet();
+            if (scope == DetectionScope.MINC) {
+              metrics.incrementMinCPause();
+            } else {
+              metrics.incrementMajCPause();
+            }
+            try {
+              Thread.sleep(500);
+            } catch (InterruptedException e) {
+              Thread.currentThread().interrupt();
+              throw new IllegalStateException(
+                  "Interrupted while waiting for low memory condition to resolve", e);
+            }
+          })) {}
+
           mfw.append(itr.getTopKey(), itr.getTopValue());
           itr.next();
           entriesCompacted++;
@@ -597,12 +617,12 @@ public class FileCompactor implements Callable<CompactionStats> {
         }
 
       } finally {
-        CompactionStats lgMajcStats = new CompactionStats(citr.getCount(), entriesCompacted);
+        CompactionStats lgMajcStats =
+            new CompactionStats(citr.getCount(), entriesCompacted, timesPaused.get());
         majCStats.add(lgMajcStats);
         writeSpan.end();
       }
-
-    } catch (Exception e) {
+    } catch (IOException | CompactionCanceledException e) {
       TraceUtil.setException(compactSpan, e, true);
       throw e;
     } finally {
@@ -611,7 +631,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         try {
           reader.close();
         } catch (Exception e) {
-          log.warn("Failed to close map file", e);
+          log.warn("Failed to close data file", e);
         }
       }
       compactSpan.end();
@@ -638,15 +658,19 @@ public class FileCompactor implements Callable<CompactionStats> {
     return currentEntriesWritten.get();
   }
 
+  long getTimesPaused() {
+    return timesPaused.get();
+  }
+
   /**
    * @return the duration since {@link #call()} was called
    */
   Duration getAge() {
-    if (startTime == -1) {
+    if (startTime == null) {
       // call() has not been called yet
       return Duration.ZERO;
     }
-    return Duration.ofNanos(System.nanoTime() - startTime);
+    return startTime.elapsed();
   }
 
   Iterable<IteratorSetting> getIterators() {

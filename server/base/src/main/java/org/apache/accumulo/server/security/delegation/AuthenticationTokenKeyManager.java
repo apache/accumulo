@@ -39,7 +39,8 @@ public class AuthenticationTokenKeyManager implements Runnable {
   private final long keyUpdateInterval;
   private final long tokenMaxLifetime;
   private int idSeq = 0;
-  private volatile boolean keepRunning = true, initialized = false;
+  private volatile boolean keepRunning = true;
+  private volatile boolean initialized = false;
 
   /**
    * Construct the key manager which will generate new AuthenticationKeys to generate and verify
@@ -162,7 +163,7 @@ public class AuthenticationTokenKeyManager implements Runnable {
         keyDistributor.advertise(newKey);
       } catch (KeeperException | InterruptedException e) {
         log.error("Failed to advertise AuthenticationKey in ZooKeeper. Exiting.", e);
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       }
 
       lastKeyUpdate = now;

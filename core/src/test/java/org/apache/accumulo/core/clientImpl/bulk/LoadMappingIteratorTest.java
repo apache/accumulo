@@ -19,7 +19,7 @@
 package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.clientImpl.bulk.BulkSerialize.createGson;
+import static org.apache.accumulo.core.util.json.ByteArrayToBase64TypeAdapter.createBase64Gson;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -90,7 +90,7 @@ public class LoadMappingIteratorTest {
     try (OutputStream fsOut = output.create(lmFile);
         OutputStreamWriter osw = new OutputStreamWriter(fsOut, UTF_8);
         BufferedWriter bw = new BufferedWriter(osw); JsonWriter writer = new JsonWriter(bw)) {
-      Gson gson = createGson();
+      Gson gson = createBase64Gson();
       writer.setIndent("  ");
       writer.beginArray();
       // Iterate over entries in the order they are inserted

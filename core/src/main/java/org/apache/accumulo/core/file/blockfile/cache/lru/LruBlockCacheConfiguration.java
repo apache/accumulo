@@ -198,12 +198,6 @@ public final class LruBlockCacheConfiguration {
       return this;
     }
 
-    public Builder mapLoadFactor(float mlf) {
-      Preconditions.checkArgument(mlf > 0);
-      set(MAP_LOAD_PROPERTY, mlf);
-      return this;
-    }
-
     public Builder mapConcurrencyLevel(int mcl) {
       Preconditions.checkArgument(mcl > 0);
       props.put(prefix + MAP_CONCURRENCY_PROPERTY, mcl + "");

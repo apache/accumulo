@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.scan;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -25,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashMap;
@@ -38,6 +38,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -47,12 +49,14 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.base.Preconditions;
+
 public class ConfigurableScanServerSelectorTest {
 
   static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
-    private final Supplier<Map<String,String>> scanServers;
+    private final Supplier<Map<String,ResourceGroupId>> scanServers;
 
     InitParams(Set<String> scanServers) {
       this(scanServers, Map.of());
@@ -60,18 +64,17 @@ public class ConfigurableScanServerSelectorTest {
 
     InitParams(Set<String> scanServers, Map<String,String> opts) {
       this.opts = opts;
-      var scanServersMap = new HashMap<String,String>();
-      scanServers.forEach(
-          sserv -> scanServersMap.put(sserv, ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME));
+      var scanServersMap = new HashMap<String,ResourceGroupId>();
+      scanServers.forEach(sserv -> scanServersMap.put(sserv, ResourceGroupId.DEFAULT));
       this.scanServers = () -> scanServersMap;
     }
 
-    InitParams(Map<String,String> scanServers, Map<String,String> opts) {
+    InitParams(Map<String,ResourceGroupId> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = () -> scanServers;
     }
 
-    InitParams(Supplier<Map<String,String>> scanServers, Map<String,String> opts) {
+    InitParams(Supplier<Map<String,ResourceGroupId>> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = scanServers;
     }
@@ -96,7 +99,7 @@ public class ConfigurableScanServerSelectorTest {
         }
 
         @Override
-        public String getGroup() {
+        public ResourceGroupId getGroup() {
           return entry.getValue();
         }
 
@@ -141,7 +144,8 @@ public class ConfigurableScanServerSelectorTest {
     @Override
     public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
         String description) {
-      throw new UnsupportedOperationException();
+      Preconditions.checkArgument(maxWaitTime.compareTo(Duration.ZERO) > 0);
+      throw new TimedOutException("Timed out w/o checking condition");
     }
 
   }
@@ -271,12 +275,11 @@ public class ConfigurableScanServerSelectorTest {
 
     Map<String,Long> allServersSeen = new HashMap<>();
 
-    SecureRandom rand = new SecureRandom();
-
     for (int t = 0; t < 10000; t++) {
       Set<String> serversSeen = new HashSet<>();
 
-      String endRow = Long.toString(Math.abs(Math.max(rand.nextLong(), Long.MIN_VALUE + 1)), 36);
+      String endRow =
+          Long.toString(Math.abs(Math.max(RANDOM.get().nextLong(), Long.MIN_VALUE + 1)), 36);
 
       var tabletId = t % 1000 == 0 ? nti("" + t, null) : nti("" + t, endRow);
 
@@ -315,7 +318,7 @@ public class ConfigurableScanServerSelectorTest {
     // Intentionally put the default profile in 2nd position. There was a bug where config parsing
     // would fail if the default did not come first.
     var opts = Map.of("profiles",
-        "[" + profile1 + ", " + defaultProfile + "," + profile2 + "]".replace('\'', '"'));
+        ("[" + profile1 + ", " + defaultProfile + "," + profile2 + "]").replace('\'', '"'));
 
     runBusyTest(1000, 0, 5, 5, opts);
     runBusyTest(1000, 1, 20, 33, opts);
@@ -374,14 +377,14 @@ public class ConfigurableScanServerSelectorTest {
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
     var opts1 = Map.of("profiles",
-        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+        ("[" + defaultProfile + ", " + profile1 + "," + profile2 + "]").replace('\'', '"'));
 
     // two profiles activate on the scan type "mega", so should fail
     var exception =
         assertThrows(IllegalArgumentException.class, () -> runBusyTest(1000, 0, 5, 66, opts1));
     assertTrue(exception.getMessage().contains("mega"));
 
-    var opts2 = Map.of("profiles", "[" + profile1 + "]".replace('\'', '"'));
+    var opts2 = Map.of("profiles", ("[" + profile1 + "]").replace('\'', '"'));
 
     // missing a default profile, so should fail
     exception =
@@ -393,11 +396,21 @@ public class ConfigurableScanServerSelectorTest {
 
   @Test
   public void testNoScanServers() {
-    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    selector.init(new InitParams(Set.of()));
-
+    // run a 1st test assuming default config does not fallback to tservers, so should timeout
+    var selector1 = new ConfigurableScanServerSelector();
+    selector1.init(new InitParams(Set.of()));
     var tabletId = nti("1", "m");
-    ScanServerSelections actions = selector.selectServers(new SelectorParams(tabletId));
+    assertThrows(TimedOutException.class,
+        () -> selector1.selectServers(new SelectorParams(tabletId)));
+
+    // run a 2nd test with config that does fall back to tablet servers
+    String profile = "{'isDefault':'true','maxBusyTimeout':'60m','busyTimeoutMultiplier':2,"
+        + " 'timeToWaitForScanServers': '0s',"
+        + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
+    var opts1 = Map.of("profiles", ("[" + profile + "]").replace('\'', '"'));
+    var selector2 = new ConfigurableScanServerSelector();
+    selector2.init(new InitParams(Set.of(), opts1));
+    ScanServerSelections actions = selector2.selectServers(new SelectorParams(tabletId));
     assertNull(actions.getScanServer(tabletId));
     assertEquals(Duration.ZERO, actions.getDelay());
     assertEquals(Duration.ZERO, actions.getBusyTimeout());
@@ -418,12 +431,15 @@ public class ConfigurableScanServerSelectorTest {
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'10m'}]}";
 
     var opts = Map.of("profiles",
-        "[" + defaultProfile + ", " + profile1 + "," + profile2 + "]".replace('\'', '"'));
+        ("[" + defaultProfile + ", " + profile1 + "," + profile2 + "]").replace('\'', '"'));
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    selector.init(new InitParams(Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", "g1",
-        "ss5:5", "g1", "ss6:6", "g2", "ss7:7", "g2", "ss8:8", "g2"), opts));
+    var dg = ResourceGroupId.DEFAULT;
+    selector.init(new InitParams(
+        Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", ResourceGroupId.of("g1"), "ss5:5",
+            ResourceGroupId.of("g1"), "ss6:6", ResourceGroupId.of("g2"), "ss7:7",
+            ResourceGroupId.of("g2"), "ss8:8", ResourceGroupId.of("g2")),
+        opts));
 
     Set<String> servers = new HashSet<>();
 
@@ -495,17 +511,17 @@ public class ConfigurableScanServerSelectorTest {
         "{'isDefault':true,'maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'timeToWaitForScanServers':'120s',"
             + "'attemptPlans':[{'servers':'100%', 'busyTimeout':'60s'}]}";
 
-    var opts = Map.of("profiles", "[" + defaultProfile + "]".replace('\'', '"'));
+    var opts = Map.of("profiles", ("[" + defaultProfile + "]").replace('\'', '"'));
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 
-    AtomicReference<Map<String,String>> scanServers = new AtomicReference<>(Map.of());
+    AtomicReference<Map<String,ResourceGroupId>> scanServers = new AtomicReference<>(Map.of());
 
     selector.init(new InitParams(scanServers::get, opts));
 
     var tabletId = nti("1", "m");
 
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    var dg = ResourceGroupId.DEFAULT;
 
     var params = new SelectorParams(tabletId, Map.of(), Map.of()) {
       @Override
@@ -543,8 +559,8 @@ public class ConfigurableScanServerSelectorTest {
 
     var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
     // start off w/ one scan server
-    AtomicReference<Map<String,String>> scanServers =
-        new AtomicReference<>(Map.of("localhost:8000", dg));
+    AtomicReference<Map<String,ResourceGroupId>> scanServers =
+        new AtomicReference<>(Map.of("localhost:8000", ResourceGroupId.of(dg)));
 
     selector.init(new InitParams(scanServers::get, opts));
 
@@ -558,13 +574,13 @@ public class ConfigurableScanServerSelectorTest {
 
     // add some new scan servers, the selector should eventually pick these up and start making
     // different decisions
-    HashMap<String,String> newServers = new HashMap<>();
+    HashMap<String,ResourceGroupId> newServers = new HashMap<>();
     for (int i = 0; i < 30; i++) {
-      newServers.put(String.format("localhost:%d", 8000 + i), dg);
+      newServers.put(String.format("localhost:%d", 8000 + i), ResourceGroupId.of(dg));
     }
     // add some servers in another RG, these should be ignored
     for (int i = 0; i < 30; i++) {
-      newServers.put(String.format("localhost:%d", 9000 + i), "other");
+      newServers.put(String.format("localhost:%d", 9000 + i), ResourceGroupId.of("other"));
     }
     scanServers.set(newServers);
 
@@ -597,10 +613,9 @@ public class ConfigurableScanServerSelectorTest {
    */
   @Test
   public void testPreviousFailures() {
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    HashMap<String,String> servers = new HashMap<>();
+    HashMap<String,ResourceGroupId> servers = new HashMap<>();
     for (int i = 0; i < 30; i++) {
-      servers.put(String.format("localhost:%d", 8000 + i), dg);
+      servers.put(String.format("localhost:%d", 8000 + i), ResourceGroupId.DEFAULT);
     }
 
     String defaultProfile =

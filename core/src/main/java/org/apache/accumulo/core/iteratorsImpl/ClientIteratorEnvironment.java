@@ -20,7 +20,6 @@ package org.apache.accumulo.core.iteratorsImpl;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.IOException;
 import java.util.Optional;
 
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -29,12 +28,9 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
@@ -145,13 +141,6 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  @Deprecated(since = "2.0.0")
-  public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
-      throws IOException {
-    throw new UnsupportedOperationException("Feature not supported");
-  }
-
-  @Override
   public IteratorScope getIteratorScope() {
     return scope.orElseThrow();
   }
@@ -162,12 +151,6 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
       throw new IllegalStateException("Iterator scope is not majc");
     }
     return isFullMajorCompaction;
-  }
-
-  @Override
-  @Deprecated(since = "2.0.0")
-  public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-    throw new UnsupportedOperationException("Feature not supported");
   }
 
   @Override
@@ -215,12 +198,6 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
-  public ServiceEnvironment getServiceEnv() {
-    return env.orElseThrow();
-  }
-
-  @Override
   public PluginEnvironment getPluginEnv() {
     return env.orElseThrow();
   }
@@ -228,6 +205,11 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   @Override
   public TableId getTableId() {
     return this.tableId.orElse(null);
+  }
+
+  @Override
+  public boolean isRunningLowOnMemory() {
+    return false;
   }
 
 }

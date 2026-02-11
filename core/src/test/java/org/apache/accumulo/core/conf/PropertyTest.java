@@ -61,8 +61,21 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
+        // default values shouldn't be null, but they can be an empty string
+        assertNotNull(prop.getDefaultValue());
+        // default values shouldn't start or end with whitespace
+        assertEquals(prop.getDefaultValue().strip(), prop.getDefaultValue(),
+            "Property " + prop.name() + " starts or ends with whitespace");
+        // default values shouldn't contain newline characters or tabs
+        assertFalse(prop.getDefaultValue().contains("\t"),
+            "Property " + prop.name() + " contains a tab character");
+        assertFalse(prop.getDefaultValue().contains("\n"),
+            "Property " + prop.name() + " contains a newline (\\n) character");
+        assertFalse(prop.getDefaultValue().contains("\r"),
+            "Property " + prop.name() + " contains a return (\\r) character");
+
         assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
-            "Property " + prop + " has invalid default value " + prop.getDefaultValue()
+            "Property " + prop.name() + " has invalid default value " + prop.getDefaultValue()
                 + " for type " + prop.getType());
       }
 
@@ -71,8 +84,8 @@ public class PropertyTest {
           "Description not set for " + prop);
 
       // make sure property description ends with a period
-      assertTrue(prop.getDescription().endsWith("."),
-          "Property: " + prop.getKey() + " description does not end with period.");
+      assertTrue(prop.getDescription().trim().endsWith("."), "Property: " + prop.getKey()
+          + " description does not end with period. Description = " + prop.getDescription());
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
@@ -135,11 +148,17 @@ public class PropertyTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testPropertyValidation() {
 
     for (Property property : Property.values()) {
+      if (property == Property.MANAGER_FATE_THREADPOOL_SIZE) {
+        // deprecated and unused property, no need to test
+        continue;
+      }
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
       LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
 
       switch (propertyType) {
@@ -206,20 +225,19 @@ public class PropertyTest {
   // This test verifies all "sensitive" properties are properly marked as sensitive
   @Test
   public void testSensitiveKeys() {
-    // add trace token, because it's a sensitive property not in the default configuration
+    // add instance.crypto.opts, because it's a sensitive property not in the default configuration
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
-    conf.set("trace.token.property.blah", "something");
+    conf.set("instance.crypto.opts.sensitive.blah", "something");
 
     // ignores duplicates because ConfigurationCopy already de-duplicates
     Collector<Entry<String,String>,?,TreeMap<String,String>> treeMapCollector =
         Collectors.toMap(Entry::getKey, Entry::getValue, (a, b) -> a, TreeMap::new);
 
-    @SuppressWarnings("deprecation")
     Predicate<Entry<String,String>> sensitiveNames =
         e -> e.getKey().equals(Property.INSTANCE_SECRET.getKey())
             || e.getKey().toLowerCase().contains("password")
             || e.getKey().toLowerCase().endsWith("secret")
-            || e.getKey().startsWith(Property.TRACE_TOKEN_PROPERTY_PREFIX.getKey());
+            || e.getKey().startsWith(Property.INSTANCE_CRYPTO_SENSITIVE_PREFIX.getKey());
 
     Predicate<Entry<String,String>> isMarkedSensitive = e -> Property.isSensitive(e.getKey());
 
@@ -228,8 +246,8 @@ public class PropertyTest {
     TreeMap<String,String> actual = StreamSupport.stream(conf.spliterator(), false)
         .filter(isMarkedSensitive).collect(treeMapCollector);
 
-    // make sure trace token property wasn't excluded from both
-    assertEquals("something", expected.get("trace.token.property.blah"));
+    // make sure instance.crypto.opts property wasn't excluded from both
+    assertEquals("something", expected.get("instance.crypto.opts.sensitive.blah"));
     assertEquals(expected, actual);
   }
 
@@ -245,15 +263,12 @@ public class PropertyTest {
 
   @Test
   public void testAnnotations() {
-    assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertFalse(Property.TABLE_SAMPLER.isExperimental());
 
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
     assertFalse(Property.INSTANCE_VOLUMES.isSensitive());
 
-    @SuppressWarnings("deprecation")
-    Property deprecatedProp = Property.GENERAL_CLASSPATHS;
-    assertTrue(deprecatedProp.isDeprecated());
     assertFalse(Property.INSTANCE_VOLUMES_REPLACEMENTS.isDeprecated());
   }
 

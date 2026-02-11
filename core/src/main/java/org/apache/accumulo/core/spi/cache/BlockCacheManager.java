@@ -22,8 +22,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.NoopCache;
 
 /**
@@ -147,39 +145,5 @@ public abstract class BlockCacheManager {
    * @return configured block cache
    */
   protected abstract BlockCache createCache(Configuration conf, CacheType type);
-
-  /**
-   * A convenience method that returns a string of the from
-   * {@code tserver.cache.config.<prefix>.default.} this method is useful for configuring a cache
-   * manager.
-   *
-   * @param prefix A unique identifier that corresponds to a particular BlockCacheManager
-   *        implementation.
-   * @see Configuration#getProperties(String, CacheType)
-   * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
-   *             {@link Configuration#getProperties(String, CacheType)} instead.
-   */
-  @Deprecated(since = "2.1.0")
-  public static String getFullyQualifiedPropertyPrefix(String prefix) {
-    return BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX, prefix);
-  }
-
-  /**
-   * A convenience method that returns a string of the from
-   * {@code tserver.cache.config.<prefix>.<type>.} this method is useful for configuring a cache
-   * manager.
-   *
-   * @param prefix A unique identifier that corresponds to a particular BlockCacheManager
-   *        implementation.
-   * @see Configuration#getProperties(String, CacheType)
-   *
-   * @deprecated since 2.1.0 because this method does not support scan servers, only tservers. Use
-   *             {@link Configuration#getProperties(String, CacheType)} instead.
-   */
-  @Deprecated(since = "2.1.0")
-  public static String getFullyQualifiedPropertyPrefix(String prefix, CacheType type) {
-    return BlockCacheConfiguration.getFullyQualifiedPropertyPrefix(Property.TSERV_PREFIX, prefix,
-        type);
-  }
 
 }

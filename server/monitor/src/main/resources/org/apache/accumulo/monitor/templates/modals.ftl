@@ -39,19 +39,23 @@
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Version</div>
-                <div class="col-sm-8 text-start">${version}</div>
+                <div class="col-sm-8 text-start"><span id="modal-version"></span></div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Instance&nbsp;Name</div>
-                <div class="col-sm-8 text-start">${instance_name}</div>
+                <div class="col-sm-8 text-start"><span id="modal-instance-name"></span></div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">Instance&nbsp;Id</div>
-                <div class="col-sm-8 text-start">${instance_id}</div>
+                <div class="col-sm-8 text-start"><span id="modal-instance-id"></span></div>
               </div>
               <div class="row justify-content-evenly">
                 <div class="col-sm-4 text-end">ZooKeeper&nbsp;Hosts</div>
-                <div class="col-sm-8 text-start">${zk_hosts}</div>
+                <div class="col-sm-8 text-start"><span id="modal-zk-hosts"></span></div>
+              </div>
+              <div class="row justify-content-evenly">
+                <div class="col-sm-4 text-end">Volumes</div>
+                <div class="col-sm-8 text-start"><span id="modal-volumes"></span></div>
               </div>
             </div>
           </div>

@@ -23,40 +23,29 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.server.replication.proto.Replication.Status;
 
 public interface GarbageCollectionEnvironment {
 
   /**
    * Return an iterator which points to a list of paths to files and dirs which are candidates for
-   * deletion from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
+   * deletion from a given table, {@link SystemTables#ROOT} or {@link SystemTables#METADATA}
    *
    * @return an iterator referencing a List containing deletion candidates
    */
   Iterator<GcCandidate> getCandidates() throws TableNotFoundException;
-
-  /**
-   * Used for determining if deletion of InUse candidates is enabled.
-   *
-   * @return value of {@link Property#GC_REMOVE_IN_USE_CANDIDATES}
-   */
-  boolean canRemoveInUseCandidates();
 
   /**
    * Given an iterator to a deletion candidate list, return a sub-list of candidates which fit
@@ -69,7 +58,7 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table,
-   * {@link RootTable#NAME} or {@link MetadataTable#NAME}
+   * {@link SystemTables#ROOT} or {@link SystemTables#METADATA}
    *
    * @return The list of files for each bulk load currently in progress.
    */
@@ -113,7 +102,7 @@ public interface GarbageCollectionEnvironment {
       throws TableNotFoundException;
 
   /**
-   * Delete in-use reference candidates based on property settings
+   * Delete in-use reference candidates
    *
    * @param GcCandidates Collection of deletion reference candidates to remove.
    */
@@ -140,10 +129,4 @@ public interface GarbageCollectionEnvironment {
    */
   void incrementInUseStat(long i);
 
-  /**
-   * Determine if the given absolute file is still pending replication
-   *
-   * @return True if the file still needs to be replicated
-   */
-  Iterator<Entry<String,Status>> getReplicationNeededIterator();
 }

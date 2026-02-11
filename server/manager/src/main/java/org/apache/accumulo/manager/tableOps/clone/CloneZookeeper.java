@@ -20,15 +20,15 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 
-class CloneZookeeper extends ManagerRepo {
+class CloneZookeeper extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -37,50 +37,42 @@ class CloneZookeeper extends ManagerRepo {
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    if (this.cloneInfo.getNamespaceId() == null) {
-      // Prior to 2.1.4 the namespaceId was calculated in this
-      // step and set on the cloneInfo object here. If for some
-      // reason we are processing a pre-2.1.3 CloneTable operation,
-      // then we need to continue to set this here as it will be
-      // null in the deserialized CloneInfo object.
-      //
-      // TODO: Remove this check in 3.1 as Fate operations
-      // need to be cleaned up before a major upgrade.
-      this.cloneInfo.setNamespaceId(Namespaces.getNamespaceId(context,
-          TableNameUtil.qualify(this.cloneInfo.getTableName()).getFirst()));
+  }
+
+  @Override
+  public long isReady(FateId fateId, FateEnv environment) throws Exception {
+    long val = 0;
+    if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
+      val += Utils.reserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+          LockType.READ, true, TableOperation.CLONE);
     }
+    val += Utils.reserveTable(environment.getContext(), cloneInfo.getTableId(), fateId,
+        LockType.WRITE, false, TableOperation.CLONE);
+    return val;
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, cloneInfo.getTableId(), tid, true, false,
-        TableOperation.CLONE);
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
+    var context = environment.getContext();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
+        cloneInfo.getTableName(), TableOperation.CLONE);
+    environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
+        cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
+        cloneInfo.getPropertiesToExclude());
+    context.clearTableListCache();
+
+    return new CloneMetadata(cloneInfo);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    Utils.getTableNameLock().lock();
-    try {
-      // write tableName & tableId to zookeeper
-
-      Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.getTableName(),
-          cloneInfo.getNamespaceId(), cloneInfo.getTableId(), TableOperation.CLONE);
-
-      environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
-          cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
-          cloneInfo.getPropertiesToExclude());
-      environment.getContext().clearTableListCache();
-
-      return new CloneMetadata(cloneInfo);
-    } finally {
-      Utils.getTableNameLock().unlock();
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
+    environment.getTableManager().removeTable(cloneInfo.getTableId(), cloneInfo.getNamespaceId());
+    if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
+      Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+          LockType.READ);
     }
-  }
-
-  @Override
-  public void undo(long tid, Manager environment) throws Exception {
-    environment.getTableManager().removeTable(cloneInfo.getTableId());
-    Utils.unreserveTable(environment, cloneInfo.getTableId(), tid, true);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getTableId(), fateId, LockType.WRITE);
     environment.getContext().clearTableListCache();
   }
 

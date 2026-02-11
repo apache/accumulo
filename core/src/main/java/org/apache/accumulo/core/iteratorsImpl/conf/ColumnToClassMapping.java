@@ -29,6 +29,10 @@ import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnToClassMapping<K> {
 
   private final HashMap<ColFamHashKey,K> objectsCF;
@@ -40,11 +44,6 @@ public class ColumnToClassMapping<K> {
   public ColumnToClassMapping() {
     objectsCF = new HashMap<>();
     objectsCol = new HashMap<>();
-  }
-
-  public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c)
-      throws ReflectiveOperationException {
-    this(objectStrings, c, null);
   }
 
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c,

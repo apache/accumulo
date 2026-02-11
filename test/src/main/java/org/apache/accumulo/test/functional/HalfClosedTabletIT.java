@@ -40,7 +40,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -52,6 +51,8 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
@@ -63,11 +64,13 @@ import com.google.common.collect.Sets;
 //
 public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
+  public static final Logger log = LoggerFactory.getLogger(HalfClosedTabletIT.class);
+
   public static class HalfClosedTabletITConfiguration implements MiniClusterConfigurationCallback {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     }
 
   }
@@ -115,7 +118,12 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       Thread.sleep(3000);
 
       Thread configFixer = new Thread(() -> {
-        UtilWaitThread.sleep(3000);
+        try {
+          Thread.sleep(3000);
+        } catch (InterruptedException ex) {
+          // ignore exception
+          Thread.currentThread().interrupt();
+        }
         removeInvalidClassLoaderContextProperty(client, tableName);
       });
 
@@ -214,7 +222,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
       c.tableOperations().flush(tableName, null, null, false);
 
-      UtilWaitThread.sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Thread.sleep(5000);
 
       // minc should fail, so there should be no files
       FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
@@ -225,7 +233,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       // The offine operation should not be able to complete because the tablet can not minor
       // compact, give the offline operation a bit of time to attempt to complete even though it
       // should never be able to complete.
-      UtilWaitThread.sleepUninterruptibly(5, TimeUnit.SECONDS);
+      Thread.sleep(5000);
 
       assertTrue(countHostedTablets(c, tid) > 0);
 
@@ -248,7 +256,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
   public static void setInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
       TableId tableId) {
-    TablePropKey key = TablePropKey.of(context, tableId);
+    TablePropKey key = TablePropKey.of(tableId);
     context.getPropStore().putAll(key,
         Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid"));
   }
@@ -269,6 +277,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
       FunctionalTestUtils.checkRFiles(c, tableName, minTablets, maxTablets, minRFiles, maxRFiles);
       return true;
     } catch (Exception e) {
+      log.info(e.getMessage());
       return false;
     }
   }

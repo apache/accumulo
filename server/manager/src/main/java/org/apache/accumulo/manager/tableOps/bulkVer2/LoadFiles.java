@@ -18,76 +18,72 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType.CURRENT;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.master.thrift.BulkImportState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 /**
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
  * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
-class LoadFiles extends ManagerRepo {
+class LoadFiles extends AbstractFateOperation {
 
   // visible for testing
   interface TabletsMetadataFactory {
@@ -107,373 +103,275 @@ class LoadFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
-    log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, FateTxId.formatTid(tid));
-    if (manager.onlineTabletServers().isEmpty()) {
-      log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
-          + FateTxId.formatTid(tid) + ")");
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
+    if (env.onlineTabletServers().isEmpty()) {
+      log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
+          + ")");
       return 100;
     }
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
-    try (
-        LoadMappingIterator lmi =
-            BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open);
-        Loader loader = (bulkInfo.tableState == TableState.ONLINE
-            ? new OnlineLoader(manager.getConfiguration()) : new OfflineLoader())) {
-      TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(manager.getContext())
+    env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
+    try (LoadMappingIterator lmi =
+        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
+
+      Loader loader = new Loader(env, bulkInfo.tableId);
+
+      List<ColumnType> fetchCols = new ArrayList<>(List.of(PREV_ROW, LOCATION, LOADED, TIME));
+      if (loader.pauseLimit > 0) {
+        fetchCols.add(FILES);
+      }
+
+      TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(env.getContext())
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
-          .fetch(PREV_ROW, LOCATION, LOADED).build();
-      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+          .fetch(fetchCols.toArray(new ColumnType[0])).build();
+
+      int skip = env.getContext().getTableConfiguration(bulkInfo.tableId)
           .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, tid, skip);
+      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, fateId, skip);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) {
-    if (bulkInfo.tableState == TableState.ONLINE) {
-      return new CompleteBulkImport(bulkInfo);
-    } else {
-      return new CleanUpBulkImport(bulkInfo);
-    }
+  public Repo<FateEnv> call(final FateId fateId, final FateEnv env) {
+    return new RefreshTablets(bulkInfo);
   }
 
   // visible for testing
-  public abstract static class Loader implements AutoCloseable {
-    protected Path bulkDir;
-    protected Manager manager;
-    protected long tid;
-    protected boolean setTime;
+  public static class Loader {
+    private final FateEnv env;
+    private final long pauseLimit;
 
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
+    private Path bulkDir;
+    private FateId fateId;
+    private boolean setTime;
+    Ample.ConditionalTabletsMutator conditionalMutator;
+    private Map<KeyExtent,List<TabletFile>> loadingFiles;
+    private long skipped = 0;
+
+    public Loader(FateEnv env, TableId tableId) {
+      Objects.requireNonNull(env, "Fate env must be supplied");
+      Objects.requireNonNull(tableId, "Table ID must be supplied");
+      this.env = env;
+      this.pauseLimit =
+          env.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
+    }
+
+    void start(Path bulkDir, TableId tableId, FateId fateId, boolean setTime) throws Exception {
       this.bulkDir = bulkDir;
-      this.manager = manager;
-      this.tid = tid;
+      this.fateId = fateId;
       this.setTime = setTime;
+      conditionalMutator = env.getContext().getAmple().conditionallyMutateTablets();
+      this.skipped = 0;
+      this.loadingFiles = new HashMap<>();
     }
 
-    abstract void load(List<TabletMetadata> tablets, Files files) throws Exception;
-
-    abstract long finish() throws Exception;
-  }
-
-  static class OnlineLoader extends Loader {
-
-    private final int maxConnections;
-    long timeInMillis;
-    String fmtTid;
-    int locationLess = 0;
-
-    int tabletsAdded;
-
-    private ExecutorService rpcExecutor;
-    private CompletableFuture<Void> prevRpcTask;
-
-    // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
-    // active. The purpose of this map is to group load request by tablet servers in order to do
-    // less RPCs. Less RPCs will result in less calls to Zookeeper.
-    Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>> loadQueue;
-    private int queuedDataSize = 0;
-    // holds load messages that a background thread is working on sending
-    final AtomicReference<
-        Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>>> backgroundQueue =
-            new AtomicReference<>();
-
-    public OnlineLoader(AccumuloConfiguration configuration) {
-      super();
-      this.maxConnections = configuration.getCount(Property.MANAGER_BULK_MAX_CONNECTIONS);
-    }
-
-    @Override
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
-      super.start(bulkDir, manager, tid, setTime);
-
-      timeInMillis = manager.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
-      fmtTid = FateTxId.formatTid(tid);
-
-      tabletsAdded = 0;
-
-      loadQueue = new HashMap<>();
-      this.rpcExecutor = ThreadPools.getServerThreadPools()
-          .getPoolBuilder(ACCUMULO_POOL_PREFIX.poolName + "bulk.rpc." + fmtTid).numCoreThreads(1)
-          .numMaxThreads(1).enableThreadPoolMetrics(false).build();
-    }
-
-    private static class Client {
-      final HostAndPort server;
-      final TabletClientService.Client service;
-
-      private Client(HostAndPort server, TabletClientService.Client service) {
-        this.server = server;
-        this.service = service;
-      }
-    }
-
-    private void sendBackground() {
-      var queue = this.backgroundQueue.get();
-      List<Client> clients = new ArrayList<>();
-
-      try {
-        var sendTimer = Timer.startNew();
-
-        // Send load messages to tablet servers spinning up work, but do not wait on results.
-        queue.forEach((server, tabletFiles) -> {
-
-          if (log.isTraceEnabled()) {
-            log.trace("{} asking {} to bulk import {} files for {} tablets", fmtTid, server,
-                tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
-          }
-
-          // Tablet servers process tablets serially and perform a single metadata table write for
-          // each tablet. Break the work into per-tablet chunks so it can be sent over multiple
-          // connections to the tserver, allowing each chunk to be run in parallel on the server
-          // side. This allows multiple threads on a single tserver to do metadata writes for this
-          // bulk import.
-          int neededConnections = Math.min(maxConnections, tabletFiles.size());
-          if (log.isTraceEnabled() && tabletFiles.size() > maxConnections) {
-            log.trace(
-                "{} Hitting max connection limit set by property {} for {}. Desired connection count {}",
-                fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), server, tabletFiles.size());
-          }
-          List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks = new ArrayList<>(neededConnections);
-          for (int i = 0; i < neededConnections; i++) {
-            chunks.add(new HashMap<>());
-          }
-
-          int nextConnection = 0;
-          for (var entry : tabletFiles.entrySet()) {
-            chunks.get(nextConnection++ % chunks.size()).put(entry.getKey(), entry.getValue());
-          }
-
-          for (var chunk : chunks) {
-            try {
-              var client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
-                  manager.getContext(), timeInMillis);
-              // add client to list before calling send in case there is an exception, this makes
-              // sure its returned in the finally
-              clients.add(new Client(server, client));
-              client.send_loadFilesV2(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
-                  bulkDir.toString(), chunk, setTime);
-            } catch (TException ex) {
-              log.debug("rpc send failed server: {}, {}", server, fmtTid, ex);
-            }
-          }
-        });
-
-        long sendTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
-        sendTimer.restart();
-
-        int outdatedTservers = 0;
-
-        // wait for all the tservers to complete processing
-        for (var client : clients) {
-          try {
-            client.service.recv_loadFilesV2();
-          } catch (TException ex) {
-            String additionalInfo = "";
-            if (ex instanceof TApplicationException
-                && ((TApplicationException) ex).getType() == TApplicationException.UNKNOWN_METHOD) {
-              // A new RPC method was added in 2.1.4, a tserver running 2.1.3 or earlier will
-              // not have this RPC. This should not kill the fate operation, it can wait until
-              // all tablet servers are upgraded.
-              outdatedTservers++;
-              additionalInfo = " (tserver may be running older version)";
-            }
-            log.debug("rpc recv failed server{}: {}, {}", additionalInfo, client.server, fmtTid,
-                ex);
-          }
-        }
-
-        if (outdatedTservers > 0) {
-          log.warn(
-              "{} can not proceed with bulk import because {} tablet servers are likely running "
-                  + "an older version. Please update tablet servers to same patch level as manager.",
-              fmtTid, outdatedTservers);
-        }
-
-        if (log.isTraceEnabled()) {
-          var recvTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
-          var tabletStats = queue.values().stream().mapToInt(Map::size).summaryStatistics();
-          log.trace(
-              "{} sent {} messages to {} tablet servers for {} tablets (min:{} max:{} avg:{} "
-                  + "tablets per tserver), send time:{}ms recv time:{}ms {}:{}",
-              fmtTid, clients.size(), queue.size(), tabletStats.getSum(), tabletStats.getMin(),
-              tabletStats.getMax(), tabletStats.getAverage(), sendTime, recvTime,
-              Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), maxConnections);
-        }
-      } finally {
-        Preconditions.checkState(backgroundQueue.compareAndSet(queue, null));
-        for (var client : clients) {
-          ThriftUtil.returnClient(client.service, manager.getContext());
-        }
-      }
-    }
-
-    /**
-     * @param threshold if the amount queued is over this amount then begin asynchronous flush to
-     *        tservers. When this is zero the method will block until all previously queued work is
-     *        done.
-     */
-    private void sendQueued(int threshold) {
-      if (queuedDataSize > threshold || threshold == 0) {
-        if (prevRpcTask != null) {
-          // wait for the previous task
-          prevRpcTask.join();
-        }
-        Preconditions.checkState(backgroundQueue.compareAndSet(null, loadQueue));
-        // used completable future because its join() method does not throw a checked exception
-        prevRpcTask = CompletableFuture.runAsync(this::sendBackground, rpcExecutor);
-        // create a new map to buffer new load rpcs this thread finds while the background thread
-        // works on sending the previous batch
-        loadQueue = new HashMap<>();
-        queuedDataSize = 0;
-      }
-      if (threshold == 0) {
-        // no more work is queued so wait for the current task.
-        prevRpcTask.join();
-        prevRpcTask = null;
-      }
-
-    }
-
-    protected void addToQueue(HostAndPort server, KeyExtent extent,
-        Map<String,MapFileInfo> thriftImports) {
-      if (!thriftImports.isEmpty()) {
-        tabletsAdded++;
-
-        Map<String,MapFileInfo> prev = loadQueue.computeIfAbsent(server, k -> new HashMap<>())
-            .putIfAbsent(extent.toThrift(), thriftImports);
-
-        Preconditions.checkState(prev == null, "Unexpectedly saw extent %s twice", extent);
-
-        // keep a very rough estimate of how much is memory so we can send if over a few megs is
-        // buffered
-        queuedDataSize += thriftImports.keySet().stream().mapToInt(String::length).sum()
-            + server.getHost().length() + 4 + thriftImports.size() * 32;
-      }
-    }
-
-    @Override
     void load(List<TabletMetadata> tablets, Files files) {
-      for (TabletMetadata tablet : tablets) {
-        // send files to tablet sever
-        // ideally there should only be one tablet location to send all the files
 
-        Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
+      Map<ReferencedTabletFile,Bulk.FileInfo> toLoad = new HashMap<>();
+      for (var fileInfo : files) {
+        toLoad.put(new ReferencedTabletFile(new Path(bulkDir, fileInfo.getFileName())), fileInfo);
+      }
 
-        Location location = tablet.getLocation();
-
-        Map<String,MapFileInfo> thriftImports = new HashMap<>();
-
-        boolean needToLoad = false;
-        for (final Bulk.FileInfo fileInfo : files) {
-          Path fullPath = new Path(bulkDir, fileInfo.getFileName());
-          TabletFile bulkFile = new TabletFile(fullPath);
-
-          if (!loadedFiles.contains(bulkFile)) {
-            if (location == null) {
-              needToLoad = true;
-              break;
-            } else {
-              thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
-            }
-          }
+      // remove any tablets that already have loaded flags
+      tablets = tablets.stream().filter(tabletMeta -> {
+        Set<ReferencedTabletFile> loaded = tabletMeta.getLoaded().keySet().stream()
+            .map(StoredTabletFile::getTabletFile).collect(Collectors.toSet());
+        boolean containsAll = loaded.containsAll(toLoad.keySet());
+        // The tablet should either contain all loaded files or none. It should never contain a
+        // subset. Loaded files are written in single mutation to accumulo, either all changes in a
+        // mutation should go through or none.
+        Preconditions.checkState(containsAll || Collections.disjoint(loaded, toLoad.keySet()),
+            "Tablet %s has a subset of loaded files %s %s", tabletMeta.getExtent(), loaded,
+            toLoad.keySet());
+        if (containsAll) {
+          log.trace("{} tablet {} has already loaded all files, nothing to do", fateId,
+              tabletMeta.getExtent());
         }
+        return !containsAll;
+      }).collect(Collectors.toList());
 
-        if (location != null) {
-          addToQueue(location.getHostAndPort(), tablet.getExtent(), thriftImports);
-        } else if (needToLoad) {
-          // tablet has no location and files need to be loaded so need to wait tablet
-          locationLess++;
-        } // else tablet has no location but all files are already loaded for it so nothing to do
+      // timestamps from tablets that are hosted on a tablet server
+      Map<KeyExtent,Long> hostedTimestamps;
+      if (setTime) {
+        hostedTimestamps = allocateTimestamps(tablets, toLoad.size());
+        hostedTimestamps.forEach((e, t) -> {
+          log.trace("{} allocated timestamp {} {}", fateId, e, t);
+        });
+      } else {
+        hostedTimestamps = Map.of();
       }
 
-      sendQueued(4 * 1024 * 1024);
-    }
-
-    @Override
-    long finish() {
-
-      sendQueued(0);
-
-      long sleepTime = 0;
-      if (tabletsAdded > 0) {
-        // Waited for all the tablet servers to process everything so a long sleep is not needed.
-        // Even though this code waited, it does not know what succeeded on the tablet server side
-        // and it did not track if there were connection errors. Since success status is unknown
-        // must return a non-zero sleep to indicate another scan of the metadata table is needed.
-        sleepTime = 1;
+      List<ColumnType> rsc = new ArrayList<>();
+      if (setTime) {
+        rsc.add(TIME);
       }
 
-      if (locationLess > 0) {
-        sleepTime = Math.max(100L, locationLess);
-      }
-
-      return sleepTime;
-    }
-
-    @Override
-    public void close() {
-      rpcExecutor.shutdownNow();
-    }
-  }
-
-  private static class OfflineLoader extends Loader {
-
-    BatchWriter bw;
-
-    // track how many tablets were sent load messages per tablet server
-    MapCounter<HostAndPort> unloadingTablets;
-
-    @Override
-    void start(Path bulkDir, Manager manager, long tid, boolean setTime) throws Exception {
-      Preconditions.checkArgument(!setTime);
-      super.start(bulkDir, manager, tid, setTime);
-      bw = manager.getContext().createBatchWriter(MetadataTable.NAME);
-      unloadingTablets = new MapCounter<>();
-    }
-
-    @Override
-    void load(List<TabletMetadata> tablets, Files files) throws MutationsRejectedException {
-      byte[] fam = TextUtil.getBytes(DataFileColumnFamily.NAME);
+      ColumnType[] requireSameCols = rsc.toArray(new ColumnType[0]);
 
       for (TabletMetadata tablet : tablets) {
-        if (tablet.getLocation() != null) {
-          unloadingTablets.increment(tablet.getLocation().getHostAndPort(), 1L);
+        // Skip any tablets at the beginning of the loop before any work is done.
+        if (setTime && tablet.getLocation() != null
+            && !hostedTimestamps.containsKey(tablet.getExtent())) {
+          skipped++;
+          log.debug("{} tablet {} did not have a timestamp allocated, will retry later", fateId,
+              tablet.getExtent());
+          continue;
+        }
+        if (pauseLimit > 0 && tablet.getFiles().size() > pauseLimit) {
+          skipped++;
+          log.debug(
+              "{} tablet {} has {} files which exceeds the pause limit of {}, not bulk importing and will retry later",
+              fateId, tablet.getExtent(), tablet.getFiles().size(), pauseLimit);
           continue;
         }
 
-        Mutation mutation = new Mutation(tablet.getExtent().toMetaRow());
+        Map<ReferencedTabletFile,DataFileValue> filesToLoad = new HashMap<>();
 
-        for (final Bulk.FileInfo fileInfo : files) {
-          String fullPath = new Path(bulkDir, fileInfo.getFileName()).toString();
-          byte[] val =
-              new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries()).encode();
-          mutation.put(fam, fullPath.getBytes(UTF_8), val);
+        var tabletTime = TabletTime.getInstance(tablet.getTime());
+
+        Long fileTime = null;
+        if (setTime) {
+          if (tablet.getLocation() == null) {
+            fileTime = tabletTime.getAndUpdateTime();
+          } else {
+            fileTime = hostedTimestamps.get(tablet.getExtent());
+            tabletTime.updateTimeIfGreater(fileTime);
+          }
         }
 
-        bw.addMutation(mutation);
+        for (var entry : toLoad.entrySet()) {
+          ReferencedTabletFile refTabFile = entry.getKey();
+          Bulk.FileInfo fileInfo = entry.getValue();
+
+          DataFileValue dfv;
+
+          if (setTime) {
+            // This should always be set outside the loop when setTime is true and should not be
+            // null at this point
+            Preconditions.checkState(fileTime != null);
+            dfv =
+                new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries(), fileTime);
+          } else {
+            dfv = new DataFileValue(fileInfo.getEstFileSize(), fileInfo.getEstNumEntries());
+          }
+
+          filesToLoad.put(refTabFile, dfv);
+        }
+
+        var tabletMutator = conditionalMutator.mutateTablet(tablet.getExtent())
+            .requireAbsentOperation().requireAbsentLoaded(filesToLoad.keySet())
+            .requireSame(tablet, LOCATION, requireSameCols);
+
+        if (pauseLimit > 0) {
+          tabletMutator.requireLessOrEqualsFiles(pauseLimit);
+        }
+
+        filesToLoad.forEach((f, v) -> {
+          tabletMutator.putBulkFile(f, fateId);
+          tabletMutator.putFile(f, v);
+        });
+
+        if (setTime) {
+          tabletMutator.putTime(tabletTime.getMetadataTime());
+        }
+
+        // Hang on to loaded files for logging purposes in the case where the update is success.
+        Preconditions.checkState(
+            loadingFiles.put(tablet.getExtent(), List.copyOf(filesToLoad.keySet())) == null);
+
+        tabletMutator.submit(tm -> false, () -> "bulk load files " + fateId);
       }
     }
 
-    @Override
-    long finish() throws Exception {
+    private Map<KeyExtent,Long> allocateTimestamps(List<TabletMetadata> tablets, int numStamps) {
 
-      bw.close();
+      Map<HostAndPort,List<TKeyExtent>> serversToAsk = new HashMap<>();
 
-      long sleepTime = 0;
-      if (unloadingTablets.size() > 0) {
-        // find which tablet server had the most tablets to unload and sleep 13ms for each tablet
-        sleepTime = unloadingTablets.max() * 13;
+      Map<KeyExtent,Long> allTimestamps = new HashMap<>();
+
+      for (var tablet : tablets) {
+        if (tablet.getLocation() != null && tablet.getLocation().getType() == CURRENT) {
+          var location = tablet.getLocation().getHostAndPort();
+          serversToAsk.computeIfAbsent(location, l -> new ArrayList<>())
+              .add(tablet.getExtent().toThrift());
+        }
       }
 
-      return sleepTime;
+      for (var entry : serversToAsk.entrySet()) {
+        HostAndPort server = entry.getKey();
+        List<TKeyExtent> extents = entry.getValue();
+
+        Map<KeyExtent,Long> serversTimestamps = allocateTimestamps(server, extents, numStamps);
+        allTimestamps.putAll(serversTimestamps);
+
+      }
+
+      return allTimestamps;
     }
 
-    @Override
-    public void close() {}
+    private Map<KeyExtent,Long> allocateTimestamps(HostAndPort server, List<TKeyExtent> extents,
+        int numStamps) {
+      TabletServerClientService.Client client = null;
+      var context = env.getContext();
+      try {
+
+        log.trace("{} sending allocate timestamps request to {} for {} extents", fateId, server,
+            extents.size());
+        var timeInMillis =
+            context.getConfiguration().getTimeInMillis(Property.MANAGER_BULK_TIMEOUT);
+        client =
+            ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context, timeInMillis);
+
+        var timestamps =
+            client.allocateTimestamps(TraceUtil.traceInfo(), context.rpcCreds(), extents);
+
+        log.trace("{} allocate timestamps request to {} returned {} timestamps", fateId, server,
+            timestamps.size());
+
+        var converted = new HashMap<KeyExtent,Long>();
+        timestamps.forEach((k, v) -> converted.put(KeyExtent.fromThrift(k), v));
+        return converted;
+      } catch (TException ex) {
+        log.debug("rpc failed server: " + server + ", " + fateId + " " + ex.getMessage(), ex);
+        // return an empty map, should retry later
+        return Map.of();
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
+
+    }
+
+    long finish() {
+      var results = conditionalMutator.process();
+
+      AtomicBoolean seenFailure = new AtomicBoolean(false);
+      results.forEach((extent, condResult) -> {
+        if (condResult.getStatus() == Status.ACCEPTED) {
+          loadingFiles.get(extent).forEach(file -> TabletLogger.bulkImported(extent, file));
+          // Trigger a check for compaction now that new files were added via bulk load
+          env.getEventPublisher().event(extent, "Bulk load completed on tablet %s", extent);
+        } else {
+          seenFailure.set(true);
+          var metadata = condResult.readMetadata();
+          if (metadata == null) {
+            log.debug("Tablet update failed, tablet is gone {} {} {}", fateId, extent,
+                condResult.getStatus());
+          } else {
+            log.debug("Tablet update failed {} {} {} {} {} {}", fateId, extent,
+                condResult.getStatus(), metadata.getOperationId(), metadata.getLocation(),
+                metadata.getLoaded());
+          }
+        }
+      });
+
+      if (seenFailure.get() || skipped != 0) {
+        return 1000;
+      } else {
+        return 0;
+      }
+    }
   }
 
   /**
@@ -494,17 +392,17 @@ class LoadFiles extends ManagerRepo {
    */
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
-      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager, long tid,
+      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, FateId fateId,
       int skipDistance) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
-    String fmtTid = FateTxId.formatTid(tid);
+    String fmtTid = fateId.getTxUUIDStr();
     log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
-    loader.start(bulkDir, manager, tid, bulkInfo.setTime);
+    loader.start(bulkDir, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
@@ -543,18 +441,15 @@ class LoadFiles extends ManagerRepo {
     if (importTimingStats.callCount > 0 && log.isTraceEnabled()) {
       log.trace(
           "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
-          bulkInfo.sourceDir, FateTxId.formatTid(tid), importTimingStats.tabletCount,
-          importTimingStats.callCount, totalProcessingTime.toMillis(),
-          totalProcessingTime.toNanos(), importTimingStats.wastedIterations,
-          importTimingStats.totalWastedTime.toMillis(), importTimingStats.totalWastedTime.toNanos(),
+          bulkInfo.sourceDir, fateId, importTimingStats.tabletCount, importTimingStats.callCount,
+          totalProcessingTime.toMillis(), totalProcessingTime.toNanos(),
+          importTimingStats.wastedIterations, importTimingStats.totalWastedTime.toMillis(),
+          importTimingStats.totalWastedTime.toNanos(),
           (importTimingStats.totalWastedTime.toNanos() * 100) / totalProcessingTime.toNanos());
     }
 
     long sleepTime = loader.finish();
-    // sleepTime of 0 indicates success. sleepTime of 1 indicates all rpcs to tservers have
-    // completed but a final scan of the metadata table is required to verify success.
-    // This is accomplished by running this step again and finally returning a sleepTime of 0.
-    if (sleepTime > 1) {
+    if (sleepTime > 0) {
       log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
       long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
       log.trace("{}: Scan time is {}", fmtTid, scanTime);

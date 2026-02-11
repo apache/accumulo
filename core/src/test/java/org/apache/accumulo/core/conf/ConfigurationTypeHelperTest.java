@@ -24,8 +24,10 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -136,6 +138,54 @@ public class ConfigurationTypeHelperTest {
   }
 
   @Test
+  public void testGetVolumeUris() {
+    // test property not set
+    assertEquals(Set.of(), ConfigurationTypeHelper.getVolumeUris(""));
+
+    // test blank cases
+    assertThrows(NullPointerException.class, () -> ConfigurationTypeHelper.getVolumeUris(null));
+    for (String s : Set.of("   ", ",", ",,,", " ,,,", ",,, ", ", ,,")) {
+      var e = assertThrows(IllegalArgumentException.class,
+          () -> ConfigurationTypeHelper.getVolumeUris(s));
+      assertEquals("property contains only blank volumes", e.getMessage());
+    }
+
+    // test 1 volume
+    for (String s : Set.of("hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,")) {
+      var uris = ConfigurationTypeHelper.getVolumeUris(s);
+      assertEquals(1, uris.size());
+      assertTrue(uris.contains("hdfs:/volA"));
+    }
+
+    // test more than 1 volume
+    for (String s : Set.of("hdfs:/volA,file:/volB", ",hdfs:/volA,file:/volB",
+        "hdfs:/volA,,file:/volB", "hdfs:/volA,file:/volB,   ,")) {
+      var uris = ConfigurationTypeHelper.getVolumeUris(s);
+      assertEquals(2, uris.size());
+      assertTrue(uris.contains("hdfs:/volA"));
+      assertTrue(uris.contains("file:/volB"));
+    }
+
+    // test invalid URI
+    for (String s : Set.of("hdfs:/volA,hdfs:/volB,volA", ",volA,hdfs:/volA,hdfs:/volB",
+        "hdfs:/volA,,volA,hdfs:/volB", "hdfs:/volA,volA,hdfs:/volB,   ,")) {
+      var iae = assertThrows(IllegalArgumentException.class,
+          () -> ConfigurationTypeHelper.getVolumeUris(s));
+      assertEquals("'volA' is not a fully qualified URI", iae.getMessage());
+    }
+
+    // test duplicates
+    var iae = assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getVolumeUris("hdfs:/volA,hdfs:/volB,hdfs:/volA"));
+    assertEquals("property contains duplicate volumes", iae.getMessage());
+
+    // test syntax error in URI
+    iae = assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getVolumeUris("hdfs:/volA,hdfs :/::/volB"));
+    assertEquals("volume contains 'hdfs :/::/volB' which has a syntax error", iae.getMessage());
+  }
+
+  @Test
   public void testGetDropCacheBehindFilePrefixes() {
     assertEquals(EnumSet.noneOf(FilePrefix.class),
         ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("NONE"));
@@ -147,6 +197,5 @@ public class ConfigurationTypeHelperTest {
         ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("NON-IMPORT"));
     assertThrows(IllegalArgumentException.class,
         () -> ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("A"));
-
   }
 }

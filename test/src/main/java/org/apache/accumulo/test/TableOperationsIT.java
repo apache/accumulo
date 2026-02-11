@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,7 +40,11 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -55,17 +60,26 @@ import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.DiskUsage;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.RowRange;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.accumulo.test.util.Wait;
@@ -79,7 +93,7 @@ import com.google.common.collect.Sets;
 
 public class TableOperationsIT extends AccumuloClusterHarness {
 
-  private AccumuloClient accumuloClient;
+  private static AccumuloClient accumuloClient;
   private static final int MAX_TABLE_NAME_LEN = 1024;
 
   @Override
@@ -190,6 +204,52 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void testDefendAgainstThreadsCreateSameTableNameConcurrently()
+      throws ExecutionException, InterruptedException {
+    final int initialTableSize = accumuloClient.tableOperations().list().size();
+    final int numTasks = 10;
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+
+    for (String tablename : getUniqueNames(30)) {
+      CountDownLatch startSignal = new CountDownLatch(numTasks);
+      List<Future<Boolean>> futureList = new ArrayList<>(numTasks);
+
+      for (int j = 0; j < numTasks; j++) {
+        Future<Boolean> future = pool.submit(() -> {
+          boolean result;
+          try {
+            startSignal.countDown();
+            startSignal.await();
+            accumuloClient.tableOperations().create(tablename);
+            result = true;
+          } catch (TableExistsException e) {
+            result = false;
+          }
+          return result;
+        });
+        futureList.add(future);
+      }
+
+      int taskSucceeded = 0;
+      int taskFailed = 0;
+      for (Future<Boolean> result : futureList) {
+        if (result.get() == true) {
+          taskSucceeded++;
+        } else {
+          taskFailed++;
+        }
+      }
+
+      assertEquals(1, taskSucceeded);
+      assertEquals(9, taskFailed);
+    }
+
+    assertEquals(30, accumuloClient.tableOperations().list().size() - initialTableSize);
+
+    pool.shutdown();
   }
 
   @Test
@@ -338,7 +398,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         final Key key = entry.getKey();
         String row = key.getRow().toString();
-        String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+        String cf = key.getColumnFamily().toString();
+        String cq = key.getColumnQualifier().toString();
         String value = entry.getValue().toString();
 
         if (rowCounts.containsKey(row)) {
@@ -374,20 +435,22 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   /** Test recovery from bad majc iterator via compaction cancel. */
   @Test
   public void testCompactEmptyTablesWithBadIterator_FailsAndCancel() throws TableExistsException,
-      AccumuloException, AccumuloSecurityException, TableNotFoundException {
+      AccumuloException, AccumuloSecurityException, TableNotFoundException, InterruptedException {
     String tableName = getUniqueNames(1)[0];
     accumuloClient.tableOperations().create(tableName);
 
     List<IteratorSetting> list = new ArrayList<>();
     list.add(new IteratorSetting(15, BadIterator.class));
-    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false); // don't
-                                                                                        // block
-    sleepUninterruptibly(2, TimeUnit.SECONDS); // start compaction
+    // don't block
+    accumuloClient.tableOperations().compact(tableName, null, null, list, true, false);
+
+    Thread.sleep(SECONDS.toMillis(2)); // start compaction
+
     accumuloClient.tableOperations().cancelCompaction(tableName);
 
     try (Scanner scanner = accumuloClient.createScanner(tableName, Authorizations.EMPTY)) {
       Map<Key,Value> actual = new TreeMap<>();
-      for (Map.Entry<Key,Value> entry : scanner) {
+      for (Entry<Key,Value> entry : scanner) {
         actual.put(entry.getKey(), entry.getValue());
       }
       assertTrue(actual.isEmpty(), "Should be empty. Actual is " + actual);
@@ -441,19 +504,617 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
-    timeType = accumuloClient.tableOperations().getTimeType("accumulo.metadata");
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.METADATA.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
-    timeType = accumuloClient.tableOperations().getTimeType("accumulo.replication");
-    assertEquals(TimeType.LOGICAL, timeType);
-
-    timeType = accumuloClient.tableOperations().getTimeType("accumulo.root");
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.ROOT.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
     // test non-existent table
     assertThrows(TableNotFoundException.class,
         () -> accumuloClient.tableOperations().getTimeType("notatable"),
         "specified table does not exist");
+  }
+
+  // This test will create a total of six tables.
+  // This test will create three tables with no additional parameters, i.e., no initial splits, etc.
+  // For each of the first three tablets, set ONDEMAND, HOSTED, and UNHOSTED as the tablet
+  // availability, respectively.
+  // Retrieving the TabletAvailability should return the above values back in a single tablet.
+  //
+  // The other three tables will be created with initial splits and then queried for
+  // TabletAvailability's
+  // For each table a list of tablets will be returned with the corresponding TabletAvailability
+  // verified for correctness.
+  // The last three tables will also be queried for ranges within the table and only expect to see
+  // tablets with those ranges returned.
+  @Test
+  public void testGetTabletAvailability_DefaultTableCreations() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
+
+    final String[] tableNames = getUniqueNames(6);
+    final String tableOnDemand = tableNames[0];
+    final String tableHosted = tableNames[1];
+    final String tableUnhosted = tableNames[2];
+    final String tableOnDemandWithSplits = tableNames[3];
+    final String tableHostedWithSplits = tableNames[4];
+    final String tableUnhostedWithSplits = tableNames[5];
+
+    SortedSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    try {
+      // create all the tables with initial tablet availability values and splits
+      ntc = ntc.withInitialTabletAvailability(TabletAvailability.ONDEMAND);
+      accumuloClient.tableOperations().create(tableOnDemand, ntc);
+
+      ntc = ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      accumuloClient.tableOperations().create(tableHosted, ntc);
+
+      ntc = ntc.withInitialTabletAvailability(TabletAvailability.UNHOSTED);
+      accumuloClient.tableOperations().create(tableUnhosted, ntc);
+
+      ntc = ntc.withSplits(splits).withInitialTabletAvailability(TabletAvailability.ONDEMAND);
+      accumuloClient.tableOperations().create(tableOnDemandWithSplits, ntc);
+
+      ntc = ntc.withSplits(splits).withInitialTabletAvailability(TabletAvailability.HOSTED);
+      accumuloClient.tableOperations().create(tableHostedWithSplits, ntc);
+
+      ntc = ntc.withSplits(splits).withInitialTabletAvailability(TabletAvailability.UNHOSTED);
+      accumuloClient.tableOperations().create(tableUnhostedWithSplits, ntc);
+
+      Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
+
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
+      setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableOnDemand), null,
+          null, TabletAvailability.ONDEMAND);
+      verifyTabletAvailabilities(tableOnDemand, RowRange.all(), expectedTabletAvailability);
+
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableHosted), null, null,
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilities(tableHosted, RowRange.all(), expectedTabletAvailability);
+
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, idMap.get(tableUnhosted), null,
+          null, TabletAvailability.UNHOSTED);
+      verifyTabletAvailabilities(tableUnhosted, RowRange.all(), expectedTabletAvailability);
+
+      verifyTablesWithSplits(tableOnDemandWithSplits, idMap, splits, TabletAvailability.ONDEMAND);
+      verifyTablesWithSplits(tableHostedWithSplits, idMap, splits, TabletAvailability.HOSTED);
+      verifyTablesWithSplits(tableUnhostedWithSplits, idMap, splits, TabletAvailability.UNHOSTED);
+
+    } finally {
+      accumuloClient.tableOperations().delete(tableOnDemand);
+      accumuloClient.tableOperations().delete(tableHosted);
+      accumuloClient.tableOperations().delete(tableUnhosted);
+      accumuloClient.tableOperations().delete(tableOnDemandWithSplits);
+      accumuloClient.tableOperations().delete(tableHostedWithSplits);
+      accumuloClient.tableOperations().delete(tableUnhostedWithSplits);
+    }
+  }
+
+  // This test creates a table with splits at creation time
+  // Once created, the four tablets are provided separate tablet availabilities.
+  // The test verifies that each tablet is assigned the correct tablet availability.
+  @Test
+  public void testGetTabletAvailability_MixedAvailabilities() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
+
+    String tableName = getUniqueNames(1)[0];
+    Map<TabletId,TabletAvailability> expectedTabletAvailability;
+    SortedSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
+
+    try {
+      // create table with initial splits at creation time
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      accumuloClient.tableOperations().create(tableName, ntc);
+
+      // set each tablet with a different availability and query to see if they are set accordingly
+      RowRange rowRange = RowRange.atMost(new Text("d"));
+      accumuloClient.tableOperations().setTabletAvailability(tableName, rowRange,
+          TabletAvailability.UNHOSTED);
+      rowRange = RowRange.openClosed(new Text("m"), new Text("s"));
+      accumuloClient.tableOperations().setTabletAvailability(tableName, rowRange,
+          TabletAvailability.HOSTED);
+      rowRange = RowRange.greaterThan(new Text("s"));
+      accumuloClient.tableOperations().setTabletAvailability(tableName, rowRange,
+          TabletAvailability.UNHOSTED);
+
+      Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
+      expectedTabletAvailability = new HashMap<>();
+      String tableId = idMap.get(tableName);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.UNHOSTED);
+      // this range was intentionally not set above, checking that the tablet has the default
+      // tablet availability
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "s", "m",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "s",
+          TabletAvailability.UNHOSTED);
+      verifyTabletAvailabilities(tableName, RowRange.all(), expectedTabletAvailability);
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
+
+  // This tests creates a tables with initial splits and then queries getgoal using ranges that
+  // are not on split point boundaries
+  @Test
+  public void testGetTabletAvailability_NonSplitBoundaries() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
+
+    String tableName = getUniqueNames(1)[0];
+    SortedSet<Text> splits =
+        Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("s")));
+    Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
+    Map<String,String> idMap;
+    String tableId;
+
+    try {
+      // create table with initial splits at creation time
+      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+      accumuloClient.tableOperations().create(tableName, ntc);
+
+      // set each different availability for each tablet and query to see if they are set
+      // accordingly
+      accumuloClient.tableOperations().setTabletAvailability(tableName,
+          RowRange.closed(new Text("d")), TabletAvailability.HOSTED);
+      accumuloClient.tableOperations().setTabletAvailability(tableName,
+          RowRange.closed(new Text("m")), TabletAvailability.UNHOSTED);
+      accumuloClient.tableOperations().setTabletAvailability(tableName,
+          RowRange.closed(new Text("s")), TabletAvailability.HOSTED);
+
+      idMap = accumuloClient.tableOperations().tableIdMap();
+      tableId = idMap.get(tableName);
+
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.HOSTED);
+      // test using row as range constructor
+      verifyTabletAvailabilities(tableName, RowRange.closed("a"), expectedTabletAvailability);
+
+      // test using startRowInclusive set to true
+      RowRange rowRange = RowRange.closed(new Text("c"));
+      verifyTabletAvailabilities(tableName, rowRange, expectedTabletAvailability);
+
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "s", "m",
+          TabletAvailability.HOSTED);
+
+      rowRange = RowRange.closed(new Text("m"), new Text("p"));
+      verifyTabletAvailabilities(tableName, rowRange, expectedTabletAvailability);
+
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "d",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "s", "m",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "s",
+          TabletAvailability.ONDEMAND);
+
+      rowRange = RowRange.openClosed("b", "t");
+      verifyTabletAvailabilities(tableName, rowRange, expectedTabletAvailability);
+
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
+
+  // This test creates a table with no initial splits. The splits are added after table creation.
+  // This test verifies that the existing tablet availability is properly propagated to the metadata
+  // table for each tablet.
+  @Test
+  public void testGetTabletAvailability_DelayedSplits() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      accumuloClient.tableOperations().create(tableName);
+      Map<String,String> idMap = accumuloClient.tableOperations().tableIdMap();
+
+      // set goals to HOSTED
+      accumuloClient.tableOperations().setTabletAvailability(tableName, RowRange.all(),
+          TabletAvailability.HOSTED);
+
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
+      String tableId = idMap.get(tableName);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, null,
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilities(tableName, RowRange.all(), expectedTabletAvailability);
+
+      // Add splits after the fact
+      SortedSet<Text> splits =
+          Sets.newTreeSet(Arrays.asList(new Text("g"), new Text("n"), new Text("r")));
+      accumuloClient.tableOperations().addSplits(tableName, splits);
+
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "g", null,
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "n", "g",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "r", "n",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "r",
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilities(tableName, RowRange.all(), expectedTabletAvailability);
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
+
+  // This test checks that tablets are correct when staggered splits are added to a table, i.e.,
+  // a table is split and assigned differing goals. Later when the two existing tablets are
+  // split, verify that the new splits contain the appropriate tablet availabilities of the tablet
+  // from which they were split. Steps are as follows:
+  // - create table
+  // - add two splits; leave first tablet to default ONDEMAND, second to UNHOSTED, third to HOSTED
+  // - add a split within each of the three existing tablets
+  // - verify the newly created tablets are set with the Tablet Availabilities of the tablet from
+  // which they are split.
+  @Test
+  public void testGetTabletAvailability_StaggeredSplits() throws AccumuloException,
+      TableExistsException, AccumuloSecurityException, TableNotFoundException {
+
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      accumuloClient.tableOperations().create(tableName);
+      String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
+
+      // add split 'h' and 'q'. Leave first as ONDEMAND, set second to UNHOSTED, and third to HOSTED
+      SortedSet<Text> splits = Sets.newTreeSet(Arrays.asList(new Text("h"), new Text("q")));
+      accumuloClient.tableOperations().addSplits(tableName, splits);
+      RowRange rowRange = RowRange.openClosed(new Text("h"), new Text("q"));
+      accumuloClient.tableOperations().setTabletAvailability(tableName, rowRange,
+          TabletAvailability.UNHOSTED);
+      rowRange = RowRange.greaterThan(new Text("q"));
+      accumuloClient.tableOperations().setTabletAvailability(tableName, rowRange,
+          TabletAvailability.HOSTED);
+
+      // verify
+      Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "h", null,
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "q", "h",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "q",
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilities(tableName, RowRange.all(), expectedTabletAvailability);
+
+      // Add a split within each of the existing tablets. Adding 'd', 'm', and 'v'
+      splits = Sets.newTreeSet(Arrays.asList(new Text("d"), new Text("m"), new Text("v")));
+      accumuloClient.tableOperations().addSplits(tableName, splits);
+
+      // verify results
+      expectedTabletAvailability.clear();
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "d", null,
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "h", "d",
+          TabletAvailability.ONDEMAND);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "m", "h",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "q", "m",
+          TabletAvailability.UNHOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, "v", "q",
+          TabletAvailability.HOSTED);
+      setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, "v",
+          TabletAvailability.HOSTED);
+      verifyTabletAvailabilities(tableName, RowRange.all(), expectedTabletAvailability);
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
+
+  private void verifyTablesWithSplits(String tableName, Map<String,String> idMap,
+      SortedSet<Text> splits, TabletAvailability tabletAvailability) throws TableNotFoundException {
+
+    Map<TabletId,TabletAvailability> expectedTabletAvailability = new HashMap<>();
+    String tableId = idMap.get(tableName);
+    String[] splitPts = splits.stream().map(Text::toString).toArray(String[]::new);
+
+    // retrieve all tablets for a table
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[0], null,
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, splitPts[2],
+        tabletAvailability);
+    verifyTabletAvailabilities(tableName, RowRange.all(), expectedTabletAvailability);
+
+    // verify individual tablets can be retrieved
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[0], null,
+        tabletAvailability);
+    verifyTabletAvailabilities(tableName, RowRange.atMost(new Text(splitPts[0])),
+        expectedTabletAvailability);
+
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
+        tabletAvailability);
+    verifyTabletAvailabilities(tableName,
+        RowRange.openClosed(new Text(splitPts[0]), new Text(splitPts[1])),
+        expectedTabletAvailability);
+
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
+        tabletAvailability);
+    verifyTabletAvailabilities(tableName,
+        RowRange.openClosed(new Text(splitPts[1]), new Text(splitPts[2])),
+        expectedTabletAvailability);
+
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, null, splitPts[2],
+        tabletAvailability);
+    verifyTabletAvailabilities(tableName, RowRange.greaterThan(new Text(splitPts[2])),
+        expectedTabletAvailability);
+
+    expectedTabletAvailability.clear();
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[1], splitPts[0],
+        tabletAvailability);
+    setExpectedTabletAvailability(expectedTabletAvailability, tableId, splitPts[2], splitPts[1],
+        tabletAvailability);
+    verifyTabletAvailabilities(tableName,
+        RowRange.openClosed(new Text(splitPts[0]), new Text(splitPts[2])),
+        expectedTabletAvailability);
+  }
+
+  public static void verifyTabletAvailabilities(String tableName, RowRange rowRange,
+      Map<TabletId,TabletAvailability> expectedAvailability) throws TableNotFoundException {
+    verifyTabletAvailabilities(accumuloClient, tableName, rowRange, expectedAvailability);
+  }
+
+  public static void verifyTabletAvailabilities(AccumuloClient client, String tableName,
+      RowRange rowRange, Map<TabletId,TabletAvailability> expectedAvailability)
+      throws TableNotFoundException {
+    Map<TabletId,
+        TabletAvailability> seenAvailability = client.tableOperations()
+            .getTabletInformation(tableName, List.of(rowRange)).collect(Collectors
+                .toMap(TabletInformation::getTabletId, TabletInformation::getTabletAvailability));
+    assertEquals(expectedAvailability, seenAvailability);
+  }
+
+  /**
+   * assert the given {@code List<String>} equals what's returned from
+   * {@link TableOperations#getTabletInformation(String, List, TabletInformation.Field...)} using
+   * the given RowRange
+   */
+  private static void assertEndRowsForRange(String tableName, RowRange range, List<String> expected)
+      throws TableNotFoundException {
+    try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+        List.of(range), TabletInformation.Field.LOCATION)) {
+      var actual = tablets.map(TabletInformation::getTabletId).map(TabletId::getEndRow)
+          .map(er -> er == null ? "null" : er.toString()).toList();
+      assertEquals(expected, actual,
+          "Expected does not match actual. Expected: " + expected + " Actual: " + actual);
+    }
+  }
+
+  public static void setExpectedTabletAvailability(Map<TabletId,TabletAvailability> expected,
+      String id, String endRow, String prevEndRow, TabletAvailability availability) {
+    KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
+        prevEndRow == null ? null : new Text(prevEndRow));
+    expected.put(new TabletIdImpl(ke), availability);
+  }
+
+  @Test
+  public void testUniquenessOfTableId() throws ExecutionException, InterruptedException {
+    List<Future<TableId>> futureList = new ArrayList<>();
+
+    Set<TableId> hash = new HashSet<>();
+
+    ExecutorService pool = Executors.newFixedThreadPool(64);
+
+    for (int i = 0; i < 1000; i++) {
+      int finalI = i;
+
+      Future<TableId> future = pool.submit(() -> {
+        TableId tableId = null;
+
+        tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
+
+        return tableId;
+      });
+
+      futureList.add(future);
+    }
+
+    for (Future<TableId> tab : futureList) {
+      hash.add(tab.get());
+    }
+
+    pool.shutdown();
+
+    assertEquals(1000, hash.size());
+  }
+
+  @Test
+  public void testGetTabletInformation() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 1; i < 9; i++) {
+        splits.add(new Text(i + ""));
+      }
+      accumuloClient.tableOperations().create(tableName,
+          new NewTableConfiguration().withSplits(splits));
+      try (var writer = accumuloClient.createBatchWriter(tableName)) {
+        for (int i = 1; i <= 9; i++) {
+          var m = new Mutation("" + i);
+          m.at().family("f").qualifier("q").put("" + i);
+          writer.addMutation(m);
+        }
+      }
+
+      accumuloClient.tableOperations().flush(tableName, null, null, true);
+
+      var tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(RowRange.all()), TabletInformation.Field.LOCATION)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertNotNull(ti.getLocation());
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals("HOSTED", ti.getTabletState());
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(RowRange.all()), TabletInformation.Field.FILES)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertEquals(1, ti.getNumFiles());
+          assertEquals(1, ti.getEstimatedEntries());
+          assertTrue(ti.getEstimatedSize() > 0);
+          assertEquals(0, ti.getNumWalLogs());
+          assertNotNull(ti.getTabletDir());
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets =
+          accumuloClient.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()),
+              TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals("HOSTED", ti.getTabletState());
+          assertEquals(1, ti.getNumFiles());
+          assertEquals(1, ti.getEstimatedEntries());
+          assertTrue(ti.getEstimatedSize() > 0);
+          assertEquals(0, ti.getNumWalLogs());
+          assertNotNull(ti.getTabletDir());
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(RowRange.all()), TabletInformation.Field.AVAILABILITY)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertEquals(TabletAvailability.ONDEMAND, ti.getTabletAvailability());
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(RowRange.all()), TabletInformation.Field.MERGEABILITY)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          if (ti.getTabletId().getEndRow() == null) {
+            assertFalse(ti.getTabletMergeabilityInfo().getTabletMergeability().isNever());
+          } else {
+            assertTrue(ti.getTabletMergeabilityInfo().getTabletMergeability().isNever());
+          }
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      // RowRange.range(null, true, X, true)
+      var unboundedStartRange = RowRange.atMost(new Text("4"));
+      List<String> expected = List.of("1", "2", "3", "4");
+      assertEndRowsForRange(tableName, unboundedStartRange, expected);
+
+      // RowRange.range(null, true, X, false)
+      var exclusiveEndRange = RowRange.lessThan(new Text("4"));
+      expected = List.of("1", "2", "3", "4");
+      assertEndRowsForRange(tableName, exclusiveEndRange, expected);
+
+      // RowRange.range(X, true, null, true)
+      var unboundedEndRange = RowRange.atLeast(new Text("6"));
+      expected = List.of("6", "7", "8", "null");
+      assertEndRowsForRange(tableName, unboundedEndRange, expected);
+
+      // RowRange.range(X, false, null, true)
+      var exclusiveStartRangeUnboundedEnd = RowRange.greaterThan(new Text("6"));
+      expected = List.of("7", "8", "null");
+      assertEndRowsForRange(tableName, exclusiveStartRangeUnboundedEnd, expected);
+
+      // RowRange.range(X, false, Y, true)
+      var exclusiveStartRange = RowRange.openClosed(new Text("4"), new Text("6"));
+      expected = List.of("5", "6");
+      assertEndRowsForRange(tableName, exclusiveStartRange, expected);
+
+      // RowRange.range(X, false, Y, false)
+      var exclusiveStartAndEndRange = RowRange.open(new Text("4"), new Text("6"));
+      expected = List.of("5", "6");
+      assertEndRowsForRange(tableName, exclusiveStartAndEndRange, expected);
+
+      // RowRange.range(X, true, Y, true)
+      var inclusiveStartRange = RowRange.closed(new Text("4"), new Text("6"));
+      expected = List.of("4", "5", "6");
+      assertEndRowsForRange(tableName, inclusiveStartRange, expected);
+
+      // RowRange.range(X, true, Y, false)
+      var inclusiveStartExclusiveEndRange = RowRange.closedOpen(new Text("4"), new Text("6"));
+      expected = List.of("4", "5", "6");
+      assertEndRowsForRange(tableName, inclusiveStartExclusiveEndRange, expected);
+
+      var fileFieldMissingRange = List.of(RowRange.closed(new Text("2"), new Text("4")));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          fileFieldMissingRange, TabletInformation.Field.LOCATION)) {
+        tablets.forEach(ti -> assertThrows(IllegalStateException.class, ti::getNumFiles));
+      }
+
+      var overlappingRange = RowRange.closed(new Text("2"), new Text("4"));
+      var overlappingRange2 = RowRange.closed(new Text("3"), new Text("5"));
+      var disjointRange = RowRange.closed(new Text("7"), new Text("8"));
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          List.of(overlappingRange, overlappingRange2, disjointRange),
+          TabletInformation.Field.LOCATION)) {
+        var tabletIds = tablets.map(TabletInformation::getTabletId).toList();
+        var endRows = tabletIds.stream().map(TabletId::getEndRow).map(Text::toString).toList();
+        assertEquals(List.of("2", "3", "4", "5", "7", "8"), endRows);
+      }
+
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
   }
 
   @Test
@@ -515,5 +1176,4 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       });
     }
   }
-
 }

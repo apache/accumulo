@@ -22,49 +22,51 @@ import java.util.Set;
 
 /**
  * Class representing the version of data stored in Accumulo.
- *
+ * <p>
  * This version is separate but related to the file specific version in
  * {@link org.apache.accumulo.core.file.rfile.RFile}. A version change to RFile will reflect a
  * version change to the AccumuloDataVersion. But a version change to the AccumuloDataVersion may
  * not affect the version number in RFile. For example, changes made to other parts of Accumulo that
  * affects how data is stored, like the metadata table, would change the AccumuloDataVersion number
  * here but not in RFile.
- *
+ * <p>
  * This number is stored in HDFS under {@link org.apache.accumulo.core.Constants#VERSION_DIR}.
- *
+ * <p>
  * This class is used for checking the version during server startup and upgrades.
  */
 public class AccumuloDataVersion {
 
   /**
+   * version (12) reflect changes to support no chop merges including json encoding of the file
+   * column family stored in root and metadata tables and On-Demand tablets starting with version
+   * 4.0.
+   */
+  public static final int FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 = 12;
+
+  /**
+   * version (11) reflects removal of replication starting with 3.0
+   */
+  public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
+
+  /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
+   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}
    */
   public static final int ROOT_TABLET_META_CHANGES = 10;
 
   /**
-   * version (9) reflects changes to crypto that resulted in RFiles and WALs being serialized
-   * differently in version 2.0.0. Also RFiles in 2.0.0 may have summary data.
-   */
-  public static final int CRYPTO_CHANGES = 9;
-
-  /**
-   * version (8) reflects changes to RFile index (ACCUMULO-1124) AND the change to WAL tracking in
-   * ZK in version 1.8.0
-   */
-  public static final int SHORTEN_RFILE_KEYS = 8;
-
-  /**
-   * Historic data versions
+   * Historic data versions.
    *
    * <ul>
+   * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
+   * <li>version (8) RFile index (ACCUMULO-1124) and wal tracking in ZK in 1.8.0</li>
    * <li>version (7) also reflects the addition of a replication table in 1.7.0
    * <li>version (6) reflects the addition of a separate root table (ACCUMULO-1481) in 1.6.0 -
    * <li>version (5) moves delete file markers for the metadata table into the root tablet
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = ROOT_TABLET_META_CHANGES;
+  private static final int CURRENT_VERSION = FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
@@ -77,7 +79,7 @@ public class AccumuloDataVersion {
   }
 
   public static final Set<Integer> CAN_RUN =
-      Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, CURRENT_VERSION);
+      Set.of(CURRENT_VERSION, REMOVE_DEPRECATIONS_FOR_VERSION_3, ROOT_TABLET_META_CHANGES);
 
   /**
    * Get the stored, current working version.
@@ -92,4 +94,20 @@ public class AccumuloDataVersion {
     return cv;
   }
 
+  public static int oldestUpgradeableVersion() {
+    return CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow();
+  }
+
+  public static String oldestUpgradeableVersionName() {
+    return dataVersionToReleaseName(oldestUpgradeableVersion());
+  }
+
+  private static String dataVersionToReleaseName(final int version) {
+    return switch (version) {
+      case ROOT_TABLET_META_CHANGES -> "2.1.0";
+      case REMOVE_DEPRECATIONS_FOR_VERSION_3 -> "3.0.0";
+      case FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 -> "4.0.0";
+      default -> throw new IllegalArgumentException("Unsupported data version " + version);
+    };
+  }
 }

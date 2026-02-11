@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.performance;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
@@ -26,21 +26,19 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.UUID;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.dataImpl.thrift.MultiScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
@@ -54,39 +52,46 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
+import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
+import org.apache.accumulo.core.tabletingest.thrift.TDurability;
+import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
+import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
+import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
-import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
-import org.apache.accumulo.core.tabletserver.thrift.TDurability;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.tabletserver.thrift.TSamplerConfiguration;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
-import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
+import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.thrift.TInfo;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+import com.google.common.net.HostAndPort;
 
 /**
  * The purpose of this class is to server as fake tserver that is a data sink like /dev/null.
@@ -95,8 +100,11 @@ import com.beust.jcommander.Parameter;
  */
 public class NullTserver {
 
+  private static final Logger LOG = LoggerFactory.getLogger(NullTserver.class);
+
   public static class NullTServerTabletClientHandler
-      implements TabletClientService.Iface, TabletScanClientService.Iface {
+      implements TabletServerClientService.Iface, TabletScanClientService.Iface,
+      TabletIngestClientService.Iface, TabletManagementClientService.Iface {
 
     private long updateSession = 1;
 
@@ -120,20 +128,6 @@ public class NullTserver {
     }
 
     @Override
-    public List<TKeyExtent> bulkImport(TInfo tinfo, TCredentials credentials, long tid,
-        Map<TKeyExtent,Map<String,MapFileInfo>> files, boolean setTime) {
-      return null;
-    }
-
-    @Override
-    public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
-        Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
-
-    @Override
-    public void loadFilesV2(TInfo tinfo, TCredentials credentials, long tid, String dir,
-        Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
-
-    @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
 
     @Override
@@ -147,12 +141,6 @@ public class NullTserver {
     @Override
     public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout) {
       return null;
-    }
-
-    @Override
-    public void splitTablet(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
-        ByteBuffer splitPoint) {
-
     }
 
     @Override
@@ -171,12 +159,6 @@ public class NullTserver {
         boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
         String classLoaderContext, Map<String,String> executionHints, long busyTimeout) {
       return null;
-    }
-
-    @Override
-    public void update(TInfo tinfo, TCredentials credentials, TKeyExtent keyExtent,
-        TMutation mutation, TDurability durability) {
-
     }
 
     @Override
@@ -213,16 +195,7 @@ public class NullTserver {
     }
 
     @Override
-    public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {}
-
-    @Override
     public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {
-
-    }
-
-    @Override
-    public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-        ByteBuffer startRow, ByteBuffer endRow) {
 
     }
 
@@ -288,27 +261,16 @@ public class NullTserver {
     }
 
     @Override
-    public List<TCompactionQueueSummary> getCompactionQueueInfo(TInfo tinfo,
-        TCredentials credentials) throws ThriftSecurityException, TException {
-      return null;
+    public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
+        List<TKeyExtent> refreshes) throws TException {
+      return List.of();
     }
 
     @Override
-    public TExternalCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
-        String queueName, long priority, String compactor, String externalCompactionId)
-        throws ThriftSecurityException, TException {
-      return null;
+    public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
+        List<TKeyExtent> tablets) throws TException {
+      return Map.of();
     }
-
-    @Override
-    public void compactionJobFinished(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent, long fileSize, long entries)
-        throws ThriftSecurityException, TException {}
-
-    @Override
-    public void compactionJobFailed(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent extent) throws TException {}
-
   }
 
   static class Opts extends Help {
@@ -331,8 +293,8 @@ public class NullTserver {
     int zkTimeOut =
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
-    ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
-    ClientServiceHandler csh = new ClientServiceHandler(context, new TransactionWatcher(context));
+    var context = ServerContext.forTesting(siteConfig, opts.iname, opts.keepers, zkTimeOut);
+    ClientServiceHandler csh = new ClientServiceHandler(context);
     NullTServerTabletClientHandler tch = new NullTServerTabletClientHandler();
 
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
@@ -340,41 +302,90 @@ public class NullTserver {
         ThriftProcessorTypes.CLIENT.getTProcessor(ClientService.Processor.class,
             ClientService.Iface.class, csh, context));
     muxProcessor.registerProcessor(ThriftClientTypes.TABLET_SERVER.getServiceName(),
-        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletClientService.Processor.class,
-            TabletClientService.Iface.class, tch, context));
-    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SERVER_SCAN.getServiceName(),
-        ThriftProcessorTypes.TABLET_SERVER_SCAN.getTProcessor(
-            TabletScanClientService.Processor.class, TabletScanClientService.Iface.class, tch,
-            context));
+        ThriftProcessorTypes.TABLET_SERVER.getTProcessor(TabletServerClientService.Processor.class,
+            TabletServerClientService.Iface.class, tch, context));
+    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_SCAN.getServiceName(),
+        ThriftProcessorTypes.TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
+            TabletScanClientService.Iface.class, tch, context));
+    muxProcessor.registerProcessor(ThriftClientTypes.TABLET_INGEST.getServiceName(),
+        ThriftProcessorTypes.TABLET_INGEST.getTProcessor(TabletIngestClientService.Processor.class,
+            TabletIngestClientService.Iface.class, tch, context));
+    muxProcessor.registerProcessor(ThriftProcessorTypes.TABLET_MGMT.getServiceName(),
+        ThriftProcessorTypes.TABLET_MGMT.getTProcessor(
+            TabletManagementClientService.Processor.class,
+            TabletManagementClientService.Iface.class, tch, context));
 
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
-        muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
-        10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
-        context.getMetricsInfo(), false,
-        HostAndPort.fromParts(ServerOpts.BIND_ALL_ADDRESSES, opts.port));
+    ServerAddress sa = TServerUtils.createThriftServer(context.getConfiguration(),
+        ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "NullTServer", 2,
+        ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
+        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
+        HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, opts.port));
+    sa.startThriftServer("null tserver");
 
-    HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
+    AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
-    TableId tableId = context.getTableId(opts.tableName);
-
-    // read the locations for the table
-    Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
-    List<Assignment> assignments = new ArrayList<>();
-    try (var s = new MetaDataTableScanner(context, tableRange, DataLevel.of(tableId))) {
-      long randomSessionID = opts.port;
-      TServerInstance instance = new TServerInstance(addr, randomSessionID);
-
-      while (s.hasNext()) {
-        TabletLocationState next = s.next();
-        assignments.add(new Assignment(next.extent, instance, next.last));
+      @Override
+      public void lostLock(LockLossReason reason) {
+        LOG.warn("Lost lock: " + reason.toString());
       }
-    }
-    // point them to this server
-    TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
-    store.setLocations(assignments);
 
-    while (true) {
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
+      @Override
+      public void unableToMonitorLockNode(Exception e) {
+        LOG.warn("Unable to monitor lock: " + e.getMessage());
+      }
+
+      @Override
+      public void acquiredLock() {
+        LOG.debug("Acquired ZooKeeper lock for NullTserver");
+      }
+
+      @Override
+      public void failedToAcquireLock(Exception e) {
+        LOG.warn("Failed to acquire ZK lock for NullTserver, msg: " + e.getMessage());
+      }
+    };
+
+    ServiceLock miniLock = null;
+    try {
+      ZooSession zk = context.getZooSession();
+      UUID nullTServerUUID = UUID.randomUUID();
+      ServiceLockPath slp = context.getServerPaths().createMiniPath(nullTServerUUID.toString());
+      try {
+        zk.asReaderWriter().mkdirs(slp.toString());
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Error creating path in ZooKeeper", e);
+      }
+      ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
+          ResourceGroupId.DEFAULT);
+      miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
+      miniLock.lock(miniLockWatcher, sld);
+      context.setServiceLock(miniLock);
+      HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
+
+      // read the locations for the table
+      List<Assignment> assignments = new ArrayList<>();
+      try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
+        long randomSessionID = opts.port;
+        TServerInstance instance = new TServerInstance(addr, randomSessionID);
+        var s = tablets.iterator();
+
+        while (s.hasNext()) {
+          TabletMetadata next = s.next();
+          assignments.add(new Assignment(next.getExtent(), instance, next.getLast()));
+        }
+      }
+      // point them to this server
+      TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
+      store.setLocations(assignments);
+
+      while (true) {
+        Thread.sleep(SECONDS.toMillis(10));
+      }
+
+    } finally {
+      if (miniLock != null) {
+        miniLock.unlock();
+      }
     }
   }
 }

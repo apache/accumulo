@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -27,13 +27,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.clientImpl.bulk.Bulk;
 import org.apache.accumulo.core.clientImpl.bulk.BulkImport;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
@@ -42,20 +42,21 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -74,7 +75,7 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-public class PrepBulkImport extends ManagerRepo {
+public class PrepBulkImport extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -82,32 +83,31 @@ public class PrepBulkImport extends ManagerRepo {
 
   private final BulkInfo bulkInfo;
 
-  public PrepBulkImport(TableId tableId, String sourceDir, boolean setTime) {
-    BulkInfo info = new BulkInfo();
-    info.tableId = tableId;
-    info.sourceDir = sourceDir;
-    info.setTime = setTime;
+  public PrepBulkImport(BulkInfo info) {
     this.bulkInfo = info;
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
-    if (!Utils.getReadLock(manager, bulkInfo.tableId, tid).tryLock()) {
-      return 100;
+  public long isReady(FateId fateId, FateEnv env) throws Exception {
+    long wait = Utils.reserveTable(env.getContext(), bulkInfo.tableId, fateId,
+        DistributedReadWriteLock.LockType.READ, true, TableOperation.BULK_IMPORT,
+        LockRange.of(bulkInfo.firstSplit, bulkInfo.lastSplit));
+    if (wait > 0) {
+      return wait;
     }
 
-    if (manager.onlineTabletServers().isEmpty()) {
+    if (env.onlineTabletServers().isEmpty()) {
       return 500;
     }
-    manager.getContext().clearTableListCache();
 
-    return Utils.reserveHdfsDirectory(manager, bulkInfo.sourceDir, tid);
+    return Utils.reserveHdfsDirectory(env.getContext(), bulkInfo.sourceDir, fateId);
   }
 
   @VisibleForTesting
-  interface TabletIterFactory {
+  interface TabletIterFactory extends AutoCloseable {
     Iterator<KeyExtent> newTabletIter(Text startRow);
 
+    @Override
     void close();
   }
 
@@ -120,10 +120,12 @@ public class PrepBulkImport extends ManagerRepo {
    * file goes to too many tablets.
    */
   @VisibleForTesting
-  static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
-      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid, int skip) throws Exception {
+  static void validateLoadMapping(String tableId, LoadMappingIterator lmi,
+      TabletIterFactory tabletIterFactory, int maxNumTablets, int maxFilesPerTablet, FateId fateId,
+      int skip) throws Exception {
 
     var currRange = lmi.next();
+    checkFilesPerTablet(tableId, maxFilesPerTablet, currRange);
 
     Text startRow = currRange.getKey().prevEndRow();
 
@@ -135,9 +137,6 @@ public class PrepBulkImport extends ManagerRepo {
 
       var fileCounts = new HashMap<String,Integer>();
       int count;
-
-      KeyExtent firstTablet = currRange.getKey();
-      KeyExtent lastTablet = currRange.getKey();
 
       if (!pi.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
           && equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
@@ -151,7 +150,7 @@ public class PrepBulkImport extends ManagerRepo {
             break;
           }
           currRange = lmi.next();
-          lastTablet = currRange.getKey();
+          checkFilesPerTablet(tableId, maxFilesPerTablet, currRange);
         }
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
@@ -173,10 +172,6 @@ public class PrepBulkImport extends ManagerRepo {
 
         boolean matchedPrevRow = equals(KeyExtent::prevEndRow, currTablet, currRange.getKey());
 
-        if (matchedPrevRow && firstTablet == null) {
-          firstTablet = currTablet;
-        }
-
         count = matchedPrevRow ? 1 : 0;
 
         while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && pi.hasNext()) {
@@ -187,7 +182,6 @@ public class PrepBulkImport extends ManagerRepo {
         if (!matchedPrevRow || !equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
           break;
         }
-
         if (maxNumTablets > 0) {
           int fc = count;
           currRange.getValue()
@@ -211,19 +205,30 @@ public class PrepBulkImport extends ManagerRepo {
                   + new TreeMap<>(fileCounts));
         }
       }
-      return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
     } finally {
       tabletIterFactory.close();
     }
   }
 
-  private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
+  private static void checkFilesPerTablet(String tableId, int maxFilesPerTablet,
+      Map.Entry<KeyExtent,Bulk.Files> currRange) throws AcceptableThriftTableOperationException {
+    if (maxFilesPerTablet > 0 && currRange.getValue().getSize() > maxFilesPerTablet) {
+      throw new AcceptableThriftTableOperationException(tableId, null, TableOperation.BULK_IMPORT,
+          TableOperationExceptionType.OTHER,
+          "Attempted to import " + currRange.getValue().getSize() + " files into tablets in range "
+              + currRange.getKey() + " which exceeds the configured max files per tablet of "
+              + maxFilesPerTablet + " from " + Property.TABLE_BULK_MAX_TABLET_FILES.getKey());
+    }
+  }
 
-    VolumeManager fs = manager.getVolumeManager();
+  private void checkForMerge(final ServerContext ctx, final FateId fateId) throws Exception {
+
+    VolumeManager fs = ctx.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
 
-    int maxTablets = manager.getContext().getTableConfiguration(bulkInfo.tableId)
-        .getCount(Property.TABLE_BULK_MAX_TABLETS);
+    var tableConfig = ctx.getTableConfiguration(bulkInfo.tableId);
+    int maxTablets = tableConfig.getCount(Property.TABLE_BULK_MAX_TABLETS);
+    int maxFilesPerTablet = tableConfig.getCount(Property.TABLE_BULK_MAX_TABLET_FILES);
 
     try (LoadMappingIterator lmi =
         BulkSerialize.readLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
@@ -234,8 +239,8 @@ public class PrepBulkImport extends ManagerRepo {
 
         @Override
         public Iterator<KeyExtent> newTabletIter(Text startRow) {
-          tm = TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
-              .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW).build();
+          tm = TabletsMetadata.builder(ctx).forTable(bulkInfo.tableId).overlapping(startRow, null)
+              .checkConsistency().fetch(PREV_ROW).build();
           return tm.stream().map(TabletMetadata::getExtent).iterator();
         }
 
@@ -247,41 +252,33 @@ public class PrepBulkImport extends ManagerRepo {
         }
       };
 
-      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
-          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
-          tid, skip);
+      int skip = tableConfig.getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
+          maxFilesPerTablet, fateId, skip);
     }
   }
 
   @Override
-  public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
+  public Repo<FateEnv> call(final FateId fateId, final FateEnv env) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    KeyExtent tabletsRange = checkForMerge(tid, manager);
+    checkForMerge(env.getContext(), fateId);
 
-    bulkInfo.firstSplit =
-        Optional.ofNullable(tabletsRange.prevEndRow()).map(Text::getBytes).orElse(null);
-    bulkInfo.lastSplit =
-        Optional.ofNullable(tabletsRange.endRow()).map(Text::getBytes).orElse(null);
-    log.trace("{} first split:{} last split:{}", FateTxId.formatTid(tid), tabletsRange.prevEndRow(),
-        tabletsRange.endRow());
-
-    bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
-
-    VolumeManager fs = manager.getVolumeManager();
-    final UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
+    VolumeManager fs = env.getVolumeManager();
+    final UniqueNameAllocator namer = env.getContext().getUniqueNameAllocator();
     Path sourceDir = new Path(bulkInfo.sourceDir);
     List<FileStatus> files = BulkImport.filterInvalid(fs.listStatus(sourceDir));
 
-    Path bulkDir = createNewBulkDir(manager.getContext(), fs, bulkInfo.tableId);
+    Path bulkDir = createNewBulkDir(env.getContext(), fs, bulkInfo.tableId);
     Path mappingFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
 
+    Iterator<String> names = namer.getNextNames(files.size());
+
     for (FileStatus file : files) {
       // since these are only valid files we know it has an extension
       String newName = FilePrefix.BULK_IMPORT.createFileName(
-          namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName()));
+          names.next() + "." + FilenameUtils.getExtension(file.getPath().getName()));
       oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }
 
@@ -292,7 +289,7 @@ public class PrepBulkImport extends ManagerRepo {
 
     bulkInfo.bulkDir = bulkDir.toString();
 
-    BulkLogger.initiating(tid, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
+    BulkLogger.initiating(fateId, bulkInfo.tableId, bulkInfo.setTime, bulkInfo.sourceDir,
         bulkInfo.bulkDir);
 
     // return the next step, which will move files
@@ -323,11 +320,11 @@ public class PrepBulkImport extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, FateEnv environment) throws Exception {
     // unreserve sourceDir/error directories
-    Utils.unreserveHdfsDirectory(environment, bulkInfo.sourceDir, tid);
-    Utils.getReadLock(environment, bulkInfo.tableId, tid).unlock();
-    TransactionWatcher.ZooArbitrator.cleanup(environment.getContext(),
-        Constants.BULK_ARBITRATOR_TYPE, tid);
+    Utils.unreserveHdfsDirectory(environment.getContext(), bulkInfo.sourceDir, fateId);
+    Utils.getReadLock(environment.getContext(), bulkInfo.tableId, fateId, LockRange.infinite())
+        .unlock();
+    environment.removeBulkImportStatus(bulkInfo.sourceDir);
   }
 }

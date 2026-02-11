@@ -23,12 +23,12 @@ import java.util.Date;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.master.thrift.BulkImportStatus;
-import org.apache.accumulo.core.master.thrift.RecoveryStatus;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -107,8 +107,6 @@ public class GetManagerStats {
             out(4, "Records in Memory: %d", info.recsInMemory);
             out(4, "Ingest: %.2f", info.ingestRate);
             out(4, "Queries: %.2f", info.queryRate);
-            out(4, "Major Compacting: %d", info.majors == null ? 0 : info.majors.running);
-            out(4, "Queued for Major Compaction: %d", info.majors == null ? 0 : info.majors.queued);
             out(4, "Minor Compacting: %d", info.minors == null ? 0 : info.minors.running);
             out(4, "Queued for Minor Compaction: %d", info.minors == null ? 0 : info.minors.queued);
           }

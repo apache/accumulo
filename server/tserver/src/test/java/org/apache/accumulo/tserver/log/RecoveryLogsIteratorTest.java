@@ -23,34 +23,39 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -61,33 +66,43 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RecoveryLogsIteratorTest extends WithTestNames {
 
+  private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
   private VolumeManager fs;
-  private File workDir;
+  private java.nio.file.Path workDir;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
+  static TabletServer server;
   static ServerContext context;
   static LogSorter logSorter;
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-
-    workDir = new File(tempDir, testName());
-    String path = workDir.getAbsolutePath();
+    server = createMock(TabletServer.class);
+    workDir = tempDir.resolve(testName());
+    String path = workDir.toString();
     fs = VolumeManagerImpl.getLocalForTesting(path);
+    expect(server.getContext()).andReturn(context).anyTimes();
     expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-    replay(context);
+    expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
+    replay(server, context);
 
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
+    logSorter = new LogSorter(server);
   }
 
   @AfterEach
   public void tearDown() throws Exception {
     fs.close();
+    verify(server, context);
+  }
+
+  @AfterAll
+  public static void shutdown() {
+    EXECUTOR.shutdownNow();
   }
 
   static class KeyValue implements Comparable<KeyValue> {
@@ -128,7 +143,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
 
-    ArrayList<Path> dirs = new ArrayList<>();
+    ArrayList<ResolvedSortedLog> dirs = new ArrayList<>();
 
     createRecoveryDir(logs, dirs, true);
 
@@ -154,24 +169,11 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
 
-    ArrayList<Path> dirs = new ArrayList<>();
+    ArrayList<ResolvedSortedLog> dirs = new ArrayList<>();
 
-    createRecoveryDir(logs, dirs, false);
-
-    assertThrows(IOException.class,
-        () -> new RecoveryLogsIterator(context, dirs, null, null, false),
+    var exception = assertThrows(IOException.class, () -> createRecoveryDir(logs, dirs, false),
         "Finish marker should not be found");
-  }
-
-  @Test
-  public void testSingleFile() throws IOException {
-    String destPath = workDir + "/test.rf";
-    fs.create(new Path(destPath));
-
-    assertThrows(
-        IOException.class, () -> new RecoveryLogsIterator(context,
-            Collections.singletonList(new Path(destPath)), null, null, false),
-        "Finish marker should not be found for a single file.");
+    assertTrue(exception.getMessage().contains("'finished' flag not found"));
   }
 
   @Test
@@ -187,7 +189,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
 
-    ArrayList<Path> dirs = new ArrayList<>();
+    ArrayList<ResolvedSortedLog> dirs = new ArrayList<>();
 
     createRecoveryDir(logs, dirs, true);
 
@@ -215,7 +217,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     Map<String,KeyValue[]> logs = new TreeMap<>();
     logs.put("keyValues", keyValues);
 
-    ArrayList<Path> dirs = new ArrayList<>();
+    ArrayList<ResolvedSortedLog> dirs = new ArrayList<>();
 
     createRecoveryDir(logs, dirs, true);
 
@@ -227,11 +229,16 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     }
   }
 
-  private void createRecoveryDir(Map<String,KeyValue[]> logs, ArrayList<Path> dirs,
+  private void createRecoveryDir(Map<String,KeyValue[]> logs, ArrayList<ResolvedSortedLog> dirs,
       boolean FinishMarker) throws IOException {
 
     for (Entry<String,KeyValue[]> entry : logs.entrySet()) {
-      String destPath = workDir + "/dir";
+      var uuid = UUID.randomUUID();
+      String origPath = "file://" + workDir + "/" + entry.getKey() + "/"
+          + VolumeManager.FileType.WAL.getDirectory() + "/localhost+9997/" + uuid;
+      String destPath = "file://" + workDir + "/" + entry.getKey() + "/"
+          + VolumeManager.FileType.RECOVERY.getDirectory() + "/" + uuid;
+
       FileSystem ns = fs.getFileSystemByPath(new Path(destPath));
 
       // convert test object to Pairs for LogSorter.
@@ -245,7 +252,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
         ns.create(SortedLogState.getFinishedMarkerPath(destPath));
       }
 
-      dirs.add(new Path(destPath));
+      var rsl = ResolvedSortedLog.resolve(LogEntry.fromPath(origPath), fs);
+      dirs.add(rsl);
     }
   }
 }

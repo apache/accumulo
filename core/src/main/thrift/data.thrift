@@ -125,10 +125,6 @@ struct TCMResult {
   2:TCMStatus status
 }
 
-struct MapFileInfo {
-  1:i64 estimatedSize
-}
-
 struct TCondition {
   1:binary cf
   2:binary cq
@@ -188,6 +184,4 @@ struct TSummaryRequest {
 typedef map<TKeyExtent, list<TConditionalMutation>> CMBatch
 
 typedef map<TKeyExtent, list<TMutation>> UpdateBatch
-
-typedef map<TKeyExtent, map<string, MapFileInfo>> TabletFiles
 

@@ -18,9 +18,8 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static org.apache.accumulo.core.conf.Property.TSERV_COMPACTION_WARN_TIME;
+import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,12 +29,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
@@ -62,7 +59,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ShellIT extends SharedMiniClusterBase {
 
   @Override
@@ -121,7 +117,7 @@ public class ShellIT extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  private File config;
+  private Path config;
   private LineReader reader;
   private Terminal terminal;
 
@@ -173,7 +169,7 @@ public class ShellIT extends SharedMiniClusterBase {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
     input = new StringInputStream();
-    config = Files.createTempFile(null, null).toFile();
+    config = Files.createTempFile(null, null);
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -185,10 +181,10 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @AfterEach
   public void teardownShell() {
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
+    try {
+      Files.deleteIfExists(config);
+    } catch (IOException e) {
+      log.error("Unable to delete {}", config, e);
     }
     shell.shutdown();
   }
@@ -356,10 +352,7 @@ public class ShellIT extends SharedMiniClusterBase {
 
     // delete will show the timestamp
     exec("deletemany -r 1 -f -st", true, "[DELETED] 1 1:1 [] 1");
-
-    // DeleteManyCommand has its own Formatter (DeleterFormatter), so it does not honor the -fm flag
-    exec("deletemany -r 2 -f -st -fm org.apache.accumulo.core.util.format.DateStringFormatter",
-        true, "[DELETED] 2 2:2 [] 2");
+    exec("deletemany -r 2 -f -st", true, "[DELETED] 2 2:2 [] 2");
 
     exec("setauths -c ", true);
     exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
@@ -445,33 +438,7 @@ public class ShellIT extends SharedMiniClusterBase {
     String expectedFew = "1 123:12345 [12345678] 123456789\t12345";
     exec("scan -st", true, expected);
     exec("scan -st -f 5", true, expectedFew);
-    // also prove that BinaryFormatter behaves same as the default
-    exec("scan -st -fm org.apache.accumulo.core.util.format.BinaryFormatter", true, expected);
-    exec("scan -st -f 5 -fm org.apache.accumulo.core.util.format.BinaryFormatter", true,
-        expectedFew);
     exec("setauths -c", true);
-    exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
-  }
-
-  @Test
-  public void scanDateStringFormatterTest() throws IOException {
-    Shell.log.debug("Starting scan dateStringFormatter test --------------------------");
-    String table = getUniqueNames(1)[0];
-    exec("createtable " + table, true);
-    exec("insert r f q v -ts 0", true);
-    @SuppressWarnings("deprecation")
-    DateFormat dateFormat =
-        new SimpleDateFormat(org.apache.accumulo.core.util.format.DateStringFormatter.DATE_FORMAT);
-    String expected = String.format("r f:q [] %s\tv", dateFormat.format(new Date(0)));
-    // historically, showing few did not pertain to ColVis or Timestamp
-    String expectedNoTimestamp = "r f:q []\tv";
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st", true, expected);
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 1000", true,
-        expected);
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter -st -f 5", true,
-        expected);
-    exec("scan -fm org.apache.accumulo.core.util.format.DateStringFormatter", true,
-        expectedNoTimestamp);
     exec("deletetable " + table + " -f", true, "Table: [" + table + "] has been deleted");
   }
 
@@ -555,7 +522,8 @@ public class ShellIT extends SharedMiniClusterBase {
 
     for (Property property : Property.values()) {
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
 
       // Skip test if we can't set this property via shell
       if (!Property.isValidZooPropertyKey(property.getKey())) {
@@ -568,6 +536,12 @@ public class ShellIT extends SharedMiniClusterBase {
         case PATH:
         case PREFIX:
         case STRING:
+        case FATE_THREADPOOL_SIZE:
+          // deprecated value
+        case FATE_META_CONFIG:
+          // json based type
+        case FATE_USER_CONFIG:
+          // json based type
         case JSON:
           Shell.log.debug("Skipping " + propertyType + " Property Types");
           continue;
@@ -667,18 +641,17 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void propFileNotFoundTest() throws IOException {
-    String fileName = new File(tempDir, "propFile.shellit").getAbsolutePath();
+    Path fileName = Path.of(tempDir.getPath(), "propFile.shellit");
 
     Shell.log.debug("Starting prop file not found test --------------------------");
-    exec("config --propFile " + fileName, false,
-        "FileNotFoundException: " + fileName + " (No such file or directory)");
+    exec("config --propFile " + fileName, false, "NoSuchFileException: " + fileName);
   }
 
   @Test
   public void setpropsViaFile() throws Exception {
     File file = File.createTempFile("propFile", ".conf", tempDir);
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
-    writer.println(TSERV_COMPACTION_WARN_TIME.getKey() + "=11m");
+    writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
     writer.close();
     exec("config --propFile " + file.getAbsolutePath(), true);
   }

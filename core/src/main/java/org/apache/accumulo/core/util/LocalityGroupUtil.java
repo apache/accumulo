@@ -246,8 +246,8 @@ public class LocalityGroupUtil {
   }
 
   public static class PartitionedMutation extends Mutation {
-    private final byte[] row;
-    private final List<ColumnUpdate> updates;
+    private byte[] row;
+    private List<ColumnUpdate> updates;
 
     public PartitionedMutation(byte[] row, List<ColumnUpdate> updates) {
       this.row = row;
@@ -289,8 +289,8 @@ public class LocalityGroupUtil {
 
   public static class Partitioner {
 
-    private final Map<ByteSequence,Integer> colfamToLgidMap;
-    private final PreAllocatedArray<Map<ByteSequence,MutableLong>> groups;
+    private Map<ByteSequence,Integer> colfamToLgidMap;
+    private PreAllocatedArray<Map<ByteSequence,MutableLong>> groups;
 
     public Partitioner(PreAllocatedArray<Map<ByteSequence,MutableLong>> groups) {
       this.groups = groups;
@@ -306,7 +306,7 @@ public class LocalityGroupUtil {
     public void partition(List<Mutation> mutations,
         PreAllocatedArray<List<Mutation>> partitionedMutations) {
 
-      MutableByteSequence mbs = new MutableByteSequence(new byte[0], 0, 0);
+      final var mbs = new ArrayByteSequence(new byte[0], 0, 0);
 
       PreAllocatedArray<List<ColumnUpdate>> parts = new PreAllocatedArray<>(groups.length + 1);
 
@@ -351,8 +351,8 @@ public class LocalityGroupUtil {
       }
     }
 
-    private Integer getLgid(MutableByteSequence mbs, ColumnUpdate cu) {
-      mbs.setArray(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
+    private Integer getLgid(ArrayByteSequence mbs, ColumnUpdate cu) {
+      mbs.reset(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);
       if (lgid == null) {
         lgid = groups.length;

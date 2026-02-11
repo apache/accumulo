@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.rpc;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 
 import javax.security.sasl.SaslServer;
 
@@ -55,7 +56,7 @@ public class UGIAssumingProcessor implements TProcessor {
       this.loginUser = UserGroupInformation.getLoginUser();
     } catch (IOException e) {
       log.error("Failed to obtain login user", e);
-      throw new RuntimeException("Failed to obtain login user", e);
+      throw new UncheckedIOException("Failed to obtain login user", e);
     }
   }
 
@@ -77,10 +78,9 @@ public class UGIAssumingProcessor implements TProcessor {
   @Override
   public void process(final TProtocol inProt, final TProtocol outProt) throws TException {
     TTransport trans = inProt.getTransport();
-    if (!(trans instanceof TSaslServerTransport)) {
+    if (!(trans instanceof TSaslServerTransport saslTrans)) {
       throw new TException("Unexpected non-SASL transport " + trans.getClass() + ": " + trans);
     }
-    TSaslServerTransport saslTrans = (TSaslServerTransport) trans;
     SaslServer saslServer = saslTrans.getSaslServer();
     String endUser = saslServer.getAuthorizationID();
 

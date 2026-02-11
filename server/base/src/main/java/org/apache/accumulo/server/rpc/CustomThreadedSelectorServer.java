@@ -37,7 +37,7 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
       fbTansportField = FrameBuffer.class.getDeclaredField("trans_");
       fbTansportField.setAccessible(true);
     } catch (SecurityException | NoSuchFieldException e) {
-      throw new RuntimeException("Failed to access required field in Thrift code.", e);
+      throw new IllegalStateException("Failed to access required field in Thrift code.", e);
     }
   }
 
@@ -45,7 +45,7 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
     try {
       return (TNonblockingTransport) fbTansportField.get(frameBuffer);
     } catch (IllegalAccessException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -56,10 +56,9 @@ public class CustomThreadedSelectorServer extends TThreadedSelectorServer {
       try {
         TNonblockingTransport transport = getTransport(frameBuffer);
 
-        if (transport instanceof TNonblockingSocket) {
+        if (transport instanceof TNonblockingSocket tsock) {
           // This block of code makes the client address available to the server side code that
           // executes a RPC. It is made available for informational purposes.
-          TNonblockingSocket tsock = (TNonblockingSocket) transport;
           Socket sock = tsock.getSocketChannel().socket();
           TServerUtils.clientAddress
               .set(sock.getInetAddress().getHostAddress() + ":" + sock.getPort());

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
+import org.eclipse.jetty.io.ConnectionStatistics;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -57,17 +58,21 @@ public class EmbeddedWebServerTest {
 
     Monitor monitorMock = createMock(Monitor.class);
     expect(monitorMock.getContext()).andReturn(contextMock).atLeastOnce();
+    ConnectionStatistics connectionStatisticMock = createMock(ConnectionStatistics.class);
+    expect(connectionStatisticMock.isRunning()).andReturn(true).atLeastOnce();
+    expect(monitorMock.getConnectionStatisticsBean()).andReturn(connectionStatisticMock)
+        .atLeastOnce();
     expect(monitorMock.getConfiguration()).andReturn(config).atLeastOnce();
     expect(monitorMock.getBindAddress()).andReturn("localhost:9995").atLeastOnce();
 
-    replay(contextMock, monitorMock);
+    replay(contextMock, monitorMock, connectionStatisticMock);
     monitor.set(monitorMock);
   }
 
   @AfterAll
   public static void finishMocks() {
     Monitor m = monitor.get();
-    verify(m.getContext(), m);
+    verify(m.getContext(), m, m.getConnectionStatisticsBean());
   }
 
   @Test

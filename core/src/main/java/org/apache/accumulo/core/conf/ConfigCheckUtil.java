@@ -43,6 +43,7 @@ public class ConfigCheckUtil {
    * {@link Property#INSTANCE_ZK_TIMEOUT} within a valid range.
    *
    * @param entries iterable through configuration keys and values
+   * @param source the namespace, table id, site or system config where for diagnostic messages
    * @throws ConfigCheckException if a fatal configuration error is found
    */
   public static void validate(Iterable<Entry<String,String>> entries, @NonNull String source) {
@@ -94,7 +95,8 @@ public class ConfigCheckUtil {
   }
 
   private static class CheckTimeDurationBetween implements CheckTimeDuration {
-    long min, max;
+    final long min;
+    final long max;
 
     CheckTimeDurationBetween(long x, long y) {
       min = Math.min(x, y);

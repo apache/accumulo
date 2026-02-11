@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -44,9 +45,10 @@ import org.apache.accumulo.core.spi.scan.ScanDispatcher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.checkerframework.checker.nullness.qual.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class TableConfiguration extends ZooBasedConfiguration {
 
@@ -61,7 +63,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, TablePropKey.of(context, tableId), parent);
+    super(log, context, TablePropKey.of(tableId), parent);
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
@@ -70,6 +72,19 @@ public class TableConfiguration extends ZooBasedConfiguration {
         Map<String,Map<String,String>> allOpts = new HashMap<>();
         List<IterInfo> iters =
             IteratorConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
+        // check for duplicate priorities
+        if (!iters.isEmpty()) {
+          for (int i = 1; i < iters.size(); i++) {
+            IterInfo last = iters.get(i - 1);
+            IterInfo curr = iters.get(i);
+            // This code assumes the list of iterators is sorted on priority
+            Preconditions.checkState(last.getPriority() <= curr.getPriority());
+            if (last.getPriority() == curr.getPriority()) {
+              throw new IllegalStateException(String.format(
+                  "iterator priority conflict seen for tableId:%s %s %s", tableId, last, curr));
+            }
+          }
+        }
         return new ParsedIteratorConfig(iters, allOpts, ClassLoaderUtil.tableContext(conf));
       }));
     }
@@ -79,28 +94,6 @@ public class TableConfiguration extends ZooBasedConfiguration {
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
     cryptoServiceDeriver =
         newDeriver(conf -> createCryptoService(conf, tableId, context.getCryptoFactory()));
-  }
-
-  @Override
-  public String get(Property property) {
-    String value = _get(property);
-    if (value != null) {
-      return value;
-    }
-    AccumuloConfiguration parent = getParent();
-    if (parent != null) {
-      return parent.get(property);
-    }
-    return null;
-  }
-
-  @Nullable
-  private String _get(Property property) {
-    Map<String,String> propMap = getSnapshot();
-    if (propMap == null) {
-      return null;
-    }
-    return propMap.get(property.getKey());
   }
 
   public TableId getTableId() {
@@ -116,6 +109,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
     private final List<IterInfo> tableIters;
     private final Map<String,Map<String,String>> tableOpts;
     private final String context;
+    private final Set<String> uniqueNames;
+    private final Set<Integer> uniquePriorities;
 
     private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
         String context) {
@@ -123,6 +118,10 @@ public class TableConfiguration extends ZooBasedConfiguration {
       tableOpts = opts.entrySet().stream()
           .collect(Collectors.toUnmodifiableMap(Entry::getKey, e -> Map.copyOf(e.getValue())));
       this.context = context;
+      uniqueNames =
+          tableIters.stream().map(IterInfo::getIterName).collect(Collectors.toUnmodifiableSet());
+      uniquePriorities =
+          tableIters.stream().map(IterInfo::getPriority).collect(Collectors.toUnmodifiableSet());
     }
 
     public List<IterInfo> getIterInfo() {
@@ -135,6 +134,14 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
     public String getServiceEnv() {
       return context;
+    }
+
+    public Set<String> getUniqueNames() {
+      return uniqueNames;
+    }
+
+    public Set<Integer> getUniquePriorities() {
+      return uniquePriorities;
     }
   }
 

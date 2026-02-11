@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,7 +27,6 @@ import java.time.Duration;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -125,7 +124,7 @@ public class ScanSessionTimeOutIT extends AccumuloClusterHarness {
         assertEquals(1L, countActiveScans(c, TABLET_SERVER, tableName));
 
         // sleep three times the session timeout
-        sleepUninterruptibly(9, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(9));
         // The scan session should have timed out and the next read should create a new one
         assertEquals(0L, countActiveScans(c, TABLET_SERVER, tableName));
 

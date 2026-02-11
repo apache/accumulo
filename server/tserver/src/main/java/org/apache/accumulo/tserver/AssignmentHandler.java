@@ -19,16 +19,13 @@
 package org.apache.accumulo.tserver;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.server.problems.ProblemType.TABLET_LOAD;
 
-import java.util.Arrays;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -38,14 +35,10 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
-import org.apache.accumulo.server.problems.ProblemReport;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.tserver.TabletServerResourceManager.TabletResourceManager;
 import org.apache.accumulo.tserver.managermessage.TabletStatusMessage;
 import org.apache.accumulo.tserver.tablet.Tablet;
-import org.apache.accumulo.tserver.tablet.TabletData;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.tserver.tablet.Tablet.RefreshPurpose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,41 +96,18 @@ class AssignmentHandler implements Runnable {
     }
 
     // check Metadata table before accepting assignment
-    Text locationToOpen = null;
     TabletMetadata tabletMetadata = null;
     boolean canLoad = false;
     try {
       tabletMetadata = server.getContext().getAmple().readTablet(extent);
 
       canLoad = checkTabletMetadata(extent, server.getTabletSession(), tabletMetadata);
-
-      if (canLoad && tabletMetadata.sawOldPrevEndRow()) {
-        KeyExtent fixedExtent =
-            ManagerMetadataUtil.fixSplit(server.getContext(), tabletMetadata, server.getLock());
-
-        synchronized (server.openingTablets) {
-          server.openingTablets.remove(extent);
-          server.openingTablets.notifyAll();
-          // it expected that the new extent will overlap the old one... if it does not, it
-          // should not be added to unopenedTablets
-          if (!KeyExtent.findOverlapping(extent, new TreeSet<>(Arrays.asList(fixedExtent)))
-              .contains(fixedExtent)) {
-            throw new IllegalStateException(
-                "Fixed split does not overlap " + extent + " " + fixedExtent);
-          }
-          server.unopenedTablets.add(fixedExtent);
-        }
-        // split was rolled back... try again
-        new AssignmentHandler(server, fixedExtent).run();
-        return;
-
-      }
     } catch (Exception e) {
       synchronized (server.openingTablets) {
         server.openingTablets.remove(extent);
         server.openingTablets.notifyAll();
       }
-      log.warn("Failed to verify tablet " + extent, e);
+      TabletLogger.tabletLoadFailed(extent, e);
       server.enqueueManagerMessage(new TabletStatusMessage(TabletLoadState.LOAD_FAILURE, extent));
       throw new RuntimeException(e);
     }
@@ -156,14 +126,11 @@ class AssignmentHandler implements Runnable {
     Tablet tablet = null;
     boolean successful = false;
 
-    try {
-      server.acquireRecoveryMemory(extent);
-
+    try (var recoveryMemory = server.acquireRecoveryMemory(tabletMetadata)) {
       TabletResourceManager trm = server.resourceManager.createTabletResourceManager(extent,
           server.getTableConfiguration(extent));
-      TabletData data = new TabletData(tabletMetadata);
 
-      tablet = new Tablet(server, extent, trm, data);
+      tablet = new Tablet(server, extent, trm, tabletMetadata);
       // If a minor compaction starts after a tablet opens, this indicates a log recovery
       // occurred. This recovered data must be minor compacted.
       // There are three reasons to wait for this minor compaction to finish before placing the
@@ -181,9 +148,13 @@ class AssignmentHandler implements Runnable {
           && !tablet.minorCompactNow(MinorCompactionReason.RECOVERY)) {
         throw new RuntimeException("Minor compaction after recovery fails for " + extent);
       }
+
       Assignment assignment =
           new Assignment(extent, server.getTabletSession(), tabletMetadata.getLast());
       TabletStateStore.setLocation(server.getContext(), assignment);
+
+      // refresh the tablet metadata after setting the location (See #3358)
+      tablet.refreshMetadata(RefreshPurpose.LOAD);
 
       synchronized (server.openingTablets) {
         synchronized (server.onlineTablets) {
@@ -193,20 +164,11 @@ class AssignmentHandler implements Runnable {
           server.recentlyUnloadedCache.remove(tablet.getExtent());
         }
       }
+
       tablet = null; // release this reference
       successful = true;
     } catch (Exception e) {
-      log.warn("exception trying to assign tablet {} {}", extent, locationToOpen, e);
-
-      if (e.getMessage() != null) {
-        log.warn("{}", e.getMessage());
-      }
-
-      TableId tableId = extent.tableId();
-      ProblemReports.getInstance(server.getContext()).report(new ProblemReport(tableId, TABLET_LOAD,
-          extent.getUUID().toString(), server.getClientAddressString(), e));
-    } finally {
-      server.releaseRecoveryMemory(extent);
+      TabletLogger.tabletLoadFailed(extent, e);
     }
 
     if (successful) {
@@ -282,6 +244,12 @@ class AssignmentHandler implements Runnable {
     if (!ignoreLocationCheck && (loc == null || loc.getType() != TabletMetadata.LocationType.FUTURE
         || !instance.equals(loc.getServerInstance()))) {
       log.info(METADATA_ISSUE + "Unexpected location {} {}", extent, loc);
+      return false;
+    }
+
+    if (meta.getOperationId() != null && meta.getLocation() == null) {
+      log.info(METADATA_ISSUE + "metadata entry has a FATE operation id {} {} {}", extent, loc,
+          meta.getOperationId());
       return false;
     }
 

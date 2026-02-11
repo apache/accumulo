@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,6 +59,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <p>
  * <b>Note</b>: Client code should not use this class, and it may be deprecated in the future.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SiteConfiguration extends AccumuloConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
@@ -90,19 +93,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     public OverridesOption fromEnv() {
-      URL siteUrl = SiteConfiguration.class.getClassLoader().getResource("accumulo-site.xml");
-      if (siteUrl != null) {
-        throw new IllegalArgumentException("Found deprecated config file 'accumulo-site.xml' on "
-            + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'. Run the "
-            + "following command to convert an old 'accumulo-site.xml' file to the new format: "
-            + "accumulo convert-config -x /old/accumulo-site.xml -p /new/accumulo.properties");
-      }
-
       String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
       if (configFile.startsWith("file://")) {
         File f;
         try {
-          f = new File(new URI(configFile));
+          f = Path.of(new URI(configFile)).toFile();
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration from " + configFile, e);
@@ -168,9 +163,6 @@ public class SiteConfiguration extends AccumuloConfiguration {
       config.addConfiguration(overrideConfig);
       config.addConfiguration(propsFileConfig);
 
-      // Make sure any deprecated property names aren't using both the old and new name.
-      DeprecatedPropertyUtil.sanityCheckManagerProperties(config);
-
       var result = new HashMap<String,String>();
       config.getKeys().forEachRemaining(orig -> {
         String resolved = DeprecatedPropertyUtil.getReplacementName(orig, (log, replacement) -> {
@@ -219,10 +211,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
         config.keySet().stream().filter(prop -> prop.startsWith(Property.TABLE_PREFIX.getKey()))
             .collect(Collectors.toSet());
     if (!tableProps.isEmpty()) {
-      log.warn(
-          "Setting table properties in accumulo.properties file or with -o option is deprecated, saw: {}",
-          tableProps);
+      throw new IllegalArgumentException(
+          "accumulo.properties file or options set with -o must not contain table properties, saw : "
+              + tableProps);
     }
+
     this.config = config;
   }
 

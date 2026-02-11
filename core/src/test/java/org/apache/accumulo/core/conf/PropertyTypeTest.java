@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.WithTestNames;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,17 +85,21 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   private void valid(final String... args) {
-    for (String s : args) {
-      assertTrue(type.isValidFormat(s),
-          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
-    }
+    assertAll(() -> {
+      for (String s : args) {
+        assertTrue(type.isValidFormat(s),
+            s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
+      }
+    });
   }
 
   private void invalid(final String... args) {
-    for (String s : args) {
-      assertFalse(type.isValidFormat(s),
-          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
-    }
+    assertAll(() -> {
+      for (String s : args) {
+        assertFalse(type.isValidFormat(s),
+            s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
+      }
+    });
   }
 
   @Test
@@ -142,12 +148,6 @@ public class PropertyTypeTest extends WithTestNames {
   @Test
   public void testTypeGC_POST_ACTION() {
     valid(null, "none", "flush", "compact");
-    invalid("", "other");
-  }
-
-  @Test
-  public void testTypeLAST_LOCATION_MODE() {
-    valid(null, "compaction", "assignment");
     invalid("", "other");
   }
 
@@ -223,6 +223,76 @@ public class PropertyTypeTest extends WithTestNames {
   public void testTypeFILENAME_EXT() {
     valid(RFile.EXTENSION, "rf");
     invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
+  }
+
+  @Test
+  public void testTypeVOLUMES() {
+    // more comprehensive parsing tests are in ConfigurationTypeHelperTest.testGetVolumeUris()
+    valid("", "hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,", "hdfs:/volA,file:/volB",
+        ",hdfs:/volA,file:/volB", "hdfs:/volA,,file:/volB", "hdfs:/volA,file:/volB,   ,");
+    invalid(null, "   ", ",", ",,,", " ,,,", ",,, ", ", ,,", "hdfs:/volA,hdfs:/volB,volA",
+        ",volA,hdfs:/volA,hdfs:/volB", "hdfs:/volA,,volA,hdfs:/volB",
+        "hdfs:/volA,volA,hdfs:/volB,   ,", "hdfs:/volA,hdfs:/volB,hdfs:/volA",
+        "hdfs:/volA,hdfs :/::/volB");
+  }
+
+  @Test
+  public void testTypeFATE_USER_CONFIG() {
+    testFateConfig(Fate.FateOperation.getAllUserFateOps());
+  }
+
+  @Test
+  public void testTypeFATE_META_CONFIG() {
+    testFateConfig(Fate.FateOperation.getAllMetaFateOps());
+  }
+
+  private void testFateConfig(Set<Fate.FateOperation> allOps) {
+    final int poolSize1 = allOps.size() / 2;
+    final var validPool1Ops =
+        allOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    final var validPool2Ops =
+        allOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
+    final var allFateOpsStr = allOps.stream().map(Enum::name).collect(Collectors.joining(","));
+    // should be valid: one pool for all ops, order should not matter, all ops split across
+    // multiple pools (note validated in the same order as described here)
+    valid(String.format("{'poolname':{'%s': 10}}", allFateOpsStr).replace("'", "\""),
+        String.format("{'123abc':{'%s,%s': 10}}", validPool2Ops, validPool1Ops).replace("'", "\""),
+        String.format("{'foo':{'%s': 2}, 'bar':{'%s': 3}}", validPool1Ops, validPool2Ops)
+            .replace("'", "\""));
+
+    var invalidPool1Ops =
+        allOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops =
+        allOps.stream().map(Enum::name).skip(poolSize1 + 1).collect(Collectors.joining(","));
+    // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
+    // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
+    // FateOperation, long name, repeated name, more than one key/val for single pool name
+    // (note validated in the same order as described here)
+    invalid("", null,
+        String.format("{'name1':{'%s': 2}, 'name2':{'%s': 3}}", invalidPool1Ops, invalidPool2Ops)
+            .replace("'", "\""),
+        String.format("{'foobar':{'%s': 0}}", allFateOpsStr).replace("'", "\""),
+        String.format("{'foobar':{'%s': -1}}", allFateOpsStr).replace("'", "\""),
+        String.format("{'foofoofoofoo':{'%s': x}}", allFateOpsStr).replace("'", "\""),
+        String
+            .format("{'123':{'%s': 10}}",
+                allOps.stream().map(Enum::name).collect(Collectors.joining(", ")))
+            .replace("'", "\""),
+        String
+            .format("{'abc':{'%s': 10}, 'def':{'%s': 10}}", allFateOpsStr,
+                allOps.stream().map(Enum::name).limit(1).collect(Collectors.joining(",")))
+            .replace("'", "\""),
+        String.format("{'xyz':{'%s,INVALID_FATEOP': 10}}", allFateOpsStr).replace("'", "\""),
+        String.format("{'%s':{'%s': 10}}", "x".repeat(100), allFateOpsStr).replace("'", "\""),
+        String.format("{'name':{'%s':7}, 'name':{'%s':8}}", validPool1Ops, validPool2Ops)
+            .replace("'", "\""),
+        String.format("{'xyz123':{'%s':9,'%s':8}}", validPool1Ops, validPool2Ops).replace("'",
+            "\""));
+  }
+
+  @Test
+  public void testTypeFATE_THREADPOOL_SIZE() {
+    // nothing to test, this type is used for a deprecated property and will accept any prop value.
   }
 
   @Test

@@ -1,0 +1,300 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.server.util.adminCommand;
+
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.ServiceStatus.ServiceStatusCmdOpts;
+import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
+import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.zookeeper.KeeperException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
+import com.google.common.annotations.VisibleForTesting;
+
+@AutoService(KeywordExecutable.class)
+public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ServiceStatus.class);
+
+  static class ServiceStatusCmdOpts extends ServerUtilOpts {
+
+    @Parameter(names = "--json", description = "provide output in json format")
+    boolean json = false;
+
+    @Parameter(names = "--showHosts",
+        description = "provide a summary of service counts with host details")
+    boolean showHosts = false;
+  }
+
+  public ServiceStatus() {
+    super(new ServiceStatusCmdOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "service-status";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Shows status of Accumulo server processes";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServiceStatusCmdOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
+
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
+    }
+
+    final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
+
+    services.put(ServiceStatusReport.ReportKey.MANAGER, getManagerStatus(context));
+    services.put(ServiceStatusReport.ReportKey.MONITOR, getMonitorStatus(context));
+    services.put(ServiceStatusReport.ReportKey.T_SERVER, getTServerStatus(context));
+    services.put(ServiceStatusReport.ReportKey.S_SERVER, getScanServerStatus(context));
+    services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
+    services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
+
+    ServiceStatusReport report = new ServiceStatusReport(services, options.showHosts);
+
+    if (options.json) {
+      System.out.println(report.toJson());
+    } else {
+      StringBuilder sb = new StringBuilder(8192);
+      report.report(sb);
+      System.out.println(sb);
+    }
+  }
+
+  /**
+   * The manager paths in ZooKeeper are: {@code /accumulo/[IID]/managers/lock/zlock#[NUM]} with the
+   * lock data providing a service descriptor with host and port.
+   */
+  @VisibleForTesting
+  StatusSummary getManagerStatus(ServerContext context) {
+    String lockPath = context.getServerPaths().createManagerPath().toString();
+    return getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, context, lockPath);
+  }
+
+  /**
+   * The monitor paths in ZooKeeper are: {@code /accumulo/[IID]/monitor/lock/zlock#[NUM]} with the
+   * lock data providing a service descriptor with host and port.
+   */
+  @VisibleForTesting
+  StatusSummary getMonitorStatus(ServerContext context) {
+    String lockPath = context.getServerPaths().createMonitorPath().toString();
+    return getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, context, lockPath);
+  }
+
+  /**
+   * The tserver paths in ZooKeeper are:
+   * {@code /accumulo/[IID]/tservers/[resourceGroup]/[host:port]/zlock#[NUM]} with the lock data
+   * providing TSERV_CLIENT=host:port.
+   */
+  @VisibleForTesting
+  StatusSummary getTServerStatus(ServerContext context) {
+    final AtomicInteger errors = new AtomicInteger(0);
+    final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    final Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
+    hostsByGroups.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, resourceGroups, hostsByGroups,
+        errors.get());
+  }
+
+  /**
+   * The sserver paths in ZooKeeper are:
+   * {@code /accumulo/[IID]/sservers/[resourceGroup]/[host:port]/zlock#[NUM]} with the lock data
+   * providing [UUID],[GROUP]
+   */
+  @VisibleForTesting
+  StatusSummary getScanServerStatus(ServerContext context) {
+    final AtomicInteger errors = new AtomicInteger(0);
+    final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    final Set<ServiceLockPath> scanServers = context.getServerPaths()
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    scanServers.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
+    hostsByGroups.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, resourceGroups, hostsByGroups,
+        errors.get());
+  }
+
+  /**
+   * The gc paths in ZooKeeper are: {@code /accumulo/[IID]/gc/lock/zlock#[NUM]} with the lock data
+   * providing GC_CLIENT=host:port
+   */
+  @VisibleForTesting
+  StatusSummary getGcStatus(ServerContext context) {
+    String lockPath = context.getServerPaths().createGarbageCollectorPath().toString();
+    return getStatusSummary(ServiceStatusReport.ReportKey.GC, context, lockPath);
+  }
+
+  /**
+   * The compactor paths in ZooKeeper are:
+   * {@code /accumulo/[IID]/compactors/[resourceGroup]/host:port/zlock#[NUM]} with the host:port
+   * pulled from the path
+   */
+  @VisibleForTesting
+  StatusSummary getCompactorStatus(ServerContext context) {
+    final AtomicInteger errors = new AtomicInteger(0);
+    final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    final Set<ServiceLockPath> compactors = context.getServerPaths()
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
+    hostsByGroups.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, resourceGroups, hostsByGroups,
+        errors.get());
+  }
+
+  /**
+   * Used to return status information when path is {@code /accumulo/IID/SERVICE_NAME/lock} like
+   * manager, monitor and others
+   *
+   * @return service status
+   */
+  private StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames,
+      ServerContext context, String lockPath) {
+    var result = readAllNodesData(context.getZooSession().asReader(), lockPath);
+    Map<String,Set<String>> byGroup = new TreeMap<>();
+    final Map<String,Integer> resourceGroups = new HashMap<>();
+    result.getData().forEach(data -> {
+      ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
+      var services = sld.getServices();
+      services.forEach(sd -> {
+        byGroup.computeIfAbsent(sd.getGroup().canonical(), set -> new TreeSet<>())
+            .add(sd.getAddress());
+      });
+    });
+    byGroup.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));
+    return new StatusSummary(displayNames, resourceGroups, byGroup, result.getErrorCount());
+  }
+
+  /**
+   * Read the data from a ZooKeeper node, tracking if an error occurred. ZooKeeper's exceptions are
+   * counted but otherwise ignored.
+   *
+   * @return Pair with error count, the node data as String.
+   */
+  @VisibleForTesting
+  Result<String> readNodeData(final ZooReader zooReader, final String path) {
+    try {
+      byte[] data = zooReader.getData(path);
+      return new Result<>(0, new String(data, UTF_8));
+    } catch (KeeperException | InterruptedException ex) {
+      if (Thread.currentThread().isInterrupted()) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ex);
+      }
+      LOG.info("Could not read locks from ZooKeeper for path {}", path, ex);
+      return new Result<>(1, "");
+    }
+  }
+
+  /**
+   * Read the data from all ZooKeeper nodes under a ptah, tracking if errors occurred. ZooKeeper's
+   * exceptions are counted but otherwise ignored.
+   *
+   * @return Pair with error count, the data from each node as a String.
+   */
+  @VisibleForTesting
+  Result<Set<String>> readAllNodesData(final ZooReader zooReader, final String path) {
+    Set<String> data = new TreeSet<>();
+    final AtomicInteger errorCount = new AtomicInteger(0);
+    try {
+      var locks = zooReader.getChildren(path);
+      locks.forEach(lock -> {
+        var nodeData = readNodeData(zooReader, path + "/" + lock);
+        int err = nodeData.getErrorCount();
+        if (err > 0) {
+          errorCount.addAndGet(nodeData.getErrorCount());
+        } else {
+          data.add(nodeData.getData());
+        }
+      });
+    } catch (KeeperException | InterruptedException ex) {
+      if (Thread.currentThread().isInterrupted()) {
+        Thread.currentThread().interrupt();
+        throw new IllegalStateException(ex);
+      }
+      LOG.info("Could not read node names from ZooKeeper for path {}", path, ex);
+      errorCount.incrementAndGet();
+    }
+    return new Result<>(errorCount.get(), data);
+  }
+
+  /**
+   * Provides explicit method names instead of generic getFirst to get the error count and getSecond
+   * hosts information
+   *
+   * @param <B> hosts
+   */
+  private static class Result<B> extends Pair<Integer,B> {
+    public Result(Integer errorCount, B hosts) {
+      super(errorCount, hosts);
+    }
+
+    public Integer getErrorCount() {
+      return getFirst();
+    }
+
+    public B getData() {
+      return getSecond();
+    }
+  }
+}

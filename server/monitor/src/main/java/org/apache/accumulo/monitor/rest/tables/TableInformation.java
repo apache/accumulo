@@ -21,7 +21,7 @@ package org.apache.accumulo.monitor.rest.tables;
 import jakarta.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.master.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.monitor.util.JaxbAbstractIdSerializer;
 
 /**
@@ -50,9 +50,6 @@ public class TableInformation {
   public double query;
   public double queryByteRate;
 
-  public CompactionsList majorCompactions;
-  // running compactions with queued in parenthesis
-  public String majorCombo;
   public CompactionsList minorCompactions;
   // running compactions with queued in parenthesis
   public String minorCombo;
@@ -60,8 +57,6 @@ public class TableInformation {
   // running scans with queued in parenthesis
   public String scansCombo;
 
-  public int queuedMajorCompactions;
-  public int runningMajorCompactions;
   public int queuedMinorCompactions;
   public int runningMinorCompactions;
   public int queuedScans;
@@ -99,8 +94,6 @@ public class TableInformation {
     this.entriesRead = 0;
     this.entriesReturned = 0;
     this.holdTime = 0.0;
-    this.majorCompactions = new CompactionsList(0, 0);
-    this.majorCombo = ZERO_COMBO;
     this.minorCompactions = new CompactionsList(0, 0);
     this.minorCombo = ZERO_COMBO;
     this.scans = new CompactionsList(0, 0);
@@ -159,17 +152,6 @@ public class TableInformation {
       this.minorCombo = ZERO_COMBO;
     }
 
-    if (info.majors != null) {
-      this.queuedMajorCompactions = info.majors.queued;
-      this.runningMajorCompactions = info.majors.running;
-      this.majorCombo = info.majors.running + "(" + info.majors.queued + ")";
-    } else {
-      this.queuedMajorCompactions = 0;
-      this.runningMajorCompactions = 0;
-      this.majorCombo = ZERO_COMBO;
-    }
-
-    this.majorCompactions = new CompactionsList(runningMajorCompactions, queuedMajorCompactions);
     this.minorCompactions = new CompactionsList(runningMinorCompactions, queuedMinorCompactions);
     this.scans = new CompactionsList(runningScans, queuedScans);
 

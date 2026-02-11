@@ -21,49 +21,20 @@ package org.apache.accumulo.server.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.commons.codec.digest.Crypt;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SystemCredentialsTest {
 
   private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
   private InstanceId instanceId =
       InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
-  @BeforeAll
-  public static void setUp() throws IOException {
-    File testInstanceId =
-        new File(new File(new File(new File("target"), "instanceTest"), Constants.INSTANCE_ID_DIR),
-            UUID.fromString("00000000-0000-0000-0000-000000000000").toString());
-    if (!testInstanceId.exists()) {
-      assertTrue(
-          testInstanceId.getParentFile().mkdirs() || testInstanceId.getParentFile().isDirectory());
-      assertTrue(testInstanceId.createNewFile());
-    }
-
-    File testInstanceVersion =
-        new File(new File(new File(new File("target"), "instanceTest"), Constants.VERSION_DIR),
-            AccumuloDataVersion.get() + "");
-    if (!testInstanceVersion.exists()) {
-      assertTrue(testInstanceVersion.getParentFile().mkdirs()
-          || testInstanceVersion.getParentFile().isDirectory());
-      assertTrue(testInstanceVersion.createNewFile());
-    }
-  }
 
   @Test
   public void testWireVersion() {
@@ -84,22 +55,6 @@ public class SystemCredentialsTest {
     String hash = Crypt.crypt(new byte[0]);
     assertEquals(3, hash.chars().filter(ch -> ch == '$').count());
     assertTrue(hash.startsWith(SystemToken.SALT_PREFIX));
-  }
-
-  /**
-   * This is a test to ensure the SYSTEM_TOKEN_NAME string literal in
-   * {@link org.apache.accumulo.core.clientImpl.ConnectorImpl} is kept up-to-date if we move the
-   * {@link SystemToken}<br>
-   *
-   * @deprecated This check will not be needed after Connector is removed
-   */
-  @Deprecated(since = "2.0.0")
-  @Test
-  public void testSystemToken() {
-    assertEquals("org.apache.accumulo.server.security.SystemCredentials$SystemToken",
-        SystemToken.class.getName());
-    assertEquals(SystemCredentials.get(instanceId, siteConfig).getToken().getClass(),
-        SystemToken.class);
   }
 
   @Test

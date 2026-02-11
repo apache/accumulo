@@ -214,6 +214,8 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     Thread.sleep(50);
 
     // Make a second token for the same user
+    // Briefly sleep to guarantee token is unique, since the token is based on the time
+    Thread.sleep(100);
     Entry<Token<AuthenticationTokenIdentifier>,AuthenticationTokenIdentifier> pair2 =
         secretManager.generateToken(principal, cfg);
     Token<AuthenticationTokenIdentifier> token2 = pair2.getKey();
@@ -336,9 +338,9 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
 
     // Make 2 keys, and add only one. The second has double the expiration of the first
     AuthenticationKey authKey1 =
-        new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey()),
-        authKey2 = new AuthenticationKey(2, then + tokenLifetime, then + tokenLifetime * 2,
-            keyGen.generateKey());
+        new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey());
+    AuthenticationKey authKey2 = new AuthenticationKey(2, then + tokenLifetime,
+        then + tokenLifetime * 2, keyGen.generateKey());
     secretManager.addKey(authKey1);
 
     keyDistributor.remove(authKey1);

@@ -182,7 +182,7 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
           try (PrintStream newOut = new PrintStream(baos)) {
             System.setOut(newOut);
             List<String> args = new ArrayList<>();
-            args.add(f.getPathStr());
+            args.add(f.getNormalizedPathStr());
             args.add("--props");
             args.add(getCluster().getAccumuloPropertiesPath());
             if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {
@@ -192,8 +192,6 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
               args.add(new Path(hadoopConfDir, "core-site.xml").toString());
               args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
             }
-            args.add("-o");
-            args.add(TABLE_SERVICE_NAME_PROP + "=" + AESCryptoService.class.getName());
             args.add("-o");
             args.add(INSTANCE_CRYPTO_FACTORY + "=" + GenericCryptoServiceFactory.class.getName());
             log.info("Invoking PrintInfo with {}", args);

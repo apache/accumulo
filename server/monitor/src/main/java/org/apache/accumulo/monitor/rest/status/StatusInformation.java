@@ -31,10 +31,6 @@ public class StatusInformation {
   public String tServerStatus = null;
   public String coordinatorStatus = null;
 
-  public Integer logNumber = 0;
-  public boolean logsHaveError = false;
-  public Integer problemNumber = 0;
-
   public StatusInformation() {}
 
   /**
@@ -44,19 +40,13 @@ public class StatusInformation {
    * @param gcStatus Status for the GC
    * @param tServerStatus Status for the tserver
    * @param coordinatorStatus Status for the Compaction Coordinator
-   * @param logNumber Number of log reports
-   * @param logsHaveError Check if log reports include errors
-   * @param problemNumber Number of problems per table
    */
   public StatusInformation(String managerStatus, String gcStatus, String tServerStatus,
-      String coordinatorStatus, Integer logNumber, boolean logsHaveError, Integer problemNumber) {
+      String coordinatorStatus) {
     this.managerStatus = managerStatus;
     this.gcStatus = gcStatus;
     this.tServerStatus = tServerStatus;
     this.coordinatorStatus = coordinatorStatus;
-    this.logNumber = logNumber;
-    this.logsHaveError = logsHaveError;
-    this.problemNumber = problemNumber;
 
   }
 }

@@ -25,12 +25,12 @@ import java.util.Objects;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.util.HostAndPort;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.net.HostAndPort;
 
 @VisibleForTesting
-public class ThriftTransportKey {
+public final class ThriftTransportKey {
   private final ThriftClientTypes<?> type;
   private final HostAndPort server;
   private final long timeout;
@@ -58,7 +58,7 @@ public class ThriftTransportKey {
     this.saslParams = saslParams;
     if (saslParams != null && sslParams != null) {
       // TSasl and TSSL transport factories don't play nicely together
-      throw new RuntimeException("Cannot use both SSL and SASL thrift transports");
+      throw new IllegalArgumentException("Cannot use both SSL and SASL thrift transports");
     }
     this.hash = Objects.hash(type, server, timeout, sslParams, saslParams);
   }
@@ -88,10 +88,9 @@ public class ThriftTransportKey {
 
   @Override
   public boolean equals(Object o) {
-    if (!(o instanceof ThriftTransportKey)) {
+    if (!(o instanceof ThriftTransportKey ttk)) {
       return false;
     }
-    ThriftTransportKey ttk = (ThriftTransportKey) o;
     return type.equals(ttk.type) && server.equals(ttk.server) && timeout == ttk.timeout
         && (!isSsl() || (ttk.isSsl() && sslParams.equals(ttk.sslParams)))
         && (!isSasl() || (ttk.isSasl() && saslParams.equals(ttk.saslParams)));

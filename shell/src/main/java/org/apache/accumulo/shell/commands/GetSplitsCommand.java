@@ -32,8 +32,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
@@ -50,7 +49,10 @@ import org.apache.hadoop.io.Text;
 
 public class GetSplitsCommand extends Command {
 
-  private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
+  private Option outputFileOpt;
+  private Option maxSplitsOpt;
+  private Option base64Opt;
+  private Option verboseOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -74,8 +76,8 @@ public class GetSplitsCommand extends Command {
     try (PrintLine p =
         outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
       if (verbose) {
-        String systemTableToCheck =
-            MetadataTable.NAME.equals(tableName) ? RootTable.NAME : MetadataTable.NAME;
+        String systemTableToCheck = SystemTables.METADATA.tableName().equals(tableName)
+            ? SystemTables.ROOT.tableName() : SystemTables.METADATA.tableName();
         final Scanner scanner =
             shellState.getAccumuloClient().createScanner(systemTableToCheck, Authorizations.EMPTY);
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

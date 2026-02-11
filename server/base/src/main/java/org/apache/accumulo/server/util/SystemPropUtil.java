@@ -36,14 +36,14 @@ public class SystemPropUtil {
 
   public static void setSystemProperty(ServerContext context, String property, String value)
       throws IllegalArgumentException {
-    final SystemPropKey key = SystemPropKey.of(context);
+    final SystemPropKey key = SystemPropKey.of();
     context.getPropStore().putAll(key,
         Map.of(validateSystemProperty(context, key, property, value), value));
   }
 
   public static void modifyProperties(ServerContext context, long version,
       Map<String,String> properties) throws IllegalArgumentException {
-    final SystemPropKey key = SystemPropKey.of(context);
+    final SystemPropKey key = SystemPropKey.of();
     final Map<String,
         String> checkedProperties = properties.entrySet().stream()
             .collect(Collectors.toMap(
@@ -63,9 +63,9 @@ public class SystemPropUtil {
     removePropWithoutDeprecationWarning(context, resolved);
   }
 
-  private static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
+  public static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
     logIfFixed(Property.getPropertyByKey(property), null);
-    context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
+    context.getPropStore().removeProperties(SystemPropKey.of(), List.of(property));
   }
 
   private static String validateSystemProperty(ServerContext context, SystemPropKey key,
@@ -89,8 +89,8 @@ public class SystemPropUtil {
       log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
     }
-    if (Property.isValidTablePropertyKey(property)) {
-      PropUtil.validateProperties(context, key, Map.of(property, value));
+    if (property.startsWith(Property.TABLE_PREFIX.getKey())) {
+      PropUtil.throwIaeForTablePropInSysConfig(property);
     }
 
     // Find the property taking prefix into account
@@ -121,7 +121,7 @@ public class SystemPropUtil {
    * property is fixed, logs a warning that the property change will not take effect until related
    * processes are restarted.
    */
-  private static void logIfFixed(Property property, String value) {
+  public static void logIfFixed(Property property, String value) {
     if (property != null && Property.isFixedZooPropertyKey(property)) {
       String s = value == null ? String.format("Removing a fixed property %s. ", property)
           : String.format("Setting a fixed property %s to value %s. ", property, value);

@@ -23,12 +23,7 @@ import java.util.List;
 
 import jakarta.xml.bind.annotation.XmlRootElement;
 
-import org.apache.accumulo.monitor.rest.logs.DeadLoggerList;
-import org.apache.accumulo.monitor.rest.manager.ManagerInformation;
 import org.apache.accumulo.monitor.rest.tables.TableInformationList;
-import org.apache.accumulo.monitor.rest.tservers.BadTabletServers;
-import org.apache.accumulo.monitor.rest.tservers.DeadServerList;
-import org.apache.accumulo.monitor.rest.tservers.ServersShuttingDown;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 
 /**
@@ -40,45 +35,23 @@ import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 public class SummaryInformation {
 
   // Variable names become JSON keys
-  public List<TabletServer> servers = new ArrayList<>();
-
-  public String managerGoalState, managerState;
-
-  public BadTabletServers badTabletServers;
-  public ServersShuttingDown tabletServersShuttingDown;
-  public Integer unassignedTablets;
-  public DeadServerList deadTabletServers;
-
-  public DeadLoggerList deadLoggers;
+  public List<TabletServer> servers;
 
   public TableInformationList tables;
 
-  public Totals totals;
-
+  // do not remove
   public SummaryInformation() {}
 
   /**
    * Stores Monitor information as XML or JSON
    *
    * @param size Number of tservers
-   * @param info Manager information
    * @param tablesList Table list
    */
-  public SummaryInformation(int size, ManagerInformation info, TableInformationList tablesList) {
+  public SummaryInformation(int size, TableInformationList tablesList) {
     this.servers = new ArrayList<>(size);
 
-    this.managerGoalState = info.managerGoalState;
-    this.managerState = info.managerState;
-
-    this.badTabletServers = info.badTabletServers;
-    this.tabletServersShuttingDown = info.tabletServersShuttingDown;
-    this.unassignedTablets = info.unassignedTablets;
-    this.deadTabletServers = info.deadTabletServers;
-    this.deadLoggers = info.deadLoggers;
-
     this.tables = tablesList;
-
-    this.totals = new Totals(info.ingestrate, info.queryrate, info.numentries);
   }
 
   /**

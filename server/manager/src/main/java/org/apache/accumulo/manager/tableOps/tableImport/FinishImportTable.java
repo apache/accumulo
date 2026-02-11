@@ -22,15 +22,17 @@ import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.LoggerFactory;
 
-class FinishImportTable extends ManagerRepo {
+class FinishImportTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
 
@@ -41,12 +43,12 @@ class FinishImportTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
 
     if (!tableInfo.keepMappings) {
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -58,14 +60,14 @@ class FinishImportTable extends ManagerRepo {
     final TableState newState = tableInfo.keepOffline ? TableState.OFFLINE : TableState.ONLINE;
     env.getTableManager().transitionTableState(tableInfo.tableId, newState, expectedCurrStates);
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, false);
-    Utils.unreserveTable(env, tableInfo.tableId, tid, true);
+    Utils.unreserveNamespace(env.getContext(), tableInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env.getContext(), tableInfo.tableId, fateId, LockType.WRITE);
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+      Utils.unreserveHdfsDirectory(env.getContext(), new Path(dm.exportDir).toString(), fateId);
     }
 
-    env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
+    env.getEventPublisher().event(tableInfo.tableId, "Imported table %s ", tableInfo.tableName);
 
     LoggerFactory.getLogger(FinishImportTable.class)
         .debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
@@ -79,6 +81,6 @@ class FinishImportTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) {}
+  public void undo(FateId fateId, FateEnv env) {}
 
 }

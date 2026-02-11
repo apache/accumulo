@@ -23,7 +23,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.Map;
 
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
@@ -32,10 +35,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.commons.collections4.map.LRUMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,8 +44,9 @@ import org.slf4j.LoggerFactory;
  */
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
-  protected VisibilityEvaluator ve;
+  private BytesAccess.BytesEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
+  private final ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
   private static final Logger log = LoggerFactory.getLogger(VisibilityFilter.class);
 
@@ -66,7 +66,8 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       String auths = options.get(AUTHS);
       Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations()
           : new Authorizations(auths.getBytes(UTF_8));
-      this.ve = new VisibilityEvaluator(authObj);
+
+      this.accessEvaluator = BytesAccess.newEvaluator(authObj);
     }
     this.cache = new LRUMap<>(1000);
   }
@@ -75,25 +76,32 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     VisibilityFilter result = (VisibilityFilter) super.deepCopy(env);
     result.filterInvalid = this.filterInvalid;
-    result.ve = this.ve;
+    result.accessEvaluator = this.accessEvaluator;
     result.cache = this.cache;
     return result;
   }
 
   @Override
   public boolean accept(Key k, Value v) {
-    ByteSequence testVis = k.getColumnVisibilityData();
+    // The following call will replace the contents of testVis
+    // with the bytes for the column visibility for k. Any cached
+    // version of testVis needs to be a copy to avoid modifying
+    // the cached version.
+    k.getColumnVisibilityData(testVis);
     if (filterInvalid) {
       Boolean b = cache.get(testVis);
       if (b != null) {
         return b;
       }
+      final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        new ColumnVisibility(testVis.toArray());
-        cache.put(testVis, true);
+        BytesAccess.validate(copy.toArray());
+        // cache a copy of testVis
+        cache.put(copy, true);
         return true;
-      } catch (BadArgumentException e) {
-        cache.put(testVis, false);
+      } catch (InvalidAccessExpressionException e) {
+        // cache a copy of testVis
+        cache.put(copy, false);
         return false;
       }
     } else {
@@ -106,11 +114,13 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         return b;
       }
 
+      final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        boolean bb = ve.evaluate(new ColumnVisibility(testVis.toArray()));
-        cache.put(testVis, bb);
+        boolean bb = accessEvaluator.canAccess(copy.toArray());
+        // cache a copy of testVis
+        cache.put(copy, bb);
         return bb;
-      } catch (VisibilityParseException | BadArgumentException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error with visibility of Key: {}", k, e);
         return false;
       }

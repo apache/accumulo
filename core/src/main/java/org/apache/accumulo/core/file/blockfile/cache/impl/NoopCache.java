@@ -68,6 +68,11 @@ public class NoopCache implements BlockCache {
       public long requestCount() {
         return 0L;
       }
+
+      @Override
+      public long evictionCount() {
+        return 0L;
+      }
     };
   }
 

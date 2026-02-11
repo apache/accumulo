@@ -20,14 +20,16 @@ package org.apache.accumulo.manager.tableOps.clone;
 
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.slf4j.LoggerFactory;
 
-class FinishCloneTable extends ManagerRepo {
+class FinishCloneTable extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
   private final CloneInfo cloneInfo;
@@ -37,12 +39,12 @@ class FinishCloneTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, FateEnv environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) {
     // directories are intentionally not created.... this is done because directories should be
     // unique
     // because they occupy a different namespace than normal tablet directories... also some clones
@@ -54,15 +56,24 @@ class FinishCloneTable extends ManagerRepo {
       environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.OFFLINE,
           expectedCurrStates);
     } else {
-      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.ONLINE,
+      // transition clone table state to state of original table
+      TableState ts = environment.getTableManager().getTableState(cloneInfo.getSrcTableId());
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), ts,
           expectedCurrStates);
     }
-    Utils.unreserveTable(environment, cloneInfo.getTableId(), tid, true);
-    Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), tid, false);
-    Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), tid, false);
 
-    environment.getEventCoordinator().event("Cloned table %s from %s", cloneInfo.getTableName(),
-        cloneInfo.getSrcTableId());
+    Utils.unreserveNamespace(environment.getContext(), cloneInfo.getSrcNamespaceId(), fateId,
+        LockType.READ);
+    if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
+      Utils.unreserveNamespace(environment.getContext(), cloneInfo.getNamespaceId(), fateId,
+          LockType.READ);
+    }
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getSrcTableId(), fateId,
+        LockType.READ);
+    Utils.unreserveTable(environment.getContext(), cloneInfo.getTableId(), fateId, LockType.WRITE);
+
+    environment.getEventPublisher().event(cloneInfo.getTableId(), "Cloned table %s from %s",
+        cloneInfo.getTableName(), cloneInfo.getSrcTableId());
 
     LoggerFactory.getLogger(FinishCloneTable.class)
         .debug("Cloned table " + cloneInfo.getSrcTableId() + " " + cloneInfo.getTableId() + " "
@@ -72,6 +83,6 @@ class FinishCloneTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) {}
+  public void undo(FateId fateId, FateEnv environment) {}
 
 }

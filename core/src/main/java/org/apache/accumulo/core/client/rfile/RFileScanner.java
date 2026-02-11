@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.rfile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -77,7 +78,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class RFileScanner extends ScannerOptions implements Scanner {
+final class RFileScanner extends ScannerOptions implements Scanner {
 
   private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
 
@@ -118,11 +119,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
-  private final Opts opts;
+  private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
-  private final AccumuloConfiguration tableConf;
-  private final CryptoService cryptoService;
+  private AccumuloConfiguration tableConf;
+  private CryptoService cryptoService;
 
   static class Opts {
     InputArgs in;
@@ -163,10 +164,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
         blockCacheManager.start(BlockCacheConfiguration.forTabletServer(cc));
         this.indexCache = blockCacheManager.getBlockCache(CacheType.INDEX);
         this.dataCache = blockCacheManager.getBlockCache(CacheType.DATA);
-      } catch (RuntimeException e) {
-        throw e;
-      } catch (Exception e) {
-        throw new RuntimeException(e);
+      } catch (ReflectiveOperationException e) {
+        throw new IllegalArgumentException(
+            "Configuration does not contain loadable class for block cache manager factory", e);
       }
     }
     if (indexCache == null) {
@@ -272,11 +272,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
-        FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        CachableBuilder cb =
-            new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
-                .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
-        readers.add(new RFile.Reader(cb));
+        CachableBuilder cb = new CachableBuilder()
+            .input((FSDataInputStream) sources[i].getInputStream(), "source-" + i)
+            .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
+            .cryptoService(cryptoService);
+        readers.add(RFile.getReader(cb, sources[i].getRange()));
       }
 
       if (getSamplerConfiguration() != null) {
@@ -339,7 +339,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
       return new IteratorAdapter(iterator);
 
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -350,14 +350,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
         source.getInputStream().close();
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
-    try {
-      if (this.blockCacheManager != null) {
-        this.blockCacheManager.stop();
-      }
-    } catch (Exception e1) {
-      throw new RuntimeException(e1);
+    if (this.blockCacheManager != null) {
+      this.blockCacheManager.stop();
     }
   }
 }

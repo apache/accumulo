@@ -21,7 +21,6 @@ package org.apache.accumulo.test.functional;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -31,17 +30,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
-import org.apache.accumulo.core.util.UtilWaitThread;
 
 public class SlowIterator extends WrappingIterator {
 
   private static final String SLEEP_TIME = "sleepTime";
   private static final String SEEK_SLEEP_TIME = "seekSleepTime";
-  private static final String SLEEP_UNINTERRUPTIBLY = "sleepUninterruptibly";
 
   private long sleepTime = 0;
   private long seekSleepTime = 0;
-  private boolean sleepUninterruptibly = true;
 
   public static void setSleepTime(IteratorSetting is, long millis) {
     is.addOption(SLEEP_TIME, Long.toString(millis));
@@ -51,22 +47,6 @@ public class SlowIterator extends WrappingIterator {
     is.addOption(SEEK_SLEEP_TIME, Long.toString(t));
   }
 
-  public static void sleepUninterruptibly(IteratorSetting is, boolean b) {
-    is.addOption(SLEEP_UNINTERRUPTIBLY, Boolean.toString(b));
-  }
-
-  private void sleep(long time) throws IOException {
-    if (sleepUninterruptibly) {
-      UtilWaitThread.sleepUninterruptibly(time, TimeUnit.MILLISECONDS);
-    } else {
-      try {
-        Thread.sleep(sleepTime);
-      } catch (InterruptedException e) {
-        throw new IOException(e);
-      }
-    }
-  }
-
   @Override
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     throw new UnsupportedOperationException();
@@ -74,14 +54,24 @@ public class SlowIterator extends WrappingIterator {
 
   @Override
   public void next() throws IOException {
-    sleep(sleepTime);
+    try {
+      Thread.sleep(sleepTime);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted during sleep", ex);
+    }
     super.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    sleep(seekSleepTime);
+    try {
+      Thread.sleep(seekSleepTime);
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IOException("interrupted during sleep", ex);
+    }
     super.seek(range, columnFamilies, inclusive);
   }
 
@@ -95,10 +85,6 @@ public class SlowIterator extends WrappingIterator {
 
     if (options.containsKey(SEEK_SLEEP_TIME)) {
       seekSleepTime = Long.parseLong(options.get(SEEK_SLEEP_TIME));
-    }
-
-    if (options.containsKey(SLEEP_UNINTERRUPTIBLY)) {
-      sleepUninterruptibly = Boolean.parseBoolean(options.get(SLEEP_UNINTERRUPTIBLY));
     }
   }
 

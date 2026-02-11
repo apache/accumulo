@@ -26,7 +26,6 @@ import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -34,7 +33,6 @@ import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
-import org.apache.accumulo.core.file.streams.RateLimitedInputStream;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache.Loader;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
@@ -42,16 +40,14 @@ import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.trace.ScanInstrumentation;
 import org.apache.accumulo.core.util.CountingInputStream;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.Seekable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
+import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
@@ -73,11 +69,10 @@ public class CachableBlockFile {
 
   public static class CachableBuilder {
     String cacheId = null;
-    IoeSupplier<InputStream> inputSupplier = null;
+    IoeSupplier<FSDataInputStream> inputSupplier = null;
     IoeSupplier<Long> lengthSupplier = null;
     Cache<String,Long> fileLenCache = null;
     volatile CacheProvider cacheProvider = CacheProvider.NULL_PROVIDER;
-    RateLimiter readLimiter = null;
     Configuration hadoopConf = null;
     CryptoService cryptoService = null;
 
@@ -113,7 +108,7 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder input(InputStream is, String cacheId) {
+    public CachableBuilder input(FSDataInputStream is, String cacheId) {
       this.cacheId = cacheId;
       this.inputSupplier = () -> is;
       return this;
@@ -134,11 +129,6 @@ public class CachableBlockFile {
       return this;
     }
 
-    public CachableBuilder readLimiter(RateLimiter readLimiter) {
-      this.readLimiter = readLimiter;
-      return this;
-    }
-
     public CachableBuilder cryptoService(CryptoService cryptoService) {
       this.cryptoService = cryptoService;
       return this;
@@ -149,7 +139,6 @@ public class CachableBlockFile {
    * Class wraps the BCFile reader.
    */
   public static class Reader implements Closeable {
-    private final RateLimiter readLimiter;
     // private BCFile.Reader _bc;
     private final String cacheId;
     private CacheProvider cacheProvider;
@@ -159,7 +148,7 @@ public class CachableBlockFile {
     private final Configuration conf;
     private final CryptoService cryptoService;
 
-    private final IoeSupplier<InputStream> inputSupplier;
+    private final IoeSupplier<FSDataInputStream> inputSupplier;
     private final IoeSupplier<Long> lengthSupplier;
     private final AtomicReference<BCFile.Reader> bcfr = new AtomicReference<>();
 
@@ -173,8 +162,14 @@ public class CachableBlockFile {
 
     private long getCachedFileLen() throws IOException {
       try {
-        return fileLenCache.get(cacheId, lengthSupplier::get);
-      } catch (ExecutionException e) {
+        return fileLenCache.get(cacheId, k -> {
+          try {
+            return lengthSupplier.get();
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        });
+      } catch (UncheckedIOException e) {
         throw new IOException("Failed to get " + cacheId + " len from cache ", e);
       }
     }
@@ -183,8 +178,7 @@ public class CachableBlockFile {
 
       BCFile.Reader reader = bcfr.get();
       if (reader == null) {
-        RateLimitedInputStream fsIn =
-            new RateLimitedInputStream((InputStream & Seekable) inputSupplier.get(), readLimiter);
+        FSDataInputStream fsIn = inputSupplier.get();
         BCFile.Reader tmpReader = null;
         byte[] serializedMetadata = cachedMetadataSupplier.get();
         if (serializedMetadata == null) {
@@ -303,7 +297,7 @@ public class CachableBlockFile {
     }
 
     private class MetaBlockLoader extends BaseBlockLoader {
-      String blockName;
+      final String blockName;
 
       MetaBlockLoader(String blockName) {
         super(true);
@@ -383,7 +377,6 @@ public class CachableBlockFile {
       this.lengthSupplier = b.lengthSupplier;
       this.fileLenCache = b.fileLenCache;
       this.cacheProvider = b.cacheProvider;
-      this.readLimiter = b.readLimiter;
       this.conf = b.hadoopConf;
       this.cryptoService = Objects.requireNonNull(b.cryptoService);
     }
@@ -519,7 +512,7 @@ public class CachableBlockFile {
 
     private final SeekableByteArrayInputStream seekableInput;
     private final CacheEntry cb;
-    boolean indexable;
+    final boolean indexable;
 
     public CachedBlockRead(InputStream in) {
       super(wrapForTrace(in));

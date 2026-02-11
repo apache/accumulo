@@ -18,12 +18,9 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
-
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -31,6 +28,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -79,7 +77,6 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1");
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -102,12 +99,12 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
   }
 
   static void runTest(AccumuloClient c, String tableName) throws Exception {
-    c.tableOperations().create(tableName);
+    NewTableConfiguration ntc = new NewTableConfiguration();
+    ntc.setProperties(Map.of(Property.TABLE_MAJC_RATIO.getKey(), "1.0"));
     IteratorSetting is = new IteratorSetting(10, SlowIterator.class);
     SlowIterator.setSleepTime(is, 50);
-    c.tableOperations().attachIterator(tableName, is,
-        EnumSet.of(IteratorScope.minc, IteratorScope.majc));
-    c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
+    ntc.attachIterator(is, EnumSet.of(IteratorScope.minc, IteratorScope.majc));
+    c.tableOperations().create(tableName, ntc);
 
     BatchWriter bw = c.createBatchWriter(tableName);
     for (int i = 0; i < 50; i++) {
@@ -123,7 +120,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     ScanTask st1 = new ScanTask(c, tableName, 100);
     st1.start();
 
-    sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
+    Thread.sleep(50);
     c.tableOperations().flush(tableName, null, null, true);
 
     for (int i = 0; i < 50; i++) {
@@ -150,7 +147,7 @@ public class ConcurrencyIT extends AccumuloClusterHarness {
     ScanTask st3 = new ScanTask(c, tableName, 150);
     st3.start();
 
-    sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
+    Thread.sleep(50);
     c.tableOperations().flush(tableName, null, null, false);
 
     st3.join();

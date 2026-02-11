@@ -19,39 +19,46 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.time.SteadyTime;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * For a suspended tablet, the time of suspension and the server it was suspended from.
  */
 public class SuspendingTServer {
   public final HostAndPort server;
-  public final long suspensionTime;
+  public final SteadyTime suspensionTime;
 
-  SuspendingTServer(HostAndPort server, long suspensionTime) {
+  public SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
     this.server = Objects.requireNonNull(server);
-    this.suspensionTime = suspensionTime;
+    this.suspensionTime = Objects.requireNonNull(suspensionTime);
   }
 
   public static SuspendingTServer fromValue(Value value) {
     String valStr = value.toString();
     String[] parts = valStr.split("[|]", 2);
-    return new SuspendingTServer(HostAndPort.fromString(parts[0]), Long.parseLong(parts[1]));
+    return new SuspendingTServer(HostAndPort.fromString(parts[0]),
+        SteadyTime.from(Long.parseLong(parts[1]), TimeUnit.MILLISECONDS));
   }
 
-  public static Value toValue(TServerInstance tServer, long suspensionTime) {
-    return new Value(tServer.getHostPort() + "|" + suspensionTime);
+  public static Value toValue(TServerInstance tServer, SteadyTime suspensionTime) {
+    return new Value(tServer.getHostPort() + "|" + suspensionTime.getMillis());
+  }
+
+  public Value toValue() {
+    return new Value(server + "|" + suspensionTime.getMillis());
   }
 
   @Override
   public boolean equals(Object rhsObject) {
-    if (!(rhsObject instanceof SuspendingTServer)) {
+    if (!(rhsObject instanceof SuspendingTServer rhs)) {
       return false;
     }
-    SuspendingTServer rhs = (SuspendingTServer) rhsObject;
-    return server.equals(rhs.server) && suspensionTime == rhs.suspensionTime;
+    return server.equals(rhs.server) && suspensionTime.equals(rhs.suspensionTime);
   }
 
   @Override

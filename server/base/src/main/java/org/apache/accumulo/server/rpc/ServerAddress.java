@@ -18,8 +18,12 @@
  */
 package org.apache.accumulo.server.rpc;
 
-import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.server.TServer;
+
+import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 /**
  * Encapsulate a Thrift server and the address, host and port, to which it is bound.
@@ -39,5 +43,17 @@ public class ServerAddress {
 
   public HostAndPort getAddress() {
     return address;
+  }
+
+  public void startThriftServer(String threadName) {
+    Threads.createCriticalThread(threadName, server::serve).start();
+
+    while (!server.isServing()) {
+      // Wait for the thread to start and for the TServer to start
+      // serving events
+      UtilWaitThread.sleep(10);
+      Preconditions.checkState(!server.getShouldStop());
+    }
+
   }
 }

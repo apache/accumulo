@@ -24,11 +24,15 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Buffers all input in a growing buffer until flush() is called. Then entire buffer is written,
  * with size information, and padding to force the underlying crypto output stream to also fully
  * flush
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class BlockedOutputStream extends OutputStream {
   int blockSize;
   DataOutputStream out;
@@ -59,7 +63,7 @@ public class BlockedOutputStream extends OutputStream {
   @Override
   public synchronized void flush() throws IOException {
     if (!bb.hasArray()) {
-      throw new RuntimeException("BlockedOutputStream has no backing array.");
+      throw new IllegalStateException("BlockedOutputStream has no backing array.");
     }
     int size = bb.position();
     if (size == 0) {

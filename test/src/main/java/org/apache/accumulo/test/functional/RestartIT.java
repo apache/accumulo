@@ -18,27 +18,27 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.IOException;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.cluster.ClusterControl;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -83,7 +83,7 @@ public class RestartIT extends AccumuloClusterHarness {
       svc.shutdown();
     }
 
-    while (!svc.awaitTermination(10, TimeUnit.SECONDS)) {
+    while (!svc.awaitTermination(10, SECONDS)) {
       log.info("Waiting for threadpool to terminate");
     }
   }
@@ -130,30 +130,29 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
 
-      ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
-      byte[] managerLockData;
+      ZooCache zcache = ((ClientContext) c).getZooCache();
+      var zLockPath = getServerContext().getServerPaths().createManagerPath();
+      Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData != null) {
+        if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (managerLockData != null);
+      } while (managerLockData.isPresent());
 
       cluster.start();
-      sleepUninterruptibly(5, TimeUnit.MILLISECONDS);
+      Thread.sleep(5);
       control.stopAllServers(ServerType.MANAGER);
 
-      managerLockData = new byte[0];
+      managerLockData = null;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData != null) {
+        if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (managerLockData != null);
+      } while (managerLockData.isPresent());
       cluster.start();
       VerifyIngest.verifyIngest(c, params);
     }
@@ -181,17 +180,16 @@ public class RestartIT extends AccumuloClusterHarness {
 
       control.stopAllServers(ServerType.MANAGER);
 
-      ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
-      byte[] managerLockData;
+      ZooCache zcache = ((ClientContext) c).getZooCache();
+      var zLockPath = getServerContext().getServerPaths().createManagerPath();
+      Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
-        if (managerLockData != null) {
+        if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);
         }
-      } while (managerLockData != null);
+      } while (managerLockData.isPresent());
 
       cluster.start();
       assertEquals(0, ret.get().intValue());
@@ -263,8 +261,8 @@ public class RestartIT extends AccumuloClusterHarness {
       }
       assertNotNull(splitThreshold);
       try {
-        c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-            "20K");
+        c.tableOperations().setProperty(SystemTables.METADATA.tableName(),
+            Property.TABLE_SPLIT_THRESHOLD.getKey(), "20K");
         TestIngest.ingest(c, params);
         c.tableOperations().flush(tableName, null, null, false);
         VerifyIngest.verifyIngest(c, params);
@@ -272,7 +270,7 @@ public class RestartIT extends AccumuloClusterHarness {
       } finally {
         if (getClusterType() == ClusterType.STANDALONE) {
           getCluster().start();
-          c.tableOperations().setProperty(MetadataTable.NAME,
+          c.tableOperations().setProperty(SystemTables.METADATA.tableName(),
               Property.TABLE_SPLIT_THRESHOLD.getKey(), splitThreshold);
         }
       }

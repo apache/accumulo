@@ -19,29 +19,36 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Objects.requireNonNull;
 
-import java.math.BigInteger;
-import java.security.NoSuchAlgorithmException;
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.ZooDefs.Ids;
 import org.apache.zookeeper.ZooDefs.Perms;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
-import org.apache.zookeeper.data.Id;
-import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.auth.DigestAuthenticationProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 public class ZooUtil {
+
+  private static final Logger log = LoggerFactory.getLogger(ZooUtil.class);
+
+  private ZooUtil() {}
 
   public enum NodeExistsPolicy {
     SKIP, OVERWRITE, FAIL
@@ -51,16 +58,41 @@ public class ZooUtil {
     SKIP, CREATE, FAIL
   }
 
-  // used for zookeeper stat print formatting
-  private static final DateTimeFormatter fmt =
-      DateTimeFormatter.ofPattern("EEE MMM dd HH:mm:ss 'UTC' yyyy");
-
   public static class LockID {
-    public long eid;
-    public String path;
-    public String node;
+    public final long eid;
+    public final String path;
+    public final String node;
+    private final Supplier<String> serialized;
 
-    public LockID(String root, String serializedLID) {
+    public LockID(String path, String node, long eid) {
+      // path must start with a '/', must not end with one, and must not contain '$'. These chars
+      // would cause problems for serialization.
+      Preconditions.checkArgument(
+          path != null && !path.contains("$") && path.startsWith("/") && !path.endsWith("/"),
+          "Illegal path %s", path);
+      // node must not contain '$' or '/' because these chars would cause problems for
+      // serialization.
+      Preconditions.checkArgument(
+          node != null && !node.contains("$") && !node.contains("/") && !node.isEmpty(),
+          "Illegal node name %s", node);
+      this.path = path;
+      this.node = node;
+      this.eid = eid;
+      this.serialized = Suppliers.memoize(() -> path + "/" + node + "$" + Long.toHexString(eid));
+    }
+
+    /**
+     * Returns serialized form of this object that can be deserialized using
+     * {@link #deserialize(String)}
+     */
+    public String serialize() {
+      return serialized.get();
+    }
+
+    /**
+     * Deserializes a lock id created by {@link #serialize()}
+     */
+    public static LockID deserialize(String serializedLID) {
       String[] sa = serializedLID.split("\\$");
       int lastSlash = sa[0].lastIndexOf('/');
 
@@ -68,51 +100,55 @@ public class ZooUtil {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
 
-      if (lastSlash == 0) {
-        path = root;
-      } else {
-        path = root + "/" + sa[0].substring(0, lastSlash);
-      }
-      node = sa[0].substring(lastSlash + 1);
-      eid = new BigInteger(sa[1], 16).longValue();
-    }
-
-    public LockID(String path, String node, long eid) {
-      this.path = path;
-      this.node = node;
-      this.eid = eid;
-    }
-
-    public String serialize(String root) {
-
-      return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
+      return new LockID(sa[0].substring(0, lastSlash), sa[0].substring(lastSlash + 1),
+          Long.parseUnsignedLong(sa[1], 16));
     }
 
     @Override
     public String toString() {
-      return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
+      return "path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (obj instanceof LockID other) {
+        return this.path.equals(other.path) && this.node.equals(other.node)
+            && this.eid == other.eid;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(path, node, eid);
     }
   }
 
-  public static final List<ACL> PRIVATE;
-  public static final List<ACL> PUBLIC;
+  // Need to use Collections.unmodifiableList() instead of List.of() or List.copyOf(), because
+  // ImmutableCollections.contains() doesn't handle nulls properly (JDK-8265905) and ZooKeeper (as
+  // of 3.8.1) calls acl.contains((Object) null) which throws a NPE when passed an immutable
+  // collection
+  public static final List<ACL> PRIVATE =
+      Collections.unmodifiableList(new ArrayList<>(Ids.CREATOR_ALL_ACL));
 
+  public static final List<ACL> PUBLIC;
   static {
-    PRIVATE = new ArrayList<>();
-    PRIVATE.addAll(Ids.CREATOR_ALL_ACL);
-    PUBLIC = new ArrayList<>();
-    PUBLIC.addAll(PRIVATE);
-    PUBLIC.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
+    var publicTmp = new ArrayList<>(PRIVATE);
+    publicTmp.add(new ACL(Perms.READ, Ids.ANYONE_ID_UNSAFE));
+    PUBLIC = Collections.unmodifiableList(publicTmp);
   }
 
   public static String getRoot(final InstanceId instanceId) {
-    return Constants.ZROOT + "/" + instanceId;
+    return Constants.ZROOT + "/" + instanceId.canonical();
   }
 
   /**
    * This method will delete a node and all its children.
    */
-  public static void recursiveDelete(ZooKeeper zooKeeper, String zPath, NodeMissingPolicy policy)
+  public static void recursiveDelete(ZooSession zooKeeper, String zPath, NodeMissingPolicy policy)
       throws KeeperException, InterruptedException {
     if (policy == NodeMissingPolicy.CREATE) {
       throw new IllegalArgumentException(policy.name() + " is invalid for this operation");
@@ -137,55 +173,76 @@ public class ZooUtil {
     }
   }
 
-  /**
-   * For debug: print the ZooKeeper Stat with value labels for a more user friendly string. The
-   * format matches the zookeeper cli stat command.
-   *
-   * @param stat Zookeeper Stat structure
-   * @return a formatted string.
-   */
-  public static String printStat(final Stat stat) {
-
-    if (stat == null) {
-      return "null";
+  public static String getInstanceName(ZooSession zk, InstanceId instanceId) {
+    requireNonNull(zk);
+    var instanceIdBytes = requireNonNull(instanceId).canonical().getBytes(UTF_8);
+    for (String name : getInstanceNames(zk)) {
+      var bytes = getInstanceIdBytesFromName(zk, name);
+      if (Arrays.equals(bytes, instanceIdBytes)) {
+        return name;
+      }
     }
-
-    return "\ncZxid = " + String.format("0x%x", stat.getCzxid()) + "\nctime = "
-        + getFmtTime(stat.getCtime()) + "\nmZxid = " + String.format("0x%x", stat.getMzxid())
-        + "\nmtime = " + getFmtTime(stat.getMtime()) + "\npZxid = "
-        + String.format("0x%x", stat.getPzxid()) + "\ncversion = " + stat.getCversion()
-        + "\ndataVersion = " + stat.getVersion() + "\naclVersion = " + stat.getAversion()
-        + "\nephemeralOwner = " + String.format("0x%x", stat.getEphemeralOwner())
-        + "\ndataLength = " + stat.getDataLength() + "\nnumChildren = " + stat.getNumChildren();
+    return null;
   }
 
-  private static String getFmtTime(final long epoch) {
-    OffsetDateTime timestamp =
-        OffsetDateTime.ofInstant(Instant.ofEpochMilli(epoch), ZoneOffset.UTC);
-    return fmt.format(timestamp);
-  }
-
-  /**
-   * Get the ZooKeeper digest based on the instance secret that is used within ZooKeeper for
-   * authentication. This method is primary intended to be used to validate ZooKeeper ACLs. Use
-   * {@link #digestAuth(ZooKeeper, String)} to add authorizations to ZooKeeper.
-   */
-  public static Id getZkDigestAuthId(final String secret) {
+  private static List<String> getInstanceNames(ZooSession zk) {
     try {
-      final String scheme = "digest";
-      String auth = DigestAuthenticationProvider.generateDigest("accumulo:" + secret);
-      return new Id(scheme, auth);
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalArgumentException("Could not generate ZooKeeper digest string", ex);
+      return zk.asReader().getChildren(Constants.ZROOT + Constants.ZINSTANCES);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted reading instance names from ZooKeeper", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Failed to read instance names from ZooKeeper", e);
     }
   }
 
-  public static void digestAuth(ZooKeeper zoo, String secret) {
-    auth(zoo, "digest", ("accumulo:" + secret).getBytes(UTF_8));
+  private static byte[] getInstanceIdBytesFromName(ZooSession zk, String name) {
+    try {
+      return zk.asReader()
+          .getData(Constants.ZROOT + Constants.ZINSTANCES + "/" + requireNonNull(name));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(
+          "Interrupted reading InstanceId from ZooKeeper for instance named " + name, e);
+    } catch (KeeperException e) {
+      log.warn("Failed to read InstanceId from ZooKeeper for instance named {}", name, e);
+      return null;
+    }
   }
 
-  public static void auth(ZooKeeper zoo, String scheme, byte[] auth) {
-    zoo.addAuthInfo(scheme, auth);
+  public static Map<String,InstanceId> getInstanceMap(ZooSession zk) {
+    Map<String,InstanceId> idMap = new TreeMap<>();
+    getInstanceNames(zk).forEach(name -> {
+      byte[] instanceId = getInstanceIdBytesFromName(zk, name);
+      if (instanceId != null) {
+        idMap.put(name, InstanceId.of(new String(instanceId, UTF_8)));
+      }
+    });
+    return idMap;
+  }
+
+  public static InstanceId getInstanceId(ZooSession zk, String name) {
+    byte[] data = getInstanceIdBytesFromName(zk, name);
+    if (data == null) {
+      throw new IllegalStateException("Instance name " + name + " does not exist in ZooKeeper. "
+          + "Run \"accumulo org.apache.accumulo.server.util.ListInstances\" to see a list.");
+    }
+    String instanceIdString = new String(data, UTF_8);
+    try {
+      // verify that the instanceId found via the name actually exists
+      if (zk.asReader().getData(Constants.ZROOT + "/" + instanceIdString) == null) {
+        throw new IllegalStateException("InstanceId " + instanceIdString
+            + " pointed to by the name " + name + " does not exist in ZooKeeper");
+      }
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Interrupted verifying InstanceId " + instanceIdString
+          + " pointed to by instance named " + name + " actually exists in ZooKeeper", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Failed to verify InstanceId " + instanceIdString
+          + " pointed to by instance named " + name + " actually exists in ZooKeeper", e);
+    }
+    return InstanceId.of(instanceIdString);
   }
 
 }

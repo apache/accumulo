@@ -22,23 +22,23 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_META_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_ROOT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_WAL_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_SIMPLETIMER_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_BULK_IMPORT_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_RENAME_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.REPLICATION_WORKER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHED_FUTURE_CHECKER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_ASSIGNMENT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_META_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_ROOT_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MIGRATIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_PARTITION_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_REMOTE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_RETRIEVAL_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_WORKQ_POOL;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.ArrayList;
@@ -120,27 +120,24 @@ public class ThreadPools {
   private static final ConcurrentLinkedQueue<ScheduledFuture<?>> NON_CRITICAL_RUNNING_TASKS =
       new ConcurrentLinkedQueue<>();
 
-  private static final Runnable TASK_CHECKER = new Runnable() {
-    @Override
-    public void run() {
-      final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
-          List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
-      while (true) {
-        queues.forEach(q -> {
-          Iterator<ScheduledFuture<?>> tasks = q.iterator();
-          while (tasks.hasNext()) {
-            if (checkTaskFailed(tasks.next(), q)) {
-              tasks.remove();
-            }
+  private static final Runnable TASK_CHECKER = () -> {
+    final List<ConcurrentLinkedQueue<ScheduledFuture<?>>> queues =
+        List.of(CRITICAL_RUNNING_TASKS, NON_CRITICAL_RUNNING_TASKS);
+    while (true) {
+      queues.forEach(q -> {
+        Iterator<ScheduledFuture<?>> tasks = q.iterator();
+        while (tasks.hasNext()) {
+          if (checkTaskFailed(tasks.next(), q)) {
+            tasks.remove();
           }
-        });
-        try {
-          MINUTES.sleep(1);
-        } catch (InterruptedException ie) {
-          // This thread was interrupted by something while sleeping. We don't want to exit
-          // this thread, so reset the interrupt state on this thread and keep going.
-          Thread.interrupted();
         }
+      });
+      try {
+        TimeUnit.MINUTES.sleep(1);
+      } catch (InterruptedException ie) {
+        // This thread was interrupted by something while sleeping. We don't want to exit
+        // this thread, so reset the interrupt state on this thread and keep going.
+        Thread.interrupted();
       }
     }
   };
@@ -298,38 +295,13 @@ public class ThreadPools {
    * @return ExecutorService impl
    * @throws IllegalArgumentException if property is not handled
    */
-  @SuppressWarnings("deprecation")
   public ThreadPoolExecutor createExecutorService(final AccumuloConfiguration conf,
       final Property p, boolean emitThreadPoolMetrics) {
     ThreadPoolExecutorBuilder builder;
     switch (p) {
-      case GENERAL_SIMPLETIMER_THREADPOOL_SIZE:
-        return createScheduledExecutorService(conf.getCount(p),
-            GENERAL_SERVER_SIMPLETIMER_POOL.poolName);
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), GENERAL_SERVER_POOL.poolName,
             emitThreadPoolMetrics);
-      case MANAGER_BULK_THREADPOOL_SIZE:
-        builder =
-            getPoolBuilder(MANAGER_BULK_IMPORT_POOL).numCoreThreads(conf.getCount(p)).withTimeOut(
-                conf.getTimeInMillis(Property.MANAGER_BULK_THREADPOOL_TIMEOUT), MILLISECONDS);
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
-      case MANAGER_BULK_RENAME_THREADS:
-      case MANAGER_RENAME_THREADS:
-        builder = getPoolBuilder(MANAGER_RENAME_POOL).numCoreThreads(conf.getCount(p));
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
-      case MANAGER_FATE_THREADPOOL_SIZE:
-        builder = getPoolBuilder(MANAGER_FATE_POOL).numCoreThreads(conf.getCount(p));
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         builder = getPoolBuilder(MANAGER_STATUS_POOL);
         int threads = conf.getCount(p);
@@ -339,12 +311,6 @@ public class ThreadPools {
         } else {
           builder.numCoreThreads(threads);
         }
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
-      case TSERV_WORKQ_THREADS:
-        builder = getPoolBuilder(TSERVER_WORKQ_POOL).numCoreThreads(conf.getCount(p));
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
@@ -391,17 +357,52 @@ public class ThreadPools {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
-      case GC_DELETE_WAL_THREADS:
-        return getPoolBuilder(GC_WAL_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
-      case GC_DELETE_THREADS:
-        return getPoolBuilder(GC_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
-      case REPLICATION_WORKER_THREADS:
-        builder = getPoolBuilder(REPLICATION_WORKER_POOL).numCoreThreads(conf.getCount(p));
+      case TSERV_CONDITIONAL_UPDATE_THREADS_ROOT:
+        builder = getPoolBuilder(TSERVER_CONDITIONAL_UPDATE_ROOT_POOL)
+            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
         if (emitThreadPoolMetrics) {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
-
+      case TSERV_CONDITIONAL_UPDATE_THREADS_META:
+        builder = getPoolBuilder(TSERVER_CONDITIONAL_UPDATE_META_POOL)
+            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case TSERV_CONDITIONAL_UPDATE_THREADS_USER:
+        builder = getPoolBuilder(TSERVER_CONDITIONAL_UPDATE_USER_POOL)
+            .numCoreThreads(conf.getCount(p)).withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case GC_DELETE_WAL_THREADS:
+        return getPoolBuilder(GC_WAL_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
+      case GC_DELETE_THREADS:
+        return getPoolBuilder(GC_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
+      case COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT:
+        builder = getPoolBuilder(COORDINATOR_RESERVATION_ROOT_POOL).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case COMPACTION_COORDINATOR_RESERVATION_THREADS_META:
+        builder = getPoolBuilder(COORDINATOR_RESERVATION_META_POOL).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
+      case COMPACTION_COORDINATOR_RESERVATION_THREADS_USER:
+        builder = getPoolBuilder(COORDINATOR_RESERVATION_USER_POOL).numCoreThreads(conf.getCount(p))
+            .withTimeOut(60L, MILLISECONDS);
+        if (emitThreadPoolMetrics) {
+          builder.enableThreadPoolMetrics();
+        }
+        return builder.build();
       default:
         throw new IllegalArgumentException("Unhandled thread pool property: " + p);
     }
@@ -627,10 +628,8 @@ public class ThreadPools {
    */
   public ScheduledThreadPoolExecutor
       createGeneralScheduledExecutorService(AccumuloConfiguration conf) {
-    @SuppressWarnings("deprecation")
-    Property oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
-    Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp);
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf,
+        Property.GENERAL_THREADPOOL_SIZE, true);
   }
 
   /**

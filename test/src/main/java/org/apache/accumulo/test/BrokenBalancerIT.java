@@ -24,9 +24,12 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -66,12 +69,12 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     siteConfig.put(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL.getKey(), "3s");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
-    if (cfg.getNumTservers() != 2) {
-      cfg.setNumTservers(2);
+    if (cfg.getClusterServerConfiguration().getTabletServerConfiguration()
+        .get(Constants.DEFAULT_RESOURCE_GROUP_NAME) != 2) {
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     }
   }
 
@@ -95,7 +98,8 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       }
       var props = Map.of(Property.TABLE_LOAD_BALANCER.getKey(), balancerClass);
       NewTableConfiguration ntc =
-          new NewTableConfiguration().withSplits(splits).setProperties(props);
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED)
+              .withSplits(splits).setProperties(props);
       c.tableOperations().create(tableName, ntc);
 
       assertEquals(Map.of(" none", 11), BalanceIT.countLocations(c, tableName));
@@ -115,14 +119,15 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       c.instanceOperations().setProperty(Property.MANAGER_TABLET_BALANCER.getKey(), balancerClass);
 
       // add some tablet servers
-      assertEquals(2, getCluster().getConfig().getNumTservers());
-      getCluster().getConfig().setNumTservers(5);
+      assertEquals(2, getCluster().getConfig().getClusterServerConfiguration()
+          .getTabletServerConfiguration().get(Constants.DEFAULT_RESOURCE_GROUP_NAME));
+      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(5);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
-      Wait.waitFor(() -> c.instanceOperations().getTabletServers().size() == 5);
+      Wait.waitFor(
+          () -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 5);
       Wait.waitFor(() -> c.instanceOperations().getSystemConfiguration()
           .get(Property.MANAGER_TABLET_BALANCER.getKey()).equals(balancerClass));
-      c.instanceOperations().waitForBalance();
 
       // Give enough time for property change and Status Thread in Manager
       UtilWaitThread.sleep(30000);

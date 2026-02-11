@@ -21,7 +21,13 @@ package org.apache.accumulo.core.metadata.schema;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class DataFileValue {
   private final long size;
   private final long numEntries;
@@ -89,10 +95,9 @@ public class DataFileValue {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof DataFileValue) {
-      DataFileValue odfv = (DataFileValue) o;
+    if (o instanceof DataFileValue odfv) {
 
-      return size == odfv.size && numEntries == odfv.numEntries;
+      return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time;
     }
 
     return false;
@@ -113,5 +118,24 @@ public class DataFileValue {
       throw new IllegalArgumentException();
     }
     this.time = time;
+  }
+
+  /**
+   * @return true if {@link #wrapFileIterator} would wrap a given iterator, false otherwise.
+   */
+  public boolean willWrapIterator() {
+    return isTimeSet();
+  }
+
+  /**
+   * Use per file information from the metadata table to wrap the raw iterator over a file with
+   * iterators that may take action based on data set in the metadata table.
+   */
+  public InterruptibleIterator wrapFileIterator(InterruptibleIterator iter) {
+    if (isTimeSet()) {
+      return new TimeSettingIterator(iter, getTime());
+    } else {
+      return iter;
+    }
   }
 }

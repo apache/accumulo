@@ -18,6 +18,12 @@
  */
 package org.apache.accumulo.gc;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Collection;
@@ -36,20 +42,16 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
-import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.GcWalsFilter;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -59,15 +61,13 @@ import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Streams;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -77,22 +77,19 @@ public class GarbageCollectWriteAheadLogs {
 
   private final ServerContext context;
   private final VolumeManager fs;
-  private final boolean useTrash;
   private final LiveTServerSet liveServers;
   private final WalStateManager walMarker;
   private final AtomicBoolean hasCollected = new AtomicBoolean(false);
-  private final Stream<TabletLocationState> store;
 
   /**
    * Creates a new GC WAL object.
    *
    * @param context the collection server's context
    * @param fs volume manager to use
-   * @param useTrash true to move files to trash rather than delete them
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
-      final LiveTServerSet liveServers, boolean useTrash) {
-    this(context, fs, liveServers, useTrash, new WalStateManager(context), createStore(context));
+      final LiveTServerSet liveServers) {
+    this(context, fs, liveServers, new WalStateManager(context));
   }
 
   /**
@@ -102,36 +99,24 @@ public class GarbageCollectWriteAheadLogs {
    * @param context the collection server's context
    * @param fs volume manager to use
    * @param liveServers a started LiveTServerSet instance
-   * @param useTrash true to move files to trash rather than delete them
    * @param walMarker a WalStateManager instance
-   * @param store a stream of TabletLocationState objects
    */
   GarbageCollectWriteAheadLogs(final ServerContext context, final VolumeManager fs,
-      final LiveTServerSet liveServers, boolean useTrash, final WalStateManager walMarker,
-      final Stream<TabletLocationState> store) {
+      final LiveTServerSet liveServers, final WalStateManager walMarker) {
     this.context = context;
     this.fs = fs;
-    this.useTrash = useTrash;
     this.liveServers = liveServers;
     this.walMarker = walMarker;
-    this.store = store;
   }
 
-  private static Stream<TabletLocationState> createStore(final ServerContext context) {
-    var rootStream = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context).stream();
-    var metadataStream = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context).stream();
-    var userStream = TabletStateStore.getStoreForLevel(DataLevel.USER, context).stream();
-    return Streams.concat(rootStream, metadataStream, userStream).onClose(() -> {
-      try {
-        rootStream.close();
-      } finally {
-        try {
-          metadataStream.close();
-        } finally {
-          userStream.close();
-        }
-      }
-    });
+  @VisibleForTesting
+  Stream<TabletMetadata> createStore(Set<TServerInstance> liveTServers) {
+    GcWalsFilter walsFilter = new GcWalsFilter(liveTServers);
+
+    return Stream.of(DataLevel.ROOT, DataLevel.METADATA, DataLevel.USER)
+        .map(dataLevel -> context.getAmple().readTablets().forLevel(dataLevel).filter(walsFilter)
+            .fetch(LOCATION, LAST, LOGS, PREV_ROW, SUSPEND).build())
+        .flatMap(TabletsMetadata::stream);
   }
 
   public void collect(GCStatus status) {
@@ -191,21 +176,6 @@ public class GarbageCollectWriteAheadLogs {
       long logEntryScanStop = System.currentTimeMillis();
       log.info(String.format("%d log entries scanned in %.2f seconds", count,
           (logEntryScanStop - fileScanStop) / 1000.));
-
-      Span span3 = TraceUtil.startSpan(this.getClass(), "removeReplicationEntries");
-      try (Scope scope = span3.makeCurrent()) {
-        count = removeReplicationEntries(uuidToTServer);
-      } catch (Exception ex) {
-        log.error("Unable to scan replication table", ex);
-        TraceUtil.setException(span3, ex, false);
-        return;
-      } finally {
-        span3.end();
-      }
-
-      long replicationEntryScanStop = System.currentTimeMillis();
-      log.info(String.format("%d replication entries scanned in %.2f seconds", count,
-          (replicationEntryScanStop - logEntryScanStop) / 1000.));
 
       long removeStop;
       Span span4 = TraceUtil.startSpan(this.getClass(), "removeFiles");
@@ -278,7 +248,7 @@ public class GarbageCollectWriteAheadLogs {
     return deleteThreadPool.submit(() -> {
       try {
         log.debug(msg);
-        if (!useTrash || !fs.moveToTrash(path)) {
+        if (!fs.moveToTrash(path)) {
           fs.deleteRecursively(path);
         }
         counter.incrementAndGet();
@@ -371,10 +341,6 @@ public class GarbageCollectWriteAheadLogs {
     return counter.get();
   }
 
-  private UUID path2uuid(Path path) {
-    return UUID.fromString(path.getName());
-  }
-
   private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates,
       Set<TServerInstance> liveServers, Map<UUID,Pair<WalState,Path>> logsState,
       Map<UUID,Path> recoveryLogs) {
@@ -389,12 +355,14 @@ public class GarbageCollectWriteAheadLogs {
     }
 
     // remove any entries if there's a log reference (recovery hasn't finished)
-    try {
-      store.forEach(state -> {
+    try (Stream<TabletMetadata> store = createStore(liveServers)) {
+      store.forEach(tabletMetadata -> {
         // Tablet is still assigned to a dead server. Manager has moved markers and reassigned it
         // Easiest to just ignore all the WALs for the dead server.
-        if (state.getState(liveServers) == TabletState.ASSIGNED_TO_DEAD_SERVER) {
-          Set<UUID> idsToIgnore = candidates.remove(state.current.getServerInstance());
+        if (TabletState.compute(tabletMetadata, liveServers)
+            == TabletState.ASSIGNED_TO_DEAD_SERVER) {
+          Set<UUID> idsToIgnore =
+              candidates.remove(tabletMetadata.getLocation().getServerInstance());
           if (idsToIgnore != null) {
             result.keySet().removeAll(idsToIgnore);
             recoveryLogs.keySet().removeAll(idsToIgnore);
@@ -402,21 +370,17 @@ public class GarbageCollectWriteAheadLogs {
         }
         // Tablet is being recovered and has WAL references, remove all the WALs for the dead server
         // that made the WALs.
-        for (Collection<String> wals : state.walogs) {
-          for (String wal : wals) {
-            UUID walUUID = path2uuid(new Path(wal));
-            TServerInstance dead = result.get(walUUID);
-            // There's a reference to a log file, so skip that server's logs
-            Set<UUID> idsToIgnore = candidates.remove(dead);
-            if (idsToIgnore != null) {
-              result.keySet().removeAll(idsToIgnore);
-              recoveryLogs.keySet().removeAll(idsToIgnore);
-            }
+        for (LogEntry wal : tabletMetadata.getLogs()) {
+          UUID walUUID = wal.getUniqueID();
+          TServerInstance dead = result.get(walUUID);
+          // There's a reference to a log file, so skip that server's logs
+          Set<UUID> idsToIgnore = candidates.remove(dead);
+          if (idsToIgnore != null) {
+            result.keySet().removeAll(idsToIgnore);
+            recoveryLogs.keySet().removeAll(idsToIgnore);
           }
         }
       });
-    } finally {
-      store.close();
     }
 
     // Remove OPEN and CLOSED logs for live servers: they are still in use
@@ -435,39 +399,6 @@ public class GarbageCollectWriteAheadLogs {
       }
     }
     return result;
-  }
-
-  @Deprecated
-  protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-    try {
-      try {
-        final Scanner s = org.apache.accumulo.core.replication.ReplicationTable.getScanner(context);
-        org.apache.accumulo.core.replication.ReplicationSchema.StatusSection.limit(s);
-        for (Entry<Key,Value> entry : s) {
-          UUID id = path2uuid(new Path(entry.getKey().getRow().toString()));
-          candidates.remove(id);
-          log.info("Ignore closed log " + id + " because it is being replicated");
-        }
-      } catch (org.apache.accumulo.core.replication.ReplicationTableOfflineException ex) {
-        return candidates.size();
-      }
-
-      final Scanner scanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-      scanner.fetchColumnFamily(ReplicationSection.COLF);
-      scanner.setRange(ReplicationSection.getRange());
-      for (Entry<Key,Value> entry : scanner) {
-        Text file = new Text();
-        ReplicationSection.getFile(entry.getKey(), file);
-        UUID id = path2uuid(new Path(file.toString()));
-        candidates.remove(id);
-        log.info("Ignore closed log " + id + " because it is being replicated");
-      }
-
-      return candidates.size();
-    } catch (TableNotFoundException e) {
-      log.error("Failed to scan metadata table", e);
-      throw new IllegalArgumentException(e);
-    }
   }
 
   /**
@@ -507,7 +438,7 @@ public class GarbageCollectWriteAheadLogs {
       if (fs.exists(recoveryDir)) {
         for (FileStatus status : fs.listStatus(recoveryDir)) {
           try {
-            UUID logId = path2uuid(status.getPath());
+            UUID logId = UUID.fromString(status.getPath().getName());
             result.put(logId, status.getPath());
           } catch (IllegalArgumentException iae) {
             log.debug("Ignoring file " + status.getPath() + " because it doesn't look like a uuid");
@@ -518,4 +449,5 @@ public class GarbageCollectWriteAheadLogs {
     }
     return result;
   }
+
 }

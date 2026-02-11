@@ -21,8 +21,6 @@ package org.apache.accumulo.server.security.handler;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -32,7 +30,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -46,63 +43,30 @@ public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticator.class);
 
   private ServerContext context;
-  private String ZKUserPath;
-  private ZooCache zooCache;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooReader(), null);
-    ZKUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-  }
-
-  /**
-   * Checks stored users and logs a warning containing the ones with outdated hashes.
-   */
-  public boolean hasOutdatedHashes() {
-    List<String> outdatedUsers = new LinkedList<>();
-    try {
-      listUsers().forEach(user -> {
-        String zpath = ZKUserPath + "/" + user;
-        byte[] zkData = zooCache.get(zpath);
-        if (ZKSecurityTool.isOutdatedPass(zkData)) {
-          outdatedUsers.add(user);
-        }
-      });
-    } catch (NullPointerException e) {
-      log.debug(
-          "initializeSecurity was not called yet, there could be no outdated passwords stored");
-    }
-    if (!outdatedUsers.isEmpty()) {
-      log.warn(
-          "Found {} user(s) with outdated password hash. These will be re-hashed"
-              + " on successful authentication. The user(s) : {}",
-          outdatedUsers.size(), String.join(", ", outdatedUsers));
-      return true;
-    }
-    return false;
   }
 
   @Override
   public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
-      ZooReaderWriter zoo = context.getZooReaderWriter();
-      synchronized (zooCache) {
-        zooCache.clear();
-        if (zoo.exists(ZKUserPath)) {
-          zoo.recursiveDelete(ZKUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed {}/ from zookeeper", ZKUserPath);
-        }
-
-        // prep parent node of users with root username
-        zoo.putPersistentData(ZKUserPath, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
-
-        constructUser(principal, ZKSecurityTool.createPass(token));
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
+      context.getZooCache().clear((path) -> path.startsWith(Constants.ZUSERS));
+      if (zoo.exists(Constants.ZUSERS)) {
+        zoo.recursiveDelete(Constants.ZUSERS, NodeMissingPolicy.SKIP);
+        log.info("Removed {}/ from zookeeper", Constants.ZUSERS);
       }
+
+      // prep parent node of users with root username
+      zoo.putPersistentData(Constants.ZUSERS, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+
+      constructUser(principal, ZKSecurityTool.createPass(token));
     } catch (KeeperException | AccumuloException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -112,26 +76,24 @@ public final class ZKAuthenticator implements Authenticator {
    */
   private void constructUser(String user, byte[] pass)
       throws KeeperException, InterruptedException {
-    synchronized (zooCache) {
-      zooCache.clear();
-      ZooReaderWriter zoo = context.getZooReaderWriter();
-      zoo.putPrivatePersistentData(ZKUserPath + "/" + user, pass, NodeExistsPolicy.FAIL);
-    }
+    String userPath = Constants.ZUSERS + "/" + user;
+    context.getZooCache().clear((path) -> path.startsWith(userPath));
+    context.getZooSession().asReaderWriter().putPrivatePersistentData(userPath, pass,
+        NodeExistsPolicy.FAIL);
   }
 
   @Override
   public Set<String> listUsers() {
-    return new TreeSet<>(zooCache.getChildren(ZKUserPath));
+    return new TreeSet<>(context.getZooCache().getChildren(Constants.ZUSERS));
   }
 
   @Override
   public void createUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
     try {
-      if (!(token instanceof PasswordToken)) {
+      if (!(token instanceof PasswordToken pt)) {
         throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
       }
-      PasswordToken pt = (PasswordToken) token;
       constructUser(principal, ZKSecurityTool.createPass(pt.getPassword()));
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NODEEXISTS)) {
@@ -140,7 +102,7 @@ public final class ZKAuthenticator implements Authenticator {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (AccumuloException e) {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
@@ -150,14 +112,12 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
-      synchronized (zooCache) {
-        zooCache.clear();
-        context.getZooReaderWriter().recursiveDelete(ZKUserPath + "/" + user,
-            NodeMissingPolicy.FAIL);
-      }
+      String userPath = Constants.ZUSERS + "/" + user;
+      context.getZooCache().clear((path) -> path.startsWith(userPath));
+      context.getZooSession().asReaderWriter().recursiveDelete(userPath, NodeMissingPolicy.FAIL);
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     } catch (KeeperException e) {
       if (e.code().equals(KeeperException.Code.NONODE)) {
         throw new AccumuloSecurityException(user, SecurityErrorCode.USER_DOESNT_EXIST, e);
@@ -170,23 +130,21 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void changePassword(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (!(token instanceof PasswordToken)) {
+    if (!(token instanceof PasswordToken pt)) {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     }
-    PasswordToken pt = (PasswordToken) token;
     if (userExists(principal)) {
       try {
-        synchronized (zooCache) {
-          zooCache.clear(ZKUserPath + "/" + principal);
-          context.getZooReaderWriter().putPrivatePersistentData(ZKUserPath + "/" + principal,
-              ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
-        }
+        String userPath = Constants.ZUSERS + "/" + principal;
+        context.getZooCache().clear(userPath);
+        context.getZooSession().asReaderWriter().putPrivatePersistentData(userPath,
+            ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
       } catch (KeeperException e) {
         log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.CONNECTION_ERROR, e);
       } catch (InterruptedException e) {
         log.error("{}", e.getMessage(), e);
-        throw new RuntimeException(e);
+        throw new IllegalStateException(e);
       } catch (AccumuloException e) {
         log.error("{}", e.getMessage(), e);
         throw new AccumuloSecurityException(principal, SecurityErrorCode.DEFAULT_SECURITY_ERROR, e);
@@ -199,7 +157,7 @@ public final class ZKAuthenticator implements Authenticator {
 
   @Override
   public boolean userExists(String user) {
-    return zooCache.get(ZKUserPath + "/" + user) != null;
+    return context.getZooCache().get(Constants.ZUSERS + "/" + user) != null;
   }
 
   @Override
@@ -210,17 +168,16 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public boolean authenticateUser(String principal, AuthenticationToken token)
       throws AccumuloSecurityException {
-    if (!(token instanceof PasswordToken)) {
+    if (!(token instanceof PasswordToken pt)) {
       throw new AccumuloSecurityException(principal, SecurityErrorCode.INVALID_TOKEN);
     }
-    PasswordToken pt = (PasswordToken) token;
     byte[] zkData;
-    String zpath = ZKUserPath + "/" + principal;
-    zkData = zooCache.get(zpath);
+    String zpath = Constants.ZUSERS + "/" + principal;
+    zkData = context.getZooCache().get(zpath);
     boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {
-      zooCache.clear(zpath);
-      zkData = zooCache.get(zpath);
+      context.getZooCache().clear(zpath);
+      zkData = context.getZooCache().get(zpath);
       result = authenticateUser(principal, pt, zkData);
     }
     return result;
@@ -230,28 +187,7 @@ public final class ZKAuthenticator implements Authenticator {
     if (zkData == null) {
       return false;
     }
-
-    // if the hash does not match the outdated format use Crypt to verify it
-    if (!ZKSecurityTool.isOutdatedPass(zkData)) {
-      return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
-    }
-
-    @SuppressWarnings("deprecation")
-    boolean oldFormatValidates = ZKSecurityTool.checkPass(pt.getPassword(), zkData);
-    if (!oldFormatValidates) {
-      // if password does not match we are done
-      return false;
-    }
-
-    // if the password is correct we have to update the stored hash with new algorithm
-    try {
-      log.debug("Upgrading hashed password for {} to new format", principal);
-      changePassword(principal, pt);
-      return true;
-    } catch (AccumuloSecurityException e) {
-      log.error("Failed to upgrade hashed password for {} to new format", principal, e);
-    }
-    return false;
+    return ZKSecurityTool.checkCryptPass(pt.getPassword(), zkData);
   }
 
   @Override

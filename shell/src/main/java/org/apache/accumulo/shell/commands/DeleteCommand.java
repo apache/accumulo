@@ -29,7 +29,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
@@ -38,7 +38,8 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class DeleteCommand extends Command {
-  private Option deleteOptAuths, timestampOpt;
+  private Option deleteOptAuths;
+  private Option timestampOpt;
   private Option timeoutOption;
 
   protected long getTimeout(final CommandLine cl) {

@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -82,8 +84,10 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         count++;
 
         final CountDownLatch cdl = new CountDownLatch(numDeleteOps);
+        assertTrue(numDeleteOps >= cdl.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(numDeleteOps);
 
         for (int i = 0; i < numDeleteOps; i++) {
           futures.add(es.submit(() -> {
@@ -267,7 +271,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
       throws TableNotFoundException, MutationsRejectedException {
     try (BatchWriter bw = c.createBatchWriter(table)) {
       for (int i = 0; i < 1_000; i++) {
-        Mutation m = new Mutation(String.format("%09x", random.nextInt(100_000_000)));
+        Mutation m = new Mutation(String.format("%09x", RANDOM.get().nextInt(100_000_000)));
         m.put("m", "order", "" + i);
         bw.addMutation(m);
       }

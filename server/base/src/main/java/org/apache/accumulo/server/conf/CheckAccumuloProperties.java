@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 
@@ -45,7 +46,7 @@ public class CheckAccumuloProperties implements KeywordExecutable {
     return "Checks the provided Accumulo configuration file for errors. "
         + "This only checks the contents of the file and not any running Accumulo system, "
         + "so it can be used prior to init, but only performs a subset of the checks done by "
-        + (new CheckServerConfig().keyword());
+        + "'admin check run " + Check.SERVER_CONFIG + "'";
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
@@ -54,7 +55,7 @@ public class CheckAccumuloProperties implements KeywordExecutable {
     Preconditions.checkArgument(args.length == 1,
         "Expected 1 argument (the properties file path), got " + args.length);
     var hadoopConfig = new Configuration();
-    var siteConfig = SiteConfiguration.fromFile(new File(args[0])).build();
+    var siteConfig = SiteConfiguration.fromFile(Path.of(args[0]).toFile()).build();
 
     VolumeManagerImpl.get(siteConfig, hadoopConfig);
     new ServerDirs(siteConfig, hadoopConfig);

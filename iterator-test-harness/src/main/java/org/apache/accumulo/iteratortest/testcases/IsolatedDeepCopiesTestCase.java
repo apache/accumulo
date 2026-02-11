@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.iteratortest.testcases;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -42,8 +43,6 @@ import org.slf4j.LoggerFactory;
  */
 public class IsolatedDeepCopiesTestCase implements IteratorTestCase {
   private static final Logger log = LoggerFactory.getLogger(IsolatedDeepCopiesTestCase.class);
-
-  private static final SecureRandom random = new SecureRandom();
 
   @Override
   public IteratorTestOutput test(IteratorTestInput testInput) {
@@ -81,7 +80,7 @@ public class IsolatedDeepCopiesTestCase implements IteratorTestCase {
     // All of the copies should have consistent results from concurrent use
     while (allHasTop(iterators)) {
       // occasionally deep copy one of the existing iterators
-      if (random.nextInt(3) == 0) {
+      if (RANDOM.get().nextInt(3) == 0) {
         log.debug("Deep-copying and re-seeking an iterator");
         SortedKeyValueIterator<Key,Value> newcopy = getRandomElement(iterators).deepCopy(iterEnv);
         newcopy.seek(
@@ -109,7 +108,7 @@ public class IsolatedDeepCopiesTestCase implements IteratorTestCase {
     if (iterators == null || iterators.isEmpty()) {
       throw new IllegalArgumentException("should not pass an empty collection");
     }
-    int num = random.nextInt(iterators.size());
+    int num = RANDOM.get().nextInt(iterators.size());
     for (E e : iterators) {
       if (num-- == 0) {
         return e;

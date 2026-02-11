@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
@@ -91,7 +92,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
    * use it as a source.
    */
   private class ScannerTranslatorImpl implements SortedKeyValueIterator<Key,Value> {
-    protected Scanner scanner;
+    protected final Scanner scanner;
     Iterator<Entry<Key,Value>> iter;
     Entry<Key,Value> top = null;
     private SamplerConfiguration samplerConfig;
@@ -184,8 +185,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
       setSamplerConfiguration(samplerConfig);
     }
 
-    if (scanner instanceof ScannerImpl) {
-      var scannerImpl = (ScannerImpl) scanner;
+    if (scanner instanceof ScannerImpl scannerImpl) {
       this.context = () -> scannerImpl.getClientContext();
       this.tableId = () -> scannerImpl.getTableId();
     } else {
@@ -254,7 +254,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     try {
       skvi.seek(range, colfs, true);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new UncheckedIOException(e);
     }
 
     return new IteratorAdapter(skvi);

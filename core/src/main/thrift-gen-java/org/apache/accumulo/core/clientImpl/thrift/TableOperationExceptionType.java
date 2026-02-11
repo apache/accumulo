@@ -30,13 +30,13 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
   NOTFOUND(1),
   OFFLINE(2),
   BULK_BAD_INPUT_DIRECTORY(3),
-  BULK_BAD_ERROR_DIRECTORY(4),
+  OBSOLETE_BULK_BAD_ERROR_DIRECTORY(4),
   BAD_RANGE(5),
   OTHER(6),
   NAMESPACE_EXISTS(7),
   NAMESPACE_NOTFOUND(8),
   INVALID_NAME(9),
-  BULK_BAD_LOAD_MAPPING(10),
+  OBSOLETE_BULK_BAD_LOAD_MAPPING(10),
   BULK_CONCURRENT_MERGE(11);
 
   private final int value;
@@ -69,7 +69,7 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
       case 3:
         return BULK_BAD_INPUT_DIRECTORY;
       case 4:
-        return BULK_BAD_ERROR_DIRECTORY;
+        return OBSOLETE_BULK_BAD_ERROR_DIRECTORY;
       case 5:
         return BAD_RANGE;
       case 6:
@@ -81,7 +81,7 @@ public enum TableOperationExceptionType implements org.apache.thrift.TEnum {
       case 9:
         return INVALID_NAME;
       case 10:
-        return BULK_BAD_LOAD_MAPPING;
+        return OBSOLETE_BULK_BAD_LOAD_MAPPING;
       case 11:
         return BULK_CONCURRENT_MERGE;
       default:

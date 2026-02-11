@@ -22,7 +22,9 @@ import java.net.URI;
 import java.util.Objects;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.util.RowRangeUtil;
 
 public class CompactableFileImpl implements CompactableFile {
 
@@ -30,7 +32,14 @@ public class CompactableFileImpl implements CompactableFile {
   private final DataFileValue dataFileValue;
 
   public CompactableFileImpl(URI uri, long size, long entries) {
-    this.storedTabletFile = new StoredTabletFile(uri.toString());
+    // TODO this normalizes the path passing it through URI defeating the purpose of
+    // StoredTabletFile
+    this.storedTabletFile = StoredTabletFile.of(uri);
+    this.dataFileValue = new DataFileValue(size, entries);
+  }
+
+  public CompactableFileImpl(URI uri, RowRange range, long size, long entries) {
+    this.storedTabletFile = StoredTabletFile.of(uri, range.asRange());
     this.dataFileValue = new DataFileValue(size, entries);
   }
 
@@ -42,6 +51,11 @@ public class CompactableFileImpl implements CompactableFile {
   @Override
   public URI getUri() {
     return storedTabletFile.getPath().toUri();
+  }
+
+  @Override
+  public RowRange getRange() {
+    return RowRangeUtil.toRowRange(storedTabletFile.getRange());
   }
 
   @Override
@@ -65,8 +79,7 @@ public class CompactableFileImpl implements CompactableFile {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof CompactableFileImpl) {
-      var ocfi = (CompactableFileImpl) o;
+    if (o instanceof CompactableFileImpl ocfi) {
 
       return storedTabletFile.equals(ocfi.storedTabletFile);
     }
@@ -89,6 +102,6 @@ public class CompactableFileImpl implements CompactableFile {
 
   @Override
   public String toString() {
-    return "[" + storedTabletFile.getFileName() + ", " + dataFileValue + "]";
+    return "[" + storedTabletFile.toMinimalString() + ", " + dataFileValue + "]";
   }
 }

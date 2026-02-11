@@ -29,9 +29,10 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -55,7 +56,7 @@ public class DurabilityIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   static final long N = 100000;
@@ -155,8 +156,12 @@ public class DurabilityIT extends ConfigurableMacBase {
   public void testMetaDurability() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
-      c.instanceOperations().setProperty(Property.TABLE_DURABILITY.getKey(), "none");
-      Map<String,String> props = c.tableOperations().getConfiguration(MetadataTable.NAME);
+      c.namespaceOperations().setProperty(Namespace.ACCUMULO.name(),
+          Property.TABLE_DURABILITY.getKey(), "none");
+      c.namespaceOperations().setProperty(Namespace.DEFAULT.name(),
+          Property.TABLE_DURABILITY.getKey(), "none");
+      Map<String,String> props =
+          c.tableOperations().getConfiguration(SystemTables.METADATA.tableName());
       assertEquals("sync", props.get(Property.TABLE_DURABILITY.getKey()));
       c.tableOperations().create(tableName);
       props = c.tableOperations().getConfiguration(tableName);

@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.security.SecureRandom;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.util.Iterator;
 import java.util.Properties;
 
@@ -44,7 +45,6 @@ public class RandomWriter {
   private static final int num_columns_per_row = 1;
   private static final int num_payload_bytes = 1024;
   private static final Logger log = LoggerFactory.getLogger(RandomWriter.class);
-  private static final SecureRandom random = new SecureRandom();
 
   public static class RandomMutationGenerator implements Iterable<Mutation>, Iterator<Mutation> {
     private final long max_mutations;
@@ -63,12 +63,12 @@ public class RandomWriter {
     @Override
     public Mutation next() {
       Text row_value = new Text(
-          Long.toString(((random.nextLong() & 0x7fffffffffffffffL) / 177) % 100000000000L));
+          Long.toString(((RANDOM.get().nextLong() & 0x7fffffffffffffffL) / 177) % 100000000000L));
       Mutation m = new Mutation(row_value);
       for (int column = 0; column < num_columns_per_row; column++) {
         Text column_fam = new Text("col_fam");
         byte[] bytes = new byte[num_payload_bytes];
-        random.nextBytes(bytes);
+        RANDOM.get().nextBytes(bytes);
         m.put(column_fam, new Text("" + column), new Value(bytes));
       }
       mutations_so_far++;
@@ -93,7 +93,7 @@ public class RandomWriter {
     @Parameter(names = "--count", description = "number of mutations to write", required = true)
     long count;
     @Parameter(names = "--table", description = "table to use")
-    String tableName = "test_write_table";
+    final String tableName = "test_write_table";
   }
 
   public static void main(String[] args) throws Exception {

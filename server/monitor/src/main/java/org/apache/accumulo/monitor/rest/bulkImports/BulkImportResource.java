@@ -18,17 +18,14 @@
  */
 package org.apache.accumulo.monitor.rest.bulkImports;
 
-import java.util.List;
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.master.thrift.BulkImportStatus;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
@@ -63,25 +60,6 @@ public class BulkImportResource {
           .addBulkImport(new BulkImportInformation(bulk.filename, bulk.startTime, bulk.state));
     }
 
-    // Generating TServer Bulk Import and adding it to the return object
-    for (TabletServerStatus tserverInfo : mmi.getTServerInfo()) {
-      int size = 0;
-      long oldest = 0L;
-
-      List<BulkImportStatus> stats = tserverInfo.bulkImports;
-      if (stats != null) {
-        size = stats.size();
-        oldest = Long.MAX_VALUE;
-        for (BulkImportStatus bulk : stats) {
-          oldest = Math.min(oldest, bulk.startTime);
-        }
-        if (oldest == Long.MAX_VALUE) {
-          oldest = 0L;
-        }
-      }
-      bulkImport.addTabletServerBulkImport(
-          new TabletServerBulkImportInformation(tserverInfo, size, oldest));
-    }
     return bulkImport;
   }
 }

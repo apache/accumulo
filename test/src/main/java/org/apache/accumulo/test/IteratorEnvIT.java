@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -55,7 +55,6 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -76,7 +75,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   private static final String CUSTOM_PROP_VAL = "value1";
   private static final String EXPECTED_TABLE_ID_OPT = "expected.table.id";
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Override
   protected Duration defaultTimeout() {
@@ -85,7 +84,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   private AccumuloClient client;
@@ -173,19 +172,10 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
           "Test failed - Expected not to throw exception when checking compaction");
     }
 
-    // verify getServiceEnv() and getPluginEnv() are the same objects,
-    // so further checks only need to use getPluginEnv()
-    @SuppressWarnings("deprecation")
-    ServiceEnvironment serviceEnv = env.getServiceEnv();
     PluginEnvironment pluginEnv = env.getPluginEnv();
-    assertEquals(serviceEnv, pluginEnv, "Test failed - assertSame(getServiceEnv(),getPluginEnv())");
 
-    // verify property exists on the table config (deprecated and new),
+    // verify property exists on the table config,
     // with and without custom prefix, but not in the system config
-    @SuppressWarnings("deprecation")
-    String accTableConf = env.getConfig().get(CUSTOM_PROP_KEY);
-    assertEquals(CUSTOM_PROP_VAL, accTableConf,
-        "Test failed - Expected table property not found in getConfig().");
     var tableConf = pluginEnv.getConfiguration(env.getTableId());
     assertEquals(CUSTOM_PROP_VAL, tableConf.get(CUSTOM_PROP_KEY),
         "Test failed - Expected table property not found in table conf.");
@@ -349,8 +339,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   }
 
   private String createRFile(FileSystem fs, TreeMap<Key,Value> data) throws Exception {
-    File testFile = new File(tempDir, "test.rf");
-    String filePath = testFile.getAbsolutePath();
+    String filePath = tempDir.resolve("test.rf").toAbsolutePath().toString();
 
     try (RFileWriter writer = RFile.newWriter().to(filePath).withFileSystem(fs).build()) {
       writer.append(data.entrySet());

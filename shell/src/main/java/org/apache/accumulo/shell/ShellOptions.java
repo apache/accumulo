@@ -26,6 +26,7 @@ public abstract class ShellOptions {
   public static final String userOption = "u";
   public static final String tableOption = "t";
   public static final String namespaceOption = "ns";
+  public static final String resourceGroupOption = "rg";
   public static final String helpOption = "?";
   public static final String helpLongOption = "help";
 }

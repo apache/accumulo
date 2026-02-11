@@ -19,26 +19,21 @@
 package org.apache.accumulo.tserver.session;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.LongConsumer;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -48,9 +43,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.tabletserver.thrift.ActiveScan;
-import org.apache.accumulo.core.tabletserver.thrift.ScanState;
-import org.apache.accumulo.core.tabletserver.thrift.ScanType;
+import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
+import org.apache.accumulo.core.tabletscan.thrift.ScanState;
+import org.apache.accumulo.core.tabletscan.thrift.ScanType;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -63,15 +58,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Maps;
 
 public class SessionManager {
   private static final Logger log = LoggerFactory.getLogger(SessionManager.class);
 
-  private static final SecureRandom random = new SecureRandom();
   private final ConcurrentMap<Long,Session> sessions = new ConcurrentHashMap<>();
   private final BlockingQueue<Session> deferredCleanupQueue = new ArrayBlockingQueue<>(5000);
-  private final Long expiredSessionMarker = (long) -1;
   private final ServerContext ctx;
   private volatile LongConsumer zombieCountConsumer = null;
 
@@ -80,20 +72,20 @@ public class SessionManager {
     long maxIdle = ctx.getConfiguration().getTimeInMillis(Property.TSERV_SESSION_MAXIDLE);
     Runnable r = () -> sweep(ctx);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(r,
-        0, Math.max(maxIdle / 2, 1000), TimeUnit.MILLISECONDS));
+        0, Math.max(maxIdle / 2, 1000), MILLISECONDS));
   }
 
   public long createSession(Session session, boolean reserve) {
-    long sid = random.nextLong();
+    long sid = RANDOM.get().nextLong();
 
     synchronized (session) {
       Preconditions.checkArgument(session.getState() == State.NEW);
       session.setState(reserve ? State.RESERVED : State.UNRESERVED);
       session.startTime = session.lastAccessTime = System.currentTimeMillis();
-    }
-
-    while (sessions.putIfAbsent(sid, session) != null) {
-      sid = random.nextLong();
+      while (sessions.putIfAbsent(sid, session) != null) {
+        sid = RANDOM.get().nextLong();
+      }
+      session.setSessionId(sid);
     }
 
     return sid;
@@ -229,22 +221,16 @@ public class SessionManager {
       return true;
     }
 
-    boolean removed = false;
-
     synchronized (session) {
       if (session.getState() == State.RESERVED) {
         return false;
       }
-
       session.setState(State.REMOVED);
-      removed = true;
     }
 
-    if (removed) {
-      sessions.remove(sessionId);
-    }
+    sessions.remove(sessionId);
 
-    return removed;
+    return true;
   }
 
   /**
@@ -276,9 +262,9 @@ public class SessionManager {
 
   static void cleanup(BlockingQueue<Session> deferredCleanupQueue, Session session) {
     if (!session.cleanup()) {
-      var retry = Retry.builder().infiniteRetries().retryAfter(25, MILLISECONDS)
-          .incrementBy(25, MILLISECONDS).maxWait(5, SECONDS).backOffFactor(1.5)
-          .logInterval(1, MINUTES).createRetry();
+      var retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(25))
+          .incrementBy(Duration.ofMillis(25)).maxWait(Duration.ofSeconds(5)).backOffFactor(1.5)
+          .logInterval(Duration.ofMinutes(1)).createRetry();
 
       while (!deferredCleanupQueue.offer(session)) {
         if (session.cleanup()) {
@@ -318,8 +304,8 @@ public class SessionManager {
           }
           long idleTime = System.currentTimeMillis() - session.lastAccessTime;
           if (idleTime > configuredIdle) {
-            log.info("Closing idle session from user={}, client={}, idle={}ms", session.getUser(),
-                session.client, idleTime);
+            log.trace("Closing idle session {} from user={}, client={}, idle={}ms",
+                session.getSessionId(), session.getUser(), session.client, idleTime);
             iter.remove();
             sessionsToCleanup.add(session);
             session.setState(State.REMOVED);
@@ -345,8 +331,7 @@ public class SessionManager {
   private long countZombieScans(long reportTimeMillis) {
     return Stream.concat(deferredCleanupQueue.stream(), sessions.values().stream())
         .filter(session -> {
-          if (session instanceof ScanSession) {
-            var scanSession = (ScanSession<?>) session;
+          if (session instanceof ScanSession<?> scanSession) {
             synchronized (scanSession) {
               var scanTask = scanSession.getScanTask();
               if (scanTask != null && scanSession.getState() == State.REMOVED
@@ -388,8 +373,9 @@ public class SessionManager {
             }
 
             if (shouldRemove) {
-              log.info("Closing not accessed session from user=" + session2.getUser() + ", client="
-                  + session2.client + ", duration=" + delay + "ms");
+              log.info("Closing not accessed session " + session2.getSessionId() + " from user="
+                  + session2.getUser() + ", client=" + session2.client + ", duration=" + delay
+                  + "ms");
               sessions.remove(sessionId);
               cleanup(session2);
             }
@@ -397,8 +383,7 @@ public class SessionManager {
         }
       };
 
-      ScheduledFuture<?> future =
-          ctx.getScheduledExecutor().schedule(r, delay, TimeUnit.MILLISECONDS);
+      ScheduledFuture<?> future = ctx.getScheduledExecutor().schedule(r, delay, MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);
     }
   }
@@ -406,27 +391,14 @@ public class SessionManager {
   public Map<TableId,MapCounter<ScanRunState>> getActiveScansPerTable() {
     Map<TableId,MapCounter<ScanRunState>> counts = new HashMap<>();
 
-    Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
-
-    /**
-     * Add sessions so that get the list returned in the active scans call
-     */
-    for (Session session : deferredCleanupQueue) {
-      copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
-    }
-
-    List.of(sessions.entrySet(), copiedIdleSessions).forEach(set -> set.forEach(entry -> {
-
-      Session session = entry.getValue();
+    Stream.concat(sessions.values().stream(), deferredCleanupQueue.stream()).forEach(session -> {
       ScanTask<?> nbt = null;
       TableId tableID = null;
 
-      if (session instanceof SingleScanSession) {
-        SingleScanSession ss = (SingleScanSession) session;
+      if (session instanceof SingleScanSession ss) {
         nbt = ss.getScanTask();
         tableID = ss.extent.tableId();
-      } else if (session instanceof MultiScanSession) {
-        MultiScanSession mss = (MultiScanSession) session;
+      } else if (session instanceof MultiScanSession mss) {
         nbt = mss.getScanTask();
         tableID = mss.threadPoolExtent.tableId();
       }
@@ -437,7 +409,7 @@ public class SessionManager {
           counts.computeIfAbsent(tableID, unusedKey -> new MapCounter<>()).increment(srs, 1);
         }
       }
-    }));
+    });
 
     return counts;
   }
@@ -446,29 +418,19 @@ public class SessionManager {
 
     final List<ActiveScan> activeScans = new ArrayList<>();
     final long ct = System.currentTimeMillis();
-    final Set<Entry<Long,Session>> copiedIdleSessions = new HashSet<>();
 
-    /**
-     * Add sessions that get the list returned in the active scans call
-     */
-    for (Session session : deferredCleanupQueue) {
-      copiedIdleSessions.add(Maps.immutableEntry(expiredSessionMarker, session));
-    }
-
-    List.of(sessions.entrySet(), copiedIdleSessions).forEach(s -> s.forEach(entry -> {
-      Session session = entry.getValue();
-
-      if (session instanceof ScanSession) {
-        ScanSession<?> scanSession = (ScanSession<?>) session;
+    Stream.concat(sessions.values().stream(), deferredCleanupQueue.stream()).forEach(session -> {
+      if (session instanceof ScanSession<?> scanSession) {
         boolean isSingle = session instanceof SingleScanSession;
 
         addActiveScan(activeScans, scanSession,
             isSingle ? ((SingleScanSession) scanSession).extent
                 : ((MultiScanSession) scanSession).threadPoolExtent,
             ct, isSingle ? ScanType.SINGLE : ScanType.BATCH,
-            computeScanState(scanSession.getScanTask()), scanSession.scanParams, entry.getKey());
+            computeScanState(scanSession.getScanTask()), scanSession.scanParams,
+            session.getSessionId());
       }
-    }));
+    });
 
     return activeScans;
   }

@@ -25,6 +25,7 @@ import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.Set;
 
@@ -33,11 +34,15 @@ import javax.security.auth.DestroyFailedException;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.UserGroupInformation.AuthenticationMethod;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Authentication token for Kerberos authenticated clients
  *
  * @since 1.7.0
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class KerberosToken implements AuthenticationToken {
 
   public static final String CLASS_NAME = KerberosToken.class.getName();
@@ -107,8 +112,10 @@ public class KerberosToken implements AuthenticationToken {
       clone.principal = principal;
       clone.keytab = keytab == null ? keytab : keytab.getCanonicalFile();
       return clone;
-    } catch (CloneNotSupportedException | IOException e) {
-      throw new RuntimeException(e);
+    } catch (CloneNotSupportedException e) {
+      throw new IllegalStateException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
@@ -120,10 +127,9 @@ public class KerberosToken implements AuthenticationToken {
     if (obj == null) {
       return false;
     }
-    if (!(obj instanceof KerberosToken)) {
+    if (!(obj instanceof KerberosToken other)) {
       return false;
     }
-    KerberosToken other = (KerberosToken) obj;
 
     return principal.equals(other.principal);
   }

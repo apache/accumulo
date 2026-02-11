@@ -31,10 +31,6 @@ public class SummarizerFactory {
     this.classloader = SummarizerFactory.class.getClassLoader();
   }
 
-  public SummarizerFactory(ClassLoader classloader) {
-    this.classloader = classloader;
-  }
-
   public SummarizerFactory(AccumuloConfiguration tableConfig) {
     this.context = ClassLoaderUtil.tableContext(tableConfig);
   }
@@ -53,7 +49,7 @@ public class SummarizerFactory {
     try {
       return newSummarizer(conf.getClassName());
     } catch (ReflectiveOperationException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 }

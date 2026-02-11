@@ -87,17 +87,17 @@ public class TableConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
 
-    var nsPropKey = NamespacePropKey.of(instanceId, NID);
+    var nsPropKey = NamespacePropKey.of(NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(instanceId, TID);
+    var tablePropKey = TablePropKey.of(TID);
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -134,7 +134,7 @@ public class TableConfigurationTest {
     Property p = Property.INSTANCE_SECRET;
     reset(propStore);
 
-    var propKey = TablePropKey.of(instanceId, TID);
+    var propKey = TablePropKey.of(TID);
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
@@ -155,17 +155,17 @@ public class TableConfigurationTest {
     String expectedPass = "aPassword1";
 
     reset(propStore);
-    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
-        .andReturn(new VersionedProperties(13, Instant.now(), Map.of(TABLE_FILE_MAX.getKey(), "123",
-            Property.INSTANCE_SECRET.getKey(), expectedPass)))
+    expect(propStore.get(eq(NamespacePropKey.of(NID)))).andReturn(new VersionedProperties(13,
+        Instant.now(),
+        Map.of(TABLE_FILE_MAX.getKey(), "123", Property.INSTANCE_SECRET.getKey(), expectedPass)))
         .anyTimes();
-    expect(propStore.get(eq(TablePropKey.of(instanceId, TID))))
-        .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    propStore.invalidate(NamespacePropKey.of(instanceId, NID));
+    expect(propStore.get(eq(TablePropKey.of(TID)))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    propStore.invalidate(NamespacePropKey.of(NID));
     expectLastCall().atLeastOnce();
     replay(propStore);
 
-    nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
+    nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
 
     assertEquals("123", tableConfig.get(TABLE_FILE_MAX)); // from ns
     assertEquals("aPassword1", tableConfig.get(INSTANCE_SECRET)); // from sys
@@ -179,26 +179,26 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of())))
         .andReturn(new VersionedProperties(1, Instant.now(), Map.of()));
 
-    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
+    expect(propStore.get(eq(NamespacePropKey.of(NID))))
         .andReturn(new VersionedProperties(2, Instant.now(), Map.of("dog", "bark", "cat", "meow")));
 
-    expect(propStore.get(eq(TablePropKey.of(instanceId, TID))))
+    expect(propStore.get(eq(TablePropKey.of(TID))))
         .andReturn(new VersionedProperties(4, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
-    propStore.invalidate(TablePropKey.of(instanceId, TID));
+    propStore.invalidate(TablePropKey.of(TID));
     expectLastCall().atLeastOnce();
-    propStore.invalidate(NamespacePropKey.of(instanceId, NID));
+    propStore.invalidate(NamespacePropKey.of(NID));
     expectLastCall().atLeastOnce();
 
     replay(propStore);
 
     Map<String,String> props = new java.util.HashMap<>();
 
-    tableConfig.zkChangeEvent(TablePropKey.of(instanceId, TID));
-    nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
+    tableConfig.zkChangeEvent(TablePropKey.of(TID));
+    nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
 
     tableConfig.getProperties(props, all);
 
@@ -219,25 +219,24 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    expect(propStore.get(eq(SystemPropKey.of(instanceId))))
+    expect(propStore.get(eq(SystemPropKey.of())))
         .andReturn(new VersionedProperties(1, Instant.now(), Map.of()));
 
-    expect(propStore.get(eq(NamespacePropKey.of(instanceId, NID))))
-        .andReturn(new VersionedProperties(2, Instant.now(),
-            Map.of("dog", "bark", "cat", "meow", "filter", "from_parent")));
+    expect(propStore.get(eq(NamespacePropKey.of(NID)))).andReturn(new VersionedProperties(2,
+        Instant.now(), Map.of("dog", "bark", "cat", "meow", "filter", "from_parent")));
 
-    expect(propStore.get(eq(TablePropKey.of(instanceId, TID)))).andReturn(new VersionedProperties(4,
+    expect(propStore.get(eq(TablePropKey.of(TID)))).andReturn(new VersionedProperties(4,
         Instant.now(), Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
         .anyTimes();
-    propStore.invalidate(TablePropKey.of(instanceId, TID));
+    propStore.invalidate(TablePropKey.of(TID));
     expectLastCall().atLeastOnce();
-    propStore.invalidate(NamespacePropKey.of(instanceId, NID));
+    propStore.invalidate(NamespacePropKey.of(NID));
     expectLastCall().atLeastOnce();
 
     replay(propStore);
 
-    tableConfig.zkChangeEvent(TablePropKey.of(instanceId, TID));
-    nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
+    tableConfig.zkChangeEvent(TablePropKey.of(TID));
+    nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
 
     Map<String,String> props = new java.util.HashMap<>();
 
@@ -262,7 +261,7 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    var propKey = TablePropKey.of(instanceId, TID);
+    var propKey = TablePropKey.of(TID);
 
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(23, Instant.now(), Map.of(p.getKey(), "invalid")))

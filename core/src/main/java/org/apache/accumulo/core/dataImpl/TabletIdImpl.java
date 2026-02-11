@@ -42,12 +42,6 @@ public class TabletIdImpl implements TabletId {
   }
 
   @Override
-  @Deprecated(since = "2.1.0")
-  public Text getTableId() {
-    return new Text(ke.tableId().canonical());
-  }
-
-  @Override
   public Text getEndRow() {
     return ke.endRow();
   }

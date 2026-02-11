@@ -21,13 +21,16 @@ package org.apache.accumulo.minicluster;
 import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -50,37 +53,30 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
-
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
-  private static File testDir;
-
+  private static File jarFile;
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
+    Path testDir = tempDir.resolve(MiniAccumuloClusterTest.class.getName());
+    Files.createDirectories(testDir);
 
-    File jarFile = new File(tempDir, "iterator.jar");
+    jarFile = tempDir.resolve("iterator.jar").toFile();
     FileUtils.copyURLToFile(
         requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
         jarFile);
 
-    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
+    MiniAccumuloConfig config =
+        new MiniAccumuloConfig(testDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
-    site.put(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "cx1", jarFile.toURI().toString());
+    site.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1G");
     config.setSiteConfig(site);
     accumulo = new MiniAccumuloCluster(config);
     accumulo.start();
@@ -91,48 +87,50 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
     accumulo.stop();
   }
 
-  @SuppressWarnings("deprecation")
   @Test
   @Timeout(60)
   public void testPerTableClasspath() throws Exception {
-    org.apache.accumulo.core.client.Connector conn =
-        accumulo.getConnector(ROOT_USER, ROOT_PASSWORD);
+    try (AccumuloClient client = Accumulo.newClient().from(accumulo.getClientProperties())
+        .as(ROOT_USER, ROOT_PASSWORD).build()) {
 
-    final String tableName = testName();
+      final String tableName = testName();
 
-    var ntc = new NewTableConfiguration();
-    ntc.setProperties(Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "cx1"));
-    ntc.attachIterator(new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
+      var ntc = new NewTableConfiguration();
+      ntc.setProperties(
+          Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), jarFile.toURI().toString()));
+      ntc.attachIterator(
+          new IteratorSetting(100, "foocensor", "org.apache.accumulo.test.FooFilter"));
 
-    conn.tableOperations().create(tableName, ntc);
+      client.tableOperations().create(tableName, ntc);
 
-    try (BatchWriter bw = conn.createBatchWriter(tableName, new BatchWriterConfig())) {
+      try (BatchWriter bw = client.createBatchWriter(tableName, new BatchWriterConfig())) {
 
-      Mutation m1 = new Mutation("foo");
-      m1.put("cf1", "cq1", "v2");
-      m1.put("cf1", "cq2", "v3");
+        Mutation m1 = new Mutation("foo");
+        m1.put("cf1", "cq1", "v2");
+        m1.put("cf1", "cq2", "v3");
 
-      bw.addMutation(m1);
+        bw.addMutation(m1);
 
-      Mutation m2 = new Mutation("bar");
-      m2.put("cf1", "cq1", "v6");
-      m2.put("cf1", "cq2", "v7");
+        Mutation m2 = new Mutation("bar");
+        m2.put("cf1", "cq1", "v6");
+        m2.put("cf1", "cq2", "v7");
 
-      bw.addMutation(m2);
+        bw.addMutation(m2);
 
-    }
-
-    int count = 0;
-    try (Scanner scanner = conn.createScanner(tableName, new Authorizations())) {
-      for (Entry<Key,Value> entry : scanner) {
-        assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
-        count++;
       }
+
+      int count = 0;
+      try (Scanner scanner = client.createScanner(tableName, new Authorizations())) {
+        for (Entry<Key,Value> entry : scanner) {
+          assertFalse(entry.getKey().getRowData().toString().toLowerCase().contains("foo"));
+          count++;
+        }
+      }
+
+      assertEquals(2, count);
+
+      client.tableOperations().delete(tableName);
     }
-
-    assertEquals(2, count);
-
-    conn.tableOperations().delete(tableName);
   }
 
 }

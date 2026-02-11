@@ -39,18 +39,18 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment.Scope;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -83,8 +83,6 @@ public class Initialize implements KeywordExecutable {
 
   private static final Logger log = LoggerFactory.getLogger(Initialize.class);
   private static final String DEFAULT_ROOT_USER = "root";
-  @SuppressWarnings("deprecation")
-  static final TableId REPL_TABLE_ID = org.apache.accumulo.core.replication.ReplicationTable.ID;
 
   static void checkInit(ZooReaderWriter zoo, VolumeManager fs, InitialConfiguration initConfig)
       throws IOException {
@@ -131,7 +129,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
-      InitialConfiguration initConfig) {
+      InitialConfiguration initConfig) throws InterruptedException, KeeperException {
     String instanceNamePath;
     String instanceName;
     String rootUser;
@@ -161,26 +159,26 @@ public class Initialize implements KeywordExecutable {
     InstanceId instanceId = InstanceId.of(UUID.randomUUID());
     ZooKeeperInitializer zki = new ZooKeeperInitializer();
     zki.initializeConfig(instanceId, zoo);
+    zki.initInstanceNameAndId(zoo, instanceId, opts.clearInstanceName, instanceNamePath);
 
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
-      var chooserEnv = new VolumeChooserEnvironmentImpl(Scope.INIT, RootTable.ID, null, context);
+      var chooserEnv =
+          new VolumeChooserEnvironmentImpl(Scope.INIT, SystemTables.ROOT.tableId(), null, context);
       String rootTabletDirName = RootTable.ROOT_TABLET_DIR_NAME;
       String ext = FileOperations.getNewFileExtension(DefaultConfiguration.getInstance());
-      String rootTabletFileUri = new Path(
-          fs.choose(chooserEnv, initConfig.getVolumeUris()) + SEPARATOR + TABLE_DIR + SEPARATOR
-              + RootTable.ID + SEPARATOR + rootTabletDirName + SEPARATOR + "00000_00000." + ext)
-          .toString();
-      zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
-          rootTabletFileUri);
+      String rootTabletFileUri = new Path(fs.choose(chooserEnv, initConfig.getVolumeUris())
+          + SEPARATOR + TABLE_DIR + SEPARATOR + SystemTables.ROOT.tableId() + SEPARATOR
+          + rootTabletDirName + SEPARATOR + "00000_00000." + ext).toString();
+      zki.initialize(context, rootTabletDirName, rootTabletFileUri);
 
       if (!createDirs(fs, instanceId, initConfig.getVolumeUris())) {
         throw new IOException("Problem creating directories on " + fs.getVolumes());
       }
-      var fileSystemInitializer = new FileSystemInitializer(initConfig, zoo, instanceId);
+      var fileSystemInitializer = new FileSystemInitializer(initConfig);
       var rootVol = fs.choose(chooserEnv, initConfig.getVolumeUris());
-      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR + RootTable.ID + SEPARATOR
-          + rootTabletDirName);
+      var rootPath = new Path(rootVol + SEPARATOR + TABLE_DIR + SEPARATOR
+          + SystemTables.ROOT.tableId() + SEPARATOR + rootTabletDirName);
       fileSystemInitializer.initialize(fs, rootPath.toString(), rootTabletFileUri, context);
 
       checkSASL(initConfig);
@@ -224,8 +222,8 @@ public class Initialize implements KeywordExecutable {
       final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       // We don't have any valid creds to talk to HDFS
       if (!ugi.hasKerberosCredentials()) {
-        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB),
-            accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
+        final String accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
         // Fail if the site configuration doesn't contain appropriate credentials
         if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
@@ -313,7 +311,8 @@ public class Initialize implements KeywordExecutable {
   private String getInstanceNamePath(ZooReaderWriter zoo, Opts opts)
       throws KeeperException, InterruptedException {
     // set up the instance name
-    String instanceName, instanceNamePath = null;
+    String instanceName;
+    String instanceNamePath = null;
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {
@@ -439,6 +438,33 @@ public class Initialize implements KeywordExecutable {
     return false;
   }
 
+  private static boolean addResourceGroups(InitialConfiguration initConfig,
+      String resourceGroupsArg) {
+
+    try (ServerContext context = new ServerContext(initConfig.getSiteConf())) {
+      if (resourceGroupsArg == null) {
+        return true;
+      }
+      final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
+      final String[] rgs = resourceGroupsArg.split(",");
+      for (String rg : rgs) {
+        String trimmed = rg.trim();
+        final var rgid = ResourceGroupId.of(trimmed);
+        if (rgid == ResourceGroupId.DEFAULT) {
+          continue;
+        }
+        try {
+          ResourceGroupPropKey.of(rgid).createZNode(zrw);
+          log.info("Added resource group {}", trimmed);
+        } catch (IllegalStateException | KeeperException | InterruptedException e) {
+          log.error("Error creating resource group: " + trimmed, e);
+          return false;
+        }
+      }
+      return true;
+    }
+  }
+
   private static boolean addVolumes(VolumeManager fs, InitialConfiguration initConfig,
       ServerDirs serverDirs) {
     var hadoopConf = initConfig.getHadoopConf();
@@ -455,8 +481,8 @@ public class Initialize implements KeywordExecutable {
     Path versionPath = new Path(aBasePath, Constants.VERSION_DIR);
 
     InstanceId instanceId = VolumeManager.getInstanceIDFromHdfs(iidPath, hadoopConf);
-    for (Pair<Path,Path> replacementVolume : serverDirs.getVolumeReplacements()) {
-      if (aBasePath.equals(replacementVolume.getFirst())) {
+    for (Path replacedVolume : serverDirs.getVolumeReplacements().keySet()) {
+      if (aBasePath.equals(replacedVolume)) {
         log.error(
             "{} is set to be replaced in {} and should not appear in {}."
                 + " It is highly recommended that this property be removed as data"
@@ -480,6 +506,9 @@ public class Initialize implements KeywordExecutable {
   }
 
   private static class Opts extends Help {
+    @Parameter(names = "--add-resource-groups",
+        description = "Add resource groups (comma separated list of names)")
+    String resourceGroups = null;
     @Parameter(names = "--add-volumes",
         description = "Initialize any uninitialized volumes listed in instance.volumes")
     boolean addVolumes = false;
@@ -528,7 +557,6 @@ public class Initialize implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs("accumulo init", args);
     var siteConfig = SiteConfiguration.auto();
-    ZooReaderWriter zoo = new ZooReaderWriter(siteConfig);
     SecurityUtil.serverLogin(siteConfig);
     Configuration hadoopConfig = new Configuration();
     InitialConfiguration initConfig = new InitialConfiguration(hadoopConfig, siteConfig);
@@ -541,14 +569,24 @@ public class Initialize implements KeywordExecutable {
       if (success && opts.addVolumes) {
         success = addVolumes(fs, initConfig, serverDirs);
       }
-      if (!opts.resetSecurity && !opts.addVolumes) {
-        success = doInit(zoo, opts, fs, initConfig);
+      if (success && opts.resourceGroups != null) {
+        success = addResourceGroups(initConfig, opts.resourceGroups);
+      }
+      if (!opts.resetSecurity && !opts.addVolumes && opts.resourceGroups == null) {
+        try (var zk = new ZooSession(getClass().getSimpleName(), siteConfig)) {
+          success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
+        }
       }
     } catch (IOException e) {
       log.error("Problem trying to get Volume configuration", e);
       success = false;
+    } catch (InterruptedException e) {
+      log.error("Thread was interrupted when trying to get Volume configuration", e);
+      success = false;
+    } catch (KeeperException e) {
+      log.error("ZooKeeper error when trying to get Volume configuration", e);
+      success = false;
     } finally {
-      SingletonManager.setMode(Mode.CLOSED);
       if (!success) {
         System.exit(-1);
       }

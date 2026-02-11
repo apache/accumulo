@@ -18,12 +18,15 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.net.URL;
 import java.nio.file.Path;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
 
 /**
@@ -37,6 +40,16 @@ public interface ClientInfo {
    * @return Accumulo instance name
    */
   String getInstanceName();
+
+  /**
+   * @return Accumulo instanceId
+   */
+  InstanceId getInstanceId();
+
+  /**
+   * @return a Supplier for creating new ZooKeeper client instances based on the configuration
+   */
+  Supplier<ZooSession> getZooKeeperSupplier(String clientName, String rootPath);
 
   /**
    * @return Zookeeper connection information for Accumulo instance
@@ -66,7 +79,7 @@ public interface ClientInfo {
   /**
    * @return All Accumulo client properties set for this connection
    */
-  Properties getProperties();
+  Properties getClientProperties();
 
   /**
    * @return hadoop Configuration
@@ -77,27 +90,20 @@ public interface ClientInfo {
    * @return ClientInfo given properties
    */
   static ClientInfo from(Properties properties) {
-    return new ClientInfoImpl(properties);
-  }
-
-  /**
-   * @return ClientInfo given URL path to client config file
-   */
-  static ClientInfo from(URL propertiesURL) {
-    return new ClientInfoImpl(propertiesURL);
+    return new ClientInfoImpl(properties, Optional.empty());
   }
 
   /**
    * @return ClientInfo given properties and token
    */
   static ClientInfo from(Properties properties, AuthenticationToken token) {
-    return new ClientInfoImpl(properties, token);
+    return new ClientInfoImpl(properties, Optional.of(token));
   }
 
   /**
    * @return ClientInfo given path to client config file
    */
   static ClientInfo from(Path propertiesFile) {
-    return new ClientInfoImpl(propertiesFile);
+    return new ClientInfoImpl(ClientInfoImpl.toProperties(propertiesFile), Optional.empty());
   }
 }

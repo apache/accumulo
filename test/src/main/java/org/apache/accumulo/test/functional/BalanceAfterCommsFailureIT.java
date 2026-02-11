@@ -34,20 +34,17 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
-import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
+import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
@@ -84,7 +81,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGSTOP", Integer.toString(pid)}).waitFor());
       }
-      UtilWaitThread.sleep(20_000);
+      Thread.sleep(20_000);
       for (int pid : tserverPids) {
         assertEquals(0, Runtime.getRuntime()
             .exec(new String[] {"kill", "-SIGCONT", Integer.toString(pid)}).waitFor());
@@ -95,8 +92,8 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       c.tableOperations().addSplits("test", splits);
       // Ensure all of the tablets are actually assigned
-      assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
-      UtilWaitThread.sleep(30_000);
+      assertEquals(0, c.createScanner("test", Authorizations.EMPTY).stream().count());
+      Thread.sleep(30_000);
       checkBalance(c);
     }
   }

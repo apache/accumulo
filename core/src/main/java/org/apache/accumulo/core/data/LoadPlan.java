@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -76,7 +75,7 @@ public class LoadPlan {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "this code is validating the input")
   private static String checkFileName(String fileName) {
-    Preconditions.checkArgument(Paths.get(fileName).getNameCount() == 1,
+    Preconditions.checkArgument(java.nio.file.Path.of(fileName).getNameCount() == 1,
         "Expected only filename, but got %s", fileName);
     return fileName;
   }
@@ -106,7 +105,7 @@ public class LoadPlan {
    *
    * @since 2.0.0
    */
-  public static class Destination {
+  public static final class Destination {
 
     private final String fileName;
     private final byte[] startRow;
@@ -163,6 +162,28 @@ public class LoadPlan {
     public RangeType getRangeType() {
       return rangeType;
     }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(Arrays.hashCode(endRow), Arrays.hashCode(startRow), fileName, rangeType);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      Destination other = (Destination) obj;
+      return Objects.equals(fileName, other.fileName) && rangeType == other.rangeType
+          && Arrays.equals(endRow, other.endRow) && Arrays.equals(startRow, other.startRow);
+    }
+
   }
 
   private LoadPlan(List<Destination> destinations) {
@@ -510,4 +531,25 @@ public class LoadPlan {
       return builder.build();
     }
   }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(destinations);
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj) {
+      return true;
+    }
+    if (obj == null) {
+      return false;
+    }
+    if (getClass() != obj.getClass()) {
+      return false;
+    }
+    LoadPlan other = (LoadPlan) obj;
+    return Objects.equals(destinations, other.destinations);
+  }
+
 }

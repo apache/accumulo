@@ -20,9 +20,9 @@ package org.apache.accumulo.core.data.constraints;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -32,21 +32,23 @@ import java.util.List;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.constraints.Constraint.Environment;
-import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.ColumnVisibility;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class VisibilityConstraintTest {
 
-  VisibilityConstraint vc;
-  Environment env;
-  Mutation mutation;
+  private VisibilityConstraint vc;
+  private Environment env;
+  private Mutation mutation;
 
-  static final ColumnVisibility good = new ColumnVisibility("good");
-  static final ColumnVisibility bad = new ColumnVisibility("bad");
+  static final ColumnVisibility good = new ColumnVisibility("good|bad");
+  static final ColumnVisibility bad = new ColumnVisibility("good&bad");
 
   static final String D = "don't care";
+
+  static final List<Short> ILLEGAL = Arrays.asList((short) 1);
 
   static final List<Short> ENOAUTH = Arrays.asList((short) 2);
 
@@ -55,15 +57,16 @@ public class VisibilityConstraintTest {
     vc = new VisibilityConstraint();
     mutation = new Mutation("r");
 
-    ArrayByteSequence bs = new ArrayByteSequence("good".getBytes(UTF_8));
-
-    AuthorizationContainer ac = createNiceMock(AuthorizationContainer.class);
-    expect(ac.contains(bs)).andReturn(true);
-    replay(ac);
-
     env = createMock(Environment.class);
-    expect(env.getAuthorizationsContainer()).andReturn(ac);
+    expect(env.getAuthorizationsContainer())
+        .andReturn(new ArrayByteSequence("good".getBytes(UTF_8))::equals).anyTimes();
+
     replay(env);
+  }
+
+  @AfterEach
+  public void tearDown() {
+    verify(env);
   }
 
   @Test
@@ -98,4 +101,11 @@ public class VisibilityConstraintTest {
     assertEquals(ENOAUTH, vc.check(env, mutation), "unauthorized");
   }
 
+  @Test
+  public void testIllegalVisibility() {
+    mutation.put(D, D, good, D);
+    // set an illegal visibility string
+    mutation.at().family(D).qualifier(D).visibility("good&").put(D);
+    assertEquals(ILLEGAL, vc.check(env, mutation), "unauthorized");
+  }
 }

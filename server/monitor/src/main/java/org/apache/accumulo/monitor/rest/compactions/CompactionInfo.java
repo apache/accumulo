@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.monitor.rest.compactions;
 
-import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.monitor.Monitor;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * Generates a compaction info JSON object
@@ -40,8 +41,8 @@ public class CompactionInfo {
   /**
    * Stores new compaction information
    */
-  public CompactionInfo(TabletServerStatus tserverInfo, Monitor.CompactionStats stats) {
-    this.server = tserverInfo.getName();
+  public CompactionInfo(HostAndPort address, Monitor.CompactionStats stats) {
+    this.server = address.toString();
     this.fetched = stats.fetched;
     this.count = stats.count;
     this.oldest = stats.oldest;

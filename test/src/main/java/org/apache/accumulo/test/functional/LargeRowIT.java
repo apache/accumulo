@@ -19,14 +19,13 @@
 package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -47,7 +46,6 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -68,7 +66,6 @@ public class LargeRowIT extends AccumuloClusterHarness {
     cfg.setMemory(ServerType.TABLET_SERVER, cfg.getMemory(ServerType.TABLET_SERVER) * 2,
         MemoryUnit.BYTE);
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
     cfg.setSiteConfig(siteConfig);
   }
 
@@ -81,7 +78,6 @@ public class LargeRowIT extends AccumuloClusterHarness {
   private String REG_TABLE_NAME;
   private String PRE_SPLIT_TABLE_NAME;
   private int timeoutFactor = 1;
-  private String tservMajcDelay;
 
   @BeforeEach
   public void getTimeoutFactor() throws Exception {
@@ -90,21 +86,6 @@ public class LargeRowIT extends AccumuloClusterHarness {
     String[] names = getUniqueNames(2);
     REG_TABLE_NAME = names[0];
     PRE_SPLIT_TABLE_NAME = names[1];
-
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      tservMajcDelay =
-          c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
-      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "10ms");
-    }
-  }
-
-  @AfterEach
-  public void resetMajcDelay() throws Exception {
-    if (tservMajcDelay != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        client.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), tservMajcDelay);
-      }
-    }
   }
 
   @SuppressFBWarnings(value = {"PREDICTABLE_RANDOM", "DMI_RANDOM_USED_ONLY_ONCE"},
@@ -126,7 +107,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
               .setProperties(singletonMap(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "256K"))
               .withSplits(splitPoints));
 
-      sleepUninterruptibly(3, TimeUnit.SECONDS);
+      Thread.sleep(SECONDS.toMillis(3));
       test1(c);
       test2(c);
     }
@@ -139,7 +120,7 @@ public class LargeRowIT extends AccumuloClusterHarness {
     c.tableOperations().setProperty(REG_TABLE_NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
         "" + SPLIT_THRESH);
 
-    sleepUninterruptibly(timeoutFactor * 12, TimeUnit.SECONDS);
+    Thread.sleep(SECONDS.toMillis(timeoutFactor * 12));
     log.info("checking splits");
     FunctionalTestUtils.checkSplits(c, REG_TABLE_NAME, NUM_PRE_SPLITS / 2, NUM_PRE_SPLITS * 4);
 

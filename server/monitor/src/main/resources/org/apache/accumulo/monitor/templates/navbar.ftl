@@ -56,16 +56,6 @@
                 <li><a class="dropdown-item" href="scans">Active&nbsp;Scans</a></li>
                 <li><a class="dropdown-item" href="bulkImports">Bulk&nbsp;Imports</a></li>
                 <li><a class="dropdown-item" href="ec">External&nbsp;Compactions</a></li>
-                <li><a class="dropdown-item" href="replication">Replication</a></li>
-              </ul>
-            </li>
-            <li class="dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
-              role="button" data-bs-toggle="dropdown" aria-expanded="false">Debug&nbsp;<span id="errorsNotification" class="badge"></span><span class="caret"></span>
-              </a>
-              <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="log">Recent&nbsp;Logs&nbsp;<span id="recentLogsNotifications" class="badge"></span></a></li>
-                <li><a class="dropdown-item" href="problems">Table&nbsp;Problems&nbsp;<span id="tableProblemsNotifications" class="badge"></span></a></li>
               </ul>
             </li>
             <li class="dropdown">

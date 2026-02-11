@@ -39,11 +39,9 @@ $(cyan Options):
     $(green --manager)                Selects the manager service (oversees cluster operations)
     $(green --gc)                     Selects the gc service (cleans up unused files)
     $(green --monitor)                Selects the monitor web service (shows cluster information)
-    $(green --compaction-coordinator) Selects the compaction-coordinator service (external compactions)
-    $(green --tservers)               Selects the tablet server services (read/write operations on tablets)
+    $(green --tservers)[$(yellow '=group')]       Selects the tablet server services (read/write operations on tablets)
     $(green --sservers)[$(yellow '=group')]       Selects the scan server services (read-only eventually consistent scans)
     $(green --compactors)[$(yellow '=group')]     Selects the compactor services (external compactions)
-    $(green --no-tservers)            $(yellow Deprecated). Selects service types except tservers (for backwards compatibility)
     $(yellow NOTE): some server types support an optional $(yellow group) name. If it is not provided or is empty, then
           all groups are considered. Declare multiple groups as a single space-separated parameter. Later
           options overwrite earlier ones, so $(yellow '--sservers="g1 g2" --sserver') operates on all sserver groups.
@@ -54,28 +52,19 @@ $(cyan Commands):
   $(green stop)                       Stops Accumulo cluster services
   $(green restart)                    Restarts Accumulo cluster services
   $(green kill)                       Kills Accumulo cluster services
-  $(green prune)                      Reomves zookeeper locks of extra processes
-
-  $(cyan Deprecated commands):
-    $(green start-non-tservers)       $(yellow Deprecated). Alias for "start --no-tservers"
-    $(green start-servers)            $(yellow Deprecated). Alias for "start"
-    $(green stop-servers)             $(yellow Deprecated). Alias for "stop"
-    $(green start-tservers)           $(yellow Deprecated). Alias for "start --tservers"
-    $(green stop-tservers)            $(yellow Deprecated). Alias for "stop --tservers"
-    $(green start-here)               $(yellow Deprecated). Alias for "start --local"
-    $(green stop-here)                $(yellow Deprecated). Alias for "stop --local"
+  $(green prune)                      Removes zookeeper locks of extra processes
 
 $(cyan Examples):
-  $(purple 'accumulo-cluster start')                              $(blue '# start all servers')
-  $(purple 'accumulo-cluster start --dry-run')                    $(blue '# print debug information and commands to be executed')
-  $(purple 'accumulo-cluster start --local')                      $(blue '# start all local services')
-  $(purple 'accumulo-cluster start --local --manager')            $(blue '# start local manager services')
-  $(purple 'accumulo-cluster start --tservers')                   $(blue '# start all tservers')
-  $(purple 'accumulo-cluster start --sservers=group1')            $(blue '# start all group1 sservers')
-  $(purple 'accumulo-cluster start --sservers="group1 group2"')   $(blue '# start all group1 and group2 sservers')
-  $(purple 'accumulo-cluster start --local --manager --tservers') $(blue '# Start the local manager and local tservers')
-  $(purple 'accumulo-cluster prune --compactors')                 $(blue '# prune all extra compactors across all groups')
-  $(purple 'accumulo-cluster prune --compactors="group1"')        $(blue '# prune extra compactors running in group1')
+  $(purple 'accumulo-cluster start')                                             $(blue '# start all servers')
+  $(purple 'accumulo-cluster start --dry-run')                                   $(blue '# print debug information and commands to be executed')
+  $(purple 'accumulo-cluster start --local')                                     $(blue '# start all local services')
+  $(purple 'accumulo-cluster start --local --manager')                           $(blue '# start local manager services')
+  $(purple 'accumulo-cluster start --tservers')                                  $(blue '# start all tservers')
+  $(purple 'accumulo-cluster start --sservers=group1')                           $(blue '# start all group1 sservers')
+  $(purple 'accumulo-cluster start --sservers="group1 group2"')                  $(blue '# start all group1 and group2 sservers')
+  $(purple 'accumulo-cluster start --local --manager --tservers')                $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster prune --compactors')                                $(blue '# prune all extra compactors across all groups')
+  $(purple 'accumulo-cluster prune --compactors="group1"')                       $(blue '# prune extra compactors running in group1')
 
 EOF
 }
@@ -122,7 +111,6 @@ function parse_args() {
   ARG_MANAGER=0
   ARG_GC=0
   ARG_MONITOR=0
-  ARG_COORDINATOR=0
   ARG_TSERVER=0
   ARG_TSERVER_GROUP=""
   ARG_SSERVER=0
@@ -137,7 +125,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,compaction-coordinator,no-tservers,tservers,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
@@ -171,15 +159,11 @@ function parse_args() {
         ARG_MONITOR=1
         shift 1
         ;;
-      --compaction-coordinator)
-        ARG_ALL=0
-        ARG_COORDINATOR=1
-        shift 1
-        ;;
       --tservers)
         ARG_ALL=0
         ARG_TSERVER=1
-        shift 1
+        ARG_TSERVER_GROUP=$2
+        shift 2
         ;;
       --sservers)
         ARG_ALL=0
@@ -192,17 +176,6 @@ function parse_args() {
         ARG_COMPACTOR=1
         ARG_COMPACTOR_GROUP=$2
         shift 2
-        ;;
-      --no-tservers)
-        echo "$(yellow WARN): The $(yellow "--no-tservers") option is deprecated. Please specify the servers you wish to manage instead"
-        ARG_ALL=0
-        ARG_MANAGER=1
-        ARG_GC=1
-        ARG_MONITOR=1
-        ARG_COORDINATOR=1
-        ARG_SSERVER=1
-        ARG_COMPACTOR=1
-        shift 1
         ;;
       --)
         shift
@@ -231,13 +204,13 @@ function parse_args() {
   debug "ARG_MANAGER=$ARG_MANAGER"
   debug "ARG_GC=$ARG_GC"
   debug "ARG_MONITOR=$ARG_MONITOR"
-  debug "ARG_COORDINATOR=$ARG_COORDINATOR"
   debug "ARG_TSERVER=$ARG_TSERVER"
   debug "ARG_TSERVER_GROUP=$ARG_TSERVER_GROUP"
   debug "ARG_SSERVER=$ARG_SSERVER"
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
+  debug "ARG_CREATE_MISSING_RG=$ARG_CREATE_MISSING_RG"
 
 }
 
@@ -304,16 +277,15 @@ function canRunOnHost() {
   [[ $found == 1 ]]
 }
 
-function parse_config() {
+function arrayContains() {
+  local m=$1
+  shift
+  local x
+  for x in "$@"; do [[ $x == "$m" ]] && return 0; done
+  return 1
+}
 
-  for file in slaves tservers monitor tracers gc managers masters; do
-    if [[ -f $conf/$file ]]; then
-      echo "$(red ERROR): A $(yellow "$file") file was found in $(yellow "$conf/")"
-      echo "$(red ERROR): Accumulo now uses cluster host configuration information from $(yellow cluster.yaml)"
-      echo "$(red ERROR): and requires that the $(yellow "$file") file not be present to reduce confusion."
-      exit 1
-    fi
-  done
+function parse_config() {
 
   local manager1
   local tservers_found
@@ -327,12 +299,18 @@ function parse_config() {
     exit 1
   fi
 
-  AC_TMP_DIR=$(mktemp -t -d "accumulo-cluster-XXXXXXXX") || exit 1
+  AC_TMP_DIR=$(mktemp -t -d "accumulo-cluster-XXXXXXXX") || (echo "Error creating temp file" && exit 1)
   if isDebug; then
     echo "$(blue DEBUG): Temporary files for this run are in $AC_TMP_DIR"
   else
     trap 'rm -rf -- "$AC_TMP_DIR"' EXIT
   fi
+
+  RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
+  debug "Printing resource groups to $RG_FILE"
+  "$accumulo_cmd" other zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
+  read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
+  debug "All resource groups: ${all_resource_groups[*]}"
 
   CONFIG_FILE="$AC_TMP_DIR/ClusterConfigParser.out"
   "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
@@ -345,7 +323,6 @@ function parse_config() {
       debug "$(white "$line")"
     done <"$CONFIG_FILE"
   fi
-  rm -f "$CONFIG_FILE"
 
   # this might not be possible, since the ClusterConfigParser would probably fail instead
   if [[ -z $MANAGER_HOSTS ]]; then
@@ -353,47 +330,14 @@ function parse_config() {
     exit 1
   fi
 
-  # This version doesn't support configurable tserver groups, so
-  # use a default group to allow code reuse with newer branches
-  # Shellcheck thinks these aren't used, but they are referenced
-  # indirectly by group name.
-  TSERVER_GROUPS="default"
-  #shellcheck disable=SC2034
-  TSERVERS_PER_HOST_default=${NUM_TSERVERS:-1}
-  #shellcheck disable=SC2034
-  TSERVER_HOSTS_default=$TSERVER_HOSTS
-
-  # Rename variables from this version's config parser to ones that
-  # this script expects, to support code reuse with newer branches
-  COMPACTOR_GROUPS=$COMPACTION_QUEUES
-  local var_name
-  for group in $SSERVER_GROUPS; do
-    var_name="NUM_SSERVERS_$group"
-    if [[ -n ${!var_name} ]]; then
-      declare -g "SSERVERS_PER_HOST_$group"="${!var_name}"
-    else
-      declare -g "SSERVERS_PER_HOST_$group"="${NUM_SSERVERS:-1}"
-    fi
-  done
-  for group in $COMPACTOR_GROUPS; do
-    var_name="NUM_COMPACTORS_$group"
-    if [[ -n ${!var_name} ]]; then
-      declare -g "COMPACTORS_PER_HOST_$group"="${!var_name}"
-    else
-      declare -g "COMPACTORS_PER_HOST_$group"="${NUM_COMPACTORS:-1}"
-    fi
-  done
-
-  # This version requires a compaction coordinator for compactors
-  if [[ -n $COMPACTOR_GROUPS && -z $COORDINATOR_HOSTS ]]; then
-    echo "$(yellow WARN): External compactor group(s) configured, but no coordinator configured"
-  fi
-
   if [[ -z $COMPACTOR_GROUPS ]]; then
-    # no compactor groups are required for this version
-    debug "No compactor groups configured"
+    echo "$(yellow WARN): No compactor groups configured"
   else
     for group in $COMPACTOR_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="COMPACTOR_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): External compactor group $(yellow "$group") configured, but no compactors configured for it"
@@ -406,6 +350,10 @@ function parse_config() {
     echo "$(yellow WARN): No tablet server groups configured"
   else
     for group in $TSERVER_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="TSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): tablet server group $(yellow "$group") configured, but no hosts configured for it"
@@ -422,6 +370,10 @@ function parse_config() {
 
   if [[ -n $SSERVER_GROUPS ]]; then
     for group in $SSERVER_GROUPS; do
+      if ! arrayContains "$group" "${all_resource_groups[@]}"; then
+        echo "$(red ERROR): Resource group $(yellow "$group") does not exist. Use 'accumulo init --add-resource-groups' to create it"
+        exit 1
+      fi
       G="SSERVER_HOSTS_$group"
       if [[ -z ${!G} ]]; then
         echo "$(yellow WARN): scan server group $(yellow "$group") configured, but no hosts configured for it"
@@ -458,9 +410,9 @@ function execute_command() {
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
-    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*"
+    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*"
   else
-    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*'"
+    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*'"
   fi
 }
 
@@ -502,7 +454,7 @@ function control_services() {
         hosts="SSERVER_HOSTS_$group"
         for sserver in ${!hosts}; do
           if canRunOnHost "$sserver"; then
-            execute_command "$operation" "$sserver" sserver "$group" "-g" "$group"
+            execute_command "$operation" "$sserver" sserver "$group" "-o" "sserver.group=$group"
           fi
         done
       done
@@ -514,7 +466,7 @@ function control_services() {
         fi
       done
       # Try to cleanly stop the TabletServers and Manager
-      if ! "$accumulo_cmd" admin stopAll; then
+      if ! "$accumulo_cmd" admin stop-all; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
         sleep 10
@@ -534,12 +486,9 @@ function control_services() {
       for group in $tserver_groups; do
         G="TSERVER_HOSTS_$group"
         for tserver in ${!G}; do
+          debug "Stopping tservers on $addr via admin command"
           if echo "$tserver" | grep -q "$addr"; then
-            if ! isDebug; then
-              "$accumulo_cmd" admin stop "$addr"
-            else
-              debug "Stopping tservers on $addr via admin command"
-            fi
+            debugOrRunAsync "$accumulo_cmd" admin stop "$addr"
           fi
         done
       done
@@ -567,13 +516,20 @@ function control_services() {
       for tserver in ${!hosts}; do
         if canRunOnHost "$tserver"; then
           echo -n "."
-          execute_command "$operation" "$tserver" tserver "$group"
+          execute_command "$operation" "$tserver" tserver "$group" "-o" "tserver.group=$group"
           if ((++count % 72 == 0)); then
             echo
             wait
           fi
         fi
       done
+      if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
+        echo "Cleaning tablet server entries from zookeeper for resource group $group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers --include-groups "$group"
+      fi
       echo "done"
     done
   fi
@@ -607,16 +563,6 @@ function control_services() {
     done
   fi
 
-  local coordinator
-  if [[ $ARG_ALL == 1 || $ARG_COORDINATOR == 1 ]]; then
-    for coordinator in $COORDINATOR_HOSTS; do
-      if canRunOnHost "$coordinator"; then
-        echo "Executing $(green "$ARG_CMD") on $(purple compaction coordinators)"
-        execute_command "$operation" "$coordinator" compaction-coordinator "default"
-      fi
-    done
-  fi
-
   local sserver_groups
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
     sserver_groups=$SSERVER_GROUPS
@@ -628,9 +574,16 @@ function control_services() {
       hosts="SSERVER_HOSTS_$group"
       for sserver in ${!hosts}; do
         if canRunOnHost "$sserver"; then
-          execute_command "$operation" "$sserver" sserver "$group" "-g" "$group"
+          execute_command "$operation" "$sserver" sserver "$group" "-o" "sserver.group=$group"
         fi
       done
+      if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
+        echo "Cleaning scan server entries from zookeeper for resource group $group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers --include-groups "$group"
+      fi
     done
   fi
 
@@ -646,17 +599,22 @@ function control_services() {
       hosts="COMPACTOR_HOSTS_$group"
       for compactor in ${!hosts}; do
         if canRunOnHost "$compactor"; then
-          execute_command "$operation" "$compactor" compactor "$group" "-q" "$group"
+          execute_command "$operation" "$compactor" compactor "$group" "-o" "compactor.group=$group"
         fi
       done
+      if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
+        echo "Cleaning compactor entries from zookeeper for resource group $group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors --include-groups "$group"
+      fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
-    if ! isDebug; then
-      echo "Cleaning all server entries in ZooKeeper"
-      "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers --gc --monitor
-    fi
+    debug "Cleaning all server entries in ZooKeeper"
+    debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
   fi
 
   wait
@@ -762,7 +720,7 @@ function prune() {
     exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json >"$service_json" 2>/dev/null || exit 1
+  "$accumulo_cmd" admin service-status --json >"$service_json" 2>/dev/null || (echo "Error calling 'admin serviceStatus'" && exit 1)
 
   local var_name
   local hosts
@@ -781,13 +739,22 @@ function prune() {
     prune_group "monitor" "default" "1" "$MONITOR_HOSTS"
   fi
 
-  if [[ $ARG_ALL == 1 || $ARG_COORDINATOR == 1 ]]; then
-    prune_group "compaction-coordinator" "default" "1" "$COORDINATOR_HOSTS"
-  fi
-
   if [[ $ARG_ALL == 1 || $ARG_TSERVER == 1 ]]; then
-    #TODO in main need to adapt to having RGs for tservers
-    prune_group "tserver" "default" "$TSERVERS_PER_HOST_default" "$TSERVER_HOSTS_default"
+    groups=()
+    if [[ -n $ARG_TSERVER_GROUP ]]; then
+      read -r -a groups <<<"$ARG_TSERVER_GROUP"
+    else
+      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
+      readarray -t groups < <(jq -r ".summaries.T_SERVER.resourceGroups | .[] " "$service_json")
+    fi
+
+    for group in "${groups[@]}"; do
+      var_name="TSERVERS_PER_HOST_$group"
+      local expected=${!var_name:-0}
+
+      hosts="TSERVER_HOSTS_$group"
+      prune_group "tserver" "$group" "$expected" "${!hosts}"
+    done
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
@@ -796,7 +763,7 @@ function prune() {
       read -r -a groups <<<"$ARG_SSERVER_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
-      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | .[] " "$service_json")
+      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | keys | .[]?" "$service_json")
     fi
 
     for group in "${groups[@]}"; do
@@ -815,7 +782,7 @@ function prune() {
       read -r -a groups <<<"$ARG_COMPACTOR_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
-      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | .[] " "$service_json")
+      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | keys | .[]?" "$service_json")
     fi
 
     for group in "${groups[@]}"; do
@@ -868,36 +835,22 @@ gc:
   - localhost
 
 tserver:
-  - localhost
+  default:
+    servers_per_host: 1
+    hosts:
+      - localhost
 
-#sserver:
-#  - default:
-#    - localhost
-#
-#compaction:
-#  coordinator:
-#    - localhost
-#  compactor:
-#    - q1:
-#        - localhost
-#    - q2:
-#        - localhost
-#
+compactor:
+  default:
+    servers_per_host: 1
+    hosts:
+      - localhost
 
-#
-# The following are used by the accumulo-cluster script to determine how many servers
-# to start on each host. If the following variables are not set, then they default to 1.
-# If the environment variable NUM_TSERVERS is set when running accumulo_cluster
-# then its value will override what is set in this file for tservers_per_host. Likewise if
-# NUM_SSERVERS or NUM_COMPACTORS are set then it will override sservers_per_host and
-# compactors_per_host.
-#
-tservers_per_host: 1
-#sservers_per_host:
-# - default: 1
-#compactors_per_host:
-# - q1: 1
-# - q2: 1
+sserver:
+  default:
+    servers_per_host: 1
+    hosts:
+      - localhost
 
 EOF
       ;;
@@ -921,53 +874,9 @@ EOF
       parse_config
       control_services kill
       ;;
-    start-here)
-      parse_config
-      ARG_ALL=1
-      ARG_LOCAL=1
-      control_services start
-      ;;
-    stop-here)
-      parse_config
-      ARG_ALL=1
-      ARG_LOCAL=1
-      control_services stop
-      control_services kill
-      ;;
     prune)
       parse_config
       prune
-      ;;
-    start-non-tservers)
-      echo "'$ARG_CMD' is deprecated. Please specify the servers you wish to start instead"
-      parse_config
-      ARG_MANAGER=1
-      ARG_GC=1
-      ARG_MONITOR=1
-      ARG_COORDINATOR=1
-      ARG_SSERVER=1
-      ARG_COMPACTOR=1
-      control_services start
-      ;;
-    start-servers)
-      echo "'$ARG_CMD' is deprecated. Please use 'start' instead"
-      parse_config
-      control_services start
-      ;;
-    stop-servers)
-      echo "'$ARG_CMD' is deprecated. Please use 'stop' instead"
-      parse_config
-      control_services stop
-      ;;
-    start-tservers)
-      echo "'$ARG_CMD' is deprecated. Please use 'start --tservers' instead"
-      ARG_TSERVER=1
-      control_services start
-      ;;
-    stop-tservers)
-      echo "'$ARG_CMD' is deprecated. Please use 'stop --tservers' instead"
-      ARG_TSERVER=1
-      control_services stop
       ;;
     *)
       invalid_args "'$ARG_CMD' is an invalid <command>"

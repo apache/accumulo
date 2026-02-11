@@ -18,20 +18,16 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
-import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.junit.jupiter.api.Test;
 
 public class MetadataSplitIT extends ConfigurableMacBase {
@@ -41,23 +37,18 @@ public class MetadataSplitIT extends ConfigurableMacBase {
     return Duration.ofMinutes(2);
   }
 
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setSiteConfig(Collections.singletonMap(Property.TSERV_MAJC_DELAY.getKey(), "100ms"));
-  }
-
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      assertEquals(1, c.tableOperations().listSplits(MetadataTable.NAME).size());
-      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "500");
+      assertEquals(1, c.tableOperations().listSplits(SystemTables.METADATA.tableName()).size());
+      c.tableOperations().setProperty(SystemTables.METADATA.tableName(),
+          Property.TABLE_SPLIT_THRESHOLD.getKey(), "500");
       for (int i = 0; i < 10; i++) {
         c.tableOperations().create("table" + i);
-        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
+        c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
       }
-      sleepUninterruptibly(10, TimeUnit.SECONDS);
-      assertTrue(c.tableOperations().listSplits(MetadataTable.NAME).size() > 2);
+      Thread.sleep(SECONDS.toMillis(10));
+      assertTrue(c.tableOperations().listSplits(SystemTables.METADATA.tableName()).size() > 2);
     }
   }
 }

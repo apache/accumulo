@@ -42,12 +42,14 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
+import org.apache.accumulo.tserver.log.ResolvedSortedLog;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -173,7 +175,8 @@ public class LogReader implements KeywordExecutable {
         } else {
           // read the log entries in a sorted RFile. This has to be a directory that contains the
           // finished file.
-          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
+          var rsl = ResolvedSortedLog.resolve(LogEntry.fromPath(path.toString()), fs);
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(rsl), null,
               null, false)) {
             while (rli.hasNext()) {
               Entry<LogFileKey,LogFileValue> entry = rli.next();
@@ -190,11 +193,6 @@ public class LogReader implements KeywordExecutable {
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
     byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
-
-    if (magic4.length != magic3.length) {
-      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
-          + " != " + magic3.length);
-    }
 
     byte[] magicBuffer = new byte[magic4.length];
     try {

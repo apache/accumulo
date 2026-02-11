@@ -25,7 +25,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
@@ -52,16 +51,6 @@ public class MinCEnv implements FileCompactor.CompactionEnv {
   }
 
   @Override
-  public RateLimiter getReadLimiter() {
-    return null;
-  }
-
-  @Override
-  public RateLimiter getWriteLimiter() {
-    return null;
-  }
-
-  @Override
   public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
       AccumuloConfiguration acuTableConf, TableId tableId) {
 
@@ -77,14 +66,10 @@ public class MinCEnv implements FileCompactor.CompactionEnv {
 
   @Override
   public TCompactionReason getReason() {
-    switch (reason) {
-      case USER:
-        return TCompactionReason.USER;
-      case CLOSE:
-        return TCompactionReason.CLOSE;
-      case SYSTEM:
-      default:
-        return TCompactionReason.SYSTEM;
-    }
+    return switch (reason) {
+      case USER -> TCompactionReason.USER;
+      case CLOSE -> TCompactionReason.CLOSE;
+      default -> TCompactionReason.SYSTEM;
+    };
   }
 }

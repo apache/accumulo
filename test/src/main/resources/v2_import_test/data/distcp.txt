@@ -1,0 +1,5 @@
+hdfs://localhost:8020/accumulo/tables/1/default_tablet/A000000b.rf
+hdfs://localhost:8020/accumulo/tables/1/t-0000002/A000000a.rf
+hdfs://localhost:8020/accumulo/tables/1/t-0000001/A0000009.rf
+hdfs://localhost:8020/accumulo/tables/1/t-0000003/A0000008.rf
+hdfs://localhost:8020/accumulo/export_test/exportMetadata.zip

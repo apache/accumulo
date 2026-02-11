@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -42,6 +44,7 @@ import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -88,47 +91,6 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableExistsException;
 
   /**
-   * @param tableName the name of the table
-   * @param limitVersion Enables/disables the versioning iterator, which will limit the number of
-   *        Key versions kept.
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws TableExistsException if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated(since = "1.7.0")
-  default void create(String tableName, boolean limitVersion)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    if (limitVersion) {
-      create(tableName);
-    } else {
-      create(tableName, new NewTableConfiguration().withoutDefaults());
-    }
-  }
-
-  /**
-   * @param tableName the name of the table
-   * @param versioningIter Enables/disables the versioning iterator, which will limit the number of
-   *        Key versions kept.
-   * @param timeType specifies logical or real-time based time recording for entries in the table
-   * @throws AccumuloException if a general error occurs
-   * @throws AccumuloSecurityException if the user does not have permission
-   * @throws TableExistsException if the table already exists
-   * @deprecated since 1.7.0; use {@link #create(String, NewTableConfiguration)} instead.
-   */
-  @Deprecated(since = "1.7.0")
-  default void create(String tableName, boolean versioningIter, TimeType timeType)
-      throws AccumuloException, AccumuloSecurityException, TableExistsException {
-    NewTableConfiguration ntc = new NewTableConfiguration().setTimeType(timeType);
-
-    if (versioningIter) {
-      create(tableName, ntc);
-    } else {
-      create(tableName, ntc.withoutDefaults());
-    }
-  }
-
-  /**
    * Create a table with specified configuration. A safe way to ignore tables that do exist would be
    * to do something like the following:
    *
@@ -154,7 +116,9 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableExistsException;
 
   /**
-   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * Imports a table exported via exportTable and copied via hadoop distcp. All tablets in the new
+   * table created via this operation will have the {@link TabletAvailability#ONDEMAND}
+   * availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param importDir A directory containing the files copied by distcp from exportTable
@@ -168,7 +132,8 @@ public interface TableOperations {
 
   /**
    * Imports a table exported via {@link #exportTable(String, String)} and then copied via hadoop
-   * distcp.
+   * distcp. All tablets in the new table created via this operation will have the
+   * {@link TabletAvailability#ONDEMAND} availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param ic ImportConfiguration for the table being created. If no configuration is needed pass
@@ -225,19 +190,26 @@ public interface TableOperations {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
+   *
+   * Ensures that tablets are split along a set of keys.
+   *
+   * <p>
+   * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
+   * encoding is not enforced by operations that work with byte arrays.
+   * <p>
+   * For example, you can create 256 evenly-sliced splits via the following code sample even though
+   * the given byte sequences are not valid UTF-8.
+   *
    * @param tableName the name of the table
-   * @return the split points (end-row names) for the table's current split profile
+   * @param splits a sorted map of row key values to pre-split the table on and associated
+   *        TabletMergeability
+   *
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
    * @throws TableNotFoundException if the table does not exist
-   * @deprecated since 1.5.0; use {@link #listSplits(String)} instead.
    */
-  @Deprecated(since = "1.5.0")
-  default Collection<Text> getSplits(String tableName) throws TableNotFoundException {
-    try {
-      return listSplits(tableName);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
-    }
-  }
+  void putSplits(String tableName, SortedMap<Text,TabletMergeability> splits)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
    * @param tableName the name of the table
@@ -249,23 +221,6 @@ public interface TableOperations {
    */
   Collection<Text> listSplits(String tableName)
       throws TableNotFoundException, AccumuloSecurityException, AccumuloException;
-
-  /**
-   * @param tableName the name of the table
-   * @param maxSplits specifies the maximum number of splits to return
-   * @return the split points (end-row names) for the table's current split profile, grouped into
-   *         fewer splits so as not to exceed maxSplits
-   * @deprecated since 1.5.0; use {@link #listSplits(String, int)} instead.
-   */
-  @Deprecated(since = "1.5.0")
-  default Collection<Text> getSplits(String tableName, int maxSplits)
-      throws TableNotFoundException {
-    try {
-      return listSplits(tableName, maxSplits);
-    } catch (AccumuloSecurityException | AccumuloException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   /**
    * @param tableName the name of the table
@@ -295,6 +250,7 @@ public interface TableOperations {
    * Finds the max row within a given range. To find the max row in a table, pass null for start and
    * end row.
    *
+   * @param tableName the table to search
    * @param auths find the max row that can seen with these auths
    * @param startRow row to start looking at, null means -Infinity
    * @param startInclusive determines if the start row is included
@@ -302,9 +258,29 @@ public interface TableOperations {
    * @param endInclusive determines if the end row is included
    *
    * @return The max row in the range, or null if there is no visible data in the range.
+   *
+   * @deprecated since 4.0.0, use {@link #getMaxRow(String, Authorizations, RowRange)} instead
    */
-  Text getMaxRow(String tableName, Authorizations auths, Text startRow, boolean startInclusive,
-      Text endRow, boolean endInclusive)
+  @Deprecated(since = "4.0.0")
+  default Text getMaxRow(String tableName, Authorizations auths, Text startRow,
+      boolean startInclusive, Text endRow, boolean endInclusive)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
+    return getMaxRow(tableName, auths,
+        RowRange.range(startRow, startInclusive, endRow, endInclusive));
+  }
+
+  /**
+   * Finds the max row within a given row range. To find the max row in the whole table, pass
+   * {@link RowRange#all()} as the row range.
+   *
+   * @param tableName the table to search
+   * @param auths find the max row that can seen with these auths
+   * @param range the range of rows to search
+   *
+   * @return The max row in the range, or null if there is no visible data in the range.
+   * @since 4.0.0
+   */
+  Text getMaxRow(String tableName, Authorizations auths, RowRange range)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -319,7 +295,8 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Delete rows between (start, end]
+   * Delete rows between (start, end]. This operation may remove some of the table splits that fall
+   * within the range.
    *
    * @param tableName the table to merge
    * @param start delete rows after this, null means the first row of the table
@@ -363,8 +340,8 @@ public interface TableOperations {
 
   /**
    * Starts a full major compaction of the tablets in the range (start, end]. If the config does not
-   * specify a compaction selector (or a deprecated strategy), then all files in a tablet are
-   * compacted. The compaction is performed even for tablets that have only one file.
+   * specify a compaction selector, then all files in a tablet are compacted. The compaction is
+   * performed even for tablets that have only one file.
    *
    * <p>
    * The following optional settings can only be set by one compact call per table at the same time.
@@ -374,13 +351,26 @@ public interface TableOperations {
    * <li>Selector : {@link CompactionConfig#setSelector(PluginConfig)}</li>
    * <li>Configurer : {@link CompactionConfig#setConfigurer(PluginConfig)}</li>
    * <li>Iterators : {@link CompactionConfig#setIterators(List)}</li>
-   * <li>Compaction strategy (deprecated) :
-   * {@code CompactionConfig.setCompactionStrategy(CompactionStrategyConfig)}</li>
    * </ul>
    *
    * <p>
-   * If two threads call this method concurrently for the same table and set one or more of the
-   * above then one thread will fail.
+   * Starting with Accumulo, 4.0 concurrent compactions can be initiated on a table with different
+   * configuration. Prior to 4.0, if this were done, then only one compaction would work and the
+   * others would throw an exception. When concurrent compactions with different configuration run,
+   * each tablet will be compacted once for each user initiated compaction in some arbitrary order.
+   * For example consider the following situation.
+   *
+   * <ol>
+   * <li>Table A has three tablets Tab1, Tab2, Tab3</li>
+   * <li>This method is called to initiate a compaction on Tablets Tab1 and Tab2 with iterator
+   * I1</li>
+   * <li>This method is called to initiate a compaction on Tablets Tab2 and Tab3 with iterator
+   * I2</li>
+   * <li>Tablet Tab1 will compact with iterator I1</li>
+   * <li>Two compactions will happen for tablet Tab2. It will either compact with iterator I1 and
+   * then I2 OR it will compact with iterator I2 and then I1.</li>
+   * <li>Tablet Tab3 will compact with iterator I2</li>
+   * </ol>
    *
    * @param tableName the table to compact
    * @param config the configuration to use
@@ -642,27 +632,6 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Bulk import all the files in a directory into a table. Files can be created using
-   * {@link RFile#newWriter()}
-   *
-   * @param tableName the name of the table
-   * @param dir the HDFS directory to find files for importing
-   * @param failureDir the HDFS directory to place files that failed to be imported, must exist and
-   *        be empty
-   * @param setTime override the time values in the input files, and use the current time for all
-   *        mutations
-   * @throws IOException when there is an error reading/writing to HDFS
-   * @throws AccumuloException when there is a general accumulo error
-   * @throws AccumuloSecurityException when the user does not have the proper permissions
-   * @throws TableNotFoundException when the table no longer exists
-   *
-   * @deprecated since 2.0.0 use {@link #importDirectory(String)} instead.
-   */
-  @Deprecated(since = "2.0.0")
-  void importDirectory(String tableName, String dir, String failureDir, boolean setTime)
-      throws TableNotFoundException, IOException, AccumuloException, AccumuloSecurityException;
-
-  /**
    * @since 2.0.0
    */
   interface ImportOptions {
@@ -751,11 +720,9 @@ public interface TableOperations {
    * Bulk import the files in a directory into a table. Files can be created using
    * {@link RFile#newWriter()}.
    * <p>
-   * This new method of bulk import examines files in the current process outside of holding a table
-   * lock. The old bulk import method ({@link #importDirectory(String, String, String, boolean)})
-   * examines files on the server side while holding a table read lock.
-   * <p>
-   * This API supports adding files to online and offline tables.
+   * This API supports adding files to online and offline tables. The files are examined on the
+   * client side to determine destination tablets. This examination will use memory and cpu within
+   * the process calling this API.
    * <p>
    * For example, to bulk import files from the directory 'dir1' into the table 'table1' use the
    * following code.
@@ -1094,4 +1061,46 @@ public interface TableOperations {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
+   * for the tablets to reach this availability state. The supplied row range is compared against
+   * the tablets' start/end rows using its lower/upper bounds and inclusivity flags.
+   *
+   * @param tableName table name
+   * @param rowRange tablet row range
+   * @param tabletAvailability tablet availability
+   * @since 4.0.0
+   */
+  default void setTabletAvailability(String tableName, RowRange rowRange,
+      TabletAvailability tabletAvailability)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * @param ranges the row ranges of tablets to scan. Ranges can overlap and an attempt will be made
+   *        to merge this list. An empty list returns an empty stream; use
+   *        {@code List.of(RowRange.all())} to scan all tablets.
+   * @param fields can optionally narrow the data retrieved per tablet, which can speed up streaming
+   *        over tablets. If this list is empty then all fields are fetched.
+   * @return a stream of tablet information for tablets that fall in the specified ranges. The
+   *         stream may be backed by a scanner, so it's best to close the stream. The stream has no
+   *         defined ordering.
+   * @since 4.0.0
+   */
+  default Stream<TabletInformation> getTabletInformation(final String tableName,
+      final List<RowRange> ranges, TabletInformation.Field... fields)
+      throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Returns the namespace for the given table name
+   *
+   * @param table fully qualified table name
+   * @return namespace name
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @since 4.0.0
+   */
+  String getNamespace(String table);
 }

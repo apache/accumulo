@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.apache.accumulo.core.conf.Property.TABLE_ITERATOR_MINC_PREFIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
@@ -25,6 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
+import java.time.Duration;
+import java.time.temporal.ChronoUnit;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -36,10 +40,6 @@ import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.junit.jupiter.api.Test;
 
 public class AccumuloConfigurationTest {
-
-  @SuppressWarnings("removal")
-  private static final Property VFS_CONTEXT_CLASSPATH_PROPERTY =
-      Property.VFS_CONTEXT_CLASSPATH_PROPERTY;
 
   @Test
   public void testGetPropertyByString() {
@@ -235,8 +235,8 @@ public class AccumuloConfigurationTest {
     expected2.put(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i1.opt", "o99");
     assertEquals(expected2, pm3);
 
-    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
-    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm5 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    Map<String,String> pm6 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pm5, pm6);
     assertEquals(0, pm5.size());
 
@@ -247,7 +247,7 @@ public class AccumuloConfigurationTest {
     Map<String,String> pm8 = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     assertSame(pm3, pm8);
 
-    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pm9 = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pm5, pm9);
 
     tc.set(Property.TABLE_ITERATOR_SCAN_PREFIX.getKey() + "i2", "class42");
@@ -268,13 +268,13 @@ public class AccumuloConfigurationTest {
     assertSame(pmC, pmD);
     assertEquals(expected1, pmC);
 
-    tc.set(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1");
+    tc.set(TABLE_ITERATOR_MINC_PREFIX.getKey() + "minc1", "abcd");
 
-    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
-    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmE = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
+    Map<String,String> pmF = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pmE, pmF);
     assertNotSame(pm5, pmE);
-    assertEquals(Map.of(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey() + "ctx123", "hdfs://ib/p1"), pmE);
+    assertEquals(Map.of(TABLE_ITERATOR_MINC_PREFIX.getKey() + "minc1", "abcd"), pmE);
 
     Map<String,String> pmG = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
     Map<String,String> pmH = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -288,7 +288,7 @@ public class AccumuloConfigurationTest {
     assertSame(pmI, pmJ);
     assertEquals(expected1, pmI);
 
-    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(VFS_CONTEXT_CLASSPATH_PROPERTY);
+    Map<String,String> pmK = tc.getAllPropertiesWithPrefix(TABLE_ITERATOR_MINC_PREFIX);
     assertSame(pmE, pmK);
 
     Map<String,String> pmL = tc.getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_SCAN_PREFIX);
@@ -313,16 +313,7 @@ public class AccumuloConfigurationTest {
     assertTrue(sec.prioritizerClass.orElseThrow().isEmpty());
     assertTrue(sec.prioritizerOpts.isEmpty());
 
-    // ensure deprecated props is read if nothing else is set
-    tc.set("tserver.readahead.concurrent.max", "6");
-    assertEquals(6, sec.getCurrentMaxThreads());
-    assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
-        sec.maxThreads);
-    ScanExecutorConfig sec2 = tc.getScanExecutors(false).stream()
-        .filter(c -> c.name.equals(defName)).findFirst().orElseThrow();
-    assertEquals(6, sec2.maxThreads);
-
-    // ensure new prop overrides deprecated prop
+    // ensure new props override default props
     tc.set(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "9");
     assertEquals(9, sec.getCurrentMaxThreads());
     assertEquals(Integer.parseInt(Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getDefaultValue()),
@@ -339,7 +330,7 @@ public class AccumuloConfigurationTest {
     assertFalse(sec4.prioritizerClass.isPresent());
     assertTrue(sec4.prioritizerOpts.isEmpty());
 
-    tc.set("tserver.metadata.readahead.concurrent.max", "2");
+    tc.set(Property.TSERV_SCAN_EXECUTORS_META_THREADS.getKey(), "2");
     assertEquals(2, sec4.getCurrentMaxThreads());
     ScanExecutorConfig sec5 = tc.getScanExecutors(false).stream().filter(c -> c.name.equals("meta"))
         .findFirst().orElseThrow();
@@ -376,11 +367,12 @@ public class AccumuloConfigurationTest {
     assertEquals(44, sec8.maxThreads);
 
     // test scan server props
+    tc.set(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS.getKey(), "6");
     Collection<ScanExecutorConfig> scanServExecutors = tc.getScanExecutors(true);
     assertEquals(2, scanServExecutors.size());
     ScanExecutorConfig sec9 =
         scanServExecutors.stream().filter(c -> c.name.equals(defName)).findFirst().orElseThrow();
-    // earlier in the test tserver.readahead.concurrent.max was set to 6
+    // verify set to 6
     assertEquals(6, sec9.maxThreads);
     assertFalse(sec9.priority.isPresent());
     assertTrue(sec9.prioritizerClass.orElseThrow().isEmpty());
@@ -393,43 +385,167 @@ public class AccumuloConfigurationTest {
   }
 
   // note: this is hard to test if there aren't any deprecated properties
-  // if that's the case, just comment this test out or create a dummy deprecated property
-  @SuppressWarnings("deprecation")
+  // Update a couple of non-deprecated properties using reflection for testing purposes
   @Test
-  public void testResolveDeprecated() {
+  public void testResolveDeprecated() throws Exception {
     var conf = new ConfigurationCopy();
 
-    // deprecated first argument
-    var e1 = assertThrows(IllegalArgumentException.class, () -> conf
-        .resolve(Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI, Property.INSTANCE_DFS_URI));
-    assertEquals("Unexpected deprecated INSTANCE_DFS_DIR", e1.getMessage());
+    final Field isDeprecatedField =
+        Property.INSTANCE_ZK_HOST.getClass().getDeclaredField("isDeprecated");
+    isDeprecatedField.setAccessible(true);
 
-    // non-deprecated second argument
-    var e2 = assertThrows(IllegalArgumentException.class,
-        () -> conf.resolve(Property.INSTANCE_VOLUMES, Property.INSTANCE_DFS_DIR,
-            Property.INSTANCE_SECRET, Property.INSTANCE_DFS_DIR, Property.INSTANCE_VOLUMES));
-    assertEquals("Unexpected non-deprecated [INSTANCE_SECRET, INSTANCE_VOLUMES]", e2.getMessage());
+    // Capture the original setting. These are not deprecated but just in case they are in the
+    // future
+    // this will prevent the test from breaking when we reset at the end
+    final boolean origIsDepInstanceZkHost = Property.INSTANCE_ZK_HOST.isDeprecated();
+    final boolean origIsDepInstanceZkTimeout = Property.INSTANCE_ZK_TIMEOUT.isDeprecated();
 
-    // empty second argument always resolves to non-deprecated first argument
-    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES));
+    try {
+      // Mark these 2 properties as deprecated just for testing purposes to make sure resolve works
+      isDeprecatedField.set(Property.INSTANCE_ZK_HOST, true);
+      isDeprecatedField.set(Property.INSTANCE_ZK_TIMEOUT, true);
 
-    // none are set, resolve to non-deprecated
-    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
-        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+      // deprecated first argument
+      var e1 =
+          assertThrows(IllegalArgumentException.class, () -> conf.resolve(Property.INSTANCE_ZK_HOST,
+              Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_ZK_TIMEOUT));
+      assertEquals("Unexpected deprecated INSTANCE_ZK_HOST", e1.getMessage());
 
-    // resolve to first deprecated argument that's set; here, it's the final one
-    conf.set(Property.INSTANCE_DFS_URI, "");
-    assertSame(Property.INSTANCE_DFS_URI, conf.resolve(Property.INSTANCE_VOLUMES,
-        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+      // non-deprecated second argument
+      var e2 = assertThrows(IllegalArgumentException.class,
+          () -> conf.resolve(Property.INSTANCE_VOLUMES, Property.INSTANCE_ZK_HOST,
+              Property.INSTANCE_SECRET, Property.INSTANCE_ZK_TIMEOUT, Property.INSTANCE_VOLUMES));
+      assertEquals("Unexpected non-deprecated [INSTANCE_SECRET, INSTANCE_VOLUMES]",
+          e2.getMessage());
 
-    // resolve to first deprecated argument that's set; now, it's the first one because both are set
-    conf.set(Property.INSTANCE_DFS_DIR, "");
-    assertSame(Property.INSTANCE_DFS_DIR, conf.resolve(Property.INSTANCE_VOLUMES,
-        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+      // empty second argument always resolves to non-deprecated first argument
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES));
 
-    // every property is set, so resolve to the non-deprecated one
-    conf.set(Property.INSTANCE_VOLUMES, "");
-    assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
-        Property.INSTANCE_DFS_DIR, Property.INSTANCE_DFS_URI));
+      // none are set, resolve to non-deprecated
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // resolve to first deprecated argument that's set; here, it's the final one
+      conf.set(Property.INSTANCE_ZK_TIMEOUT, "");
+      assertSame(Property.INSTANCE_ZK_TIMEOUT, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // resolve to first deprecated argument that's set; now, it's the first one because both are
+      // set
+      conf.set(Property.INSTANCE_ZK_HOST, "");
+      assertSame(Property.INSTANCE_ZK_HOST, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+
+      // every property is set, so resolve to the non-deprecated one
+      conf.set(Property.INSTANCE_VOLUMES, "");
+      assertSame(Property.INSTANCE_VOLUMES, conf.resolve(Property.INSTANCE_VOLUMES,
+          Property.INSTANCE_ZK_HOST, Property.INSTANCE_ZK_TIMEOUT));
+    } finally {
+      // Reset back to original setting
+      isDeprecatedField.set(Property.INSTANCE_ZK_HOST, origIsDepInstanceZkHost);
+      isDeprecatedField.set(Property.INSTANCE_ZK_TIMEOUT, origIsDepInstanceZkTimeout);
+    }
+  }
+
+  @Test
+  public void testDefaultDurations() {
+    var conf = DefaultConfiguration.getInstance();
+    for (Property prop : Property.values()) {
+      if (prop.getType() == PropertyType.TIMEDURATION) {
+        var expectedDuration =
+            Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+        assertEquals(expectedDuration, conf.getDuration(prop));
+        assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+      }
+    }
+  }
+
+  /*
+   * AccumuloConfiguration will cache the results of computing durations, this test ensures it
+   * recomputes them on change.
+   */
+  @Test
+  public void testDurationUpdate() {
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+
+    for (Property prop : Property.values()) {
+      if (prop.getType() == PropertyType.TIMEDURATION) {
+        var expectedDuration =
+            Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+        assertEquals(expectedDuration, conf.getDuration(prop));
+        assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+      }
+    }
+
+    for (int toAdd = 1; toAdd <= 4; toAdd++) {
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.TIMEDURATION) {
+          var defaultDuration =
+              Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+          var expectedDuration = defaultDuration.plusMinutes(toAdd);
+          conf.set(prop.getKey(), expectedDuration.toMillis() + "ms");
+        }
+      }
+
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.TIMEDURATION) {
+          var defaultDuration =
+              Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(prop.getDefaultValue()));
+          var expectedDuration = defaultDuration.plus(toAdd, ChronoUnit.MINUTES);
+          assertEquals(expectedDuration, conf.getDuration(prop));
+          assertEquals(expectedDuration.toMillis(), conf.getTimeInMillis(prop));
+        }
+      }
+    }
+  }
+
+  @Test
+  public void testMalformedDuration() {
+    assertEquals(PropertyType.TIMEDURATION, Property.TSERV_WAL_MAX_AGE.getType());
+    assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
+
+    var conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.getDuration(Property.TSERV_WAL_MAX_AGE);
+    var expectedDuration = Duration.ofMillis(
+        ConfigurationTypeHelper.getTimeInMillis(Property.TSERV_WAL_MAX_AGE.getDefaultValue()));
+    var rpcTimeout = Duration.ofMillis(
+        ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue()));
+    assertEquals(expectedDuration, conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(rpcTimeout, conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "abc");
+    conf.set(Property.GENERAL_RPC_TIMEOUT, "2h");
+    var npe = assertThrows(NullPointerException.class,
+        () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+    assertEquals(Duration.ofHours(2), conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(2), conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+  }
+
+  @Test
+  public void testDurationSubset() {
+    // test only having some of the duration properties actually set in the configuration
+    assertEquals(PropertyType.TIMEDURATION, Property.TSERV_WAL_MAX_AGE.getType());
+    assertEquals(PropertyType.TIMEDURATION, Property.GENERAL_RPC_TIMEOUT.getType());
+
+    var conf = new ConfigurationCopy();
+    var npe = assertThrows(NullPointerException.class,
+        () -> conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+    npe = assertThrows(NullPointerException.class,
+        () -> conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+    assertTrue(npe.getMessage().contains(Property.TSERV_WAL_MAX_AGE.getKey()));
+
+    conf.set(Property.TSERV_WAL_MAX_AGE.getKey(), "1h");
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(1).toMillis(), conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
+
+    assertThrows(NullPointerException.class, () -> conf.getDuration(Property.GENERAL_RPC_TIMEOUT));
+    assertThrows(NullPointerException.class,
+        () -> conf.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT));
+
+    assertEquals(Duration.ofHours(1), conf.getDuration(Property.TSERV_WAL_MAX_AGE));
+    assertEquals(Duration.ofHours(1).toMillis(), conf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE));
   }
 }

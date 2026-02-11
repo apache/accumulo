@@ -42,38 +42,9 @@
               <th title="The amount of time live ingest operations (mutations, batch writes) have been waiting for the tserver to free up memory." class="duration">Hold&nbsp;Time&nbsp;</th>
               <th title="Information about the scans threads. Shows how many threads are running and how much work is queued for the threads.">Running<br />Scans&nbsp;</th>
               <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction are in parentheses.">Minor<br />Compactions&nbsp;</th>
-              <th title="The action of gathering up many small files and rewriting them as one larger file. The number of tablets waiting for compaction are in parentheses.">Major<br />Compactions&nbsp;</th>
               <th title="The recent index cache hit rate." class="percent">Index Cache<br />Hit Rate&nbsp;</th>
               <th title="The recent data cache hit rate." class="percent">Data Cache<br />Hit Rate&nbsp;</th>
               <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval."class="big-num">OS&nbsp;Load&nbsp;</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <br />
-        <table id="badtservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br />
-            <span class="table-subcaption">The following tablet servers reported a status other than Online.</span><br />
-          </caption>
-          <thead>
-            <tr>
-              <th>Server</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <br />
-        <table id="deadtservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Dead Tablet Servers</span><br />
-            <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br />
-          </caption>
-          <thead>
-            <tr>
-              <th>Server</th>
-              <th class="date">Last Updated</th>
-              <th>Event</th>
-              <th>Clear</th>
             </tr>
           </thead>
           <tbody></tbody>

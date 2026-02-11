@@ -35,7 +35,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
@@ -63,7 +63,7 @@ public class UnusedWALIT extends ConfigurableMacBase {
     final long logSize = 1024 * 1024 * 10;
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setProperty(Property.TSERV_WAL_MAX_SIZE, Long.toString(logSize));
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     // use raw local file system so walogs sync and flush will work
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
     hadoopCoreSite.set("fs.namenode.fs-limits.min-block-size", Long.toString(logSize));
@@ -104,7 +104,8 @@ public class UnusedWALIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // wait for the metadata table to be online
-      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner scanner =
+          c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
 

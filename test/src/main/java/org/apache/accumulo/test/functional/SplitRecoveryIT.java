@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12.SPLIT_RATIO_COLUMN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -36,25 +36,21 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -65,22 +61,34 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.La
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.manager.upgrade.SplitRecovery11to12;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.state.Assignment;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
 import org.apache.accumulo.server.util.MetadataTableUtil;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class SplitRecoveryIT extends ConfigurableMacBase {
+
+  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(FateId fateId,
+      KeyExtent extent, Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time,
+      ServerContext context, ServiceLock zooLock) {
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putTime(time);
+
+    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
+    estSizes.forEach((tf, dfv) -> {
+      tablet.putFile(tf, dfv);
+      tablet.putBulkFile(tf, fateId);
+      newFiles.put(tf.insert(), dfv);
+    });
+    tablet.mutate();
+    return newFiles;
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -92,32 +100,11 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         prevEndRow == null ? null : new Text(prevEndRow));
   }
 
-  private void run(ServerContext c) throws Exception {
-    var zPath = ServiceLock.path(c.getZooKeeperRoot() + "/testLock");
-    ZooReaderWriter zoo = c.getZooReaderWriter();
-    zoo.putPersistentData(zPath.toString(), new byte[0], NodeExistsPolicy.OVERWRITE);
-    ServiceLock zl = new ServiceLock(zoo.getZooKeeper(), zPath, UUID.randomUUID());
-    boolean gotLock = zl.tryLock(new LockWatcher() {
+  @Test
+  public void run() throws Exception {
 
-      @SuppressFBWarnings(value = "DM_EXIT",
-          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
-      @Override
-      public void lostLock(LockLossReason reason) {
-        System.exit(-1);
-
-      }
-
-      @SuppressFBWarnings(value = "DM_EXIT",
-          justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
-      @Override
-      public void unableToMonitorLockNode(Exception e) {
-        System.exit(-1);
-      }
-    }, "foo".getBytes(UTF_8));
-
-    if (!gotLock) {
-      System.err.println("Failed to get lock " + zPath);
-    }
+    ServerContext c = getCluster().getServerContext();
+    ServiceLock zl = c.getServiceLock();
 
     // run test for a table with one tablet
     runSplitRecoveryTest(c, 0, "sp", 0, zl, nke("foo0", null, null));
@@ -153,7 +140,7 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
     Text midRow = new Text(mr);
 
-    SortedMap<StoredTabletFile,DataFileValue> splitMapFiles = null;
+    SortedMap<StoredTabletFile,DataFileValue> splitDataFiles = null;
 
     for (int i = 0; i < extents.length; i++) {
       KeyExtent extent = extents[i];
@@ -161,18 +148,18 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       String dirName = "dir_" + i;
       String tdir =
           context.getTablesDirs().iterator().next() + "/" + extent.tableId() + "/" + dirName;
-      MetadataTableUtil.addTablet(extent, dirName, context, TimeType.LOGICAL, zl);
-      SortedMap<TabletFile,DataFileValue> mapFiles = new TreeMap<>();
-      mapFiles.put(new TabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
+      addTablet(extent, dirName, context, TimeType.LOGICAL);
+      SortedMap<ReferencedTabletFile,DataFileValue> dataFiles = new TreeMap<>();
+      dataFiles.put(new ReferencedTabletFile(new Path(tdir + "/" + RFile.EXTENSION + "_000_000")),
           new DataFileValue(1000017 + i, 10000 + i));
 
-      int tid = 0;
-      TransactionWatcher.ZooArbitrator.start(context, Constants.BULK_ARBITRATOR_TYPE, tid);
+      FateId fateId =
+          FateId.from(FateInstanceType.fromTableId(extent.tableId()), UUID.randomUUID());
       SortedMap<StoredTabletFile,DataFileValue> storedFiles =
-          new TreeMap<>(MetadataTableUtil.updateTabletDataFile(tid, extent, mapFiles,
+          new TreeMap<>(updateTabletDataFile(fateId, extent, dataFiles,
               new MetadataTime(0, TimeType.LOGICAL), context, zl));
       if (i == extentToSplit) {
-        splitMapFiles = storedFiles;
+        splitDataFiles = storedFiles;
       }
     }
 
@@ -181,32 +168,46 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     KeyExtent high = new KeyExtent(extent.tableId(), extent.endRow(), midRow);
     KeyExtent low = new KeyExtent(extent.tableId(), midRow, extent.prevEndRow());
 
-    splitPartiallyAndRecover(context, extent, high, low, .4, splitMapFiles, midRow,
+    splitPartiallyAndRecover(context, extent, high, low, .4, splitDataFiles, midRow,
         "localhost:1234", failPoint, zl);
   }
 
-  private static Map<Long,List<TabletFile>> getBulkFilesLoaded(ServerContext context,
+  private static Map<FateId,List<ReferencedTabletFile>> getBulkFilesLoaded(ServerContext context,
       KeyExtent extent) {
-    Map<Long,List<TabletFile>> bulkFiles = new HashMap<>();
 
-    context.getAmple().readTablet(extent).getLoaded()
-        .forEach((path, txid) -> bulkFiles.computeIfAbsent(txid, k -> new ArrayList<>()).add(path));
+    // Ample is not used here because it does not recognize some of the old columns that this
+    // upgrade code is dealing with.
+    try (Scanner scanner =
+        context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
+      scanner.setRange(extent.toMetaRange());
 
-    return bulkFiles;
+      Map<FateId,List<ReferencedTabletFile>> bulkFiles = new HashMap<>();
+      for (var entry : scanner) {
+        if (entry.getKey().getColumnFamily().equals(BulkFileColumnFamily.NAME)) {
+          var path = new StoredTabletFile(entry.getKey().getColumnQualifier().toString());
+          var txid = BulkFileColumnFamily.getBulkLoadTid(entry.getValue());
+          bulkFiles.computeIfAbsent(txid, k -> new ArrayList<>()).add(path.getTabletFile());
+        }
+      }
+
+      return bulkFiles;
+    } catch (Exception e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private void splitPartiallyAndRecover(ServerContext context, KeyExtent extent, KeyExtent high,
-      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> mapFiles,
+      KeyExtent low, double splitRatio, SortedMap<StoredTabletFile,DataFileValue> dataFiles,
       Text midRow, String location, int steps, ServiceLock zl) throws Exception {
 
     SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes = new TreeMap<>();
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    MetadataTableUtil.splitDatafiles(midRow, splitRatio, new HashMap<>(), mapFiles,
-        lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+    SplitRecovery11to12.splitDatafiles(midRow, splitRatio, dataFiles, lowDatafileSizes,
+        highDatafileSizes, highDatafilesToRemove);
 
-    MetadataTableUtil.splitTablet(high, extent.prevEndRow(), splitRatio, context, zl, Set.of());
+    SplitRecovery11to12.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());
     Assignment assignment = new Assignment(high, instance, null);
 
@@ -215,29 +216,41 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     tabletMutator.mutate();
 
     if (steps >= 1) {
-      Map<Long,List<TabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
+      Map<FateId,List<ReferencedTabletFile>> bulkFiles = getBulkFilesLoaded(context, high);
 
-      ManagerMetadataUtil.addNewTablet(context, low, "lowDir", instance, lowDatafileSizes,
-          bulkFiles, new MetadataTime(0, TimeType.LOGICAL), -1L, -1L, zl);
+      addNewTablet(context, low, "lowDir", instance, lowDatafileSizes, bulkFiles,
+          new MetadataTime(0, TimeType.LOGICAL), -1L);
     }
     if (steps >= 2) {
-      MetadataTableUtil.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context, zl);
+      SplitRecovery11to12.finishSplit(high, highDatafileSizes, highDatafilesToRemove, context);
     }
-
-    TabletMetadata meta = context.getAmple().readTablet(high);
-    KeyExtent fixedExtent = ManagerMetadataUtil.fixSplit(context, meta, zl);
 
     if (steps < 2) {
-      assertEquals(splitRatio, meta.getSplitRatio(), 0.0);
+      Double persistedSplitRatio = null;
+
+      try (var scanner =
+          context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
+        scanner.setRange(high.toMetaRange());
+        for (var entry : scanner) {
+          if (SPLIT_RATIO_COLUMN.hasColumns(entry.getKey())) {
+            persistedSplitRatio = Double.parseDouble(entry.getValue().toString());
+          }
+        }
+      }
+      assertEquals(splitRatio, persistedSplitRatio, 0.0);
     }
+
+    KeyExtent fixedExtent = SplitRecovery11to12.fixSplit(context, high.toMetaRow());
 
     if (steps >= 1) {
       assertEquals(high, fixedExtent);
       ensureTabletHasNoUnexpectedMetadataEntries(context, low, lowDatafileSizes);
       ensureTabletHasNoUnexpectedMetadataEntries(context, high, highDatafileSizes);
 
-      Map<Long,? extends Collection<TabletFile>> lowBulkFiles = getBulkFilesLoaded(context, low);
-      Map<Long,? extends Collection<TabletFile>> highBulkFiles = getBulkFilesLoaded(context, high);
+      Map<FateId,? extends Collection<ReferencedTabletFile>> lowBulkFiles =
+          getBulkFilesLoaded(context, low);
+      Map<FateId,? extends Collection<ReferencedTabletFile>> highBulkFiles =
+          getBulkFilesLoaded(context, high);
 
       if (!lowBulkFiles.equals(highBulkFiles)) {
         throw new Exception(" " + lowBulkFiles + " != " + highBulkFiles + " " + low + " " + high);
@@ -248,13 +261,14 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
       }
     } else {
       assertEquals(extent, fixedExtent);
-      ensureTabletHasNoUnexpectedMetadataEntries(context, extent, mapFiles);
+      ensureTabletHasNoUnexpectedMetadataEntries(context, extent, dataFiles);
     }
   }
 
   private void ensureTabletHasNoUnexpectedMetadataEntries(ServerContext context, KeyExtent extent,
-      SortedMap<StoredTabletFile,DataFileValue> expectedMapFiles) throws Exception {
-    try (Scanner scanner = new ScannerImpl(context, MetadataTable.ID, Authorizations.EMPTY)) {
+      SortedMap<StoredTabletFile,DataFileValue> expectedDataFiles) throws Exception {
+    try (Scanner scanner =
+        new ScannerImpl(context, SystemTables.METADATA.tableId(), Authorizations.EMPTY)) {
       scanner.setRange(extent.toMetaRange());
 
       HashSet<ColumnFQ> expectedColumns = new HashSet<>();
@@ -279,8 +293,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
         Key key = entry.getKey();
 
         if (!key.getRow().equals(extent.toMetaRow())) {
-          throw new Exception(
-              "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+          throw new Exception("Tablet " + extent + " contained unexpected "
+              + SystemTables.METADATA.tableName() + " entry " + key);
         }
 
         if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
@@ -298,9 +312,12 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
           continue;
         }
 
-        throw new Exception(
-            "Tablet " + extent + " contained unexpected " + MetadataTable.NAME + " entry " + key);
+        throw new Exception("Tablet " + extent + " contained unexpected "
+            + SystemTables.METADATA.tableName() + " entry " + key);
       }
+
+      // This is not always present
+      expectedColumns.remove(ServerColumnFamily.LOCK_COLUMN);
 
       if (expectedColumns.size() > 1 || (expectedColumns.size() == 1)) {
         throw new Exception("Not all expected columns seen " + extent + " " + expectedColumns);
@@ -308,9 +325,9 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
 
       assertTrue(sawPer);
 
-      SortedMap<StoredTabletFile,DataFileValue> fixedMapFiles =
+      SortedMap<StoredTabletFile,DataFileValue> fixedDataFiles =
           MetadataTableUtil.getFileAndLogEntries(context, extent).getSecond();
-      verifySame(expectedMapFiles, fixedMapFiles);
+      verifySame(expectedDataFiles, fixedDataFiles);
     }
   }
 
@@ -333,13 +350,43 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    new SplitRecoveryIT().run(new ServerContext(SiteConfiguration.auto()));
+  public void addTablet(KeyExtent extent, String path, ServerContext context, TimeType timeType) {
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putPrevEndRow(extent.prevEndRow());
+    tablet.putDirName(path);
+    tablet.putTime(new MetadataTime(0, timeType));
+    tablet.mutate();
+
   }
 
-  @Test
-  public void test() throws Exception {
-    assertEquals(0, exec(SplitRecoveryIT.class).waitFor());
-  }
+  public void addNewTablet(ServerContext context, KeyExtent extent, String dirName,
+      TServerInstance tServerInstance, Map<StoredTabletFile,DataFileValue> datafileSizes,
+      Map<FateId,? extends Collection<ReferencedTabletFile>> bulkLoadedFiles, MetadataTime time,
+      long lastFlushID) {
 
+    TabletMutator tablet = context.getAmple().mutateTablet(extent);
+    tablet.putPrevEndRow(extent.prevEndRow());
+    tablet.putDirName(dirName);
+    tablet.putTime(time);
+
+    if (lastFlushID > 0) {
+      tablet.putFlushId(lastFlushID);
+    }
+
+    if (tServerInstance != null) {
+      tablet.putLocation(Location.current(tServerInstance));
+      tablet.deleteLocation(Location.future(tServerInstance));
+    }
+
+    datafileSizes.forEach((key, value) -> tablet.putFile(key, value));
+
+    for (Entry<FateId,? extends Collection<ReferencedTabletFile>> entry : bulkLoadedFiles
+        .entrySet()) {
+      for (ReferencedTabletFile ref : entry.getValue()) {
+        tablet.putBulkFile(ref, entry.getKey());
+      }
+    }
+
+    tablet.mutate();
+  }
 }

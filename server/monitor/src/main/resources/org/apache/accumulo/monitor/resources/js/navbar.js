@@ -64,116 +64,53 @@ function updateElementStatus(elementId, status) {
  * @param {JSON} statusData object containing the status info for the servers
  */
 function updateServerNotifications(statusData) {
-  getManager().then(function () {
-
-    // gather information about the manager
-    const managerData = JSON.parse(sessionStorage.manager);
-    const managerState = managerData.managerState;
-    const managerGoalState = managerData.managerGoalState;
-
-    const isSafeMode = managerState === 'SAFE_MODE' || managerGoalState === 'SAFE_MODE';
-    const isCleanStop = managerState === 'CLEAN_STOP' || managerGoalState === 'CLEAN_STOP';
-
-    // setting manager status notification
-    if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
-      updateElementStatus('managerStatusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
-      updateElementStatus('managerStatusNotification', STATUS.WARN);
-    } else if (statusData.managerStatus === STATUS.OK) {
-      updateElementStatus('managerStatusNotification', STATUS.OK);
-    } else {
-      console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
-    }
-
-    // setting tserver status notification
-    if (statusData.tServerStatus === STATUS.OK) {
-      updateElementStatus('serverStatusNotification', STATUS.OK);
-    } else if (statusData.tServerStatus === STATUS.WARN) {
-      updateElementStatus('serverStatusNotification', STATUS.WARN);
-    } else {
-      updateElementStatus('serverStatusNotification', STATUS.ERROR);
-    }
-
-    // setting gc status notification
-    if (statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('gcStatusNotification', STATUS.OK);
-    } else {
-      updateElementStatus('gcStatusNotification', STATUS.ERROR);
-    }
-
-    // Setting overall servers status notification
-    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
-      statusData.tServerStatus === STATUS.OK &&
-      statusData.gcStatus === STATUS.OK) {
-      updateElementStatus('statusNotification', STATUS.OK);
-    } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
-      statusData.tServerStatus === STATUS.ERROR ||
-      statusData.gcStatus === STATUS.ERROR) {
-      updateElementStatus('statusNotification', STATUS.ERROR);
-    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
-      statusData.tServerStatus === STATUS.WARN ||
-      statusData.gcStatus === STATUS.WARN) {
-      updateElementStatus('statusNotification', STATUS.WARN);
-    }
-
-  });
-}
-
-/**
- * Updates the notification color for the recent logs icon within the debug dropdown
- */
-function updateRecentLogsNotification(statusData) {
-  if (statusData.logNumber > 0) {
-    if (statusData.logsHaveError) {
-      updateElementStatus('recentLogsNotifications', STATUS.ERROR);
-    } else {
-      updateElementStatus('recentLogsNotifications', STATUS.WARN);
-    }
+  // setting manager status notification
+  if (statusData.managerStatus === STATUS.ERROR) {
+    updateElementStatus('managerStatusNotification', STATUS.ERROR);
+  } else if (statusData.managerStatus === STATUS.WARN) {
+    updateElementStatus('managerStatusNotification', STATUS.WARN);
+  } else if (statusData.managerStatus === STATUS.OK) {
+    updateElementStatus('managerStatusNotification', STATUS.OK);
   } else {
-    updateElementStatus('recentLogsNotifications', STATUS.OK);
+    console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
   }
-  // Number
-  const logNumber = statusData.logNumber > 99 ? '99+' : statusData.logNumber;
-  $('#recentLogsNotifications').html(logNumber);
-}
 
-/**
- * Updates the notification color for the table problems icon within the debug dropdown
- */
-function updateTableProblemsNotification(statusData) {
-  if (statusData.problemNumber > 0) {
-    updateElementStatus('tableProblemsNotifications', STATUS.ERROR);
+  // setting tserver status notification
+  if (statusData.tServerStatus === STATUS.OK) {
+    updateElementStatus('serverStatusNotification', STATUS.OK);
+  } else if (statusData.tServerStatus === STATUS.WARN) {
+    updateElementStatus('serverStatusNotification', STATUS.WARN);
   } else {
-    updateElementStatus('tableProblemsNotifications', STATUS.OK);
+    updateElementStatus('serverStatusNotification', STATUS.ERROR);
   }
-  // Number
-  var problemNumber = statusData.problemNumber > 99 ? '99+' : statusData.problemNumber;
-  $('#tableProblemsNotifications').html(problemNumber);
-}
 
-/**
- * Updates the notification color for the debug dropdown icon
- */
-function updateDebugDropdownNotification(statusData) {
-  if (statusData.logNumber > 0 || statusData.problemNumber > 0) {
-    if (statusData.logsHaveError || statusData.problemNumber > 0) {
-      updateElementStatus('errorsNotification', STATUS.ERROR);
-    } else {
-      updateElementStatus('errorsNotification', STATUS.WARN);
-    }
+  // setting gc status notification
+  if (statusData.gcStatus === STATUS.OK) {
+    updateElementStatus('gcStatusNotification', STATUS.OK);
   } else {
-    updateElementStatus('errorsNotification', STATUS.OK);
+    updateElementStatus('gcStatusNotification', STATUS.ERROR);
   }
-  // Number
-  var totalNumber = statusData.logNumber + statusData.problemNumber > 99 ?
-    '99+' : statusData.logNumber + statusData.problemNumber;
-  $('#errorsNotification').html(totalNumber);
+
+  // Setting overall servers status notification
+  if (statusData.managerStatus === STATUS.OK &&
+    statusData.tServerStatus === STATUS.OK &&
+    statusData.gcStatus === STATUS.OK) {
+    updateElementStatus('statusNotification', STATUS.OK);
+  } else if (statusData.managerStatus === STATUS.ERROR ||
+    statusData.tServerStatus === STATUS.ERROR ||
+    statusData.gcStatus === STATUS.ERROR) {
+    updateElementStatus('statusNotification', STATUS.ERROR);
+  } else if (statusData.managerStatus === STATUS.WARN ||
+    statusData.tServerStatus === STATUS.WARN ||
+    statusData.gcStatus === STATUS.WARN) {
+    updateElementStatus('statusNotification', STATUS.WARN);
+  }
 }
 
 /**
  * Creates the initial sidebar
  */
-$(document).ready(function () {
+$(function () {
   refreshSidebar();
 });
 
@@ -191,18 +128,14 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  updateSystemAlerts();
 }
 
 /**
- * Generates the sidebar notifications for servers and logs
+ * Generates the sidebar notifications for servers
  */
 function refreshSideBarNotifications() {
 
   const statusData = sessionStorage?.status ? JSON.parse(sessionStorage.status) : undefined;
 
   updateServerNotifications(statusData);
-  updateRecentLogsNotification(statusData);
-  updateTableProblemsNotification(statusData);
-  updateDebugDropdownNotification(statusData);
 }

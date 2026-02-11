@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SortedSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -53,7 +53,6 @@ import org.junit.jupiter.api.Test;
 public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
   static AccumuloClient client;
-  static SortedSet<String> initialTableState;
 
   @Override
   protected Duration defaultTimeout() {
@@ -64,13 +63,12 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
     client = Accumulo.newClient().from(getClientProps()).build();
-    initialTableState = client.tableOperations().list();
   }
 
   @AfterEach
   public void cleanUpTables() throws Exception {
     for (String table : client.tableOperations().list()) {
-      if (!initialTableState.contains(table)) {
+      if (!SystemTables.containsTableName(table)) {
         client.tableOperations().delete(table);
       }
     }

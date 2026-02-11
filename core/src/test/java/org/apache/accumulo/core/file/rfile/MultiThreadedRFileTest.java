@@ -21,6 +21,7 @@ package org.apache.accumulo.core.file.rfile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,7 +31,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.io.UncheckedIOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,6 +46,7 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -72,7 +73,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MultiThreadedRFileTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(MultiThreadedRFileTest.class);
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
@@ -82,16 +82,13 @@ public class MultiThreadedRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstKey().compareTo(lastKey) > 0) {
-        throw new RuntimeException(
-            "First key out of order " + reader.getFirstKey() + " " + lastKey);
-      }
+      assertTrue(reader.getFileRange().rowRange.contains(lastKey));
 
       indexIter.next();
 
       while (indexIter.hasTop()) {
         if (lastKey.compareTo(indexIter.getTopKey()) > 0) {
-          throw new RuntimeException(
+          throw new IllegalStateException(
               "Indext out of order " + lastKey + " " + indexIter.getTopKey());
         }
 
@@ -100,8 +97,10 @@ public class MultiThreadedRFileTest {
 
       }
 
-      if (!reader.getLastKey().equals(lastKey)) {
-        throw new RuntimeException("Last key out of order " + reader.getLastKey() + " " + lastKey);
+      if (!reader.getFileRange().rowRange.getEndKey()
+          .equals(lastKey.followingKey(PartialKey.ROW))) {
+        throw new IllegalStateException(
+            "Last key out of order " + reader.getFileRange().rowRange + " " + lastKey);
       }
     }
   }
@@ -135,7 +134,7 @@ public class MultiThreadedRFileTest {
     public TestRFile deepCopy() throws IOException {
       TestRFile copy = new TestRFile(accumuloConfiguration);
       // does not copy any writer resources. This would be for read only.
-      copy.reader = (Reader) reader.deepCopy(null);
+      copy.reader = reader.deepCopy(null);
       copy.rfile = rfile;
       copy.iter = new ColumnFamilySkippingIterator(copy.reader);
       copy.deepCopy = true;
@@ -154,7 +153,7 @@ public class MultiThreadedRFileTest {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
+      BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", conf,
           CryptoFactoryLoader.getServiceForServer(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
@@ -288,7 +287,7 @@ public class MultiThreadedRFileTest {
   }
 
   private void validate(TestRFile trf) throws IOException {
-    random.ints(10, 0, 4).forEach(part -> {
+    RANDOM.get().ints(10, 0, 4).forEach(part -> {
       try {
         Range range = new Range(getKey(part, 0, 0), true, getKey(part, 4, 2048), true);
         trf.iter.seek(range, EMPTY_COL_FAMS, false);
@@ -385,16 +384,12 @@ public class MultiThreadedRFileTest {
 
   private String pad(int val) {
     String valStr = String.valueOf(val);
-    switch (valStr.length()) {
-      case 1:
-        return "000" + valStr;
-      case 2:
-        return "00" + valStr;
-      case 3:
-        return "0" + valStr;
-      default:
-        return valStr;
-    }
+    return switch (valStr.length()) {
+      case 1 -> "000" + valStr;
+      case 2 -> "00" + valStr;
+      case 3 -> "0" + valStr;
+      default -> valStr;
+    };
   }
 
   private Value getValue(int index) {

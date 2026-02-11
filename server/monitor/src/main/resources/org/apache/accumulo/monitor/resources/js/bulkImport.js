@@ -18,14 +18,13 @@
  */
 "use strict";
 
-var bulkListTable, bulkPerServerTable;
+var bulkListTable;
 
 /**
  * Fetches new data and updates DataTables with it
  */
 function refreshBulkImport() {
   ajaxReloadTable(bulkListTable);
-  ajaxReloadTable(bulkPerServerTable);
 }
 
 /**
@@ -38,7 +37,7 @@ function refresh() {
 /**
  * Initializes the bulk import DataTables
  */
-$(document).ready(function () {
+$(function () {
 
   const url = contextPath + 'rest/bulkImports';
   console.debug('REST url used to fetch data for the DataTables in bulkImport.js: ' + url);

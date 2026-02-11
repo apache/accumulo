@@ -22,7 +22,9 @@ import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREF
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -45,7 +47,6 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.conf.PropertyType.PortRange;
-import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -71,6 +72,27 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   private final Lock prefixCacheUpdateLock = new ReentrantLock();
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
+
+  private static final List<Property> DURATION_PROPS = Arrays.stream(Property.values())
+      .filter(property -> property.getType() == PropertyType.TIMEDURATION)
+      .collect(Collectors.toUnmodifiableList());
+
+  private final Deriver<EnumMap<Property,Duration>> durationDeriver = newDeriver(conf -> {
+    EnumMap<Property,Duration> durations = new EnumMap<>(Property.class);
+    for (Property prop : DURATION_PROPS) {
+      var value = conf.get(prop);
+      if (value != null) {
+        try {
+          var durationMillis = ConfigurationTypeHelper.getTimeInMillis(value);
+          durations.put(prop, Duration.ofMillis(durationMillis));
+        } catch (RuntimeException e) {
+          log.error("Failed to parse duration for {}={}", prop, value, e);
+        }
+      }
+    }
+    log.trace("recomputed durations {}", durations);
+    return durations;
+  });
 
   /**
    * Gets a property value from this configuration.
@@ -260,13 +282,23 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the value properly.
    *
    * @param property property to get
+   * @throws IllegalArgumentException if the property is of the wrong type
+   */
+  public Duration getDuration(Property property) {
+    checkType(property, PropertyType.TIMEDURATION);
+    return Objects.requireNonNull(durationDeriver.derive().get(property), () -> "Property "
+        + property.getKey() + " is not set or its value did not parse correctly.");
+  }
+
+  /**
+   * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the value properly.
+   *
+   * @param property property to get
    * @return property value
    * @throws IllegalArgumentException if the property is of the wrong type
    */
   public long getTimeInMillis(Property property) {
-    checkType(property, PropertyType.TIMEDURATION);
-
-    return ConfigurationTypeHelper.getTimeInMillis(get(property));
+    return getDuration(property).toMillis();
   }
 
   /**
@@ -411,11 +443,6 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
      * Re-reads the max threads from the configuration that created this class
      */
     public int getCurrentMaxThreads() {
-      Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
-      if (depThreads != null) {
-        return depThreads;
-      }
-
       if (isScanServer) {
         String prop =
             Property.SSERV_SCAN_EXECUTORS_PREFIX.getKey() + name + "." + SCAN_EXEC_THREADS;
@@ -438,46 +465,9 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    */
   public abstract boolean isPropertySet(Property prop);
 
-  // deprecation property warning could get spammy in tserver so only warn once
-  boolean depPropWarned = false;
-
-  @SuppressWarnings("deprecation")
-  Integer getDeprecatedScanThreads(String name, boolean isScanServer) {
-
-    Property prop;
-    Property deprecatedProp;
-
-    if (name.equals(SimpleScanDispatcher.DEFAULT_SCAN_EXECUTOR_NAME)) {
-      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS
-          : Property.TSERV_SCAN_EXECUTORS_DEFAULT_THREADS;
-      deprecatedProp = Property.TSERV_READ_AHEAD_MAXCONCURRENT;
-    } else if (name.equals("meta")) {
-      prop = isScanServer ? Property.SSERV_SCAN_EXECUTORS_META_THREADS
-          : Property.TSERV_SCAN_EXECUTORS_META_THREADS;
-      deprecatedProp = Property.TSERV_METADATA_READ_AHEAD_MAXCONCURRENT;
-    } else {
-      return null;
-    }
-
-    if (!isPropertySet(prop) && isPropertySet(deprecatedProp)) {
-      if (!depPropWarned) {
-        depPropWarned = true;
-        log.warn("Property {} is deprecated, use {} instead.", deprecatedProp.getKey(),
-            prop.getKey());
-      }
-      return Integer.valueOf(get(deprecatedProp));
-    } else if (isPropertySet(prop) && isPropertySet(deprecatedProp) && !depPropWarned) {
-      depPropWarned = true;
-      log.warn("Deprecated property {} ignored because {} is set", deprecatedProp.getKey(),
-          prop.getKey());
-    }
-
-    return null;
-  }
-
   private static class RefCount<T> {
-    T obj;
-    long count;
+    final T obj;
+    final long count;
 
     RefCount(long c, T r) {
       this.count = c;
@@ -600,12 +590,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
         String val = subEntry.getValue();
 
         if (opt.equals(SCAN_EXEC_THREADS)) {
-          Integer depThreads = getDeprecatedScanThreads(name, isScanServer);
-          if (depThreads == null) {
-            threads = Integer.parseInt(val);
-          } else {
-            threads = depThreads;
-          }
+          threads = Integer.parseInt(val);
         } else if (opt.equals(SCAN_EXEC_PRIORITY)) {
           prio = Integer.parseInt(val);
         } else if (opt.equals(SCAN_EXEC_PRIORITIZER)) {

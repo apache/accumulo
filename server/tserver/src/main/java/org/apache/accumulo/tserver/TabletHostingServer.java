@@ -20,18 +20,18 @@ package org.apache.accumulo.tserver;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.tserver.metrics.TabletServerScanMetrics;
 import org.apache.accumulo.tserver.session.Session;
 import org.apache.accumulo.tserver.session.SessionManager;
 import org.apache.accumulo.tserver.tablet.Tablet;
+
+import com.google.common.net.HostAndPort;
 
 /**
  * This interface exist to support passing a {@link TabletServer} or {@link ScanServerInfo} to a
@@ -51,15 +51,13 @@ public interface TabletHostingServer {
 
   TabletServerScanMetrics getScanMetrics();
 
+  PausedCompactionMetrics getPausedCompactionMetrics();
+
   Session getSession(long scanID);
 
   TableConfiguration getTableConfiguration(KeyExtent threadPoolExtent);
 
   ServiceLock getLock();
-
-  ZooCache getManagerLockCache();
-
-  GarbageCollectionLogger getGcLogger();
 
   BlockCacheManager.Configuration getBlockCacheConfiguration(AccumuloConfiguration acuConf);
 

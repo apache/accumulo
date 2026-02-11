@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -60,7 +61,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -73,7 +73,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
-class OfflineIterator implements Iterator<Entry<Key,Value>> {
+final class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
@@ -106,11 +106,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
         nextTablet();
       }
 
-    } catch (Exception e) {
-      if (e instanceof RuntimeException) {
-        throw (RuntimeException) e;
-      }
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -133,8 +133,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       }
 
       return ret;
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -209,7 +212,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       IOException, AccumuloSecurityException, ReflectiveOperationException {
 
     // possible race condition here, if table is renamed
-    String tableName = context.getTableName(tableId);
+    String tableName = context.getQualifiedTableName(tableId);
     var tableConf = context.tableOperations().getConfiguration(tableName);
     AccumuloConfiguration tableCC = new ConfigurationCopy(tableConf);
     var systemConf = context.instanceOperations().getSystemConfiguration();
@@ -230,11 +233,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     if (scannerSamplerConfigImpl != null && !scannerSamplerConfigImpl.equals(samplerConfImpl)) {
       throw new SampleNotPresentException();
     }
-    for (TabletFile file : absFiles) {
+    for (StoredTabletFile file : absFiles) {
       var cs = CryptoFactoryLoader.getServiceForClientWithTable(systemConf, tableConf, tableId);
-      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getPathStr(), conf);
+      FileSystem fs = VolumeConfiguration.fileSystemForPath(file.getNormalizedPathStr(), conf);
       FileSKVIterator reader = FileOperations.getInstance().newReaderBuilder()
-          .forFile(file.getPathStr(), fs, conf, cs).withTableConfiguration(tableCC).build();
+          .forFile(file, fs, conf, cs).withTableConfiguration(tableCC).build();
       if (scannerSamplerConfigImpl != null) {
         reader = reader.getSample(scannerSamplerConfigImpl);
         if (reader == null) {

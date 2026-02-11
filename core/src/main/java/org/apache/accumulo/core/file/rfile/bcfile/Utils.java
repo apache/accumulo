@@ -142,7 +142,7 @@ public final class Utils {
         out.writeLong(n);
         return;
       default:
-        throw new RuntimeException("Internal error");
+        throw new IllegalStateException("Internal error");
     }
   }
 
@@ -157,7 +157,7 @@ public final class Utils {
   public static int readVInt(DataInput in) throws IOException {
     long ret = readVLong(in);
     if ((ret > Integer.MAX_VALUE) || (ret < Integer.MIN_VALUE)) {
-      throw new RuntimeException("Number too large to be represented as Integer");
+      throw new IllegalStateException("Number too large to be represented as Integer");
     }
     return (int) ret;
   }
@@ -185,41 +185,25 @@ public final class Utils {
       return firstByte;
     }
 
-    switch ((firstByte + 128) / 8) {
-      case 11:
-      case 10:
-      case 9:
-      case 8:
-      case 7:
-        return ((firstByte + 52L) << 8) | in.readUnsignedByte();
-      case 6:
-      case 5:
-      case 4:
-      case 3:
-        return ((firstByte + 88L) << 16) | in.readUnsignedShort();
-      case 2:
-      case 1:
-        return ((firstByte + 112L) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
-      case 0:
+    return switch ((firstByte + 128) / 8) {
+      case 11, 10, 9, 8, 7 -> ((firstByte + 52L) << 8) | in.readUnsignedByte();
+      case 6, 5, 4, 3 -> ((firstByte + 88L) << 16) | in.readUnsignedShort();
+      case 2, 1 ->
+        ((firstByte + 112L) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+      case 0 -> {
         int len = firstByte + 129;
-        switch (len) {
-          case 4:
-            return in.readInt();
-          case 5:
-            return ((long) in.readInt()) << 8 | in.readUnsignedByte();
-          case 6:
-            return ((long) in.readInt()) << 16 | in.readUnsignedShort();
-          case 7:
-            return ((long) in.readInt()) << 24 | (in.readUnsignedShort() << 8)
-                | in.readUnsignedByte();
-          case 8:
-            return in.readLong();
-          default:
-            throw new IOException("Corrupted VLong encoding");
-        }
-      default:
-        throw new RuntimeException("Internal error");
-    }
+        yield switch (len) {
+          case 4 -> in.readInt();
+          case 5 -> ((long) in.readInt()) << 8 | in.readUnsignedByte();
+          case 6 -> ((long) in.readInt()) << 16 | in.readUnsignedShort();
+          case 7 ->
+            ((long) in.readInt()) << 24 | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+          case 8 -> in.readLong();
+          default -> throw new IOException("Corrupted VLong encoding");
+        };
+      }
+      default -> throw new IllegalStateException("Internal error");
+    };
   }
 
   /**

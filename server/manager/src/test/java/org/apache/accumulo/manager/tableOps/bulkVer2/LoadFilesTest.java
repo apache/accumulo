@@ -19,37 +19,32 @@
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import static org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImportTest.nke;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.strictMock;
-import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
-import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
-import org.apache.accumulo.core.fate.FateTxId;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.ImportTimingStats;
 import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.TabletsMetadataFactory;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -67,6 +62,11 @@ public class LoadFilesTest {
   }
 
   private static class CaptureLoader extends LoadFiles.Loader {
+
+    public CaptureLoader(FateEnv env, TableId tableId) {
+      super(env, tableId);
+    }
+
     private static class LoadResult {
       private final List<TabletMetadata> tablets;
       private final Files files;
@@ -84,9 +84,15 @@ public class LoadFilesTest {
       public Files getFiles() {
         return files;
       }
+
     }
 
     private final List<LoadResult> results = new ArrayList<>();
+
+    @Override
+    void start(Path bulkDir, TableId tableId, FateId fateId, boolean setTime) throws Exception {
+      // override to do nothing
+    }
 
     @Override
     void load(List<TabletMetadata> tablets, Files files) {
@@ -102,8 +108,6 @@ public class LoadFilesTest {
       return 0;
     }
 
-    @Override
-    public void close() {}
   }
 
   private TableId tid = TableId.of("1");
@@ -122,7 +126,7 @@ public class LoadFilesTest {
   @Test
   public void testFindOverlappingFiles() {
 
-    String fmtTid = FateTxId.formatTid(1234L);
+    String fmtTid = FateId.from(FateInstanceType.USER, UUID.randomUUID()).canonical();
     var iter = tm.iterator();
     List<TabletMetadata> tablets = LoadFiles.findOverlappingTablets(fmtTid,
         new KeyExtent(tid, new Text("c"), null), iter, new ImportTimingStats());
@@ -161,19 +165,27 @@ public class LoadFilesTest {
   private Map<String,HashSet<KeyExtent>> runLoadFilesLoad(Map<KeyExtent,String> loadRanges)
       throws Exception {
 
+    FateEnv env = EasyMock.createMock(FateEnv.class);
+    ServerContext ctx = EasyMock.createMock(ServerContext.class);
+    TableConfiguration tconf = EasyMock.createMock(TableConfiguration.class);
+
+    EasyMock.expect(env.getContext()).andReturn(ctx).anyTimes();
+    EasyMock.expect(ctx.getTableConfiguration(tid)).andReturn(tconf).anyTimes();
+    EasyMock.expect(tconf.getCount(Property.TABLE_FILE_PAUSE))
+        .andReturn(Integer.parseInt(Property.TABLE_FILE_PAUSE.getDefaultValue())).anyTimes();
+
+    Path bulkDir = EasyMock.createMock(Path.class);
+    EasyMock.replay(env, ctx, tconf, bulkDir);
+
     TabletsMetadata tabletMeta = new TestTabletsMetadata(null, tm);
     LoadMappingIterator lmi = PrepBulkImportTest.createLoadMappingIter(loadRanges);
-    CaptureLoader cl = new CaptureLoader();
+    CaptureLoader cl = new CaptureLoader(env, tid);
     BulkInfo info = new BulkInfo();
     TabletsMetadataFactory tmf = (startRow) -> tabletMeta;
-    long txid = 1234L;
+    FateId txid = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
-    Manager manager = EasyMock.createMock(Manager.class);
-    Path bulkDir = EasyMock.createMock(Path.class);
-    replay(manager, bulkDir);
-
-    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, manager, txid, 0);
-    verify(manager, bulkDir);
+    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, txid, 0);
+    EasyMock.verify(env, ctx, tconf, bulkDir);
     List<CaptureLoader.LoadResult> results = cl.getLoadResults();
     assertEquals(loadRanges.size(), results.size());
 
@@ -310,56 +322,5 @@ public class LoadFilesTest {
     assertTrue(extents.contains(nke("y", "z")));
     assertTrue(extents.contains(nke("z", null)));
 
-  }
-
-  /**
-   * Test tablets without locations that have loaded files and do not have loaded files.
-   *
-   */
-  @Test
-  public void testLoadLocation() throws Exception {
-
-    var loader = new LoadFiles.OnlineLoader(DefaultConfiguration.getInstance()) {
-      @Override
-      protected void addToQueue(HostAndPort server, KeyExtent extent,
-          Map<String,MapFileInfo> thriftImports) {
-        fail();
-      }
-    };
-
-    Path bulkDir = new Path("file:/accumulo/tables/1/b-00001");
-
-    Path fullPath = new Path(bulkDir, "f1.rf");
-    TabletFile loaded1 = new TabletFile(fullPath);
-
-    // Tablet with no location and no loaded files
-    TabletMetadata tablet1 = createMock(TabletMetadata.class);
-    expect(tablet1.getLocation()).andReturn(null).once();
-    expect(tablet1.getLoaded()).andReturn(Map.of()).once();
-
-    // Tablet with no location and loaded files
-    TabletMetadata tablet2 = createMock(TabletMetadata.class);
-    expect(tablet2.getLocation()).andReturn(null).once();
-    expect(tablet2.getLoaded()).andReturn(Map.of(loaded1, 123456789L)).once();
-
-    Manager manager = strictMock(Manager.class);
-    expect(manager.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).once();
-
-    replay(tablet1, tablet2, manager);
-
-    loader.start(bulkDir, manager, 123456789L, false);
-
-    Files files = new Files(List.of(new FileInfo("f1.rf", 50, 50)));
-
-    // Since this tablet already has loaded the files the locationLess counter should not be
-    // incremented
-    loader.load(List.of(tablet2), files);
-    assertEquals(0, loader.locationLess);
-
-    // Since this tablet has not loaded files the locationLess counter should be incremented
-    loader.load(List.of(tablet1), files);
-    assertEquals(1, loader.locationLess);
-
-    verify(tablet1, tablet2, manager);
   }
 }

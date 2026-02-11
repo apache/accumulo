@@ -90,16 +90,16 @@ public abstract class RowEncodingIterator
     RowEncodingIterator newInstance;
     try {
       newInstance = this.getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
     newInstance.sourceIter = sourceIter.deepCopy(env);
     newInstance.maxBufferSize = maxBufferSize;
     return newInstance;
   }
 
-  List<Key> keys = new ArrayList<>();
-  List<Value> values = new ArrayList<>();
+  final List<Key> keys = new ArrayList<>();
+  final List<Value> values = new ArrayList<>();
 
   private void prepKeys() throws IOException {
     long kvBufSize = 0;

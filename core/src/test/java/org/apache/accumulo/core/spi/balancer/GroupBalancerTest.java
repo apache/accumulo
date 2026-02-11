@@ -18,10 +18,10 @@
  */
 package org.apache.accumulo.core.spi.balancer;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +33,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -49,8 +50,6 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class GroupBalancerTest {
-
-  private static final SecureRandom random = new SecureRandom();
 
   private static final Function<TabletId,String> partitioner =
       input -> (input == null || input.getEndRow() == null) ? null
@@ -108,10 +107,10 @@ public class GroupBalancerTest {
         }
       };
 
-      balance(balancer, maxMigrations, Map.of("1", tid));
+      balance(balancer, maxMigrations, tid, Map.of("1", tid));
     }
 
-    public void balance(TabletBalancer balancer, int maxMigrations,
+    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid,
         Map<String,TableId> tablesToBalance) {
 
       while (true) {
@@ -121,11 +120,12 @@ public class GroupBalancerTest {
 
         for (TabletServerId tsi : tservers) {
           current.put(tsi, new TServerStatusImpl(
-              new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
+              new org.apache.accumulo.core.manager.thrift.TabletServerStatus()));
         }
 
-        balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut,
-            DataLevel.USER.name(), tablesToBalance));
+        balancer.balance(
+            new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+                migrations, migrationsOut, DataLevel.of(tid), tablesToBalance));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());
@@ -330,8 +330,8 @@ public class GroupBalancerTest {
 
     for (int g = 1; g <= 60; g++) {
       for (int t = 1; t <= 241; t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (random.nextInt(249) + 1),
-            9997);
+        tservers.addTablet(String.format("%02d:%d", g, t),
+            "192.168.1." + (RANDOM.get().nextInt(249) + 1), 9997);
       }
     }
 
@@ -347,9 +347,9 @@ public class GroupBalancerTest {
     TabletServers tservers = new TabletServers();
 
     for (int g = 1; g <= 60; g++) {
-      for (int t = 1; t <= random.nextInt(1000); t++) {
-        tservers.addTablet(String.format("%02d:%d", g, t), "192.168.1." + (random.nextInt(249) + 1),
-            9997);
+      for (int t = 1; t <= RANDOM.get().nextInt(1000); t++) {
+        tservers.addTablet(String.format("%02d:%d", g, t),
+            "192.168.1." + (RANDOM.get().nextInt(249) + 1), 9997);
       }
     }
 

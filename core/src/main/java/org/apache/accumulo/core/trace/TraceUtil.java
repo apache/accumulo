@@ -25,7 +25,8 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.trace.thrift.TInfo;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
+import org.apache.accumulo.core.util.ClassUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -133,8 +134,8 @@ public class TraceUtil {
   }
 
   /**
-   * Obtain {@link org.apache.accumulo.core.trace.thrift.TInfo} for the current context. This is
-   * used to send the current trace information to a remote process
+   * Obtain {@link org.apache.accumulo.core.clientImpl.thrift.TInfo} for the current context. This
+   * is used to send the current trace information to a remote process
    */
   public static TInfo traceInfo() {
     TInfo tinfo = new TInfo();
@@ -186,10 +187,6 @@ public class TraceUtil {
     return c instanceof TraceWrappedCallable ? c : new TraceWrappedCallable<>(c);
   }
 
-  public static <T> Callable<T> unwrap(Callable<T> c) {
-    return TraceWrappedCallable.unwrapFully(c);
-  }
-
   public static <T> T wrapService(final T instance) {
     InvocationHandler handler = (obj, method, args) -> {
       if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
@@ -216,7 +213,7 @@ public class TraceUtil {
   private static <T> T wrapRpc(final InvocationHandler handler, final T instance) {
     @SuppressWarnings("unchecked")
     T proxiedInstance = (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(),
-        instance.getClass().getInterfaces(), handler);
+        ClassUtil.getInterfaces(instance.getClass()).toArray(new Class<?>[0]), handler);
     return proxiedInstance;
   }
 

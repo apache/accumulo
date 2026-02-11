@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.cluster.standalone;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,13 +33,10 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
-import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.tserver.ScanServer;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -54,10 +51,12 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class StandaloneClusterControl implements ClusterControl {
   private static final Logger log = LoggerFactory.getLogger(StandaloneClusterControl.class);
 
-  private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service",
-      ACCUMULO_SCRIPT = "accumulo";
-  private static final String MANAGER_HOSTS_FILE = "managers", GC_HOSTS_FILE = "gc",
-      TSERVER_HOSTS_FILE = "tservers", MONITOR_HOSTS_FILE = "monitor";
+  private static final String ACCUMULO_SERVICE_SCRIPT = "accumulo-service";
+  private static final String ACCUMULO_SCRIPT = "accumulo";
+  private static final String MANAGER_HOSTS_FILE = "managers";
+  private static final String GC_HOSTS_FILE = "gc";
+  private static final String TSERVER_HOSTS_FILE = "tservers";
+  private static final String MONITOR_HOSTS_FILE = "monitor";
 
   String accumuloHome;
   String clientAccumuloConfDir;
@@ -66,7 +65,8 @@ public class StandaloneClusterControl implements ClusterControl {
   private String serverCmdPrefix;
   protected RemoteShellOptions options;
 
-  protected String accumuloServicePath, accumuloPath;
+  protected String accumuloServicePath;
+  protected String accumuloPath;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -79,9 +79,10 @@ public class StandaloneClusterControl implements ClusterControl {
     this.clientCmdPrefix = clientCmdPrefix;
     this.serverCmdPrefix = serverCmdPrefix;
 
-    File bin = new File(accumuloHome, "bin");
-    this.accumuloServicePath = new File(bin, ACCUMULO_SERVICE_SCRIPT).getAbsolutePath();
-    this.accumuloPath = new File(bin, ACCUMULO_SCRIPT).getAbsolutePath();
+    Path home = Path.of(accumuloHome);
+    Path bin = home.resolve("bin");
+    this.accumuloServicePath = bin.resolve(ACCUMULO_SERVICE_SCRIPT).toAbsolutePath().toString();
+    this.accumuloPath = bin.resolve(ACCUMULO_SCRIPT).toAbsolutePath().toString();
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {
@@ -132,7 +133,7 @@ public class StandaloneClusterControl implements ClusterControl {
   @Override
   public void adminStopAll() throws IOException {
     String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
-    String[] cmd = {serverCmdPrefix, accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = {serverCmdPrefix, accumuloPath, StopAll.class.getName()};
     // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(manager, cmd);
     if (pair.getKey() != 0) {
@@ -160,7 +161,6 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  @SuppressWarnings("removal")
   public void startAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -168,7 +168,6 @@ public class StandaloneClusterControl implements ClusterControl {
           start(server, tserver);
         }
         break;
-      case MASTER:
       case MANAGER:
         for (String manager : getHosts(MANAGER_HOSTS_FILE)) {
           start(server, manager);
@@ -209,7 +208,6 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   @Override
-  @SuppressWarnings("removal")
   public void stopAllServers(ServerType server) throws IOException {
     switch (server) {
       case TABLET_SERVER:
@@ -217,7 +215,6 @@ public class StandaloneClusterControl implements ClusterControl {
           stop(server, tserver);
         }
         break;
-      case MASTER:
       case MANAGER:
         for (String manager : getHosts(MANAGER_HOSTS_FILE)) {
           stop(server, manager);
@@ -311,27 +308,20 @@ public class StandaloneClusterControl implements ClusterControl {
         "'{print \\$2}'", "|", "head", "-1", "|", "tr", "-d", "'\\n'"};
   }
 
-  @SuppressWarnings("removal")
   protected String getProcessString(ServerType server) {
-    switch (server) {
-      case TABLET_SERVER:
-        return "tserver";
-      case GARBAGE_COLLECTOR:
-        return "gc";
-      case MASTER:
-      case MANAGER:
-        return "manager";
-      case MONITOR:
-        return "monitor";
-      default:
-        throw new UnsupportedOperationException("Unhandled ServerType " + server);
-    }
+    return switch (server) {
+      case TABLET_SERVER -> "tserver";
+      case GARBAGE_COLLECTOR -> "gc";
+      case MANAGER -> "manager";
+      case MONITOR -> "monitor";
+      default -> throw new UnsupportedOperationException("Unhandled ServerType " + server);
+    };
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
   protected File getClientConfDir() {
-    File confDir = new File(clientAccumuloConfDir);
+    File confDir = Path.of(clientAccumuloConfDir).toFile();
     if (!confDir.exists() || !confDir.isDirectory()) {
       throw new IllegalStateException(
           "Accumulo client conf dir does not exist or is not a directory: " + confDir);
@@ -342,7 +332,7 @@ public class StandaloneClusterControl implements ClusterControl {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
   protected File getServerConfDir() {
-    File confDir = new File(serverAccumuloConfDir);
+    File confDir = Path.of(serverAccumuloConfDir).toFile();
     if (!confDir.exists() || !confDir.isDirectory()) {
       throw new IllegalStateException(
           "Accumulo server conf dir does not exist or is not a directory: " + confDir);
@@ -354,14 +344,14 @@ public class StandaloneClusterControl implements ClusterControl {
    * Read hosts in file named by 'fn' in Accumulo conf dir
    */
   protected List<String> getHosts(String fn) throws IOException {
-    return getHosts(new File(getServerConfDir(), fn));
+    return getHosts(getServerConfDir().toPath().resolve(fn).toFile());
   }
 
   /**
    * Read the provided file and return all lines which don't start with a '#' character
    */
   protected List<String> getHosts(File f) throws IOException {
-    try (BufferedReader reader = new BufferedReader(new FileReader(f, UTF_8))) {
+    try (BufferedReader reader = Files.newBufferedReader(f.toPath())) {
       List<String> hosts = new ArrayList<>();
       String line;
       while ((line = reader.readLine()) != null) {
@@ -373,24 +363,6 @@ public class StandaloneClusterControl implements ClusterControl {
 
       return hosts;
     }
-  }
-
-  @Override
-  public void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
-
-  @Override
-  public void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
-
-  @Override
-  public void startScanServer(Class<? extends ScanServer> scanServer, int limit, String groupName)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
   }
 
 }

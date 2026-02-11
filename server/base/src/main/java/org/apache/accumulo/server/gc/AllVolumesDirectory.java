@@ -42,8 +42,8 @@ public class AllVolumesDirectory extends ReferenceFile {
   }
 
   @Override
-  public String getMetadataEntry() {
-    return metadataEntry;
+  public String getMetadataPath() {
+    return metadataPath;
   }
 
   @Override

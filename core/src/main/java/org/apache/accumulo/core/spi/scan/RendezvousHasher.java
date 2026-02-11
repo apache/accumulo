@@ -30,8 +30,8 @@ import java.util.Objects;
 import java.util.PriorityQueue;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.hadoop.io.Text;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -40,6 +40,7 @@ import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.base.Preconditions;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
+import com.google.common.net.HostAndPort;
 
 /**
  * Computes and caches the computations of rendezvous hashes to map tablets to scan servers.
@@ -76,12 +77,13 @@ class RendezvousHasher {
 
   private static class CacheKey {
     final Mode mode;
-    final String group;
+    final ResourceGroupId group;
     final TabletId tablet;
     final int desiredServers;
     final String salt;
 
-    private CacheKey(Mode mode, String group, TabletId tablet, int numServers, String salt) {
+    private CacheKey(Mode mode, ResourceGroupId group, TabletId tablet, int numServers,
+        String salt) {
       this.mode = mode;
       this.group = group;
       this.tablet = tablet;
@@ -133,7 +135,7 @@ class RendezvousHasher {
    * servers changes, but may change sometimes. This allows many clients to usually choose the same
    * set of scan servers for a given tablet even as the set of scan servers changes over time.
    */
-  List<String> rendezvous(Mode mode, String group, TabletId tablet, String salt,
+  List<String> rendezvous(Mode mode, ResourceGroupId group, TabletId tablet, String salt,
       int desiredServers) {
     if (mode == Mode.SERVER && desiredServers >= getSnapshot().getServersForGroup(group).size()) {
       // no need to compute rendezvous hash because all servers are wanted

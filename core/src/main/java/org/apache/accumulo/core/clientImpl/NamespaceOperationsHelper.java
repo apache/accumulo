@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 
 public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
@@ -125,40 +126,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
-    Map<String,String> props = Map.copyOf(this.getConfiguration(namespace));
-    IteratorSettingsUtil.validateIteratorScopes(props);
-    for (IteratorScope scope : scopes) {
-      String scopeStr =
-          String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
-      String nameStr = String.format("%s.%s", scopeStr, setting.getName());
-      String optStr = String.format("%s.opt.", nameStr);
-      Map<String,String> optionConflicts = new TreeMap<>();
-
-      if (props.containsKey(nameStr)) {
-        throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
-            + setting.getName() + ": " + nameStr + "=" + props.get(nameStr)));
-      }
-
-      for (IteratorSetting existing : IteratorSettingsUtil.parseIteratorSettings(props, scope,
-          false)) {
-        if (existing.getPriority() == setting.getPriority()) {
-          String key = String.format("%s.%s", scopeStr, existing.getName());
-          String value = props.get(key);
-          throw new AccumuloException(
-              new IllegalArgumentException("iterator priority conflict: " + key + "=" + value));
-        }
-      }
-
-      for (Entry<String,String> property : props.entrySet()) {
-        if (property.getKey().startsWith(optStr)) {
-          optionConflicts.put(property.getKey(), property.getValue());
-        }
-      }
-      if (!optionConflicts.isEmpty()) {
-        throw new AccumuloException(new IllegalArgumentException(
-            "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
-      }
-    }
+    var props = this.getNamespaceProperties(namespace);
+    IteratorConfigUtil.checkIteratorConflicts("namespace:" + namespace, props, setting, scopes);
   }
 
   @Override

@@ -20,9 +20,10 @@ package org.apache.accumulo.shell;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.File;
-import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -61,7 +62,7 @@ public class ShellUtil {
   public static List<Text> scanFile(String filename, boolean decode) throws IOException {
     String line;
     List<Text> result = new ArrayList<>();
-    try (Scanner file = new Scanner(new File(filename), UTF_8)) {
+    try (Scanner file = new Scanner(Path.of(filename), UTF_8)) {
       while (file.hasNextLine()) {
         line = file.nextLine();
         if (!line.isEmpty()) {
@@ -86,8 +87,8 @@ public class ShellUtil {
   public static Map<String,String> readPropertiesFromFile(String filename)
       throws IOException, AccumuloException {
     PropertiesConfiguration config = new PropertiesConfiguration();
-    try (FileReader out = new FileReader(filename, UTF_8)) {
-      config.read(out);
+    try (BufferedReader bufferedReader = Files.newBufferedReader(Path.of(filename))) {
+      config.read(bufferedReader);
     } catch (ConfigurationException e) {
       Shell.log.error("Property file {} contains invalid configuration. Please verify file format",
           filename, e);

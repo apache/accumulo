@@ -18,30 +18,27 @@
  */
 package org.apache.accumulo.gc;
 
-import java.util.Collection;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSection;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.replication.ReplicationSchema;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -55,13 +52,6 @@ import org.junit.jupiter.api.Test;
 
 public class GarbageCollectWriteAheadLogsTest {
 
-  @SuppressWarnings("deprecation")
-  private static final String REPL_TABLE_NAME =
-      org.apache.accumulo.core.replication.ReplicationTable.NAME;
-
-  @SuppressWarnings("deprecation")
-  private static final Text STATUS_SECTION_NAME = ReplicationSchema.StatusSection.NAME;
-
   private final TServerInstance server1 = new TServerInstance("localhost:1234[SESSION]");
   private final TServerInstance server2 = new TServerInstance("localhost:1234[OTHERSESS]");
   private final UUID id = UUID.randomUUID();
@@ -71,32 +61,31 @@ public class GarbageCollectWriteAheadLogsTest {
       Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
   private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
-  private final Collection<Collection<String>> walogs = Collections.emptyList();
-  private final TabletLocationState tabletAssignedToServer1;
-  private final TabletLocationState tabletAssignedToServer2;
+  private final TabletMetadata tabletAssignedToServer1;
+  private final TabletMetadata tabletAssignedToServer2;
 
   {
     try {
-      tabletAssignedToServer1 = new TabletLocationState(extent, null, Location.current(server1),
-          null, null, walogs, false);
-      tabletAssignedToServer2 = new TabletLocationState(extent, null, Location.current(server2),
-          null, null, walogs, false);
+      tabletAssignedToServer1 =
+          TabletMetadata.builder(extent).putLocation(Location.current(server1))
+              .putTabletAvailability(TabletAvailability.HOSTED).build(LAST, SUSPEND, LOGS);
+      tabletAssignedToServer2 =
+          TabletMetadata.builder(extent).putLocation(Location.current(server2))
+              .putTabletAvailability(TabletAvailability.UNHOSTED).build(LAST, SUSPEND, LOGS);
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
   }
 
-  private final Stream<TabletLocationState> tabletOnServer1List =
-      Stream.of(tabletAssignedToServer1);
-  private final Stream<TabletLocationState> tabletOnServer2List =
-      Stream.of(tabletAssignedToServer2);
-  private final Iterator<Entry<Key,Value>> emptyKV = Collections.emptyIterator();
+  private final Stream<TabletMetadata> tabletOnServer1List = Stream.of(tabletAssignedToServer1);
+  private final Stream<TabletMetadata> tabletOnServer2List = Stream.of(tabletAssignedToServer2);
 
   @Test
   public void testRemoveUnusedLog() throws Exception {
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    EasyMock.expect(fs.moveToTrash(EasyMock.anyObject())).andReturn(false).anyTimes();
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
 
@@ -114,20 +103,21 @@ public class GarbageCollectWriteAheadLogsTest {
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
     EasyMock.replay(conf, context, fs, marker, tserverSet);
-    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false, marker,
-        tabletOnServer1List) {
-      @Override
-      @Deprecated
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-        return 0;
-      }
-
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
+
+      @Override
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
+        return tabletOnServer1List;
+      }
     };
     gc.collect(status);
+    assertThrows(IllegalStateException.class, () -> gc.collect(status),
+        "Should only be able to call collect once");
+
     EasyMock.verify(conf, context, fs, marker, tserverSet);
   }
 
@@ -150,17 +140,16 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
     EasyMock.replay(conf, context, marker, tserverSet, fs);
-    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false, marker,
-        tabletOnServer1List) {
-      @Override
-      @Deprecated
-      protected int removeReplicationEntries(Map<UUID,TServerInstance> candidates) {
-        return 0;
-      }
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
 
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
+      }
+
+      @Override
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
+        return tabletOnServer1List;
       }
     };
     gc.collect(status);
@@ -172,10 +161,9 @@ public class GarbageCollectWriteAheadLogsTest {
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    EasyMock.expect(fs.moveToTrash(EasyMock.anyObject())).andReturn(false).anyTimes();
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Scanner mscanner = EasyMock.createMock(Scanner.class);
-    Scanner rscanner = EasyMock.createMock(Scanner.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
@@ -188,34 +176,25 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
-    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
-        .andReturn(rscanner);
-    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
-
-    EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-        .andReturn(mscanner);
-    mscanner.fetchColumnFamily(ReplicationSection.COLF);
-    EasyMock.expectLastCall().once();
-    mscanner.setRange(ReplicationSection.getRange());
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
     marker.removeWalMarker(server2, id);
     EasyMock.expectLastCall().once();
     marker.forget(server2);
     EasyMock.expectLastCall().once();
-    EasyMock.replay(conf, context, fs, marker, tserverSet, rscanner, mscanner);
-    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false, marker,
-        tabletOnServer1List) {
+    EasyMock.replay(conf, context, fs, marker, tserverSet);
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
       }
+
+      @Override
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
+        return tabletOnServer1List;
+      }
     };
     gc.collect(status);
-    EasyMock.verify(conf, context, fs, marker, tserverSet, rscanner, mscanner);
+    EasyMock.verify(conf, context, fs, marker, tserverSet);
   }
 
   @Test
@@ -225,8 +204,6 @@ public class GarbageCollectWriteAheadLogsTest {
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
     LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Scanner mscanner = EasyMock.createMock(Scanner.class);
-    Scanner rscanner = EasyMock.createMock(Scanner.class);
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
@@ -239,79 +216,22 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
-    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
-        .andReturn(rscanner);
-    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
+    EasyMock.replay(conf, context, fs, marker, tserverSet);
+    GarbageCollectWriteAheadLogs gc =
+        new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
+          @Override
+          protected Map<UUID,Path> getSortedWALogs() {
+            return Collections.emptyMap();
+          }
 
-    EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-        .andReturn(mscanner);
-    mscanner.fetchColumnFamily(ReplicationSection.COLF);
-    EasyMock.expectLastCall().once();
-    mscanner.setRange(ReplicationSection.getRange());
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(mscanner.iterator()).andReturn(emptyKV);
-    EasyMock.replay(conf, context, fs, marker, tserverSet, rscanner, mscanner);
-    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false, marker,
-        tabletOnServer2List) {
-      @Override
-      protected Map<UUID,Path> getSortedWALogs() {
-        return Collections.emptyMap();
-      }
-    };
+          @Override
+          Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
+            return tabletOnServer2List;
+          }
+        };
     gc.collect(status);
-    EasyMock.verify(conf, context, fs, marker, tserverSet, rscanner, mscanner);
+
+    EasyMock.verify(conf, context, fs, marker, tserverSet);
   }
 
-  @Test
-  public void replicationDelaysFileCollection() throws Exception {
-    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
-    ServerContext context = EasyMock.createMock(ServerContext.class);
-    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
-    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
-    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
-    Scanner mscanner = EasyMock.createMock(Scanner.class);
-    Scanner rscanner = EasyMock.createMock(Scanner.class);
-    String row = ReplicationSection.getRowPrefix() + path;
-    String colf = ReplicationSection.COLF.toString();
-    String colq = "1";
-    Map<Key,Value> replicationWork =
-        Collections.singletonMap(new Key(row, colf, colq), new Value());
-
-    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
-
-    EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
-    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
-    tserverSet.scanServers();
-    EasyMock.expectLastCall();
-    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
-
-    EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
-    EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.UNREFERENCED, path));
-
-    EasyMock.expect(context.createScanner(REPL_TABLE_NAME, Authorizations.EMPTY))
-        .andReturn(rscanner);
-    rscanner.fetchColumnFamily(STATUS_SECTION_NAME);
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(rscanner.iterator()).andReturn(emptyKV);
-
-    EasyMock.expect(context.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-        .andReturn(mscanner);
-    mscanner.fetchColumnFamily(ReplicationSection.COLF);
-    EasyMock.expectLastCall().once();
-    mscanner.setRange(ReplicationSection.getRange());
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(mscanner.iterator()).andReturn(replicationWork.entrySet().iterator());
-    EasyMock.replay(conf, context, fs, marker, tserverSet, rscanner, mscanner);
-    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, false, marker,
-        tabletOnServer1List) {
-      @Override
-      protected Map<UUID,Path> getSortedWALogs() {
-        return Collections.emptyMap();
-      }
-    };
-    gc.collect(status);
-    EasyMock.verify(conf, context, fs, marker, tserverSet, rscanner, mscanner);
-  }
 }

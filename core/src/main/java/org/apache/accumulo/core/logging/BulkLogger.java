@@ -20,11 +20,10 @@ package org.apache.accumulo.core.logging;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -36,15 +35,15 @@ import org.slf4j.LoggerFactory;
 public class BulkLogger {
   private static final Logger log = LoggerFactory.getLogger(Logging.PREFIX + "bulk");
 
-  public static void initiating(long fateId, TableId tableId, boolean setTime, String sourceDir,
+  public static void initiating(FateId fateId, TableId tableId, boolean setTime, String sourceDir,
       String destinationDir) {
     // Log the key pieces of information about a bulk import in a single log message to tie them all
     // together.
-    log.info("{} initiating bulk import, tableId:{} setTime:{} source:{} destination:{}",
-        FateTxId.formatTid(fateId), tableId, setTime, sourceDir, destinationDir);
+    log.info("{} initiating bulk import, tableId:{} setTime:{} source:{} destination:{}", fateId,
+        tableId, setTime, sourceDir, destinationDir);
   }
 
-  public static void renamed(String fateId, Path source, Path destination) {
+  public static void renamed(FateId fateId, Path source, Path destination) {
     // The initiating message logged the full directory paths, so do not need to repeat that
     // information here. Log the bulk destination directory as it is unique and easy to search for.
     log.debug("{} renamed {} to {}/{}", fateId, source.getName(), destination.getParent().getName(),
@@ -58,14 +57,11 @@ public class BulkLogger {
    * {@link TabletLogger#bulkImported(KeyExtent, TabletFile)} except that it will happen on the
    * manager instead of the tserver.
    */
-  public static void deletingLoadEntry(Map.Entry<Key,Value> entry) {
+  public static void deletingLoadEntry(KeyExtent extent, Map.Entry<StoredTabletFile,FateId> entry) {
     if (log.isTraceEnabled()) {
-      var key = entry.getKey();
-      // the column qualifier contains the file loaded
-      var path = new Path(key.getColumnQualifierData().toString());
-      // the value is the fate id
+      var path = entry.getKey().getPath();
       log.trace("{} loaded {}/{} into {}", entry.getValue(), path.getParent().getName(),
-          path.getName(), key.getRowData());
+          path.getName(), extent);
     }
   }
 }

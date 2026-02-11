@@ -30,7 +30,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -43,10 +45,6 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.io.Text;
@@ -96,14 +94,14 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
   private final Logger log = LoggerFactory.getLogger(getClass());
 
-  protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
+  protected final ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
   protected boolean scanning;
   protected Range seekRange;
   protected Collection<ByteSequence> seekColumnFamilies;
   protected boolean seekColumnFamiliesInclusive;
 
-  private VisibilityEvaluator ve = null;
+  private BytesAccess.BytesEvaluator ve = null;
   private LRUMap<ByteSequence,Boolean> visibleCache = null;
   private LRUMap<ByteSequence,Boolean> parsedVisibilitiesCache = null;
   private long maxBufferSize;
@@ -119,7 +117,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     if (scanning) {
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
-        ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(UTF_8)));
+        ve = BytesAccess.newEvaluator(new Authorizations(auths.getBytes(UTF_8)));
         visibleCache = new LRUMap<>(100);
       }
     }
@@ -177,8 +175,8 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
     try {
       copy = getClass().getDeclaredConstructor().newInstance();
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    } catch (ReflectiveOperationException e) {
+      throw new IllegalStateException(e);
     }
 
     copy.setSource(getSource().deepCopy(env));
@@ -410,13 +408,12 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     // Ensure that the visibility (which could have been transformed) parses. Must always do this
     // check, even if visibility is not evaluated.
     ByteSequence visibility = key.getColumnVisibilityData();
-    ColumnVisibility colVis = null;
     Boolean parsed = parsedVisibilitiesCache.get(visibility);
     if (parsed == null) {
       try {
-        colVis = new ColumnVisibility(visibility.toArray());
+        BytesAccess.validate(visibility.toArray());
         parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
-      } catch (BadArgumentException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse error after transformation : {}", visibility);
         parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
         if (scanning) {
@@ -442,12 +439,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     visible = visibleCache.get(visibility);
     if (visible == null) {
       try {
-        if (colVis == null) {
-          colVis = new ColumnVisibility(visibility.toArray());
-        }
-        visible = ve.evaluate(colVis);
+        visible = ve.canAccess(visibility.toArray());
         visibleCache.put(visibility, visible);
-      } catch (VisibilityParseException | BadArgumentException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error", e);
         visible = Boolean.FALSE;
       }
@@ -515,25 +509,20 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    */
   protected boolean isSetAfterPart(Key key, PartialKey part) {
     if (key != null) {
-      switch (part) {
-        case ROW:
-          return key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0
+      return switch (part) {
+        case ROW ->
+          key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0
               || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
               || key.isDeleted();
-        case ROW_COLFAM:
-          return key.getColumnQualifierData().length() > 0
-              || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-              || key.isDeleted();
-        case ROW_COLFAM_COLQUAL:
-          return key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-              || key.isDeleted();
-        case ROW_COLFAM_COLQUAL_COLVIS:
-          return key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
-        case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-          return key.isDeleted();
-        case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL:
-          return false;
-      }
+        case ROW_COLFAM ->
+          key.getColumnQualifierData().length() > 0 || key.getColumnVisibilityData().length() > 0
+              || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL -> key.getColumnVisibilityData().length() > 0
+            || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS -> key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS_TIME -> key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> false;
+      };
     }
     return false;
   }
@@ -548,28 +537,17 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    * @return the new key containing {@code part} of {@code key}
    */
   protected Key copyPartialKey(Key key, PartialKey part) {
-    Key keyCopy;
-    switch (part) {
-      case ROW:
-        keyCopy = new Key(key.getRow());
-        break;
-      case ROW_COLFAM:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily());
-        break;
-      case ROW_COLFAM_COLQUAL:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier());
-        break;
-      case ROW_COLFAM_COLQUAL_COLVIS:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-            key.getColumnVisibility());
-        break;
-      case ROW_COLFAM_COLQUAL_COLVIS_TIME:
-        keyCopy = new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-            key.getColumnVisibility(), key.getTimestamp());
-        break;
-      default:
-        throw new IllegalArgumentException("Unsupported key part: " + part);
-    }
+    Key keyCopy = switch (part) {
+      case ROW -> new Key(key.getRow());
+      case ROW_COLFAM -> new Key(key.getRow(), key.getColumnFamily());
+      case ROW_COLFAM_COLQUAL ->
+        new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier());
+      case ROW_COLFAM_COLQUAL_COLVIS -> new Key(key.getRow(), key.getColumnFamily(),
+          key.getColumnQualifier(), key.getColumnVisibility());
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME -> new Key(key.getRow(), key.getColumnFamily(),
+          key.getColumnQualifier(), key.getColumnVisibility(), key.getTimestamp());
+      default -> throw new IllegalArgumentException("Unsupported key part: " + part);
+    };
     return keyCopy;
   }
 

@@ -28,12 +28,13 @@ import java.util.Properties;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -48,7 +49,7 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(3);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(3);
   }
 
   @SuppressFBWarnings(value = "UNENCRYPTED_SOCKET",
@@ -63,9 +64,9 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
       }
       c.tableOperations().list();
       String zooKeepers = ClientProperty.INSTANCE_ZOOKEEPERS.getValue(props);
-      // base number of watchers 110 to 125, and 15 to 20 per table in a single-node instance.
-      final long MIN = 125L;
-      final long MAX = 250L;
+      // expect about 30-45 base + about 12 per table in a single-node 3-tserver instance
+      final long MIN = 75L;
+      final long MAX = 300L;
       long total = 0;
       final HostAndPort hostAndPort = HostAndPort.fromString(zooKeepers);
       for (int i = 0; i < 5; i++) {
@@ -79,11 +80,13 @@ public class WatchTheWatchCountIT extends ConfigurableMacBase {
           if (total > MIN && total < MAX) {
             break;
           }
-          log.debug("Expected number of watchers to be contained in ({}, {}), but"
-              + " actually was {}. Sleeping and retrying", MIN, MAX, total);
+          log.debug("Expected number of watchers to be contained in ({}, {}), currently have {}"
+              + ". Sleeping and retrying", MIN, MAX, total);
           Thread.sleep(5000);
         }
       }
+      log.info("Number of watchers to be expected in range: ({}, {}), currently have {}", MIN, MAX,
+          total);
 
       assertTrue(total > MIN && total < MAX, "Expected number of watchers to be contained in ("
           + MIN + ", " + MAX + "), but actually was " + total);

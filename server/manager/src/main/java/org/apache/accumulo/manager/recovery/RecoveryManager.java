@@ -22,13 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -36,10 +36,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.manager.recovery.HadoopLogCloser;
@@ -51,8 +51,7 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
 
 public class RecoveryManager {
 
@@ -64,21 +63,20 @@ public class RecoveryManager {
   private final Cache<Path,Boolean> existenceCache;
   private final ScheduledExecutorService executor;
   private final Manager manager;
-  private final ZooCache zooCache;
 
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
-    existenceCache =
-        CacheBuilder.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
+    existenceCache = this.manager.getContext().getCaches()
+        .createNewBuilder(CacheName.RECOVERY_MANAGER_PATH_CACHE, true)
+        .expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+        .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor =
         ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "Walog sort starter");
-    zooCache = new ZooCache(manager.getContext().getZooReader(), null);
     try {
       List<String> workIDs =
-          new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
-              manager.getConfiguration(), manager).getWorkQueued();
+          new DistributedWorkQueue(Constants.ZRECOVERY, manager.getConfiguration(), manager)
+              .getWorkQueued();
       sortsQueued.addAll(workIDs);
     } catch (Exception e) {
       log.warn("{}", e.getMessage(), e);
@@ -130,21 +128,26 @@ public class RecoveryManager {
   private void initiateSort(String sortId, String source, final String destination)
       throws KeeperException, InterruptedException {
     String work = source + "|" + destination;
-    new DistributedWorkQueue(manager.getZooKeeperRoot() + Constants.ZRECOVERY,
-        manager.getConfiguration(), manager).addWork(sortId, work.getBytes(UTF_8));
+    new DistributedWorkQueue(Constants.ZRECOVERY, manager.getConfiguration(), manager)
+        .addWork(sortId, work.getBytes(UTF_8));
 
     synchronized (this) {
       sortsQueued.add(sortId);
     }
 
-    final String path = manager.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId;
-    log.info("Created zookeeper entry {} with data {}", path, work);
+    log.info("Created zookeeper entry {} with data {}", Constants.ZRECOVERY + "/" + sortId, work);
   }
 
   private boolean exists(final Path path) throws IOException {
     try {
-      return existenceCache.get(path, () -> manager.getVolumeManager().exists(path));
-    } catch (ExecutionException e) {
+      return existenceCache.get(path, k -> {
+        try {
+          return manager.getVolumeManager().exists(path);
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+      });
+    } catch (UncheckedIOException e) {
       throw new IOException(e);
     }
   }
@@ -152,46 +155,43 @@ public class RecoveryManager {
   // caches per log recovery decisions for its lifetime
   public class RecoverySession {
 
-    private HashMap<String,Boolean> needsRecovery = new HashMap<>();
+    private HashMap<LogEntry,Boolean> needsRecovery = new HashMap<>();
 
-    public boolean recoverLogs(Collection<Collection<String>> walogs) throws IOException {
+    public boolean recoverLogs(Collection<LogEntry> walogs) throws IOException {
       boolean recoveryNeeded = false;
 
-      for (Collection<String> logs : walogs) {
-        for (String walog : logs) {
-          var logNeedsRecovery = needsRecovery.get(walog);
-          if (logNeedsRecovery == null) {
-            logNeedsRecovery = recoverLog(walog);
-            needsRecovery.put(walog, logNeedsRecovery);
-          }
-          recoveryNeeded |= logNeedsRecovery;
+      for (LogEntry walog : walogs) {
+        var logNeedsRecovery = needsRecovery.get(walog);
+        if (logNeedsRecovery == null) {
+          logNeedsRecovery = recoverLog(walog);
+          needsRecovery.put(walog, logNeedsRecovery);
         }
+        recoveryNeeded |= logNeedsRecovery;
       }
-
       return recoveryNeeded;
     }
+
   }
 
   public RecoverySession newRecoverySession() {
     return new RecoverySession();
   }
 
-  private boolean recoverLog(String walog) throws IOException {
+  private boolean recoverLog(LogEntry walog) throws IOException {
     boolean recoveryNeeded = false;
 
-    Path switchedWalog =
-        VolumeUtil.switchVolume(walog, FileType.WAL, manager.getContext().getVolumeReplacements());
+    LogEntry switchedWalog =
+        VolumeUtil.switchVolume(walog, manager.getContext().getVolumeReplacements());
     if (switchedWalog != null) {
       // replaces the volume used for sorting, but do not change entry in metadata table. When
       // the tablet loads it will change the metadata table entry. If
       // the tablet has the same replacement config, then it will find the sorted log.
       log.info("Volume replaced {} -> {}", walog, switchedWalog);
-      walog = switchedWalog.toString();
+      walog = switchedWalog;
     }
 
-    String[] parts = walog.split("/");
-    String sortId = parts[parts.length - 1];
-    String filename = new Path(walog).toString();
+    String sortId = walog.getUniqueID().toString();
+    String filename = walog.getPath();
     String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
 
     boolean sortQueued;
@@ -200,7 +200,8 @@ public class RecoveryManager {
     }
 
     if (sortQueued
-        && zooCache.get(manager.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId) == null) {
+        && this.manager.getContext().getZooCache().get(Constants.ZRECOVERY + "/" + sortId)
+            == null) {
       synchronized (this) {
         sortsQueued.remove(sortId);
       }
@@ -213,17 +214,15 @@ public class RecoveryManager {
         sortsQueued.remove(sortId);
       }
       return false;
+      // was continue;
     }
 
     recoveryNeeded = true;
     synchronized (this) {
       if (!closeTasksQueued.contains(sortId) && !sortsQueued.contains(sortId)) {
         AccumuloConfiguration aconf = manager.getConfiguration();
-        @SuppressWarnings("deprecation")
         LogCloser closer = Property.createInstanceFromPropertyName(aconf,
-            aconf.resolve(Property.MANAGER_WAL_CLOSER_IMPLEMENTATION,
-                Property.MANAGER_WALOG_CLOSER_IMPLEMETATION),
-            LogCloser.class, new HadoopLogCloser());
+            Property.MANAGER_WAL_CLOSER_IMPLEMENTATION, LogCloser.class, new HadoopLogCloser());
         Long delay = recoveryDelay.get(sortId);
         if (delay == null) {
           delay = aconf.getTimeInMillis(Property.MANAGER_RECOVERY_DELAY);

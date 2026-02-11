@@ -104,6 +104,15 @@ public class KeyBuilder {
      * Set the row of the {@link Key} that this builder will build to the parameter.
      *
      * @param row the row to use for the key
+     * @return this builder
+     * @since 4.0.0
+     */
+    ColumnFamilyStep row(final ByteSequence row);
+
+    /**
+     * Set the row of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param row the row to use for the key
      * @param offset the offset within the array of the first byte to be read; must be non-negative
      *        and no larger than row.length
      * @param length the number of bytes to be read from the given array; must be non-negative and
@@ -135,6 +144,15 @@ public class KeyBuilder {
      * @return this builder
      */
     ColumnQualifierStep family(final byte[] columnFamily);
+
+    /**
+     * Set the column family of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnFamily the column family to use for the {@link Key}
+     * @return this builder
+     * @since 4.0.0
+     */
+    ColumnQualifierStep family(final ByteSequence columnFamily);
 
     /**
      * Set the column family of the {@link Key} that this builder will build to the parameter.
@@ -184,6 +202,15 @@ public class KeyBuilder {
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
      *
      * @param columnQualifier the column qualifier to use for the {@link Key}
+     * @return this builder
+     * @since 4.0.0
+     */
+    ColumnVisibilityStep qualifier(final ByteSequence columnQualifier);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnQualifier the column qualifier to use for the {@link Key}
      * @param offset the offset within the array of the first byte to be read; must be non-negative
      *        and no larger than row.length
      * @param length the number of bytes to be read from the given array; must be non-negative and
@@ -224,6 +251,15 @@ public class KeyBuilder {
      * @return this builder
      */
     Build visibility(final byte[] columnVisibility);
+
+    /**
+     * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
+     *
+     * @param columnVisibility the column visibility to use for the {@link Key}
+     * @return this builder
+     * @since 4.0.0
+     */
+    Build visibility(ByteSequence columnVisibility);
 
     /**
      * Set the column qualifier of the {@link Key} that this builder will build to the parameter.
@@ -313,6 +349,19 @@ public class KeyBuilder {
     }
 
     @Override
+    public ColumnFamilyStep row(ByteSequence row) {
+      if (row.isBackedByArray()) {
+        this.row = row.getBackingArray();
+        this.rowOffset = row.offset();
+      } else {
+        this.row = row.toArray();
+        this.rowOffset = 0;
+      }
+      this.rowLength = row.length();
+      return this;
+    }
+
+    @Override
     public ColumnFamilyStep row(final Text row) {
       return row(row.getBytes(), 0, row.getLength());
     }
@@ -333,6 +382,19 @@ public class KeyBuilder {
     @Override
     public ColumnQualifierStep family(final byte[] family) {
       return family(family, 0, family.length);
+    }
+
+    @Override
+    public ColumnQualifierStep family(ByteSequence columnFamily) {
+      if (columnFamily.isBackedByArray()) {
+        this.family = columnFamily.getBackingArray();
+        this.familyOffset = columnFamily.offset();
+      } else {
+        this.family = columnFamily.toArray();
+        this.familyOffset = 0;
+      }
+      this.familyLength = columnFamily.length();
+      return this;
     }
 
     @Override
@@ -359,6 +421,19 @@ public class KeyBuilder {
     }
 
     @Override
+    public ColumnVisibilityStep qualifier(ByteSequence columnQualifier) {
+      if (columnQualifier.isBackedByArray()) {
+        this.qualifier = columnQualifier.getBackingArray();
+        this.qualifierOffset = columnQualifier.offset();
+      } else {
+        this.qualifier = columnQualifier.toArray();
+        this.qualifierOffset = 0;
+      }
+      this.qualifierLength = columnQualifier.length();
+      return this;
+    }
+
+    @Override
     public ColumnVisibilityStep qualifier(Text qualifier) {
       return qualifier(qualifier.getBytes(), 0, qualifier.getLength());
     }
@@ -379,6 +454,19 @@ public class KeyBuilder {
     @Override
     public Build visibility(final byte[] visibility) {
       return visibility(visibility, 0, visibility.length);
+    }
+
+    @Override
+    public Build visibility(ByteSequence columnVisibility) {
+      if (columnVisibility.isBackedByArray()) {
+        this.visibility = columnVisibility.getBackingArray();
+        this.visibilityOffset = columnVisibility.offset();
+      } else {
+        this.visibility = columnVisibility.toArray();
+        this.visibilityOffset = 0;
+      }
+      this.visibilityLength = columnVisibility.length();
+      return this;
     }
 
     @Override

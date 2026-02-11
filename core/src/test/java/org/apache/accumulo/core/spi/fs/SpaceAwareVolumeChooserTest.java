@@ -31,8 +31,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.util.concurrent.UncheckedExecutionException;
-
 public class SpaceAwareVolumeChooserTest {
 
   VolumeChooserEnvironment chooserEnv = null;
@@ -124,7 +122,7 @@ public class SpaceAwareVolumeChooserTest {
   @Test
   public void testNoFreeSpace() {
     testSpecificSetup(0L, 0L, null, 1, false);
-    assertThrows(UncheckedExecutionException.class, this::makeChoices);
+    assertThrows(IllegalStateException.class, this::makeChoices);
   }
 
   @Test

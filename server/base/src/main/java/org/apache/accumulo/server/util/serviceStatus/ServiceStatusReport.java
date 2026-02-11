@@ -18,26 +18,61 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
+
+import java.lang.reflect.Field;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * Wrapper for JSON formatted report.
  */
 public class ServiceStatusReport {
 
+  private static class HostExclusionStrategy implements ExclusionStrategy {
+
+    private final static String field = "serviceByGroups";
+    private final Field fieldToIgnore;
+
+    public HostExclusionStrategy() {
+      try {
+        fieldToIgnore = StatusSummary.class.getDeclaredField(field);
+      } catch (NoSuchFieldException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public boolean shouldSkipField(FieldAttributes f) {
+      if (f.getDeclaringClass().equals(StatusSummary.class)
+          && f.getName().equals(fieldToIgnore.getName())) {
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public boolean shouldSkipClass(Class<?> clazz) {
+      return false;
+    }
+
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusReport.class);
 
-  private static final Gson gson = new Gson();
+  private static final Gson gson = GSON.get();
 
   private static final DateTimeFormatter rptTimeFmt =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -49,6 +84,16 @@ public class ServiceStatusReport {
   private final int zkReadErrors;
   private final boolean showHosts;
   private final Map<ReportKey,StatusSummary> summaries;
+
+  // Gson requires a default constructor when JDK Unsafe usage is disabled
+  @SuppressWarnings("unused")
+  private ServiceStatusReport() {
+    reportTime = "";
+    zkReadErrors = 0;
+    showHosts = false;
+    summaries = Map.<ReportKey,StatusSummary>of();
+
+  }
 
   public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries,
       final boolean showHosts) {
@@ -75,11 +120,9 @@ public class ServiceStatusReport {
     if (showHosts) {
       return gson.toJson(this, ServiceStatusReport.class);
     } else {
-      Map<ReportKey,StatusSummary> noHostSummaries =
-          summaries.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-              e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
-      ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
-      return gson.toJson(noHostReport, ServiceStatusReport.class);
+      return new GsonBuilder().disableJdkUnsafe()
+          .setExclusionStrategies(new HostExclusionStrategy()).create()
+          .toJson(this, ServiceStatusReport.class);
     }
   }
 
@@ -94,12 +137,11 @@ public class ServiceStatusReport {
         .reduce(Integer::sum).orElse(0);
     sb.append("ZooKeeper read errors: ").append(zkErrors).append("\n");
 
-    fmtServiceStatus(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), showHosts);
-    fmtServiceStatus(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), showHosts);
-    fmtServiceStatus(sb, ReportKey.GC, summaries.get(ReportKey.GC), showHosts);
-    fmtServiceStatus(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), showHosts);
+    fmtResourceGroups(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), showHosts);
+    fmtResourceGroups(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), showHosts);
+    fmtResourceGroups(sb, ReportKey.GC, summaries.get(ReportKey.GC), showHosts);
+    fmtResourceGroups(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), showHosts);
     fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), showHosts);
-    fmtServiceStatus(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), showHosts);
     fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), showHosts);
 
     sb.append("\n");
@@ -107,6 +149,12 @@ public class ServiceStatusReport {
     return sb.toString();
   }
 
+  /**
+   * This method can be used instead of
+   * {@link #fmtResourceGroups(StringBuilder, ReportKey, StatusSummary, boolean)} if there are
+   * services that do not make sense to group by a resource group. With the data in ServiceLock, all
+   * services has at least the default group.
+   */
   private void fmtServiceStatus(final StringBuilder sb, final ReportKey displayNames,
       final StatusSummary summary, boolean showHosts) {
     if (summary == null) {
@@ -120,10 +168,10 @@ public class ServiceStatusReport {
     if (!showHosts) {
       return;
     }
-
+    sb.append(I2).append("resource group: (default)").append("\n");
     if (summary.getServiceCount() > 0) {
       var hosts = summary.getServiceByGroups();
-      hosts.values().forEach(s -> s.forEach(h -> sb.append(I2).append(h).append("\n")));
+      hosts.values().forEach(s -> s.forEach(h -> sb.append(I4).append(h).append("\n")));
     }
   }
 
@@ -142,25 +190,34 @@ public class ServiceStatusReport {
       sb.append(reportKey).append(": unavailable").append("\n");
       return;
     }
+    // only default group is present, omit grouping from report
+    if (!summary.getResourceGroups().isEmpty()
+        && summary.getResourceGroups().keySet().equals(Set.of(DEFAULT_RESOURCE_GROUP_NAME))) {
+      fmtServiceStatus(sb, reportKey, summary, showHosts);
+      return;
+    }
 
     fmtCounts(sb, summary);
 
-    // add summary info only when not displaying the hosts
-    if (!summary.getResourceGroups().isEmpty() && !showHosts) {
-      sb.append(I2).append("resource groups:\n");
-      summary.getResourceGroups().forEach(
-          (group, size) -> sb.append(I4).append(group).append(": ").append(size).append("\n"));
-    }
+    if (!summary.getResourceGroups().isEmpty()) {
 
-    if (summary.getServiceCount() > 0 && showHosts) {
-      var groups = summary.getServiceByGroups();
-      sb.append(I2).append("hosts (by group):\n");
-      groups.forEach((g, h) -> {
-        sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
-        h.forEach(n -> {
-          sb.append(I6).append(n).append("\n");
+      // add summary info only when not displaying the hosts
+      if (!summary.getResourceGroups().isEmpty() && !showHosts) {
+        sb.append(I2).append("resource groups:\n");
+        summary.getResourceGroups().forEach(
+            (group, size) -> sb.append(I4).append(group).append(": ").append(size).append("\n"));
+      }
+
+      if (summary.getServiceCount() > 0 && showHosts) {
+        var groups = summary.getServiceByGroups();
+        sb.append(I2).append("hosts (by group):\n");
+        groups.forEach((g, h) -> {
+          sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
+          h.forEach(n -> {
+            sb.append(I6).append(n).append("\n");
+          });
         });
-      });
+      }
     }
   }
 
@@ -172,7 +229,6 @@ public class ServiceStatusReport {
 
   public enum ReportKey {
     COMPACTOR("Compactors"),
-    COORDINATOR("Coordinators"),
     GC("Garbage Collectors"),
     MANAGER("Managers"),
     MONITOR("Monitors"),

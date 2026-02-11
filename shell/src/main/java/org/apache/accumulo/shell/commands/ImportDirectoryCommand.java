@@ -41,11 +41,9 @@ public class ImportDirectoryCommand extends Command {
         + " sets the time. If the -i ignore option is supplied then no exception will be thrown"
         + " when attempting to import files from an empty source directory. An info log message"
         + " will be displayed indicating the source directory is empty, but no error is thrown.\n"
-        + " Passing 3 arguments will use the old bulk import. The new bulk import only takes"
-        + " 2 arguments:  <directory> true|false";
+        + " Bulk import only takes 2 arguments:  <directory> true|false";
   }
 
-  @SuppressWarnings("deprecation")
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws IOException, AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -54,50 +52,22 @@ public class ImportDirectoryCommand extends Command {
     final boolean ignore = OptUtil.getIgnoreEmptyDirOpt(cl, shellState);
 
     String[] args = cl.getArgs();
-    boolean setTime;
-    String dir = args.length > 0 ? args[0] : "";
+    String dir = args[0];
+    boolean setTime = Boolean.parseBoolean(cl.getArgs()[1]);
     int status = 0;
-
-    switch (args.length) {
-      case 2: {
-        // new bulk import only takes 2 args
-        setTime = Boolean.parseBoolean(cl.getArgs()[1]);
-        shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
-            .tableTime(setTime).ignoreEmptyDir(ignore).load();
-        break;
-      }
-      case 3: {
-        // warn using deprecated bulk import
-        Shell.log.warn(
-            "Deprecated since 2.0.0. New bulk import technique does not take a failure directory "
-                + "as an argument.");
-        String failureDir = args[1];
-        setTime = Boolean.parseBoolean(cl.getArgs()[2]);
-        shellState.getAccumuloClient().tableOperations().importDirectory(tableName, dir, failureDir,
-            setTime);
-        break;
-      }
-      default: {
-        shellState.printException(
-            new IllegalArgumentException(String.format("Expected 2 or 3 arguments. There %s %d.",
-                args.length == 1 ? "was" : "were", args.length)));
-        printHelp(shellState);
-        status = 1;
-        break;
-      }
-    }
-
+    shellState.getAccumuloClient().tableOperations().importDirectory(dir).to(tableName)
+        .tableTime(setTime).ignoreEmptyDir(ignore).load();
     return status;
   }
 
   @Override
   public int numArgs() {
-    return Shell.NO_FIXED_ARG_LENGTH_CHECK;
+    return 2;
   }
 
   @Override
   public String usage() {
-    return getName() + " <directory> [failureDirectory] true|false";
+    return getName() + " <directory> true|false";
   }
 
   @Override

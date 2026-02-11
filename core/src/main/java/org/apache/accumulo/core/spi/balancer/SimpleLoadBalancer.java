@@ -57,12 +57,6 @@ import org.slf4j.LoggerFactory;
  * if possible, but otherwise assignments are made in a random fashion across all available tablet
  * servers.
  *
- * <p>
- * This balancer replaces the deprecated
- * org.apache.accumulo.server.master.balancer.DefaultLoadBalancer which will be removed in a future
- * release. This balancer has the same functionality but uses the stable SPI which does not expose
- * internal types on public methods.
- *
  * @since 2.1.0
  */
 public class SimpleLoadBalancer implements TabletBalancer {
@@ -271,11 +265,11 @@ public class SimpleLoadBalancer implements TabletBalancer {
         log.error("Unable to select a tablet to move", ex);
         return result;
       }
-      TabletId tabletId = selectTablet(onlineTabletsForTable);
-      onlineTabletsForTable.remove(tabletId);
-      if (tabletId == null) {
+      if (onlineTabletsForTable.isEmpty()) {
         return result;
       }
+      TabletId tabletId = onlineTabletsForTable.keySet().iterator().next();
+      onlineTabletsForTable.remove(tabletId);
       tooMuchMap.put(table, tooMuchMap.get(table) - 1);
       /*
        * If a table grows from 1 tablet then tooLittleMap.get(table) can return a null, since there
@@ -330,21 +324,6 @@ public class SimpleLoadBalancer implements TabletBalancer {
     return result;
   }
 
-  static TabletId selectTablet(Map<TabletId,TabletStatistics> extents) {
-    if (extents.isEmpty()) {
-      return null;
-    }
-    TabletId mostRecentlySplit = null;
-    long splitTime = 0;
-    for (Entry<TabletId,TabletStatistics> entry : extents.entrySet()) {
-      if (entry.getValue().getSplitCreationTime() >= splitTime) {
-        splitTime = entry.getValue().getSplitCreationTime();
-        mostRecentlySplit = entry.getKey();
-      }
-    }
-    return mostRecentlySplit;
-  }
-
   // define what it means for a tablet to be busy
   private static TableId busiest(Map<String,TableStatistics> tables) {
     TableId result = null;
@@ -362,6 +341,10 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   @Override
   public void getAssignments(AssignmentParameters params) {
+    if (params.currentStatus().isEmpty()) {
+      log.debug("No known TabletServers, skipping tablet assignment for now.");
+      return;
+    }
     params.unassignedTablets().forEach((tabletId, tserverId) -> params.addAssignment(tabletId,
         getAssignment(params.currentStatus(), tserverId)));
   }

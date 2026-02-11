@@ -48,7 +48,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -82,7 +83,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
     cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
     cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "3s");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "25");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -90,7 +91,8 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
       AccumuloConfiguration aconf, int[] rows) throws Exception {
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
-        .forFile(filename, fs, fs.getConf(), NoCryptoServiceFactory.NONE)
+        .forFile(UnreferencedTabletFile.of(fs, new Path(filename)), fs, fs.getConf(),
+            NoCryptoServiceFactory.NONE)
         .withTableConfiguration(aconf).build()) {
       writer.startDefaultLocalityGroup();
       for (int i : rows) {
@@ -132,7 +134,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
     IntStream.rangeClosed(0, 1000).forEach(i -> hashes.put(row(i), new HashSet<>()));
     hashes.put("null", new HashSet<>());
 
-    String h1 = writeData(fs, dir + "/f1.", aconf, 0, 11);
+    String h1 = writeData(fs, dir + "/f1.", aconf, 0, 11, 0);
     IntStream.rangeClosed(0, 11).forEach(i -> hashes.get(row(i)).add(h1));
 
     int[] h2Rows = new int[] {11, 199, 200, 204};
@@ -196,7 +198,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
       TableId tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       final SortedSet<Text> metadataSplits = new TreeSet<>();
-      Scanner s = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+      Scanner s = c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
       final String mdTablePrefix = tid.canonical() + ";";
       s.forEach(e -> {
         final String row = e.getKey().getRow().toString();
@@ -204,7 +206,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
           metadataSplits.add(new Text(row + "\\x00"));
         }
       });
-      c.tableOperations().addSplits(MetadataTable.NAME, metadataSplits);
+      c.tableOperations().addSplits(SystemTables.METADATA.tableName(), metadataSplits);
 
       c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
 

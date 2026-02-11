@@ -25,15 +25,15 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FilePrefix;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.FileStatus;
@@ -41,7 +41,7 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class MapImportFileNames extends ManagerRepo {
+class MapImportFileNames extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(MapImportFileNames.class);
 
   private static final long serialVersionUID = 1L;
@@ -53,7 +53,7 @@ class MapImportFileNames extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv environment) throws Exception {
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       Path path = new Path(dm.importDir, IMPORT_MAPPINGS_FILE);
@@ -71,6 +71,7 @@ class MapImportFileNames extends ManagerRepo {
 
         mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 
+        var names = namer.getNextNames(files.length);
         for (FileStatus fileStatus : files) {
           String fileName = fileStatus.getPath().getName();
           log.info("filename " + fileStatus.getPath());
@@ -79,16 +80,16 @@ class MapImportFileNames extends ManagerRepo {
           if (sa.length > 1) {
             extension = sa[sa.length - 1];
 
+            // skip files with unknown extensions
             if (!FileOperations.getValidExtensions().contains(extension)) {
               continue;
             }
           } else {
-            // assume it is a map file
-            extension = Constants.MAPFILE_EXTENSION;
+            // skip files without an extension
+            continue;
           }
 
-          String newName =
-              FilePrefix.BULK_IMPORT.createFileName(namer.getNextName() + "." + extension);
+          String newName = FilePrefix.BULK_IMPORT.createFileName(names.next() + "." + extension);
 
           mappingsWriter.append(fileName);
           mappingsWriter.append(':');
@@ -118,7 +119,7 @@ class MapImportFileNames extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, FateEnv env) throws Exception {
     // TODO: will this be OK for partially complete operations?
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
       env.getVolumeManager().deleteRecursively(new Path(dm.importDir));

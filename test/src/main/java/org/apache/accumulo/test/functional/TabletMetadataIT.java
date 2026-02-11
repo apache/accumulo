@@ -18,16 +18,16 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -51,15 +51,16 @@ public class TabletMetadataIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setNumTservers(NUM_TSERVERS);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
   }
 
   @Test
   public void getLiveTServersTest() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      while (c.instanceOperations().getTabletServers().size() != NUM_TSERVERS) {
+      while (c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size()
+          != NUM_TSERVERS) {
         log.info("Waiting for tservers to start up...");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(5));
       }
       Set<TServerInstance> servers = TabletMetadata.getLiveTServers((ClientContext) c);
       assertEquals(NUM_TSERVERS, servers.size());
@@ -68,9 +69,10 @@ public class TabletMetadataIT extends ConfigurableMacBase {
       getCluster().killProcess(TABLET_SERVER,
           getCluster().getProcesses().get(TABLET_SERVER).iterator().next());
 
-      while (c.instanceOperations().getTabletServers().size() == NUM_TSERVERS) {
+      while (c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size()
+          == NUM_TSERVERS) {
         log.info("Waiting for a tserver to die...");
-        sleepUninterruptibly(5, TimeUnit.SECONDS);
+        Thread.sleep(SECONDS.toMillis(5));
       }
       servers = TabletMetadata.getLiveTServers((ClientContext) c);
       assertEquals(NUM_TSERVERS - 1, servers.size());

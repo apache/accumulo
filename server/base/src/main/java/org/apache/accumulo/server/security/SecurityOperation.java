@@ -37,10 +37,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -71,8 +69,6 @@ public class SecurityOperation {
   private final PermissionHandler permHandle;
   private final boolean isKerberos;
   private final Supplier<String> rootUserName;
-  private final ZooCache zooCache;
-  private final String zkUserPath;
 
   protected final ServerContext context;
 
@@ -101,9 +97,8 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this.context = context;
-    zkUserPath = Constants.ZROOT + "/" + context.getInstanceID() + "/users";
-    zooCache = new ZooCache(context.getZooReader(), null);
-    rootUserName = Suppliers.memoize(() -> new String(zooCache.get(zkUserPath), UTF_8));
+    rootUserName =
+        Suppliers.memoize(() -> new String(context.getZooCache().get(Constants.ZUSERS), UTF_8));
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
@@ -111,7 +106,7 @@ public class SecurityOperation {
     if (!authorizor.validSecurityHandlers(authenticator, pm)
         || !authenticator.validSecurityHandlers()
         || !permHandle.validSecurityHandlers(authent, author)) {
-      throw new RuntimeException(authorizor + ", " + authenticator + ", and " + pm
+      throw new IllegalStateException(authorizor + ", " + authenticator + ", and " + pm
           + " do not play nice with each other. Please choose authentication and"
           + " authorization mechanisms that are compatible with one another.");
     }
@@ -130,11 +125,11 @@ public class SecurityOperation {
     authorizor.initializeSecurity(credentials, rootPrincipal);
     permHandle.initializeSecurity(credentials, rootPrincipal);
     try {
-      permHandle.grantTablePermission(rootPrincipal, MetadataTable.ID.canonical(),
+      permHandle.grantTablePermission(rootPrincipal, SystemTables.METADATA.tableId().canonical(),
           TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -360,11 +355,8 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    @SuppressWarnings("deprecation")
-    TableId replicationTableId = org.apache.accumulo.core.replication.ReplicationTable.ID;
-
-    if ((table.equals(MetadataTable.ID) || table.equals(RootTable.ID)
-        || table.equals(replicationTableId)) && permission.equals(TablePermission.READ)) {
+    if ((table.equals(SystemTables.METADATA.tableId()) || table.equals(SystemTables.ROOT.tableId()))
+        && permission.equals(TablePermission.READ)) {
       return true;
     }
 
@@ -511,7 +503,7 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
   }
 
-  protected boolean canOnlineOfflineTable(TCredentials c, TableId tableId, FateOperation op,
+  protected boolean canChangeTableState(TCredentials c, TableId tableId, TFateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)
@@ -939,12 +931,5 @@ public class SecurityOperation {
     authenticate(credentials);
     return hasTablePermission(credentials, tableId, namespaceId, TablePermission.GET_SUMMARIES,
         false);
-  }
-
-  public boolean validateStoredUserCredentials() {
-    if (authenticator instanceof ZKAuthenticator) {
-      return !((ZKAuthenticator) authenticator).hasOutdatedHashes();
-    }
-    return true;
   }
 }

@@ -21,9 +21,11 @@ package org.apache.accumulo.core.rpc;
 import static java.util.Objects.requireNonNull;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 
 import javax.security.auth.callback.CallbackHandler;
@@ -42,9 +44,13 @@ import org.apache.hadoop.security.authentication.util.KerberosUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Connection parameters for setting up a TSaslTransportFactory
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class SaslConnectionParams {
   private static final Logger log = LoggerFactory.getLogger(SaslConnectionParams.class);
 
@@ -166,7 +172,7 @@ public class SaslConnectionParams {
   protected void updatePrincipalFromUgi() {
     // Ensure we're using Kerberos auth for Hadoop UGI
     if (!UserGroupInformation.isSecurityEnabled()) {
-      throw new RuntimeException("Cannot use SASL if Hadoop security is not enabled");
+      throw new IllegalStateException("Cannot use SASL if Hadoop security is not enabled");
     }
 
     // Get the current user
@@ -174,13 +180,13 @@ public class SaslConnectionParams {
     try {
       currentUser = UserGroupInformation.getCurrentUser();
     } catch (IOException e) {
-      throw new RuntimeException("Failed to get current user", e);
+      throw new UncheckedIOException("Failed to get current user", e);
     }
 
     // The full name is our principal
     this.principal = currentUser.getUserName();
     if (this.principal == null) {
-      throw new RuntimeException("Got null username from " + currentUser);
+      throw new IllegalStateException("Got null username from " + currentUser);
     }
 
   }
@@ -246,8 +252,7 @@ public class SaslConnectionParams {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof SaslConnectionParams) {
-      SaslConnectionParams other = (SaslConnectionParams) o;
+    if (o instanceof SaslConnectionParams other) {
       if (!kerberosServerPrimary.equals(other.kerberosServerPrimary)) {
         return false;
       }
@@ -260,11 +265,7 @@ public class SaslConnectionParams {
       if (!mechanism.equals(other.mechanism)) {
         return false;
       }
-      if (callbackHandler == null) {
-        if (other.callbackHandler != null) {
-          return false;
-        }
-      } else if (!callbackHandler.equals(other.callbackHandler)) {
+      if (!Objects.equals(callbackHandler, other.callbackHandler)) {
         return false;
       }
 
