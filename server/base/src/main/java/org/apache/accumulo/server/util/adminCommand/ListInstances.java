@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -29,9 +29,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -39,12 +37,19 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.ListInstances.Opts;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class ListInstances {
+@AutoService(KeywordExecutable.class)
+public class ListInstances extends ServerKeywordExecutable<Opts> {
 
   private static final Logger log = LoggerFactory.getLogger(ListInstances.class);
 
@@ -54,7 +59,7 @@ public class ListInstances {
 
   private static final int ZOOKEEPER_TIMER_MILLIS = 30_000;
 
-  static class Opts extends Help {
+  static class Opts extends ServerUtilOpts {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
     @Parameter(names = "--print-all",
@@ -64,25 +69,38 @@ public class ListInstances {
     String keepers = null;
   }
 
-  static Opts opts = new Opts();
-  static int errors = 0;
+  int errors = 0;
 
-  public static void main(String[] args) throws InterruptedException {
-    opts.parseArgs(ListInstances.class.getName(), args);
-
-    if (opts.keepers == null) {
-      var siteConfig = SiteConfiguration.auto();
-      opts.keepers = siteConfig.get(Property.INSTANCE_ZK_HOST);
-    }
-
-    String keepers = opts.keepers;
-    boolean printAll = opts.printAll;
-    boolean printErrors = opts.printErrors;
-
-    listInstances(keepers, printAll, printErrors);
+  public ListInstances() {
+    super(new Opts());
   }
 
-  static synchronized void listInstances(String keepers, boolean printAll, boolean printErrors)
+  @Override
+  public String keyword() {
+    return "list-instances";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "List Accumulo instances in zookeeper";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts options) throws Exception {
+    if (options.keepers == null) {
+      options.keepers =
+          options.getServerContext().getConfiguration().get(Property.INSTANCE_ZK_HOST);
+    }
+
+    listInstances(options.keepers, options.printAll, options.printErrors);
+  }
+
+  synchronized void listInstances(String keepers, boolean printAll, boolean printErrors)
       throws InterruptedException {
     errors = 0;
 
@@ -122,7 +140,7 @@ public class ListInstances {
     }
   }
 
-  private static class CharFiller implements Formattable {
+  private class CharFiller implements Formattable {
 
     char c;
 
@@ -137,7 +155,7 @@ public class ListInstances {
 
   }
 
-  private static void printHeader() {
+  private void printHeader() {
     System.out.printf(" %-" + NAME_WIDTH + "s| %-" + UUID_WIDTH + "s| %-" + MANAGER_WIDTH + "s%n",
         "Instance Name", "Instance ID", "Manager");
     System.out.printf(
@@ -146,7 +164,7 @@ public class ListInstances {
 
   }
 
-  private static void printInstanceInfo(ZooSession zs, String instanceName, InstanceId iid,
+  private void printInstanceInfo(ZooSession zs, String instanceName, InstanceId iid,
       boolean printErrors) {
     String manager = getManager(zs, iid, printErrors);
     if (instanceName == null) {
@@ -161,7 +179,7 @@ public class ListInstances {
         "\"" + instanceName + "\"", iid, manager);
   }
 
-  private static String getManager(ZooSession zs, InstanceId iid, boolean printErrors) {
+  private String getManager(ZooSession zs, InstanceId iid, boolean printErrors) {
 
     if (iid == null) {
       return null;
@@ -181,7 +199,7 @@ public class ListInstances {
     }
   }
 
-  private static TreeMap<String,InstanceId> getInstanceNames(ZooReader zk, boolean printErrors) {
+  private TreeMap<String,InstanceId> getInstanceNames(ZooReader zk, boolean printErrors) {
 
     String instancesPath = Constants.ZROOT + Constants.ZINSTANCES;
 
@@ -210,7 +228,7 @@ public class ListInstances {
     return tm;
   }
 
-  private static TreeSet<InstanceId> getInstanceIDs(ZooReader zk, boolean printErrors) {
+  private TreeSet<InstanceId> getInstanceIDs(ZooReader zk, boolean printErrors) {
     TreeSet<InstanceId> ts = new TreeSet<>();
 
     try {
@@ -233,7 +251,7 @@ public class ListInstances {
     return ts;
   }
 
-  private static void handleException(Exception e, boolean printErrors) {
+  private void handleException(Exception e, boolean printErrors) {
     if (printErrors) {
       log.error("{}", e.getMessage(), e);
     }

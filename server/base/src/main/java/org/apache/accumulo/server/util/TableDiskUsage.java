@@ -36,6 +36,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -45,7 +46,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -319,7 +319,7 @@ public class TableDiskUsage {
     }
   }
 
-  static class Opts extends ServerUtilOpts {
+  static class Opts extends ClientOpts {
     @Parameter(required = true, description = " <table> { <table> ... } ")
     List<String> tables = new ArrayList<>();
   }

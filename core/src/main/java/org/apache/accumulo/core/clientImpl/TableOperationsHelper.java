@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
@@ -139,45 +140,7 @@ public abstract class TableOperationsHelper implements TableOperations {
       EnumSet<IteratorScope> scopes) throws AccumuloException {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
-    for (IteratorScope scope : scopes) {
-      String scopeStr =
-          String.format("%s%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase());
-      String nameStr = String.format("%s.%s", scopeStr, setting.getName());
-      String optStr = String.format("%s.opt.", nameStr);
-      Map<String,String> optionConflicts = new TreeMap<>();
-      for (Entry<String,String> property : props.entrySet()) {
-        if (property.getKey().startsWith(scopeStr)) {
-          if (property.getKey().equals(nameStr)) {
-            throw new AccumuloException(new IllegalArgumentException("iterator name conflict for "
-                + setting.getName() + ": " + property.getKey() + "=" + property.getValue()));
-          }
-          if (property.getKey().startsWith(optStr)) {
-            optionConflicts.put(property.getKey(), property.getValue());
-          }
-          if (property.getKey().contains(".opt.")) {
-            continue;
-          }
-          String[] parts = property.getValue().split(",");
-          if (parts.length != 2) {
-            throw new AccumuloException("Bad value for existing iterator setting: "
-                + property.getKey() + "=" + property.getValue());
-          }
-          try {
-            if (Integer.parseInt(parts[0]) == setting.getPriority()) {
-              throw new AccumuloException(new IllegalArgumentException(
-                  "iterator priority conflict: " + property.getKey() + "=" + property.getValue()));
-            }
-          } catch (NumberFormatException e) {
-            throw new AccumuloException("Bad value for existing iterator setting: "
-                + property.getKey() + "=" + property.getValue());
-          }
-        }
-      }
-      if (!optionConflicts.isEmpty()) {
-        throw new AccumuloException(new IllegalArgumentException(
-            "iterator options conflict for " + setting.getName() + ": " + optionConflicts));
-      }
-    }
+    IteratorConfigUtil.checkIteratorConflicts("", props, setting, scopes);
   }
 
   @Override

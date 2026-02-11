@@ -30,7 +30,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
+import org.apache.accumulo.server.util.adminCommand.StopServers;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
@@ -49,7 +50,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     Process ingest = cluster
         .exec(TestIngest.class, "-c", cluster.getClientPropsPath(), "--createTable").getProcess();
     Thread.sleep(100);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
     ingest.destroy();
   }
 
@@ -61,7 +62,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     Process verify =
         cluster.exec(VerifyIngest.class, "-c", cluster.getClientPropsPath()).getProcess();
     Thread.sleep(100);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
     verify.destroy();
   }
 
@@ -73,7 +74,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     Process deleter =
         cluster.exec(TestRandomDeletes.class, "-c", cluster.getClientPropsPath()).getProcess();
     Thread.sleep(100);
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
     deleter.destroy();
   }
 
@@ -96,7 +97,7 @@ public class ShutdownIT extends ConfigurableMacBase {
       });
       async.start();
       Thread.sleep(100);
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
       // give the backfound delete operations a bit to run
       Thread.sleep(3000);
       // The delete operations should get stuck or run, but should not throw an exception
@@ -108,7 +109,7 @@ public class ShutdownIT extends ConfigurableMacBase {
 
   @Test
   public void stopDuringStart() throws Exception {
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
   }
 
   @Test
@@ -128,7 +129,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     ServerId doomed = tabletServers.iterator().next();
     log.info("Stopping " + doomed);
     assertEquals(0,
-        cluster.exec(Admin.class, "stop", doomed.toHostPortString()).getProcess().waitFor());
+        cluster.exec(StopServers.class, doomed.toHostPortString()).getProcess().waitFor());
     Wait.waitFor(() -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
     tabletServers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(1, tabletServers.size());
