@@ -288,8 +288,9 @@ public class IteratorConfigUtil {
           // properties.
           if (iterProps.stream()
               .anyMatch(iterProp -> newProperties.containsKey(iterProp.getProperty()))) {
-            log.warn("For {}, newly set property introduced an iterator priority conflict : {}",
-                errorContext, iterProps);
+            throw new IllegalArgumentException(String.format(
+                "For %s, newly set property introduced an iterator priority conflict : %s",
+                errorContext, iterProps));
           }
         }
       });
@@ -298,8 +299,7 @@ public class IteratorConfigUtil {
 
   public static void checkIteratorConflicts(String logContext, IteratorSetting iterToCheck,
       EnumSet<IteratorScope> iterScopesToCheck,
-      Map<IteratorScope,List<IteratorSetting>> existingIters, boolean shouldThrow)
-      throws AccumuloException {
+      Map<IteratorScope,List<IteratorSetting>> existingIters) throws AccumuloException {
     // The reason for the 'shouldThrow' var is to prevent newly added 2.x checks from breaking
     // existing user code. Just log the problem and proceed. Major version > 2 will always throw
     for (var scope : iterScopesToCheck) {
@@ -316,28 +316,20 @@ public class IteratorConfigUtil {
           String msg =
               String.format("%s iterator name conflict at %s scope. %s conflicts with existing %s",
                   logContext, scope, iterToCheck, existingIter);
-          if (shouldThrow) {
-            throw new AccumuloException(new IllegalArgumentException(msg));
-          } else {
-            log.warn(msg + WARNING_MSG);
-          }
+          throw new AccumuloException(new IllegalArgumentException(msg));
         }
         if (iterToCheck.getPriority() == existingIter.getPriority()) {
           String msg = String.format(
               "%s iterator priority conflict at %s scope. %s conflicts with existing %s",
               logContext, scope, iterToCheck, existingIter);
-          if (shouldThrow) {
-            throw new AccumuloException(new IllegalArgumentException(msg));
-          } else {
-            log.warn(msg + WARNING_MSG);
-          }
+          throw new AccumuloException(new IllegalArgumentException(msg));
         }
       }
     }
   }
 
   public static void checkIteratorConflicts(String logContext, Map<String,String> props,
-      IteratorSetting iterToCheck, EnumSet<IteratorScope> iterScopesToCheck, boolean shouldThrow)
+      IteratorSetting iterToCheck, EnumSet<IteratorScope> iterScopesToCheck)
       throws AccumuloException {
     // parse the props map
     Map<IteratorScope,Map<String,IteratorSetting>> iteratorSettings = new HashMap<>();
@@ -368,11 +360,7 @@ public class IteratorConfigUtil {
             String msg = String.format(
                 "%s iterator name conflict at %s scope. %s conflicts with existing %s", logContext,
                 iterProp.getScope(), iterToCheck, iterProp);
-            if (shouldThrow) {
-              throw new AccumuloException(new IllegalArgumentException(msg));
-            } else {
-              log.warn(msg + WARNING_MSG);
-            }
+            throw new AccumuloException(new IllegalArgumentException(msg));
           }
         } else {
           iterSetting.addOption(iterProp.getOptionKey(), iterProp.getOptionValue());
@@ -381,6 +369,6 @@ public class IteratorConfigUtil {
     }
 
     // check if the given iterator conflicts with any existing iterators
-    checkIteratorConflicts(logContext, iterToCheck, iterScopesToCheck, existingIters, shouldThrow);
+    checkIteratorConflicts(logContext, iterToCheck, iterScopesToCheck, existingIters);
   }
 }

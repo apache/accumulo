@@ -140,7 +140,7 @@ public abstract class TableOperationsHelper implements TableOperations {
       EnumSet<IteratorScope> scopes) throws AccumuloException {
     checkArgument(setting != null, "setting is null");
     checkArgument(scopes != null, "scopes is null");
-    IteratorConfigUtil.checkIteratorConflicts("", props, setting, scopes, true);
+    IteratorConfigUtil.checkIteratorConflicts("", props, setting, scopes);
   }
 
   @Override
