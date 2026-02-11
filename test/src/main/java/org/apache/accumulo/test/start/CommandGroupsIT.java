@@ -30,10 +30,10 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 @Tag(SUNNY_DAY)
-public class UsageGroupsIT {
+public class CommandGroupsIT {
 
   @Test
-  public void testUsageGroups() {
+  public void testCommandGroups() {
     Set<CommandGroup> groups = CommandGroups.getGroups();
     assertEquals(6, groups.size());
     assertTrue(groups.contains(CommandGroups.ADMIN));

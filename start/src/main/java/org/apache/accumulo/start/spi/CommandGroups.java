@@ -27,12 +27,12 @@ import com.google.auto.service.AutoService;
 
 public class CommandGroups {
 
-  public static final CommandGroup ADMIN = new AdminUsageGroup();
-  public static final CommandGroup CLIENT = new ClientUsageGroup();
-  public static final CommandGroup COMPACTION = new CompactionUsageGroup();
-  public static final CommandGroup CORE = new CoreUsageGroup();
-  public static final CommandGroup OTHER = new OtherUsageGroup();
-  public static final CommandGroup PROCESS = new ProcessUsageGroup();
+  public static final CommandGroup ADMIN = new AdminCommandGroup();
+  public static final CommandGroup CLIENT = new ClientCommandGroup();
+  public static final CommandGroup COMPACTION = new CompactionCommandGroup();
+  public static final CommandGroup CORE = new CoreCommandGroup();
+  public static final CommandGroup OTHER = new OtherCommandGroup();
+  public static final CommandGroup PROCESS = new ProcessCommandGroup();
 
   private static Set<CommandGroup> groups = null;
 
@@ -45,7 +45,7 @@ public class CommandGroups {
     return groups;
   }
 
-  public static abstract class BaseUsageGroup implements CommandGroup {
+  public static abstract class BaseCommandGroup implements CommandGroup {
 
     @Override
     public int hashCode() {
@@ -69,7 +69,7 @@ public class CommandGroups {
   }
 
   @AutoService(CommandGroup.class)
-  public static class AdminUsageGroup extends BaseUsageGroup {
+  public static class AdminCommandGroup extends BaseCommandGroup {
 
     @Override
     public String key() {
@@ -88,7 +88,7 @@ public class CommandGroups {
   }
 
   @AutoService(CommandGroup.class)
-  public static class ClientUsageGroup extends BaseUsageGroup {
+  public static class ClientCommandGroup extends BaseCommandGroup {
 
     @Override
     public String key() {
@@ -107,7 +107,7 @@ public class CommandGroups {
   }
 
   @AutoService(CommandGroup.class)
-  public static class CompactionUsageGroup extends BaseUsageGroup {
+  public static class CompactionCommandGroup extends BaseCommandGroup {
 
     @Override
     public String key() {
@@ -126,7 +126,7 @@ public class CommandGroups {
   }
 
   @AutoService(CommandGroup.class)
-  public static class CoreUsageGroup extends BaseUsageGroup {
+  public static class CoreCommandGroup extends BaseCommandGroup {
 
     @Override
     public String key() {
@@ -145,7 +145,7 @@ public class CommandGroups {
   }
 
   @AutoService(CommandGroup.class)
-  public static class ProcessUsageGroup extends BaseUsageGroup {
+  public static class ProcessCommandGroup extends BaseCommandGroup {
 
     @Override
     public String key() {
@@ -164,7 +164,7 @@ public class CommandGroups {
   }
 
   @AutoService(CommandGroup.class)
-  public static class OtherUsageGroup extends BaseUsageGroup {
+  public static class OtherCommandGroup extends BaseCommandGroup {
 
     @Override
     public String key() {
