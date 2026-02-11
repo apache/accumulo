@@ -61,9 +61,6 @@ public class IteratorConfigUtil {
       Comparator.comparingInt(IterInfo::getPriority)
           .thenComparing(iterInfo -> iterInfo.getIterName() == null ? "" : iterInfo.getIterName());
 
-  private static final String WARNING_MSG =
-      ". Iterator was set as requested, but may lead to non-deterministic behavior.";
-
   /**
    * Fetch the correct configuration key prefix for the given scope. Throws an
    * IllegalArgumentException if no property exists for the given scope.
