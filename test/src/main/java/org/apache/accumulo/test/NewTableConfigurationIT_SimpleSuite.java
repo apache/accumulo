@@ -621,12 +621,12 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
        */
       // add an iterator with same priority as the default iterator
       var iterator1 = new IteratorSetting(20, "foo", "foo.bar");
-      var exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+      var exception = assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
           .create(table, new NewTableConfiguration().attachIterator(iterator1)));
       assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       // add an iterator with same name as the default iterator
       var iterator2 = new IteratorSetting(10, "vers", "foo.bar");
-      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+      exception = assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
           .create(table, new NewTableConfiguration().attachIterator(iterator2)));
       assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       // try to attach the exact default iterators, should not present a conflict as they are
@@ -648,7 +648,7 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
       for (IteratorScope iterScope : IteratorScope.values()) {
         props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".foo", "20,foo.bar");
       }
-      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+      exception = assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
           .create(table2, new NewTableConfiguration().setProperties(props)));
       assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       props.clear();
@@ -656,7 +656,7 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
       for (IteratorScope iterScope : IteratorScope.values()) {
         props.put(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers", "10,foo.bar");
       }
-      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+      exception = assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
           .create(table2, new NewTableConfiguration().setProperties(props)));
       assertTrue(exception.getMessage().contains("conflict with default table iterator"));
       props.clear();
@@ -670,7 +670,7 @@ public class NewTableConfigurationIT_SimpleSuite extends SharedMiniClusterBase {
        */
       // setting a value different from default should throw
       props.put(Property.TABLE_CONSTRAINT_PREFIX + "1", "foo");
-      exception = assertThrows(IllegalStateException.class, () -> client.tableOperations()
+      exception = assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
           .create(table3, new NewTableConfiguration().setProperties(props)));
       assertTrue(exception.getMessage()
           .contains("conflict for property " + Property.TABLE_CONSTRAINT_PREFIX + "1"));
