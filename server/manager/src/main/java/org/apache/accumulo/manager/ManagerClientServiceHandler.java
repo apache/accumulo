@@ -20,6 +20,7 @@ package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil.checkIteratorPriorityConflicts;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
@@ -273,6 +275,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
+      checkIteratorPriorityConflicts("table:" + tableName + " tableId:" + tableId,
+          properties.getProperties(), context.getNamespaceConfiguration(namespaceId)
+              .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
       PropUtil.replaceProperties(context, TablePropKey.of(tableId), properties.getVersion(),
           properties.getProperties());
     } catch (ConcurrentModificationException cme) {
@@ -582,6 +587,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
+      checkIteratorPriorityConflicts("namespace:" + ns + " namespaceId:" + namespaceId,
+          properties.getProperties(),
+          context.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
       PropUtil.replaceProperties(context, NamespacePropKey.of(namespaceId), properties.getVersion(),
           properties.getProperties());
     } catch (ConcurrentModificationException cme) {
@@ -621,6 +629,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       if (value == null) {
         PropUtil.removeProperties(context, NamespacePropKey.of(namespaceId), List.of(property));
       } else {
+        checkIteratorPriorityConflicts("namespace:" + namespace + " namespaceId:" + namespaceId,
+            Map.of(property, value), context.getNamespaceConfiguration(namespaceId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
         PropUtil.setProperties(context, NamespacePropKey.of(namespaceId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
@@ -651,6 +662,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         if (value == null || value.isEmpty()) {
           value = "";
         }
+        checkIteratorPriorityConflicts("table:" + tableName + "tableId:" + tableId,
+            Map.of(property, value), context.getTableConfiguration(tableId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
         PropUtil.setProperties(context, TablePropKey.of(tableId), Map.of(property, value));
       } else {
         throw new UnsupportedOperationException("table operation:" + op.name());
