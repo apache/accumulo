@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -32,6 +33,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.IteratorProperty;
 
 public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
@@ -92,12 +94,25 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     Map<String,String> properties = Map.copyOf(this.getConfiguration(namespace));
-    for (IteratorSetting setting : IteratorSettingsUtil.parseIteratorSettings(properties, scope)) {
-      if (setting.getName().equals(name)) {
-        return setting;
+    IteratorProperty base = null;
+    Map<String,String> options = new HashMap<>();
+    for (Entry<String,String> entry : properties.entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(entry);
+      if (iterProp == null || iterProp.getScope() != scope || !iterProp.getName().equals(name)) {
+        continue;
+      }
+      if (iterProp.isOption()) {
+        options.put(iterProp.getOptionKey(), iterProp.getOptionValue());
+      } else {
+        base = iterProp;
       }
     }
-    return null;
+    if (base == null) {
+      return null;
+    }
+    IteratorSetting setting = base.toSetting();
+    options.forEach(setting::addOption);
+    return setting;
   }
 
   @Override
@@ -108,13 +123,13 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     }
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     Map<String,String> properties = Map.copyOf(this.getConfiguration(namespace));
-    IteratorSettingsUtil.validateIteratorScopes(properties);
-    for (IteratorScope scope : IteratorScope.values()) {
-      for (IteratorSetting setting : IteratorSettingsUtil.parseIteratorSettings(properties, scope,
-          false)) {
-        result.computeIfAbsent(setting.getName(), k -> EnumSet.noneOf(IteratorScope.class))
-            .add(scope);
+    for (Entry<String,String> entry : properties.entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(entry);
+      if (iterProp == null || iterProp.isOption()) {
+        continue;
       }
+      result.computeIfAbsent(iterProp.getName(), k -> EnumSet.noneOf(IteratorScope.class))
+          .add(iterProp.getScope());
     }
     return result;
   }

@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.IteratorProperty;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
@@ -89,12 +91,25 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkArgument(scope != null, "scope is null");
 
     Map<String,String> properties = Map.copyOf(this.getConfiguration(tableName));
-    for (IteratorSetting setting : IteratorSettingsUtil.parseIteratorSettings(properties, scope)) {
-      if (setting.getName().equals(name)) {
-        return setting;
+    IteratorProperty base = null;
+    Map<String,String> options = new HashMap<>();
+    for (Entry<String,String> entry : properties.entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(entry);
+      if (iterProp == null || iterProp.getScope() != scope || !iterProp.getName().equals(name)) {
+        continue;
+      }
+      if (iterProp.isOption()) {
+        options.put(iterProp.getOptionKey(), iterProp.getOptionValue());
+      } else {
+        base = iterProp;
       }
     }
-    return null;
+    if (base == null) {
+      return null;
+    }
+    IteratorSetting setting = base.toSetting();
+    options.forEach(setting::addOption);
+    return setting;
   }
 
   @Override
@@ -104,13 +119,13 @@ public abstract class TableOperationsHelper implements TableOperations {
 
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
     Map<String,String> properties = Map.copyOf(this.getConfiguration(tableName));
-    IteratorSettingsUtil.validateIteratorScopes(properties);
-    for (IteratorScope scope : IteratorScope.values()) {
-      for (IteratorSetting setting : IteratorSettingsUtil.parseIteratorSettings(properties, scope,
-          false)) {
-        result.computeIfAbsent(setting.getName(), k -> EnumSet.noneOf(IteratorScope.class))
-            .add(scope);
+    for (Entry<String,String> entry : properties.entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(entry);
+      if (iterProp == null || iterProp.isOption()) {
+        continue;
       }
+      result.computeIfAbsent(iterProp.getName(), k -> EnumSet.noneOf(IteratorScope.class))
+          .add(iterProp.getScope());
     }
     return result;
   }

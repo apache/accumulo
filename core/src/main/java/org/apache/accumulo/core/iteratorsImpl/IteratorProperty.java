@@ -144,15 +144,22 @@ public class IteratorProperty {
     check(iterPropParts.length == 4 || iterPropParts.length == 6, property, value);
     IteratorUtil.IteratorScope scope = IteratorUtil.IteratorScope.valueOf(iterPropParts[2]);
     String iterName = iterPropParts[3];
+    check(!iterName.isEmpty(), property, value);
 
     if (iterPropParts.length == 4) {
-      String[] valTokens = value.split(",");
+      String[] valTokens = value.split(",", -1);
       check(valTokens.length == 2, property, value);
-      return new IteratorProperty(iterName, scope, Integer.parseInt(valTokens[0]), valTokens[1],
-          property, value);
+      String prioStr = valTokens[0];
+      String className = valTokens[1];
+      check(!className.isEmpty(), property, value);
+      int priority = Integer.parseInt(prioStr);
+      check(priority > 0, property, value);
+      return new IteratorProperty(iterName, scope, priority, className, property, value);
     } else if (iterPropParts.length == 6) {
       check(iterPropParts[4].equals("opt"), property, value);
-      return new IteratorProperty(iterName, scope, iterPropParts[5], value, property, value);
+      String optionName = iterPropParts[5];
+      check(!optionName.isEmpty(), property, value);
+      return new IteratorProperty(iterName, scope, optionName, value, property, value);
     } else {
       throw new IllegalArgumentException("Illegal iterator property: " + property + "=" + value);
     }
