@@ -28,9 +28,9 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
@@ -53,8 +53,8 @@ public class ListCompactors extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroups.PROCESS;
+  public CommandGroup commandGroup() {
+    return CommandGroups.PROCESS;
   }
 
   protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {

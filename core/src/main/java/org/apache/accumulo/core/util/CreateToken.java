@@ -27,6 +27,8 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Prope
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.Parameter;
@@ -74,6 +76,11 @@ public class CreateToken implements KeywordExecutable {
   @Override
   public String description() {
     return "Creates authentication token";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   @Override

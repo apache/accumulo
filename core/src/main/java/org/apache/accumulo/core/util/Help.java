@@ -21,9 +21,9 @@ package org.apache.accumulo.core.util;
 import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.start.Main;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
@@ -41,8 +41,8 @@ public class Help extends ClientKeywordExecutable<ClientOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroups.CLIENT;
+  public CommandGroup commandGroup() {
+    return CommandGroups.CLIENT;
   }
 
   @Override

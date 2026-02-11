@@ -29,9 +29,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,7 +39,7 @@ public class Main {
 
   private static final Logger log = LoggerFactory.getLogger(Main.class);
   private static ClassLoader classLoader;
-  private static Map<UsageGroup,Map<String,KeywordExecutable>> servicesMap;
+  private static Map<CommandGroup,Map<String,KeywordExecutable>> servicesMap;
 
   public static void main(final String[] args) throws Exception {
     final ClassLoader loader = getClassLoader();
@@ -53,14 +53,14 @@ public class Main {
       return;
     }
 
-    Set<UsageGroup> usageGroups = UsageGroups.getUsageGroups();
-    Map<UsageGroup,Map<String,KeywordExecutable>> executables = getExecutables(loader);
+    Set<CommandGroup> usageGroups = CommandGroups.getGroups();
+    Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(loader);
 
     // The commands in the CLIENT group may be specified without a group name. For example,
     // instead of `accumulo client shell`, we support the user supplying `accumulo shell`.
     // Check to see if the first arg is in the client group first.
 
-    UsageGroup clientGroup = UsageGroups.CLIENT;
+    CommandGroup clientGroup = CommandGroups.CLIENT;
     String cmd = args[0];
     int argOffset = 1;
     KeywordExecutable ke = executables.get(clientGroup).get(cmd);
@@ -76,7 +76,7 @@ public class Main {
       String group = args[0];
       cmd = args[1];
       argOffset = 2;
-      UsageGroup ug = null;
+      CommandGroup ug = null;
       try {
         ug = usageGroups.stream().filter(g -> g.title().equalsIgnoreCase(group)).findFirst()
             .orElseThrow();
@@ -201,7 +201,7 @@ public class Main {
     System.out.println("    accumulo <group>* <command> [--help] (<argument> ...)");
     System.out.println("    * group may be omitted for commands with 'CLIENT' group\n\n");
 
-    Map<UsageGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
+    Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
     executables.entrySet().forEach(e -> {
       System.out.println("\n" + e.getKey().title() + " Group Commands:");
       e.getValue().values()
@@ -210,7 +210,7 @@ public class Main {
     System.out.println();
   }
 
-  public static synchronized Map<UsageGroup,Map<String,KeywordExecutable>>
+  public static synchronized Map<CommandGroup,Map<String,KeywordExecutable>>
       getExecutables(final ClassLoader cl) {
     if (servicesMap == null) {
       servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
@@ -218,7 +218,7 @@ public class Main {
     return servicesMap;
   }
 
-  private record BanKey(UsageGroup group, String keyword) implements Comparable<BanKey> {
+  private record BanKey(CommandGroup group, String keyword) implements Comparable<BanKey> {
     @Override
     public int compareTo(BanKey o) {
       int result = this.group.compareTo(o.group);
@@ -229,13 +229,13 @@ public class Main {
     }
   };
 
-  public static Map<UsageGroup,Map<String,KeywordExecutable>>
+  public static Map<CommandGroup,Map<String,KeywordExecutable>>
       checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
     TreeSet<BanKey> banList = new TreeSet<>();
-    Map<UsageGroup,Map<String,KeywordExecutable>> results = new TreeMap<>();
-    UsageGroups.getUsageGroups().forEach(ug -> results.put(ug, new TreeMap<>()));
+    Map<CommandGroup,Map<String,KeywordExecutable>> results = new TreeMap<>();
+    CommandGroups.getGroups().forEach(ug -> results.put(ug, new TreeMap<>()));
     for (KeywordExecutable service : services) {
-      UsageGroup group = service.usageGroup();
+      CommandGroup group = service.commandGroup();
       String keyword = service.keyword();
       BanKey bk = new BanKey(group, keyword);
       if (banList.contains(bk)) {

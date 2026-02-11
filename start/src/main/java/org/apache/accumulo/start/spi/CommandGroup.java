@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.start.spi;
 
-public interface UsageGroup extends Comparable<UsageGroup> {
+public interface CommandGroup extends Comparable<CommandGroup> {
 
   String key();
 
@@ -27,7 +27,7 @@ public interface UsageGroup extends Comparable<UsageGroup> {
   String description();
 
   @Override
-  default int compareTo(UsageGroup o) {
+  default int compareTo(CommandGroup o) {
     int result = this.key().compareTo(o.key());
     if (result == 0) {
       result = this.title().compareTo(o.title());

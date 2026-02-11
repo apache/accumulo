@@ -37,9 +37,9 @@ import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ListCompactions.RunningCommandOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -180,8 +180,8 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroups.COMPACTION;
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
   }
 
   protected List<RunningCompactionSummary> getRunningCompactions(ServerContext context,

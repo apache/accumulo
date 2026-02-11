@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Set;
 
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -34,13 +34,13 @@ public class UsageGroupsIT {
 
   @Test
   public void testUsageGroups() {
-    Set<UsageGroup> groups = UsageGroups.getUsageGroups();
+    Set<CommandGroup> groups = CommandGroups.getGroups();
     assertEquals(6, groups.size());
-    assertTrue(groups.contains(UsageGroups.ADMIN));
-    assertTrue(groups.contains(UsageGroups.CLIENT));
-    assertTrue(groups.contains(UsageGroups.COMPACTION));
-    assertTrue(groups.contains(UsageGroups.CORE));
-    assertTrue(groups.contains(UsageGroups.OTHER));
-    assertTrue(groups.contains(UsageGroups.PROCESS));
+    assertTrue(groups.contains(CommandGroups.ADMIN));
+    assertTrue(groups.contains(CommandGroups.CLIENT));
+    assertTrue(groups.contains(CommandGroups.COMPACTION));
+    assertTrue(groups.contains(CommandGroups.CORE));
+    assertTrue(groups.contains(CommandGroups.OTHER));
+    assertTrue(groups.contains(CommandGroups.PROCESS));
   }
 }

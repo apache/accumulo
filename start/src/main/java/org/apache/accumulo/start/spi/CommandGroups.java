@@ -25,27 +25,27 @@ import java.util.TreeSet;
 
 import com.google.auto.service.AutoService;
 
-public class UsageGroups {
+public class CommandGroups {
 
-  public static final UsageGroup ADMIN = new AdminUsageGroup();
-  public static final UsageGroup CLIENT = new ClientUsageGroup();
-  public static final UsageGroup COMPACTION = new CompactionUsageGroup();
-  public static final UsageGroup CORE = new CoreUsageGroup();
-  public static final UsageGroup OTHER = new OtherUsageGroup();
-  public static final UsageGroup PROCESS = new ProcessUsageGroup();
+  public static final CommandGroup ADMIN = new AdminUsageGroup();
+  public static final CommandGroup CLIENT = new ClientUsageGroup();
+  public static final CommandGroup COMPACTION = new CompactionUsageGroup();
+  public static final CommandGroup CORE = new CoreUsageGroup();
+  public static final CommandGroup OTHER = new OtherUsageGroup();
+  public static final CommandGroup PROCESS = new ProcessUsageGroup();
 
-  private static Set<UsageGroup> groups = null;
+  private static Set<CommandGroup> groups = null;
 
-  public static synchronized Set<UsageGroup> getUsageGroups() {
+  public static synchronized Set<CommandGroup> getGroups() {
     if (groups == null) {
-      Set<UsageGroup> ug = new TreeSet<>();
-      ServiceLoader.load(UsageGroup.class).forEach(ug::add);
+      Set<CommandGroup> ug = new TreeSet<>();
+      ServiceLoader.load(CommandGroup.class).forEach(ug::add);
       groups = ug;
     }
     return groups;
   }
 
-  public static abstract class BaseUsageGroup implements UsageGroup {
+  public static abstract class BaseUsageGroup implements CommandGroup {
 
     @Override
     public int hashCode() {
@@ -60,15 +60,15 @@ public class UsageGroups {
       if (obj == this) {
         return true;
       }
-      if (obj instanceof UsageGroup) {
-        return this.compareTo((UsageGroup) obj) == 0;
+      if (obj instanceof CommandGroup) {
+        return this.compareTo((CommandGroup) obj) == 0;
       }
       return false;
     }
 
   }
 
-  @AutoService(UsageGroup.class)
+  @AutoService(CommandGroup.class)
   public static class AdminUsageGroup extends BaseUsageGroup {
 
     @Override
@@ -87,7 +87,7 @@ public class UsageGroups {
     }
   }
 
-  @AutoService(UsageGroup.class)
+  @AutoService(CommandGroup.class)
   public static class ClientUsageGroup extends BaseUsageGroup {
 
     @Override
@@ -106,7 +106,7 @@ public class UsageGroups {
     }
   }
 
-  @AutoService(UsageGroup.class)
+  @AutoService(CommandGroup.class)
   public static class CompactionUsageGroup extends BaseUsageGroup {
 
     @Override
@@ -125,7 +125,7 @@ public class UsageGroups {
     }
   }
 
-  @AutoService(UsageGroup.class)
+  @AutoService(CommandGroup.class)
   public static class CoreUsageGroup extends BaseUsageGroup {
 
     @Override
@@ -144,7 +144,7 @@ public class UsageGroups {
     }
   }
 
-  @AutoService(UsageGroup.class)
+  @AutoService(CommandGroup.class)
   public static class ProcessUsageGroup extends BaseUsageGroup {
 
     @Override
@@ -163,7 +163,7 @@ public class UsageGroups {
     }
   }
 
-  @AutoService(UsageGroup.class)
+  @AutoService(CommandGroup.class)
   public static class OtherUsageGroup extends BaseUsageGroup {
 
     @Override

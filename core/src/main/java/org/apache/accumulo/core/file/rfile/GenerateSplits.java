@@ -51,6 +51,8 @@ import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.datasketches.quantiles.ItemsSketch;
 import org.apache.datasketches.quantilescommon.QuantileSearchCriteria;
@@ -107,6 +109,11 @@ public class GenerateSplits implements KeywordExecutable {
   @Override
   public String description() {
     return "Generate split points from a set of 1 or more rfiles";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   public static void main(String[] args) throws Exception {

@@ -25,9 +25,9 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.spi.UsageGroup;
-import org.apache.accumulo.start.spi.UsageGroups;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -55,8 +55,8 @@ public class CancelCompaction implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroups.COMPACTION;
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
   }
 
   protected void cancelCompaction(ServerContext context, String ecid) {
@@ -78,7 +78,7 @@ public class CancelCompaction implements KeywordExecutable {
     ServerUtilOpts opts = new ServerUtilOpts();
 
     JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + usageGroup().key() + " " + keyword());
+    cl.setProgramName("accumulo " + commandGroup().key() + " " + keyword());
 
     CancelCommand cancelOps = new CancelCommand();
     cl.addCommand(cancelOps);

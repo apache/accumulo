@@ -40,7 +40,7 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerUtilOpts>
   @Override
   public final void execute(String[] args) throws Exception {
     JCommander cl = new JCommander(this.options);
-    cl.setProgramName("accumulo " + usageGroup().key() + " " + keyword());
+    cl.setProgramName("accumulo " + commandGroup().key() + " " + keyword());
     try {
       cl.parse(args);
     } catch (ParameterException e) {
