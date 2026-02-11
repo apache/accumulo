@@ -80,8 +80,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
             // This code assumes the list of iterators is sorted on priority
             Preconditions.checkState(last.getPriority() <= curr.getPriority());
             if (last.getPriority() == curr.getPriority()) {
-              // duplicate priority
-              log.warn("iterator priority conflict seen for tableId:{} {} {}", tableId, last, curr);
+              throw new IllegalStateException(String.format(
+                  "iterator priority conflict seen for tableId:%s %s %s", tableId, last, curr));
             }
           }
         }

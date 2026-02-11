@@ -265,8 +265,7 @@ class ScanDataSource implements DataSource {
               IteratorConfigUtil.checkIteratorConflicts(tablet.getExtent().toString(),
                   getIteratorSetting(scanParamIterInfo,
                       scanParams.getSsio().get(scanParamIterInfo.getIterName())),
-                  EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings),
-                  false);
+                  EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings));
             } catch (AccumuloException e) {
               throw new IllegalArgumentException(e);
             }

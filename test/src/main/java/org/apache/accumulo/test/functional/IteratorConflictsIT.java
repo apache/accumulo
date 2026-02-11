@@ -18,23 +18,15 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -51,14 +43,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.fs.Path;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.core.LogEvent;
-import org.apache.logging.log4j.core.LoggerContext;
-import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.apache.logging.log4j.core.config.Configuration;
-import org.apache.logging.log4j.core.layout.PatternLayout;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -140,47 +124,16 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
   private static final String defaultIterOptVal =
       defaultTableIter.getOptions().entrySet().iterator().next().getValue();
 
-  private static final LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
-  private static final Configuration loggerConfig = loggerContext.getConfiguration();
-  private static final TestAppender appender = new TestAppender();
-  private static final String datePattern = getDatePattern();
-  private static final DateTimeFormatter dateTimeFormatter =
-      DateTimeFormatter.ofPattern(datePattern);
-
-  public static class TestAppender extends AbstractAppender {
-    // CopyOnWriteArrayList for thread safety, even while iterating
-    private final List<LogEvent> events = new CopyOnWriteArrayList<>();
-
-    public TestAppender() {
-      super("TestAppender", null, PatternLayout.createDefaultLayout(), false, null);
-    }
-
-    @Override
-    public void append(LogEvent event) {
-      events.add(event.toImmutable());
-    }
-
-    public List<LogEvent> events() {
-      return events;
-    }
-  }
-
   @BeforeAll
   public static void startup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
     client = Accumulo.newClient().from(getClientProps()).build();
     tops = client.tableOperations();
     nops = client.namespaceOperations();
-    appender.start();
-    loggerConfig.getRootLogger().addAppender(appender, Level.WARN, null);
-    loggerContext.updateLoggers();
   }
 
   @AfterAll
   public static void shutdown() throws Exception {
-    loggerConfig.getRootLogger().removeAppender(appender.getName());
-    appender.stop();
-    loggerContext.updateLoggers();
     client.close();
     SharedMiniClusterBase.stopMiniCluster();
   }
@@ -220,11 +173,11 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
     // testing TableOperations.setProperty
     testTableIterPrioConflict(table2, AccumuloException.class,
-        () -> tops.setProperty(table2, iter1PrioConflictKey, iter1PrioConflictVal), false);
+        () -> tops.setProperty(table2, iter1PrioConflictKey, iter1PrioConflictVal), true);
 
     // testing TableOperations.modifyProperties
     testTableIterPrioConflict(table3, AccumuloException.class, () -> tops.modifyProperties(table3,
-        props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)), false);
+        props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)), true);
 
     // NewTableConfiguration.attachIterator is not applicable for this test
     // Attaching the iterator to the table requires the table to exist, but testing
@@ -237,7 +190,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> tops.attachIterator(table4, iter1NameConflict), true);
 
     // testing NamespaceOperations.attachIterator
-    testTableIterPrioConflict(table5, AccumuloException.class, () -> {
+    testTableIterPrioConflict(table5, IllegalStateException.class, () -> {
       nops.attachIterator(ns5, iter1PrioConflict);
       try (var scanner = client.createScanner(table5)) {
         assertFalse(scanner.iterator().hasNext());
@@ -245,7 +198,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     }, false);
 
     // testing NamespaceOperations.setProperty
-    testTableIterPrioConflict(table6, AccumuloException.class, () -> {
+    testTableIterPrioConflict(table6, IllegalStateException.class, () -> {
       nops.setProperty(ns6, iter1PrioConflictKey, iter1PrioConflictVal);
       try (var scanner = client.createScanner(table6)) {
         assertFalse(scanner.iterator().hasNext());
@@ -253,7 +206,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     }, false);
 
     // testing NamespaceOperations.modifyProperties
-    testTableIterPrioConflict(table7, AccumuloException.class, () -> {
+    testTableIterPrioConflict(table7, IllegalStateException.class, () -> {
       nops.modifyProperties(ns7, props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal));
       try (var scanner = client.createScanner(table7)) {
         assertFalse(scanner.iterator().hasNext());
@@ -266,36 +219,32 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> tops.clone(table8, table9,
             CloneConfiguration.builder()
                 .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build()),
-        false);
+        true);
   }
 
   private <T extends Exception> void testTableIterNameConflict(String table,
-      Class<T> exceptionClass, Executable iterNameConflictExec, boolean shouldThrow)
+      Class<T> exceptionClass, Executable iterNameConflictExec, boolean checkMessage)
       throws Throwable {
-    if (shouldThrow) {
-      var e = assertThrows(exceptionClass, iterNameConflictExec);
+    var e = assertThrows(exceptionClass, iterNameConflictExec);
+    if (checkMessage) {
       assertTrue(e.toString().contains("iterator name conflict"));
-      assertEquals(Set.of(iter1.getName(), "vers"), tops.listIterators(table).keySet());
-      for (var scope : IteratorScope.values()) {
-        assertEquals(iter1, tops.getIteratorSetting(table, iter1.getName(), scope));
-      }
-    } else {
-      assertTrue(logsContain(List.of("iterator name conflict"), iterNameConflictExec));
+    }
+    assertEquals(Set.of(iter1.getName(), "vers"), tops.listIterators(table).keySet());
+    for (var scope : IteratorScope.values()) {
+      assertEquals(iter1, tops.getIteratorSetting(table, iter1.getName(), scope));
     }
   }
 
   private <T extends Exception> void testTableIterPrioConflict(String table,
-      Class<T> exceptionClass, Executable iterPrioConflictExec, boolean shouldThrow)
+      Class<T> exceptionClass, Executable iterPrioConflictExec, boolean checkMessage)
       throws Throwable {
-    if (shouldThrow) {
-      var e = assertThrows(exceptionClass, iterPrioConflictExec);
+    var e = assertThrows(exceptionClass, iterPrioConflictExec);
+    if (checkMessage) {
       assertTrue(e.toString().contains("iterator priority conflict"));
       assertEquals(Set.of(iter1.getName(), "vers"), tops.listIterators(table).keySet());
       for (var scope : IteratorScope.values()) {
         assertEquals(iter1, tops.getIteratorSetting(table, iter1.getName(), scope));
       }
-    } else {
-      assertTrue(logsContain(List.of("iterator priority conflict"), iterPrioConflictExec));
     }
   }
 
@@ -325,9 +274,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String table2 = ns2 + "." + names[3];
     tops.create(table2);
     testNamespaceIterPrioConflict(ns2, AccumuloException.class,
-        () -> tops.setProperty(table2, iter1PrioConflictKey, iter1PrioConflictVal), false);
-
-    // TODO its ok to set a name that "conflicts" if it overrides in the merged view
+        () -> tops.setProperty(table2, iter1PrioConflictKey, iter1PrioConflictVal), true);
 
     // testing TableOperations.modifyProperties
     String ns3 = names[4];
@@ -335,7 +282,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String table3 = ns3 + "." + names[5];
     tops.create(table3);
     testNamespaceIterPrioConflict(ns3, AccumuloException.class, () -> tops.modifyProperties(table3,
-        props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)), false);
+        props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)), true);
 
     // testing NewTableConfiguration.attachIterator
     String ns4 = names[6];
@@ -343,7 +290,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String table4 = ns4 + "." + names[7];
     testNamespaceIterPrioConflict(ns4, AccumuloException.class,
         () -> tops.create(table4, new NewTableConfiguration().attachIterator(iter1PrioConflict)),
-        false);
+        true);
 
     // testing TableOperations.attachIterator
     String ns5 = names[9];
@@ -367,7 +314,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String ns7 = names[12];
     nops.create(ns7);
     testNamespaceIterPrioConflict(ns7, AccumuloException.class,
-        () -> nops.setProperty(ns7, iter1PrioConflictKey, iter1PrioConflictVal), false);
+        () -> nops.setProperty(ns7, iter1PrioConflictKey, iter1PrioConflictVal), true);
 
     // testing NamespaceOperations.modifyProperties
     String ns8 = names[13];
@@ -376,7 +323,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> nops.modifyProperties(ns8,
             props -> props.put(iter1PrioConflictKey, iter1PrioConflictVal)),
 
-        false);
+        true);
 
     // testing CloneConfiguration.Builder.setPropertiesToSet
     // testing same src and dst namespace: should conflict
@@ -390,7 +337,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> tops.clone(src1, dst1,
             CloneConfiguration.builder()
                 .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build()),
-        false);
+        true);
     // testing attached to src namespace, different dst namespace: should not conflict
     String srcNamespace2 = names[18];
     nops.create(srcNamespace2);
@@ -419,42 +366,37 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
         () -> tops.clone(src3, dst5,
             CloneConfiguration.builder()
                 .setPropertiesToSet(Map.of(iter1PrioConflictKey, iter1PrioConflictVal)).build()),
-        false);
+        true);
   }
 
   private <T extends Exception> void testNamespaceIterPrioConflict(String ns,
-      Class<T> exceptionClass, Executable iterPrioConflictExec, boolean shouldThrow)
+      Class<T> exceptionClass, Executable iterPrioConflictExec, boolean checkMessage)
       throws Throwable {
     nops.attachIterator(ns, iter1);
     Wait.waitFor(() -> nops.listIterators(ns).containsKey(iter1.getName()));
-
-    if (shouldThrow) {
-      var e = assertThrows(exceptionClass, iterPrioConflictExec);
-      assertTrue(e.toString().contains("iterator priority conflict"));
-      assertEquals(Set.of(iter1.getName()), nops.listIterators(ns).keySet());
-      for (var scope : IteratorScope.values()) {
-        assertEquals(iter1, nops.getIteratorSetting(ns, iter1.getName(), scope));
-      }
-    } else {
-      assertTrue(logsContain(List.of("iterator priority conflict"), iterPrioConflictExec));
+    var e = assertThrows(exceptionClass, iterPrioConflictExec);
+    if (checkMessage) {
+      assertTrue(e.toString().contains("iterator priority conflict"), e::getMessage);
+    }
+    assertEquals(Set.of(iter1.getName()), nops.listIterators(ns).keySet());
+    for (var scope : IteratorScope.values()) {
+      assertEquals(iter1, nops.getIteratorSetting(ns, iter1.getName(), scope));
     }
   }
 
   private <T extends Exception> void testNamespaceIterNameConflict(String ns,
-      Class<T> exceptionClass, Executable iterPrioConflictExec, boolean shouldThrow)
+      Class<T> exceptionClass, Executable iterPrioConflictExec, boolean checkMessage)
       throws Throwable {
     nops.attachIterator(ns, iter1);
     Wait.waitFor(() -> nops.listIterators(ns).containsKey(iter1.getName()));
 
-    if (shouldThrow) {
-      var e = assertThrows(exceptionClass, iterPrioConflictExec);
+    var e = assertThrows(exceptionClass, iterPrioConflictExec);
+    if (checkMessage) {
       assertTrue(e.toString().contains("iterator name conflict"));
-      assertEquals(Set.of(iter1.getName()), nops.listIterators(ns).keySet());
-      for (var scope : IteratorScope.values()) {
-        assertEquals(iter1, nops.getIteratorSetting(ns, iter1.getName(), scope));
-      }
-    } else {
-      assertTrue(logsContain(List.of("iterator name conflict"), iterPrioConflictExec));
+    }
+    assertEquals(Set.of(iter1.getName()), nops.listIterators(ns).keySet());
+    for (var scope : IteratorScope.values()) {
+      assertEquals(iter1, nops.getIteratorSetting(ns, iter1.getName(), scope));
     }
   }
 
@@ -499,7 +441,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
             defaultIterPrioConflictVal),
         () -> tops.setProperty(noDefaultsTable2, defaultIterNameConflictKey,
             defaultIterNameConflictVal),
-        false);
+        true);
 
     // testing TableOperations.modifyProperties
     String defaultsTable3 = names[4];
@@ -514,7 +456,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
             props -> props.put(defaultIterPrioConflictKey, defaultIterPrioConflictVal)),
         () -> tops.modifyProperties(noDefaultsTable3,
             props -> props.put(defaultIterNameConflictKey, defaultIterNameConflictVal)),
-        false);
+        true);
 
     // testing NewTableConfiguration.attachIterator
     String defaultsTable4 = names[6];
@@ -551,7 +493,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     nops.create(ns8);
     String noDefaultsTable8 = ns8 + "." + names[14];
     tops.create(noDefaultsTable8, new NewTableConfiguration().withoutDefaults());
-    testDefaultIterConflict(AccumuloException.class, () -> {
+    testDefaultIterConflict(IllegalStateException.class, () -> {
       nops.attachIterator(ns7, defaultIterPrioConflict);
       try (var scanner = client.createScanner(defaultsTable7)) {
         assertFalse(scanner.iterator().hasNext());
@@ -568,7 +510,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     nops.create(ns10);
     String noDefaultsTable10 = ns10 + "." + names[18];
     tops.create(noDefaultsTable10, new NewTableConfiguration().withoutDefaults());
-    testDefaultIterConflict(AccumuloException.class, () -> {
+    testDefaultIterConflict(IllegalStateException.class, () -> {
       nops.setProperty(ns9, defaultIterPrioConflictKey, defaultIterPrioConflictVal);
       try (var scanner = client.createScanner(defaultsTable9)) {
         assertFalse(scanner.iterator().hasNext());
@@ -586,7 +528,7 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     nops.create(ns12);
     String noDefaultsTable12 = ns12 + "." + names[22];
     tops.create(noDefaultsTable12, new NewTableConfiguration().withoutDefaults());
-    testDefaultIterConflict(AccumuloException.class, () -> {
+    testDefaultIterConflict(IllegalStateException.class, () -> {
       nops.modifyProperties(ns11,
           props -> props.put(defaultIterPrioConflictKey, defaultIterPrioConflictVal));
       try (var scanner = client.createScanner(defaultsTable11)) {
@@ -626,29 +568,22 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
             CloneConfiguration.builder()
                 .setPropertiesToSet(Map.of(defaultIterNameConflictKey, defaultIterNameConflictVal))
                 .build()),
-        false);
+        true);
   }
 
   private <T extends Exception> void testDefaultIterConflict(Class<T> exceptionClass,
       Executable defaultsTableOp1, Executable defaultsTableOp2, Executable noDefaultsTableOp1,
-      Executable noDefaultsTableOp2, boolean shouldThrow) throws Throwable {
-    if (shouldThrow) {
-      var e = assertThrows(exceptionClass, defaultsTableOp1);
+      Executable noDefaultsTableOp2, boolean checkMessage) throws Throwable {
+    var e = assertThrows(exceptionClass, defaultsTableOp1);
+    if (checkMessage) {
       assertTrue(e.toString().contains("conflict with default table iterator")
           || e.toString().contains("iterator priority conflict"));
-      if (defaultsTableOp2 != null) {
-        e = assertThrows(exceptionClass, defaultsTableOp2);
+    }
+    if (defaultsTableOp2 != null) {
+      e = assertThrows(exceptionClass, defaultsTableOp2);
+      if (checkMessage) {
         assertTrue(e.toString().contains("conflict with default table iterator")
             || e.toString().contains("iterator name conflict"));
-      }
-    } else {
-      assertTrue(
-          logsContain(List.of("conflict with default table iterator", "iterator priority conflict"),
-              defaultsTableOp1));
-      if (defaultsTableOp2 != null) {
-        assertTrue(
-            logsContain(List.of("conflict with default table iterator", "iterator name conflict"),
-                defaultsTableOp2));
       }
     }
 
@@ -758,77 +693,5 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     // should be able to add same exact iterator
     addIter1Executable.execute();
     addDefaultIterExecutable.execute();
-  }
-
-  private static boolean logsContain(List<String> expectedStrs, Executable exec) throws Throwable {
-    var timeBeforeExec = LocalDateTime.now();
-    var timeBeforeExecMillis = System.currentTimeMillis();
-    exec.execute();
-
-    // check the logs from other processes for a log that occurred after the execution and
-    // contains one of the expected strings
-    List<String> warnLogsAfterExec = warnLogsAfter(timeBeforeExec);
-    for (var warnLog : warnLogsAfterExec) {
-      if (expectedStrs.stream().anyMatch(warnLog::contains)) {
-        return true;
-      }
-    }
-
-    // check the logs from the test process (this process) for a log that occurred after the
-    // execution and contains one of the expected strings
-    return appender.events().stream()
-        .anyMatch(logEvent -> logEvent.getTimeMillis() > timeBeforeExecMillis && expectedStrs
-            .stream().anyMatch(logEvent.getMessage().getFormattedMessage()::contains));
-  }
-
-  private static String getDatePattern() {
-    String datePattern = null;
-    for (var appender : loggerConfig.getAppenders().values()) {
-      if (appender.getLayout() instanceof PatternLayout) {
-        PatternLayout layout = (PatternLayout) appender.getLayout();
-        String pattern = layout.getConversionPattern();
-        if (pattern.contains("%d{ISO8601}")) {
-          datePattern = "yyyy-MM-dd'T'HH:mm:ss,SSS";
-          break;
-        }
-      }
-    }
-    assertNotNull(datePattern,
-        "Format of dates in log4j config has changed. This test needs to be updated");
-    return datePattern;
-  }
-
-  private static List<String> warnLogsAfter(LocalDateTime timeBeforeExec) throws Exception {
-    var filesIter = getCluster().getFileSystem()
-        .listFiles(new Path(getCluster().getConfig().getLogDir().toURI()), false);
-    List<Path> files = new ArrayList<>();
-    List<String> lines = new ArrayList<>();
-
-    // get all the WARN logs in the Manager and TabletServer logs that happened after the given
-    // time. We only care about the Manager and TabletServer as these are the only servers that
-    // will check for iterator conflicts
-    while (filesIter.hasNext()) {
-      var file = filesIter.next();
-      if (file.getPath().getName().matches("(Manager_|TabletServer_).+\\.out")) {
-        files.add(file.getPath());
-      }
-    }
-    for (var path : files) {
-      try (var in = getCluster().getFileSystem().open(path);
-          BufferedReader reader = new BufferedReader(new InputStreamReader(in, UTF_8))) {
-        String line;
-        while ((line = reader.readLine()) != null) {
-          if (line.contains("WARN")) {
-            var words = line.split(" ");
-            if (words.length >= 1
-                && LocalDateTime.parse(words[0], dateTimeFormatter).isAfter(timeBeforeExec)) {
-              lines.add(line);
-            }
-          }
-        }
-      }
-    }
-
-    return lines;
   }
 }

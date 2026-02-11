@@ -329,6 +329,7 @@ service ManagerClientService {
     2:client.ThriftTableOperationException tope
     3:client.ThriftNotActiveServiceException tnase
     4:client.ThriftConcurrentModificationException tcme
+    5:ThriftPropertyException tpe
   )
 
   void removeNamespaceProperty(

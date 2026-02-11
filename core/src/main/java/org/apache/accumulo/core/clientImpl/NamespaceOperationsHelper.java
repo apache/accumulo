@@ -148,8 +148,7 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     var props = this.getNamespaceProperties(namespace);
-    IteratorConfigUtil.checkIteratorConflicts("namespace:" + namespace, props, setting, scopes,
-        true);
+    IteratorConfigUtil.checkIteratorConflicts("namespace:" + namespace, props, setting, scopes);
   }
 
   @Override

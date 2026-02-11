@@ -238,8 +238,13 @@ class FateServiceHandler implements FateService.Iface {
 
         var namespaceIterProps = manager.getContext().getNamespaceConfiguration(namespaceId)
             .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX);
-        IteratorConfigUtil.checkIteratorPriorityConflicts("create table:" + tableName, options,
-            namespaceIterProps);
+        try {
+          IteratorConfigUtil.checkIteratorPriorityConflicts("create table:" + tableName, options,
+              namespaceIterProps);
+        } catch (IllegalArgumentException iae) {
+          throw new ThriftTableOperationException(null, tableName, tableOp,
+              TableOperationExceptionType.OTHER, iae.getMessage());
+        }
         for (Map.Entry<String,String> entry : options.entrySet()) {
           validateTableProperty(entry.getKey(), entry.getValue(), tableName, tableOp);
         }
@@ -351,9 +356,14 @@ class FateServiceHandler implements FateService.Iface {
         srcTableProps.keySet().removeAll(propertiesToExclude);
         var namespaceProps = manager.getContext().getNamespaceConfiguration(namespaceId)
             .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX);
-        IteratorConfigUtil.checkIteratorPriorityConflicts(
-            "clone table source tableId:" + srcTableId + " tablename:" + tableName, srcTableProps,
-            namespaceProps);
+        try {
+          IteratorConfigUtil.checkIteratorPriorityConflicts(
+              "clone table source tableId:" + srcTableId + " tablename:" + tableName, srcTableProps,
+              namespaceProps);
+        } catch (IllegalArgumentException iae) {
+          throw new ThriftTableOperationException(null, tableName, tableOp,
+              TableOperationExceptionType.OTHER, iae.getMessage());
+        }
 
         goalMessage += "Clone table " + srcTableId + " to " + tableName;
         if (keepOffline) {
