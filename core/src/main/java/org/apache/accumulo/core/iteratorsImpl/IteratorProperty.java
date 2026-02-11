@@ -113,9 +113,7 @@ public class IteratorProperty {
   }
 
   private static void check(boolean b, String property, String value) {
-    if (!b) {
-      throw new IllegalArgumentException("Illegal iterator property: " + property + "=" + value);
-    }
+    Preconditions.checkArgument(b, "Illegal iterator property: " + property + "=" + value);
   }
 
   @Override
