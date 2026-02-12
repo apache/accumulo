@@ -24,9 +24,9 @@ import java.net.UnknownHostException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -34,60 +34,77 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.manager.fate.FateWorker;
-import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
+
 /**
  * An assistant to the manager
  */
-public class ManagerWorker extends AbstractServer {
+// TODO because this does not extend abstract server it does not get some of the benefits like
+// monitoring of lock
+public class ManagerWorker /* extends AbstractServer */ {
 
   private static final Logger log = LoggerFactory.getLogger(ManagerWorker.class);
+  private final ServerContext context;
+  private final String bindAddress;
   private volatile ServiceLock managerWorkerLock;
   private FateWorker fateWorker;
+  private volatile ServerAddress thriftServer;
 
-  protected ManagerWorker(ConfigOpts opts, String[] args) {
-    super(ServerId.Type.MANAGER_WORKER, opts, ServerContext::new, args);
+  protected ManagerWorker(ServerContext context, String bindAddress) {
+    this.context = context;
+    this.bindAddress = bindAddress;
   }
 
-  protected void startClientService() throws UnknownHostException {
+  public ServerContext getContext() {
+    return context;
+  }
 
-    fateWorker = new FateWorker(getContext(), this::getLock);
+  private ResourceGroupId getResourceGroup() {
+    return ResourceGroupId.DEFAULT;
+  }
+
+  private HostAndPort startClientService() throws UnknownHostException {
+    fateWorker = new FateWorker(getContext());
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
-    ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
-    TProcessor processor = ThriftProcessorTypes.getManagerWorkerTProcessor(this, clientHandler,
-        fateWorker, getContext());
+    TProcessor processor =
+        ThriftProcessorTypes.getManagerWorkerTProcessor(fateWorker, getContext());
 
-    // TODO using scan server props
-    updateThriftServer(() -> {
-      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
-          Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-          Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
-          Property.SSERV_THREADCHECK);
-    }, true);
+    // TODO should the minthreads and timeout have their own props? Probably, do not expect this to
+    // have lots of RPCs so could be less.
+    var thriftServer =
+        TServerUtils.createThriftServer(getContext(), bindAddress, Property.MANAGER_ASSISTANTPORT,
+            processor, this.getClass().getSimpleName(), null, Property.MANAGER_MINTHREADS,
+            Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
+    thriftServer.startThriftServer("Thrift Manager Assistant Server");
+    log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+        thriftServer.address);
+    return thriftServer.address;
   }
 
-  private ServiceLock announceExistence() {
+  private void announceExistence(HostAndPort advertiseAddress) {
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
       final ServiceLockPaths.ServiceLockPath zLockPath = getContext().getServerPaths()
-          .createManagerWorkerPath(getResourceGroup(), getAdvertiseAddress());
-      ServiceLockSupport.createNonHaServiceLockPath(ServerId.Type.MANAGER_WORKER, zoo, zLockPath);
+          .createManagerWorkerPath(getResourceGroup(), advertiseAddress);
+      ServiceLockSupport.createNonHaServiceLockPath(ServerId.Type.MANAGER_ASSISTANT, zoo,
+          zLockPath);
       var serverLockUUID = UUID.randomUUID();
       managerWorkerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
+      // TODO shutdown supplier, anything to do here?
       ServiceLock.LockWatcher lw = new ServiceLockSupport.ServiceLockWatcher(
-          ServerId.Type.MANAGER_WORKER, () -> getShutdownComplete().get(),
-          (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
+          ServerId.Type.MANAGER_ASSISTANT, () -> false,
+          (type) -> getContext().getLowMemoryDetector().logGCInfo(getContext().getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
@@ -96,72 +113,42 @@ public class ManagerWorker extends AbstractServer {
         for (ServiceLockData.ThriftService svc : new ServiceLockData.ThriftService[] {
             ServiceLockData.ThriftService.CLIENT, ServiceLockData.ThriftService.FATE_WORKER}) {
           descriptors.addService(new ServiceLockData.ServiceDescriptor(serverLockUUID, svc,
-              getAdvertiseAddress().toString(), this.getResourceGroup()));
+              advertiseAddress.toString(), this.getResourceGroup()));
         }
 
         if (managerWorkerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          log.debug("Obtained scan server lock {}", managerWorkerLock.getLockPath());
-          return managerWorkerLock;
+          log.debug("Obtained manager assistant lock {}", managerWorkerLock.getLockPath());
+          return;
         }
-        log.info("Waiting for manager worker lock");
+        log.info("Waiting for manager assistant lock");
         sleepUninterruptibly(5, TimeUnit.SECONDS);
       }
       String msg = "Too many retries, exiting.";
       log.info(msg);
       throw new RuntimeException(msg);
     } catch (Exception e) {
-      log.info("Could not obtain manager worker lock, exiting.", e);
+      log.info("Could not obtain manager assistant lock, exiting.", e);
       throw new RuntimeException(e);
     }
   }
 
-  @Override
+  public void start() {
+    HostAndPort advertiseAddress;
+    try {
+      advertiseAddress = startClientService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the manager assistant client service", e1);
+    }
+
+    announceExistence(advertiseAddress);
+    fateWorker.setLock(getLock());
+  }
+
+  public void stop() {
+    thriftServer.server.stop();
+  }
+
   public ServiceLock getLock() {
     return managerWorkerLock;
-  }
-
-  @Override
-  public void run() {
-    try {
-      waitForUpgrade();
-    } catch (InterruptedException e) {
-      log.error("Interrupted while waiting for upgrade to complete, exiting...");
-      System.exit(1);
-    }
-
-    SecurityUtil.serverLogin(getConfiguration());
-
-    // TODO metrics
-
-    try {
-      startClientService();
-    } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the manager worker client service", e1);
-    }
-
-    ServiceLock lock = announceExistence();
-    this.getContext().setServiceLock(lock);
-    fateWorker.setLock(lock);
-
-    while (!isShutdownRequested()) {
-      if (Thread.currentThread().isInterrupted()) {
-        log.info("Server process thread has been interrupted, shutting down");
-        break;
-      }
-      try {
-        Thread.sleep(1000);
-        // TODO update idle status
-      } catch (InterruptedException e) {
-        log.info("Interrupt Exception received, shutting down");
-        gracefulShutdown(getContext().rpcCreds());
-      }
-    }
-
-    log.debug("Stopping Thrift Servers");
-    getThriftServer().stop();
-  }
-
-  public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new ManagerWorker(new ConfigOpts(), args), log);
   }
 }

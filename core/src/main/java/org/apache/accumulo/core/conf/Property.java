@@ -401,6 +401,8 @@ public enum Property {
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
   MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
+  MANAGER_ASSISTANTPORT("manager.port.assistant", "9994", PropertyType.PORT,
+      "The port used by the primary manager to assign task to all manager processes.", "4.0.0"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "

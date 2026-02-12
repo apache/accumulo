@@ -53,14 +53,13 @@ public class FateWorker implements FateWorkerService.Iface {
   private static final Logger log = LoggerFactory.getLogger(FateWorker.class);
   private final ServerContext context;
   private final AuditedSecurityOperation security;
-  private final Set<FatePartition> currentPartitions;
   private volatile Fate<FateEnv> fate;
 
-  public FateWorker(ServerContext ctx, Supplier<ServiceLock> serviceLockSupplier) {
+  public FateWorker(ServerContext ctx) {
     this.context = ctx;
     this.security = ctx.getSecurityOperation();
-    this.currentPartitions = Collections.synchronizedSet(new HashSet<>());
     this.fate = null;
+    // TODO fate metrics
   }
 
   public void setLock(ServiceLock lock) {
@@ -70,7 +69,7 @@ public class FateWorker implements FateWorkerService.Iface {
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
     this.fate = new Fate<>(env, store, false, TraceRepo::toLogString, context.getConfiguration(),
         context.getScheduledExecutor());
-    // TODO where will the 2 fate cleanup task run?
+    // TODO where will the 2 fate cleanup task run?  Make dead reservation cleaner use partitions... cleanup can run in manager
 
   }
 
@@ -114,21 +113,21 @@ public class FateWorker implements FateWorkerService.Iface {
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
+
     synchronized (this) {
-      if (expectedUpdateId != null && updateId == expectedUpdateId) {
+      var localFate = fate;
+      if (localFate != null && expectedUpdateId != null && updateId == expectedUpdateId) {
         // Set to null which makes it so that an update id can only be used once.
         expectedUpdateId = null;
-        var localFate = fate;
-        if (localFate != null) {
           var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
           var oldPartitions = localFate.setPartitions(desiredSet);
           log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
           return true;
-        }
+      }else {
+        log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{} localFate==null:{}", desired,
+                expectedUpdateId, updateId, localFate==null);
+        return false;
       }
-      log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{}", desired,
-          expectedUpdateId, updateId);
-      return false;
     }
   }
 }

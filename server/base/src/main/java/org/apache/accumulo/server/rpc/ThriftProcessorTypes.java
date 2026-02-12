@@ -147,15 +147,9 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getManagerWorkerTProcessor(
-      ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
-      FateWorkerService.Iface fateWorkerHandler, ServerContext context) {
+  public static TMultiplexedProcessor
+      getManagerWorkerTProcessor(FateWorkerService.Iface fateWorkerHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
-        ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
-    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
-        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
-            ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(FATE_WORKER.getServiceName(),
         FATE_WORKER.getTProcessor(FateWorkerService.Processor.class, FateWorkerService.Iface.class,
             fateWorkerHandler, context));

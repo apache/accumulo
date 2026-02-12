@@ -276,6 +276,8 @@ public class Fate<T> {
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
+      // TODO make this use partitions
+
       // Create a dead reservation cleaner for this store that will periodically clean up
       // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,

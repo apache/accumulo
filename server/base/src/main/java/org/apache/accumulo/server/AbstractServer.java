@@ -174,7 +174,7 @@ public abstract class AbstractServer
       case TABLET_SERVER:
         metricSource = MetricSource.TABLET_SERVER;
         break;
-      case MANAGER_WORKER:
+      case MANAGER_ASSISTANT:
         // TODO create a new source?
         metricSource = MetricSource.MANAGER;
         break;
