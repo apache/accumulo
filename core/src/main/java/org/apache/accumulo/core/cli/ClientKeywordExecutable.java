@@ -16,35 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.core.cli;
 
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
-import com.google.auto.service.AutoService;
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.ParameterException;
 
-@AutoService(KeywordExecutable.class)
-public class ScanServerExecutable implements KeywordExecutable {
+public abstract class ClientKeywordExecutable<OPTS extends ClientOpts>
+    implements KeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "sserver";
+  private final OPTS options;
+
+  public ClientKeywordExecutable(OPTS options) {
+    this.options = options;
   }
 
   @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
+  public final void execute(String[] args) throws Exception {
+    JCommander cl = new JCommander(this.options);
+    cl.setProgramName("accumulo "
+        + (commandGroup().key().isBlank() ? "" : commandGroup().key() + " ") + keyword());
+    try {
+      cl.parse(args);
+    } catch (ParameterException e) {
+      cl.usage();
+      return;
+    }
+
+    if (this.options.help) {
+      cl.usage();
+      return;
+    }
+    execute(cl, options);
   }
 
-  @Override
-  public String description() {
-    return "Starts Accumulo scan server";
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    ScanServer.main(args);
-  }
+  public abstract void execute(JCommander cl, OPTS options) throws Exception;
 
 }

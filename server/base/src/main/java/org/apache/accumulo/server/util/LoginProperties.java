@@ -26,6 +26,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -41,6 +43,11 @@ public class LoginProperties implements KeywordExecutable {
   @Override
   public String description() {
     return "Prints Accumulo login info";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   @Override

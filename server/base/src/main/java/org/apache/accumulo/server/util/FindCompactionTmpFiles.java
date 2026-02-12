@@ -40,6 +40,8 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -67,15 +69,15 @@ public class FindCompactionTmpFiles implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.COMPACTION;
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
   }
 
   @Override
   public void execute(String[] args) throws Exception {
     ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
+    cl.setProgramName("accumulo " + commandGroup().key() + " " + keyword());
 
     FindCompactionTmpFilesCommand findOps = new FindCompactionTmpFilesCommand();
     cl.addCommand(findOps);

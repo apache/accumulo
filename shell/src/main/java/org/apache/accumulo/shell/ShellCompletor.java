@@ -98,15 +98,15 @@ public class ShellCompletor implements Completer {
 
           // we're in a subcommand so try to match the universal
           // option flags if we're there
-          if (current_string_token.trim().equals("-" + Shell.tableOption)) {
+          if (current_string_token.trim().equals("-" + ShellOptions.tableOption)) {
             candidates.addAll(options.get(Shell.Command.CompletionSet.TABLENAMES));
-            prefix += "-" + Shell.tableOption + " ";
-          } else if (current_string_token.trim().equals("-" + Shell.userOption)) {
+            prefix += "-" + ShellOptions.tableOption + " ";
+          } else if (current_string_token.trim().equals("-" + ShellOptions.userOption)) {
             candidates.addAll(options.get(Shell.Command.CompletionSet.USERNAMES));
-            prefix += "-" + Shell.userOption + " ";
-          } else if (current_string_token.trim().equals("-" + Shell.namespaceOption)) {
+            prefix += "-" + ShellOptions.userOption + " ";
+          } else if (current_string_token.trim().equals("-" + ShellOptions.namespaceOption)) {
             candidates.addAll(options.get(Shell.Command.CompletionSet.NAMESPACES));
-            prefix += "-" + Shell.namespaceOption + " ";
+            prefix += "-" + ShellOptions.namespaceOption + " ";
           } else if (current_command_token != null) {
             Token next = current_command_token.getSubcommand(current_string_token);
             if (next != null) {
@@ -152,11 +152,11 @@ public class ShellCompletor implements Completer {
         return prefix.length();
       }
 
-      if (current_string_token.trim().equals("-" + Shell.tableOption)) {
+      if (current_string_token.trim().equals("-" + ShellOptions.tableOption)) {
         inTableFlag = true;
-      } else if (current_string_token.trim().equals("-" + Shell.userOption)) {
+      } else if (current_string_token.trim().equals("-" + ShellOptions.userOption)) {
         inUserFlag = true;
-      } else if (current_string_token.trim().equals("-" + Shell.namespaceOption)) {
+      } else if (current_string_token.trim().equals("-" + ShellOptions.namespaceOption)) {
         inNamespaceFlag = true;
       } else {
         inUserFlag = inTableFlag = inNamespaceFlag = false;

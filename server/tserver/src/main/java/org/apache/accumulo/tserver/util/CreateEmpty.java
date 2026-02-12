@@ -40,6 +40,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -116,6 +118,11 @@ public class CreateEmpty implements KeywordExecutable {
   @Override
   public String description() {
     return "Creates empty RFiles (RF) or empty write-ahead log (WAL) files for emergency recovery";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   @Override

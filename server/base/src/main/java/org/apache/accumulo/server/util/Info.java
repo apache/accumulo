@@ -24,6 +24,8 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.util.MonitorUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 
@@ -38,8 +40,8 @@ public class Info implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.CORE;
   }
 
   @Override

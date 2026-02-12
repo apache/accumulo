@@ -19,6 +19,8 @@
 package org.apache.accumulo.miniclusterImpl;
 
 import org.apache.accumulo.minicluster.MiniAccumuloRunner;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
@@ -32,8 +34,8 @@ public class MiniClusterExecutable implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
+  public CommandGroup commandGroup() {
+    return CommandGroups.PROCESS;
   }
 
   @Override

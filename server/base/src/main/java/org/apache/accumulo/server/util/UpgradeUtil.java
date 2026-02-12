@@ -55,6 +55,8 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -101,6 +103,11 @@ public class UpgradeUtil implements KeywordExecutable {
   @Override
   public String description() {
     return "utility used to perform various upgrade steps for an Accumulo instance.";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   private static class UpgradeUsageFormatter extends DefaultUsageFormatter {

@@ -26,6 +26,8 @@ import java.util.Base64;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -46,6 +48,11 @@ public class DumpZookeeper implements KeywordExecutable {
   @Override
   public String description() {
     return "Writes Zookeeper data as human readable or XML to a file.";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   private static class Encoded {

@@ -16,35 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.tserver;
+package org.apache.accumulo.start.spi;
 
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
-import org.apache.accumulo.start.spi.KeywordExecutable;
+public interface CommandGroup extends Comparable<CommandGroup> {
 
-import com.google.auto.service.AutoService;
+  String key();
 
-@AutoService(KeywordExecutable.class)
-public class ScanServerExecutable implements KeywordExecutable {
+  String title();
 
-  @Override
-  public String keyword() {
-    return "sserver";
-  }
+  String description();
 
   @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo scan server";
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    ScanServer.main(args);
+  default int compareTo(CommandGroup o) {
+    int result = this.key().compareTo(o.key());
+    if (result == 0) {
+      result = this.title().compareTo(o.title());
+      if (result == 0) {
+        result = this.description().compareTo(o.description());
+      }
+    }
+    return result;
   }
 
 }
