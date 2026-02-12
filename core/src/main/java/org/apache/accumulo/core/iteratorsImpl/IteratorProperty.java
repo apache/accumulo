@@ -113,7 +113,7 @@ public class IteratorProperty {
   }
 
   private static void check(boolean b, String property, String value) {
-    Preconditions.checkArgument(b, "Illegal iterator property: " + property + "=" + value);
+    Preconditions.checkArgument(b, "Illegal iterator property: %s=%s", property, value);
   }
 
   @Override
@@ -138,7 +138,7 @@ public class IteratorProperty {
       return null;
     }
 
-    String[] iterPropParts = property.split("\\.");
+    String[] iterPropParts = property.split("\\.", -1);
     check(iterPropParts.length == 4 || iterPropParts.length == 6, property, value);
     IteratorUtil.IteratorScope scope = IteratorUtil.IteratorScope.valueOf(iterPropParts[2]);
     String iterName = iterPropParts[3];
