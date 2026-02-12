@@ -60,6 +60,7 @@ import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.CancelCompaction;
 import org.apache.accumulo.server.util.DumpZookeeper;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.ListCompactions;
 import org.apache.accumulo.server.util.ListCompactors;
@@ -214,6 +215,7 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "cancel", CancelCompaction.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "list-compactors", ListCompactors.class));
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "list", ListCompactions.class));
+    expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "find", FindCompactionTmpFiles.class));
     System.out.println("Expected: " + expectSet);
 
     Map<CommandGroup,Map<String,KeywordExecutable>> actualExecutables = getKeywordExecutables();
