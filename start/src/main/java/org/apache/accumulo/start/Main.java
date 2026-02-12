@@ -21,8 +21,10 @@ package org.apache.accumulo.start;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.TreeMap;
@@ -37,7 +39,7 @@ public class Main {
 
   private static final Logger log = LoggerFactory.getLogger(Main.class);
   private static ClassLoader classLoader;
-  private static Map<String,KeywordExecutable> servicesMap;
+  private static Map<UsageGroup,Map<String,KeywordExecutable>> servicesMap;
 
   public static void main(final String[] args) throws Exception {
     final ClassLoader loader = getClassLoader();
@@ -51,14 +53,21 @@ public class Main {
       return;
     }
 
-    // determine whether a keyword was used or a class name, and execute it with the remaining
-    // args
-    String keywordOrClassName = args[0];
-    KeywordExecutable keywordExec = getExecutables(loader).get(keywordOrClassName);
-    if (keywordExec != null) {
-      execKeyword(keywordExec, stripArgs(args, 1));
+    if (args.length == 1) {
+      execMainClassName(args[0], new String[] {});
     } else {
-      execMainClassName(keywordOrClassName, stripArgs(args, 1));
+      String arg1 = args[0];
+      String arg2 = args[1];
+      KeywordExecutable keywordExec = null;
+      try {
+        UsageGroup group = UsageGroup.valueOf(arg1.toUpperCase());
+        keywordExec = getExecutables(loader).get(group).get(arg2);
+      } catch (IllegalArgumentException e) {}
+      if (keywordExec != null) {
+        execKeyword(keywordExec, stripArgs(args, 2));
+      } else {
+        execMainClassName(arg1, stripArgs(args, 1));
+      }
     }
 
   }
@@ -157,61 +166,71 @@ public class Main {
     System.exit(1);
   }
 
-  public static void printCommands(TreeSet<KeywordExecutable> set, UsageGroup group) {
-    set.stream().filter(e -> e.usageGroup() == group)
-        .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
-  }
-
   public static void printUsage() {
-    TreeSet<KeywordExecutable> executables =
-        new TreeSet<>(Comparator.comparing(KeywordExecutable::keyword));
-    executables.addAll(getExecutables(getClassLoader()).values());
 
-    System.out.println("\nUsage: accumulo <command> [--help] (<argument> ...)\n\n"
-        + "  --help   Prints usage for specified command");
-    System.out.println("\nCore Commands:");
-    printCommands(executables, UsageGroup.CORE);
+    System.out.println("\nUsage one of:");
+    System.out.println("    accumulo --help");
+    System.out.println("    accumulo classpath");
+    System.out.println("    accumulo jshell (<argument> ...)");
+    System.out.println("    accumulo className (<argument> ...)");
+    System.out.println("    accumulo <group> <command> [--help] (<argument> ...)\n\n");
 
-    System.out.println("  jshell                         Runs JShell for Accumulo\n"
-        + "  classpath                      Prints Accumulo classpath\n"
-        + "  <main class> args              Runs Java <main class> located on Accumulo classpath");
-
-    System.out.println("\nProcess Commands:");
-    printCommands(executables, UsageGroup.PROCESS);
-
-    System.out.println("\nOther Commands:");
-    printCommands(executables, UsageGroup.OTHER);
+    Map<UsageGroup,Map<String,KeywordExecutable>> exectuables = getExecutables(getClassLoader());
+    List<UsageGroup> groups = Arrays.asList(UsageGroup.values());
+    Collections.sort(groups);
+    groups.forEach(g -> {
+      System.out.println("\n" + g.name() + " Group Commands:");
+      exectuables.get(g).values()
+          .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
+    });
 
     System.out.println();
   }
 
-  public static synchronized Map<String,KeywordExecutable> getExecutables(final ClassLoader cl) {
+  public static synchronized Map<UsageGroup,Map<String,KeywordExecutable>>
+      getExecutables(final ClassLoader cl) {
     if (servicesMap == null) {
       servicesMap = checkDuplicates(ServiceLoader.load(KeywordExecutable.class, cl));
     }
     return servicesMap;
   }
 
-  public static Map<String,KeywordExecutable>
+  private record BanKey(UsageGroup group, String keyword) implements Comparable<BanKey> {
+    @Override
+    public int compareTo(BanKey o) {
+      int result = this.group.compareTo(o.group);
+      if (result == 0) {
+        result = this.keyword.compareTo(o.keyword);
+      }
+      return result;
+    }
+  };
+
+  public static Map<UsageGroup,Map<String,KeywordExecutable>>
       checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
-    TreeSet<String> banList = new TreeSet<>();
-    TreeMap<String,KeywordExecutable> results = new TreeMap<>();
+    TreeSet<BanKey> banList = new TreeSet<>();
+    EnumMap<UsageGroup,Map<String,KeywordExecutable>> results = new EnumMap<>(UsageGroup.class);
+    for (UsageGroup ug : UsageGroup.values()) {
+      results.put(ug, new TreeMap<>());
+    }
     for (KeywordExecutable service : services) {
+      UsageGroup group = service.usageGroup();
       String keyword = service.keyword();
-      if (banList.contains(keyword)) {
+      BanKey bk = new BanKey(group, keyword);
+      if (banList.contains(bk)) {
         // subsequent times a duplicate is found, just warn and exclude it
         warnDuplicate(service);
-      } else if (results.containsKey(keyword)) {
+      } else if (results.get(group).containsKey(keyword)) {
         // the first time a duplicate is found, banList it and warn
-        banList.add(keyword);
-        warnDuplicate(results.remove(keyword));
+        banList.add(bk);
+        warnDuplicate(results.get(group).remove(keyword));
         warnDuplicate(service);
       } else {
         // first observance of this keyword, so just add it to the list
-        results.put(service.keyword(), service);
+        results.get(group).put(service.keyword(), service);
       }
     }
-    return Collections.unmodifiableSortedMap(results);
+    return Collections.unmodifiableMap(results);
   }
 
   private static void warnDuplicate(final KeywordExecutable service) {

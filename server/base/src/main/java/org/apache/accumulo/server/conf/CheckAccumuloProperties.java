@@ -24,6 +24,7 @@ import java.nio.file.Path;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 
@@ -45,7 +46,7 @@ public class CheckAccumuloProperties implements KeywordExecutable {
     return "Checks the provided Accumulo configuration file for errors. "
         + "This only checks the contents of the file and not any running Accumulo system, "
         + "so it can be used prior to init, but only performs a subset of the checks done by "
-        + (new CheckServerConfig().keyword());
+        + "'admin check run " + Check.SERVER_CONFIG + "'";
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.UTILITY_VERIFY_TABLET_ASSIGNMENTS;
 
@@ -26,13 +26,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Properties;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.Range;
@@ -52,26 +49,63 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPortComparator;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.VerifyTabletAssignments.VerifyTabletAssignmentsOpts;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class VerifyTabletAssignments {
+@AutoService(KeywordExecutable.class)
+public class VerifyTabletAssignments extends ServerKeywordExecutable<VerifyTabletAssignmentsOpts> {
+
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
 
-  public static void execute(Properties clientProps, boolean verbose) throws Exception {
+  static class VerifyTabletAssignmentsOpts extends ServerUtilOpts {
+    @Parameter(names = {"-v", "--verbose"},
+        description = "verbose mode (prints locations of tablets)")
+    boolean verbose = false;
+  }
+
+  public VerifyTabletAssignments() {
+    super(new VerifyTabletAssignmentsOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "verify-tablet-assignments";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Verify all Tablets are assigned to tablet servers";
+  }
+
+  @Override
+  public void execute(JCommander cl, VerifyTabletAssignmentsOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
     Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
-        for (String table : client.tableOperations().list()) {
-          checkTable((ClientContext) client, verbose, table, null);
+      try {
+        for (String table : context.tableOperations().list()) {
+          checkTable(context, options.verbose, table, null);
         }
       } finally {
         span.end();
@@ -79,8 +113,8 @@ public class VerifyTabletAssignments {
     }
   }
 
-  private static void checkTable(final ClientContext context, final boolean verbose,
-      String tableName, HashSet<KeyExtent> check) throws InterruptedException {
+  private void checkTable(final ClientContext context, final boolean verbose, String tableName,
+      HashSet<KeyExtent> check) throws InterruptedException {
 
     if (check == null) {
       System.out.println("Checking table " + tableName);
@@ -142,7 +176,7 @@ public class VerifyTabletAssignments {
     }
   }
 
-  private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
+  private void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
       MultiScanResult scanResult) {
     for (TKeyExtent tke : scanResult.failures.keySet()) {
       KeyExtent ke = KeyExtent.fromThrift(tke);
@@ -151,8 +185,8 @@ public class VerifyTabletAssignments {
     }
   }
 
-  private static void checkTabletServer(ClientContext context,
-      Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures) throws TException {
+  private void checkTabletServer(ClientContext context, Entry<HostAndPort,List<KeyExtent>> entry,
+      HashSet<KeyExtent> failures) throws TException {
     TabletScanClientService.Iface client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, entry.getKey(), context);
 

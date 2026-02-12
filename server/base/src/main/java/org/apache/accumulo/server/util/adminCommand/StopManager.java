@@ -16,36 +16,44 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.conf;
+package org.apache.accumulo.server.util.adminCommand;
 
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class CheckServerConfig implements KeywordExecutable {
+public class StopManager extends ServerKeywordExecutable<ServerUtilOpts> {
 
-  public static void main(String[] args) {
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
-      context.getConfiguration();
-    }
+  public StopManager() {
+    super(new ServerUtilOpts());
   }
 
   @Override
   public String keyword() {
-    return "check-server-config";
+    return "stop-manager";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
   }
 
   @Override
   public String description() {
-    return "Checks server config";
+    return "Stop the manager.";
   }
 
   @Override
-  public void execute(String[] args) {
-    main(args);
+  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
+    ThriftClientTypes.MANAGER.executeVoid(context,
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), false));
   }
-
 }

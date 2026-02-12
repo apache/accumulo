@@ -34,8 +34,6 @@ import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
@@ -55,8 +53,6 @@ import org.slf4j.LoggerFactory;
 class BulkImportMove extends AbstractFateOperation {
 
   private static final long serialVersionUID = 1L;
-
-  private static final Logger log = LoggerFactory.getLogger(BulkImportMove.class);
 
   private final BulkInfo bulkInfo;
 

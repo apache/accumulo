@@ -36,7 +36,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.cli.ClientOpts.AuthConverter;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -91,6 +91,9 @@ public class CollectTabletStats {
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
   static class CollectOptions extends ServerUtilOpts {
+    @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
+        description = "the authorizations to use when reading or writing")
+    public Authorizations auths = Authorizations.EMPTY;
     @Parameter(names = {"-t", "--table"}, required = true, description = "table to use")
     String tableName;
     @Parameter(names = "--iterations", description = "number of iterations")
@@ -217,26 +220,24 @@ public class CollectTabletStats {
       runTest("read tablet files w/ table iter stack", tests, opts.numThreads, threadPool);
     }
 
-    try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-      for (int i = 0; i < opts.iterations; i++) {
-        ArrayList<Test> tests = new ArrayList<>();
-        for (final KeyExtent ke : tabletsToTest) {
-          Test test = new Test(ke) {
-            @Override
-            public int runTest() throws Exception {
-              return scanTablet(client, opts.tableName, opts.auths, ke.prevEndRow(), ke.endRow(),
-                  columns);
-            }
-          };
-          tests.add(test);
-        }
-        runTest("read tablet data through accumulo", tests, opts.numThreads, threadPool);
+    for (int i = 0; i < opts.iterations; i++) {
+      ArrayList<Test> tests = new ArrayList<>();
+      for (final KeyExtent ke : tabletsToTest) {
+        Test test = new Test(ke) {
+          @Override
+          public int runTest() throws Exception {
+            return scanTablet(context, opts.tableName, opts.auths, ke.prevEndRow(), ke.endRow(),
+                columns);
+          }
+        };
+        tests.add(test);
       }
+      runTest("read tablet data through accumulo", tests, opts.numThreads, threadPool);
 
       for (final KeyExtent ke : tabletsToTest) {
         threadPool.execute(() -> {
           try {
-            calcTabletStats(client, opts.tableName, opts.auths, ke, columns);
+            calcTabletStats(context, opts.tableName, opts.auths, ke, columns);
           } catch (Exception e) {
             log.error("Failed to calculate tablet stats.", e);
           }

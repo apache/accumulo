@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.Parameter;
@@ -80,7 +80,7 @@ public class TestBinaryRows {
     return l;
   }
 
-  public static class Opts extends ServerUtilOpts {
+  public static class Opts extends ClientOpts {
     @Parameter(names = "--mode",
         description = "either 'ingest', 'delete', 'randomLookups', 'split',"
             + " 'verify', 'verifyDeleted'",

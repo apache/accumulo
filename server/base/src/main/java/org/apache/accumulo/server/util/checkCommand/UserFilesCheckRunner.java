@@ -18,21 +18,20 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
-import static org.apache.accumulo.server.util.Admin.CheckCommand.Check;
-
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class UserFilesCheckRunner implements CheckRunner {
   private static final Check check = Check.USER_FILES;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+      throws Exception {
+    CheckStatus status = CheckStatus.OK;
     printRunning();
 
     log.trace("********** Looking for missing user files **********");
@@ -42,7 +41,7 @@ public class UserFilesCheckRunner implements CheckRunner {
         log.trace("Checking table {} ({}) for missing files\n", tableName, tableId);
         if (RemoveEntriesForMissingFiles.checkTable(context, tableName, fixFiles, log::trace,
             log::warn) != 0) {
-          status = Admin.CheckCommand.CheckStatus.FAILED;
+          status = CheckStatus.FAILED;
         }
       }
     }
@@ -52,7 +51,7 @@ public class UserFilesCheckRunner implements CheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.Check getCheck() {
+  public Check getCheck() {
     return check;
   }
 }

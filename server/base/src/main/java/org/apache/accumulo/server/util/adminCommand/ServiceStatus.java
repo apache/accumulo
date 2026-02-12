@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
@@ -35,25 +35,58 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.server.util.adminCommand.ServiceStatus.ServiceStatusCmdOpts;
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
 import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
+import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 import com.google.common.annotations.VisibleForTesting;
 
-public class ServiceStatusCmd {
+@AutoService(KeywordExecutable.class)
+public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmd.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ServiceStatus.class);
 
-  public ServiceStatusCmd() {}
+  static class ServiceStatusCmdOpts extends ServerUtilOpts {
 
-  /**
-   * Read the service statuses from ZooKeeper, build the status report and then output the report to
-   * stdout.
-   */
-  public void execute(final ServerContext context, final boolean json, final boolean showHosts) {
+    @Parameter(names = "--json", description = "provide output in json format")
+    boolean json = false;
+
+    @Parameter(names = "--showHosts",
+        description = "provide a summary of service counts with host details")
+    boolean showHosts = false;
+  }
+
+  public ServiceStatus() {
+    super(new ServiceStatusCmdOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "service-status";
+  }
+
+  @Override
+  public UsageGroup usageGroup() {
+    return UsageGroup.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Shows status of Accumulo server processes";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServiceStatusCmdOpts options) throws Exception {
+    ServerContext context = options.getServerContext();
 
     if (LOG.isTraceEnabled()) {
       LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
@@ -68,9 +101,9 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
     services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
 
-    ServiceStatusReport report = new ServiceStatusReport(services, showHosts);
+    ServiceStatusReport report = new ServiceStatusReport(services, options.showHosts);
 
-    if (json) {
+    if (options.json) {
       System.out.println(report.toJson());
     } else {
       StringBuilder sb = new StringBuilder(8192);

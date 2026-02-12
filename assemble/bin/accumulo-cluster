@@ -299,7 +299,7 @@ function parse_config() {
     exit 1
   fi
 
-  AC_TMP_DIR=$(mktemp -t -d "accumulo-cluster-XXXXXXXX") || exit 1
+  AC_TMP_DIR=$(mktemp -t -d "accumulo-cluster-XXXXXXXX") || (echo "Error creating temp file" && exit 1)
   if isDebug; then
     echo "$(blue DEBUG): Temporary files for this run are in $AC_TMP_DIR"
   else
@@ -308,7 +308,7 @@ function parse_config() {
 
   RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
   debug "Printing resource groups to $RG_FILE"
-  "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || exit 1
+  "$accumulo_cmd" other zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
   read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
   debug "All resource groups: ${all_resource_groups[*]}"
 
@@ -466,7 +466,7 @@ function control_services() {
         fi
       done
       # Try to cleanly stop the TabletServers and Manager
-      if ! "$accumulo_cmd" admin stopAll; then
+      if ! "$accumulo_cmd" admin stop-all; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
         sleep 10
@@ -720,7 +720,7 @@ function prune() {
     exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json >"$service_json" 2>/dev/null || exit 1
+  "$accumulo_cmd" admin service-status --json >"$service_json" 2>/dev/null || (echo "Error calling 'admin serviceStatus'" && exit 1)
 
   local var_name
   local hosts
@@ -763,7 +763,7 @@ function prune() {
       read -r -a groups <<<"$ARG_SSERVER_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
-      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | .[] " "$service_json")
+      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | keys | .[]?" "$service_json")
     fi
 
     for group in "${groups[@]}"; do
@@ -782,7 +782,7 @@ function prune() {
       read -r -a groups <<<"$ARG_COMPACTOR_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
-      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | .[] " "$service_json")
+      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | keys | .[]?" "$service_json")
     fi
 
     for group in "${groups[@]}"; do

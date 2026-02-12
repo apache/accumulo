@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.server.util.adminCommand;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZGC_LOCK;
@@ -103,7 +103,7 @@ public class ServiceStatusCmdTest {
         .andReturn(lock3Data.getBytes(UTF_8));
     replay(zooReader);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getManagerStatus(context);
     LOG.info("manager status data: {}", status);
 
@@ -146,7 +146,7 @@ public class ServiceStatusCmdTest {
 
     replay(zooReader);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getMonitorStatus(context);
     LOG.info("monitor status data: {}", status);
 
@@ -242,7 +242,7 @@ public class ServiceStatusCmdTest {
 
     replay(zooCache);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getTServerStatus(context);
     LOG.info("tserver status data: {}", status);
 
@@ -335,7 +335,7 @@ public class ServiceStatusCmdTest {
 
     replay(zooCache);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getScanServerStatus(context);
     assertEquals(4, status.getServiceCount());
 
@@ -395,7 +395,7 @@ public class ServiceStatusCmdTest {
 
     replay(zooCache);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getCompactorStatus(context);
 
     LOG.info("compactor group counts: {}", status);
@@ -433,7 +433,7 @@ public class ServiceStatusCmdTest {
 
     replay(zooReader);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getGcStatus(context);
     LOG.info("gc server counts: {}", status);
     assertEquals(2, status.getResourceGroups().size());
@@ -480,7 +480,7 @@ public class ServiceStatusCmdTest {
 
     replay(zooReader);
 
-    ServiceStatusCmd cmd = new ServiceStatusCmd();
+    ServiceStatus cmd = new ServiceStatus();
     StatusSummary status = cmd.getManagerStatus(context);
     LOG.info("manager status data: {}", status);
 
@@ -497,7 +497,7 @@ public class ServiceStatusCmdTest {
   @Test
   public void testServiceStatusCommandOpts() {
     replay(zooReader, zooCache);
-    Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
+    ServiceStatus.ServiceStatusCmdOpts opts = new ServiceStatus.ServiceStatusCmdOpts();
     assertFalse(opts.json);
     assertFalse(opts.showHosts);
   }
