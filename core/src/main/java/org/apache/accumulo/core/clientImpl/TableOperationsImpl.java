@@ -1049,13 +1049,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final TVersionedProperties vProperties =
         ThriftClientTypes.CLIENT.execute(context, client -> client
             .getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
-    final Map<String,String> configBeforeMut;
-    try {
-      configBeforeMut = getConfiguration(tableName);
-    } catch (TableNotFoundException e) {
-      throw new AccumuloException(e);
-    }
-
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are

@@ -332,7 +332,6 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
     String src1 = dstAndSrcNamespace1 + "." + names[15];
     tops.create(src1);
     String dst1 = dstAndSrcNamespace1 + "." + names[16];
-    String dst2 = dstAndSrcNamespace1 + "." + names[17];
     testNamespaceIterPrioConflict(dstAndSrcNamespace1, AccumuloException.class,
         () -> tops.clone(src1, dst1,
             CloneConfiguration.builder()
@@ -543,7 +542,6 @@ public class IteratorConflictsIT extends SharedMiniClusterBase {
 
     // testing CloneConfiguration.Builder.setPropertiesToSet
     String dst1 = names[23];
-    String dst2 = names[24];
     String dst3 = names[25];
     String dst4 = names[26];
     String defaultsTable12 = names[27];

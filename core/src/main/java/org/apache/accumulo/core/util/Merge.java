@@ -239,9 +239,7 @@ public class Merge {
   protected void mergeSome(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     merge(client, table, sizes, numToMerge);
-    for (int i = 0; i < numToMerge; i++) {
-      sizes.remove(0);
-    }
+    sizes.subList(0, numToMerge).clear();
   }
 
   protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
