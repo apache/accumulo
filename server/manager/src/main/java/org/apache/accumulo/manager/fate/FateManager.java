@@ -224,6 +224,9 @@ public class FateManager {
     return desired;
   }
 
+  // The updateId accomplishes two things. First it ensures that setting partition RPC can only
+  // execute once on the server side. Second when a new update id is requested it cancels any
+  // outstanding RPCs to set partitions that have not executed yet.
   record CurrentPartitions(long updateId, Set<FatePartition> partitions) {
   }
 
