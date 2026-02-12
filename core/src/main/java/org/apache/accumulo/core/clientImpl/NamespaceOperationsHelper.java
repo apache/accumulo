@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.admin.NamespaceOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.IteratorProperty;
 
 public abstract class NamespaceOperationsHelper implements NamespaceOperations {
 
@@ -92,29 +93,25 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
-    int priority = -1;
-    String classname = null;
-    Map<String,String> settings = new HashMap<>();
-
-    String root =
-        String.format("%s%s.%s", Property.TABLE_ITERATOR_PREFIX, scope.name().toLowerCase(), name);
-    String opt = root + ".opt.";
-    for (Entry<String,String> property : this.getProperties(namespace)) {
-      if (property.getKey().equals(root)) {
-        String[] parts = property.getValue().split(",");
-        if (parts.length != 2) {
-          throw new AccumuloException("Bad value for iterator setting: " + property.getValue());
-        }
-        priority = Integer.parseInt(parts[0]);
-        classname = parts[1];
-      } else if (property.getKey().startsWith(opt)) {
-        settings.put(property.getKey().substring(opt.length()), property.getValue());
+    IteratorProperty base = null;
+    Map<String,String> options = new HashMap<>();
+    for (var prop : this.getConfiguration(namespace).entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(prop);
+      if (iterProp == null || iterProp.getScope() != scope || !iterProp.getName().equals(name)) {
+        continue;
+      }
+      if (iterProp.isOption()) {
+        options.put(iterProp.getOptionKey(), iterProp.getOptionValue());
+      } else {
+        base = iterProp;
       }
     }
-    if (priority <= 0 || classname == null) {
+    if (base == null) {
       return null;
     }
-    return new IteratorSetting(priority, name, classname, settings);
+    IteratorSetting setting = base.toSetting();
+    options.forEach(setting::addOption);
+    return setting;
   }
 
   @Override
@@ -124,18 +121,13 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
-    for (Entry<String,String> property : this.getProperties(namespace)) {
-      String name = property.getKey();
-      String[] parts = name.split("\\.");
-      if (parts.length == 4) {
-        if (parts[0].equals("table") && parts[1].equals("iterator")) {
-          IteratorScope scope = IteratorScope.valueOf(parts[2]);
-          if (!result.containsKey(parts[3])) {
-            result.put(parts[3], EnumSet.noneOf(IteratorScope.class));
-          }
-          result.get(parts[3]).add(scope);
-        }
+    for (var prop : this.getConfiguration(namespace).entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(prop);
+      if (iterProp == null || iterProp.isOption()) {
+        continue;
       }
+      result.computeIfAbsent(iterProp.getName(), k -> EnumSet.noneOf(IteratorScope.class))
+          .add(iterProp.getScope());
     }
     return result;
   }
