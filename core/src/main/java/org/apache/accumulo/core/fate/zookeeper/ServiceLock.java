@@ -32,6 +32,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.ServerServices;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -819,6 +820,21 @@ public class ServiceLock implements Watcher {
     LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
     zk.recursiveDelete(pathToDelete, NodeMissingPolicy.SKIP);
 
+  }
+
+  public static void removeLock(ZooReaderWriter zoo, String path,
+      ServerServices.Service serviceType, Predicate<HostAndPort> hostPortPredicate,
+      Consumer<String> messageOutput, Boolean dryRun) throws KeeperException, InterruptedException {
+    var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
+    if (lockData != null) {
+      ServerServices lock = new ServerServices(new String(lockData, UTF_8));
+      if (hostPortPredicate.test(lock.getAddress(serviceType))) {
+        messageOutput.accept("Deleting " + path + " from zookeeper");
+        if (!dryRun) {
+          zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
+        }
+      }
+    }
   }
 
   /**
