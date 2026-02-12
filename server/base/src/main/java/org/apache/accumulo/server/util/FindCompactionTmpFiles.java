@@ -216,8 +216,6 @@ public class FindCompactionTmpFiles {
   public static void main(String[] args) throws Exception {
     Opts opts = new Opts();
     opts.parseArgs(FindCompactionTmpFiles.class.getName(), args);
-    LOG.info("Looking for compaction tmp files over tables: {}, deleting: {}", opts.tables,
-        opts.delete);
 
     Span span = TraceUtil.startSpan(FindCompactionTmpFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {

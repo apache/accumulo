@@ -35,6 +35,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.util.Admin;
@@ -225,7 +226,7 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      ReadWriteIT.ingest(c, 100, 1, 1, 0, tableName);
+      ReadWriteIT.ingest(c, 10, 1, 1, 0, tableName);
       c.tableOperations().flush(tableName);
 
       String tableId = c.tableOperations().tableIdMap().get(tableName);
@@ -241,7 +242,7 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
       Path defaultTabletPath = new Path(tdir);
       assertTrue(fs.exists(defaultTabletPath));
 
-      Set<Path> generatedPaths = generateTmpFilePaths(ctx, tid, defaultTabletPath, 100);
+      Set<Path> generatedPaths = generateTmpFilePaths(ctx, tid, defaultTabletPath, 10);
       for (Path p : generatedPaths) {
         assertFalse(fs.exists(p));
         assertTrue(fs.createNewFile(p));
@@ -249,20 +250,34 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
       }
 
       Set<Path> foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
-      assertEquals(100, foundPaths.size());
+      assertEquals(10, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 
       System.setProperty("accumulo.properties",
           "file://" + getCluster().getAccumuloPropertiesPath());
-      assertEquals(0, getCluster().exec(Admin.class, "compactionTempFiles", "-t", tableName)
-          .getProcess().waitFor());
+      MiniAccumuloClusterImpl.ProcessInfo p =
+          getCluster().exec(Admin.class, "compactionTempFiles", "-t", tableName);
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
+      assertTrue(
+          result.contains("Found the following compaction tmp files for table " + tableName));
+      for (Path path : generatedPaths) {
+        assertTrue(result.contains(path.toString()), "Output should contain file path: " + path);
+      }
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
-      assertEquals(100, foundPaths.size());
+      assertEquals(10, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 
-      assertEquals(0, getCluster().exec(Admin.class, "compactionTempFiles", "-t", tableName, "-d")
-          .getProcess().waitFor());
+      p = getCluster().exec(Admin.class, "compactionTempFiles", "-t", tableName, "-d");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      assertTrue(result.contains("Deleting compaction tmp files for table " + tableName));
+      assertTrue(
+          result.contains("Deletion of compaction tmp files for table " + tableName + " complete"));
+      assertTrue(result.contains("Success:10"));
+      assertTrue(result.contains("Failure:0"));
+      assertTrue(result.contains("Error:0"));
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(0, foundPaths.size());
