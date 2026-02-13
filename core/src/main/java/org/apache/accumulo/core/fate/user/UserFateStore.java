@@ -198,7 +198,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       var status = mutator.tryMutate();
       if (status == FateMutator.Status.ACCEPTED) {
         // signal to the super class that a new fate transaction was seeded and is ready to run
-        seededTx();
+        seeded();
         log.trace("Attempt to seed {} returned {}", logId, status);
         return true;
       } else if (status == FateMutator.Status.REJECTED) {
@@ -257,8 +257,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public void deleteDeadReservations() {
-    for (Entry<FateId,FateReservation> activeRes : getActiveReservations().entrySet()) {
+  public void deleteDeadReservations(Set<FatePartition> partitions) {
+    for (Entry<FateId,FateReservation> activeRes : getActiveReservations(partitions).entrySet()) {
       FateId fateId = activeRes.getKey();
       FateReservation reservation = activeRes.getValue();
       if (!isLockHeld.test(reservation.getLockID())) {
@@ -467,7 +467,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           var future = pending.get(fateId).getSecond();
           switch (result.getValue()) {
             case ACCEPTED:
-              seededTx();
+              seeded();
               log.trace("Attempt to seed {} returned {}", fateId.canonical(), status);
               // Complete the future with the fatId and remove from pending
               future.complete(Optional.of(fateId));

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -44,6 +46,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * Partitions fate across manager assistant processes. This is done by assigning ranges of the fate
@@ -60,10 +63,15 @@ public class FateManager {
     this.context = context;
   }
 
-  // TODO remove, here for testing
-  public static final AtomicBoolean stop = new AtomicBoolean(false);
+  private final AtomicBoolean stop = new AtomicBoolean(false);
 
-  public void managerWorkers() throws Exception {
+  private final AtomicReference<Map<HostAndPort,Set<FatePartition>>> stableAssignments =
+      new AtomicReference<>(Map.of());
+
+  private final Map<HostAndPort,Set<FatePartition>> pendingNotifications = new HashMap<>();
+
+  private void managerWorkers() throws TException, InterruptedException {
+    log.debug("Started Fate Manager");
     outer: while (!stop.get()) {
       // TODO make configurable
       Thread.sleep(3_000);
@@ -77,6 +85,12 @@ public class FateManager {
 
       Map<HostAndPort,Set<FatePartition>> desired =
           computeDesiredAssignments(currentAssignments, desiredParititions);
+
+      if (desired.equals(currentAssignments)) {
+        stableAssignments.set(Map.copyOf(currentAssignments));
+      } else {
+        stableAssignments.set(Map.of());
+      }
 
       // are there any workers with extra partitions? If so need to unload those first.
       int unloads = 0;
@@ -118,6 +132,98 @@ public class FateManager {
           } else {
             log.debug("Set partitions for {} to {} from {}", worker, partitions, curr);
           }
+        }
+      }
+    }
+  }
+
+  private Thread thread = null;
+  private Thread ntfyThread = null;
+
+  public synchronized void start() {
+    Preconditions.checkState(thread == null);
+    Preconditions.checkState(ntfyThread == null);
+    Preconditions.checkState(!stop.get());
+
+    thread = Threads.createCriticalThread("Fate Manager", () -> {
+      try {
+        managerWorkers();
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    });
+    thread.start();
+
+    ntfyThread = Threads.createCriticalThread("Fate Notify", new NotifyTask());
+    ntfyThread.start();
+  }
+
+  public synchronized void stop() throws InterruptedException {
+    stop.set(true);
+    if (thread != null) {
+      thread.join();
+    }
+    if (ntfyThread != null) {
+      ntfyThread.join();
+    }
+  }
+
+  /**
+   * Makes a best effort to notify this fate operation was seeded.
+   */
+  public void notifySeeded(FateId fateId) {
+    // TODO avoid linear search
+    for (Map.Entry<HostAndPort,Set<FatePartition>> entry : stableAssignments.get().entrySet()) {
+      for (var parition : entry.getValue()) {
+        if (parition.contains(fateId)) {
+          synchronized (pendingNotifications) {
+            pendingNotifications.computeIfAbsent(entry.getKey(), k -> new HashSet<>())
+                .add(parition);
+            pendingNotifications.notify();
+          }
+          return;
+        }
+      }
+    }
+  }
+
+  private class NotifyTask implements Runnable {
+
+    private final RateLimiter rateLimiter = RateLimiter.create(100);
+
+    @Override
+    public void run() {
+      while (!stop.get()) {
+        try {
+          Map<HostAndPort,Set<FatePartition>> copy;
+          synchronized (pendingNotifications) {
+            if (pendingNotifications.isEmpty()) {
+              pendingNotifications.wait(100);
+            }
+            copy = Map.copyOf(pendingNotifications);
+            pendingNotifications.clear();
+          }
+
+          rateLimiter.acquire();
+
+          for (var entry : copy.entrySet()) {
+            HostAndPort address = entry.getKey();
+            Set<FatePartition> partitions = entry.getValue();
+            FateWorkerService.Client client =
+                ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
+            try {
+              log.debug("Notifying about seeding {} {}", address, partitions);
+              client.seeded(TraceUtil.traceInfo(), context.rpcCreds(),
+                  partitions.stream().map(FatePartition::toThrift).toList());
+            } finally {
+              ThriftUtil.returnClient(client, context);
+            }
+          }
+
+        } catch (InterruptedException e) {
+          throw new IllegalStateException(e);
+        } catch (TException e) {
+          log.warn("Failed to send notification that fate was seeded", e);
         }
       }
     }
@@ -179,7 +285,7 @@ public class FateManager {
     });
 
     desiredAssignments.forEach((hp, parts) -> {
-      log.debug(" desired " + hp + " " + parts.size() + " " + parts);
+      log.trace(" desired {} {} {}", hp, parts.size(), parts);
     });
 
     return desiredAssignments;
@@ -234,7 +340,7 @@ public class FateManager {
     var workers =
         context.getServerPaths().getManagerWorker(DEFAULT_RG_ONLY, AddressSelector.all(), true);
 
-    log.debug("workers : " + workers);
+    log.trace("workers : " + workers);
 
     Map<HostAndPort,CurrentPartitions> currentAssignments = new HashMap<>();
 

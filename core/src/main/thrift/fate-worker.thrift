@@ -49,4 +49,10 @@ service FateWorkerService {
    ) throws (
      1:client.ThriftSecurityException sec
    )
+
+  oneway void seeded(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials,
+    3:list<TFatePartition> tpartitions
+   ) 
 }

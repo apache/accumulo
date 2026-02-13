@@ -47,6 +47,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -60,6 +62,7 @@ import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.hadoop.util.Sets;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -252,7 +255,11 @@ public class Fate<T> {
     @Override
     public void run() {
       if (keepRunning.get()) {
-        store.deleteDeadReservations();
+        Set<FatePartition> partitions;
+        synchronized (fateExecutors) {
+          partitions = currentPartitions;
+        }
+        store.deleteDeadReservations(partitions);
       }
     }
   }
@@ -394,15 +401,27 @@ public class Fate<T> {
     return store.create();
   }
 
+  private AtomicReference<Consumer<FateId>> seedingConsumer = new AtomicReference<>(fid -> {});
+
+  // TODO move seeding and waiting operation into their own class, the primary manager will not need
+  // to create a user fate object. Fate could extend this class to ease the change.
+
+  public void setSeedingConsumer(Consumer<FateId> seedingConsumer) {
+    this.seedingConsumer.set(seedingConsumer);
+  }
+
   public Seeder<T> beginSeeding() {
+    // TODO pass seeding consumer
     return store.beginSeeding();
   }
 
   public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     try (var seeder = store.beginSeeding()) {
-      @SuppressWarnings("unused")
-      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+      seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp)
+          .thenAccept(optionalFatId -> {
+            optionalFatId.ifPresent(seedingConsumer.get());
+          });
     }
   }
 
@@ -412,6 +431,17 @@ public class Fate<T> {
       boolean autoCleanUp, String goalMessage) {
     log.info("[{}] Seeding {} {} {}", store.type(), fateOp, fateId, goalMessage);
     store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
+    seedingConsumer.get().accept(fateId);
+  }
+
+  public void seeded(Set<FatePartition> partitions) {
+    synchronized (fateExecutors) {
+      if (Sets.intersection(currentPartitions, partitions).isEmpty()) {
+        return;
+      }
+    }
+
+    store.seeded();
   }
 
   // check on the transaction

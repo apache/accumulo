@@ -49,17 +49,20 @@ import com.google.common.net.HostAndPort;
  */
 // TODO because this does not extend abstract server it does not get some of the benefits like
 // monitoring of lock
-public class ManagerWorker /* extends AbstractServer */ {
+public class ManagerAssistant {
 
-  private static final Logger log = LoggerFactory.getLogger(ManagerWorker.class);
+  private static final Logger log = LoggerFactory.getLogger(ManagerAssistant.class);
   private final ServerContext context;
   private final String bindAddress;
   private volatile ServiceLock managerWorkerLock;
   private FateWorker fateWorker;
   private volatile ServerAddress thriftServer;
 
-  protected ManagerWorker(ServerContext context, String bindAddress) {
-    this.context = context;
+  protected ManagerAssistant(ServerContext context, String bindAddress) {
+    // create another server context because the server context has the lock...
+    // TODO creating another context instance in the process may cause problems, like duplicating
+    // some thread pools
+    this.context = new ServerContext(context.getSiteConfiguration());
     this.bindAddress = bindAddress;
   }
 
@@ -81,10 +84,10 @@ public class ManagerWorker /* extends AbstractServer */ {
 
     // TODO should the minthreads and timeout have their own props? Probably, do not expect this to
     // have lots of RPCs so could be less.
-    var thriftServer =
-        TServerUtils.createThriftServer(getContext(), bindAddress, Property.MANAGER_ASSISTANTPORT,
-            processor, this.getClass().getSimpleName(), null, Property.MANAGER_MINTHREADS,
-            Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
+    var thriftServer = TServerUtils.createThriftServer(getContext(), bindAddress,
+        Property.MANAGER_ASSISTANT_PORT, processor, this.getClass().getSimpleName(),
+        Property.MANAGER_ASSISTANT_PORTSEARCH, Property.MANAGER_MINTHREADS,
+        Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
     thriftServer.startThriftServer("Thrift Manager Assistant Server");
     log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
         thriftServer.address);
@@ -141,6 +144,7 @@ public class ManagerWorker /* extends AbstractServer */ {
     }
 
     announceExistence(advertiseAddress);
+    context.setServiceLock(getLock());
     fateWorker.setLock(getLock());
   }
 

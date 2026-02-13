@@ -32,6 +32,10 @@ import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.EventPublisher;
 import org.apache.accumulo.manager.split.SplitFileCache;
@@ -40,6 +44,9 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.tables.TableManager;
+import org.apache.thrift.TException;
+
+import com.google.common.util.concurrent.RateLimiter;
 
 public class FateWorkerEnv implements FateEnv {
   private final ServerContext ctx;
@@ -48,6 +55,82 @@ public class FateWorkerEnv implements FateEnv {
   private final ServiceLock serviceLock;
   private final LiveTServerSet tservers;
   private final SplitFileCache splitCache;
+  private final EventHandler eventHandler;
+
+  private final Object eventLockObj = new Object();
+  private boolean eventQueued = false;
+
+  private void queueEvent() {
+    synchronized (eventLockObj) {
+      eventQueued = true;
+      eventLockObj.notify();
+    }
+  }
+
+  private class EventSender implements Runnable {
+    private final RateLimiter rateLimiter = RateLimiter.create(20);
+
+    @Override
+    public void run() {
+      while (true) {
+        try {
+          synchronized (eventLockObj) {
+            if (!eventQueued) {
+              eventLockObj.wait();
+            }
+          }
+
+          rateLimiter.acquire();
+
+          var client = ThriftClientTypes.MANAGER.getConnection(ctx);
+          try {
+            if (client != null) {
+              client.event(TraceUtil.traceInfo(), ctx.rpcCreds());
+            }
+          } catch (TException e) {
+            // TODO
+            e.printStackTrace();
+          } finally {
+            if (client != null) {
+              ThriftUtil.close(client, ctx);
+            }
+          }
+
+        } catch (InterruptedException e) {
+          // TODO
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+
+  private class EventHandler implements EventPublisher {
+
+    @Override
+    public void event(String msg, Object... args) {
+      queueEvent();
+    }
+
+    @Override
+    public void event(Ample.DataLevel level, String msg, Object... args) {
+      queueEvent();
+    }
+
+    @Override
+    public void event(TableId tableId, String msg, Object... args) {
+      queueEvent();
+    }
+
+    @Override
+    public void event(KeyExtent extent, String msg, Object... args) {
+      queueEvent();
+    }
+
+    @Override
+    public void event(Collection<KeyExtent> extents, String msg, Object... args) {
+      queueEvent();
+    }
+  }
 
   FateWorkerEnv(ServerContext ctx, ServiceLock lock) {
     this.ctx = ctx;
@@ -57,6 +140,9 @@ public class FateWorkerEnv implements FateEnv {
     this.serviceLock = lock;
     this.tservers = new LiveTServerSet(ctx);
     this.splitCache = new SplitFileCache(ctx);
+    this.eventHandler = new EventHandler();
+
+    Threads.createCriticalThread("Fate Worker Event Sender", new EventSender()).start();
   }
 
   @Override
@@ -66,33 +152,7 @@ public class FateWorkerEnv implements FateEnv {
 
   @Override
   public EventPublisher getEventPublisher() {
-    // TODO do something w/ the events
-    return new EventPublisher() {
-      @Override
-      public void event(String msg, Object... args) {
-
-      }
-
-      @Override
-      public void event(Ample.DataLevel level, String msg, Object... args) {
-
-      }
-
-      @Override
-      public void event(TableId tableId, String msg, Object... args) {
-
-      }
-
-      @Override
-      public void event(KeyExtent extent, String msg, Object... args) {
-
-      }
-
-      @Override
-      public void event(Collection<KeyExtent> extents, String msg, Object... args) {
-
-      }
-    };
+    return eventHandler;
   }
 
   @Override

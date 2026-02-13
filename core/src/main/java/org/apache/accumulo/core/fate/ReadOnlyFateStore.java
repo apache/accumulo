@@ -156,7 +156,7 @@ public interface ReadOnlyFateStore<T> {
    * @return a map of the current active reservations with the keys being the transaction that is
    *         reserved and the value being the value stored to indicate the transaction is reserved.
    */
-  Map<FateId,FateStore.FateReservation> getActiveReservations();
+  Map<FateId,FateStore.FateReservation> getActiveReservations(Set<FatePartition> partitions);
 
   /**
    * Finds all fate ops that are (IN_PROGRESS, SUBMITTED, or FAILED_IN_PROGRESS) and unreserved. Ids

@@ -109,6 +109,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
@@ -943,6 +944,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
 
+    // TODO eventually stop this
+    // Start manager assistant before getting lock, this allows non primary manager processes to
+    // work on stuff.
+    new ManagerAssistant(getContext(), getBindAddress()).start();
+
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
     // allocation to occur, but prevent any services from getting the
@@ -1146,6 +1152,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
+    // TODO eventually stop this
+    var fateManager = new FateManager(getContext());
+    fateManager.start();
+    fate(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
+
     producers.addAll(managerMetrics.getProducers(this));
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
@@ -1198,7 +1209,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     UUID uuid = sld.getServerUUID(ThriftService.NONE);
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE, ThriftService.FATE_WORKER}) {
+        ThriftService.FATE}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
           this.getResourceGroup()));
     }
@@ -1286,8 +1297,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     if (store.type() == FateInstanceType.META) {
       fateInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
-    } // else do not run user transactions for now in the manager... it will have an empty set of
-      // partitions
+    } else if (store.type() == FateInstanceType.USER) {
+      // Do not run user transactions for now in the manager... it will have an empty set of
+      // partitions. Ideally the primary manager would not need a fate instance, but it uses to seed
+      // work and wait for work. Would be best to pull these operations like seeding and waiting for
+      // work to an independent class.
+      fateInstance.setPartitions(Set.of());
+    } else {
+      throw new IllegalStateException("Unknown fate type " + store.type());
+    }
 
     return fateInstance;
   }

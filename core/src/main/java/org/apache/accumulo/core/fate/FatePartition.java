@@ -54,9 +54,9 @@ public record FatePartition(FateId start, FateId end) {
 
   public boolean contains(FateId fateId) {
     if (isEndInclusive()) {
-      return start.compareTo(fateId) >= 0 && end.compareTo(fateId) <= 0;
+      return fateId.compareTo(start) >= 0 && fateId.compareTo(end) <= 0;
     } else {
-      return start.compareTo(fateId) >= 0 && end.compareTo(fateId) < 0;
+      return fateId.compareTo(start) >= 0 && fateId.compareTo(end) < 0;
     }
 
   }

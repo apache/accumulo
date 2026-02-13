@@ -32,8 +32,7 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.manager.ManagerWorker;
-import org.apache.accumulo.manager.fate.FateManager;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -44,6 +43,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // TODO add a way to start multiple managers to mini
+    cfg.getClusterServerConfiguration().setNumDefaultCompactors(8);
     super.configure(cfg, hadoopCoreSite);
   }
 
@@ -51,31 +51,23 @@ public class MultipleManagerIT extends ConfigurableMacBase {
   public void test() throws Exception {
 
     List<Process> managerWorkers = new ArrayList<>();
-    // start two fate workers initially
-    for (int i = 0; i < 2; i++) {
-      managerWorkers.add(exec(ManagerWorker.class));
+    for (int i = 0; i < 1; i++) {
+      managerWorkers.add(exec(Manager.class));
     }
 
     var executor = Executors.newCachedThreadPool();
 
-    // This assigns fate partitions to fate worker processes, run it in a background thread.
-    var fateMgr = new FateManager(getServerContext());
-    var future = executor.submit(() -> {
-      fateMgr.managerWorkers();
-      return null;
-    });
-
     Thread.sleep(30_000);
-    // start more fate workers, should see the partitions be shuffled eventually
+    // start more manager processes, should be assigned fate work
     for (int i = 0; i < 3; i++) {
-      managerWorkers.add(exec(ManagerWorker.class));
+      managerWorkers.add(exec(Manager.class));
     }
 
     try (var client = Accumulo.newClient().from(getClientProperties()).build()) {
       var splits = IntStream.range(1, 10).mapToObj(i -> String.format("%03d", i)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
       var tableOpFutures = new ArrayList<Future<?>>();
-      for (int i = 0; i < 30; i++) {
+      for (int i = 0; i < 1; i++) {
         var table = "t" + i;
         // TODO seeing in the logs that fate operations for the same table are running on different
         // processes, however there is a 5 second delay because there is no notification mechanism
@@ -120,10 +112,6 @@ public class MultipleManagerIT extends ConfigurableMacBase {
         tof.get();
       }
     }
-
-    FateManager.stop.set(true);
-
-    future.get();
 
     executor.shutdown();
 

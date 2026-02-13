@@ -280,8 +280,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public void deleteDeadReservations() {
-    for (Map.Entry<FateId,FateReservation> entry : getActiveReservations().entrySet()) {
+  public void deleteDeadReservations(Set<FatePartition> partitions) {
+    for (Map.Entry<FateId,FateReservation> entry : getActiveReservations(partitions).entrySet()) {
       FateId fateId = entry.getKey();
       FateReservation reservation = entry.getValue();
       if (isLockHeld.test(reservation.getLockID())) {

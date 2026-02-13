@@ -18,12 +18,8 @@
  */
 package org.apache.accumulo.manager.fate;
 
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -45,6 +41,7 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +66,8 @@ public class FateWorker implements FateWorkerService.Iface {
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
     this.fate = new Fate<>(env, store, false, TraceRepo::toLogString, context.getConfiguration(),
         context.getScheduledExecutor());
-    // TODO where will the 2 fate cleanup task run?  Make dead reservation cleaner use partitions... cleanup can run in manager
+    // TODO where will the 2 fate cleanup task run? Make dead reservation cleaner use partitions...
+    // cleanup can run in manager
 
   }
 
@@ -113,21 +111,35 @@ public class FateWorker implements FateWorkerService.Iface {
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-
     synchronized (this) {
       var localFate = fate;
       if (localFate != null && expectedUpdateId != null && updateId == expectedUpdateId) {
         // Set to null which makes it so that an update id can only be used once.
         expectedUpdateId = null;
-          var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
-          var oldPartitions = localFate.setPartitions(desiredSet);
-          log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
-          return true;
-      }else {
-        log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{} localFate==null:{}", desired,
-                expectedUpdateId, updateId, localFate==null);
+        var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
+        var oldPartitions = localFate.setPartitions(desiredSet);
+        log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
+        return true;
+      } else {
+        log.debug(
+            "Did not change partitions to {} expectedUpdateId:{} updateId:{} localFate==null:{}",
+            desired, expectedUpdateId, updateId, localFate == null);
         return false;
       }
+    }
+  }
+
+  @Override
+  public void seeded(TInfo tinfo, TCredentials credentials, List<TFatePartition> tpartitions)
+      throws TException {
+    // TODO check the partitions
+    Fate<FateEnv> localFate;
+    synchronized (this) {
+      localFate = fate;
+    }
+
+    if (localFate != null) {
+      localFate.seeded(tpartitions.stream().map(FatePartition::from).collect(Collectors.toSet()));
     }
   }
 }

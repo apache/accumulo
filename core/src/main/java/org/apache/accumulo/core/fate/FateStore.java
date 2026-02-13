@@ -27,8 +27,10 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -151,8 +153,8 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
      * longer interact with it.
      *
      * @param deferTime time to keep this transaction from being returned by
-     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.Consumer)}.
-     *        Must be non-negative.
+     *        {@link #runnable(Set, BooleanSupplier, java.util.function.Consumer)}. Must be
+     *        non-negative.
      */
     void unreserve(Duration deferTime);
   }
@@ -248,7 +250,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
    * can no longer be worked on so their reservation should be deleted, so they can be picked up and
    * worked on again.
    */
-  void deleteDeadReservations();
+  void deleteDeadReservations(Set<FatePartition> partitions);
 
   /**
    * Attempt to reserve the fate transaction.
@@ -267,6 +269,11 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
    *
    */
   FateTxStore<T> reserve(FateId fateId);
+
+  /**
+   * Notification that something in this store was seeded by another process.
+   */
+  void seeded();
 
   @Override
   void close();

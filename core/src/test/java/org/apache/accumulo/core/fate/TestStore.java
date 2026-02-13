@@ -86,6 +86,9 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
+  public void seeded() {}
+
+  @Override
   public Optional<FateTxStore<String>> tryReserve(FateId fateId) {
     synchronized (this) {
       if (!reserved.contains(fateId)) {
@@ -97,13 +100,13 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Map<FateId,FateReservation> getActiveReservations() {
+  public Map<FateId,FateReservation> getActiveReservations(Set<FatePartition> partitions) {
     // This method only makes sense for the FateStores that don't store their reservations in memory
     throw new UnsupportedOperationException();
   }
 
   @Override
-  public void deleteDeadReservations() {
+  public void deleteDeadReservations(Set<FatePartition> partitions) {
     // This method only makes sense for the FateStores that don't store their reservations in memory
     throw new UnsupportedOperationException();
   }
