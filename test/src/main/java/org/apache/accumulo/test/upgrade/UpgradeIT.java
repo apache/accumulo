@@ -24,13 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -139,11 +138,11 @@ public class UpgradeIT extends AccumuloClusterHarness {
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
 
     // Validate the exception from the servers
-    List<String> args = new ArrayList<>();
-    args.add("--props");
-    args.add(getCluster().getAccumuloPropertiesPath());
-    IllegalStateException ise = assertThrows(IllegalStateException.class,
-        () -> new ServerThatWontStart(args.toArray(new String[0])));
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
+
+    IllegalStateException ise =
+        assertThrows(IllegalStateException.class, () -> new ServerThatWontStart(new String[0]));
     assertTrue(ise.getMessage()
         .startsWith("Instance has been prepared for upgrade to a minor or major version"));
 
@@ -160,10 +159,10 @@ public class UpgradeIT extends AccumuloClusterHarness {
     ServerContext ctx = getCluster().getServerContext();
     UpgradeUtilIT.downgradePersistentVersion(ctx);
 
-    List<String> args = new ArrayList<>();
-    args.add("--props");
-    args.add(getCluster().getAccumuloPropertiesPath());
-    try (TestManager mgr = new TestManager(args.toArray(new String[0]))) {
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
+
+    try (TestManager mgr = new TestManager(new String[0])) {
       IllegalStateException ise = assertThrows(IllegalStateException.class, () -> mgr.runServer());
       assertTrue(ise.getMessage().equals("Upgrade not started, " + Constants.ZUPGRADE_PROGRESS
           + " node does not exist. Did you run 'accumulo upgrade --start'?"));

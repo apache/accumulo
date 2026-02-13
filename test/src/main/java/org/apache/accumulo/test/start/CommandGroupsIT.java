@@ -35,7 +35,7 @@ public class CommandGroupsIT {
   @Test
   public void testCommandGroups() {
     Set<CommandGroup> groups = CommandGroups.getGroups();
-    assertEquals(6, groups.size());
+    assertEquals(7, groups.size());
     assertTrue(groups.contains(CommandGroups.ADMIN));
     assertTrue(groups.contains(CommandGroups.CLIENT));
     assertTrue(groups.contains(CommandGroups.COMPACTION));

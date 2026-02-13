@@ -23,30 +23,40 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
-import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo.BCInfoOpts;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
-import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.google.auto.service.AutoService;
 
-@AutoService(KeywordExecutable.class)
-public class PrintBCInfo extends ClientKeywordExecutable<BCInfoOpts> {
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = {"DM_EXIT", "CT_CONSTRUCTOR_THROW"},
+    justification = "System.exit is acceptable here as it's a utility class, and constructor validation ensures proper initialization")
+public class PrintBCInfo {
   Configuration conf;
   FileSystem fs;
   Path path;
   CryptoService cryptoService = NoCryptoServiceFactory.NONE;
+
+  public PrintBCInfo(String[] args) throws Exception {
+    BCInfoOpts opts = new BCInfoOpts();
+    opts.parseArgs(getClass().getSimpleName(), args);
+    conf = new Configuration();
+    FileSystem hadoopFs = FileSystem.get(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    path = new Path(opts.file);
+    if (opts.file.contains(":")) {
+      fs = path.getFileSystem(conf);
+    } else {
+      fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+    }
+  }
 
   public void printMetaBlockInfo() throws IOException {
     try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
@@ -79,41 +89,9 @@ public class PrintBCInfo extends ClientKeywordExecutable<BCInfoOpts> {
     }
   }
 
-  static class BCInfoOpts extends ClientOpts {
+  public static class BCInfoOpts extends ClientOpts {
     @Parameter(required = true, description = " <file>")
     String file;
-  }
-
-  public PrintBCInfo() {
-    super(new BCInfoOpts());
-  }
-
-  @Override
-  public String keyword() {
-    return "bcfile-info";
-  }
-
-  @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
-  }
-
-  @Override
-  public String description() {
-    return "Prints information about a BCFile";
-  }
-
-  @Override
-  public void execute(JCommander cl, BCInfoOpts opts) throws Exception {
-    conf = new Configuration();
-    FileSystem hadoopFs = FileSystem.get(conf);
-    FileSystem localFs = FileSystem.getLocal(conf);
-    path = new Path(opts.file);
-    if (opts.file.contains(":")) {
-      fs = path.getFileSystem(conf);
-    } else {
-      fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
-    }
   }
 
   public CryptoService getCryptoService() {

@@ -95,7 +95,7 @@ public class PrintInfo extends ClientKeywordExecutable<PrintOpts> {
     boolean keyStats = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<>();
-    @Parameter(names = {"-c", "--config"}, variableArity = true,
+    @Parameter(names = {"-hc", "--hadoop-config"}, variableArity = true,
         description = "Comma-separated Hadoop configuration files")
     List<String> configFiles = new ArrayList<>();
   }
@@ -140,7 +140,7 @@ public class PrintInfo extends ClientKeywordExecutable<PrintOpts> {
     }
   }
 
-  // This is called from some ITs
+  // This is called from some ITs that execute the class via Mini
   public static void main(String[] args) throws Exception {
     new PrintInfo().execute(args);
   }
@@ -215,7 +215,9 @@ public class PrintInfo extends ClientKeywordExecutable<PrintOpts> {
 
       iter.printInfo(opts.printIndex);
       System.out.println();
-      PrintBCInfo printBCInfo = new PrintBCInfo();
+      List<String> bcargs = new ArrayList<>();
+      bcargs.add(path.toString());
+      PrintBCInfo printBCInfo = new PrintBCInfo(bcargs.toArray(new String[0]));
       printBCInfo.setCryptoService(cs);
       printBCInfo.printMetaBlockInfo();
 

@@ -44,7 +44,6 @@ import org.apache.accumulo.compactor.CompactorExecutable;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.file.rfile.SplitLarge;
-import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
 import org.apache.accumulo.core.util.Merge;
@@ -183,7 +182,6 @@ public class KeywordStartIT {
   public void testExpectedClasses() {
     assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
     SortedSet<CommandInfo> expectSet = new TreeSet<>();
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "bcfile-info", PrintBCInfo.class));
     expectSet.add(new CommandInfo(CommandGroups.TEST, "binary-rows", TestBinaryRows.class));
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "cancel", CancelCompaction.class));
     expectSet.add(new CommandInfo(CommandGroups.ADMIN, "change-secret", ChangeSecret.class));

@@ -57,7 +57,7 @@ public class ServerOpts extends Help {
 
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      String configFile = System.getProperty("accumulo.properties");
+      String configFile = System.getProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
       if (configFile == null) {
         log.debug(
             "Creating SiteConfiguration from classpath. To use a specific file, set the system property 'accumulo.properties'");

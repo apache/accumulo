@@ -63,6 +63,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
     justification = "Constructor validation is required for proper initialization")
 public class SiteConfiguration extends AccumuloConfiguration {
 
+  public static final String ACCUMULO_PROPERTIES_PROPERTY = "accumulo.properties";
+
   private static final Logger log = LoggerFactory.getLogger(SiteConfiguration.class);
 
   private static final AccumuloConfiguration parent = DefaultConfiguration.getInstance();
@@ -93,7 +95,8 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     public OverridesOption fromEnv() {
-      String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
+      String configFile =
+          System.getProperty(ACCUMULO_PROPERTIES_PROPERTY, ACCUMULO_PROPERTIES_PROPERTY);
       if (configFile.startsWith("file://")) {
         File f;
         try {
