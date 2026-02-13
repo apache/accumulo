@@ -27,7 +27,8 @@ public interface CommandGroup extends Comparable<CommandGroup> {
 
   /**
    * To execute a command in this group this key must be entered before the command. Should not
-   * contain spaces.
+   * contain spaces. Evaluation at runtime is case-insensitive. So if the keyword is {@code Foo} and
+   * the user types {@code foo} it will still work.
    */
   String key();
 
