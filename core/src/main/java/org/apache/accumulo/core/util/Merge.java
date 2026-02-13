@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -39,17 +40,24 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Merge.Opts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class Merge {
+@AutoService(KeywordExecutable.class)
+public class Merge extends ClientKeywordExecutable<Opts> {
 
   public static class MergeException extends Exception {
     private static final long serialVersionUID = 1L;
@@ -96,9 +104,27 @@ public class Merge {
     Text end = null;
   }
 
-  public void start(String[] args) throws MergeException {
-    Opts opts = new Opts();
-    opts.parseArgs(Merge.class.getName(), args);
+  public Merge() {
+    super(new Opts());
+  }
+
+  @Override
+  public String keyword() {
+    return "merge";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.CLIENT;
+  }
+
+  @Override
+  public String description() {
+    return "Client utility that merges tablets in a tablet to a goal size.";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     Span span = TraceUtil.startSpan(Merge.class, "start");
     try (Scope scope = span.makeCurrent()) {
 
@@ -123,11 +149,6 @@ public class Merge {
         span.end();
       }
     }
-  }
-
-  public static void main(String[] args) throws MergeException {
-    Merge merge = new Merge();
-    merge.start(args);
   }
 
   public static class Size {

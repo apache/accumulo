@@ -32,14 +32,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles.FindOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -50,48 +52,17 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+
 @AutoService(KeywordExecutable.class)
-public class FindCompactionTmpFiles implements KeywordExecutable {
+public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(FindCompactionTmpFiles.class);
 
-  @Override
-  public String keyword() {
-    return "find";
-  }
-
-  @Override
-  public String description() {
-    return "Compaction Temp Files Utility";
-  }
-
-  @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.COMPACTION;
-  }
-
-  @Override
-  public void execute(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + commandGroup().key() + " " + keyword());
-
-    FindCompactionTmpFilesCommand findOps = new FindCompactionTmpFilesCommand();
-    cl.addCommand(findOps);
-    cl.parse(args);
-    if (opts.help || cl.getParsedCommand() == null) {
-      cl.usage();
-      return;
-    }
-    ServerContext context = opts.getServerContext();
-    findCompTmpFiles(context, findOps.tables, findOps.delete);
-  }
-
-  @Parameters(commandNames = "find", commandDescription = "Find compaction temporary files")
-  static class FindCompactionTmpFilesCommand extends ServerUtilOpts {
+  static class FindOpts extends ServerOpts {
 
     @Parameter(names = "--tables", description = "comma separated list of table names")
     String tables;
@@ -219,34 +190,60 @@ public class FindCompactionTmpFiles implements KeywordExecutable {
     return stats;
   }
 
-  public static void findCompTmpFiles(ServerContext context, final String tablesToSearch,
-      final boolean delete) throws Exception {
-    LOG.info("Looking for compaction tmp files over tables: {}, deleting: {}", tablesToSearch,
-        delete);
-
-    String[] tables = tablesToSearch.split(",");
-    for (String table : tables) {
-
-      table = table.trim();
-      String tableId = context.tableOperations().tableIdMap().get(table);
-      if (tableId == null || tableId.isEmpty()) {
-        LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
-        continue;
-      }
-
-      final Set<Path> matches = findTempFiles(context, tableId);
-      LOG.info("Found the following compaction tmp files for table {}:", table);
-      matches.forEach(p -> LOG.info("{}", p));
-
-      if (delete) {
-        LOG.info("Deleting compaction tmp files for table {}...", table);
-        DeleteStats stats = deleteTempFiles(context, matches);
-        LOG.info(
-            "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
-            table, stats.success, stats.failure, stats.error);
-      }
-
-    }
+  public FindCompactionTmpFiles() {
+    super(new FindOpts());
   }
 
+  @Override
+  public String keyword() {
+    return "find-tmp-files";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
+  }
+
+  @Override
+  public String description() {
+    return "Finds and optionally deletes compaction tmp files.";
+  }
+
+  @Override
+  public void execute(JCommander cl, FindOpts opts) throws Exception {
+    LOG.info("Looking for compaction tmp files over tables: {}, deleting: {}", opts.tables,
+        opts.delete);
+
+    Span span = TraceUtil.startSpan(FindCompactionTmpFiles.class, "main");
+    try (Scope scope = span.makeCurrent()) {
+
+      ServerContext context = getServerContext();
+      String[] tables = opts.tables.split(",");
+
+      final var stringStringMap = context.tableOperations().tableIdMap();
+      for (String table : tables) {
+
+        table = table.trim();
+        String tableId = stringStringMap.get(table);
+        if (tableId == null || tableId.isEmpty()) {
+          LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
+          continue;
+        }
+
+        final Set<Path> matches = findTempFiles(context, tableId);
+        LOG.info("Found the following compaction tmp files for table {}:", table);
+        matches.forEach(p -> LOG.info("{}", p));
+
+        if (opts.delete) {
+          LOG.info("Deleting compaction tmp files for table {}...", table);
+          DeleteStats stats = deleteTempFiles(context, matches);
+          LOG.info(
+              "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
+              table, stats.success, stats.failure, stats.error);
+        }
+      }
+    } finally {
+      span.end();
+    }
+  }
 }

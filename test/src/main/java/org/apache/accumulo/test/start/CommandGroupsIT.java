@@ -42,5 +42,6 @@ public class CommandGroupsIT {
     assertTrue(groups.contains(CommandGroups.CORE));
     assertTrue(groups.contains(CommandGroups.OTHER));
     assertTrue(groups.contains(CommandGroups.PROCESS));
+    assertTrue(groups.contains(CommandGroups.TEST));
   }
 }

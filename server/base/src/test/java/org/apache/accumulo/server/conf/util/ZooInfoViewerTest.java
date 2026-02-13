@@ -77,7 +77,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void optionsAllDefault() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     assertTrue(opts.printAllProps());
     assertTrue(opts.printSysProps());
     assertTrue(opts.printNamespaceProps());
@@ -86,7 +86,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void onlySys() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"--system"});
 
     assertFalse(opts.printAllProps());
@@ -97,7 +97,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void onlyNamespaces() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"-ns", "ns1", "ns2"});
 
     assertFalse(opts.printAllProps());
@@ -110,7 +110,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void allLongOpts() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"--system", "--namespaces", "ns1", "ns2", "--tables", "tb1", "tbl2"});
 
@@ -127,7 +127,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void allOpts() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"-t", "tb1", "tbl2"});
 
     assertFalse(opts.printAllProps());
@@ -159,7 +159,7 @@ public class ZooInfoViewerTest {
 
     class ZooInfoViewerTestClazz extends ZooInfoViewer {
       @Override
-      ServerContext getContext(ZooInfoViewer.Opts ots) {
+      public ServerContext getServerContext() {
         return context;
       }
     }
@@ -198,7 +198,7 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"--print-instances", "--outfile", testFileName});
 
@@ -230,6 +230,7 @@ public class ZooInfoViewerTest {
     InstanceId iid = InstanceId.of(uuid);
     ZooSession zk = createMock(ZooSession.class);
     var context = MockServerContext.getWithMockZK(zk);
+
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     var instanceName = "test";
     expect(zk.getChildren(eq(ZROOT + ZINSTANCES), isNull())).andReturn(List.of(instanceName))
@@ -320,7 +321,7 @@ public class ZooInfoViewerTest {
 
     class ZooInfoViewerTestClazz extends ZooInfoViewer {
       @Override
-      ServerContext getContext(ZooInfoViewer.Opts ots) {
+      public ServerContext getServerContext() {
         return context;
       }
     }
@@ -365,7 +366,7 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"--print-id-map", "--outfile", testFileName});
 

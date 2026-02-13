@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.util.Iterator;
 import java.util.Properties;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -31,16 +32,23 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.util.RandomWriter.Opts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class RandomWriter {
+@AutoService(KeywordExecutable.class)
+public class RandomWriter extends ClientKeywordExecutable<Opts> {
 
   private static final int num_columns_per_row = 1;
   private static final int num_payload_bytes = 1024;
@@ -96,11 +104,27 @@ public class RandomWriter {
     final String tableName = "test_write_table";
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.principal = "root";
-    opts.parseArgs(RandomWriter.class.getName(), args);
+  public RandomWriter() {
+    super(new Opts());
+  }
 
+  @Override
+  public String keyword() {
+    return "random-writer";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.TEST;
+  }
+
+  @Override
+  public String description() {
+    return "Test utility that writes some number of random mutations to a table.";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     Span span = TraceUtil.startSpan(RandomWriter.class, "main");
     try (Scope scope = span.makeCurrent()) {
       long start = System.currentTimeMillis();

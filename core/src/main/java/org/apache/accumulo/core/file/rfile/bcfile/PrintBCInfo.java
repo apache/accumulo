@@ -23,22 +23,26 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
+import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo.BCInfoOpts;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
-@SuppressFBWarnings(value = {"DM_EXIT", "CT_CONSTRUCTOR_THROW"},
-    justification = "System.exit is acceptable here as it's a utility class, and constructor validation ensures proper initialization")
-public class PrintBCInfo {
+@AutoService(KeywordExecutable.class)
+public class PrintBCInfo extends ClientKeywordExecutable<BCInfoOpts> {
   Configuration conf;
   FileSystem fs;
   Path path;
@@ -75,18 +79,32 @@ public class PrintBCInfo {
     }
   }
 
-  static class Opts extends ConfigOpts {
-    @Parameter(description = " <file>")
+  static class BCInfoOpts extends ClientOpts {
+    @Parameter(required = true, description = " <file>")
     String file;
   }
 
-  public PrintBCInfo(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs("PrintInfo", args);
-    if (opts.file.isEmpty()) {
-      System.err.println("No files were given");
-      System.exit(-1);
-    }
+  public PrintBCInfo() {
+    super(new BCInfoOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "bcfile-info";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
+  }
+
+  @Override
+  public String description() {
+    return "Prints information about a BCFile";
+  }
+
+  @Override
+  public void execute(JCommander cl, BCInfoOpts opts) throws Exception {
     conf = new Configuration();
     FileSystem hadoopFs = FileSystem.get(conf);
     FileSystem localFs = FileSystem.getLocal(conf);

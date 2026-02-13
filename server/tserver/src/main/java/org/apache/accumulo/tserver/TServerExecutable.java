@@ -18,28 +18,16 @@
  */
 package org.apache.accumulo.tserver;
 
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class TServerExecutable implements KeywordExecutable {
+public class TServerExecutable extends ServerProcessKeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "tserver";
-  }
-
-  @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo tablet server";
+  public TServerExecutable() {
+    super("tserver", "Tablet Server");
   }
 
   @Override

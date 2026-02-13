@@ -49,7 +49,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -67,6 +67,8 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.conf.util.ZooInfoViewer.ViewerOpts;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.zookeeper.ZooAclUtil;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
@@ -77,6 +79,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
@@ -85,7 +88,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
     justification = "app is run in same security context as user providing the filename")
-public class ZooInfoViewer implements KeywordExecutable {
+public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
   private static final DateTimeFormatter tsFormat =
       DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.from(ZoneOffset.UTC));
   private static final Logger log = LoggerFactory.getLogger(ZooInfoViewer.class);
@@ -94,10 +97,9 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private static final String INDENT = "  ";
 
-  /**
-   * No-op constructor - provided so ServiceLoader autoload does not consume resources.
-   */
-  public ZooInfoViewer() {}
+  public ZooInfoViewer() {
+    super(new ViewerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -115,26 +117,17 @@ public class ZooInfoViewer implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
+  public void execute(JCommander cl, ViewerOpts opts) throws Exception {
     nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
-
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
-    opts.parseArgs(ZooInfoViewer.class.getName(), args);
 
     log.info("print ids map: {}", opts.printIdMap);
     log.info("print properties: {}", opts.printProps);
     log.info("print instances: {}", opts.printInstanceIds);
 
-    try (ServerContext context = getContext(opts)) {
-      generateReport(context, opts);
-    }
+    generateReport(getServerContext(), opts);
   }
 
-  ServerContext getContext(ZooInfoViewer.Opts opts) {
-    return new ServerContext(opts.getSiteConfiguration());
-  }
-
-  void generateReport(final ServerContext context, final ZooInfoViewer.Opts opts) throws Exception {
+  void generateReport(final ServerContext context, final ViewerOpts opts) throws Exception {
 
     OutputStream outStream;
 
@@ -177,8 +170,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
   }
 
-  private void printProps(final ServerContext context, final Opts opts, final PrintWriter writer)
-      throws Exception {
+  private void printProps(final ServerContext context, final ViewerOpts opts,
+      final PrintWriter writer) throws Exception {
     var iid = context.getInstanceID();
     var zooReader = context.getZooSession().asReader();
 
@@ -248,7 +241,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     writer.println();
   }
 
-  private void printAcls(final ServerContext context, final Opts opts, final PrintWriter writer) {
+  private void printAcls(final ServerContext context, final ViewerOpts opts,
+      final PrintWriter writer) {
     var iid = context.getInstanceID();
 
     Map<String,List<ACL>> aclMap = new TreeMap<>();
@@ -484,7 +478,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
   }
 
-  static class Opts extends ConfigOpts {
+  static class ViewerOpts extends ServerOpts {
     @Parameter(names = {"--outfile"},
         description = "Write the output to a file, if the file exists will not be overwritten.")
     public String outfile = "";

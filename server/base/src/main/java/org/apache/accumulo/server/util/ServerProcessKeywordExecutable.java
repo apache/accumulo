@@ -16,20 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.cli;
+package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
-public class ServerUtilOpts extends Help {
+public abstract class ServerProcessKeywordExecutable implements KeywordExecutable {
 
-  private ServerContext context;
+  private final String keyword;
+  private final String name;
 
-  public synchronized ServerContext getServerContext() {
-    if (context == null) {
-      context = new ServerContext(SiteConfiguration.auto());
-    }
-    return context;
+  public ServerProcessKeywordExecutable(String keyword, String name) {
+    this.keyword = keyword;
+    this.name = name;
   }
+
+  @Override
+  public String keyword() {
+    return keyword;
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.PROCESS;
+  }
+
+  @Override
+  public String description() {
+    return "Starts Accumulo " + name;
+  }
+
 }

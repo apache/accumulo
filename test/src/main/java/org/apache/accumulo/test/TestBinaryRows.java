@@ -25,6 +25,7 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -36,11 +37,18 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.TestBinaryRows.Opts;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class TestBinaryRows {
+@AutoService(KeywordExecutable.class)
+public class TestBinaryRows extends ClientKeywordExecutable<Opts> {
   private static final long byteOnes;
 
   static {
@@ -231,10 +239,27 @@ public class TestBinaryRows {
     }
   }
 
-  public static void main(String[] args) {
-    Opts opts = new Opts();
-    opts.parseArgs(TestBinaryRows.class.getName(), args);
+  public TestBinaryRows() {
+    super(new Opts());
+  }
 
+  @Override
+  public String keyword() {
+    return "binary-rows";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.TEST;
+  }
+
+  @Override
+  public String description() {
+    return "Performs operations on a table using binary row data";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       runTest(client, opts);
     } catch (Exception e) {

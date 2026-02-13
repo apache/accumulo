@@ -160,7 +160,8 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       System.setProperty("accumulo.properties",
           "file://" + getCluster().getAccumuloPropertiesPath());
-      FindCompactionTmpFiles.findCompTmpFiles(getCluster().getServerContext(), tableName, false);
+      FindCompactionTmpFiles fctf = new FindCompactionTmpFiles();
+      fctf.execute(new String[] {"--tables", tableName});
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(100, foundPaths.size());
@@ -208,7 +209,8 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       System.setProperty("accumulo.properties",
           "file://" + getCluster().getAccumuloPropertiesPath());
-      FindCompactionTmpFiles.findCompTmpFiles(getCluster().getServerContext(), tableName, true);
+      FindCompactionTmpFiles fctf = new FindCompactionTmpFiles();
+      fctf.execute(new String[] {"--tables", tableName, "--delete"});
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(0, foundPaths.size());

@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -36,13 +37,20 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.TestRandomDeletes.TestOpts;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
-public class TestRandomDeletes {
+@AutoService(KeywordExecutable.class)
+public class TestRandomDeletes extends ClientKeywordExecutable<TestOpts> {
   private static final Logger log = LoggerFactory.getLogger(TestRandomDeletes.class);
   private static Authorizations auths = new Authorizations("L1", "L2", "G1", "GROUP2");
 
@@ -131,11 +139,27 @@ public class TestRandomDeletes {
     String tableName = "test_ingest";
   }
 
-  public static void main(String[] args) {
+  public TestRandomDeletes() {
+    super(new TestOpts());
+  }
 
-    TestOpts opts = new TestOpts();
-    opts.parseArgs(TestRandomDeletes.class.getName(), args);
+  @Override
+  public String keyword() {
+    return "random-deletes";
+  }
 
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.TEST;
+  }
+
+  @Override
+  public String description() {
+    return "Randomly deletes entries from a table";
+  }
+
+  @Override
+  public void execute(JCommander cl, TestOpts opts) throws Exception {
     log.info("starting random delete test");
 
     try {

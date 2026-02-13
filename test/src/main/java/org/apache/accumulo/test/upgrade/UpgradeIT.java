@@ -28,7 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -52,7 +52,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class ServerThatWontStart extends AbstractServer {
 
     protected ServerThatWontStart(String[] args) {
-      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf, rgid) -> new ServerContext(conf),
+      super(ServerId.Type.TABLET_SERVER, new ServerOpts(), (conf, rgid) -> new ServerContext(conf),
           args);
     }
 
@@ -76,7 +76,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class TestManager extends Manager {
 
     protected TestManager(String[] args) throws IOException {
-      super(new ConfigOpts(), (conf, rgid) -> new ServerContext(conf), args);
+      super(new ServerOpts(), (conf, rgid) -> new ServerContext(conf), args);
     }
 
     @Override

@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -37,7 +38,6 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.ListInstances.Opts;
 import org.apache.accumulo.start.spi.CommandGroup;
@@ -61,7 +61,7 @@ public class ListInstances extends ServerKeywordExecutable<Opts> {
 
   private static final int ZOOKEEPER_TIMER_MILLIS = 30_000;
 
-  static class Opts extends ServerUtilOpts {
+  static class Opts extends ServerOpts {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
     @Parameter(names = "--print-all",
@@ -95,8 +95,7 @@ public class ListInstances extends ServerKeywordExecutable<Opts> {
   @Override
   public void execute(JCommander cl, Opts options) throws Exception {
     if (options.keepers == null) {
-      options.keepers =
-          options.getServerContext().getConfiguration().get(Property.INSTANCE_ZK_HOST);
+      options.keepers = getServerContext().getConfiguration().get(Property.INSTANCE_ZK_HOST);
     }
 
     listInstances(options.keepers, options.printAll, options.printErrors);

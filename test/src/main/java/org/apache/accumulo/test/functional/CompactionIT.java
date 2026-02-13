@@ -798,12 +798,14 @@ public class CompactionIT extends CompactionITBase {
       args[0] = "--props";
       args[1] = getCluster().getAccumuloPropertiesPath();
       args[2] = finalCompactionFile;
-      PrintBCInfo bcInfo = new PrintBCInfo(args);
+      PrintBCInfo bcInfo = new PrintBCInfo();
+      bcInfo.execute(args);
       String finalCompressionType = bcInfo.getCompressionType();
       // The compression type used on the final compaction file should be 'snappy'
       assertEquals("snappy", finalCompressionType);
       args[2] = interCompactionFile[0];
-      bcInfo = new PrintBCInfo(args);
+      bcInfo = new PrintBCInfo();
+      bcInfo.execute(args);
       String interCompressionType = bcInfo.getCompressionType();
       // The compression type used on the intermediate compaction file should be 'gz'
       assertEquals("gz", interCompressionType);

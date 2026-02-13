@@ -20,12 +20,12 @@ package org.apache.accumulo.server.util.checkCommand;
 
 import java.util.AbstractMap;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
@@ -45,7 +45,7 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
     CheckStatus status = CheckStatus.OK;
     printRunning();
@@ -59,8 +59,8 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
     }
 
     log.trace("********** Checking some references **********");
-    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(tableName(), opts, log::trace,
-        log::warn)) {
+    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(context, tableName(), opts,
+        log::trace, log::warn)) {
       status = CheckStatus.FAILED;
     }
 

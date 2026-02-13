@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.server.util;
 
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.util.ZooKeeperMain.ZKOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ZooKeeperMain implements KeywordExecutable {
+public class ZooKeeperMain extends ServerKeywordExecutable<ZKOpts> {
 
-  static class Opts extends Help {
+  static class ZKOpts extends ServerOpts {
 
     @Parameter(names = {"-z", "--keepers"},
         description = "Comma separated list of zookeeper hosts (host:port,host:port)")
@@ -43,8 +43,8 @@ public class ZooKeeperMain implements KeywordExecutable {
     long timeout = 30;
   }
 
-  public static void main(String[] args) throws Exception {
-    new ZooKeeperMain().execute(args);
+  public ZooKeeperMain() {
+    super(new ZKOpts());
   }
 
   @Override
@@ -63,19 +63,16 @@ public class ZooKeeperMain implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(ZooKeeperMain.class.getName(), args);
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
-      if (opts.servers == null) {
-        opts.servers = context.getZooKeepers();
-      }
-      System.out.println("The accumulo instance id is " + context.getInstanceID());
-      if (!opts.servers.contains("/")) {
-        opts.servers += ZooUtil.getRoot(context.getInstanceID());
-      }
-      org.apache.zookeeper.ZooKeeperMain
-          .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
+  public void execute(JCommander cl, ZKOpts opts) throws Exception {
+    var context = getServerContext();
+    if (opts.servers == null) {
+      opts.servers = context.getZooKeepers();
     }
+    System.out.println("The accumulo instance id is " + context.getInstanceID());
+    if (!opts.servers.contains("/")) {
+      opts.servers += ZooUtil.getRoot(context.getInstanceID());
+    }
+    org.apache.zookeeper.ZooKeeperMain
+        .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});
   }
 }

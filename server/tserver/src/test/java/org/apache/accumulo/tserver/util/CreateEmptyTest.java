@@ -21,6 +21,7 @@ package org.apache.accumulo.tserver.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.log.DfsLogger.LOG_FILE_HEADER_V4;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -84,6 +85,8 @@ public class CreateEmptyTest extends WithTestNames {
     expect(context.getHadoopConf()).andReturn(new Configuration()).anyTimes();
     VolumeManager volumeManager = VolumeManagerImpl.get(config, new Configuration());
     expect(context.getVolumeManager()).andReturn(volumeManager).anyTimes();
+    context.close();
+    expectLastCall().anyTimes();
     replay(context);
 
     perTestTempSubDir = Files.createDirectories(tempDir.resolve(testName()));
@@ -97,40 +100,42 @@ public class CreateEmptyTest extends WithTestNames {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @Test
   public void exceptionOnFileExistsTest() throws Exception {
-    CreateEmpty createEmpty = new CreateEmpty();
 
     // create the file so it exists
     java.nio.file.Path f = Files.createFile(perTestTempSubDir.resolve("empty.wal"));
 
     String[] walArgs = {"--type", "WAL", f.toString()};
-    CreateEmpty.Opts walOpts = new CreateEmpty.Opts();
-    walOpts.parseArgs("accumulo create-empty", walArgs);
+    CreateEmpty createEmpty = new CreateEmpty() {
 
-    assertThrows(IllegalArgumentException.class,
-        () -> createEmpty.createEmptyWal(walOpts, context));
+      @Override
+      public ServerContext getServerContext() {
+        return context;
+      }
+    };
+    assertThrows(IllegalArgumentException.class, () -> createEmpty.execute(walArgs));
 
     // create the file so it exists
     java.nio.file.Path f2 = Files.createFile(perTestTempSubDir.resolve("empty.rf"));
 
     String[] rfArgs = {"--type", "RF", f2.toString()};
-    CreateEmpty.Opts rfOpts = new CreateEmpty.Opts();
-    rfOpts.parseArgs("accumulo create-empty", rfArgs);
-    assertThrows(IllegalArgumentException.class,
-        () -> createEmpty.createEmptyRFile(walOpts, context));
+    assertThrows(IllegalArgumentException.class, () -> createEmpty.execute(rfArgs));
   }
 
   @Test
   public void createRfileTest() throws Exception {
-    CreateEmpty createEmpty = new CreateEmpty();
+    CreateEmpty createEmpty = new CreateEmpty() {
+
+      @Override
+      public ServerContext getServerContext() {
+        return context;
+      }
+    };
 
     String file1 = perTestTempSubDir.resolve("empty1.rf").toString();
     String file2 = perTestTempSubDir.resolve("empty2.rf").toString();
 
     String[] args = {"--type", "RF", file1, file2};
-    CreateEmpty.Opts opts = new CreateEmpty.Opts();
-    opts.parseArgs("accumulo create-empty", args);
-
-    createEmpty.createEmptyRFile(opts, context);
+    createEmpty.execute(args);
     VolumeManager vm = context.getVolumeManager();
     assertTrue(vm.exists(new Path(file1)));
     try (var scanner = RFile.newScanner().from(file1).build()) {
@@ -149,15 +154,19 @@ public class CreateEmptyTest extends WithTestNames {
    */
   @Test
   public void createRfileDefaultTest() throws Exception {
-    CreateEmpty createEmpty = new CreateEmpty();
 
     String file1 = perTestTempSubDir.resolve("empty.rf").toString();
 
     String[] args = {file1};
-    CreateEmpty.Opts opts = new CreateEmpty.Opts();
-    opts.parseArgs("accumulo create-empty", args);
 
-    createEmpty.createEmptyRFile(opts, context);
+    CreateEmpty createEmpty = new CreateEmpty() {
+
+      @Override
+      public ServerContext getServerContext() {
+        return context;
+      }
+    };
+    createEmpty.execute(args);
     VolumeManager vm = context.getVolumeManager();
     assertTrue(vm.exists(new Path(file1)));
     try (var scanner = RFile.newScanner().from(file1).build()) {
@@ -167,16 +176,20 @@ public class CreateEmptyTest extends WithTestNames {
 
   @Test
   public void createWalTest() throws Exception {
-    CreateEmpty createEmpty = new CreateEmpty();
 
     String file1 = perTestTempSubDir.resolve("empty1.wal").toString();
     String file2 = perTestTempSubDir.resolve("empty2.wal").toString();
 
     String[] args = {"--type", "WAL", file1, file2};
-    CreateEmpty.Opts opts = new CreateEmpty.Opts();
-    opts.parseArgs("accumulo create-empty", args);
 
-    createEmpty.createEmptyWal(opts, context);
+    CreateEmpty createEmpty = new CreateEmpty() {
+
+      @Override
+      public ServerContext getServerContext() {
+        return context;
+      }
+    };
+    createEmpty.execute(args);
 
     checkWalContext(file1);
     readLogFile(file1);

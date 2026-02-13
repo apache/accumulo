@@ -27,6 +27,7 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -55,15 +56,22 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.FastFormat;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.TestIngest.Opts;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class TestIngest {
+@AutoService(KeywordExecutable.class)
+public class TestIngest extends ClientKeywordExecutable<Opts> {
   public static final Authorizations AUTHS = new Authorizations("L1", "L2", "G1", "GROUP2");
 
   public static class IngestParams {
@@ -257,11 +265,27 @@ public class TestIngest {
     return new IteratorSetting.Column(new Text(params.columnFamily), generateQualifier(column));
   }
 
-  public static void main(String[] args) throws Exception {
+  public TestIngest() {
+    super(new Opts());
+  }
 
-    Opts opts = new Opts();
-    opts.parseArgs(TestIngest.class.getSimpleName(), args);
+  @Override
+  public String keyword() {
+    return "ingest";
+  }
 
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.TEST;
+  }
+
+  @Override
+  public String description() {
+    return "Inserts test data into a table";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
       ingest(client, opts.getIngestPrams());
     }

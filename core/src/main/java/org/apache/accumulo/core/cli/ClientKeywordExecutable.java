@@ -18,39 +18,11 @@
  */
 package org.apache.accumulo.core.cli;
 
-import org.apache.accumulo.start.spi.KeywordExecutable;
-
-import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
-
 public abstract class ClientKeywordExecutable<OPTS extends ClientOpts>
-    implements KeywordExecutable {
-
-  private final OPTS options;
+    extends BaseKeywordExecutable<OPTS> {
 
   public ClientKeywordExecutable(OPTS options) {
-    this.options = options;
+    super(options);
   }
-
-  @Override
-  public final void execute(String[] args) throws Exception {
-    JCommander cl = new JCommander(this.options);
-    cl.setProgramName("accumulo "
-        + (commandGroup().key().isBlank() ? "" : commandGroup().key() + " ") + keyword());
-    try {
-      cl.parse(args);
-    } catch (ParameterException e) {
-      cl.usage();
-      return;
-    }
-
-    if (this.options.help) {
-      cl.usage();
-      return;
-    }
-    execute(cl, options);
-  }
-
-  public abstract void execute(JCommander cl, OPTS options) throws Exception;
 
 }

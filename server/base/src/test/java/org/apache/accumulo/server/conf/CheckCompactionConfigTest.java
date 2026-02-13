@@ -56,7 +56,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
     String filePath = writeToFileAndReturnPath(inputString);
 
-    CheckCompactionConfig.main(new String[] {filePath});
+    new CheckCompactionConfig().execute(new String[] {filePath});
   }
 
   @Test
@@ -73,7 +73,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
     String filePath = writeToFileAndReturnPath(inputString);
 
-    CheckCompactionConfig.main(new String[] {filePath});
+    new CheckCompactionConfig().execute(new String[] {filePath});
   }
 
   @Test
@@ -92,7 +92,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "[{'group':'cs3_small','maxSize':'16M'},{'group':'cs3_large'}]").replaceAll("'", "\"");
 
     String filePath = writeToFileAndReturnPath(inputString);
-    CheckCompactionConfig.main(new String[] {filePath});
+    new CheckCompactionConfig().execute(new String[] {filePath});
   }
 
   @Test
@@ -108,7 +108,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(JsonParseException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertEquals(expectedErrorMsg, e.getMessage());
   }
 
@@ -123,7 +123,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
   }
 
@@ -139,7 +139,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     final String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
   }
 
@@ -155,7 +155,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
   }
 
@@ -163,7 +163,8 @@ public class CheckCompactionConfigTest extends WithTestNames {
   public void testBadPropsFilePath() {
     String[] args = {"/home/foo/bar/myProperties.properties"};
     String expectedErrorMsg = "File at given path could not be found";
-    var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
+    var e =
+        assertThrows(FileNotFoundException.class, () -> new CheckCompactionConfig().execute(args));
     assertEquals(expectedErrorMsg, e.getMessage());
   }
 
@@ -194,7 +195,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     assertThrows(IllegalStateException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
   }
 
 }

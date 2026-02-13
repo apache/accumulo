@@ -33,6 +33,7 @@ public class CommandGroups {
   public static final CommandGroup CORE = new CoreCommandGroup();
   public static final CommandGroup OTHER = new OtherCommandGroup();
   public static final CommandGroup PROCESS = new ProcessCommandGroup();
+  public static final CommandGroup TEST = new TestCommandGroup();
 
   private static Set<CommandGroup> groups = null;
 
@@ -182,4 +183,22 @@ public class CommandGroups {
     }
   }
 
+  @AutoService(CommandGroup.class)
+  public static class TestCommandGroup extends BaseCommandGroup {
+
+    @Override
+    public String key() {
+      return "test";
+    }
+
+    @Override
+    public String title() {
+      return "Test";
+    }
+
+    @Override
+    public String description() {
+      return "Test commands";
+    }
+  }
 }

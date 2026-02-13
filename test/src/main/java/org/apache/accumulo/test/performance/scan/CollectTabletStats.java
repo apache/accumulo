@@ -37,6 +37,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.cli.ClientOpts.AuthConverter;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -70,11 +71,15 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.performance.scan.CollectTabletStats.CollectOptions;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -82,15 +87,18 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CollectTabletStats {
+@AutoService(KeywordExecutable.class)
+public class CollectTabletStats extends ServerKeywordExecutable<CollectOptions> {
 
   private static final Logger log = LoggerFactory.getLogger(CollectTabletStats.class);
 
-  static class CollectOptions extends ServerUtilOpts {
+  static class CollectOptions extends ServerOpts {
     @Parameter(names = {"-auths", "--auths"}, converter = AuthConverter.class,
         description = "the authorizations to use when reading or writing")
     public Authorizations auths = Authorizations.EMPTY;
@@ -106,24 +114,39 @@ public class CollectTabletStats {
     String columns;
   }
 
-  public static void main(String[] args) throws Exception {
+  public CollectTabletStats() {
+    super(new CollectOptions());
+  }
 
-    final CollectOptions opts = new CollectOptions();
-    opts.parseArgs(CollectTabletStats.class.getName(), args);
+  @Override
+  public String keyword() {
+    return "tablet-stats";
+  }
 
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.TEST;
+  }
+
+  @Override
+  public String description() {
+    return "Prints information about a tables tablets.";
+  }
+
+  @Override
+  public void execute(JCommander cl, CollectOptions opts) throws Exception {
     String[] columnsTmp = {};
     if (opts.columns != null) {
       columnsTmp = opts.columns.split(",");
     }
     final String[] columns = columnsTmp;
 
-    ServerContext context = opts.getServerContext();
+    ServerContext context = getServerContext();
     final VolumeManager fs = context.getVolumeManager();
 
     TableId tableId = context.getTableId(opts.tableName);
     if (tableId == null) {
-      log.error("Unable to find table named {}", opts.tableName);
-      System.exit(-1);
+      throw new IllegalStateException("Unable to find table named: " + opts.tableName);
     }
 
     TreeMap<KeyExtent,String> tabletLocations = new TreeMap<>();
@@ -131,9 +154,8 @@ public class CollectTabletStats {
         findTablets(context, !opts.selectFarTablets, opts.tableName, tabletLocations);
 
     if (candidates.size() < opts.numThreads) {
-      System.err.println("ERROR : Unable to find " + opts.numThreads + " "
+      throw new IllegalStateException("Unable to find " + opts.numThreads + " "
           + (opts.selectFarTablets ? "far" : "local") + " tablets");
-      System.exit(-1);
     }
 
     List<KeyExtent> tabletsToTest = selectRandomTablets(opts.numThreads, candidates);

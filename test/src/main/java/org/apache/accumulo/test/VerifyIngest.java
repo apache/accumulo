@@ -20,11 +20,11 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,16 +38,23 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.VerifyIngest.Opts;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class VerifyIngest {
+@AutoService(KeywordExecutable.class)
+public class VerifyIngest extends ClientKeywordExecutable<Opts> {
 
   private static final Logger log = LoggerFactory.getLogger(VerifyIngest.class);
 
@@ -87,18 +94,32 @@ public class VerifyIngest {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(VerifyIngest.class.getName(), args);
+  public VerifyIngest() {
+    super(new Opts());
+  }
+
+  @Override
+  public String keyword() {
+    return "verify-ingest";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.TEST;
+  }
+
+  @Override
+  public String description() {
+    return "Verifies data in a table that was inserted using TestIngest";
+  }
+
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     Span span = TraceUtil.startSpan(VerifyIngest.class, "main");
     try (Scope scope = span.makeCurrent()) {
-
-      span.setAttribute("cmdLine", Arrays.asList(args).toString());
-
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
         verifyIngest(client, opts.getVerifyParams());
       }
-
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;

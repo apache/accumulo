@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -31,7 +32,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
@@ -43,7 +43,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
   private static final Check check = Check.SYSTEM_CONFIG;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
     CheckStatus status = CheckStatus.OK;
     printRunning();
