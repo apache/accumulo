@@ -78,7 +78,7 @@ public class Main {
       argOffset = 2;
       CommandGroup ug = null;
       try {
-        ug = usageGroups.stream().filter(g -> g.title().equalsIgnoreCase(group)).findFirst()
+        ug = usageGroups.stream().filter(g -> g.key().equalsIgnoreCase(group)).findFirst()
             .orElseThrow();
         ke = executables.get(ug).get(cmd);
       } catch (NoSuchElementException e) {
