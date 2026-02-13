@@ -528,7 +528,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" other org.apache.accumulo.server.util.ZooZap -verbose -tservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -582,7 +582,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" other org.apache.accumulo.server.util.ZooZap -verbose -sservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -607,14 +607,14 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" other org.apache.accumulo.server.util.ZooZap -verbose -compactors --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRunAsync "$accumulo_cmd" other org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -manager -tservers -compactors -sservers --gc --monitor
   fi
 
   wait
@@ -674,9 +674,9 @@ function prune_group() {
   esac
 
   if isDebug; then
-    "$accumulo_cmd" other org.apache.accumulo.server.util.ZooZap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
+    "$accumulo_cmd" other zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
   else
-    "$accumulo_cmd" other org.apache.accumulo.server.util.ZooZap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
+    "$accumulo_cmd" other zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
   fi
 }
 
