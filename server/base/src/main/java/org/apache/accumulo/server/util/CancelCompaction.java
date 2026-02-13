@@ -18,30 +18,32 @@
  */
 package org.apache.accumulo.server.util;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.CancelCompaction.CancelCommandOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class CancelCompaction implements KeywordExecutable {
+public class CancelCompaction extends ServerKeywordExecutable<CancelCommandOpts> {
 
-  @Parameters(commandNames = "cancel",
-      commandDescription = "cancel the external compaction with given ECID")
-  static class CancelCommand {
+  static class CancelCommandOpts extends ServerOpts {
     @Parameter(names = "-ecid", description = "<ecid>", required = true)
     String ecid;
+  }
+
+  public CancelCompaction() {
+    super(new CancelCommandOpts());
   }
 
   @Override
@@ -74,21 +76,8 @@ public class CancelCompaction implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-
-    JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + commandGroup().key() + " " + keyword());
-
-    CancelCommand cancelOps = new CancelCommand();
-    cl.addCommand(cancelOps);
-    cl.parse(args);
-
-    if (opts.help || cl.getParsedCommand() == null) {
-      cl.usage();
-      return;
-    }
-    cancelCompaction(opts.getServerContext(), cancelOps.ecid);
+  public void execute(JCommander cl, CancelCommandOpts options) throws Exception {
+    cancelCompaction(getServerContext(), options.ecid);
   }
 
 }

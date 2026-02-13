@@ -24,10 +24,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -36,10 +36,10 @@ import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ListCompactors extends ServerKeywordExecutable<ServerUtilOpts> {
+public class ListCompactors extends ServerKeywordExecutable<ServerOpts> {
 
   public ListCompactors() {
-    super(new ServerUtilOpts());
+    super(new ServerOpts());
   }
 
   @Override
@@ -71,8 +71,8 @@ public class ListCompactors extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
-    var map = listCompactorsByQueue(options.getServerContext());
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    var map = listCompactorsByQueue(getServerContext());
     if (map.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {

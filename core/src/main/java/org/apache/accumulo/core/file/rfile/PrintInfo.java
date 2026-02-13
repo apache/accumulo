@@ -25,7 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -34,6 +36,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
+import org.apache.accumulo.core.file.rfile.PrintInfo.PrintOpts;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.PrintBCInfo;
 import org.apache.accumulo.core.file.rfile.bcfile.Utils;
@@ -55,17 +58,16 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 @AutoService(KeywordExecutable.class)
-public class PrintInfo implements KeywordExecutable {
+public class PrintInfo extends ClientKeywordExecutable<PrintOpts> {
 
   private static final Logger log = LoggerFactory.getLogger(PrintInfo.class);
 
-  static class Opts extends ConfigOpts {
+  static class PrintOpts extends ClientOpts {
     @Parameter(names = {"-d", "--dump"}, description = "dump the key/value pairs")
     boolean dump = false;
     @Parameter(names = {"--fullKeys"},
@@ -93,7 +95,7 @@ public class PrintInfo implements KeywordExecutable {
     boolean keyStats = false;
     @Parameter(description = " <file> { <file> ... }")
     List<String> files = new ArrayList<>();
-    @Parameter(names = {"-c", "--config"}, variableArity = true,
+    @Parameter(names = {"-hc", "--hadoop-config"}, variableArity = true,
         description = "Comma-separated Hadoop configuration files")
     List<String> configFiles = new ArrayList<>();
   }
@@ -138,8 +140,13 @@ public class PrintInfo implements KeywordExecutable {
     }
   }
 
+  // This is called from some ITs that execute the class via Mini
   public static void main(String[] args) throws Exception {
     new PrintInfo().execute(args);
+  }
+
+  public PrintInfo() {
+    super(new PrintOpts());
   }
 
   @Override
@@ -165,24 +172,18 @@ public class PrintInfo implements KeywordExecutable {
     return clazz;
   }
 
-  @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "System.exit is fine here because it's a utility class executed by a main()")
   @Override
-  public void execute(final String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs("accumulo rfile-info", args);
+  public void execute(JCommander cl, PrintOpts opts) throws Exception {
     if (opts.files.isEmpty()) {
-      System.err.println("No files were given");
-      System.exit(1);
+      throw new IllegalArgumentException("No files were given");
     }
 
     if ((opts.fullKeys || opts.dump) && opts.formatterClazz != null) {
-      System.err.println(
+      throw new IllegalArgumentException(
           "--formatter argument is incompatible with --dump or --fullKeys, specify either, not both.");
-      System.exit(1);
     }
 
-    var siteConfig = opts.getSiteConfiguration();
+    var siteConfig = SiteConfiguration.fromEnv().build();
 
     Configuration conf = new Configuration();
     for (String confFile : opts.configFiles) {
@@ -214,10 +215,9 @@ public class PrintInfo implements KeywordExecutable {
 
       iter.printInfo(opts.printIndex);
       System.out.println();
-      String propsPath = opts.getPropertiesPath();
-      String[] mainArgs =
-          propsPath == null ? new String[] {arg} : new String[] {"-props", propsPath, arg};
-      PrintBCInfo printBCInfo = new PrintBCInfo(mainArgs);
+      List<String> bcargs = new ArrayList<>();
+      bcargs.add(path.toString());
+      PrintBCInfo printBCInfo = new PrintBCInfo(bcargs.toArray(new String[0]));
       printBCInfo.setCryptoService(cs);
       printBCInfo.printMetaBlockInfo();
 

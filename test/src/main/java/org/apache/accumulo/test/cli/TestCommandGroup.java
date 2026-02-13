@@ -16,20 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.cli;
+package org.apache.accumulo.test.cli;
 
-import org.apache.accumulo.core.cli.Help;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.start.spi.CommandGroups.BaseCommandGroup;
 
-public class ServerUtilOpts extends Help {
+public class TestCommandGroup extends BaseCommandGroup {
 
-  private ServerContext context;
+  public static final TestCommandGroup INSTANCE = new TestCommandGroup();
 
-  public synchronized ServerContext getServerContext() {
-    if (context == null) {
-      context = new ServerContext(SiteConfiguration.auto());
-    }
-    return context;
+  private TestCommandGroup() {}
+
+  @Override
+  public String key() {
+    return "test";
   }
+
+  @Override
+  public String title() {
+    return "Test";
+  }
+
+  @Override
+  public String description() {
+    return "Test commands";
+  }
+
 }

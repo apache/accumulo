@@ -46,7 +46,7 @@ import java.util.function.Supplier;
 import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
@@ -116,10 +116,10 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new Monitor(new ConfigOpts(), args), log);
+    AbstractServer.startServer(new Monitor(new ServerOpts(), args), log);
   }
 
-  Monitor(ConfigOpts opts, String[] args) {
+  Monitor(ServerOpts opts, String[] args) {
     super(ServerId.Type.MONITOR, opts, ServerContext::new, args);
     START_TIME = System.currentTimeMillis();
     this.connStats = new ConnectionStatistics();
@@ -386,7 +386,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     if (advertiseAddress == null) {
       // use the bind address from the connector, unless it's null or 0.0.0.0
       String advertiseHost = server.getHostName();
-      if (advertiseHost == null || advertiseHost == ConfigOpts.BIND_ALL_ADDRESSES) {
+      if (advertiseHost == null || advertiseHost == ServerOpts.BIND_ALL_ADDRESSES) {
         try {
           advertiseHost = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {

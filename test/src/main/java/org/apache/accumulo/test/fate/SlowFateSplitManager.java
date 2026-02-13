@@ -20,7 +20,7 @@ package org.apache.accumulo.test.fate;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.manager.Manager;
@@ -40,7 +40,7 @@ public class SlowFateSplitManager extends Manager {
   // important that this is an op that can be initiated on some system table as well as user tables
   public static final Fate.FateOperation SLOW_OP = Fate.FateOperation.TABLE_SPLIT;
 
-  protected SlowFateSplitManager(ConfigOpts opts, String[] args) throws IOException {
+  protected SlowFateSplitManager(ServerOpts opts, String[] args) throws IOException {
     super(opts, ServerContext::new, args);
   }
 
@@ -51,7 +51,7 @@ public class SlowFateSplitManager extends Manager {
   }
 
   public static void main(String[] args) throws Exception {
-    try (SlowFateSplitManager manager = new SlowFateSplitManager(new ConfigOpts(), args)) {
+    try (SlowFateSplitManager manager = new SlowFateSplitManager(new ServerOpts(), args)) {
       manager.runServer();
     }
   }

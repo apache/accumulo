@@ -22,6 +22,7 @@ import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -32,25 +33,48 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.JCommander;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class ListOnlineOnDemandTablets {
+@AutoService(KeywordExecutable.class)
+public class ListOnlineOnDemandTablets extends ServerKeywordExecutable<ServerOpts> {
   private static final Logger log = LoggerFactory.getLogger(ListOnlineOnDemandTablets.class);
 
-  public static void main(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(ListOnlineOnDemandTablets.class.getName(), args);
+  public ListOnlineOnDemandTablets() {
+    super(new ServerOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "find-online-ondemand-tablets";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Lists the OnDemand tablets that are currently hosted";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
     Span span = TraceUtil.startSpan(ListOnlineOnDemandTablets.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      ServerContext context = opts.getServerContext();
-      findOnline(context);
+      findOnline(getServerContext());
     } finally {
       span.end();
     }

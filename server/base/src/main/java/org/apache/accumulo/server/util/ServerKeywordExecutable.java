@@ -18,50 +18,43 @@
  */
 package org.apache.accumulo.server.util;
 
+import org.apache.accumulo.core.cli.BaseKeywordExecutable;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.security.SecurityUtil;
-import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.ParameterException;
 
-public abstract class ServerKeywordExecutable<OPTS extends ServerUtilOpts>
-    implements KeywordExecutable {
+public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
+    extends BaseKeywordExecutable<OPTS> {
 
-  private final OPTS options;
+  private final ServerContext context;
 
   public ServerKeywordExecutable(OPTS options) {
-    this.options = options;
+    super(options);
+    context = new ServerContext(SiteConfiguration.auto());
+  }
+
+  public ServerContext getServerContext() {
+    if (context.isClosed()) {
+      throw new IllegalStateException(
+          "Cannot use context after execute method has completed. Context is closed.");
+    }
+    return context;
   }
 
   @Override
-  public final void execute(String[] args) throws Exception {
-    JCommander cl = new JCommander(this.options);
-    cl.setProgramName("accumulo " + commandGroup().key() + " " + keyword());
-    try {
-      cl.parse(args);
-    } catch (ParameterException e) {
-      System.out.println("Error parsing arguments");
-      cl.usage();
-      return;
-    }
-
-    if (this.options.help) {
-      cl.usage();
-      return;
-    }
+  public void doExecute(JCommander cl, OPTS options) throws Exception {
     // Login as the server on secure HDFS
-    try (ServerContext context = options.getServerContext()) {
-      AccumuloConfiguration conf = options.getServerContext().getConfiguration();
+    try (ServerContext context = getServerContext()) {
+      AccumuloConfiguration conf = context.getConfiguration();
       if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(conf);
       }
       execute(cl, options);
     }
   }
-
-  public abstract void execute(JCommander cl, OPTS options) throws Exception;
 }

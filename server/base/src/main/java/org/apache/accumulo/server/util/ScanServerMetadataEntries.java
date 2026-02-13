@@ -23,15 +23,46 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
+
+import com.beust.jcommander.JCommander;
+import com.google.auto.service.AutoService;
 
 /**
  * This utility will remove scan server file references from the metadata table where the scan
  * server in the metadata entry is not currently running.
  */
-public class ScanServerMetadataEntries {
+@AutoService(KeywordExecutable.class)
+public class ScanServerMetadataEntries extends ServerKeywordExecutable<ServerOpts> {
+
+  public ScanServerMetadataEntries() {
+    super(new ServerOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "remove-scan-server-references";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Removes ScanServer references in metadata table for servers not running";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    clean(getServerContext());
+  }
 
   public static void clean(ServerContext context) {
 
@@ -69,14 +100,5 @@ public class ScanServerMetadataEntries {
       });
       context.getAmple().scanServerRefs().delete(refsToDelete);
     }
-  }
-
-  public static void main(String[] args) {
-
-    ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(ScanServerMetadataEntries.class.getName(), args);
-
-    final ServerContext context = opts.getServerContext();
-    clean(context);
   }
 }

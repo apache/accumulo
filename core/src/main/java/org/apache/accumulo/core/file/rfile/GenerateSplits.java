@@ -36,7 +36,8 @@ import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.file.rfile.GenerateSplits.SplitOpts;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
@@ -65,6 +67,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
@@ -73,14 +76,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @AutoService(KeywordExecutable.class)
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
     justification = "app is run in same security context as user providing the filename")
-public class GenerateSplits implements KeywordExecutable {
+public class GenerateSplits extends ClientKeywordExecutable<SplitOpts> {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplits.class);
 
   private static final Set<Character> allowedChars = new HashSet<>();
 
   private static final String encodeFlag = "-b64";
 
-  static class Opts extends ConfigOpts {
+  static class SplitOpts extends ClientOpts {
     @Parameter(names = {"-n", "--num"},
         description = "The number of split points to generate. Can be used to create n+1 tablets. Cannot use with the split size option.")
     public int numSplits = 0;
@@ -101,6 +104,10 @@ public class GenerateSplits implements KeywordExecutable {
 
   }
 
+  public GenerateSplits() {
+    super(new SplitOpts());
+  }
+
   @Override
   public String keyword() {
     return "generate-splits";
@@ -116,20 +123,14 @@ public class GenerateSplits implements KeywordExecutable {
     return CommandGroups.OTHER;
   }
 
-  public static void main(String[] args) throws Exception {
-    new GenerateSplits().execute(args);
-  }
-
   @Override
-  public void execute(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(GenerateSplits.class.getName(), args);
+  public void execute(JCommander cl, SplitOpts opts) throws Exception {
     if (opts.files.isEmpty()) {
       throw new IllegalArgumentException("No files were given");
     }
 
     Configuration hadoopConf = new Configuration();
-    SiteConfiguration siteConf = opts.getSiteConfiguration();
+    var siteConf = SiteConfiguration.fromEnv().build();
     CryptoService cryptoService = CryptoFactoryLoader
         .getServiceForClient(CryptoEnvironment.Scope.TABLE, siteConf.getAllCryptoProperties());
     boolean encode = opts.base64encode;

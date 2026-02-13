@@ -16,31 +16,35 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test.start;
-
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import java.util.Set;
+package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
-import org.junit.jupiter.api.Tag;
-import org.junit.jupiter.api.Test;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 
-@Tag(SUNNY_DAY)
-public class CommandGroupsIT {
+public abstract class ServerProcessKeywordExecutable implements KeywordExecutable {
 
-  @Test
-  public void testCommandGroups() {
-    Set<CommandGroup> groups = CommandGroups.getGroups();
-    assertEquals(6, groups.size());
-    assertTrue(groups.contains(CommandGroups.ADMIN));
-    assertTrue(groups.contains(CommandGroups.CLIENT));
-    assertTrue(groups.contains(CommandGroups.COMPACTION));
-    assertTrue(groups.contains(CommandGroups.CORE));
-    assertTrue(groups.contains(CommandGroups.OTHER));
-    assertTrue(groups.contains(CommandGroups.PROCESS));
+  private final String keyword;
+  private final String name;
+
+  public ServerProcessKeywordExecutable(String keyword, String name) {
+    this.keyword = keyword;
+    this.name = name;
   }
+
+  @Override
+  public String keyword() {
+    return keyword;
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.PROCESS;
+  }
+
+  @Override
+  public String description() {
+    return "Starts Accumulo " + name;
+  }
+
 }

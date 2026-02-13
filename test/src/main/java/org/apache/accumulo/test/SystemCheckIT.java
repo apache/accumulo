@@ -39,6 +39,7 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -54,7 +55,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
@@ -689,7 +689,7 @@ public class SystemCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+    public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
         throws Exception {
       CheckStatus status = passes ? CheckStatus.OK : CheckStatus.FAILED;
 
@@ -806,14 +806,6 @@ public class SystemCheckIT extends ConfigurableMacBase {
       this.checkRunners.put(Check.SYSTEM_FILES,
           () -> new DummySystemFilesCheckRunner(checksPass[6]));
       this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[7]));
-    }
-
-    @Override
-    public synchronized ServerContext getServerContext() {
-      // Don't use the MiniAccumuloCluster's ServerContext
-      // because ServerKeywordExecutable will close it
-      // and cause errors during subsequent IT operations.
-      return new ServerContext(getCluster().getServerContext().getSiteConfiguration());
     }
 
     @Override

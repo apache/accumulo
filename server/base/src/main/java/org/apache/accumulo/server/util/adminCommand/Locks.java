@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util.adminCommand;
 
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
@@ -28,10 +28,10 @@ import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class Locks extends ServerKeywordExecutable<ServerUtilOpts> {
+public class Locks extends ServerKeywordExecutable<ServerOpts> {
 
   public Locks() {
-    super(new ServerUtilOpts());
+    super(new ServerOpts());
   }
 
   @Override
@@ -50,7 +50,7 @@ public class Locks extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
     System.out.println("'locks' command has been removed. Use 'service-status' command"
         + " to list processes and 'stop -f' command to remove their locks.");
   }

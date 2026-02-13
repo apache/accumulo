@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -227,7 +227,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicLong terminated = new AtomicLong(0);
 
   @VisibleForTesting
-  protected Compactor(ConfigOpts opts, String[] args) {
+  protected Compactor(ServerOpts opts, String[] args) {
     super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
   }
 
@@ -1063,7 +1063,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new Compactor(new ConfigOpts(), args), LOG);
+    AbstractServer.startServer(new Compactor(new ServerOpts(), args), LOG);
   }
 
   @Override

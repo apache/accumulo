@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
@@ -29,7 +29,7 @@ public class UserFilesCheckRunner implements CheckRunner {
   private static final Check check = Check.USER_FILES;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
     CheckStatus status = CheckStatus.OK;
     printRunning();

@@ -34,7 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -94,7 +94,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final Timer lastCompactorCheck = Timer.startNew();
 
-  protected SimpleGarbageCollector(ConfigOpts opts, String[] args) {
+  protected SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -111,7 +111,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new SimpleGarbageCollector(new ConfigOpts(), args), log);
+    AbstractServer.startServer(new SimpleGarbageCollector(new ServerOpts(), args), log);
   }
 
   /**

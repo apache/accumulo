@@ -20,7 +20,7 @@ package org.apache.accumulo.test.fate;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.manager.Manager;
@@ -30,7 +30,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.slf4j.LoggerFactory;
 
 public class FlakyFateManager extends Manager {
-  protected FlakyFateManager(ConfigOpts opts, String[] args) throws IOException {
+  protected FlakyFateManager(ServerOpts opts, String[] args) throws IOException {
     super(opts, ServerContext::new, args);
   }
 
@@ -42,7 +42,7 @@ public class FlakyFateManager extends Manager {
   }
 
   public static void main(String[] args) throws Exception {
-    try (FlakyFateManager manager = new FlakyFateManager(new ConfigOpts(), args)) {
+    try (FlakyFateManager manager = new FlakyFateManager(new ServerOpts(), args)) {
       manager.runServer();
     }
   }

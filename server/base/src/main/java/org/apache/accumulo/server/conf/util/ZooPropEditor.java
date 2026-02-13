@@ -30,7 +30,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -47,7 +47,9 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
 import org.apache.accumulo.server.conf.store.impl.ReadyMonitor;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.apache.accumulo.server.conf.util.ZooPropEditor.EditorOpts;
 import org.apache.accumulo.server.util.PropUtil;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -55,11 +57,12 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ZooPropEditor implements KeywordExecutable {
+public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditor.class);
   private NullWatcher nullWatcher;
@@ -67,7 +70,9 @@ public class ZooPropEditor implements KeywordExecutable {
   /**
    * No-op constructor - provided so ServiceLoader autoload does not consume resources.
    */
-  public ZooPropEditor() {}
+  public ZooPropEditor() {
+    super(new EditorOpts());
+  }
 
   @Override
   public String keyword() {
@@ -86,36 +91,31 @@ public class ZooPropEditor implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    nullWatcher = new NullWatcher(new ReadyMonitor(ZooInfoViewer.class.getSimpleName(), 20_000L));
+  public void execute(JCommander cl, EditorOpts opts) throws Exception {
+    nullWatcher = new NullWatcher(new ReadyMonitor(ZooPropEditor.class.getSimpleName(), 20_000L));
 
-    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
-    opts.parseArgs(ZooPropEditor.class.getName(), args);
+    var context = getServerContext();
+    var zrw = context.getZooSession().asReaderWriter();
 
-    var siteConfig = opts.getSiteConfiguration();
-    try (var context = new ServerContext(siteConfig)) {
-      var zrw = context.getZooSession().asReaderWriter();
-
-      var propKey = getPropKey(context, opts);
-      switch (opts.getCmdMode()) {
-        case SET:
-          setProperty(context, propKey, opts);
-          break;
-        case DELETE:
-          deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
-          break;
-        case PRINT:
-          printProperties(context, propKey, readPropNode(propKey, zrw));
-          break;
-        case ERROR:
-        default:
-          throw new IllegalArgumentException("Invalid operation requested");
-      }
+    var propKey = getPropKey(context, opts);
+    switch (opts.getCmdMode()) {
+      case SET:
+        setProperty(context, propKey, opts);
+        break;
+      case DELETE:
+        deleteProperty(context, propKey, readPropNode(propKey, zrw), opts);
+        break;
+      case PRINT:
+        printProperties(context, propKey, readPropNode(propKey, zrw));
+        break;
+      case ERROR:
+      default:
+        throw new IllegalArgumentException("Invalid operation requested");
     }
   }
 
   private void setProperty(final ServerContext context, final PropStoreKey propKey,
-      final Opts opts) {
+      final EditorOpts opts) {
     LOG.trace("set {}", propKey);
 
     if (!opts.setOpt.contains("=")) {
@@ -146,7 +146,7 @@ public class ZooPropEditor implements KeywordExecutable {
   }
 
   private void deleteProperty(final ServerContext context, final PropStoreKey propKey,
-      VersionedProperties versionedProperties, final Opts opts) {
+      VersionedProperties versionedProperties, final EditorOpts opts) {
     LOG.trace("delete {} - {}", propKey, opts.deleteOpt);
     String p = opts.deleteOpt.trim();
     if (p.isEmpty() || !Property.isValidPropertyKey(p)) {
@@ -214,7 +214,8 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private PropStoreKey getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
+  private PropStoreKey getPropKey(final ServerContext context,
+      final ZooPropEditor.EditorOpts opts) {
 
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
@@ -240,7 +241,7 @@ public class ZooPropEditor implements KeywordExecutable {
     return SystemPropKey.of();
   }
 
-  private TableId getTableId(final ServerContext context, final ZooPropEditor.Opts opts) {
+  private TableId getTableId(final ServerContext context, final ZooPropEditor.EditorOpts opts) {
     if (!opts.tableIdOpt.isEmpty()) {
       return TableId.of(opts.tableIdOpt);
     }
@@ -250,7 +251,8 @@ public class ZooPropEditor implements KeywordExecutable {
         .orElseThrow(() -> new IllegalArgumentException("Could not find table " + opts.tableOpt));
   }
 
-  private NamespaceId getNamespaceId(final ServerContext context, final ZooPropEditor.Opts opts) {
+  private NamespaceId getNamespaceId(final ServerContext context,
+      final ZooPropEditor.EditorOpts opts) {
     if (!opts.namespaceIdOpt.isEmpty()) {
       return NamespaceId.of(opts.namespaceIdOpt);
     }
@@ -281,7 +283,7 @@ public class ZooPropEditor implements KeywordExecutable {
     return "unknown";
   }
 
-  static class Opts extends ConfigOpts {
+  static class EditorOpts extends ServerOpts {
 
     @Parameter(names = {"-d", "--delete"}, description = "delete a property")
     public String deleteOpt = "";
@@ -307,7 +309,7 @@ public class ZooPropEditor implements KeywordExecutable {
     public void parseArgs(String programName, String[] args, Object... others) {
       super.parseArgs(programName, args, others);
       var cmdMode = getCmdMode();
-      if (cmdMode == Opts.CmdMode.ERROR) {
+      if (cmdMode == EditorOpts.CmdMode.ERROR) {
         throw new IllegalArgumentException("Cannot use set and delete in one command");
       }
     }

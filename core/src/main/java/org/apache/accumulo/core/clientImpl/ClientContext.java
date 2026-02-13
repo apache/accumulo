@@ -188,7 +188,7 @@ public class ClientContext implements AccumuloClient {
     }
   }
 
-  protected boolean isClosed() {
+  public boolean isClosed() {
     return closed.get();
   }
 

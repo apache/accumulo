@@ -62,7 +62,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -213,10 +213,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new TabletServer(new ConfigOpts(), ServerContext::new, args), log);
+    AbstractServer.startServer(new TabletServer(new ServerOpts(), ServerContext::new, args), log);
   }
 
-  protected TabletServer(ConfigOpts opts,
+  protected TabletServer(ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);

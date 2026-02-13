@@ -29,6 +29,7 @@ import java.util.SortedSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -97,7 +98,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     zrw.putPersistentData(Constants.ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
     assertTrue(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--prepare"}));
     assertEquals("Manager is running, shut it down and retry this operation", ise.getMessage());
@@ -120,7 +122,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
     Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--prepare"}));
     assertTrue(ise.getMessage()
@@ -140,14 +143,16 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
     Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     new UpgradeUtil().execute(new String[] {"--prepare"});
     assertTrue(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
   }
 
   @Test
   public void testExclusiveOptionsFail() {
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalArgumentException ise = assertThrows(IllegalArgumentException.class,
         () -> new UpgradeUtil().execute(new String[] {"--prepare", "--start"}));
     assertTrue(ise.getMessage().equals("prepare and start options are mutually exclusive"));
@@ -155,7 +160,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
   @Test
   public void testStartFailsNotNeeded() throws Exception {
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage().startsWith("Running this utility is unnecessary"));
@@ -165,7 +171,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
   public void testStartFailsManagerRunning() throws Exception {
     downgradePersistentVersion(getServerContext());
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage().equals("Cannot run this command with the Manager running."));
@@ -182,7 +189,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
     Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage()
@@ -208,7 +216,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     zrw.putEphemeralData(Constants.ZFATE + "/" + UUID.randomUUID(), new byte[0]);
     assertFalse(zr.getChildren(Constants.ZFATE).isEmpty());
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--start", "--force"}));
     assertTrue(ise.getMessage()
@@ -234,7 +243,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     // The prepare node exists in ZooKeeper, so checks for Fate transactions
     // won't be done and server locks won't be deleted.
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     new UpgradeUtil().execute(new String[] {"--start"});
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
     assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
@@ -255,7 +265,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     // The prepare node exists in ZooKeeper, checks for Fate transactions
     // will be done and server locks will be deleted.
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     new UpgradeUtil().execute(new String[] {"--start", "--force"});
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
     assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
@@ -285,7 +296,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     // The prepare node exists in ZooKeeper, so checks for Fate transactions
     // won't be done and server locks won't be deleted.
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     new UpgradeUtil().execute(new String[] {"--start"});
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
     assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
@@ -317,7 +329,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     // The prepare node exists in ZooKeeper, so checks for Fate transactions
     // won't be done and server locks won't be deleted.
 
-    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage().startsWith("It appears that an upgrade is in progress."));

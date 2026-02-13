@@ -28,14 +28,14 @@ public class ZooPropEditorTest {
 
   @Test
   public void optionsAllDefault() {
-    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
+    ZooPropEditor.EditorOpts opts = new ZooPropEditor.EditorOpts();
     assertTrue(opts.setOpt.isEmpty());
     assertTrue(opts.deleteOpt.isEmpty());
   }
 
   @Test
   public void invalidSetAndDelete() {
-    ZooPropEditor.Opts opts = new ZooPropEditor.Opts();
+    ZooPropEditor.EditorOpts opts = new ZooPropEditor.EditorOpts();
     assertThrows(IllegalArgumentException.class, () -> opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"-s", "foo=1", "-d", "bar=2"}));
   }

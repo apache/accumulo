@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -96,7 +96,7 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
+  protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
     log = LoggerFactory.getLogger(getClass());
@@ -109,12 +109,12 @@ public abstract class AbstractServer
         && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       this.bindAddress = newBindParameter;
     } else {
-      this.bindAddress = ConfigOpts.BIND_ALL_ADDRESSES;
+      this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
       HostAndPort advertHP = HostAndPort.fromString(advertAddr);
-      if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
+      if (advertHP.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
       advertiseAddress = new AtomicReference<>(advertHP);

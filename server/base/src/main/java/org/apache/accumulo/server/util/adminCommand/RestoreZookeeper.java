@@ -30,10 +30,10 @@ import java.util.LinkedList;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.RestoreZookeeper.RestoreZooCommandOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
@@ -115,7 +115,7 @@ public class RestoreZookeeper extends ServerKeywordExecutable<RestoreZooCommandO
     }
   }
 
-  static class RestoreZooCommandOpts extends ServerUtilOpts {
+  static class RestoreZooCommandOpts extends ServerOpts {
     @Parameter(names = "--overwrite")
     boolean overwrite = false;
 
@@ -144,7 +144,7 @@ public class RestoreZookeeper extends ServerKeywordExecutable<RestoreZooCommandO
 
   @Override
   public void execute(JCommander cl, RestoreZooCommandOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
 
     InputStream in = System.in;
     if (options.file != null) {

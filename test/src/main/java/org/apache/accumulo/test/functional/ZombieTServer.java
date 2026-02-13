@@ -24,7 +24,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
@@ -128,7 +128,7 @@ public class ZombieTServer {
         ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "ZombieTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
         context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
-        HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, port));
+        HostAndPort.fromParts(ServerOpts.BIND_ALL_ADDRESSES, port));
     serverPort.startThriftServer("walking dead");
 
     String addressString = serverPort.address.toString();

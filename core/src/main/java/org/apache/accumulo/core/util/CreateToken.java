@@ -64,10 +64,6 @@ public class CreateToken implements KeywordExecutable {
     public String tokenClassName = PasswordToken.class.getName();
   }
 
-  public static void main(String[] args) {
-    new CreateToken().execute(args);
-  }
-
   @Override
   public String keyword() {
     return "create-token";

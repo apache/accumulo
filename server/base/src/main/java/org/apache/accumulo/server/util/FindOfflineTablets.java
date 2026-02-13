@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -34,24 +35,49 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.JCommander;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class FindOfflineTablets {
+@AutoService(KeywordExecutable.class)
+public class FindOfflineTablets extends ServerKeywordExecutable<ServerOpts> {
+
   private static final Logger log = LoggerFactory.getLogger(FindOfflineTablets.class);
 
-  public static void main(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(FindOfflineTablets.class.getName(), args);
+  public FindOfflineTablets() {
+    super(new ServerOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "find-offline-tablets";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Prints information about offline tablets";
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
     Span span = TraceUtil.startSpan(FindOfflineTablets.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      ServerContext context = opts.getServerContext();
+      ServerContext context = getServerContext();
       findOffline(context, null, false, false, System.out::println, System.out::println);
     } finally {
       span.end();

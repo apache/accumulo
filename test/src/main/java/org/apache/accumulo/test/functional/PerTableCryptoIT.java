@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.AESCryptoService;
@@ -171,6 +172,8 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
   }
 
   private void checkTableEncryption(TableId tableId, boolean expectEncrypt) throws Exception {
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     try (var tm = getServerContext().getAmple().readTablets().forTable(tableId).build()) {
       for (var tabletMetadata : tm) {
         for (var f : tabletMetadata.getFiles()) {
@@ -181,12 +184,11 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
           PrintStream oldOut = System.out;
           try (PrintStream newOut = new PrintStream(baos)) {
             System.setOut(newOut);
+
             List<String> args = new ArrayList<>();
             args.add(f.getNormalizedPathStr());
-            args.add("--props");
-            args.add(getCluster().getAccumuloPropertiesPath());
             if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {
-              args.add("--config");
+              args.add("--hadoop-config");
               StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
               String hadoopConfDir = sac.getHadoopConfDir();
               args.add(new Path(hadoopConfDir, "core-site.xml").toString());
@@ -195,7 +197,8 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
             args.add("-o");
             args.add(INSTANCE_CRYPTO_FACTORY + "=" + GenericCryptoServiceFactory.class.getName());
             log.info("Invoking PrintInfo with {}", args);
-            org.apache.accumulo.core.file.rfile.PrintInfo.main(args.toArray(new String[0]));
+            new org.apache.accumulo.core.file.rfile.PrintInfo()
+                .execute(args.toArray(new String[0]));
             newOut.flush();
             String stdout = baos.toString();
             if (expectEncrypt) {
@@ -245,9 +248,9 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
     PrintStream oldOut = System.out;
     try (PrintStream newOut = new PrintStream(baos)) {
       System.setOut(newOut);
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+          "file://" + getCluster().getAccumuloPropertiesPath());
       List<String> args = new ArrayList<>(walsSeen);
-      args.add("-p");
-      args.add(getCluster().getAccumuloPropertiesPath());
       args.add("-e");
       new LogReader().execute(args.toArray(new String[0]));
       newOut.flush();

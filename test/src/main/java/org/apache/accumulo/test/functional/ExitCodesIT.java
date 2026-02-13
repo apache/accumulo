@@ -32,7 +32,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -82,7 +82,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     private final TerminalBehavior behavior;
 
     public ExitCompactor(TerminalBehavior behavior, List<String> compactorArgs) {
-      super(new ConfigOpts(), compactorArgs.toArray(new String[] {}));
+      super(new ServerOpts(), compactorArgs.toArray(new String[] {}));
       this.behavior = behavior;
     }
 
@@ -115,7 +115,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     private final TerminalBehavior behavior;
 
     public ExitScanServer(TerminalBehavior behavior, List<String> sserverArgs) {
-      super(new ConfigOpts(), sserverArgs.toArray(new String[] {}));
+      super(new ServerOpts(), sserverArgs.toArray(new String[] {}));
       this.behavior = behavior;
     }
 
@@ -148,7 +148,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     private final TerminalBehavior behavior;
 
     public ExitTabletServer(TerminalBehavior behavior, List<String> tserverArgs) {
-      super(new ConfigOpts(), ServerContext::new, tserverArgs.toArray(new String[] {}));
+      super(new ServerOpts(), ServerContext::new, tserverArgs.toArray(new String[] {}));
       this.behavior = behavior;
     }
 
@@ -178,7 +178,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     private final TerminalBehavior behavior;
 
     public ExitGC(TerminalBehavior behavior) {
-      super(new ConfigOpts(), new String[] {});
+      super(new ServerOpts(), new String[] {});
       this.behavior = behavior;
     }
 
@@ -208,7 +208,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     private final TerminalBehavior behavior;
 
     public ExitManager(TerminalBehavior behavior) throws IOException {
-      super(new ConfigOpts(), ServerContext::new, new String[] {});
+      super(new ServerOpts(), ServerContext::new, new String[] {});
       this.behavior = behavior;
     }
 

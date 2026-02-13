@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ListCompactions.RunningCommandOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
@@ -156,7 +156,7 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
   }
 
   @Parameters(commandNames = "running", commandDescription = "list the running compactions")
-  static class RunningCommandOpts extends ServerUtilOpts {
+  static class RunningCommandOpts extends ServerOpts {
     @Parameter(names = {"-d", "--details"},
         description = "display details about the running compactions")
     boolean details = false;
@@ -221,8 +221,8 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
 
   @Override
   public void execute(JCommander cl, RunningCommandOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
-    List<RunningCompactionSummary> compactions = getRunningCompactions(context, options.details);
+    List<RunningCompactionSummary> compactions =
+        getRunningCompactions(getServerContext(), options.details);
     if (options.jsonOutput) {
       try {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();

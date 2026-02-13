@@ -32,6 +32,7 @@ import java.util.Map.Entry;
 import java.util.SortedSet;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -46,7 +47,6 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.DumpConfig.DumpConfigOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
@@ -69,7 +69,7 @@ public class DumpConfig extends ServerKeywordExecutable<DumpConfigOpts> {
     new DumpConfig().execute(args);
   }
 
-  static class DumpConfigOpts extends ServerUtilOpts {
+  static class DumpConfigOpts extends ServerOpts {
     @Parameter(names = {"-a", "--all"},
         description = "print the system and all table configurations")
     boolean allConfiguration = false;
@@ -138,7 +138,7 @@ public class DumpConfig extends ServerKeywordExecutable<DumpConfigOpts> {
   @Override
   public void execute(JCommander cl, DumpConfigOpts opts) throws Exception {
 
-    ServerContext context = opts.getServerContext();
+    ServerContext context = getServerContext();
 
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
         justification = "app is run in same security context as user providing the filename")

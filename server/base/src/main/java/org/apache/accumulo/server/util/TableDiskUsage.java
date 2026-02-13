@@ -36,6 +36,7 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -46,10 +47,16 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
+import org.apache.accumulo.server.util.TableDiskUsage.Opts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -70,7 +77,8 @@ import io.opentelemetry.context.Scope;
  * For more accurate information a compaction should first be run on all files for the set of tables
  * being computed.
  */
-public class TableDiskUsage {
+@AutoService(KeywordExecutable.class)
+public class TableDiskUsage extends ClientKeywordExecutable<Opts> {
 
   private static final Logger log = LoggerFactory.getLogger(TableDiskUsage.class);
   private int nextInternalId = 0;
@@ -78,6 +86,25 @@ public class TableDiskUsage {
   private final Map<Integer,TableId> externalIds = new HashMap<>();
   private final Map<String,Integer[]> tableFiles = new HashMap<>();
   private final Map<String,Long> fileSizes = new HashMap<>();
+
+  public TableDiskUsage() {
+    super(new Opts());
+  }
+
+  @Override
+  public String keyword() {
+    return "disk-usage";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.CLIENT;
+  }
+
+  @Override
+  public String description() {
+    return "Client utility that prints disk usage for tables based on files in the metadata table";
+  }
 
   void addTable(TableId tableId) {
     if (internalIds.containsKey(tableId)) {
@@ -324,9 +351,8 @@ public class TableDiskUsage {
     List<String> tables = new ArrayList<>();
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(TableDiskUsage.class.getName(), args);
+  @Override
+  public void execute(JCommander cl, Opts opts) throws Exception {
     Span span = TraceUtil.startSpan(TableDiskUsage.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {

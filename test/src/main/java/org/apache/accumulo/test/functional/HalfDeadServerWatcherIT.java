@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -72,7 +72,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
 
     public static void main(String[] args) throws Exception {
       try (HalfDeadTabletServer tserver =
-          new HalfDeadTabletServer(new ConfigOpts(), ServerContext::new, args)) {
+          new HalfDeadTabletServer(new ServerOpts(), ServerContext::new, args)) {
         tserver.runServer();
       }
     }
@@ -91,7 +91,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
 
     }
 
-    protected HalfDeadTabletServer(ConfigOpts opts,
+    protected HalfDeadTabletServer(ServerOpts opts,
         BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
         String[] args) {
       super(opts, serverContextFactory, args);

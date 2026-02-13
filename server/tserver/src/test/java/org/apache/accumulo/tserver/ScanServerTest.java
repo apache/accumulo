@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.TableId;
@@ -69,7 +69,7 @@ public class ScanServerTest {
     private ScanReservation reservation;
     private boolean systemUser;
 
-    protected TestScanServer(ConfigOpts opts, String[] args) {
+    protected TestScanServer(ServerOpts opts, String[] args) {
       super(opts, args);
     }
 

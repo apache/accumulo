@@ -621,6 +621,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
+  // Called from MiniAccumuloClusterImpl and VolumeIT
   public static void main(String[] args) {
     new Initialize().execute(args);
   }
