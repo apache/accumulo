@@ -106,7 +106,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
               "Failed to load Accumulo configuration from " + configFile, e);
         }
         if (f.exists() && !f.isDirectory()) {
-          log.info("Found Accumulo configuration at {}", configFile);
+          log.debug("Found Accumulo configuration at {}", configFile);
           return fromFile(f);
         } else {
           throw new IllegalArgumentException(
@@ -118,7 +118,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration '" + configFile + "' from classpath");
         } else {
-          log.info("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
+          log.debug("Found Accumulo configuration on classpath at {}", accumuloConfigUrl.getFile());
           url = accumuloConfigUrl;
           return this;
         }
