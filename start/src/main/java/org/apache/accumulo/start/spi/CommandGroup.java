@@ -18,14 +18,33 @@
  */
 package org.apache.accumulo.start.spi;
 
+/**
+ * Used for grouping {@link KeywordExecutable} commands.
+ *
+ * @since 4.0.0
+ */
 public interface CommandGroup extends Comparable<CommandGroup> {
 
+  /**
+   * To execute a command in this group this key must be entered before the command. Should not
+   * contain spaces. Evaluation at runtime is case-insensitive. So if the keyword is {@code Foo} and
+   * the user types {@code foo} it will still work.
+   */
   String key();
 
+  /**
+   * The title is informational and is used when displaying all commands in this group.
+   */
   String title();
 
+  /**
+   * The description is informational and provides more details about a group.
+   */
   String description();
 
+  /**
+   * Compares on {@link #key()}, then {@link #title()}, and then {@link #description()}.
+   */
   @Override
   default int compareTo(CommandGroup o) {
     int result = this.key().compareTo(o.key());

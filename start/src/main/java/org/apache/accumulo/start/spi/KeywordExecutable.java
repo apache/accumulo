@@ -44,6 +44,7 @@ import java.util.ServiceLoader;
  */
 public interface KeywordExecutable {
 
+  @Deprecated(since = "4.0.0")
   enum UsageGroup {
     CORE, PROCESS, OTHER
   }
@@ -70,6 +71,7 @@ public interface KeywordExecutable {
 
   /**
    * @return CommandGroup for this command
+   * @since 4.0.0
    */
   CommandGroup commandGroup();
 
