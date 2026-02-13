@@ -25,6 +25,9 @@ import java.util.TreeSet;
 
 import com.google.auto.service.AutoService;
 
+/**
+ * @since 4.0.0
+ */
 public class CommandGroups {
 
   public static final CommandGroup ADMIN = new AdminCommandGroup();
@@ -45,6 +48,9 @@ public class CommandGroups {
     return groups;
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static abstract class BaseCommandGroup implements CommandGroup {
 
     @Override
@@ -68,6 +74,9 @@ public class CommandGroups {
 
   }
 
+  /**
+   * @since 4.0.0
+   */
   @AutoService(CommandGroup.class)
   public static class AdminCommandGroup extends BaseCommandGroup {
 
@@ -87,6 +96,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   @AutoService(CommandGroup.class)
   public static class ClientCommandGroup extends BaseCommandGroup {
 
@@ -106,6 +118,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   @AutoService(CommandGroup.class)
   public static class CompactionCommandGroup extends BaseCommandGroup {
 
@@ -125,6 +140,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   @AutoService(CommandGroup.class)
   public static class CoreCommandGroup extends BaseCommandGroup {
 
@@ -144,6 +162,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   @AutoService(CommandGroup.class)
   public static class ProcessCommandGroup extends BaseCommandGroup {
 
@@ -163,6 +184,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   @AutoService(CommandGroup.class)
   public static class OtherCommandGroup extends BaseCommandGroup {
 
