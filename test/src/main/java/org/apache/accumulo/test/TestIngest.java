@@ -57,9 +57,9 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.test.TestIngest.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -276,7 +276,7 @@ public class TestIngest extends ClientKeywordExecutable<Opts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override

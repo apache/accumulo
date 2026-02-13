@@ -77,8 +77,8 @@ import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.accumulo.test.performance.scan.CollectTabletStats.CollectOptions;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -125,7 +125,7 @@ public class CollectTabletStats extends ServerKeywordExecutable<CollectOptions> 
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override

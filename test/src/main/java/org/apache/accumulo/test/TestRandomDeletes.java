@@ -38,9 +38,9 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.test.TestRandomDeletes.TestOpts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,7 +150,7 @@ public class TestRandomDeletes extends ClientKeywordExecutable<TestOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override

@@ -39,9 +39,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.test.VerifyIngest.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -105,7 +105,7 @@ public class VerifyIngest extends ClientKeywordExecutable<Opts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override

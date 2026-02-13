@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.util;
+package org.apache.accumulo.test;
 
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -32,10 +32,10 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.server.util.RandomWriter.Opts;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.accumulo.test.RandomWriter.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +115,7 @@ public class RandomWriter extends ClientKeywordExecutable<Opts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override

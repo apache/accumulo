@@ -38,9 +38,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.test.TestBinaryRows.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.hadoop.io.Text;
 
 import com.beust.jcommander.JCommander;
@@ -250,7 +250,7 @@ public class TestBinaryRows extends ClientKeywordExecutable<Opts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override

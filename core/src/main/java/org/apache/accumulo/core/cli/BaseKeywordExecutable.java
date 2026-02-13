@@ -52,7 +52,7 @@ public abstract class BaseKeywordExecutable<OPTS extends Help> implements Keywor
 
   // This method exists so that subclasses can override and perform
   // pre and post-execute operations if needed.
-  public void doExecute(JCommander cl, OPTS options) throws Exception {
+  protected void doExecute(JCommander cl, OPTS options) throws Exception {
     execute(cl, options);
   }
 

@@ -25,39 +25,23 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.core.cli.ClientKeywordExecutable;
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Merge.Opts;
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
-import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
-import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import com.google.auto.service.AutoService;
 
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.context.Scope;
-
-@AutoService(KeywordExecutable.class)
-public class Merge extends ClientKeywordExecutable<Opts> {
+public class Merge {
 
   public static class MergeException extends Exception {
     private static final long serialVersionUID = 1L;
@@ -102,53 +86,6 @@ public class Merge extends ClientKeywordExecutable<Opts> {
     Text begin = null;
     @Parameter(names = {"-e", "--end"}, description = "end tablet", converter = TextConverter.class)
     Text end = null;
-  }
-
-  public Merge() {
-    super(new Opts());
-  }
-
-  @Override
-  public String keyword() {
-    return "merge";
-  }
-
-  @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.CLIENT;
-  }
-
-  @Override
-  public String description() {
-    return "Client utility that merges tablets in a tablet to a goal size.";
-  }
-
-  @Override
-  public void execute(JCommander cl, Opts opts) throws Exception {
-    Span span = TraceUtil.startSpan(Merge.class, "start");
-    try (Scope scope = span.makeCurrent()) {
-
-      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-
-        if (!client.tableOperations().exists(opts.tableName)) {
-          System.err.println("table " + opts.tableName + " does not exist");
-          return;
-        }
-        if (opts.goalSize == null || opts.goalSize < 1) {
-          AccumuloConfiguration tableConfig =
-              new ConfigurationCopy(client.tableOperations().getConfiguration(opts.tableName));
-          opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-        }
-
-        message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
-        mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
-      } catch (Exception ex) {
-        TraceUtil.setException(span, ex, true);
-        throw new MergeException(ex);
-      } finally {
-        span.end();
-      }
-    }
   }
 
   public static class Size {

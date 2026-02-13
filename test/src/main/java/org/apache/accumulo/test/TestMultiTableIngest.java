@@ -35,9 +35,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.test.TestMultiTableIngest.Opts;
+import org.apache.accumulo.test.cli.TestCommandGroup;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 
@@ -91,7 +91,7 @@ public class TestMultiTableIngest extends ClientKeywordExecutable<Opts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.TEST;
+    return TestCommandGroup.INSTANCE;
   }
 
   @Override
