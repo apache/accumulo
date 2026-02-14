@@ -64,20 +64,20 @@ public class EventCoordinator implements EventPublisher {
     private final Ample.DataLevel level;
     private final KeyExtent extent;
 
-    Event(EventScope scope, KeyExtent extent) {
-      this.scope = scope;
+    Event(KeyExtent extent) {
+      this.scope = EventScope.TABLE_RANGE;
       this.level = Ample.DataLevel.of(extent.tableId());
       this.extent = extent;
     }
 
-    Event(EventScope scope, TableId tableId) {
-      this.scope = scope;
+    Event(TableId tableId) {
+      this.scope = EventScope.TABLE;
       this.level = Ample.DataLevel.of(tableId);
       this.extent = new KeyExtent(tableId, null, null);
     }
 
-    Event(EventScope scope, Ample.DataLevel level) {
-      this.scope = scope;
+    Event(Ample.DataLevel level) {
+      this.scope = EventScope.DATA_LEVEL;
       this.level = level;
       this.extent = null;
     }
@@ -117,26 +117,26 @@ public class EventCoordinator implements EventPublisher {
   @Override
   public void event(Ample.DataLevel level, String msg, Object... args) {
     log.info(String.format(msg, args));
-    publish(new Event(EventScope.DATA_LEVEL, level));
+    publish(new Event(level));
   }
 
   @Override
   public void event(TableId tableId, String msg, Object... args) {
     log.info(String.format(msg, args));
-    publish(new Event(EventScope.TABLE, tableId));
+    publish(new Event(tableId));
   }
 
   @Override
   public void event(KeyExtent extent, String msg, Object... args) {
     log.debug(String.format(msg, args));
-    publish(new Event(EventScope.TABLE_RANGE, extent));
+    publish(new Event(extent));
   }
 
   @Override
   public void event(Collection<KeyExtent> extents, String msg, Object... args) {
     if (!extents.isEmpty()) {
       log.debug(String.format(msg, args));
-      extents.forEach(extent -> publish(new Event(EventScope.TABLE_RANGE, extent)));
+      extents.forEach(extent -> publish(new Event(extent)));
     }
   }
 
