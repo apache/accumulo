@@ -52,11 +52,13 @@ public class EventQueue {
     }
 
     public void add(Event event) {
+      if (allExtents) {
+        return;
+      }
+
       if (event.getScope() == EventCoordinator.EventScope.TABLE) {
-        if (!allExtents) {
-          allExtents = true;
-          extents.clear();
-        }
+        allExtents = true;
+        extents.clear();
       } else {
         Preconditions.checkArgument(event.getScope() == EventCoordinator.EventScope.TABLE_RANGE);
         extents.put(event.getExtent(), event);
@@ -86,11 +88,13 @@ public class EventQueue {
     }
 
     void add(Event event) {
+      if (allTables) {
+        return;
+      }
+
       if (event.getScope() == EventCoordinator.EventScope.DATA_LEVEL) {
-        if (!allTables) {
-          allTables = true;
-          tables.clear();
-        }
+        allTables = true;
+        tables.clear();
       } else {
         var table = tables.computeIfAbsent(event.getTableId(), Table::new);
         table.add(event);
@@ -109,11 +113,13 @@ public class EventQueue {
   private HashMap<Ample.DataLevel,Level> levels = new HashMap<>();
 
   public synchronized void add(Event event) {
+    if (allLevels) {
+      return;
+    }
+
     if (event.getScope() == EventCoordinator.EventScope.ALL) {
-      if (!allLevels) {
-        allLevels = true;
-        levels.clear();
-      }
+      allLevels = true;
+      levels.clear();
     } else {
       var level = levels.computeIfAbsent(event.getLevel(), Level::new);
       level.add(event);
