@@ -55,6 +55,7 @@ import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -279,8 +280,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public void deleteDeadReservations() {
-    for (Map.Entry<FateId,FateReservation> entry : getActiveReservations().entrySet()) {
+  public void deleteDeadReservations(Set<FatePartition> partitions) {
+    for (Map.Entry<FateId,FateReservation> entry : getActiveReservations(partitions).entrySet()) {
       FateId fateId = entry.getKey();
       FateReservation reservation = entry.getValue();
       if (isLockHeld.test(reservation.getLockID())) {
@@ -614,6 +615,18 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  protected Stream<FateIdStatus> getTransactions(Set<FatePartition> partitions,
+      EnumSet<TStatus> statuses) {
+    return getTransactions(statuses).filter(fis -> {
+      // TODO this could be inefficient
+      for (var p : partitions) {
+        return p.contains(fis.getFateId());
+      }
+      return false;
+    });
   }
 
   @Override

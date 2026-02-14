@@ -805,6 +805,16 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     return manager.getSteadyTime().getNanos();
   }
 
+  @Override
+  public void event(TInfo tinfo, TCredentials credentials) throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    manager.getEventCoordinator().event("External event");
+  }
+
   protected TableId getTableId(ClientContext context, String tableName)
       throws ThriftTableOperationException {
     return ClientServiceHandler.checkTableId(context, tableName, null);

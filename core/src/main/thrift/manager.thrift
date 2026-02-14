@@ -537,4 +537,9 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
   )
+
+  oneway void event( 
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  )
 }

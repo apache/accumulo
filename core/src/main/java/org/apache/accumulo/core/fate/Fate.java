@@ -36,6 +36,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -46,6 +47,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -59,11 +62,13 @@ import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.hadoop.util.Sets;
 import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.gson.JsonParser;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -90,6 +95,7 @@ public class Fate<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   // Visible for FlakyFate test object
   protected final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  private Set<FatePartition> currentPartitions = Set.of();
 
   public enum TxInfo {
     FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -222,8 +228,10 @@ public class Fate<T> {
               fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
             log.debug("[{}] Adding FateExecutor for {} with {} threads", store.type(), fateOps,
                 poolSize);
-            fateExecutors.add(
-                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName));
+            var fateExecutor =
+                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName);
+            fateExecutors.add(fateExecutor);
+            fateExecutor.setPartitions(currentPartitions);
           }
         }
       }
@@ -247,7 +255,11 @@ public class Fate<T> {
     @Override
     public void run() {
       if (keepRunning.get()) {
-        store.deleteDeadReservations();
+        Set<FatePartition> partitions;
+        synchronized (fateExecutors) {
+          partitions = currentPartitions;
+        }
+        store.deleteDeadReservations(partitions);
       }
     }
   }
@@ -271,6 +283,8 @@ public class Fate<T> {
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
+      // TODO make this use partitions
+
       // Create a dead reservation cleaner for this store that will periodically clean up
       // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
@@ -387,15 +401,27 @@ public class Fate<T> {
     return store.create();
   }
 
+  private AtomicReference<Consumer<FateId>> seedingConsumer = new AtomicReference<>(fid -> {});
+
+  // TODO move seeding and waiting operation into their own class, the primary manager will not need
+  // to create a user fate object. Fate could extend this class to ease the change.
+
+  public void setSeedingConsumer(Consumer<FateId> seedingConsumer) {
+    this.seedingConsumer.set(seedingConsumer);
+  }
+
   public Seeder<T> beginSeeding() {
+    // TODO pass seeding consumer
     return store.beginSeeding();
   }
 
   public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     try (var seeder = store.beginSeeding()) {
-      @SuppressWarnings("unused")
-      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+      seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp)
+          .thenAccept(optionalFatId -> {
+            optionalFatId.ifPresent(seedingConsumer.get());
+          });
     }
   }
 
@@ -405,6 +431,17 @@ public class Fate<T> {
       boolean autoCleanUp, String goalMessage) {
     log.info("[{}] Seeding {} {} {}", store.type(), fateOp, fateId, goalMessage);
     store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
+    seedingConsumer.get().accept(fateId);
+  }
+
+  public void seeded(Set<FatePartition> partitions) {
+    synchronized (fateExecutors) {
+      if (Sets.intersection(currentPartitions, partitions).isEmpty()) {
+        return;
+      }
+    }
+
+    store.seeded();
   }
 
   // check on the transaction
@@ -570,6 +607,27 @@ public class Fate<T> {
   public void close() {
     shutdown(0, SECONDS);
     store.close();
+  }
+
+  public Set<FatePartition> getPartitions() {
+    synchronized (fateExecutors) {
+      return currentPartitions;
+    }
+  }
+
+  public Set<FatePartition> setPartitions(Set<FatePartition> partitions) {
+    Objects.requireNonNull(partitions);
+    Preconditions.checkArgument(
+        partitions.stream().allMatch(
+            fp -> fp.start().getType() == store.type() && fp.end().getType() == store.type()),
+        "type mismatch type:%s partitions:%s", store.type(), partitions);
+
+    synchronized (fateExecutors) {
+      var old = currentPartitions;
+      currentPartitions = Set.copyOf(partitions);
+      fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
+      return old;
+    }
   }
 
   private boolean anyFateExecutorIsAlive() {

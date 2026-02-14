@@ -176,6 +176,9 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZCOMPACTIONS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
+    // TODO would need to create in upgrade
+    zrwChroot.putPersistentData(Constants.ZMANAGER_WORKER_LOCK, EMPTY_BYTE_ARRAY,
+        ZooUtil.NodeExistsPolicy.FAIL);
   }
 
   /**

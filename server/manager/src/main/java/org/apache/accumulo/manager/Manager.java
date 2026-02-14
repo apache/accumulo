@@ -70,6 +70,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateCleaner;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
@@ -108,9 +109,11 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
+import org.apache.accumulo.manager.split.SplitFileCache;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -557,10 +560,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   private Splitter splitter;
+  private SplitFileCache splitFileCache;
 
-  @Override
   public Splitter getSplitter() {
     return splitter;
+  }
+
+  @Override
+  public SplitFileCache getSplitFileCache() {
+    return splitFileCache;
   }
 
   public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
@@ -936,6 +944,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
 
+    // TODO eventually stop this
+    // Start manager assistant before getting lock, this allows non primary manager processes to
+    // work on stuff.
+    new ManagerAssistant(getContext(), getBindAddress()).start();
+
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
     // allocation to occur, but prevent any services from getting the
@@ -1118,6 +1131,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     this.splitter = new Splitter(this);
     this.splitter.start();
+    this.splitFileCache = new SplitFileCache(context);
 
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
@@ -1137,6 +1151,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
+
+    // TODO eventually stop this
+    var fateManager = new FateManager(getContext());
+    fateManager.start();
+    fate(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
 
     producers.addAll(managerMetrics.getProducers(this));
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
@@ -1275,6 +1294,18 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
+
+    if (store.type() == FateInstanceType.META) {
+      fateInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
+    } else if (store.type() == FateInstanceType.USER) {
+      // Do not run user transactions for now in the manager... it will have an empty set of
+      // partitions. Ideally the primary manager would not need a fate instance, but it uses to seed
+      // work and wait for work. Would be best to pull these operations like seeding and waiting for
+      // work to an independent class.
+      fateInstance.setPartitions(Set.of());
+    } else {
+      throw new IllegalStateException("Unknown fate type " + store.type());
+    }
 
     return fateInstance;
   }
