@@ -44,7 +44,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientContextTest {
 
-  private static final String keystoreName = "/site-cfg.jceks";
+  private static final String keystoreName = "/org/apache/accumulo/core/site-cfg.jceks";
 
   // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
   // 'general.rpc.timeout'=>'timeout'}
