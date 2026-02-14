@@ -66,7 +66,7 @@ import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.split.SplitFileCache;
+import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.fs.Path;
@@ -237,16 +237,16 @@ public class UpdateTabletsTest {
     EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
     Ample ample = EasyMock.mock(Ample.class);
     EasyMock.expect(context.getAmple()).andReturn(ample).atLeastOnce();
-    SplitFileCache splitFileCache = EasyMock.mock(SplitFileCache.class);
-    EasyMock.expect(splitFileCache.getCachedFileInfo(tableId, file1))
+    FileRangeCache fileRangeCache = EasyMock.mock(FileRangeCache.class);
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file1))
         .andReturn(newFileInfo("a", "z"));
-    EasyMock.expect(splitFileCache.getCachedFileInfo(tableId, file2))
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file2))
         .andReturn(newFileInfo("a", "b"));
-    EasyMock.expect(splitFileCache.getCachedFileInfo(tableId, file3))
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file3))
         .andReturn(newFileInfo("d", "f"));
-    EasyMock.expect(splitFileCache.getCachedFileInfo(tableId, file4))
+    EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file4))
         .andReturn(newFileInfo("d", "j"));
-    EasyMock.expect(manager.getSplitFileCache()).andReturn(splitFileCache).atLeastOnce();
+    EasyMock.expect(manager.getSplitFileCache()).andReturn(fileRangeCache).atLeastOnce();
     EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
         .atLeastOnce();
 
@@ -393,7 +393,7 @@ public class UpdateTabletsTest {
     tabletsMutator.close();
     EasyMock.expectLastCall().anyTimes();
 
-    EasyMock.replay(manager, context, ample, tabletMeta, splitFileCache, tabletsMutator,
+    EasyMock.replay(manager, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
         tablet1Mutator, tablet2Mutator, tablet3Mutator, cr, compactions);
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
@@ -403,7 +403,7 @@ public class UpdateTabletsTest {
         List.of(dir1, dir2));
     updateTablets.call(fateId, manager);
 
-    EasyMock.verify(manager, context, ample, tabletMeta, splitFileCache, tabletsMutator,
+    EasyMock.verify(manager, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
         tablet1Mutator, tablet2Mutator, tablet3Mutator, cr, compactions);
   }
 
