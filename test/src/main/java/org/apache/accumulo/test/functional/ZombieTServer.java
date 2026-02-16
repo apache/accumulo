@@ -33,8 +33,8 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -144,7 +144,17 @@ public class ZombieTServer {
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
         serverPort.address, ResourceGroupId.DEFAULT));
 
-    LockWatcher lw = new LockWatcher() {
+    AccumuloLockWatcher lw = new AccumuloLockWatcher() {
+
+      @Override
+      public void acquiredLock() {
+
+      }
+
+      @Override
+      public void failedToAcquireLock(Exception e) {
+        log.warn("Failed to acquire lock", e);
+      }
 
       @SuppressFBWarnings(value = "DM_EXIT",
           justification = "System.exit() is a bad idea here, but okay for now, since it's a test")

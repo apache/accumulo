@@ -108,7 +108,7 @@ public class TestLock {
 
     @Override
     public void failedToAcquireLock(Exception e) {
-      log.warn("Failed to acquire ZooKeeper lock for test, msg: " + e.getMessage());
+      log.warn("Failed to acquire ZooKeeper lock for test", e);
     }
   }
 }

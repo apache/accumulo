@@ -756,7 +756,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     UUID zooLockUUID = UUID.randomUUID();
     monitorLock = new ServiceLock(context.getZooSession(), monitorLockPath, zooLockUUID);
     HAServiceLockWatcher monitorLockWatcher =
-        new HAServiceLockWatcher(Type.MONITOR, () -> isShutdownRequested());
+        new HAServiceLockWatcher(Type.MONITOR, this::isShutdownRequested);
 
     while (true) {
       monitorLock.lock(monitorLockWatcher,
@@ -770,7 +770,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
         break;
       }
 
-      if (!monitorLockWatcher.isFailedToAcquireLock()) {
+      if (monitorLockWatcher.cannotRetryLocking()) {
         throw new IllegalStateException("monitor lock in unknown state");
       }
 
