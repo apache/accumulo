@@ -20,6 +20,9 @@ package org.apache.accumulo.start.spi;
 
 import java.util.Objects;
 
+/**
+ * @since 4.0.0
+ */
 public class CommandGroups {
 
   public static final CommandGroup ADMIN = new AdminCommandGroup();
@@ -29,6 +32,9 @@ public class CommandGroups {
   public static final CommandGroup OTHER = new OtherCommandGroup();
   public static final CommandGroup PROCESS = new ProcessCommandGroup();
 
+  /**
+   * @since 4.0.0
+   */
   public static abstract class BaseCommandGroup implements CommandGroup {
 
     @Override
@@ -52,6 +58,9 @@ public class CommandGroups {
 
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static class AdminCommandGroup extends BaseCommandGroup {
 
     private AdminCommandGroup() {}
@@ -72,6 +81,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static class ClientCommandGroup extends BaseCommandGroup {
 
     private ClientCommandGroup() {}
@@ -92,6 +104,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static class CompactionCommandGroup extends BaseCommandGroup {
 
     private CompactionCommandGroup() {}
@@ -112,6 +127,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static class CoreCommandGroup extends BaseCommandGroup {
 
     private CoreCommandGroup() {}
@@ -132,6 +150,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static class ProcessCommandGroup extends BaseCommandGroup {
 
     private ProcessCommandGroup() {}
@@ -152,6 +173,9 @@ public class CommandGroups {
     }
   }
 
+  /**
+   * @since 4.0.0
+   */
   public static class OtherCommandGroup extends BaseCommandGroup {
 
     private OtherCommandGroup() {}

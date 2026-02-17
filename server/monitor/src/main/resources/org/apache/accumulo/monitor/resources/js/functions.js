@@ -27,6 +27,7 @@ var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 const REST_V2_PREFIX = contextPath + 'rest-v2';
+const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -351,6 +352,53 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
  */
 function getManager() {
   return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
+}
+
+/**
+ * Extracts the manager goal state from a metrics array.
+ *
+ * @param {array} metrics Metric list from rest-v2/manager or rest-v2/manager/metrics
+ * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
+ */
+function getManagerGoalStateFromMetrics(metrics) {
+  if (!Array.isArray(metrics)) {
+    console.error('Metrics is not an array:', metrics);
+    return null;
+  }
+  const metric = metrics.find(m => m?.name === MANAGER_GOAL_STATE_METRIC);
+  if (!metric || typeof metric.value !== 'number') {
+    console.debug('Manager goal state metric not found or invalid:', metric);
+    return null;
+  }
+  switch (metric.value) {
+  case 0:
+    return 'CLEAN_STOP';
+  case 1:
+    return 'SAFE_MODE';
+  case 2:
+    return 'NORMAL';
+  default:
+    return null;
+  }
+}
+
+/**
+ * Gets the manager goal state from the cached manager response, if available.
+ *
+ * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
+ */
+function getManagerGoalStateFromSession() {
+  if (!sessionStorage?.manager) {
+    console.debug('No manager data in session storage. Returning null.');
+    return null;
+  }
+  try {
+    const managerData = JSON.parse(sessionStorage.manager);
+    return getManagerGoalStateFromMetrics(managerData.metrics);
+  } catch (e) {
+    console.error('Failed to parse manager data from session storage', e);
+    return null;
+  }
 }
 
 /**
