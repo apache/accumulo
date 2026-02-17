@@ -49,6 +49,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -264,6 +265,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
   private ThreadPoolExecutor tabletRefreshThreadPool;
+  private ScheduledExecutorService refreshCheckerScheduler;
 
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
@@ -905,6 +907,24 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return info;
   }
 
+  private class RefreshThreads implements Runnable {
+    @Override
+    public void run() {
+      ThreadPools.resizeCorePool(tabletRefreshThreadPool, getConfiguration(),
+          Property.MANAGER_TABLET_REFRESH_MINTHREADS);
+      ThreadPools.resizePool(tabletRefreshThreadPool, getConfiguration(),
+          Property.MANAGER_TABLET_REFRESH_MAXTHREADS);
+
+    }
+  }
+
+  public void startRefreshChecker() {
+    refreshCheckerScheduler = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
+        "ManagerTabletRefreshThreadsExecutor");
+    ThreadPools.watchNonCriticalScheduledTask(
+        refreshCheckerScheduler.scheduleAtFixedRate(new RefreshThreads(), 5, 5, MINUTES));
+  }
+
   @Override
   public void run() {
     final ServerContext context = getContext();
@@ -967,6 +987,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
         .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
         .build();
+
+    startRefreshChecker();
 
     Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
@@ -1236,6 +1258,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     tableInformationStatusPool.shutdownNow();
     tabletRefreshThreadPool.shutdownNow();
+    refreshCheckerScheduler.shutdown();
 
     compactionCoordinator.shutdown();
 
