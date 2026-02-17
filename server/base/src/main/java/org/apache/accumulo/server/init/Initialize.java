@@ -56,6 +56,8 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -542,8 +544,8 @@ public class Initialize implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.CORE;
   }
 
   @Override
@@ -619,6 +621,7 @@ public class Initialize implements KeywordExecutable {
     }
   }
 
+  // Called from MiniAccumuloClusterImpl and VolumeIT
   public static void main(String[] args) {
     new Initialize().execute(args);
   }

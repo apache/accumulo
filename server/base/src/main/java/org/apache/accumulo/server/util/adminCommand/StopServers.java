@@ -24,6 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -41,10 +42,11 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.ZooZap;
-import org.apache.accumulo.server.util.adminCommand.StopServers.StopServersOpts;
+import org.apache.accumulo.server.util.adminCommand.StopServers.StopServerOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -56,7 +58,7 @@ import com.google.auto.service.AutoService;
 import com.google.common.net.HostAndPort;
 
 @AutoService(KeywordExecutable.class)
-public class StopServers extends ServerKeywordExecutable<StopServersOpts> {
+public class StopServers extends ServerKeywordExecutable<StopServerOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(StopServers.class);
 
@@ -65,7 +67,7 @@ public class StopServers extends ServerKeywordExecutable<StopServersOpts> {
     new StopServers().execute(args);
   }
 
-  static class StopServersOpts extends ServerUtilOpts {
+  static class StopServerOpts extends ServerOpts {
 
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop immediately by removing its lock.  Does not wait for any task the server is currently working.")
@@ -76,7 +78,7 @@ public class StopServers extends ServerKeywordExecutable<StopServersOpts> {
   }
 
   public StopServers() {
-    super(new StopServersOpts());
+    super(new StopServerOpts());
   }
 
   @Override
@@ -85,8 +87,8 @@ public class StopServers extends ServerKeywordExecutable<StopServersOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -95,9 +97,9 @@ public class StopServers extends ServerKeywordExecutable<StopServersOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, StopServersOpts options) throws Exception {
+  public void execute(JCommander cl, StopServerOpts options) throws Exception {
 
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
     List<String> hostOnly = new ArrayList<>();
     Set<String> hostAndPort = new TreeSet<>();
 

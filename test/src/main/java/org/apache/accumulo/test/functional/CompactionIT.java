@@ -73,6 +73,7 @@ import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -794,15 +795,15 @@ public class CompactionIT extends CompactionITBase {
         }
       });
       assertNotNull(interCompactionFile[0]);
-      String[] args = new String[3];
-      args[0] = "--props";
-      args[1] = getCluster().getAccumuloPropertiesPath();
-      args[2] = finalCompactionFile;
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+          getCluster().getAccumuloPropertiesPath());
+      String[] args = new String[1];
+      args[0] = finalCompactionFile;
       PrintBCInfo bcInfo = new PrintBCInfo(args);
       String finalCompressionType = bcInfo.getCompressionType();
       // The compression type used on the final compaction file should be 'snappy'
       assertEquals("snappy", finalCompressionType);
-      args[2] = interCompactionFile[0];
+      args[0] = interCompactionFile[0];
       bcInfo = new PrintBCInfo(args);
       String interCompressionType = bcInfo.getCompressionType();
       // The compression type used on the intermediate compaction file should be 'gz'

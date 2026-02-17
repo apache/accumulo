@@ -90,11 +90,10 @@ public abstract class TableOperationsHelper implements TableOperations {
     checkArgument(name != null, "name is null");
     checkArgument(scope != null, "scope is null");
 
-    Map<String,String> properties = Map.copyOf(this.getConfiguration(tableName));
     IteratorProperty base = null;
     Map<String,String> options = new HashMap<>();
-    for (Entry<String,String> entry : properties.entrySet()) {
-      IteratorProperty iterProp = IteratorProperty.parse(entry);
+    for (var prop : this.getConfiguration(tableName).entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(prop);
       if (iterProp == null || iterProp.getScope() != scope || !iterProp.getName().equals(name)) {
         continue;
       }
@@ -118,9 +117,8 @@ public abstract class TableOperationsHelper implements TableOperations {
     EXISTING_TABLE_NAME.validate(tableName);
 
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
-    Map<String,String> properties = Map.copyOf(this.getConfiguration(tableName));
-    for (Entry<String,String> entry : properties.entrySet()) {
-      IteratorProperty iterProp = IteratorProperty.parse(entry);
+    for (var prop : this.getConfiguration(tableName).entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(prop);
       if (iterProp == null || iterProp.isOption()) {
         continue;
       }

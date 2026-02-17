@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -43,6 +42,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.shell.Shell;
+import org.apache.accumulo.test.shell.MockShell.TestShell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;
@@ -55,8 +55,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ShellIT extends SharedMiniClusterBase {
@@ -75,8 +73,6 @@ public class ShellIT extends SharedMiniClusterBase {
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
   }
-
-  private static final Logger log = LoggerFactory.getLogger(ShellIT.class);
 
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();
@@ -117,7 +113,7 @@ public class ShellIT extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  private Path config;
+  private String config;
   private LineReader reader;
   private Terminal terminal;
 
@@ -165,27 +161,22 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @BeforeEach
-  public void setupShell() throws IOException {
+  public void setupShell() throws Exception {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
     input = new StringInputStream();
-    config = Files.createTempFile(null, null);
+    config = getCluster().getClientPropsPath();
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
-    shell = new Shell(reader);
+    shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
-        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers());
+    shell.execute(
+        new String[] {"--config-file", config.toString(), "-u", "root", "-p", getRootPassword()});
   }
 
   @AfterEach
   public void teardownShell() {
-    try {
-      Files.deleteIfExists(config);
-    } catch (IOException e) {
-      log.error("Unable to delete {}", config, e);
-    }
     shell.shutdown();
   }
 
@@ -627,11 +618,10 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void execFileTest() throws IOException {
+  public void execFileTest() throws Exception {
     Shell.log.debug("Starting exec file test --------------------------");
-    shell.config("--config-file", config.toString(), "-u", "root", "-p", getRootPassword(), "-zi",
-        getCluster().getInstanceName(), "-zh", getCluster().getZooKeepers(), "-f",
-        "src/main/resources/org/apache/accumulo/test/shellit.shellit");
+    shell.execute(new String[] {"--config-file", config.toString(), "-u", "root", "-p",
+        getRootPassword(), "-f", "src/main/resources/org/apache/accumulo/test/shellit.shellit"});
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }

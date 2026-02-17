@@ -21,17 +21,12 @@ package org.apache.accumulo.shell;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.clientImpl.ClientInfoImpl;
-import org.apache.accumulo.core.conf.ClientProperty;
-import org.apache.hadoop.security.UserGroupInformation;
 
 import com.beust.jcommander.DynamicParameter;
 import com.beust.jcommander.IParameterValidator;
@@ -41,18 +36,7 @@ import com.beust.jcommander.converters.FileConverter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class ShellOptionsJC {
-
-  @Parameter(names = {"-u", "--user"}, description = "username")
-  private String username = null;
-
-  // Note: Don't use "password = true" because then it will prompt even if we have a token
-  @Parameter(names = {"-p", "--password"},
-      description = "password (can be specified as '<password>', 'pass:<password>',"
-          + " 'file:<local file containing the password>', 'env:<variable containing"
-          + " the pass>', or stdin)",
-      converter = ClientOpts.PasswordConverter.class)
-  private String authenticationString;
+public class ShellOptionsJC extends ClientOpts {
 
   @DynamicParameter(names = {"-l"},
       description = "command line properties in the format key=value. Reuse -l for each property")
@@ -61,9 +45,6 @@ public class ShellOptionsJC {
   @Parameter(names = "--disable-tab-completion",
       description = "disables tab completion (for less overhead when scripting)")
   private boolean tabCompletionDisabled;
-
-  @Parameter(names = {"-?", "--help"}, help = true, description = "display this help")
-  private boolean helpEnabled;
 
   @Parameter(names = {"-e", "--execute-command"},
       description = "executes a command, and then exits")
@@ -78,37 +59,6 @@ public class ShellOptionsJC {
       converter = FileConverter.class)
   private File execFileVerbose;
 
-  @Parameter(names = {"-z", "--zooKeeperInstance"},
-      description = "use a zookeeper instance with the given instance name and"
-          + " list of zoo hosts. Syntax: -z <zoo-instance-name> <zoo-hosts>. Where"
-          + " <zoo-hosts> is a comma separated list of zookeeper servers.",
-      arity = 2)
-  private List<String> zooKeeperInstance = new ArrayList<>();
-
-  @Parameter(names = {"--ssl"}, description = "use ssl to connect to accumulo")
-  private boolean useSsl = false;
-
-  @Parameter(names = "--sasl", description = "use SASL to connect to Accumulo (Kerberos)")
-  private boolean useSasl = false;
-
-  @Parameter(names = "--config-file",
-      description = "Read the given"
-          + " accumulo-client.properties file. If omitted, the following locations will be"
-          + " searched ~/.accumulo/accumulo-client.properties:"
-          + "$ACCUMULO_CONF_DIR/accumulo-client.properties:"
-          + "/etc/accumulo/accumulo-client.properties")
-  private String clientConfigFile = null;
-
-  @Parameter(names = {"-zi", "--zooKeeperInstanceName"},
-      description = "use a zookeeper instance with the given instance name. "
-          + "This parameter is used in conjunction with -zh.")
-  private String zooKeeperInstanceName;
-
-  @Parameter(names = {"-zh", "--zooKeeperHosts"},
-      description = "use a zookeeper instance with the given comma separated"
-          + " list of zookeeper servers. This parameter is used in conjunction with -zi.")
-  private String zooKeeperHosts;
-
   @Parameter(names = "--auth-timeout",
       description = "minutes the shell can be idle without re-entering a password",
       validateWith = PositiveInteger.class)
@@ -121,37 +71,8 @@ public class ShellOptionsJC {
   @Parameter(hidden = true)
   private List<String> unrecognizedOptions;
 
-  public String getUsername() throws Exception {
-    if (username == null) {
-      username = getClientProperties().getProperty(ClientProperty.AUTH_PRINCIPAL.getKey());
-      if (username == null || username.isEmpty()) {
-        if (ClientProperty.SASL_ENABLED.getBoolean(getClientProperties())) {
-          if (!UserGroupInformation.isSecurityEnabled()) {
-            throw new IllegalArgumentException(
-                "Kerberos security is not enabled. Run with --sasl or set 'sasl.enabled' in"
-                    + " accumulo-client.properties");
-          }
-          UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
-          username = ugi.getUserName();
-        } else {
-          throw new IllegalArgumentException("Username is not set. Run with '-u"
-              + " myuser' or set 'auth.principal' in accumulo-client.properties");
-        }
-      }
-    }
-    return username;
-  }
-
-  public String getPassword() {
-    return authenticationString;
-  }
-
   public boolean isTabCompletionDisabled() {
     return tabCompletionDisabled;
-  }
-
-  public boolean isHelpEnabled() {
-    return helpEnabled;
   }
 
   public String getExecCommand() {
@@ -171,9 +92,6 @@ public class ShellOptionsJC {
   }
 
   public boolean isAuthTimeoutDisabled() {
-    if (useSasl) {
-      return true;
-    }
     return authTimeoutDisabled;
   }
 
@@ -183,8 +101,10 @@ public class ShellOptionsJC {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "user-provided paths intentional")
-  public String getClientPropertiesFile() {
-    if (clientConfigFile == null) {
+  @Override
+  public String getClientConfigFile() {
+    String configFile = super.getClientConfigFile();
+    if (configFile == null) {
       List<String> searchPaths = new LinkedList<>();
       searchPaths.add(System.getProperty("user.home") + "/.accumulo/accumulo-client.properties");
       if (System.getenv("ACCUMULO_CONF_DIR") != null) {
@@ -194,43 +114,15 @@ public class ShellOptionsJC {
       for (String path : searchPaths) {
         Path file = Path.of(path);
         if (Files.isRegularFile(file) && Files.isReadable(file)) {
-          clientConfigFile = file.toAbsolutePath().toString();
+          String clientConfigFile = file.toAbsolutePath().toString();
           Shell.log.info("Loading configuration from {}", clientConfigFile);
-          break;
+          return clientConfigFile;
         }
       }
+      return null;
+    } else {
+      return configFile;
     }
-    return clientConfigFile;
-  }
-
-  public Properties getClientProperties() {
-    Properties props = new Properties();
-    if (getClientPropertiesFile() != null) {
-      props = ClientInfoImpl.toProperties(getClientPropertiesFile());
-    }
-    for (Map.Entry<String,String> entry : commandLineProperties.entrySet()) {
-      props.setProperty(entry.getKey(), entry.getValue());
-    }
-    if (useSsl) {
-      props.setProperty(ClientProperty.SSL_ENABLED.getKey(), "true");
-    }
-    if (useSasl) {
-      props.setProperty(ClientProperty.SASL_ENABLED.getKey(), "true");
-    }
-    if (!zooKeeperInstance.isEmpty()) {
-      String instanceName = zooKeeperInstance.get(0);
-      String hosts = zooKeeperInstance.get(1);
-      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), hosts);
-      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), instanceName);
-    }
-    // If the user provided the hosts, set the ZK for tracing too
-    if (zooKeeperHosts != null && !zooKeeperHosts.isEmpty()) {
-      props.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), zooKeeperHosts);
-    }
-    if (zooKeeperInstanceName != null && !zooKeeperInstanceName.isEmpty()) {
-      props.setProperty(ClientProperty.INSTANCE_NAME.getKey(), zooKeeperInstanceName);
-    }
-    return props;
   }
 
   public static class PositiveInteger implements IParameterValidator {

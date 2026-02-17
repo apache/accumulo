@@ -21,9 +21,11 @@ package org.apache.accumulo.core.file.rfile;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
@@ -31,13 +33,17 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.RFile.Writer;
+import org.apache.accumulo.core.file.rfile.SplitLarge.SplitLargeOpts;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
@@ -45,9 +51,9 @@ import com.google.auto.service.AutoService;
  * Split an RFile into large and small key/value files.
  */
 @AutoService(KeywordExecutable.class)
-public class SplitLarge implements KeywordExecutable {
+public class SplitLarge extends ClientKeywordExecutable<SplitLargeOpts> {
 
-  static class Opts extends ConfigOpts {
+  static class SplitLargeOpts extends ClientOpts {
     @Parameter(names = "-m",
         description = "the maximum size of the key/value pair to shunt to the small file")
     long maxSize = 10 * 1024 * 1024;
@@ -55,8 +61,8 @@ public class SplitLarge implements KeywordExecutable {
     List<String> files = new ArrayList<>();
   }
 
-  public static void main(String[] args) throws Exception {
-    new SplitLarge().execute(args);
+  public SplitLarge() {
+    super(new SplitLargeOpts());
   }
 
   @Override
@@ -70,14 +76,17 @@ public class SplitLarge implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
+  }
+
+  @Override
+  public void execute(JCommander cl, SplitLargeOpts opts) throws Exception {
     Configuration conf = new Configuration();
     FileSystem fs = FileSystem.get(conf);
-    Opts opts = new Opts();
-    opts.parseArgs("accumulo split-large", args);
 
     for (String file : opts.files) {
-      AccumuloConfiguration aconf = opts.getSiteConfiguration();
+      AccumuloConfiguration aconf = SiteConfiguration.fromEnv().build();
       CryptoService cs = CryptoFactoryLoader.getServiceForServer(aconf);
       Path path = new Path(file);
       CachableBuilder cb = new CachableBuilder().fsPath(fs, path).conf(conf).cryptoService(cs);

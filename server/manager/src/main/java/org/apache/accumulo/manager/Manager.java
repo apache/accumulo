@@ -56,7 +56,7 @@ import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -479,10 +479,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new Manager(new ConfigOpts(), ServerContext::new, args), log);
+    AbstractServer.startServer(new Manager(new ServerOpts(), ServerContext::new, args), log);
   }
 
-  protected Manager(ConfigOpts opts,
+  protected Manager(ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
@@ -1419,7 +1419,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // waiting to due an HA-pair), then the Manager startup process begins
     // and the lock service descriptors are updated with the advertise address
     descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
-        ConfigOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
+        ServerOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =

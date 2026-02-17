@@ -93,11 +93,10 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
     if (!exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
-    Map<String,String> properties = Map.copyOf(this.getConfiguration(namespace));
     IteratorProperty base = null;
     Map<String,String> options = new HashMap<>();
-    for (Entry<String,String> entry : properties.entrySet()) {
-      IteratorProperty iterProp = IteratorProperty.parse(entry);
+    for (var prop : this.getConfiguration(namespace).entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(prop);
       if (iterProp == null || iterProp.getScope() != scope || !iterProp.getName().equals(name)) {
         continue;
       }
@@ -122,9 +121,8 @@ public abstract class NamespaceOperationsHelper implements NamespaceOperations {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     Map<String,EnumSet<IteratorScope>> result = new TreeMap<>();
-    Map<String,String> properties = Map.copyOf(this.getConfiguration(namespace));
-    for (Entry<String,String> entry : properties.entrySet()) {
-      IteratorProperty iterProp = IteratorProperty.parse(entry);
+    for (var prop : this.getConfiguration(namespace).entrySet()) {
+      IteratorProperty iterProp = IteratorProperty.parse(prop);
       if (iterProp == null || iterProp.isOption()) {
         continue;
       }

@@ -29,7 +29,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -40,11 +41,15 @@ import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.server.conf.CheckCompactionConfig.CheckOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
@@ -58,14 +63,18 @@ import com.google.auto.service.AutoService;
  * describing why the given properties are incorrect.
  */
 @AutoService(KeywordExecutable.class)
-public class CheckCompactionConfig implements KeywordExecutable {
+public class CheckCompactionConfig extends ClientKeywordExecutable<CheckOpts> {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
 
-  static class Opts extends Help {
+  static class CheckOpts extends ClientOpts {
     @Parameter(description = "<path> Local path to file containing compaction configuration",
         required = true)
     String filePath;
+  }
+
+  public CheckCompactionConfig() {
+    super(new CheckOpts());
   }
 
   @Override
@@ -78,20 +87,14 @@ public class CheckCompactionConfig implements KeywordExecutable {
     return "Verifies compaction config within a given file";
   }
 
-  public static void main(String[] args) throws Exception {
-    new CheckCompactionConfig().execute(args);
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(keyword(), args);
-
-    if (opts.filePath == null) {
-      throw new IllegalArgumentException("No properties file was given");
-    }
-
-    Path path = Path.of(opts.filePath);
+  public void execute(JCommander cl, CheckOpts options) throws Exception {
+    Path path = Path.of(options.filePath);
     if (Files.notExists(path)) {
       throw new FileNotFoundException("File at given path could not be found");
     }

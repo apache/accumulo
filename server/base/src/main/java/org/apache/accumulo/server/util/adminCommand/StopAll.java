@@ -21,14 +21,16 @@ package org.apache.accumulo.server.util.adminCommand;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +39,7 @@ import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class StopAll extends ServerKeywordExecutable<ServerUtilOpts> {
+public class StopAll extends ServerKeywordExecutable<ServerOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(StopAll.class);
 
@@ -48,7 +50,7 @@ public class StopAll extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   public StopAll() {
-    super(new ServerUtilOpts());
+    super(new ServerOpts());
   }
 
   @Override
@@ -57,8 +59,8 @@ public class StopAll extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -67,8 +69,8 @@ public class StopAll extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    ServerContext context = getServerContext();
     flushAll(context);
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), true));

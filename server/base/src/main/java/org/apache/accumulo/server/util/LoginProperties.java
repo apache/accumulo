@@ -19,19 +19,25 @@
 package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.TokenProperty;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.handler.Authenticator;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class LoginProperties implements KeywordExecutable {
+public class LoginProperties extends ServerKeywordExecutable<ServerOpts> {
+
+  public LoginProperties() {
+    super(new ServerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -44,31 +50,29 @@ public class LoginProperties implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    try (var context = new ServerContext(SiteConfiguration.auto())) {
-      AccumuloConfiguration config = context.getConfiguration();
-      Authenticator authenticator = ClassLoaderUtil
-          .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR), Authenticator.class)
-          .getDeclaredConstructor().newInstance();
-
-      System.out
-          .println("Supported token types for " + authenticator.getClass().getName() + " are : ");
-      for (Class<? extends AuthenticationToken> tokenType : authenticator
-          .getSupportedTokenTypes()) {
-        System.out
-            .println("\t" + tokenType.getName() + ", which accepts the following properties : ");
-
-        for (TokenProperty tokenProperty : tokenType.getDeclaredConstructor().newInstance()
-            .getProperties()) {
-          System.out.println("\t\t" + tokenProperty);
-        }
-
-        System.out.println();
-      }
-    }
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
-  public static void main(String[] args) throws Exception {
-    new LoginProperties().execute(args);
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    AccumuloConfiguration config = getServerContext().getConfiguration();
+    Authenticator authenticator = ClassLoaderUtil
+        .loadClass(config.get(Property.INSTANCE_SECURITY_AUTHENTICATOR), Authenticator.class)
+        .getDeclaredConstructor().newInstance();
+
+    System.out
+        .println("Supported token types for " + authenticator.getClass().getName() + " are : ");
+    for (Class<? extends AuthenticationToken> tokenType : authenticator.getSupportedTokenTypes()) {
+      System.out
+          .println("\t" + tokenType.getName() + ", which accepts the following properties : ");
+
+      for (TokenProperty tokenProperty : tokenType.getDeclaredConstructor().newInstance()
+          .getProperties()) {
+        System.out.println("\t\t" + tokenProperty);
+      }
+
+      System.out.println();
+    }
   }
 }

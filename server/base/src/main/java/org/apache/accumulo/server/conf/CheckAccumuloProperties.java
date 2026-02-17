@@ -18,23 +18,25 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.io.IOException;
-import java.nio.file.Path;
-
-import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
-import com.google.common.base.Preconditions;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @AutoService(KeywordExecutable.class)
-public class CheckAccumuloProperties implements KeywordExecutable {
+public class CheckAccumuloProperties extends ServerKeywordExecutable<ServerOpts> {
+
+  public CheckAccumuloProperties() {
+    super(new ServerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -49,13 +51,15 @@ public class CheckAccumuloProperties implements KeywordExecutable {
         + "'admin check run " + Check.SERVER_CONFIG + "'";
   }
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "intentional user-provided path")
   @Override
-  public void execute(String[] args) throws IOException {
-    Preconditions.checkArgument(args.length == 1,
-        "Expected 1 argument (the properties file path), got " + args.length);
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
+  }
+
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
     var hadoopConfig = new Configuration();
-    var siteConfig = SiteConfiguration.fromFile(Path.of(args[0]).toFile()).build();
+    var siteConfig = options.getSiteConfiguration();
 
     VolumeManagerImpl.get(siteConfig, hadoopConfig);
     new ServerDirs(siteConfig, hadoopConfig);

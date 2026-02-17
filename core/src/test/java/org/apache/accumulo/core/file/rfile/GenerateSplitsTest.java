@@ -19,11 +19,10 @@
 package org.apache.accumulo.core.file.rfile;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.file.rfile.AbstractRFileTest.newKey;
+import static org.apache.accumulo.core.file.rfile.AbstractRFileTest.newValue;
 import static org.apache.accumulo.core.file.rfile.GenerateSplits.getEvenlySpacedSplits;
-import static org.apache.accumulo.core.file.rfile.GenerateSplits.main;
 import static org.apache.accumulo.core.file.rfile.RFileTest.newColFamByteSequence;
-import static org.apache.accumulo.core.file.rfile.RFileTest.newKey;
-import static org.apache.accumulo.core.file.rfile.RFileTest.newValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -92,13 +91,13 @@ public class GenerateSplitsTest {
   public void testNum() throws Exception {
     List<String> args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
-    GenerateSplits.main(args.toArray(new String[0]));
+    new GenerateSplits().execute(args.toArray(new String[0]));
     verifySplitsFile(false, "r6", "r3");
 
     // test more splits requested than indices
     args = List.of(rfilePath, "--num", "4", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
-    GenerateSplits.main(args.toArray(new String[0]));
+    new GenerateSplits().execute(args.toArray(new String[0]));
     verifySplitsFile(false, "r2", "r3", "r4", "r5");
   }
 
@@ -106,7 +105,7 @@ public class GenerateSplitsTest {
   public void testSplitSize() throws Exception {
     List<String> args = List.of(rfilePath, "-ss", "21", "-sf", splitsFilePath);
     log.info("Invoking GenerateSplits with {}", args);
-    GenerateSplits.main(args.toArray(new String[0]));
+    new GenerateSplits().execute(args.toArray(new String[0]));
     verifySplitsFile(false, "r2", "r4", "r6");
   }
 
@@ -132,16 +131,19 @@ public class GenerateSplitsTest {
   public void testErrors() throws IOException {
     List<String> args = List.of("missingFile.rf", "-n", "2");
     log.info("Invoking GenerateSplits with {}", args);
-    assertThrows(FileNotFoundException.class, () -> main(args.toArray(new String[0])));
+    assertThrows(FileNotFoundException.class,
+        () -> new GenerateSplits().execute(args.toArray(new String[0])));
 
     List<String> args2 = List.of(rfilePath);
     log.info("Invoking GenerateSplits with {}", args2);
-    var e = assertThrows(IllegalArgumentException.class, () -> main(args2.toArray(new String[0])));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> new GenerateSplits().execute(args2.toArray(new String[0])));
     assertTrue(e.getMessage().contains("Required number of splits or"), e.getMessage());
 
     List<String> args3 = List.of(rfilePath, "-n", "2", "-ss", "40");
     log.info("Invoking GenerateSplits with {}", args3);
-    e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
+    e = assertThrows(IllegalArgumentException.class,
+        () -> new GenerateSplits().execute(args3.toArray(new String[0])));
     assertTrue(e.getMessage().contains("Requested number of splits and"), e.getMessage());
 
     Path dir1 = Files.createDirectories(tempDir.resolve("dir1"));
@@ -151,7 +153,8 @@ public class GenerateSplitsTest {
     List<String> args4 =
         List.of(dir1.toAbsolutePath().toString(), dir2.toAbsolutePath().toString(), "-n", "2");
     log.info("Invoking GenerateSplits with {}", args4);
-    e = assertThrows(IllegalArgumentException.class, () -> main(args4.toArray(new String[0])));
+    e = assertThrows(IllegalArgumentException.class,
+        () -> new GenerateSplits().execute(args4.toArray(new String[0])));
     assertTrue(e.getMessage().contains("No files were found"), e.getMessage());
   }
 
@@ -196,10 +199,10 @@ public class GenerateSplitsTest {
 
     List<String> finalArgs = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);
     assertThrows(UnsupportedOperationException.class,
-        () -> GenerateSplits.main(finalArgs.toArray(new String[0])));
+        () -> new GenerateSplits().execute(finalArgs.toArray(new String[0])));
 
     List<String> args = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath, "-b64");
-    GenerateSplits.main(args.toArray(new String[0]));
+    new GenerateSplits().execute(args.toArray(new String[0]));
     // Validate that base64 split points are working
     verifySplitsFile(true, "r6\0f", "r3\0c");
   }

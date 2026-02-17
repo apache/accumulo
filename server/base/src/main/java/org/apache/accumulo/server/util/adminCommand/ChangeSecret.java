@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -37,9 +38,10 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -59,10 +61,10 @@ import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
 @AutoService(KeywordExecutable.class)
-public class ChangeSecret extends ServerKeywordExecutable<ServerUtilOpts> {
+public class ChangeSecret extends ServerKeywordExecutable<ServerOpts> {
 
   public ChangeSecret() {
-    super(new ServerUtilOpts());
+    super(new ServerOpts());
   }
 
   @Override
@@ -71,8 +73,8 @@ public class ChangeSecret extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -81,8 +83,8 @@ public class ChangeSecret extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    ServerContext context = getServerContext();
 
     try (var fs = context.getVolumeManager()) {
       ServerDirs serverDirs = new ServerDirs(context.getConfiguration(), new Configuration());

@@ -20,17 +20,17 @@ package org.apache.accumulo.test.ample;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.manager.Manager;
 
 public class FlakyAmpleManager extends Manager {
 
-  protected FlakyAmpleManager(ConfigOpts opts, String[] args) throws IOException {
+  protected FlakyAmpleManager(ServerOpts opts, String[] args) throws IOException {
     super(opts, FlakyAmpleServerContext::new, args);
   }
 
   public static void main(String[] args) throws Exception {
-    try (FlakyAmpleManager manager = new FlakyAmpleManager(new ConfigOpts(), args)) {
+    try (FlakyAmpleManager manager = new FlakyAmpleManager(new ServerOpts(), args)) {
       manager.runServer();
     }
   }

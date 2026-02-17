@@ -29,8 +29,8 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckCommandOpts;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
@@ -42,6 +42,8 @@ import org.apache.accumulo.server.util.checkCommand.SystemConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
@@ -57,7 +59,7 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
     new SystemCheck().execute(args);
   }
 
-  public static class CheckCommandOpts extends ServerUtilOpts {
+  public static class CheckCommandOpts extends ServerOpts {
     @Parameter(names = "list",
         description = "Lists the different checks that can be run, the description of each check, and the other check(s) each check depends on.")
     boolean list;
@@ -167,8 +169,8 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -184,7 +186,7 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
     if (options.list) {
       listChecks();
     } else if (options.run) {
-      ServerContext context = options.getServerContext();
+      ServerContext context = getServerContext();
       var givenChecks = options.checks.stream().map(name -> Check.valueOf(name.toUpperCase()))
           .collect(Collectors.toList());
       executeRunCheckCommand(options, givenChecks, context);

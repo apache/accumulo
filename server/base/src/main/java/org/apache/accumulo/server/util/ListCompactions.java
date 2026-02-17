@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
@@ -35,7 +36,9 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.ListCompactions.RunningCommandOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
@@ -46,7 +49,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 @AutoService(KeywordExecutable.class)
-public class ListCompactions implements KeywordExecutable {
+public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts> {
 
   public static class RunningCompactionSummary {
     private final String ecid;
@@ -153,13 +156,17 @@ public class ListCompactions implements KeywordExecutable {
   }
 
   @Parameters(commandNames = "running", commandDescription = "list the running compactions")
-  static class RunningCommand {
+  static class RunningCommandOpts extends ServerOpts {
     @Parameter(names = {"-d", "--details"},
         description = "display details about the running compactions")
     boolean details = false;
 
     @Parameter(names = {"-j", "--json"}, description = "format the output as json")
     boolean jsonOutput = false;
+  }
+
+  public ListCompactions() {
+    super(new RunningCommandOpts());
   }
 
   @Override
@@ -173,8 +180,8 @@ public class ListCompactions implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.COMPACTION;
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
   }
 
   protected List<RunningCompactionSummary> getRunningCompactions(ServerContext context,
@@ -213,25 +220,10 @@ public class ListCompactions implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
-
-    RunningCommand runningOpts = new RunningCommand();
-    cl.addCommand(runningOpts);
-
-    cl.parse(args);
-
-    if (opts.help || cl.getParsedCommand() == null) {
-      cl.usage();
-      return;
-    }
-
-    ServerContext context = opts.getServerContext();
+  public void execute(JCommander cl, RunningCommandOpts options) throws Exception {
     List<RunningCompactionSummary> compactions =
-        getRunningCompactions(context, runningOpts.details);
-    if (runningOpts.jsonOutput) {
+        getRunningCompactions(getServerContext(), options.details);
+    if (options.jsonOutput) {
       try {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         System.out.println(gson.toJson(compactions));

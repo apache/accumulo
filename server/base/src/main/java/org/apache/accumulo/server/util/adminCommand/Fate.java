@@ -37,6 +37,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -65,10 +66,11 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.Fate.FateOpts;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -111,7 +113,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     }
   }
 
-  static class FateOpts extends ServerUtilOpts {
+  static class FateOpts extends ServerOpts {
     @Parameter(description = "[<FateId>...]")
     List<String> fateIdList = new ArrayList<>();
 
@@ -190,8 +192,8 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -202,7 +204,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
   @Override
   public void execute(JCommander cl, FateOpts options) throws Exception {
 
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
     validateFateUserInput(options);
 
     AdminUtil<Fate> admin = new AdminUtil<>();

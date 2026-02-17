@@ -29,7 +29,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -55,6 +55,8 @@ import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
@@ -72,7 +74,7 @@ public class UpgradeUtil implements KeywordExecutable {
   private static final Logger LOG = LoggerFactory.getLogger(UpgradeUtil.class);
   private static final String ZTABLE_NAME = "/name";
 
-  static class Opts extends ConfigOpts {
+  static class Opts extends ServerOpts {
     @Parameter(names = "--prepare",
         description = "prepare an older version instance for an upgrade to a newer non-bugfix release."
             + " This command should be run using the older version of software after the instance is shut down.")
@@ -91,6 +93,12 @@ public class UpgradeUtil implements KeywordExecutable {
     @Parameter(names = "--force",
         description = "Continue with 'start' processing if 'prepare' had not been run on the instance.")
     boolean force = false;
+
+    @Override
+    protected void parseArgs(JCommander commander, String programName, String[] args,
+        Object... others) {
+      super.parseArgs(commander, programName, args, others);
+    }
   }
 
   @Override
@@ -101,6 +109,11 @@ public class UpgradeUtil implements KeywordExecutable {
   @Override
   public String description() {
     return "utility used to perform various upgrade steps for an Accumulo instance.";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   private static class UpgradeUsageFormatter extends DefaultUsageFormatter {
@@ -181,9 +194,13 @@ public class UpgradeUtil implements KeywordExecutable {
           + " node in zookeeper. Check for any issues and retry.", e);
     }
 
-    LOG.info("Forcing removal of all server locks");
-    new ZooZap().zap(context, "-manager", "-tservers", "-compactors", "-sservers", "--monitor",
-        "--gc");
+    try {
+      LOG.info("Forcing removal of all server locks");
+      new ZooZap().execute(
+          new String[] {"-manager", "-tservers", "-compactors", "-sservers", "--monitor", "--gc"});
+    } catch (Exception e) {
+      throw new IllegalStateException("Error deleting server locks", e);
+    }
 
     LOG.info(
         "Instance {} prepared for upgrade. Server processes will not start while"
@@ -325,15 +342,13 @@ public class UpgradeUtil implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
+
     Opts opts = new Opts();
-    opts.parseArgs(
-        jCommander -> jCommander.setUsageFormatter(new UpgradeUsageFormatter(jCommander)),
-        keyword(), args);
+    var jc = new JCommander(opts);
+    jc.setUsageFormatter(new UpgradeUsageFormatter(jc));
+    opts.parseArgs(jc, keyword(), args);
 
     if (!opts.prepare && !opts.start) {
-      var jc = new JCommander(opts);
-      jc.setProgramName(keyword());
-      jc.setUsageFormatter(new UpgradeUsageFormatter(jc));
       jc.usage();
       return;
     }

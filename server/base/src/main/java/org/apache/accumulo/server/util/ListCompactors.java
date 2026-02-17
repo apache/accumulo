@@ -24,17 +24,23 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ListCompactors implements KeywordExecutable {
+public class ListCompactors extends ServerKeywordExecutable<ServerOpts> {
+
+  public ListCompactors() {
+    super(new ServerOpts());
+  }
 
   @Override
   public String keyword() {
@@ -47,8 +53,8 @@ public class ListCompactors implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
+  public CommandGroup commandGroup() {
+    return CommandGroups.PROCESS;
   }
 
   protected Map<ResourceGroupId,List<ServerId>> listCompactorsByQueue(ServerContext context) {
@@ -65,18 +71,8 @@ public class ListCompactors implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    JCommander cl = new JCommander(opts);
-    cl.setProgramName("accumulo " + usageGroup().name().toLowerCase() + " " + keyword());
-    cl.parse(args);
-
-    if (opts.help || cl.getParsedCommand() == null) {
-      cl.usage();
-      return;
-    }
-
-    var map = listCompactorsByQueue(opts.getServerContext());
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    var map = listCompactorsByQueue(getServerContext());
     if (map.isEmpty()) {
       System.out.println("No Compactors found.");
     } else {
@@ -87,4 +83,5 @@ public class ListCompactors implements KeywordExecutable {
       });
     }
   }
+
 }

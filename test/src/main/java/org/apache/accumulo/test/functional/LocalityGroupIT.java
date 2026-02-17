@@ -45,6 +45,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -99,6 +100,8 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
    */
   @Test
   public void sunnyLG() throws Exception {
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       accumuloClient.tableOperations().create(tableName);
@@ -127,6 +130,8 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
    */
   @Test
   public void sunnyLGUsingNewTableConfiguration() throws Exception {
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+        "file://" + getCluster().getAccumuloPropertiesPath());
     // create a locality group, write to it and ensure it exists in the RFiles that result
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -159,17 +164,15 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
           System.setOut(newOut);
           List<String> args = new ArrayList<>();
           args.add(StoredTabletFile.of(entry.getKey().getColumnQualifier()).getMetadataPath());
-          args.add("--props");
-          args.add(getCluster().getAccumuloPropertiesPath());
           if (getClusterType() == ClusterType.STANDALONE && saslEnabled()) {
-            args.add("--config");
+            args.add("--hadoop-config");
             StandaloneAccumuloCluster sac = (StandaloneAccumuloCluster) cluster;
             String hadoopConfDir = sac.getHadoopConfDir();
             args.add(new Path(hadoopConfDir, "core-site.xml").toString());
             args.add(new Path(hadoopConfDir, "hdfs-site.xml").toString());
           }
           log.info("Invoking PrintInfo with {}", args);
-          PrintInfo.main(args.toArray(new String[args.size()]));
+          new PrintInfo().execute(args.toArray(new String[args.size()]));
           newOut.flush();
           String stdout = baos.toString();
           assertTrue(stdout.contains("Locality group           : g1"));

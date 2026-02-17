@@ -21,16 +21,18 @@ package org.apache.accumulo.server.util.adminCommand;
 import java.util.Iterator;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager.FileType;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.Path;
 
@@ -38,10 +40,10 @@ import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ListVolumesUsed extends ServerKeywordExecutable<ServerUtilOpts> {
+public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
 
   public ListVolumesUsed() {
-    super(new ServerUtilOpts());
+    super(new ServerOpts());
   }
 
   @Override
@@ -50,8 +52,8 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -60,8 +62,8 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    ServerContext context = getServerContext();
     listTable(Ample.DataLevel.ROOT, context);
     System.out.println();
     listTable(Ample.DataLevel.METADATA, context);

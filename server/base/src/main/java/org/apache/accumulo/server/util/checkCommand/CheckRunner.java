@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.slf4j.Logger;
@@ -38,8 +38,7 @@ public interface CheckRunner {
    * @return the {@link org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus}
    *         resulting from running the check
    */
-  CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
-      throws Exception;
+  CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles) throws Exception;
 
   /**
    *

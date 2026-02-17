@@ -64,47 +64,58 @@ function updateElementStatus(elementId, status) {
  * @param {JSON} statusData object containing the status info for the servers
  */
 function updateServerNotifications(statusData) {
-  // setting manager status notification
-  if (statusData.managerStatus === STATUS.ERROR) {
-    updateElementStatus('managerStatusNotification', STATUS.ERROR);
-  } else if (statusData.managerStatus === STATUS.WARN) {
-    updateElementStatus('managerStatusNotification', STATUS.WARN);
-  } else if (statusData.managerStatus === STATUS.OK) {
-    updateElementStatus('managerStatusNotification', STATUS.OK);
-  } else {
-    console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
-  }
+  const applyStatuses = function (managerGoalState) {
+    const isSafeMode = managerGoalState === 'SAFE_MODE';
+    const isCleanStop = managerGoalState === 'CLEAN_STOP';
 
-  // setting tserver status notification
-  if (statusData.tServerStatus === STATUS.OK) {
-    updateElementStatus('serverStatusNotification', STATUS.OK);
-  } else if (statusData.tServerStatus === STATUS.WARN) {
-    updateElementStatus('serverStatusNotification', STATUS.WARN);
-  } else {
-    updateElementStatus('serverStatusNotification', STATUS.ERROR);
-  }
+    // setting manager status notification
+    if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
+      updateElementStatus('managerStatusNotification', STATUS.ERROR);
+    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode) {
+      updateElementStatus('managerStatusNotification', STATUS.WARN);
+    } else if (statusData.managerStatus === STATUS.OK) {
+      updateElementStatus('managerStatusNotification', STATUS.OK);
+    } else {
+      console.error('Unrecognized manager state: ' + statusData.managerStatus + '. Could not properly set manager status notification.');
+    }
 
-  // setting gc status notification
-  if (statusData.gcStatus === STATUS.OK) {
-    updateElementStatus('gcStatusNotification', STATUS.OK);
-  } else {
-    updateElementStatus('gcStatusNotification', STATUS.ERROR);
-  }
+    // setting tserver status notification
+    if (statusData.tServerStatus === STATUS.OK) {
+      updateElementStatus('serverStatusNotification', STATUS.OK);
+    } else if (statusData.tServerStatus === STATUS.WARN) {
+      updateElementStatus('serverStatusNotification', STATUS.WARN);
+    } else {
+      updateElementStatus('serverStatusNotification', STATUS.ERROR);
+    }
 
-  // Setting overall servers status notification
-  if (statusData.managerStatus === STATUS.OK &&
-    statusData.tServerStatus === STATUS.OK &&
-    statusData.gcStatus === STATUS.OK) {
-    updateElementStatus('statusNotification', STATUS.OK);
-  } else if (statusData.managerStatus === STATUS.ERROR ||
-    statusData.tServerStatus === STATUS.ERROR ||
-    statusData.gcStatus === STATUS.ERROR) {
-    updateElementStatus('statusNotification', STATUS.ERROR);
-  } else if (statusData.managerStatus === STATUS.WARN ||
-    statusData.tServerStatus === STATUS.WARN ||
-    statusData.gcStatus === STATUS.WARN) {
-    updateElementStatus('statusNotification', STATUS.WARN);
-  }
+    // setting gc status notification
+    if (statusData.gcStatus === STATUS.OK) {
+      updateElementStatus('gcStatusNotification', STATUS.OK);
+    } else {
+      updateElementStatus('gcStatusNotification', STATUS.ERROR);
+    }
+
+    // Setting overall servers status notification
+    if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
+      statusData.tServerStatus === STATUS.OK &&
+      statusData.gcStatus === STATUS.OK) {
+      updateElementStatus('statusNotification', STATUS.OK);
+    } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
+      statusData.tServerStatus === STATUS.ERROR ||
+      statusData.gcStatus === STATUS.ERROR) {
+      updateElementStatus('statusNotification', STATUS.ERROR);
+    } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
+      statusData.tServerStatus === STATUS.WARN ||
+      statusData.gcStatus === STATUS.WARN) {
+      updateElementStatus('statusNotification', STATUS.WARN);
+    }
+  };
+
+  applyStatuses(getManagerGoalStateFromSession());
+
+  getManager().always(function () {
+    applyStatuses(getManagerGoalStateFromSession());
+  });
 }
 
 /**

@@ -21,13 +21,15 @@ package org.apache.accumulo.server.util.adminCommand;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.PingServer.PingCommandOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
@@ -37,7 +39,7 @@ import com.google.auto.service.AutoService;
 @AutoService(KeywordExecutable.class)
 public class PingServer extends ServerKeywordExecutable<PingCommandOpts> {
 
-  static class PingCommandOpts extends ServerUtilOpts {
+  static class PingCommandOpts extends ServerOpts {
     @Parameter(description = "{<host> ... }")
     List<String> args = new ArrayList<>();
   }
@@ -52,8 +54,8 @@ public class PingServer extends ServerKeywordExecutable<PingCommandOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -64,7 +66,7 @@ public class PingServer extends ServerKeywordExecutable<PingCommandOpts> {
   @Override
   public void execute(JCommander cl, PingCommandOpts options) throws Exception {
 
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
     InstanceOperations io = context.instanceOperations();
 
     if (options.args.isEmpty()) {

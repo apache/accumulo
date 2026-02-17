@@ -18,21 +18,23 @@
  */
 package org.apache.accumulo.server.util.adminCommand;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class StopManager extends ServerKeywordExecutable<ServerUtilOpts> {
+public class StopManager extends ServerKeywordExecutable<ServerOpts> {
 
   public StopManager() {
-    super(new ServerUtilOpts());
+    super(new ServerOpts());
   }
 
   @Override
@@ -41,8 +43,8 @@ public class StopManager extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -51,8 +53,8 @@ public class StopManager extends ServerKeywordExecutable<ServerUtilOpts> {
   }
 
   @Override
-  public void execute(JCommander cl, ServerUtilOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
+    ServerContext context = getServerContext();
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), false));
   }

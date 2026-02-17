@@ -32,6 +32,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -40,22 +41,28 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles.FindOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class FindCompactionTmpFiles {
+@AutoService(KeywordExecutable.class)
+public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(FindCompactionTmpFiles.class);
 
-  static class Opts extends ServerUtilOpts {
+  static class FindOpts extends ServerOpts {
 
     @Parameter(names = "--tables", description = "comma separated list of table names")
     String tables;
@@ -183,16 +190,34 @@ public class FindCompactionTmpFiles {
     return stats;
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(FindCompactionTmpFiles.class.getName(), args);
+  public FindCompactionTmpFiles() {
+    super(new FindOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "find-tmp-files";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
+  }
+
+  @Override
+  public String description() {
+    return "Finds and optionally deletes compaction tmp files.";
+  }
+
+  @Override
+  public void execute(JCommander cl, FindOpts opts) throws Exception {
     LOG.info("Looking for compaction tmp files over tables: {}, deleting: {}", opts.tables,
         opts.delete);
 
     Span span = TraceUtil.startSpan(FindCompactionTmpFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {
 
-      ServerContext context = opts.getServerContext();
+      ServerContext context = getServerContext();
       String[] tables = opts.tables.split(",");
 
       final var stringStringMap = context.tableOperations().tableIdMap();
@@ -216,12 +241,9 @@ public class FindCompactionTmpFiles {
               "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
               table, stats.success, stats.failure, stats.error);
         }
-
       }
-
     } finally {
       span.end();
     }
   }
-
 }

@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
@@ -43,7 +43,7 @@ public class MemoryConsumingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryConsumingCompactor.class);
 
-  MemoryConsumingCompactor(ConfigOpts opts, String[] args) {
+  MemoryConsumingCompactor(ServerOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -80,7 +80,7 @@ public class MemoryConsumingCompactor extends Compactor {
   }
 
   public static void main(String[] args) throws Exception {
-    try (var compactor = new MemoryConsumingCompactor(new ConfigOpts(), args)) {
+    try (var compactor = new MemoryConsumingCompactor(new ServerOpts(), args)) {
       compactor.runServer();
     }
   }

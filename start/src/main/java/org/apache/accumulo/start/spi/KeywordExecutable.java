@@ -44,8 +44,9 @@ import java.util.ServiceLoader;
  */
 public interface KeywordExecutable {
 
+  @Deprecated(since = "4.0.0")
   enum UsageGroup {
-    ADMIN, COMPACTION, CORE, PROCESS, OTHER
+    CORE, PROCESS, OTHER
   }
 
   /**
@@ -63,9 +64,16 @@ public interface KeywordExecutable {
   /**
    * @return Usage group for this command
    */
+  @Deprecated(since = "4.0.0")
   default UsageGroup usageGroup() {
     return UsageGroup.OTHER;
   }
+
+  /**
+   * @return CommandGroup for this command
+   * @since 4.0.0
+   */
+  CommandGroup commandGroup();
 
   /**
    * @return Description of service

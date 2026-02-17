@@ -18,31 +18,20 @@
  */
 package org.apache.accumulo.compactor;
 
+import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class CompactorExecutable implements KeywordExecutable {
+public class CompactorExecutable extends ServerProcessKeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "compactor";
-  }
-
-  @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo Compactor";
+  public CompactorExecutable() {
+    super("compactor", "Compactor");
   }
 
   @Override
   public void execute(final String[] args) throws Exception {
-    System.err.println("WARNING: External compaction processes are experimental");
     Compactor.main(args);
   }
 

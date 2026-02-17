@@ -27,6 +27,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -35,11 +36,12 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.ServiceStatus.ServiceStatusCmdOpts;
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
 import org.apache.accumulo.server.util.serviceStatus.StatusSummary;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -55,7 +57,7 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
 
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatus.class);
 
-  static class ServiceStatusCmdOpts extends ServerUtilOpts {
+  static class ServiceStatusCmdOpts extends ServerOpts {
 
     @Parameter(names = "--json", description = "provide output in json format")
     boolean json = false;
@@ -75,8 +77,8 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -86,7 +88,7 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
 
   @Override
   public void execute(JCommander cl, ServiceStatusCmdOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
 
     if (LOG.isTraceEnabled()) {
       LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));

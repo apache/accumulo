@@ -30,6 +30,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.Range;
@@ -50,9 +51,10 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPortComparator;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.VerifyTabletAssignments.VerifyTabletAssignmentsOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -73,7 +75,7 @@ public class VerifyTabletAssignments extends ServerKeywordExecutable<VerifyTable
 
   private static final Logger log = LoggerFactory.getLogger(VerifyTabletAssignments.class);
 
-  static class VerifyTabletAssignmentsOpts extends ServerUtilOpts {
+  static class VerifyTabletAssignmentsOpts extends ServerOpts {
     @Parameter(names = {"-v", "--verbose"},
         description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;
@@ -89,8 +91,8 @@ public class VerifyTabletAssignments extends ServerKeywordExecutable<VerifyTable
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.ADMIN;
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
   }
 
   @Override
@@ -100,7 +102,7 @@ public class VerifyTabletAssignments extends ServerKeywordExecutable<VerifyTable
 
   @Override
   public void execute(JCommander cl, VerifyTabletAssignmentsOpts options) throws Exception {
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
     Span span = TraceUtil.startSpan(VerifyTabletAssignments.class, "main");
     try (Scope scope = span.makeCurrent()) {
       try {
