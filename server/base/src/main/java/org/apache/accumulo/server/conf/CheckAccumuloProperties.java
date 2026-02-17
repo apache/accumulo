@@ -62,7 +62,7 @@ public class CheckAccumuloProperties extends ServerKeywordExecutable<ServerOpts>
 
     LOG.info("This command checks the configuration file only to allow"
         + " some level of verification before initializing an instance. To"
-        + " perform a more complete check, run the check command with the " + " arguments 'run "
+        + " perform a more complete check, run the check command with the arguments 'run "
         + Check.SERVER_CONFIG + "'");
 
     var hadoopConfig = new Configuration();
