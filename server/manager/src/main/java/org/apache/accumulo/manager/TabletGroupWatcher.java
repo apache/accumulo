@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -244,12 +245,20 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               continue;
             }
 
-            if (events.stream().map(Event::getScope)
-                .anyMatch(s -> s == EventScope.ALL || s == EventScope.DATA_LEVEL)) {
+            EnumSet<EventScope> scopesSeen = EnumSet.noneOf(EventScope.class);
+            List<Range> ranges = new ArrayList<>(events.size());
+            for (var event : events) {
+              scopesSeen.add(event.getScope());
+              ranges.add(event.getExtent().toMetaRange());
+            }
+
+            if (scopesSeen.contains(EventScope.ALL) || scopesSeen.contains(EventScope.DATA_LEVEL)) {
+              // Since this code should only receive events for a single data level, and seeing a
+              // data level should squish all table and tablet events, then seeing ranges indicates
+              // assumptions this code is making are incorrect or there is a bug somewhere.
+              Preconditions.checkState(ranges.isEmpty());
               setNeedsFullScan();
             } else {
-              var ranges =
-                  events.stream().map(Event::getExtent).map(KeyExtent::toMetaRange).toList();
               if (!processRanges(ranges)) {
                 setNeedsFullScan();
               }

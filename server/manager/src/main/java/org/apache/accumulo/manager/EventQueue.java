@@ -127,6 +127,8 @@ public class EventQueue {
     notify();
   }
 
+  private static final List<Event> ALL_LEVELS = List.of(new Event());
+
   public synchronized List<Event> poll(long duration, TimeUnit timeUnit)
       throws InterruptedException {
     CountDownTimer timer = CountDownTimer.startNew(duration, timeUnit);
@@ -136,7 +138,7 @@ public class EventQueue {
 
     List<Event> events;
     if (allLevels) {
-      events = List.of(new Event());
+      events = ALL_LEVELS;
     } else {
       events = new ArrayList<>();
       levels.values().forEach(l -> l.fill(events));
