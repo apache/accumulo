@@ -72,7 +72,6 @@ import org.apache.accumulo.server.util.ListOnlineOnDemandTablets;
 import org.apache.accumulo.server.util.LoginProperties;
 import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
-import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
@@ -196,7 +195,6 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.OTHER, "create-empty", CreateEmpty.class));
     expectSet.add(new CommandInfo(CommandGroups.OTHER, "create-token", CreateToken.class));
     expectSet.add(new CommandInfo(CommandGroups.ADMIN, "delete-instance", DeleteZooInstance.class));
-    expectSet.add(new CommandInfo(CommandGroups.CLIENT, "disk-usage", TableDiskUsage.class));
     expectSet.add(new CommandInfo(CommandGroups.ADMIN, "dump-config", DumpConfig.class));
     expectSet.add(new CommandInfo(CommandGroups.OTHER, "dump-zoo", DumpZookeeper.class));
     expectSet.add(new CommandInfo(CommandGroups.ADMIN, "fate", Fate.class));
