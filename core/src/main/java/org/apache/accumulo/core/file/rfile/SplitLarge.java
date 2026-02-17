@@ -77,7 +77,7 @@ public class SplitLarge extends ClientKeywordExecutable<SplitLargeOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.FILE;
   }
 
   @Override

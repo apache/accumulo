@@ -244,7 +244,7 @@ public class RemoveEntriesForMissingFiles extends ServerKeywordExecutable<Remove
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

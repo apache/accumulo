@@ -73,7 +73,7 @@ public class DeleteZooInstance extends ServerKeywordExecutable<DeleteZooInstance
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

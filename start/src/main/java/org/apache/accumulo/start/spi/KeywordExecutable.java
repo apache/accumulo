@@ -73,7 +73,9 @@ public interface KeywordExecutable {
    * @return CommandGroup for this command
    * @since 4.0.0
    */
-  CommandGroup commandGroup();
+  default CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
+  }
 
   /**
    * @return Description of service

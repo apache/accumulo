@@ -203,16 +203,18 @@ public class Main {
 
     Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
 
-    System.out.println(CommandGroups.CLIENT.title() + " Commands:");
+    System.out.println(CommandGroups.CLIENT.title() + " Commands (accumulo <command>):");
     executables.get(CommandGroups.CLIENT).entrySet().forEach(ce -> {
       System.out.printf("  %-30s %s\n", ce.getValue().usage(), ce.getValue().description());
     });
 
-    System.out.println("\nThe following commands require access to the accumulo.properties file\n");
+    System.out
+        .println("\nThe following commands require access to the accumulo.properties file.\n");
 
     executables.entrySet().forEach(e -> {
       if (e.getKey() != CommandGroups.CLIENT) {
-        System.out.println("\n" + e.getKey().title() + " Commands:");
+        System.out.println(
+            "\n" + e.getKey().title() + " Commands (accumulo " + e.getKey().key() + " <command>):");
         e.getValue().values()
             .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
       }

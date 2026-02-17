@@ -161,7 +161,7 @@ public class PrintInfo extends ClientKeywordExecutable<PrintOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.FILE;
   }
 
   protected Class<? extends BiFunction<Key,Value,String>> getFormatter(String formatterClazz)

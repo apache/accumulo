@@ -51,7 +51,7 @@ public class LoginProperties extends ServerKeywordExecutable<ServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

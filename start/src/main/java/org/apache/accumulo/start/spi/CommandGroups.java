@@ -25,12 +25,14 @@ import java.util.Objects;
  */
 public class CommandGroups {
 
-  public static final CommandGroup ADMIN = new AdminCommandGroup();
   public static final CommandGroup CLIENT = new ClientCommandGroup();
   public static final CommandGroup COMPACTION = new CompactionCommandGroup();
-  public static final CommandGroup CORE = new CoreCommandGroup();
+  public static final CommandGroup CONFIG = new ConfigCommandGroup();
+  public static final CommandGroup FILE = new FileCommandGroup();
+  public static final CommandGroup INSTANCE = new InstanceCommandGroup();
   public static final CommandGroup OTHER = new OtherCommandGroup();
   public static final CommandGroup PROCESS = new ProcessCommandGroup();
+  public static final CommandGroup TABLE = new TableCommandGroup();
 
   /**
    * @since 4.0.0
@@ -61,29 +63,6 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  public static class AdminCommandGroup extends BaseCommandGroup {
-
-    private AdminCommandGroup() {}
-
-    @Override
-    public String key() {
-      return "admin";
-    }
-
-    @Override
-    public String title() {
-      return "Admin";
-    }
-
-    @Override
-    public String description() {
-      return "Administrative commands.";
-    }
-  }
-
-  /**
-   * @since 4.0.0
-   */
   public static class ClientCommandGroup extends BaseCommandGroup {
 
     private ClientCommandGroup() {}
@@ -100,7 +79,7 @@ public class CommandGroups {
 
     @Override
     public String description() {
-      return "Client commands, requires accumulo-client.properties only, group is optional in command.";
+      return "Client commands";
     }
   }
 
@@ -113,7 +92,7 @@ public class CommandGroups {
 
     @Override
     public String key() {
-      return "compaction";
+      return "compact";
     }
 
     @Override
@@ -130,23 +109,69 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  public static class CoreCommandGroup extends BaseCommandGroup {
+  public static class ConfigCommandGroup extends BaseCommandGroup {
 
-    private CoreCommandGroup() {}
+    private ConfigCommandGroup() {}
 
     @Override
     public String key() {
-      return "core";
+      return "conf";
     }
 
     @Override
     public String title() {
-      return "Core";
+      return "Configuration";
     }
 
     @Override
     public String description() {
-      return "Core commands";
+      return "Configuration related commands";
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  public static class FileCommandGroup extends BaseCommandGroup {
+
+    private FileCommandGroup() {}
+
+    @Override
+    public String key() {
+      return "file";
+    }
+
+    @Override
+    public String title() {
+      return "File";
+    }
+
+    @Override
+    public String description() {
+      return "File related commands";
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  public static class InstanceCommandGroup extends BaseCommandGroup {
+
+    private InstanceCommandGroup() {}
+
+    @Override
+    public String key() {
+      return "inst";
+    }
+
+    @Override
+    public String title() {
+      return "Instance";
+    }
+
+    @Override
+    public String description() {
+      return "Instance related commands";
     }
   }
 
@@ -159,7 +184,7 @@ public class CommandGroups {
 
     @Override
     public String key() {
-      return "process";
+      return "proc";
     }
 
     @Override
@@ -193,6 +218,29 @@ public class CommandGroups {
     @Override
     public String description() {
       return "Other commands";
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  public static class TableCommandGroup extends BaseCommandGroup {
+
+    private TableCommandGroup() {}
+
+    @Override
+    public String key() {
+      return "table";
+    }
+
+    @Override
+    public String title() {
+      return "Table";
+    }
+
+    @Override
+    public String description() {
+      return "Table related commands";
     }
   }
 

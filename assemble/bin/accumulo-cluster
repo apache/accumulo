@@ -308,7 +308,7 @@ function parse_config() {
 
   RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
   debug "Printing resource groups to $RG_FILE"
-  "$accumulo_cmd" other zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
+  "$accumulo_cmd" conf zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
   read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
   debug "All resource groups: ${all_resource_groups[*]}"
 
@@ -466,7 +466,7 @@ function control_services() {
         fi
       done
       # Try to cleanly stop the TabletServers and Manager
-      if ! "$accumulo_cmd" admin stop-all; then
+      if ! "$accumulo_cmd" proc stop-all; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
         sleep 10
@@ -486,9 +486,9 @@ function control_services() {
       for group in $tserver_groups; do
         G="TSERVER_HOSTS_$group"
         for tserver in ${!G}; do
-          debug "Stopping tservers on $addr via admin command"
+          debug "Stopping tservers on $addr via 'proc stop' command"
           if echo "$tserver" | grep -q "$addr"; then
-            debugOrRunAsync "$accumulo_cmd" admin stop "$addr"
+            debugOrRunAsync "$accumulo_cmd" proc stop "$addr"
           fi
         done
       done
@@ -528,7 +528,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -tservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -582,7 +582,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -sservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -607,14 +607,14 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -compactors --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRunAsync "$accumulo_cmd" other zoo-zap -verbose -manager -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -manager -tservers -compactors -sservers --gc --monitor
   fi
 
   wait
@@ -674,9 +674,9 @@ function prune_group() {
   esac
 
   if isDebug; then
-    "$accumulo_cmd" other zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
+    "$accumulo_cmd" proc zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
   else
-    "$accumulo_cmd" other zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
+    "$accumulo_cmd" proc zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
   fi
 }
 
@@ -720,7 +720,7 @@ function prune() {
     exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin service-status --json >"$service_json" 2>/dev/null || (echo "Error calling 'admin serviceStatus'" && exit 1)
+  "$accumulo_cmd" inst service-status --json >"$service_json" 2>/dev/null || (echo "Error calling 'inst serviceStatus'" && exit 1)
 
   local var_name
   local hosts

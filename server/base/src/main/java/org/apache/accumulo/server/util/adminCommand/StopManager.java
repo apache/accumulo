@@ -44,7 +44,7 @@ public class StopManager extends ServerKeywordExecutable<ServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.PROCESS;
   }
 
   @Override

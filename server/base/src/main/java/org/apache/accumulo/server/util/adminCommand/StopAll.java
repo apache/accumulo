@@ -60,7 +60,7 @@ public class StopAll extends ServerKeywordExecutable<ServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.PROCESS;
   }
 
   @Override

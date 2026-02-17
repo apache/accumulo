@@ -65,7 +65,7 @@ public class FindOfflineTablets extends ServerKeywordExecutable<ServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.TABLE;
   }
 
   @Override
