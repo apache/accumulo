@@ -49,17 +49,17 @@ public class ZooKeeperMain extends ServerKeywordExecutable<ZKOpts> {
 
   @Override
   public String keyword() {
-    return "zookeeper";
+    return "zk-cli";
   }
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
+    return CommandGroups.CORE;
   }
 
   @Override
   public String description() {
-    return "Starts Apache Zookeeper instance";
+    return "Starts an Apache Zookeeper client rooted at the current instance.";
   }
 
   @Override

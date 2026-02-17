@@ -27,12 +27,16 @@ import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.conf.Configuration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
 public class CheckAccumuloProperties extends ServerKeywordExecutable<ServerOpts> {
+
+  private static final Logger LOG = LoggerFactory.getLogger(CheckAccumuloProperties.class);
 
   public CheckAccumuloProperties() {
     super(new ServerOpts());
@@ -45,10 +49,7 @@ public class CheckAccumuloProperties extends ServerKeywordExecutable<ServerOpts>
 
   @Override
   public String description() {
-    return "Checks the provided Accumulo configuration file for errors. "
-        + "This only checks the contents of the file and not any running Accumulo system, "
-        + "so it can be used prior to init, but only performs a subset of the checks done by "
-        + "'admin check run " + Check.SERVER_CONFIG + "'";
+    return "Checks the provided Accumulo configuration file for errors";
   }
 
   @Override
@@ -58,6 +59,12 @@ public class CheckAccumuloProperties extends ServerKeywordExecutable<ServerOpts>
 
   @Override
   public void execute(JCommander cl, ServerOpts options) throws Exception {
+
+    LOG.info("This command checks the configuration file only to allow"
+        + " some level of verification before initializing an instance. To"
+        + " perform a more complete check, run the check command with the " + " arguments 'run "
+        + Check.SERVER_CONFIG + "'");
+
     var hadoopConfig = new Configuration();
     var siteConfig = options.getSiteConfiguration();
 
