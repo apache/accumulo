@@ -249,7 +249,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             List<Range> ranges = new ArrayList<>(events.size());
             for (var event : events) {
               scopesSeen.add(event.getScope());
-              ranges.add(event.getExtent().toMetaRange());
+              if (event.getScope() == EventScope.TABLE
+                  || event.getScope() == EventScope.TABLE_RANGE) {
+                ranges.add(event.getExtent().toMetaRange());
+              }
             }
 
             if (scopesSeen.contains(EventScope.ALL) || scopesSeen.contains(EventScope.DATA_LEVEL)) {
