@@ -62,6 +62,7 @@ public class Scanner {
   private final AtomicBoolean interruptFlag;
 
   private boolean readInProgress = false;
+  private int duplicatesToSkip = 0;
 
   Scanner(TabletBase tablet, Range range, ScanParameters scanParams, AtomicBoolean interruptFlag) {
     this.tablet = tablet;
@@ -138,7 +139,8 @@ public class Scanner {
         iter = new SourceSwitchingIterator(dataSource, false);
       }
 
-      results = tablet.nextBatch(iter, range, scanParams);
+      results = tablet.nextBatch(iter, range, scanParams, duplicatesToSkip);
+      duplicatesToSkip = 0;
 
       if (results.getResults() == null) {
         range = null;
@@ -148,6 +150,7 @@ public class Scanner {
       } else {
         range = new Range(results.getContinueKey(), !results.isSkipContinueKey(), range.getEndKey(),
             range.isEndKeyInclusive());
+        duplicatesToSkip = results.getDuplicatesToSkip();
         return new Pair<>(new ScanBatch(results.getResults(), true), dataSource);
       }
 
