@@ -23,7 +23,7 @@ import java.io.PrintStream;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.MetaIndexEntry;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -43,6 +43,20 @@ public class PrintBCInfo {
   FileSystem fs;
   Path path;
   CryptoService cryptoService = NoCryptoServiceFactory.NONE;
+
+  public PrintBCInfo(String[] args) throws Exception {
+    BCInfoOpts opts = new BCInfoOpts();
+    opts.parseArgs(getClass().getSimpleName(), args);
+    conf = new Configuration();
+    FileSystem hadoopFs = FileSystem.get(conf);
+    FileSystem localFs = FileSystem.getLocal(conf);
+    path = new Path(opts.file);
+    if (opts.file.contains(":")) {
+      fs = path.getFileSystem(conf);
+    } else {
+      fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
+    }
+  }
 
   public void printMetaBlockInfo() throws IOException {
     try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
@@ -75,27 +89,9 @@ public class PrintBCInfo {
     }
   }
 
-  static class Opts extends ConfigOpts {
-    @Parameter(description = " <file>")
+  public static class BCInfoOpts extends ClientOpts {
+    @Parameter(required = true, description = " <file>")
     String file;
-  }
-
-  public PrintBCInfo(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs("PrintInfo", args);
-    if (opts.file.isEmpty()) {
-      System.err.println("No files were given");
-      System.exit(-1);
-    }
-    conf = new Configuration();
-    FileSystem hadoopFs = FileSystem.get(conf);
-    FileSystem localFs = FileSystem.getLocal(conf);
-    path = new Path(opts.file);
-    if (opts.file.contains(":")) {
-      fs = path.getFileSystem(conf);
-    } else {
-      fs = hadoopFs.exists(path) ? hadoopFs : localFs; // fall back to local
-    }
   }
 
   public CryptoService getCryptoService() {

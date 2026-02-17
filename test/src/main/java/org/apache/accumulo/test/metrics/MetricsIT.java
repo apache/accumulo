@@ -54,7 +54,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -529,7 +529,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.info("METRICS, received from statsd - name: '{}' num tags: {}, tags: {} = {}",
                 a.getName(), t.size(), t, a.getValue());
             // check hostname is always set and is valid
-            assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES,
+            assertNotEquals(ServerOpts.BIND_ALL_ADDRESSES,
                 a.getTags().get(MetricsInfo.HOST_TAG_KEY));
             assertNotNull(a.getTags().get(MetricsInfo.INSTANCE_NAME_TAG_KEY));
 

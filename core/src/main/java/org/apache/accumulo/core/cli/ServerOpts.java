@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -33,21 +32,11 @@ import org.slf4j.LoggerFactory;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.IParameterSplitter;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+public class ServerOpts extends Help {
 
-public class ConfigOpts extends Help {
-
-  private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
+  private static final Logger log = LoggerFactory.getLogger(ServerOpts.class);
 
   public static final String BIND_ALL_ADDRESSES = "0.0.0.0";
-
-  @Parameter(names = {"-p", "-props", "--props"}, description = "Sets path to accumulo.properties."
-      + "The classpath will be searched if this property is not set")
-  private String propsPath;
-
-  public synchronized String getPropertiesPath() {
-    return propsPath;
-  }
 
   public static class NullSplitter implements IParameterSplitter {
     @Override
@@ -66,14 +55,14 @@ public class ConfigOpts extends Help {
 
   private SiteConfiguration siteConfig = null;
 
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
-      justification = "process runs in same security context as admin who provided path")
   public synchronized SiteConfiguration getSiteConfiguration() {
     if (siteConfig == null) {
-      String propsPath = getPropertiesPath();
-      siteConfig = (propsPath == null ? SiteConfiguration.fromEnv()
-          : SiteConfiguration.fromFile(Path.of(propsPath).toFile())).withOverrides(getOverrides())
-          .build();
+      String configFile = System.getProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
+      if (configFile == null) {
+        log.debug(
+            "Creating SiteConfiguration from classpath. To use a specific file, set the system property 'accumulo.properties'");
+      }
+      siteConfig = SiteConfiguration.fromEnv().withOverrides(getOverrides()).build();
     }
     return siteConfig;
   }
@@ -102,8 +91,7 @@ public class ConfigOpts extends Help {
   }
 
   @Override
-  public void parseArgs(String programName, String[] args, Object... others) {
-    super.parseArgs(programName, args, others);
+  public void validateArgs() {
     if (!getOverrides().isEmpty()) {
       log.info("The following configuration was set on the command line:");
       for (Map.Entry<String,String> entry : getOverrides().entrySet()) {

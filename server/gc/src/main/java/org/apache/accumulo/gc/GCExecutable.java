@@ -18,27 +18,16 @@
  */
 package org.apache.accumulo.gc;
 
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class GCExecutable implements KeywordExecutable {
-  @Override
-  public String keyword() {
-    return "gc";
-  }
+public class GCExecutable extends ServerProcessKeywordExecutable {
 
-  @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo garbage collector";
+  public GCExecutable() {
+    super("gc", "Garbage Collector");
   }
 
   @Override

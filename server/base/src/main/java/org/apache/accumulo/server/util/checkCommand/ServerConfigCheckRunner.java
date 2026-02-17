@@ -22,9 +22,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
@@ -32,7 +32,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
   private static final Check check = Check.SERVER_CONFIG;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
     CheckStatus status = CheckStatus.OK;
     printRunning();

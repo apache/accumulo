@@ -48,7 +48,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -202,7 +202,7 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  public ScanServer(ConfigOpts opts, String[] args) {
+  public ScanServer(ServerOpts opts, String[] args) {
     super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
 
     context = super.getContext();
@@ -1120,7 +1120,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new ScanServer(new ConfigOpts(), args), LOG);
+    AbstractServer.startServer(new ScanServer(new ServerOpts(), args), LOG);
   }
 
 }

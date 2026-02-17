@@ -27,6 +27,8 @@ NUM_EXPECTED=0
 ALLOWED=(
   # test module uses main path for ITs, so log4j2-test.properties is okay there
   test/src/main/resources/log4j2-test.properties
+  # tests in the test module require an accumulo.properties file for test execution
+  test/src/main/resources/accumulo.properties
 
   # special exceptions for the main assembly resources; these can be at the root
   assemble/src/main/resources/LICENSE

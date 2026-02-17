@@ -26,10 +26,10 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.DeleteZooInstance.DeleteZooInstanceOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
@@ -48,7 +48,7 @@ public class DeleteZooInstance extends ServerKeywordExecutable<DeleteZooInstance
 
   private static final Logger log = LoggerFactory.getLogger(DeleteZooInstance.class);
 
-  static class DeleteZooInstanceOpts extends ServerUtilOpts {
+  static class DeleteZooInstanceOpts extends ServerOpts {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
     String instance;
 
@@ -84,7 +84,7 @@ public class DeleteZooInstance extends ServerKeywordExecutable<DeleteZooInstance
   @Override
   public void execute(JCommander cl, DeleteZooInstanceOpts options) throws Exception {
 
-    ServerContext context = options.getServerContext();
+    ServerContext context = getServerContext();
 
     if (options.auth != null) {
       context.getZooSession().addAccumuloDigestAuth(options.auth);

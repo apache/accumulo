@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -46,12 +47,17 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles.RemoveMissingOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -59,9 +65,10 @@ import io.opentelemetry.context.Scope;
 /**
  * Remove file entries for data files that don't exist.
  */
-public class RemoveEntriesForMissingFiles {
+@AutoService(KeywordExecutable.class)
+public class RemoveEntriesForMissingFiles extends ServerKeywordExecutable<RemoveMissingOpts> {
 
-  static class Opts extends ServerUtilOpts {
+  static class RemoveMissingOpts extends ServerOpts {
     @Parameter(names = "--fix")
     boolean fix = false;
   }
@@ -226,12 +233,30 @@ public class RemoveEntriesForMissingFiles {
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+  public RemoveEntriesForMissingFiles() {
+    super(new RemoveMissingOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "missing-files";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Checks file references in metadata and user tables, optionally removes errant file references";
+  }
+
+  @Override
+  public void execute(JCommander cl, RemoveMissingOpts options) throws Exception {
     Span span = TraceUtil.startSpan(RemoveEntriesForMissingFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      checkAllTables(opts.getServerContext(), opts.fix, System.out::println, System.out::println);
+      checkAllTables(getServerContext(), options.fix, System.out::println, System.out::println);
     } finally {
       span.end();
     }

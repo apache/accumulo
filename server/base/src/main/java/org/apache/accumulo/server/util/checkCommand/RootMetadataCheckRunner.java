@@ -23,13 +23,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.FindOfflineTablets;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
@@ -54,7 +54,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerUtilOpts opts, boolean fixFiles)
+  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
     CheckStatus status = CheckStatus.OK;
     printRunning();

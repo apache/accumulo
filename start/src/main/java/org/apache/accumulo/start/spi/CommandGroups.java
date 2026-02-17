@@ -19,11 +19,6 @@
 package org.apache.accumulo.start.spi;
 
 import java.util.Objects;
-import java.util.ServiceLoader;
-import java.util.Set;
-import java.util.TreeSet;
-
-import com.google.auto.service.AutoService;
 
 /**
  * @since 4.0.0
@@ -36,17 +31,6 @@ public class CommandGroups {
   public static final CommandGroup CORE = new CoreCommandGroup();
   public static final CommandGroup OTHER = new OtherCommandGroup();
   public static final CommandGroup PROCESS = new ProcessCommandGroup();
-
-  private static Set<CommandGroup> groups = null;
-
-  public static synchronized Set<CommandGroup> getGroups() {
-    if (groups == null) {
-      Set<CommandGroup> ug = new TreeSet<>();
-      ServiceLoader.load(CommandGroup.class).forEach(ug::add);
-      groups = ug;
-    }
-    return groups;
-  }
 
   /**
    * @since 4.0.0
@@ -77,8 +61,9 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  @AutoService(CommandGroup.class)
   public static class AdminCommandGroup extends BaseCommandGroup {
+
+    private AdminCommandGroup() {}
 
     @Override
     public String key() {
@@ -99,8 +84,9 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  @AutoService(CommandGroup.class)
   public static class ClientCommandGroup extends BaseCommandGroup {
+
+    private ClientCommandGroup() {}
 
     @Override
     public String key() {
@@ -121,8 +107,9 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  @AutoService(CommandGroup.class)
   public static class CompactionCommandGroup extends BaseCommandGroup {
+
+    private CompactionCommandGroup() {}
 
     @Override
     public String key() {
@@ -143,8 +130,9 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  @AutoService(CommandGroup.class)
   public static class CoreCommandGroup extends BaseCommandGroup {
+
+    private CoreCommandGroup() {}
 
     @Override
     public String key() {
@@ -165,8 +153,9 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  @AutoService(CommandGroup.class)
   public static class ProcessCommandGroup extends BaseCommandGroup {
+
+    private ProcessCommandGroup() {}
 
     @Override
     public String key() {
@@ -187,8 +176,9 @@ public class CommandGroups {
   /**
    * @since 4.0.0
    */
-  @AutoService(CommandGroup.class)
   public static class OtherCommandGroup extends BaseCommandGroup {
+
+    private OtherCommandGroup() {}
 
     @Override
     public String key() {

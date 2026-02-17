@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.crypto.CryptoUtils;
 import org.apache.accumulo.core.data.Key;
@@ -45,6 +45,7 @@ import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -52,23 +53,23 @@ import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
 import org.apache.accumulo.tserver.log.ResolvedSortedLog;
+import org.apache.accumulo.tserver.logger.LogReader.ReaderOpts;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 @AutoService(KeywordExecutable.class)
-public class LogReader implements KeywordExecutable {
+public class LogReader extends ServerKeywordExecutable<ReaderOpts> {
 
   private static final Logger log = LoggerFactory.getLogger(LogReader.class);
 
-  static class Opts extends ConfigOpts {
+  static class ReaderOpts extends ServerOpts {
     @Parameter(names = "-e",
         description = "Don't read full log and print only encryption information")
     boolean printOnlyEncryptionInfo = false;
@@ -85,13 +86,8 @@ public class LogReader implements KeywordExecutable {
     List<String> files = new ArrayList<>();
   }
 
-  /**
-   * Dump a Log File to stdout. Will read from HDFS or local file system.
-   *
-   * @param args - first argument is the file to print
-   */
-  public static void main(String[] args) throws Exception {
-    new LogReader().execute(args);
+  public LogReader() {
+    super(new ReaderOpts());
   }
 
   @Override
@@ -109,19 +105,14 @@ public class LogReader implements KeywordExecutable {
     return CommandGroups.OTHER;
   }
 
-  @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "System.exit is fine here because it's a utility class executed by a main()")
   @Override
-  public void execute(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs("accumulo wal-info", args);
+  public void execute(JCommander cl, ReaderOpts opts) throws Exception {
     if (opts.files.isEmpty()) {
-      System.err.println("No WAL files were given");
-      System.exit(1);
+      throw new IllegalArgumentException("No WAL files were given");
     }
 
     var siteConfig = opts.getSiteConfiguration();
-    ServerContext context = new ServerContext(siteConfig);
+    ServerContext context = getServerContext();
     try (VolumeManager fs = context.getVolumeManager()) {
       var walCryptoService = CryptoFactoryLoader.getServiceForClient(CryptoEnvironment.Scope.WAL,
           siteConfig.getAllCryptoProperties());

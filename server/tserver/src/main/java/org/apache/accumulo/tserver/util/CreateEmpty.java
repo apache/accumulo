@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
 import org.apache.accumulo.core.crypto.CryptoUtils;
@@ -40,16 +40,19 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
+import org.apache.accumulo.tserver.util.CreateEmpty.CreateEmptyOpts;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IParameterValidator;
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
@@ -59,7 +62,7 @@ import com.google.auto.service.AutoService;
  * to a path.
  */
 @AutoService(KeywordExecutable.class)
-public class CreateEmpty implements KeywordExecutable {
+public class CreateEmpty extends ServerKeywordExecutable<CreateEmptyOpts> {
   private static final Logger LOG = LoggerFactory.getLogger(CreateEmpty.class);
   public static final String RF_EXTENSION = ".rf";
   public static final String WAL_EXTENSION = ".wal";
@@ -85,7 +88,7 @@ public class CreateEmpty implements KeywordExecutable {
     }
   }
 
-  static class Opts extends ConfigOpts {
+  static class CreateEmptyOpts extends ServerOpts {
     @Parameter(names = {"-c", "--codec"}, description = "the compression codec to use.",
         validateWith = IsSupportedCompressionAlgorithm.class)
     String codec = new NoCompression().getName();
@@ -106,8 +109,13 @@ public class CreateEmpty implements KeywordExecutable {
 
   }
 
+  // called from RecoveryWithEmptyRFileIT
   public static void main(String[] args) throws Exception {
     new CreateEmpty().execute(args);
+  }
+
+  public CreateEmpty() {
+    super(new CreateEmptyOpts());
   }
 
   @Override
@@ -126,27 +134,21 @@ public class CreateEmpty implements KeywordExecutable {
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-
-    Opts opts = new Opts();
-    opts.parseArgs("accumulo create-empty", args);
-
-    var siteConfig = opts.getSiteConfiguration();
-    try (ServerContext context = new ServerContext(siteConfig)) {
-      switch (opts.fileType) {
-        case RF:
-          createEmptyRFile(opts, context);
-          break;
-        case WAL:
-          createEmptyWal(opts, context);
-          break;
-        default:
-          throw new ParameterException("file type must be RF or WAL, received: " + opts.fileType);
-      }
+  public void execute(JCommander cl, CreateEmptyOpts opts) throws Exception {
+    switch (opts.fileType) {
+      case RF:
+        createEmptyRFile(opts, getServerContext());
+        break;
+      case WAL:
+        createEmptyWal(opts, getServerContext());
+        break;
+      default:
+        throw new ParameterException("file type must be RF or WAL, received: " + opts.fileType);
     }
   }
 
-  void createEmptyRFile(final Opts opts, final ServerContext context) throws IOException {
+  void createEmptyRFile(final CreateEmptyOpts opts, final ServerContext context)
+      throws IOException {
     var vm = context.getVolumeManager();
 
     CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.TABLE);
@@ -167,7 +169,7 @@ public class CreateEmpty implements KeywordExecutable {
     }
   }
 
-  void createEmptyWal(Opts opts, ServerContext context) throws IOException {
+  void createEmptyWal(CreateEmptyOpts opts, ServerContext context) throws IOException {
     final LogFileValue EMPTY = new LogFileValue();
 
     var vm = context.getVolumeManager();

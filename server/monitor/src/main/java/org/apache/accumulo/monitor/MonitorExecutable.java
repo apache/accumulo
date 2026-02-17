@@ -18,28 +18,16 @@
  */
 package org.apache.accumulo.monitor;
 
-import org.apache.accumulo.start.spi.CommandGroup;
-import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class MonitorExecutable implements KeywordExecutable {
+public class MonitorExecutable extends ServerProcessKeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "monitor";
-  }
-
-  @Override
-  public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo monitor";
+  public MonitorExecutable() {
+    super("monitor", "Monitor");
   }
 
   @Override

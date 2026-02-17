@@ -25,6 +25,7 @@ import java.util.Map.Entry;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
@@ -37,23 +38,50 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Cu
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.io.Text;
+
+import com.beust.jcommander.JCommander;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class CheckForMetadataProblems {
+@AutoService(KeywordExecutable.class)
+public class CheckForMetadataProblems extends ServerKeywordExecutable<ServerOpts> {
 
-  private static boolean checkTable(TableId tableId, TreeSet<KeyExtent> tablets,
-      ServerUtilOpts opts, Consumer<String> printInfoMethod, Consumer<String> printProblemMethod) {
+  public CheckForMetadataProblems() {
+    super(new ServerOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "check-metadata";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.ADMIN;
+  }
+
+  @Override
+  public String description() {
+    return "Checks root and metadata table entries for problems";
+  }
+
+  private static boolean checkTable(ServerContext context, TableId tableId,
+      TreeSet<KeyExtent> tablets, ServerOpts opts, Consumer<String> printInfoMethod,
+      Consumer<String> printProblemMethod) {
     // sanity check of metadata table entries
     // make sure tablets have no holes, and that it starts and ends w/ null
     String tableName;
     boolean sawProblems = false;
 
     try {
-      tableName = opts.getServerContext().getQualifiedTableName(tableId);
+      tableName = context.getQualifiedTableName(tableId);
     } catch (TableNotFoundException e) {
       tableName = null;
     }
@@ -113,17 +141,16 @@ public class CheckForMetadataProblems {
     return sawProblems;
   }
 
-  public static boolean checkMetadataAndRootTableEntries(String tableNameToCheck,
-      ServerUtilOpts opts, Consumer<String> printInfoMethod, Consumer<String> printProblemMethod)
-      throws Exception {
-    TableId tableCheckId = opts.getServerContext().getTableId(tableNameToCheck);
+  public static boolean checkMetadataAndRootTableEntries(ServerContext context,
+      String tableNameToCheck, ServerOpts opts, Consumer<String> printInfoMethod,
+      Consumer<String> printProblemMethod) throws Exception {
+    TableId tableCheckId = context.getTableId(tableNameToCheck);
     printInfoMethod.accept(String.format("Checking tables whose metadata is found in: %s (%s)...\n",
         tableNameToCheck, tableCheckId));
     Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
     boolean sawProblems = false;
 
-    try (Scanner scanner =
-        opts.getServerContext().createScanner(tableNameToCheck, Authorizations.EMPTY)) {
+    try (Scanner scanner = context.createScanner(tableNameToCheck, Authorizations.EMPTY)) {
 
       scanner.setRange(TabletsSection.getRange());
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
@@ -147,8 +174,8 @@ public class CheckForMetadataProblems {
         if (tablets == null) {
 
           for (var e : tables.entrySet()) {
-            sawProblems = CheckForMetadataProblems.checkTable(e.getKey(), e.getValue(), opts,
-                printInfoMethod, printProblemMethod) || sawProblems;
+            sawProblems = CheckForMetadataProblems.checkTable(context, e.getKey(), e.getValue(),
+                opts, printInfoMethod, printProblemMethod) || sawProblems;
           }
 
           tables.clear();
@@ -178,7 +205,7 @@ public class CheckForMetadataProblems {
     }
 
     for (var e : tables.entrySet()) {
-      sawProblems = CheckForMetadataProblems.checkTable(e.getKey(), e.getValue(), opts,
+      sawProblems = CheckForMetadataProblems.checkTable(context, e.getKey(), e.getValue(), opts,
           printInfoMethod, printProblemMethod) || sawProblems;
     }
 
@@ -190,18 +217,18 @@ public class CheckForMetadataProblems {
     return sawProblems;
   }
 
-  public static void main(String[] args) throws Exception {
-    ServerUtilOpts opts = new ServerUtilOpts();
-    opts.parseArgs(CheckForMetadataProblems.class.getName(), args);
+  @Override
+  public void execute(JCommander cl, ServerOpts options) throws Exception {
     Span span = TraceUtil.startSpan(CheckForMetadataProblems.class, "main");
     boolean sawProblems;
     try (Scope scope = span.makeCurrent()) {
 
-      sawProblems = checkMetadataAndRootTableEntries(SystemTables.ROOT.tableName(), opts,
-          System.out::println, System.out::println);
+      sawProblems = checkMetadataAndRootTableEntries(getServerContext(),
+          SystemTables.ROOT.tableName(), options, System.out::println, System.out::println);
       System.out.println();
-      sawProblems = checkMetadataAndRootTableEntries(SystemTables.METADATA.tableName(), opts,
-          System.out::println, System.out::println) || sawProblems;
+      sawProblems =
+          checkMetadataAndRootTableEntries(getServerContext(), SystemTables.METADATA.tableName(),
+              options, System.out::println, System.out::println) || sawProblems;
       if (sawProblems) {
         throw new IllegalStateException();
       }
@@ -213,4 +240,9 @@ public class CheckForMetadataProblems {
     }
   }
 
+  // This is called from SplitIT
+  public static void main(String[] args) throws Exception {
+    CheckForMetadataProblems check = new CheckForMetadataProblems();
+    check.execute(args);
+  }
 }

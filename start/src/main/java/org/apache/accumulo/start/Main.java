@@ -53,8 +53,8 @@ public class Main {
       return;
     }
 
-    Set<CommandGroup> usageGroups = CommandGroups.getGroups();
     Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(loader);
+    Set<CommandGroup> usageGroups = executables.keySet();
 
     // The commands in the CLIENT group may be specified without a group name. For example,
     // instead of `accumulo client shell`, we support the user supplying `accumulo shell`.
@@ -78,7 +78,7 @@ public class Main {
       argOffset = 2;
       CommandGroup ug = null;
       try {
-        ug = usageGroups.stream().filter(g -> g.title().equalsIgnoreCase(group)).findFirst()
+        ug = usageGroups.stream().filter(g -> g.key().equalsIgnoreCase(group)).findFirst()
             .orElseThrow();
         ke = executables.get(ug).get(cmd);
       } catch (NoSuchElementException e) {
@@ -233,9 +233,9 @@ public class Main {
       checkDuplicates(final Iterable<? extends KeywordExecutable> services) {
     TreeSet<BanKey> banList = new TreeSet<>();
     Map<CommandGroup,Map<String,KeywordExecutable>> results = new TreeMap<>();
-    CommandGroups.getGroups().forEach(ug -> results.put(ug, new TreeMap<>()));
     for (KeywordExecutable service : services) {
       CommandGroup group = service.commandGroup();
+      results.putIfAbsent(group, new TreeMap<>());
       String keyword = service.keyword();
       BanKey bk = new BanKey(group, keyword);
       if (banList.contains(bk)) {
