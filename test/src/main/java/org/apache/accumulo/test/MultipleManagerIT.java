@@ -67,14 +67,14 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       var splits = IntStream.range(1, 10).mapToObj(i -> String.format("%03d", i)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
       var tableOpFutures = new ArrayList<Future<?>>();
-      for (int i = 0; i < 1; i++) {
+      for (int i = 0; i < 100; i++) {
         var table = "t" + i;
         // TODO seeing in the logs that fate operations for the same table are running on different
         // processes, however there is a 5 second delay because there is no notification mechanism
         // currently.
 
         // TODO its hard to find everything related to a table id in the logs, especially when the
-        // table id is like "b". Was tring to follow a single table across multiple manager workers
+        // table id is like "b". Was trying to follow a single table across multiple manager workers
         // processes.
         var tableOpsFuture = executor.submit(() -> {
           client.tableOperations().create(table);

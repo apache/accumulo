@@ -46,7 +46,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
-import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * Partitions fate across manager assistant processes. This is done by assigning ranges of the fate
@@ -189,8 +188,6 @@ public class FateManager {
 
   private class NotifyTask implements Runnable {
 
-    private final RateLimiter rateLimiter = RateLimiter.create(100);
-
     @Override
     public void run() {
       while (!stop.get()) {
@@ -204,15 +201,13 @@ public class FateManager {
             pendingNotifications.clear();
           }
 
-          rateLimiter.acquire();
-
           for (var entry : copy.entrySet()) {
             HostAndPort address = entry.getKey();
             Set<FatePartition> partitions = entry.getValue();
             FateWorkerService.Client client =
                 ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
             try {
-              log.debug("Notifying about seeding {} {}", address, partitions);
+              log.trace("Notifying about seeding {} {}", address, partitions);
               client.seeded(TraceUtil.traceInfo(), context.rpcCreds(),
                   partitions.stream().map(FatePartition::toThrift).toList());
             } finally {

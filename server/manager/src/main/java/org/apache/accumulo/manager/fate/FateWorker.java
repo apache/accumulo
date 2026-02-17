@@ -132,7 +132,12 @@ public class FateWorker implements FateWorkerService.Iface {
   @Override
   public void seeded(TInfo tinfo, TCredentials credentials, List<TFatePartition> tpartitions)
       throws TException {
-    // TODO check the partitions
+
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
     Fate<FateEnv> localFate;
     synchronized (this) {
       localFate = fate;

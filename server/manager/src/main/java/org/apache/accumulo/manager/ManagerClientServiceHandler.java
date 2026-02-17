@@ -67,6 +67,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
@@ -806,13 +807,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void event(TInfo tinfo, TCredentials credentials) throws TException {
+  public void processEvents(TInfo tinfo, TCredentials credentials, List<TEvent> tEvents)
+      throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    manager.getEventCoordinator().event("External event");
+    manager.getEventCoordinator().events(tEvents.stream().map(EventCoordinator.Event::fromThrift)
+        .peek(event -> log.trace("remote event : {}", event)).iterator());
   }
 
   protected TableId getTableId(ClientContext context, String tableName)

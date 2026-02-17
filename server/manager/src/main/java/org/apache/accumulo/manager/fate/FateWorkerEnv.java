@@ -22,6 +22,7 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -37,7 +38,9 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.manager.EventPublisher;
+import org.apache.accumulo.manager.EventQueue;
 import org.apache.accumulo.manager.split.SplitFileCache;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
@@ -45,10 +48,13 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.thrift.TException;
-
-import com.google.common.util.concurrent.RateLimiter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FateWorkerEnv implements FateEnv {
+
+  private static final Logger log = LoggerFactory.getLogger(FateWorkerEnv.class);
+
   private final ServerContext ctx;
   private final ExecutorService refreshPool;
   private final ExecutorService renamePool;
@@ -57,35 +63,25 @@ public class FateWorkerEnv implements FateEnv {
   private final SplitFileCache splitCache;
   private final EventHandler eventHandler;
 
-  private final Object eventLockObj = new Object();
-  private boolean eventQueued = false;
-
-  private void queueEvent() {
-    synchronized (eventLockObj) {
-      eventQueued = true;
-      eventLockObj.notify();
-    }
-  }
+  private final EventQueue queue = new EventQueue();
 
   private class EventSender implements Runnable {
-    private final RateLimiter rateLimiter = RateLimiter.create(20);
-
     @Override
     public void run() {
+      // TODO check for stop condition
       while (true) {
         try {
-          synchronized (eventLockObj) {
-            if (!eventQueued) {
-              eventLockObj.wait();
-            }
+          var events = queue.poll(100, TimeUnit.MILLISECONDS);
+          if (events.isEmpty()) {
+            continue;
           }
 
-          rateLimiter.acquire();
+          var tEvents = events.stream().map(EventCoordinator.Event::toThrift).toList();
 
           var client = ThriftClientTypes.MANAGER.getConnection(ctx);
           try {
             if (client != null) {
-              client.event(TraceUtil.traceInfo(), ctx.rpcCreds());
+              client.processEvents(TraceUtil.traceInfo(), ctx.rpcCreds(), tEvents);
             }
           } catch (TException e) {
             // TODO
@@ -108,27 +104,34 @@ public class FateWorkerEnv implements FateEnv {
 
     @Override
     public void event(String msg, Object... args) {
-      queueEvent();
+      log.info(String.format(msg, args));
+      queue.add(new EventCoordinator.Event());
     }
 
     @Override
     public void event(Ample.DataLevel level, String msg, Object... args) {
-      queueEvent();
+      log.info(String.format(msg, args));
+      queue.add(new EventCoordinator.Event(level));
     }
 
     @Override
     public void event(TableId tableId, String msg, Object... args) {
-      queueEvent();
+      log.info(String.format(msg, args));
+      queue.add(new EventCoordinator.Event(tableId));
     }
 
     @Override
     public void event(KeyExtent extent, String msg, Object... args) {
-      queueEvent();
+      log.debug(String.format(msg, args));
+      queue.add(new EventCoordinator.Event(extent));
     }
 
     @Override
     public void event(Collection<KeyExtent> extents, String msg, Object... args) {
-      queueEvent();
+      if (!extents.isEmpty()) {
+        log.debug(String.format(msg, args));
+        extents.forEach(extent -> queue.add(new EventCoordinator.Event(extent)));
+      }
     }
   }
 

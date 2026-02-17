@@ -50,9 +50,10 @@ service FateWorkerService {
      1:client.ThriftSecurityException sec
    )
 
-  oneway void seeded(
+  // TODO drop oneway and rate limiter
+  void seeded(
     1:client.TInfo tinfo,
     2:security.TCredentials credentials,
     3:list<TFatePartition> tpartitions
-   ) 
+   )
 }

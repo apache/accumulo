@@ -441,6 +441,7 @@ public class Fate<T> {
       }
     }
 
+    log.trace("Notified of seeding for {}", partitions);
     store.seeded();
   }
 
