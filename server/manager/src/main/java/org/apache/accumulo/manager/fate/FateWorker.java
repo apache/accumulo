@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.fate;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -51,6 +52,7 @@ public class FateWorker implements FateWorkerService.Iface {
   private final ServerContext context;
   private final AuditedSecurityOperation security;
   private volatile Fate<FateEnv> fate;
+  private volatile FateWorkerEnv fateWorkerEnv;
 
   public FateWorker(ServerContext ctx) {
     this.context = ctx;
@@ -61,12 +63,12 @@ public class FateWorker implements FateWorkerService.Iface {
   }
 
   public void setLock(ServiceLock lock) {
-    FateEnv env = new FateWorkerEnv(context, lock);
+    fateWorkerEnv = new FateWorkerEnv(context, lock);
     Predicate<ZooUtil.LockID> isLockHeld = l -> ServiceLock.isLockHeld(context.getZooCache(), l);
     UserFateStore<FateEnv> store =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
-    this.fate = new Fate<>(env, store, false, TraceRepo::toLogString, context.getConfiguration(),
-        context.getScheduledExecutor());
+    this.fate = new Fate<>(fateWorkerEnv, store, false, TraceRepo::toLogString,
+        context.getConfiguration(), context.getScheduledExecutor());
   }
 
   private Long expectedUpdateId = null;
@@ -144,5 +146,11 @@ public class FateWorker implements FateWorkerService.Iface {
     if (localFate != null) {
       localFate.seeded(tpartitions.stream().map(FatePartition::from).collect(Collectors.toSet()));
     }
+  }
+
+  public void stop() {
+    fate.shutdown(1, TimeUnit.MINUTES);
+    fate.close();
+    fateWorkerEnv.stop();
   }
 }

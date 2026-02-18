@@ -18,14 +18,17 @@
  */
 package org.apache.accumulo.manager.fate;
 
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
+
 import java.util.Collection;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -36,6 +39,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.EventCoordinator;
@@ -64,12 +68,22 @@ public class FateWorkerEnv implements FateEnv {
   private final EventHandler eventHandler;
 
   private final EventQueue queue = new EventQueue();
+  private final AtomicBoolean stopped = new AtomicBoolean(false);
+  private final Thread eventSendThread;
+
+  public void stop() {
+    stopped.set(true);
+    try {
+      eventSendThread.join();
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
   private class EventSender implements Runnable {
     @Override
     public void run() {
-      // TODO check for stop condition
-      while (true) {
+      while (!stopped.get()) {
         try {
           var events = queue.poll(100, TimeUnit.MILLISECONDS);
           if (events.isEmpty()) {
@@ -84,8 +98,7 @@ public class FateWorkerEnv implements FateEnv {
               client.processEvents(TraceUtil.traceInfo(), ctx.rpcCreds(), tEvents);
             }
           } catch (TException e) {
-            // TODO
-            e.printStackTrace();
+            log.warn("Failed to send events to manager", e);
           } finally {
             if (client != null) {
               ThriftUtil.close(client, ctx);
@@ -93,8 +106,7 @@ public class FateWorkerEnv implements FateEnv {
           }
 
         } catch (InterruptedException e) {
-          // TODO
-          e.printStackTrace();
+          throw new IllegalStateException(e);
         }
       }
     }
@@ -137,15 +149,22 @@ public class FateWorkerEnv implements FateEnv {
 
   FateWorkerEnv(ServerContext ctx, ServiceLock lock) {
     this.ctx = ctx;
-    // TODO create the proper way
-    this.refreshPool = Executors.newFixedThreadPool(2);
-    this.renamePool = Executors.newFixedThreadPool(2);
+    this.refreshPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
+        .numCoreThreads(ctx.getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
+        .numMaxThreads(ctx.getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
+        .build();
+    int poolSize = ctx.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
+    // FOLLOW_ON this import table name is not correct for the thread pool name, fix in stand alone
+    // PR
+    this.renamePool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
     this.serviceLock = lock;
     this.tservers = new LiveTServerSet(ctx);
     this.splitCache = new SplitFileCache(ctx);
     this.eventHandler = new EventHandler();
 
-    Threads.createCriticalThread("Fate Worker Event Sender", new EventSender()).start();
+    eventSendThread = Threads.createCriticalThread("Fate Worker Event Sender", new EventSender());
+    eventSendThread.start();
   }
 
   @Override

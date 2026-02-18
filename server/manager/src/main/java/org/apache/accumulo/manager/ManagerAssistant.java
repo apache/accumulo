@@ -150,6 +150,7 @@ public class ManagerAssistant {
 
   public void stop() {
     thriftServer.server.stop();
+    fateWorker.stop();
   }
 
   public ServiceLock getLock() {
