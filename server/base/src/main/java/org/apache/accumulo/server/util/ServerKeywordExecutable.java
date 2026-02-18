@@ -31,14 +31,17 @@ import com.beust.jcommander.JCommander;
 public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
     extends BaseKeywordExecutable<OPTS> {
 
-  private final ServerContext context;
+  private ServerContext context;
 
   public ServerKeywordExecutable(OPTS options) {
     super(options);
-    context = new ServerContext(SiteConfiguration.auto());
   }
 
-  public ServerContext getServerContext() {
+  public synchronized ServerContext getServerContext() {
+    if(context == null){
+      context = new ServerContext(SiteConfiguration.auto());
+    }
+
     if (context.isClosed()) {
       throw new IllegalStateException(
           "Cannot use context after execute method has completed. Context is closed.");
