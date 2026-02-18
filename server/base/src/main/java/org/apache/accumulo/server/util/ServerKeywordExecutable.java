@@ -38,7 +38,7 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
   }
 
   public synchronized ServerContext getServerContext() {
-    if(context == null){
+    if (context == null) {
       context = new ServerContext(SiteConfiguration.auto());
     }
 
