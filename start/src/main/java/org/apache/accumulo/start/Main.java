@@ -198,14 +198,24 @@ public class Main {
     System.out.println("    accumulo classpath");
     System.out.println("    accumulo jshell (<argument> ...)");
     System.out.println("    accumulo className (<argument> ...)");
-    System.out.println("    accumulo <group>* <command> [--help] (<argument> ...)");
-    System.out.println("    * group may be omitted for commands with 'CLIENT' group\n\n");
+    System.out.println("    accumulo <command>* <subcommand> [--help] (<argument> ...)");
+    System.out.println("    * client commands can be run using 'accumulo <subcommand> ...'\n");
 
     Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
+
+    System.out.println(CommandGroups.CLIENT.title() + " Commands:");
+    executables.get(CommandGroups.CLIENT).entrySet().forEach(ce -> {
+      System.out.printf("  %-30s %s\n", ce.getValue().usage(), ce.getValue().description());
+    });
+
+    System.out.println("\nThe following commands require access to the accumulo.properties file\n");
+
     executables.entrySet().forEach(e -> {
-      System.out.println("\n" + e.getKey().title() + " Group Commands:");
-      e.getValue().values()
-          .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
+      if (e.getKey() != CommandGroups.CLIENT) {
+        System.out.println("\n" + e.getKey().title() + " Commands:");
+        e.getValue().values()
+            .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
+      }
     });
     System.out.println();
   }

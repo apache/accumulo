@@ -93,7 +93,7 @@ public class StopServers extends ServerKeywordExecutable<StopServerOpts> {
 
   @Override
   public String description() {
-    return "Stop the servers at the given addresses allowing them to complete current task but not start new task.  Hostnames only are no longer supported; you must use <host:port>. To Stop all services on a host, use 'accumulo admin service-status' to list all hosts and then pass them to this command.";
+    return "Stops the servers at the supplied addresses.";
   }
 
   @Override
