@@ -63,9 +63,9 @@ public class FateWorkerEnv implements FateEnv {
   private final ExecutorService refreshPool;
   private final ExecutorService renamePool;
   private final ServiceLock serviceLock;
-  private final LiveTServerSet tservers;
   private final SplitFileCache splitCache;
   private final EventHandler eventHandler;
+  private final LiveTServerSet liveTServerSet;
 
   private final EventQueue queue = new EventQueue();
   private final AtomicBoolean stopped = new AtomicBoolean(false);
@@ -147,7 +147,7 @@ public class FateWorkerEnv implements FateEnv {
     }
   }
 
-  FateWorkerEnv(ServerContext ctx, ServiceLock lock) {
+  FateWorkerEnv(ServerContext ctx, ServiceLock lock, LiveTServerSet liveTserverSet) {
     this.ctx = ctx;
     this.refreshPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
         .numCoreThreads(ctx.getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
@@ -159,9 +159,9 @@ public class FateWorkerEnv implements FateEnv {
     this.renamePool = ThreadPools.getServerThreadPools()
         .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
     this.serviceLock = lock;
-    this.tservers = new LiveTServerSet(ctx);
     this.splitCache = new SplitFileCache(ctx);
     this.eventHandler = new EventHandler();
+    this.liveTServerSet = liveTserverSet;
 
     eventSendThread = Threads.createCriticalThread("Fate Worker Event Sender", new EventSender());
     eventSendThread.start();
@@ -187,7 +187,7 @@ public class FateWorkerEnv implements FateEnv {
 
   @Override
   public Set<TServerInstance> onlineTabletServers() {
-    return tservers.getSnapshot().getTservers();
+    return liveTServerSet.getSnapshot().getTservers();
   }
 
   @Override

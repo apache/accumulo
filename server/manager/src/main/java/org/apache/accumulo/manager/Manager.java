@@ -113,7 +113,7 @@ import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
-import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsWatcher;
+import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.SplitFileCache;
 import org.apache.accumulo.manager.split.Splitter;
@@ -148,6 +148,7 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
@@ -959,10 +960,20 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
 
+    tserverSet.startListeningForTabletServerChanges(this);
+
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+
     // Start manager assistant before getting lock, this allows non primary manager processes to
     // work on stuff.
-    assitantManager = new ManagerAssistant(getContext(), getBindAddress());
+    assitantManager =
+        new ManagerAssistant(getContext(), getBindAddress(), tserverSet, this::createFateInstance);
     assitantManager.start();
+    metricsInfo
+        .addMetricsProducers(assitantManager.getMetricsProducers().toArray(new MetricsProducer[0]));
+
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
 
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
@@ -999,7 +1010,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    tserverSet.startListeningForTabletServerChanges(this);
     try {
       blockForTservers();
     } catch (InterruptedException ex) {
@@ -1024,9 +1034,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    List<MetricsProducer> producers = new ArrayList<>();
-    producers.add(balanceManager.getMetrics());
+    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
 
     final TabletGroupWatcher userTableTGW =
         new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
@@ -1148,43 +1156,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     this.splitter.start();
     this.splitFileCache = new SplitFileCache(context);
 
-    try {
-      Predicate<ZooUtil.LockID> isLockHeld =
-          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      var metaInstance = initializeFateInstance(context,
-          new MetaFateStore<>(context.getZooSession(), managerLock.getLockID(), isLockHeld));
-      var userFateClient =
-          new FateClient<FateEnv>(new UserFateStore<>(context, SystemTables.FATE.tableName(),
-              managerLock.getLockID(), isLockHeld), TraceRepo::toLogString);
-
-      if (!fateClients.compareAndSet(null,
-          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userFateClient))) {
-        throw new IllegalStateException(
-            "Unexpected previous fateClient reference map already initialized");
-      }
-      if (!fateRefs.compareAndSet(null, Map.of(FateInstanceType.META, metaInstance))) {
-        throw new IllegalStateException(
-            "Unexpected previous fate reference map already initialized");
-      }
-      managerMetrics.configureFateMetrics(getConfiguration(), this);
-      fateReadyLatch.countDown();
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
-    }
+    setupFate(context, metricsInfo);
 
     fateManager = new FateManager(getContext());
     fateManager.start();
     fateClient(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
 
-    var metaFateExecutorMetrics =
-        new FateExecutorMetricsWatcher(context, fate(FateInstanceType.META).getFateExecutors(),
-            getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
-    producers.add(metaFateExecutorMetrics);
-
-    producers.addAll(managerMetrics.getProducers(this));
-    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+    metricsInfo
+        .addMetricsProducers(managerMetrics.getProducers(this).toArray(new MetricsProducer[0]));
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
@@ -1312,28 +1291,56 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     Thread.sleep(500);
   }
 
-  protected Fate<FateEnv> initializeFateInstance(ServerContext context, FateStore<FateEnv> store) {
+  /**
+   * This method exist so test can hook creating a fate instance.
+   */
+  @VisibleForTesting
+  protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
+      ServerContext context) {
+    return new Fate<>(env, store, true, TraceRepo::toLogString, getConfiguration(),
+        context.getScheduledExecutor());
+  }
 
-    final Fate<FateEnv> fateInstance = new Fate<>(this, store, true, TraceRepo::toLogString,
-        getConfiguration(), context.getScheduledExecutor());
+  private void setupFate(ServerContext context, MetricsInfo metricsInfo) {
+    try {
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
+      var metaStore =
+          new MetaFateStore<FateEnv>(context.getZooSession(), managerLock.getLockID(), isLockHeld);
+      var metaInstance = createFateInstance(this, metaStore, context);
+      // configure this instance to process all data
+      metaInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
+      var userStore = new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(),
+          managerLock.getLockID(), isLockHeld);
+      var userFateClient = new FateClient<FateEnv>(userStore, TraceRepo::toLogString);
 
-    var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
-    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-        .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
+      var metaCleaner = new FateCleaner<>(metaStore, Duration.ofHours(8), this::getSteadyTime);
+      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+          .scheduleWithFixedDelay(metaCleaner::ageOff, 10, 4 * 60, MINUTES));
+      var userCleaner = new FateCleaner<>(userStore, Duration.ofHours(8), this::getSteadyTime);
+      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+          .scheduleWithFixedDelay(userCleaner::ageOff, 10, 4 * 60, MINUTES));
 
-    if (store.type() == FateInstanceType.META) {
-      fateInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
-    } else if (store.type() == FateInstanceType.USER) {
-      // Do not run user transactions for now in the manager... it will have an empty set of
-      // partitions. Ideally the primary manager would not need a fate instance, but it uses to seed
-      // work and wait for work. Would be best to pull these operations like seeding and waiting for
-      // work to an independent class.
-      fateInstance.setPartitions(Set.of());
-    } else {
-      throw new IllegalStateException("Unknown fate type " + store.type());
+      if (!fateClients.compareAndSet(null,
+          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userFateClient))) {
+        throw new IllegalStateException(
+            "Unexpected previous fateClient reference map already initialized");
+      }
+      if (!fateRefs.compareAndSet(null, Map.of(FateInstanceType.META, metaInstance))) {
+        throw new IllegalStateException(
+            "Unexpected previous fate reference map already initialized");
+      }
+
+      managerMetrics.configureFateMetrics(getConfiguration(), this);
+      fateReadyLatch.countDown();
+
+      var metaFateExecutorMetrics = new FateExecutorMetricsProducer(context,
+          fate(FateInstanceType.META).getFateExecutors(),
+          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
+      metricsInfo.addMetricsProducers(metaFateExecutorMetrics);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
-
-    return fateInstance;
   }
 
   /**

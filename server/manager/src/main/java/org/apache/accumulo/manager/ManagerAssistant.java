@@ -21,6 +21,7 @@ package org.apache.accumulo.manager;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 
 import java.net.UnknownHostException;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -33,8 +34,11 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.manager.fate.FateWorker;
+import org.apache.accumulo.manager.fate.FateWorker.FateFactory;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -54,16 +58,21 @@ public class ManagerAssistant {
   private static final Logger log = LoggerFactory.getLogger(ManagerAssistant.class);
   private final ServerContext context;
   private final String bindAddress;
+  private final LiveTServerSet liveTServerSet;
+  private final FateFactory fateFactory;
   private volatile ServiceLock managerWorkerLock;
   private FateWorker fateWorker;
-  private volatile ServerAddress thriftServer;
+  private ServerAddress thriftServer;
 
-  protected ManagerAssistant(ServerContext context, String bindAddress) {
+  protected ManagerAssistant(ServerContext context, String bindAddress,
+      LiveTServerSet liveTServerSet, FateFactory fateFactory) {
     // create another server context because the server context has the lock...
     // TODO creating another context instance in the process may cause problems, like duplicating
     // some thread pools
     this.context = new ServerContext(context.getSiteConfiguration());
     this.bindAddress = bindAddress;
+    this.liveTServerSet = liveTServerSet;
+    this.fateFactory = fateFactory;
   }
 
   public ServerContext getContext() {
@@ -75,7 +84,7 @@ public class ManagerAssistant {
   }
 
   private HostAndPort startClientService() throws UnknownHostException {
-    fateWorker = new FateWorker(getContext());
+    fateWorker = new FateWorker(getContext(), liveTServerSet, fateFactory);
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
@@ -84,7 +93,7 @@ public class ManagerAssistant {
 
     // TODO should the minthreads and timeout have their own props? Probably, do not expect this to
     // have lots of RPCs so could be less.
-    var thriftServer = TServerUtils.createThriftServer(getContext(), bindAddress,
+    thriftServer = TServerUtils.createThriftServer(getContext(), bindAddress,
         Property.MANAGER_ASSISTANT_PORT, processor, this.getClass().getSimpleName(),
         Property.MANAGER_ASSISTANT_PORTSEARCH, Property.MANAGER_MINTHREADS,
         Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
@@ -155,5 +164,9 @@ public class ManagerAssistant {
 
   public ServiceLock getLock() {
     return managerWorkerLock;
+  }
+
+  public List<MetricsProducer> getMetricsProducers() {
+    return fateWorker.getMetricsProducers();
   }
 }

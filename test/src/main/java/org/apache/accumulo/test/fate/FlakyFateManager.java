@@ -35,10 +35,11 @@ public class FlakyFateManager extends Manager {
   }
 
   @Override
-  protected Fate<FateEnv> initializeFateInstance(ServerContext context, FateStore<FateEnv> store) {
+  protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
+      ServerContext context) {
     LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate for {}",
         store.type());
-    return new FlakyFate<>(this, store, TraceRepo::toLogString, getConfiguration());
+    return new FlakyFate<>(env, store, TraceRepo::toLogString, getConfiguration());
   }
 
   public static void main(String[] args) throws Exception {

@@ -27,8 +27,10 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FatePartition;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
 import org.apache.accumulo.core.fate.thrift.TFatePartition;
 import org.apache.accumulo.core.fate.thrift.TFatePartitions;
@@ -36,39 +38,48 @@ import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.LazySingletons;
+import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class FateWorker implements FateWorkerService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(FateWorker.class);
   private final ServerContext context;
   private final AuditedSecurityOperation security;
-  private volatile Fate<FateEnv> fate;
-  private volatile FateWorkerEnv fateWorkerEnv;
+  private final LiveTServerSet liveTserverSet;
+  private final FateFactory fateFactory;
+  private Fate<FateEnv> fate;
+  private FateWorkerEnv fateWorkerEnv;
 
-  public FateWorker(ServerContext ctx) {
+  public interface FateFactory {
+    Fate<FateEnv> create(FateEnv env, FateStore<FateEnv> store, ServerContext context);
+  }
+
+  public FateWorker(ServerContext ctx, LiveTServerSet liveTServerSet, FateFactory fateFactory) {
     this.context = ctx;
     this.security = ctx.getSecurityOperation();
     this.fate = null;
-    // TODO fate metrics... in the manager process it does not setup metrics until after it gets the
-    // lock... also may want these metrics tagged differently for the server
+    this.liveTserverSet = liveTServerSet;
+    this.fateFactory = fateFactory;
   }
 
-  public void setLock(ServiceLock lock) {
-    fateWorkerEnv = new FateWorkerEnv(context, lock);
+  public synchronized void setLock(ServiceLock lock) {
+    fateWorkerEnv = new FateWorkerEnv(context, lock, liveTserverSet);
     Predicate<ZooUtil.LockID> isLockHeld = l -> ServiceLock.isLockHeld(context.getZooCache(), l);
     UserFateStore<FateEnv> store =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
-    this.fate = new Fate<>(fateWorkerEnv, store, false, TraceRepo::toLogString,
-        context.getConfiguration(), context.getScheduledExecutor());
+    this.fate = fateFactory.create(fateWorkerEnv, store, context);
   }
 
   private Long expectedUpdateId = null;
@@ -81,8 +92,6 @@ public class FateWorker implements FateWorkerService.Iface {
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    var localFate = fate;
-
     // generate a new one time use update id
     long updateId = LazySingletons.RANDOM.get().nextLong();
 
@@ -94,11 +103,11 @@ public class FateWorker implements FateWorkerService.Iface {
       // id
       expectedUpdateId = updateId;
 
-      if (localFate == null) {
+      if (fate == null) {
         return new TFatePartitions(updateId, List.of());
       } else {
         return new TFatePartitions(updateId,
-            localFate.getPartitions().stream().map(FatePartition::toThrift).toList());
+            fate.getPartitions().stream().map(FatePartition::toThrift).toList());
       }
     }
   }
@@ -112,18 +121,17 @@ public class FateWorker implements FateWorkerService.Iface {
     }
 
     synchronized (this) {
-      var localFate = fate;
-      if (localFate != null && expectedUpdateId != null && updateId == expectedUpdateId) {
+      if (fate != null && expectedUpdateId != null && updateId == expectedUpdateId) {
         // Set to null which makes it so that an update id can only be used once.
         expectedUpdateId = null;
         var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
-        var oldPartitions = localFate.setPartitions(desiredSet);
+        var oldPartitions = fate.setPartitions(desiredSet);
         log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
         return true;
       } else {
         log.debug(
             "Did not change partitions to {} expectedUpdateId:{} updateId:{} localFate==null:{}",
-            desired, expectedUpdateId, updateId, localFate == null);
+            desired, expectedUpdateId, updateId, fate == null);
         return false;
       }
     }
@@ -148,9 +156,18 @@ public class FateWorker implements FateWorkerService.Iface {
     }
   }
 
-  public void stop() {
+  public synchronized void stop() {
     fate.shutdown(1, TimeUnit.MINUTES);
     fate.close();
     fateWorkerEnv.stop();
+    fate = null;
+    fateWorkerEnv = null;
+  }
+
+  public synchronized List<MetricsProducer> getMetricsProducers() {
+    Preconditions.checkState(fate != null, "Not started yet");
+    return List.of(new FateExecutorMetricsProducer(context, fate.getFateExecutors(), context
+        .getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+
   }
 }

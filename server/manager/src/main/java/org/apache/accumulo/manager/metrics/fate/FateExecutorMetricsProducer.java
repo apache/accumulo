@@ -31,14 +31,14 @@ import org.apache.accumulo.server.ServerContext;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class FateExecutorMetricsWatcher implements MetricsProducer {
+public class FateExecutorMetricsProducer implements MetricsProducer {
   private final Set<FateExecutor<FateEnv>> fateExecutors;
   private final ServerContext context;
   private final long refreshDelay;
   private MeterRegistry registry;
 
-  public FateExecutorMetricsWatcher(ServerContext context, Set<FateExecutor<FateEnv>> fateExecutors,
-      long minimumRefreshDelay) {
+  public FateExecutorMetricsProducer(ServerContext context,
+      Set<FateExecutor<FateEnv>> fateExecutors, long minimumRefreshDelay) {
     this.context = context;
     this.fateExecutors = fateExecutors;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
