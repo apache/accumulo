@@ -56,7 +56,8 @@ public class FateWorker implements FateWorkerService.Iface {
     this.context = ctx;
     this.security = ctx.getSecurityOperation();
     this.fate = null;
-    // TODO fate metrics
+    // TODO fate metrics... in the manager process it does not setup metrics until after it gets the
+    // lock... also may want these metrics tagged differently for the server
   }
 
   public void setLock(ServiceLock lock) {

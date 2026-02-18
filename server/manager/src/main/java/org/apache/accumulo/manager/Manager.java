@@ -113,6 +113,7 @@ import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
+import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsWatcher;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.SplitFileCache;
 import org.apache.accumulo.manager.split.Splitter;
@@ -1173,6 +1174,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     fateManager = new FateManager(getContext());
     fateManager.start();
     fateClient(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
+
+    var metaFateExecutorMetrics =
+        new FateExecutorMetricsWatcher(context, fate(FateInstanceType.META).getFateExecutors(),
+            getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
+    producers.add(metaFateExecutorMetrics);
 
     producers.addAll(managerMetrics.getProducers(this));
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
