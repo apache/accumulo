@@ -44,7 +44,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
+import com.google.common.collect.TreeRangeMap;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -64,8 +67,11 @@ public class FateManager {
 
   private final AtomicBoolean stop = new AtomicBoolean(false);
 
-  private final AtomicReference<Map<HostAndPort,Set<FatePartition>>> stableAssignments =
-      new AtomicReference<>(Map.of());
+  record FateHostPartition(HostAndPort hostPort, FatePartition partition) {
+  }
+
+  private final AtomicReference<RangeMap<FateId,FateHostPartition>> stableAssignments =
+      new AtomicReference<>(TreeRangeMap.create());
 
   private final Map<HostAndPort,Set<FatePartition>> pendingNotifications = new HashMap<>();
 
@@ -86,9 +92,16 @@ public class FateManager {
           computeDesiredAssignments(currentAssignments, desiredParititions);
 
       if (desired.equals(currentAssignments)) {
-        stableAssignments.set(Map.copyOf(currentAssignments));
+        RangeMap<FateId,FateHostPartition> rangeMap = TreeRangeMap.create();
+        currentAssignments.forEach((hostAndPort, partitions) -> {
+          partitions.forEach(partition -> {
+            rangeMap.put(Range.closed(partition.start(), partition.end()),
+                new FateHostPartition(hostAndPort, partition));
+          });
+        });
+        stableAssignments.set(rangeMap);
       } else {
-        stableAssignments.set(Map.of());
+        stableAssignments.set(TreeRangeMap.create());
       }
 
       // are there any workers with extra partitions? If so need to unload those first.
@@ -157,31 +170,57 @@ public class FateManager {
     ntfyThread.start();
   }
 
-  public synchronized void stop() throws InterruptedException {
-    stop.set(true);
-    if (thread != null) {
-      thread.join();
+  public synchronized void stop() {
+    if (!stop.compareAndSet(false, true)) {
+      return;
     }
-    if (ntfyThread != null) {
-      ntfyThread.join();
+
+    try {
+      if (thread != null) {
+        thread.join();
+      }
+      if (ntfyThread != null) {
+        ntfyThread.join();
+      }
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
     }
+    // Try to set every assistant manager to nothing.
+    Map<HostAndPort,CurrentPartitions> currentAssignments = null;
+    try {
+      currentAssignments = getCurrentAssignments();
+    } catch (TException e) {
+      log.warn("Failed to get current assignments", e);
+      currentAssignments = Map.of();
+    }
+    for (var entry : currentAssignments.entrySet()) {
+      var hostPort = entry.getKey();
+      var currentPartitions = entry.getValue();
+      if (!currentPartitions.partitions.isEmpty()) {
+        try {
+          setWorkerPartitions(hostPort, currentPartitions.updateId(), Set.of());
+        } catch (TException e) {
+          log.warn("Failed to unassign fate partitions {}", hostPort, e);
+        }
+      }
+    }
+
+    // TODO could wait for each assitant to finish any current operations
+
+    stableAssignments.set(TreeRangeMap.create());
+
   }
 
   /**
    * Makes a best effort to notify this fate operation was seeded.
    */
   public void notifySeeded(FateId fateId) {
-    // TODO avoid linear search
-    for (Map.Entry<HostAndPort,Set<FatePartition>> entry : stableAssignments.get().entrySet()) {
-      for (var parition : entry.getValue()) {
-        if (parition.contains(fateId)) {
-          synchronized (pendingNotifications) {
-            pendingNotifications.computeIfAbsent(entry.getKey(), k -> new HashSet<>())
-                .add(parition);
-            pendingNotifications.notify();
-          }
-          return;
-        }
+    var hostPartition = stableAssignments.get().get(fateId);
+    if (hostPartition != null) {
+      synchronized (pendingNotifications) {
+        pendingNotifications.computeIfAbsent(hostPartition.hostPort(), k -> new HashSet<>())
+            .add(hostPartition.partition());
+        pendingNotifications.notify();
       }
     }
   }
@@ -238,7 +277,6 @@ public class FateManager {
    */
   private boolean setWorkerPartitions(HostAndPort address, long updateId,
       Set<FatePartition> desired) throws TException {
-    // TODO make a compare and set type RPC that uses the current and desired
     FateWorkerService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
     try {

@@ -19,12 +19,6 @@
 package org.apache.accumulo.core.fate;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.META_DEAD_RESERVATION_CLEANER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.USER_DEAD_RESERVATION_CLEANER_POOL;
 
@@ -37,7 +31,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -47,23 +40,15 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.FateStore.FateTxStore;
-import org.apache.accumulo.core.fate.FateStore.Seeder;
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.util.Sets;
-import org.apache.thrift.TApplicationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,16 +63,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
     justification = "Constructor validation is required for proper initialization")
-public class Fate<T> {
+public class Fate<T> extends FateClient<T> { // TODO remove extension of FateClient
 
-  private static final Logger log = LoggerFactory.getLogger(Fate.class);
+  static final Logger log = LoggerFactory.getLogger(Fate.class);
 
   private final FateStore<T> store;
   private final ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
   private final ExecutorService deadResCleanerExecutor;
 
-  private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
   public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
   private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
   public static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
@@ -274,6 +258,7 @@ public class Fate<T> {
   public Fate(T environment, FateStore<T> store, boolean runDeadResCleaner,
       Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf,
       ScheduledThreadPoolExecutor genSchedExecutor) {
+    super(store, toLogStrFunc);
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
 
     fatePoolsWatcherFuture =
@@ -283,8 +268,6 @@ public class Fate<T> {
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
-      // TODO make this use partitions
-
       // Create a dead reservation cleaner for this store that will periodically clean up
       // reservations held by dead processes, if they exist.
       deadResCleanerExecutor = ThreadPools.getServerThreadPools().createScheduledExecutorService(1,
@@ -396,44 +379,6 @@ public class Fate<T> {
     return needMoreThreadsWarnCount;
   }
 
-  // get a transaction id back to the requester before doing any work
-  public FateId startTransaction() {
-    return store.create();
-  }
-
-  private AtomicReference<Consumer<FateId>> seedingConsumer = new AtomicReference<>(fid -> {});
-
-  // TODO move seeding and waiting operation into their own class, the primary manager will not need
-  // to create a user fate object. Fate could extend this class to ease the change.
-
-  public void setSeedingConsumer(Consumer<FateId> seedingConsumer) {
-    this.seedingConsumer.set(seedingConsumer);
-  }
-
-  public Seeder<T> beginSeeding() {
-    // TODO pass seeding consumer
-    return store.beginSeeding();
-  }
-
-  public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp) {
-    try (var seeder = store.beginSeeding()) {
-      seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp)
-          .thenAccept(optionalFatId -> {
-            optionalFatId.ifPresent(seedingConsumer.get());
-          });
-    }
-  }
-
-  // start work in the transaction.. it is safe to call this
-  // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(FateOperation fateOp, FateId fateId, Repo<T> repo,
-      boolean autoCleanUp, String goalMessage) {
-    log.info("[{}] Seeding {} {} {}", store.type(), fateOp, fateId, goalMessage);
-    store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
-    seedingConsumer.get().accept(fateId);
-  }
-
   public void seeded(Set<FatePartition> partitions) {
     synchronized (fateExecutors) {
       if (Sets.intersection(currentPartitions, partitions).isEmpty()) {
@@ -443,108 +388,6 @@ public class Fate<T> {
 
     log.trace("Notified of seeding for {}", partitions);
     store.seeded();
-  }
-
-  // check on the transaction
-  public TStatus waitForCompletion(FateId fateId) {
-    return store.read(fateId).waitForStatusChange(FINISHED_STATES);
-  }
-
-  /**
-   * Attempts to cancel a running Fate transaction
-   *
-   * @param fateId fate transaction id
-   * @return true if transaction transitioned to a failed state or already in a completed state,
-   *         false otherwise
-   */
-  public boolean cancel(FateId fateId) {
-    for (int retries = 0; retries < 5; retries++) {
-      Optional<FateTxStore<T>> optionalTxStore = store.tryReserve(fateId);
-      if (optionalTxStore.isPresent()) {
-        var txStore = optionalTxStore.orElseThrow();
-        try {
-          TStatus status = txStore.getStatus();
-          log.info("[{}] status is: {}", store.type(), status);
-          if (status == NEW || status == SUBMITTED) {
-            txStore.setTransactionInfo(TxInfo.EXCEPTION, new TApplicationException(
-                TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
-            txStore.setStatus(FAILED_IN_PROGRESS);
-            log.info(
-                "[{}] Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
-                store.type(), fateId);
-            return true;
-          } else {
-            log.info("[{}] {} cancelled by user but already in progress or finished state",
-                store.type(), fateId);
-            return false;
-          }
-        } finally {
-          txStore.unreserve(Duration.ZERO);
-        }
-      } else {
-        // reserved, lets retry.
-        UtilWaitThread.sleep(500);
-      }
-    }
-    log.info("[{}] Unable to reserve transaction {} to cancel it", store.type(), fateId);
-    return false;
-  }
-
-  // resource cleanup
-  public void delete(FateId fateId) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      switch (txStore.getStatus()) {
-        case NEW:
-        case SUBMITTED:
-        case FAILED:
-        case SUCCESSFUL:
-          txStore.delete();
-          break;
-        case FAILED_IN_PROGRESS:
-        case IN_PROGRESS:
-          throw new IllegalStateException("Can not delete in progress transaction " + fateId);
-        case UNKNOWN:
-          // nothing to do, it does not exist
-          break;
-      }
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-  }
-
-  public String getReturn(FateId fateId) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      if (txStore.getStatus() != SUCCESSFUL) {
-        throw new IllegalStateException(
-            "Tried to get exception when transaction " + fateId + " not in successful state");
-      }
-      return (String) txStore.getTransactionInfo(TxInfo.RETURN_VALUE);
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-  }
-
-  // get reportable failures
-  public Exception getException(FateId fateId) {
-    FateTxStore<T> txStore = store.reserve(fateId);
-    try {
-      if (txStore.getStatus() != FAILED) {
-        throw new IllegalStateException(
-            "Tried to get exception when transaction " + fateId + " not in failed state");
-      }
-      return (Exception) txStore.getTransactionInfo(TxInfo.EXCEPTION);
-    } finally {
-      txStore.unreserve(Duration.ZERO);
-    }
-  }
-
-  /**
-   * Lists transctions for a given fate key type.
-   */
-  public Stream<FateKey> list(FateKey.FateKeyType type) {
-    return store.list(type);
   }
 
   /**

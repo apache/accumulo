@@ -49,7 +49,7 @@ public class Constants {
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
-  public static final String ZMANAGER_WORKER_LOCK = ZMANAGERS + "/workers";
+  public static final String ZMANAGER_ASSISTANT_LOCK = ZMANAGERS + "/assistants";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
   public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
 

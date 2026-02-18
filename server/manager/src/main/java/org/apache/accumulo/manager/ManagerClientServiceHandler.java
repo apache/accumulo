@@ -59,6 +59,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -334,7 +335,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       }
     }
 
-    Fate<FateEnv> fate = manager.fate(FateInstanceType.META);
+    FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
     FateId fateId = fate.startTransaction();
 
     String msg = "Shutdown tserver " + tabletServer;
@@ -362,7 +363,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     if (manager.shutdownTServer(tserver)) {
       // If there is an exception seeding the fate tx this should cause the RPC to fail which should
       // cause the tserver to halt. Because of that not making an attempt to handle failure here.
-      Fate<FateEnv> fate = manager.fate(FateInstanceType.META);
+      FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
       var tid = fate.startTransaction();
       String msg = "Shutdown tserver " + tabletServer;
 

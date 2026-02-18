@@ -68,6 +68,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateCleaner;
+import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
@@ -206,8 +207,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   // should already have been set; ConcurrentHashMap will guarantee that all threads will see
   // the initialized fate references after the latch is ready
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
+  private final AtomicReference<Map<FateInstanceType,FateClient<FateEnv>>> fateClients =
+      new AtomicReference<>();
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
+  private volatile FateManager fateManager;
 
   private final ManagerMetrics managerMetrics = new ManagerMetrics();
 
@@ -296,17 +300,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return getManagerState() != ManagerState.STOP;
   }
 
-  /**
-   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
-   * operations are attempted to be used prior to the Manager being ready for them. If these
-   * operations are triggered by a client side request from a tserver or client, it should be safe
-   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
-   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
-   * fixed.
-   *
-   * @return the Fate object, only after the fate components are running and ready
-   */
-  public Fate<FateEnv> fate(FateInstanceType type) {
+  private void waitForFate() {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -327,7 +321,28 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
-    return getFateRefs().get(type);
+  }
+
+  /**
+   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
+   * operations are attempted to be used prior to the Manager being ready for them. If these
+   * operations are triggered by a client side request from a tserver or client, it should be safe
+   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
+   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
+   * fixed.
+   *
+   * @return the Fate object, only after the fate components are running and ready
+   */
+  public Fate<FateEnv> fate(FateInstanceType type) {
+    waitForFate();
+    var fate = Objects.requireNonNull(fateRefs.get(), "fateRefs is not set yet").get(type);
+    return Objects.requireNonNull(fate, () -> "fate type " + type + " is not present");
+  }
+
+  public FateClient<FateEnv> fateClient(FateInstanceType type) {
+    waitForFate();
+    var client = Objects.requireNonNull(fateClients.get(), "fateClients is not set yet").get(type);
+    return Objects.requireNonNull(client, () -> "fate client type " + type + " is not present");
   }
 
   static final boolean X = true;
@@ -696,9 +711,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             case CLEAN_STOP:
               switch (getManagerState()) {
                 case NORMAL:
-                  // USER fate stores its data in a user table and its operations may interact with
-                  // all tables, need to completely shut it down before unloading user tablets
-                  fate(FateInstanceType.USER).shutdown(1, MINUTES);
+                  fateManager.stop();
                   setManagerState(ManagerState.SAFE_MODE);
                   break;
                 case SAFE_MODE: {
@@ -930,7 +943,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(this, fateRefs);
+    compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
@@ -1138,24 +1151,28 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
       var metaInstance = initializeFateInstance(context,
           new MetaFateStore<>(context.getZooSession(), managerLock.getLockID(), isLockHeld));
-      var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
-          SystemTables.FATE.tableName(), managerLock.getLockID(), isLockHeld));
+      var userFateClient =
+          new FateClient<FateEnv>(new UserFateStore<>(context, SystemTables.FATE.tableName(),
+              managerLock.getLockID(), isLockHeld), TraceRepo::toLogString);
 
-      if (!fateRefs.compareAndSet(null,
-          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
+      if (!fateClients.compareAndSet(null,
+          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userFateClient))) {
+        throw new IllegalStateException(
+            "Unexpected previous fateClient reference map already initialized");
+      }
+      if (!fateRefs.compareAndSet(null, Map.of(FateInstanceType.META, metaInstance))) {
         throw new IllegalStateException(
             "Unexpected previous fate reference map already initialized");
       }
-      managerMetrics.configureFateMetrics(getConfiguration(), this, fateRefs.get());
+      managerMetrics.configureFateMetrics(getConfiguration(), this);
       fateReadyLatch.countDown();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
-    // TODO eventually stop this
-    var fateManager = new FateManager(getContext());
+    fateManager = new FateManager(getContext());
     fateManager.start();
-    fate(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
+    fateClient(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
 
     producers.addAll(managerMetrics.getProducers(this));
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
@@ -1242,7 +1259,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     log.debug("Shutting down fate.");
-    getFateRefs().keySet().forEach(type -> fate(type).close());
+    fate(FateInstanceType.META).close();
+    fateManager.stop();
 
     splitter.stop();
 
@@ -1657,12 +1675,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     compactionCoordinator.registerMetrics(registry);
-  }
-
-  private Map<FateInstanceType,Fate<FateEnv>> getFateRefs() {
-    var fateRefs = this.fateRefs.get();
-    Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
-    return fateRefs;
   }
 
   @Override

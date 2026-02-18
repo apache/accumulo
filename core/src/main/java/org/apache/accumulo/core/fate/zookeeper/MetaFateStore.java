@@ -72,6 +72,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -620,13 +623,11 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   @Override
   protected Stream<FateIdStatus> getTransactions(Set<FatePartition> partitions,
       EnumSet<TStatus> statuses) {
-    return getTransactions(statuses).filter(fis -> {
-      // TODO this could be inefficient
-      for (var p : partitions) {
-        return p.contains(fis.getFateId());
-      }
-      return false;
-    });
+
+    RangeSet<FateId> rangeSet = TreeRangeSet.create();
+    partitions.forEach(partition -> rangeSet.add(Range.closed(partition.start(), partition.end())));
+
+    return getTransactions(statuses).filter(fis -> rangeSet.contains(fis.getFateId()));
   }
 
   @Override
