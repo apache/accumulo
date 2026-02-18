@@ -113,6 +113,8 @@ public class Main {
     Runnable r = () -> {
       try {
         keywordExec.execute(args);
+      } catch (JCommanderParseException e) {
+        System.exit(1);
       } catch (Exception e) {
         die(e, null);
       }
