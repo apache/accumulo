@@ -51,6 +51,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -559,9 +560,11 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
   }
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
-    return new Fate<>(new TestEnv(), store, false, r -> r + "",
+    var fate = new Fate<>(new TestEnv(), store, false, r -> r + "",
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
         new ScheduledThreadPoolExecutor(2));
+    fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    return fate;
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);

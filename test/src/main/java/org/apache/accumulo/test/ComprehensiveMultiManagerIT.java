@@ -27,7 +27,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-;
 
 public class ComprehensiveMultiManagerIT extends ComprehensiveITBase {
 
