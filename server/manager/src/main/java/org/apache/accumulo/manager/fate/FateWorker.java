@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.fate;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
@@ -40,7 +42,6 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
@@ -93,7 +94,7 @@ public class FateWorker implements FateWorkerService.Iface {
     }
 
     // generate a new one time use update id
-    long updateId = LazySingletons.RANDOM.get().nextLong();
+    long updateId = RANDOM.get().nextLong();
 
     // Getting the partitions and setting the new update id must be mutually exclusive with any
     // updates of the partitions concurrently executing. This ensures the new update id goes with

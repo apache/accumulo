@@ -77,9 +77,11 @@ public class FateManager {
 
   private void managerWorkers() throws TException, InterruptedException {
     log.debug("Started Fate Manager");
+    long stableCount = 0;
     outer: while (!stop.get()) {
-      // TODO make configurable
-      Thread.sleep(3_000);
+
+      long sleepTime = Math.min(stableCount * 100, 5_000);
+      Thread.sleep(sleepTime);
 
       // This map will contain all current workers even their partitions are empty
       Map<HostAndPort,CurrentPartitions> currentPartitions = getCurrentAssignments();
@@ -99,8 +101,10 @@ public class FateManager {
           });
         });
         stableAssignments.set(rangeMap);
+        stableCount++;
       } else {
         stableAssignments.set(TreeRangeMap.create());
+        stableCount = 0;
       }
 
       // are there any workers with extra partitions? If so need to unload those first.
@@ -272,7 +276,6 @@ public class FateManager {
    * @param desired The new set of fate partitions this server should start working. It should only
    *        work on these and nothing else.
    * @return true if the partitions were set false if they were not set.
-   * @throws TException
    */
   private boolean setWorkerPartitions(HostAndPort address, long updateId,
       Set<FatePartition> desired) throws TException {
