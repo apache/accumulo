@@ -406,6 +406,12 @@ public enum Property {
   MANAGER_ASSISTANT_PORTSEARCH("manager.assistant.port.search", "true", PropertyType.BOOLEAN,
       "if the manager.assistant.port ports are in use, search higher ports until one is available.",
       "4.0.0"),
+  MANAGER_ASSISTANT_MINTHREADS("manager.assistant.server.threads.minimum", "20", PropertyType.COUNT,
+      "The minimum number of threads to use to handle incoming requests.", "4.0.0"),
+  MANAGER_ASSISTANT_MINTHREADS_TIMEOUT("manager.assistant.server.threads.timeout", "0s",
+      PropertyType.TIMEDURATION,
+      "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
+      "4.0.0"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
       "The balancer class that accumulo will use to make tablet assignment and "

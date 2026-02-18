@@ -966,8 +966,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     // Start manager assistant before getting lock, this allows non primary manager processes to
     // work on stuff.
-    assitantManager =
-        new ManagerAssistant(getContext(), getBindAddress(), tserverSet, this::createFateInstance);
+    var shutdownComplete = getShutdownComplete();
+    assitantManager = new ManagerAssistant(getContext(), getBindAddress(), tserverSet,
+        this::createFateInstance, shutdownComplete::get);
     assitantManager.start();
     metricsInfo
         .addMetricsProducers(assitantManager.getMetricsProducers().toArray(new MetricsProducer[0]));

@@ -24,6 +24,7 @@ import java.net.UnknownHostException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
@@ -51,7 +52,7 @@ import com.google.common.net.HostAndPort;
 /**
  * An assistant to the manager
  */
-// TODO because this does not extend abstract server it does not get some of the benefits like
+// FOLLOW_ON because this does not extend abstract server it does not get some of the benefits like
 // monitoring of lock
 public class ManagerAssistant {
 
@@ -60,19 +61,22 @@ public class ManagerAssistant {
   private final String bindAddress;
   private final LiveTServerSet liveTServerSet;
   private final FateFactory fateFactory;
+  private final Supplier<Boolean> shutdownComplete;
   private volatile ServiceLock managerWorkerLock;
   private FateWorker fateWorker;
   private ServerAddress thriftServer;
 
   protected ManagerAssistant(ServerContext context, String bindAddress,
-      LiveTServerSet liveTServerSet, FateFactory fateFactory) {
-    // create another server context because the server context has the lock...
-    // TODO creating another context instance in the process may cause problems, like duplicating
-    // some thread pools
+      LiveTServerSet liveTServerSet, FateFactory fateFactory, Supplier<Boolean> shutdownComplete) {
+    // Create another server context because the server context has the lock info and this class
+    // creates another lock separate from the manager lock.
+    // FOLLOW_ON creating another context instance in the process may cause problems, like
+    // duplicating some thread pools
     this.context = new ServerContext(context.getSiteConfiguration());
     this.bindAddress = bindAddress;
     this.liveTServerSet = liveTServerSet;
     this.fateFactory = fateFactory;
+    this.shutdownComplete = shutdownComplete;
   }
 
   public ServerContext getContext() {
@@ -91,12 +95,10 @@ public class ManagerAssistant {
     TProcessor processor =
         ThriftProcessorTypes.getManagerWorkerTProcessor(fateWorker, getContext());
 
-    // TODO should the minthreads and timeout have their own props? Probably, do not expect this to
-    // have lots of RPCs so could be less.
     thriftServer = TServerUtils.createThriftServer(getContext(), bindAddress,
         Property.MANAGER_ASSISTANT_PORT, processor, this.getClass().getSimpleName(),
-        Property.MANAGER_ASSISTANT_PORTSEARCH, Property.MANAGER_MINTHREADS,
-        Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
+        Property.MANAGER_ASSISTANT_PORTSEARCH, Property.MANAGER_ASSISTANT_MINTHREADS,
+        Property.MANAGER_ASSISTANT_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
     thriftServer.startThriftServer("Thrift Manager Assistant Server");
     log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
         thriftServer.address);
@@ -113,9 +115,8 @@ public class ManagerAssistant {
           zLockPath);
       var serverLockUUID = UUID.randomUUID();
       managerWorkerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
-      // TODO shutdown supplier, anything to do here?
       ServiceLock.LockWatcher lw = new ServiceLockSupport.ServiceLockWatcher(
-          ServerId.Type.MANAGER_ASSISTANT, () -> false,
+          ServerId.Type.MANAGER_ASSISTANT, shutdownComplete,
           (type) -> getContext().getLowMemoryDetector().logGCInfo(getContext().getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
