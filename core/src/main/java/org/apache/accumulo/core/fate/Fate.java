@@ -63,7 +63,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
     justification = "Constructor validation is required for proper initialization")
-public class Fate<T> extends FateClient<T> { // TODO remove extension of FateClient
+public class Fate<T> extends FateClient<T> { // FOLLOW_ON remove extension of FateClient. This
+                                             // extenstion was added to keep existing test code
+                                             // working. Would be cleaner to not extend and refactor
+                                             // all code.
 
   static final Logger log = LoggerFactory.getLogger(Fate.class);
 

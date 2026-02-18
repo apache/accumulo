@@ -213,6 +213,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
   private volatile FateManager fateManager;
+  private volatile ManagerAssistant assitantManager;
 
   private final ManagerMetrics managerMetrics = new ManagerMetrics();
 
@@ -958,10 +959,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
 
-    // TODO eventually stop this
     // Start manager assistant before getting lock, this allows non primary manager processes to
     // work on stuff.
-    new ManagerAssistant(getContext(), getBindAddress()).start();
+    assitantManager = new ManagerAssistant(getContext(), getBindAddress());
+    assitantManager.start();
 
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
@@ -1267,6 +1268,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     log.debug("Shutting down fate.");
     fate(FateInstanceType.META).close();
     fateManager.stop();
+    assitantManager.stop();
 
     splitter.stop();
 

@@ -160,7 +160,10 @@ public class FateWorkerEnv implements FateEnv {
 
   @Override
   public void recordCompactionCompletion(ExternalCompactionId ecid) {
-    // TODO do something w/ this
+    // FOLLOW_ON This data is stored in memory on the manager. This entire feature needs to be
+    // examined and potentially reworked. One solution would be to send an RPC to the manager to
+    // update it's in memory state. A better solution would be to move away from in memory state
+    // that is lost when the manager restarts.
   }
 
   @Override
@@ -180,12 +183,15 @@ public class FateWorkerEnv implements FateEnv {
 
   @Override
   public void updateBulkImportStatus(String string, BulkImportState bulkImportState) {
-    // TODO
+    // FOLLOW_ON This data is stored in memory on the manager. This entire feature needs to be
+    // examined and potentially reworked. One solution would be to send an RPC to the manager to
+    // update it's in memory state. A better solution would be to move away from in memory state
+    // that is lost when the manager restarts.
   }
 
   @Override
   public void removeBulkImportStatus(String sourceDir) {
-    // TODO
+    // FOLLOW_ON
   }
 
   @Override

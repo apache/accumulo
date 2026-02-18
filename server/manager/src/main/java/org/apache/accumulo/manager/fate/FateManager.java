@@ -81,7 +81,6 @@ public class FateManager {
       // TODO make configurable
       Thread.sleep(3_000);
 
-      // TODO could support RG... could user ServerId
       // This map will contain all current workers even their partitions are empty
       Map<HostAndPort,CurrentPartitions> currentPartitions = getCurrentAssignments();
       Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();

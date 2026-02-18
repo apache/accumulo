@@ -67,9 +67,6 @@ public class FateWorker implements FateWorkerService.Iface {
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
     this.fate = new Fate<>(env, store, false, TraceRepo::toLogString, context.getConfiguration(),
         context.getScheduledExecutor());
-    // TODO where will the 2 fate cleanup task run? Make dead reservation cleaner use partitions...
-    // cleanup can run in manager
-
   }
 
   private Long expectedUpdateId = null;
