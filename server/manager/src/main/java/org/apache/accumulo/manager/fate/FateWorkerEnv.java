@@ -222,13 +222,9 @@ public class FateWorkerEnv implements FateEnv {
   public SteadyTime getSteadyTime() {
     try {
       return SteadyTime.from(ctx.instanceOperations().getManagerTime());
-    } catch (AccumuloException e) {
-      // TODO exceptions, add to to method signature or use a diff type??
-      throw new RuntimeException(e);
-    } catch (AccumuloSecurityException e) {
-      throw new RuntimeException(e);
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IllegalStateException(e);
     }
-    // return ctx.get
   }
 
   @Override

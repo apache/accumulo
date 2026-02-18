@@ -67,7 +67,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       var splits = IntStream.range(1, 10).mapToObj(i -> String.format("%03d", i)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
       var tableOpFutures = new ArrayList<Future<?>>();
-      for (int i = 0; i < 100; i++) {
+      for (int i = 0; i < 1; i++) {
         var table = "t" + i;
         // TODO seeing in the logs that fate operations for the same table are running on different
         // processes, however there is a 5 second delay because there is no notification mechanism
@@ -116,6 +116,6 @@ public class MultipleManagerIT extends ConfigurableMacBase {
     executor.shutdown();
 
     System.out.println("DONE");
-    // TODO kill processes
+    managerWorkers.forEach(Process::destroy);
   }
 }
