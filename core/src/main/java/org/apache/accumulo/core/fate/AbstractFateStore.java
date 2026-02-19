@@ -248,9 +248,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
 
   @Override
   public Map<FateId,FateReservation> getActiveReservations(Set<FatePartition> partitions) {
-    try(var stream = getTransactions(partitions, EnumSet.allOf(TStatus.class))){
+    try (var stream = getTransactions(partitions, EnumSet.allOf(TStatus.class))) {
       return stream.filter(entry -> entry.getFateReservation().isPresent()).collect(Collectors
-              .toMap(FateIdStatus::getFateId, entry -> entry.getFateReservation().orElseThrow()));
+          .toMap(FateIdStatus::getFateId, entry -> entry.getFateReservation().orElseThrow()));
     }
   }
 

@@ -57,11 +57,13 @@ import com.google.common.collect.TreeRangeMap;
 import com.google.common.net.HostAndPort;
 
 /**
- * Partitions {@link FateInstanceType#USER} fate across manager assistant processes. This is done by assigning ranges of the fate
- * uuid key space to different processes. The partitions are logical and do not correspond to the
- * physical partitioning of the fate table.
+ * Partitions {@link FateInstanceType#USER} fate across manager assistant processes. This is done by
+ * assigning ranges of the fate uuid key space to different processes. The partitions are logical
+ * and do not correspond to the physical partitioning of the fate table.
  *
- * <p>Does not currently manage {@link FateInstanceType#META}</p>
+ * <p>
+ * Does not currently manage {@link FateInstanceType#META}
+ * </p>
  */
 public class FateManager {
 
@@ -91,8 +93,14 @@ public class FateManager {
       long sleepTime = Math.min(stableCount * 100, 5_000);
       Thread.sleep(sleepTime);
 
-      // This map will contain all current workers even their partitions are empty
-      Map<HostAndPort,CurrentPartitions> currentPartitions = getCurrentAssignments();
+      // This map will contain all current workers even if their partitions are empty
+      Map<HostAndPort,CurrentPartitions> currentPartitions;
+      try {
+        currentPartitions = getCurrentAssignments();
+      } catch (TException e) {
+        log.warn("Failed to get current partitions ", e);
+        continue;
+      }
       Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
       currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
       Set<FatePartition> desiredParititions = getDesiredPartitions(currentAssignments.size());
@@ -198,7 +206,8 @@ public class FateManager {
     } catch (InterruptedException e) {
       throw new IllegalStateException(e);
     }
-    // Try to set every assistant manager to an empty set of partitions.  This will cause them all to stop looking for work.
+    // Try to set every assistant manager to an empty set of partitions. This will cause them all to
+    // stop looking for work.
     Map<HostAndPort,CurrentPartitions> currentAssignments = null;
     try {
       currentAssignments = getCurrentAssignments();
@@ -220,7 +229,7 @@ public class FateManager {
 
     stableAssignments.set(TreeRangeMap.create());
 
-    if(!timer.isExpired()) {
+    if (!timer.isExpired()) {
       var store = new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
 
       var reserved = store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
@@ -308,7 +317,7 @@ public class FateManager {
         ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
     try {
       log.trace("Setting partitions {} {}", address, desired);
-      var result =  client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
+      var result = client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
       return result;
     } finally {
@@ -346,7 +355,7 @@ public class FateManager {
       }
     });
 
-    if(log.isTraceEnabled()) {
+    if (log.isTraceEnabled()) {
       log.trace("Logging desired partitions");
       desiredAssignments.forEach((hp, parts) -> {
         log.trace(" desired {} {} {}", hp, parts.size(), parts);
@@ -425,9 +434,9 @@ public class FateManager {
       }
     }
 
-    if(log.isTraceEnabled()){
+    if (log.isTraceEnabled()) {
       log.trace("Logging current assignments");
-      currentAssignments.forEach((hostPort, partitions)->{
+      currentAssignments.forEach((hostPort, partitions) -> {
         log.trace("current assignment {} {}", hostPort, partitions);
       });
     }

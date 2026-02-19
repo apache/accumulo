@@ -323,6 +323,7 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
       try {
         fate1 = new FastFate<>(testEnv1, store1, true, Object::toString, config);
+        fate1.setPartitions(Set.of(FatePartition.all(store1.type())));
         // Ensure nothing is reserved yet
         assertTrue(
             store1.getActiveReservations(Set.of(FatePartition.all(store1.type()))).isEmpty());

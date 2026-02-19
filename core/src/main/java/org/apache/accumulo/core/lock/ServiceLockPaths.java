@@ -331,6 +331,11 @@ public class ServiceLockPaths {
     }
   }
 
+  public Set<ServiceLockPath> getAssistantManagers(AddressSelector address, boolean withLock) {
+    return get(Constants.ZMANAGER_ASSISTANT_LOCK, ResourceGroupPredicate.DEFAULT_RG_ONLY, address,
+        withLock);
+  }
+
   /**
    * Note that the ServiceLockPath object returned by this method does not populate the server
    * attribute. To get the location of the Monitor you will need to parse the lock data at the
