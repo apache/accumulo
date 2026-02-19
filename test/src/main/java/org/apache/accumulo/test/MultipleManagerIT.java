@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
@@ -62,6 +63,7 @@ import org.apache.accumulo.test.fate.FastFate;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.util.Sets;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
@@ -132,7 +134,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
       var splits = IntStream.range(1, 10).mapToObj(i -> String.format("%03d", i)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
-      var tableOpFutures = new ArrayList<Future<?>>();
+      var tableOpFutures = new ArrayList<Future<Integer>>();
       for (int i = 0; i < 10; i++) {
         var table = "t" + i;
 
@@ -141,10 +143,11 @@ public class MultipleManagerIT extends ConfigurableMacBase {
         // table id is like "b". Was trying to follow a single table across multiple manager workers
         // processes.
         var tableOpsFuture = executor.submit(() -> {
-          while (!stop.get()) {
+          int loops = 0;
+          while (!stop.get() || loops == 0) {
             client.tableOperations().create(table);
             log.info("Created table {}", table);
-            if (stop.get()) {
+            if (stop.get() && loops > 0) {
               break;
             }
             var expectedRows = new HashSet<String>();
@@ -158,22 +161,22 @@ public class MultipleManagerIT extends ConfigurableMacBase {
               }
             }
             log.info("Wrote data to table {}", table);
-            if (stop.get()) {
+            if (stop.get() && loops > 0) {
               break;
             }
             client.tableOperations().addSplits(table, splits);
             log.info("Split table {}", table);
-            if (stop.get()) {
+            if (stop.get() && loops > 0) {
               break;
             }
             client.tableOperations().compact(table, new CompactionConfig().setWait(true));
             log.info("Compacted table {}", table);
-            if (stop.get()) {
+            if (stop.get() && loops > 0) {
               break;
             }
             client.tableOperations().merge(table, null, null);
             log.info("Merged table {}", table);
-            if (stop.get()) {
+            if (stop.get() && loops > 0) {
               break;
             }
             try (var scanner = client.createScanner(table)) {
@@ -184,16 +187,15 @@ public class MultipleManagerIT extends ConfigurableMacBase {
             }
             client.tableOperations().delete(table);
             log.info("Deleted table {}", table);
+            loops++;
           }
-          return null;
+          return loops;
         });
         tableOpFutures.add(tableOpsFuture);
       }
 
       var ctx = getServerContext();
 
-      // FOLLOW_ON it seems any user can scan the fate table that is probably not good. Need to
-      // restrict read/write access to the system user.
       var store = new UserFateStore<FateEnv>(ctx, SystemTables.FATE.tableName(), null, null);
 
       // Wait until three different manager are seen running fate operations.
@@ -214,15 +216,18 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       // Delete the lock of the primary manager which should cause it to halt. Then wait to see two
       // assistant managers.
       var primaryManager = ctx.getServerPaths().getManager(true);
-      log.debug("Delete lock of primary manager");
       ServiceLock.deleteLock(ctx.getZooSession().asReaderWriter(), primaryManager);
+      log.debug("Deleted lock of primary manager");
       waitToSeeManagers(ctx, 2, store, true);
 
       stop.set(true);
       // Wait for the background operations to complete and ensure that none had errors. Managers
       // stoppping/starting should not cause any problems for Accumulo API operations.
       for (var tof : tableOpFutures) {
-        tof.get();
+        int loops = tof.get();
+        log.debug("Background thread loops {}", loops);
+        // Check that each background thread made a least one loop over all its table operations.
+        assertTrue(loops > 0);
       }
     }
 
@@ -234,8 +239,17 @@ public class MultipleManagerIT extends ConfigurableMacBase {
   private static void waitToSeeManagers(ClientContext context, int expectedManagers,
       UserFateStore<FateEnv> store, boolean managersKilled) {
 
+    // Track what reservations exist when entering, want to see new reservations created during this
+    // function call.
+    var existingReservationUUIDs =
+        store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER))).values()
+            .stream().map(FateStore.FateReservation::getReservationUUID).collect(toSet());
+    log.debug("existingReservationUUIDs {}", existingReservationUUIDs);
+
     var assistants =
         context.getServerPaths().getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
+    // Wait for there to be the expected number of managers in zookeeper. After manager processes
+    // are kill these entries in zookeeper may persist for a bit.
     while (assistants.size() != expectedManagers) {
       UtilWaitThread.sleep(1);
       assistants = context.getServerPaths()
@@ -248,15 +262,30 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
     Set<HostAndPort> reservationsSeen = new HashSet<>();
     Set<HostAndPort> extraSeen = new HashSet<>();
-    while (reservationsSeen.size() < expectedManagers) {
+    Set<Character> expectedPrefixes =
+        Set.of('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f');
+    // Track fate uuid prefixes seen. This is done because fate is partitioned across managers by
+    // uuid ranges. If all uuid prefixes are seen then it is an indication that fate ids are being
+    // processed. After new manager processes are started or stopped the partitions should be
+    // reassigned.
+    Set<Character> seenPrefixes = new HashSet<>();
+
+    while (reservationsSeen.size() < expectedManagers || !seenPrefixes.equals(expectedPrefixes)) {
       var reservations =
           store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
-      reservations.values().forEach(reservation -> {
+      reservations.forEach((fateId, reservation) -> {
         var slp = ServiceLockPaths.parse(Optional.empty(), reservation.getLockID().path);
         if (slp.getType().equals(Constants.ZMANAGER_ASSISTANT_LOCK)) {
           var hostPort = HostAndPort.fromString(slp.getServer());
           if (expectedServers.contains(hostPort)) {
-            reservationsSeen.add(hostPort);
+            if (!existingReservationUUIDs.contains(reservation.getReservationUUID())) {
+              reservationsSeen.add(hostPort);
+              Character prefix = fateId.getTxUUIDStr().charAt(0);
+              if (seenPrefixes.add(prefix)) {
+                log.debug("Saw fate uuid prefix {} in id {} still waiting for {}", prefix, fateId,
+                    Sets.difference(expectedPrefixes, seenPrefixes));
+              }
+            }
           } else if (!managersKilled) {
             fail("Saw unexpected extra manager " + slp);
           } else {
@@ -269,7 +298,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
     log.debug("managers seen in fate reservations :{}", reservationsSeen);
     if (managersKilled) {
-      log.debug("extra managers seen in fate reservations : {}", extraSeen);
+      log.debug("killed managers seen in fate reservations : {}", extraSeen);
     }
     assertEquals(expectedManagers, reservationsSeen.size());
   }
