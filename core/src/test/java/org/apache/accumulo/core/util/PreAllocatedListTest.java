@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.util;
 
-import static org.apache.accumulo.core.util.LocalityGroupUtil.newPreallocatedList;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -37,24 +36,23 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class PreAllocatedListTest {
 
   /**
-   * Test method for
-   * {@link org.apache.accumulo.core.util.LocalityGroupUtil#newPreallocatedList(int)} (int)}.
+   * Test method for {@link org.apache.accumulo.core.util.PreallocatedList#create(int)}.
    */
   @Test
   public void testPreAllocatedArray() {
-    List<String> strings = newPreallocatedList(5);
+    List<String> strings = PreallocatedList.create(5);
     assertEquals(5, strings.size());
 
-    strings = newPreallocatedList(3);
+    strings = PreallocatedList.create(3);
     assertEquals(3, strings.size());
 
-    strings = newPreallocatedList(0);
+    strings = PreallocatedList.create(0);
     assertEquals(0, strings.size());
   }
 
   @Test
   public void testPreAllocatedArray_Fail() {
-    assertThrows(NegativeArraySizeException.class, () -> newPreallocatedList(-5));
+    assertThrows(NegativeArraySizeException.class, () -> PreallocatedList.create(-5));
   }
 
   /**
@@ -65,7 +63,7 @@ public class PreAllocatedListTest {
   @Test
   public void testSet() {
     int capacity = 5;
-    List<String> strings = newPreallocatedList(capacity);
+    List<String> strings = PreallocatedList.create(capacity);
     assertEquals(capacity, strings.size());
 
     // everything else should be null
@@ -89,21 +87,21 @@ public class PreAllocatedListTest {
 
   @Test
   public void testSetIndexHigh() {
-    List<String> strings = newPreallocatedList(3);
+    List<String> strings = PreallocatedList.create(3);
     strings.set(2, "in bounds");
     assertThrows(IndexOutOfBoundsException.class, () -> strings.set(3, "out of bounds"));
   }
 
   @Test
   public void testSetIndexNegative() {
-    List<String> strings = newPreallocatedList(3);
+    List<String> strings = PreallocatedList.create(3);
     strings.set(0, "in bounds");
     assertThrows(IndexOutOfBoundsException.class, () -> strings.set(-3, "out of bounds"));
   }
 
   @Test
   public void testGetIndexHigh() {
-    List<String> strings = newPreallocatedList(3);
+    List<String> strings = PreallocatedList.create(3);
     assertNull(strings.get(2));
     // spotbugs error suppressed at class level for lambda
     assertThrows(IndexOutOfBoundsException.class, () -> strings.get(3));
@@ -111,7 +109,7 @@ public class PreAllocatedListTest {
 
   @Test
   public void testGetIndexNegative() {
-    List<String> strings = newPreallocatedList(3);
+    List<String> strings = PreallocatedList.create(3);
     assertNull(strings.get(0));
     // spotbugs error suppressed at class level for lambda
     assertThrows(IndexOutOfBoundsException.class, () -> strings.get(-3));
@@ -119,7 +117,7 @@ public class PreAllocatedListTest {
 
   @Test
   public void testIteratorRemove() {
-    List<String> strings = newPreallocatedList(3);
+    List<String> strings = PreallocatedList.create(3);
     strings.set(1, "data");
     var iter = strings.iterator();
     for (int i = 0; i < 3; i++) {

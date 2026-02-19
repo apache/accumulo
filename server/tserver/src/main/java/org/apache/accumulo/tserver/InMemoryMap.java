@@ -19,7 +19,6 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static org.apache.accumulo.core.util.LocalityGroupUtil.newPreallocatedList;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,6 +69,7 @@ import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.PreallocatedList;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -288,9 +288,9 @@ public class InMemoryMap {
     private final List<List<Mutation>> partitioned;
 
     LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
-      this.groupFams = newPreallocatedList(groups.size());
+      this.groupFams = PreallocatedList.create(groups.size());
       this.maps = new SimpleMap[groups.size() + 1];
-      this.partitioned = newPreallocatedList(groups.size() + 1);
+      this.partitioned = PreallocatedList.create(groups.size() + 1);
 
       for (int i = 0; i < maps.length; i++) {
         maps[i] = newMap(useNativeMap);

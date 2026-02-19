@@ -22,7 +22,6 @@ import static java.util.stream.Collectors.toUnmodifiableSet;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -308,7 +307,7 @@ public class LocalityGroupUtil {
 
       final var mbs = new ArrayByteSequence(new byte[0], 0, 0);
 
-      List<List<ColumnUpdate>> parts = newPreallocatedList(groups.size() + 1);
+      List<List<ColumnUpdate>> parts = PreallocatedList.create(groups.size() + 1);
 
       for (Mutation mutation : mutations) {
         if (mutation.getUpdates().size() == 1) {
@@ -411,10 +410,5 @@ public class LocalityGroupUtil {
 
       all.addAll(entry.getValue());
     }
-  }
-
-  @SuppressWarnings("unchecked")
-  public static <T> List<T> newPreallocatedList(int size) {
-    return Arrays.asList((T[]) new Object[size]);
   }
 }

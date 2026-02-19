@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.tserver;
 
-import static org.apache.accumulo.core.util.LocalityGroupUtil.newPreallocatedList;
-
 import java.lang.ref.Cleaner.Cleanable;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.Collection;
@@ -47,6 +45,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
+import org.apache.accumulo.core.util.PreallocatedList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -192,7 +191,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     ConcurrentIterator(Key key) {
       // start off with a small read ahead
-      nextEntries = newPreallocatedList(1);
+      nextEntries = PreallocatedList.create(1);
 
       rlock.lock();
       try {
@@ -216,7 +215,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
       // as we keep filling, increase the read ahead buffer
       if (nextEntries.size() < MAX_READ_AHEAD_ENTRIES) {
-        nextEntries = newPreallocatedList(Math.min(nextEntries.size() * 2, MAX_READ_AHEAD_ENTRIES));
+        nextEntries =
+            PreallocatedList.create(Math.min(nextEntries.size() * 2, MAX_READ_AHEAD_ENTRIES));
       }
 
       while (source.hasNext() && end < nextEntries.size()) {
