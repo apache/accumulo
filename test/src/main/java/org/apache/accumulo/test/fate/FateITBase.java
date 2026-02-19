@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -47,10 +48,10 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
@@ -577,9 +578,6 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
 
   protected void testShutdownDoesNotFailTx(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-
     Fate<TestEnv> fate = initializeFate(store);
 
     // Wait for the transaction runner to be scheduled.
@@ -634,6 +632,128 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
       status = getTxStatus(sctx, txid);
     }
     assertNull(interruptedException.get());
+  }
+
+  public static class DoNothingRepo implements Repo<TestEnv> {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
+      return null;
+    }
+
+    @Override
+    public void undo(FateId fateId, TestEnv environment) throws Exception {
+
+    }
+
+    @Override
+    public String getReturn() {
+      return "";
+    }
+
+    @Override
+    public long isReady(FateId fateId, TestEnv environment) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public String getName() {
+      return "none";
+    }
+  }
+
+  @Test
+  @Timeout(60)
+  public void testPartitions() throws Exception {
+    executeTest(this::testPartitions);
+  }
+
+  protected void testPartitions(FateStore<TestEnv> store, ServerContext sctx) {
+    // This test ensures that fate only processes fateids that fall within its assigned partitions
+    // of fateids.
+    Fate<TestEnv> fate = initializeFate(store);
+    fate.setPartitions(Set.of());
+
+    Set<FateId> fateIds = new HashSet<>();
+
+    for (int i = 0; i < 100; i++) {
+      var txid = fate.startTransaction();
+      fateIds.add(txid);
+
+      fate.seedTransaction(TEST_FATE_OP, txid, new DoNothingRepo(), false, "no goal");
+    }
+
+    for (var fateId : fateIds) {
+      assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+    }
+
+    // start processing all uuids that start with 1 or 5, but no other ids
+    fate.setPartitions(Set.of(newPartition(store.type(), "1"), newPartition(store.type(), "5")));
+
+    Wait.waitFor(() -> fateIds.stream().filter(
+        fateId -> fateId.getTxUUIDStr().startsWith("1") || fateId.getTxUUIDStr().startsWith("5"))
+        .map(fateId -> getTxStatus(sctx, fateId)).allMatch(status -> status == SUCCESSFUL));
+
+    for (var fateId : fateIds) {
+      var uuid = fateId.getTxUUIDStr();
+      if (uuid.startsWith("1") || uuid.startsWith("5")) {
+        assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+      } else {
+        assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+      }
+    }
+
+    // start processing uuids that start with e
+    fate.setPartitions(Set.of(newPartition(store.type(), "e")));
+    Wait.waitFor(() -> fateIds.stream().filter(fateId -> fateId.getTxUUIDStr().startsWith("e"))
+        .map(fateId -> getTxStatus(sctx, fateId)).allMatch(status -> status == SUCCESSFUL));
+
+    for (var fateId : fateIds) {
+      var uuid = fateId.getTxUUIDStr();
+      if (uuid.startsWith("1") || uuid.startsWith("5") || uuid.startsWith("e")) {
+        assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+      } else {
+        assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+      }
+    }
+
+    // add new ids to ensure that uuid prefixes 1 and 5 are no longer processed
+    Set<FateId> fateIds2 = new HashSet<>();
+
+    for (int i = 0; i < 100; i++) {
+      var txid = fate.startTransaction();
+      fateIds2.add(txid);
+      fate.seedTransaction(TEST_FATE_OP, txid, new DoNothingRepo(), false, "no goal");
+    }
+    Wait.waitFor(() -> fateIds2.stream().filter(fateId -> fateId.getTxUUIDStr().startsWith("e"))
+        .map(fateId -> getTxStatus(sctx, fateId)).allMatch(status -> status == SUCCESSFUL));
+    for (var fateId : fateIds2) {
+      var uuid = fateId.getTxUUIDStr();
+      if (uuid.startsWith("e")) {
+        assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+      } else {
+        assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+      }
+    }
+
+    // nothing should have changed with the first set of ids
+    for (var fateId : fateIds) {
+      var uuid = fateId.getTxUUIDStr();
+      if (uuid.startsWith("1") || uuid.startsWith("5") || uuid.startsWith("e")) {
+        assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+      } else {
+        assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+      }
+    }
+  }
+
+  private FatePartition newPartition(FateInstanceType type, String firstNibble) {
+    // these suffixes have all uuid chars except for the first nibble/4-bits
+    String zeroSuffix = "0000000-0000-0000-0000-000000000000";
+    String ffSuffix = "fffffff-ffff-ffff-ffff-ffffffffffff";
+    return new FatePartition(FateId.from(type, firstNibble + zeroSuffix),
+        FateId.from(type, firstNibble + ffSuffix));
   }
 
   private static void inCall() throws InterruptedException {
