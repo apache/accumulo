@@ -21,7 +21,6 @@ package org.apache.accumulo.manager.split;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -40,38 +39,14 @@ import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
 
-public class SplitFileCache {
+/**
+ * A cache of files first and last rows.
+ */
+public class FileRangeCache {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SplitFileCache.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FileRangeCache.class);
 
-  private static class CacheKey {
-
-    final TableId tableId;
-    final TabletFile tabletFile;
-
-    public CacheKey(TableId tableId, TabletFile tabletFile) {
-      this.tableId = tableId;
-      this.tabletFile = tabletFile;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (this == o) {
-        return true;
-      }
-      if (o == null || getClass() != o.getClass()) {
-        return false;
-      }
-      CacheKey cacheKey = (CacheKey) o;
-      return Objects.equals(tableId, cacheKey.tableId)
-          && Objects.equals(tabletFile, cacheKey.tabletFile);
-    }
-
-    @Override
-    public int hashCode() {
-      return Objects.hash(tableId, tabletFile);
-    }
-
+  private record CacheKey(TableId tableId, TabletFile tabletFile) {
   }
 
   public static <T extends TabletFile> Map<T,FileSKVIterator.FileRange> tryToGetFirstAndLastRows(
@@ -120,7 +95,7 @@ public class SplitFileCache {
 
   final LoadingCache<CacheKey,FileSKVIterator.FileRange> splitFileCache;
 
-  public SplitFileCache(ServerContext context) {
+  public FileRangeCache(ServerContext context) {
     Weigher<CacheKey,FileSKVIterator.FileRange> weigher = (key, frange) -> key.tableId.canonical()
         .length() + key.tabletFile.getPath().toString().length()
         + (frange.empty ? 0

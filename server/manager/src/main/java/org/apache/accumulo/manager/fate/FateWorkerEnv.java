@@ -45,7 +45,7 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.manager.EventPublisher;
 import org.apache.accumulo.manager.EventQueue;
-import org.apache.accumulo.manager.split.SplitFileCache;
+import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -63,7 +63,7 @@ public class FateWorkerEnv implements FateEnv {
   private final ExecutorService refreshPool;
   private final ExecutorService renamePool;
   private final ServiceLock serviceLock;
-  private final SplitFileCache splitCache;
+  private final FileRangeCache fileRangeCache;
   private final EventHandler eventHandler;
   private final LiveTServerSet liveTServerSet;
 
@@ -159,7 +159,7 @@ public class FateWorkerEnv implements FateEnv {
     this.renamePool = ThreadPools.getServerThreadPools().getPoolBuilder(FILE_RENAME_POOL.poolName)
         .numCoreThreads(poolSize).build();
     this.serviceLock = lock;
-    this.splitCache = new SplitFileCache(ctx);
+    this.fileRangeCache = new FileRangeCache(ctx);
     this.eventHandler = new EventHandler();
     this.liveTServerSet = liveTserverSet;
 
@@ -233,8 +233,8 @@ public class FateWorkerEnv implements FateEnv {
   }
 
   @Override
-  public SplitFileCache getSplitFileCache() {
-    return splitCache;
+  public FileRangeCache getFileRangeCache() {
+    return fileRangeCache;
   }
 
   @Override
