@@ -89,7 +89,7 @@ public class Splitter {
 
   private void seedSplits(FateInstanceType instanceType, Map<Text,KeyExtent> splits) {
     if (!splits.isEmpty()) {
-      try (var seeder = manager.fate(instanceType).beginSeeding()) {
+      try (var seeder = manager.fateClient(instanceType).beginSeeding()) {
         for (KeyExtent extent : splits.values()) {
           @SuppressWarnings("unused")
           var unused = seeder.attemptToSeedTransaction(Fate.FateOperation.SYSTEM_SPLIT,

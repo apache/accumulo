@@ -246,7 +246,7 @@ public class UpdateTabletsTest {
         .andReturn(newFileInfo("d", "f"));
     EasyMock.expect(fileRangeCache.getCachedFileInfo(tableId, file4))
         .andReturn(newFileInfo("d", "j"));
-    EasyMock.expect(manager.getSplitFileCache()).andReturn(fileRangeCache).atLeastOnce();
+    EasyMock.expect(manager.getFileRangeCache()).andReturn(fileRangeCache).atLeastOnce();
     EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
         .atLeastOnce();
 

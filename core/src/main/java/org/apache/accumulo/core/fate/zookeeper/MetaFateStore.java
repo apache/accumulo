@@ -55,6 +55,7 @@ import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -71,6 +72,9 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -279,8 +283,8 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public void deleteDeadReservations() {
-    for (Map.Entry<FateId,FateReservation> entry : getActiveReservations().entrySet()) {
+  public void deleteDeadReservations(Set<FatePartition> partitions) {
+    for (Map.Entry<FateId,FateReservation> entry : getActiveReservations(partitions).entrySet()) {
       FateId fateId = entry.getKey();
       FateReservation reservation = entry.getValue();
       if (isLockHeld.test(reservation.getLockID())) {
@@ -614,6 +618,16 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
+  }
+
+  @Override
+  protected Stream<FateIdStatus> getTransactions(Set<FatePartition> partitions,
+      EnumSet<TStatus> statuses) {
+
+    RangeSet<FateId> rangeSet = TreeRangeSet.create();
+    partitions.forEach(partition -> rangeSet.add(Range.closed(partition.start(), partition.end())));
+
+    return getTransactions(statuses).filter(fis -> rangeSet.contains(fis.getFateId()));
   }
 
   @Override

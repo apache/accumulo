@@ -158,7 +158,7 @@ public class FindMergeableRangeTask implements Runnable {
         tableId, startRowStr, endRowStr);
     var fateKey = FateKey.forMerge(new KeyExtent(tableId, range.endRow, range.startRow));
 
-    manager.fate(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateKey,
+    manager.fateClient(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateKey,
         new TraceRepo<>(
             new TableRangeOp(Operation.SYSTEM_MERGE, namespaceId, tableId, startRow, endRow)),
         true);

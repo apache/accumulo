@@ -77,7 +77,8 @@ public class ServiceLockPaths {
       Preconditions.checkArgument(this.type.equals(Constants.ZGC_LOCK)
           || this.type.equals(Constants.ZMANAGER_LOCK) || this.type.equals(Constants.ZMONITOR_LOCK)
           || this.type.equals(Constants.ZTABLE_LOCKS) || this.type.equals(Constants.ZADMIN_LOCK)
-          || this.type.equals(Constants.ZTEST_LOCK), "Unsupported type: " + type);
+          || this.type.equals(Constants.ZTEST_LOCK)
+          || this.type.equals(Constants.ZMANAGER_ASSISTANT_LOCK), "Unsupported type: " + type);
       // These server types support only one active instance, so they use a lock at
       // a known path, not the server's address.
       this.resourceGroup = null;
@@ -105,7 +106,8 @@ public class ServiceLockPaths {
       this.type = requireNonNull(type);
       Preconditions.checkArgument(
           this.type.equals(Constants.ZCOMPACTORS) || this.type.equals(Constants.ZSSERVERS)
-              || this.type.equals(Constants.ZTSERVERS) || this.type.equals(Constants.ZDEADTSERVERS),
+              || this.type.equals(Constants.ZTSERVERS) || this.type.equals(Constants.ZDEADTSERVERS)
+              || this.type.equals(Constants.ZMANAGER_ASSISTANT_LOCK),
           "Unsupported type: " + type);
       this.resourceGroup = requireNonNull(resourceGroup);
       this.server = requireNonNull(server).toString();
@@ -170,6 +172,8 @@ public class ServiceLockPaths {
       return Constants.ZGC_LOCK;
     } else if (pathStartsWith(path, Constants.ZMANAGER_LOCK)) {
       return Constants.ZMANAGER_LOCK;
+    } else if (pathStartsWith(path, Constants.ZMANAGER_ASSISTANT_LOCK)) {
+      return Constants.ZMANAGER_ASSISTANT_LOCK;
     } else if (pathStartsWith(path, Constants.ZMONITOR_LOCK)) {
       return Constants.ZMONITOR_LOCK;
     } else if (pathStartsWith(path, Constants.ZMINI_LOCK)) {
@@ -219,7 +223,7 @@ public class ServiceLockPaths {
         return switch (type) {
           case Constants.ZMINI_LOCK -> new ServiceLockPath(type, server);
           case Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS,
-              Constants.ZDEADTSERVERS ->
+              Constants.ZDEADTSERVERS, Constants.ZMANAGER_ASSISTANT_LOCK ->
             new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
                 HostAndPort.fromString(server));
           default ->
@@ -236,6 +240,11 @@ public class ServiceLockPaths {
 
   public ServiceLockPath createManagerPath() {
     return new ServiceLockPath(Constants.ZMANAGER_LOCK);
+  }
+
+  public ServiceLockPath createManagerWorkerPath(ResourceGroupId resourceGroup,
+      HostAndPort advertiseAddress) {
+    return new ServiceLockPath(Constants.ZMANAGER_ASSISTANT_LOCK, resourceGroup, advertiseAddress);
   }
 
   public ServiceLockPath createMiniPath(String miniUUID) {
@@ -287,6 +296,11 @@ public class ServiceLockPaths {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
+  public Set<ServiceLockPath> getManagerWorker(ResourceGroupPredicate resourceGroupPredicate,
+      AddressSelector address, boolean withLock) {
+    return get(Constants.ZMANAGER_ASSISTANT_LOCK, resourceGroupPredicate, address, withLock);
+  }
+
   /**
    * Note that the ServiceLockPath object returned by this method does not populate the server
    * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
@@ -315,6 +329,11 @@ public class ServiceLockPaths {
     } else {
       return results.iterator().next();
     }
+  }
+
+  public Set<ServiceLockPath> getAssistantManagers(AddressSelector address, boolean withLock) {
+    return get(Constants.ZMANAGER_ASSISTANT_LOCK, ResourceGroupPredicate.DEFAULT_RG_ONLY, address,
+        withLock);
   }
 
   /**
@@ -431,7 +450,8 @@ public class ServiceLockPaths {
         }
       }
     } else if (serverType.equals(Constants.ZCOMPACTORS) || serverType.equals(Constants.ZSSERVERS)
-        || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)) {
+        || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)
+        || serverType.equals(Constants.ZMANAGER_ASSISTANT_LOCK)) {
       final List<String> resourceGroups = zooCache.getChildren(typePath);
       for (final String group : resourceGroups) {
         if (resourceGroupPredicate.test(ResourceGroupId.of(group))) {

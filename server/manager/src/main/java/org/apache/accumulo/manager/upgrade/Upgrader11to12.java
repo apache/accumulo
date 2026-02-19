@@ -253,6 +253,8 @@ public class Upgrader11to12 implements Upgrader {
     addDefaultResourceGroupConfigNode(context);
     LOG.info("Moving table properties from system to namespaces");
     moveTableProperties(context);
+    LOG.info("Add assistant manager node");
+    addAssistantManager(context);
   }
 
   @Override
@@ -295,6 +297,15 @@ public class Upgrader11to12 implements Upgrader {
     removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
     removeBulkFileColumnsFromTable(context, SystemTables.METADATA.tableName());
+  }
+
+  private static void addAssistantManager(ServerContext context) {
+    try {
+      context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_ASSISTANT_LOCK,
+          new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   private static void addCompactionsNode(ServerContext context) {

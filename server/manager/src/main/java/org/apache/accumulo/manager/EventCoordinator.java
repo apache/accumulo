@@ -20,10 +20,12 @@ package org.apache.accumulo.manager;
 
 import java.util.Collection;
 import java.util.EnumMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,28 +66,59 @@ public class EventCoordinator implements EventPublisher {
     private final Ample.DataLevel level;
     private final KeyExtent extent;
 
-    Event(KeyExtent extent) {
+    public Event(KeyExtent extent) {
       this.scope = EventScope.TABLE_RANGE;
       this.level = Ample.DataLevel.of(extent.tableId());
       this.extent = extent;
     }
 
-    Event(TableId tableId) {
+    public Event(TableId tableId) {
       this.scope = EventScope.TABLE;
       this.level = Ample.DataLevel.of(tableId);
       this.extent = new KeyExtent(tableId, null, null);
     }
 
-    Event(Ample.DataLevel level) {
+    public Event(Ample.DataLevel level) {
       this.scope = EventScope.DATA_LEVEL;
       this.level = level;
       this.extent = null;
     }
 
-    Event() {
+    public Event() {
       this.scope = EventScope.ALL;
       this.level = null;
       this.extent = null;
+    }
+
+    public TEvent toThrift() {
+      switch (scope) {
+        case ALL:
+          return new TEvent(null, null);
+        case DATA_LEVEL:
+          return new TEvent(getLevel().toString(), null);
+        case TABLE:
+        case TABLE_RANGE:
+          return new TEvent(null, getExtent().toThrift());
+        default:
+          throw new IllegalStateException("scope : " + scope);
+      }
+    }
+
+    public static Event fromThrift(TEvent tEvent) {
+      if (tEvent.getLevel() == null && tEvent.getExtent() == null) {
+        return new Event();
+      } else if (tEvent.getLevel() != null && tEvent.getExtent() == null) {
+        return new Event(Ample.DataLevel.valueOf(tEvent.getLevel()));
+      } else if (tEvent.getLevel() == null && tEvent.getExtent() != null) {
+        var extent = KeyExtent.fromThrift(tEvent.getExtent());
+        if (extent.endRow() == null && extent.prevEndRow() == null) {
+          return new Event(extent.tableId());
+        } else {
+          return new Event(extent);
+        }
+      } else {
+        throw new IllegalArgumentException("Illegal TEvent " + tEvent);
+      }
     }
 
     public EventScope getScope() {
@@ -105,6 +138,10 @@ public class EventCoordinator implements EventPublisher {
     public KeyExtent getExtent() {
       Preconditions.checkState(scope == EventScope.TABLE || scope == EventScope.TABLE_RANGE);
       return extent;
+    }
+
+    public String toString() {
+      return "{ scope:" + scope + ", level:" + level + ", extent:" + extent + " }";
     }
   }
 
@@ -130,6 +167,10 @@ public class EventCoordinator implements EventPublisher {
   public void event(KeyExtent extent, String msg, Object... args) {
     log.debug(String.format(msg, args));
     publish(new Event(extent));
+  }
+
+  public void events(Iterator<Event> events) {
+    events.forEachRemaining(this::publish);
   }
 
   @Override

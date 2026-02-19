@@ -38,7 +38,7 @@ public final class ServerId implements Comparable<ServerId> {
    * @since 4.0.0
    */
   public enum Type {
-    MANAGER, MONITOR, GARBAGE_COLLECTOR, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
+    MANAGER, MANAGER_ASSISTANT, MONITOR, GARBAGE_COLLECTOR, COMPACTOR, SCAN_SERVER, TABLET_SERVER;
   }
 
   private final Type type;
