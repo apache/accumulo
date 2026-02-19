@@ -255,8 +255,10 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
       Fate<SleepingTestEnv> fate1 = new Fate<>(testEnv1, store1, true, Object::toString,
           DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+      fate1.setPartitions(Set.of(FatePartition.all(store1.type())));
       Fate<SleepingTestEnv> fate2 = new Fate<>(testEnv2, store2, false, Object::toString,
           DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+      fate2.setPartitions(Set.of(FatePartition.all(store2.type())));
 
       try {
         for (int i = 0; i < numFateIds; i++) {
@@ -363,6 +365,7 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
           // fate1.
           fate2 = new Fate<>(testEnv2, store2, false, Object::toString, config,
               new ScheduledThreadPoolExecutor(2));
+          fate2.setPartitions(Set.of(FatePartition.all(store2.type())));
 
           // Wait for the "dead" reservations to be deleted and picked up again (reserved using
           // fate2/store2/lock2 now).
