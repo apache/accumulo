@@ -29,6 +29,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -39,8 +40,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -77,6 +76,8 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
+import org.apache.accumulo.manager.EventCoordinator.Event;
+import org.apache.accumulo.manager.EventCoordinator.EventScope;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
@@ -230,26 +231,40 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // created, so just start off with full scan.
     private boolean needsFullScan = true;
 
-    private final BlockingQueue<Range> rangesToProcess;
+    private final EventQueue eventQueue;
 
-    class RangeProccessor implements Runnable {
+    class RangeProcessor implements Runnable {
       @Override
       public void run() {
         try {
           while (manager.stillManager()) {
-            var range = rangesToProcess.poll(100, TimeUnit.MILLISECONDS);
-            if (range == null) {
+            var events = eventQueue.poll(100, TimeUnit.MILLISECONDS);
+
+            if (events.isEmpty()) {
               // check to see if still the manager
               continue;
             }
 
-            ArrayList<Range> ranges = new ArrayList<>();
-            ranges.add(range);
+            EnumSet<EventScope> scopesSeen = EnumSet.noneOf(EventScope.class);
+            List<Range> ranges = new ArrayList<>(events.size());
+            for (var event : events) {
+              scopesSeen.add(event.getScope());
+              if (event.getScope() == EventScope.TABLE
+                  || event.getScope() == EventScope.TABLE_RANGE) {
+                ranges.add(event.getExtent().toMetaRange());
+              }
+            }
 
-            rangesToProcess.drainTo(ranges);
-
-            if (!processRanges(ranges)) {
+            if (scopesSeen.contains(EventScope.ALL) || scopesSeen.contains(EventScope.DATA_LEVEL)) {
+              // Since this code should only receive events for a single data level, and seeing a
+              // data level should squish all table and tablet events, then seeing ranges indicates
+              // assumptions this code is making are incorrect or there is a bug somewhere.
+              Preconditions.checkState(ranges.isEmpty());
               setNeedsFullScan();
+            } else {
+              if (!processRanges(ranges)) {
+                setNeedsFullScan();
+              }
             }
           }
         } catch (InterruptedException e) {
@@ -259,10 +274,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     EventHandler() {
-      rangesToProcess = new ArrayBlockingQueue<>(10000);
-
+      eventQueue = new EventQueue();
       Threads.createCriticalThread("TGW [" + store.name() + "] event range processor",
-          new RangeProccessor()).start();
+          new RangeProcessor()).start();
     }
 
     private synchronized void setNeedsFullScan() {
@@ -279,24 +293,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     }
 
     @Override
-    public void process(EventCoordinator.Event event) {
-
-      switch (event.getScope()) {
-        case ALL:
-        case DATA_LEVEL:
-          setNeedsFullScan();
-          break;
-        case TABLE:
-        case TABLE_RANGE:
-          if (!rangesToProcess.offer(event.getExtent().toMetaRange())) {
-            Manager.log.debug("[{}] unable to process event range {} because queue is full",
-                store.name(), event.getExtent());
-            setNeedsFullScan();
-          }
-          break;
-        default:
-          throw new IllegalArgumentException("Unhandled scope " + event.getScope());
-      }
+    public void process(Event event) {
+      eventQueue.add(event);
     }
 
     synchronized void waitForFullScan(long millis) {
