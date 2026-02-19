@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.manager.fate;
 
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
 import java.util.Collection;
 import java.util.Set;
@@ -156,8 +156,8 @@ public class FateWorkerEnv implements FateEnv {
     int poolSize = ctx.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
     // FOLLOW_ON this import table name is not correct for the thread pool name, fix in stand alone
     // PR
-    this.renamePool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
+    this.renamePool = ThreadPools.getServerThreadPools().getPoolBuilder(FILE_RENAME_POOL.poolName)
+        .numCoreThreads(poolSize).build();
     this.serviceLock = lock;
     this.splitCache = new SplitFileCache(ctx);
     this.eventHandler = new EventHandler();

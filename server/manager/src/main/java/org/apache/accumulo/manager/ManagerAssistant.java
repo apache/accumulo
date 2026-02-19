@@ -124,7 +124,8 @@ public class ManagerAssistant {
 
         ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
         for (ServiceLockData.ThriftService svc : new ServiceLockData.ThriftService[] {
-            ServiceLockData.ThriftService.CLIENT, ServiceLockData.ThriftService.FATE_WORKER}) {
+            ServiceLockData.ThriftService.CLIENT,
+            ServiceLockData.ThriftService.MANAGER_ASSISTANT}) {
           descriptors.addService(new ServiceLockData.ServiceDescriptor(serverLockUUID, svc,
               advertiseAddress.toString(), this.getResourceGroup()));
         }
