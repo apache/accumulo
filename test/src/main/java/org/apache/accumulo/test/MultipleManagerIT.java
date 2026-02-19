@@ -75,8 +75,8 @@ import com.google.common.net.HostAndPort;
  * <ul>
  * <li>Starts new manager processes and verifies fate operations start running on them</li>
  * <li>Kills assistant/non-primary manager processes and verifies the system recovers</li>
- * <li>Kills primary manager processes and verifies the system recovers</li>
- * <li>Verifies that Accumulo API calls are not impacted by managers starting/stoppping</li>
+ * <li>Kills primary manager process and verifies the system recovers</li>
+ * <li>Verifies that Accumulo API calls are not impacted by managers starting/stopping</li>
  * </ul>
  *
  */
@@ -204,8 +204,8 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       managerWorkers.add(exec(FastFateCleanupManager.class));
       waitToSeeManagers(ctx, 5, store, false);
 
-      // Kill two manager processes. Any fate operations they are running should resume elsewhere.
-      // Should also see three manager running operations after that.
+      // Kill two assistant manager processes. Any fate operations that were running should resume
+      // elsewhere. Should see three manager running operations after that.
       managerWorkers.get(2).destroy();
       managerWorkers.get(3).destroy();
       log.debug("Killed 2 managers");
