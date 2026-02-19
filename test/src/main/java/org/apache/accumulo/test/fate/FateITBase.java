@@ -559,9 +559,12 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
   }
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
-    return new Fate<>(new TestEnv(), store, false, r -> r + "",
+    Fate<TestEnv> fate = new Fate<>(new TestEnv(), store, false, r -> r + "",
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
         new ScheduledThreadPoolExecutor(2));
+
+    fate.start();
+    return fate;
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);

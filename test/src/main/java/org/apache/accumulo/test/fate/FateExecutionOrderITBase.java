@@ -194,9 +194,12 @@ public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
   }
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {
-    return new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
+    Fate<FeoTestEnv> fate = new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
         new ScheduledThreadPoolExecutor(2));
+
+    fate.start();
+    return fate;
   }
 
   private static Entry<FateId,String> toIdStep(Entry<Key,Value> e) {

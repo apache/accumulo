@@ -1271,6 +1271,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     final Fate<FateEnv> fateInstance = new Fate<>(this, store, true, TraceRepo::toLogString,
         getConfiguration(), context.getScheduledExecutor());
+    fateInstance.start();
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

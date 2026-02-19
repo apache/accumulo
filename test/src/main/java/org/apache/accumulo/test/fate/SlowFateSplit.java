@@ -58,6 +58,7 @@ public class SlowFateSplit<T> extends Fate<T> {
       fateExecutors.add(new SlowFateSplitExecutor(this, environment, poolConfig.getKey(),
           poolConfig.getValue().getValue(), poolConfig.getValue().getKey()));
     }
+    start();
   }
 
   private class SlowFateSplitExecutor extends FateExecutor<T> {
