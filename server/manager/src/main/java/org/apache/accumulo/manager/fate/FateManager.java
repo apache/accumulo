@@ -20,11 +20,13 @@ package org.apache.accumulo.manager.fate;
 
 import static org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate.DEFAULT_RG_ONLY;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
@@ -33,11 +35,15 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.thrift.FateWorkerService;
+import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -51,9 +57,11 @@ import com.google.common.collect.TreeRangeMap;
 import com.google.common.net.HostAndPort;
 
 /**
- * Partitions fate across manager assistant processes. This is done by assigning ranges of the fate
+ * Partitions {@link FateInstanceType#USER} fate across manager assistant processes. This is done by assigning ranges of the fate
  * uuid key space to different processes. The partitions are logical and do not correspond to the
  * physical partitioning of the fate table.
+ *
+ * <p>Does not currently manage {@link FateInstanceType#META}</p>
  */
 public class FateManager {
 
@@ -152,35 +160,37 @@ public class FateManager {
     }
   }
 
-  private Thread thread = null;
+  private Thread assignmentThread = null;
   private Thread ntfyThread = null;
 
   public synchronized void start() {
-    Preconditions.checkState(thread == null);
+    Preconditions.checkState(assignmentThread == null);
     Preconditions.checkState(ntfyThread == null);
     Preconditions.checkState(!stop.get());
 
-    thread = Threads.createCriticalThread("Fate Manager", () -> {
+    assignmentThread = Threads.createCriticalThread("Fate Manager", () -> {
       try {
         managerWorkers();
       } catch (Exception e) {
         throw new IllegalStateException(e);
       }
     });
-    thread.start();
+    assignmentThread.start();
 
     ntfyThread = Threads.createCriticalThread("Fate Notify", new NotifyTask());
     ntfyThread.start();
   }
 
-  public synchronized void stop() {
+  public synchronized void stop(Duration timeout) {
     if (!stop.compareAndSet(false, true)) {
       return;
     }
 
+    var timer = CountDownTimer.startNew(timeout);
+
     try {
-      if (thread != null) {
-        thread.join();
+      if (assignmentThread != null) {
+        assignmentThread.join();
       }
       if (ntfyThread != null) {
         ntfyThread.join();
@@ -188,7 +198,7 @@ public class FateManager {
     } catch (InterruptedException e) {
       throw new IllegalStateException(e);
     }
-    // Try to set every assistant manager to nothing.
+    // Try to set every assistant manager to an empty set of partitions.  This will cause them all to stop looking for work.
     Map<HostAndPort,CurrentPartitions> currentAssignments = null;
     try {
       currentAssignments = getCurrentAssignments();
@@ -208,10 +218,25 @@ public class FateManager {
       }
     }
 
-    // TODO could wait for each assitant to finish any current operations
-
     stableAssignments.set(TreeRangeMap.create());
 
+    if(!timer.isExpired()) {
+      var store = new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
+
+      var reserved = store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
+      while (!reserved.isEmpty() && !timer.isExpired()) {
+        if (log.isTraceEnabled()) {
+          reserved.forEach((fateId, reservation) -> {
+            log.trace("In stop(), waiting on {} {} ", fateId, reservation);
+          });
+        }
+        try {
+          Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
+        } catch (InterruptedException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    }
   }
 
   /**
@@ -282,8 +307,10 @@ public class FateManager {
     FateWorkerService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
     try {
-      return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
+      log.trace("Setting partitions {} {}", address, desired);
+      var result =  client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
+      return result;
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -319,9 +346,12 @@ public class FateManager {
       }
     });
 
-    desiredAssignments.forEach((hp, parts) -> {
-      log.trace(" desired {} {} {}", hp, parts.size(), parts);
-    });
+    if(log.isTraceEnabled()) {
+      log.trace("Logging desired partitions");
+      desiredAssignments.forEach((hp, parts) -> {
+        log.trace(" desired {} {} {}", hp, parts.size(), parts);
+      });
+    }
 
     return desiredAssignments;
   }
@@ -375,7 +405,7 @@ public class FateManager {
     var workers =
         context.getServerPaths().getManagerWorker(DEFAULT_RG_ONLY, AddressSelector.all(), true);
 
-    log.trace("workers : " + workers);
+    log.trace("getting current assignments from {}", workers);
 
     Map<HostAndPort,CurrentPartitions> currentAssignments = new HashMap<>();
 
@@ -393,6 +423,13 @@ public class FateManager {
       } finally {
         ThriftUtil.returnClient(client, context);
       }
+    }
+
+    if(log.isTraceEnabled()){
+      log.trace("Logging current assignments");
+      currentAssignments.forEach((hostPort, partitions)->{
+        log.trace("current assignment {} {}", hostPort, partitions);
+      });
     }
 
     return currentAssignments;

@@ -714,7 +714,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             case CLEAN_STOP:
               switch (getManagerState()) {
                 case NORMAL:
-                  fateManager.stop();
+                  fateManager.stop(Duration.ofMinutes(1));
                   setManagerState(ManagerState.SAFE_MODE);
                   break;
                 case SAFE_MODE: {
@@ -1247,7 +1247,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     log.debug("Shutting down fate.");
     fate(FateInstanceType.META).close();
-    fateManager.stop();
+    fateManager.stop(Duration.ZERO);
     assitantManager.stop();
 
     splitter.stop();
