@@ -135,14 +135,14 @@ public class UpdateTabletsTest {
     var firstAndLastKeys = Map.of(file2, newFileInfo("m", "r"), file3, newFileInfo("g", "x"), file4,
         newFileInfo("s", "v"));
 
-    var ke1Expected = Map.of(file1, new DataFileValue(250, 25, 20), file2,
-        new DataFileValue(1000, 100, 50), file3, new DataFileValue(1000, 100));
-    var ke2Expected = Map.of(file1, new DataFileValue(250, 25, 20), file2,
-        new DataFileValue(1000, 100, 50), file3, new DataFileValue(1000, 100));
-    var ke3Expected = Map.of(file1, new DataFileValue(250, 25, 20), file3,
-        new DataFileValue(1000, 100), file4, new DataFileValue(4000, 400));
-    var ke4Expected =
-        Map.of(file1, new DataFileValue(250, 25, 20), file3, new DataFileValue(1000, 100));
+    var ke1Expected = Map.of(file1, new DataFileValue(250, 25, 20, true), file2,
+        new DataFileValue(1000, 100, 50, true), file3, new DataFileValue(1000, 100, true));
+    var ke2Expected = Map.of(file1, new DataFileValue(250, 25, 20, true), file2,
+        new DataFileValue(1000, 100, 50, true), file3, new DataFileValue(1000, 100, true));
+    var ke3Expected = Map.of(file1, new DataFileValue(250, 25, 20, true), file3,
+        new DataFileValue(1000, 100, true), file4, new DataFileValue(4000, 400, false));
+    var ke4Expected = Map.of(file1, new DataFileValue(250, 25, 20, true), file3,
+        new DataFileValue(1000, 100, true));
 
     var expected = Map.of(ke1, ke1Expected, ke2, ke2Expected, ke3, ke3Expected, ke4, ke4Expected);
 
@@ -165,9 +165,9 @@ public class UpdateTabletsTest {
     // Test a tablet with no files going to it
 
     var tabletFiles2 = Map.of(file2, tabletFiles.get(file2), file4, tabletFiles.get(file4));
-    ke1Expected = Map.of(file2, new DataFileValue(1000, 100, 50));
-    ke2Expected = Map.of(file2, new DataFileValue(1000, 100, 50));
-    ke3Expected = Map.of(file4, new DataFileValue(4000, 400));
+    ke1Expected = Map.of(file2, new DataFileValue(1000, 100, 50, true));
+    ke2Expected = Map.of(file2, new DataFileValue(1000, 100, 50, true));
+    ke3Expected = Map.of(file4, new DataFileValue(4000, 400, false));
     ke4Expected = Map.of();
     expected = Map.of(ke1, ke1Expected, ke2, ke2Expected, ke3, ke3Expected, ke4, ke4Expected);
 
@@ -209,10 +209,10 @@ public class UpdateTabletsTest {
     var flid2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var loaded = Map.of(loaded1, flid1, loaded2, flid2);
 
-    var dfv1 = new DataFileValue(1000, 100, 20);
-    var dfv2 = new DataFileValue(500, 50, 20);
-    var dfv3 = new DataFileValue(4000, 400);
-    var dfv4 = new DataFileValue(2000, 200);
+    var dfv1 = new DataFileValue(1000, 100, 20, true);
+    var dfv2 = new DataFileValue(500, 50, 20, false);
+    var dfv3 = new DataFileValue(4000, 400, false);
+    var dfv4 = new DataFileValue(2000, 200, true);
 
     var tabletFiles = Map.of(file1, dfv1, file2, dfv2, file3, dfv3, file4, dfv4);
 
@@ -311,7 +311,7 @@ public class UpdateTabletsTest {
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putBulkFile(loaded2.getTabletFile(), flid2))
         .andReturn(tablet1Mutator);
-    EasyMock.expect(tablet1Mutator.putFile(file1, new DataFileValue(333, 33, 20)))
+    EasyMock.expect(tablet1Mutator.putFile(file1, new DataFileValue(333, 33, 20, true)))
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
     // SplitInfo marked as system generated so should be set to ALWAYS (0 delay)
@@ -344,10 +344,10 @@ public class UpdateTabletsTest {
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded2.getTabletFile(), flid2))
         .andReturn(tablet2Mutator);
-    EasyMock.expect(tablet2Mutator.putFile(file1, new DataFileValue(333, 33, 20)))
+    EasyMock.expect(tablet2Mutator.putFile(file1, new DataFileValue(333, 33, 20, true)))
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putFile(file3, dfv3)).andReturn(tablet2Mutator);
-    EasyMock.expect(tablet2Mutator.putFile(file4, new DataFileValue(1000, 100)))
+    EasyMock.expect(tablet2Mutator.putFile(file4, new DataFileValue(1000, 100, true)))
         .andReturn(tablet2Mutator);
     tablet2Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
@@ -360,9 +360,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet3Mutator.requireAbsentLogs()).andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.putPrevEndRow(newExtent3.prevEndRow()))
         .andReturn(tablet3Mutator);
-    EasyMock.expect(tablet3Mutator.putFile(file1, new DataFileValue(333, 33, 20)))
+    EasyMock.expect(tablet3Mutator.putFile(file1, new DataFileValue(333, 33, 20, true)))
         .andReturn(tablet3Mutator);
-    EasyMock.expect(tablet3Mutator.putFile(file4, new DataFileValue(1000, 100)))
+    EasyMock.expect(tablet3Mutator.putFile(file4, new DataFileValue(1000, 100, true)))
         .andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.deleteFile(file2)).andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.deleteFile(file3)).andReturn(tablet3Mutator);

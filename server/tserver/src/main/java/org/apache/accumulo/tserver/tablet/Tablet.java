@@ -409,7 +409,7 @@ public class Tablet extends TabletBase {
       Span span2 = TraceUtil.startSpan(this.getClass(), "minorCompact::bringOnline");
       try (Scope scope = span2.makeCurrent()) {
         bringMinorCompactionOnline(tmpDatafile, newDatafile,
-            new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
+            new DataFileValue(stats.getFileSize(), stats.getEntriesWritten(), false), commitSession,
             flushId, mincReason);
       } catch (Exception e) {
         final ServiceLock tserverLock = tabletServer.getLock();
