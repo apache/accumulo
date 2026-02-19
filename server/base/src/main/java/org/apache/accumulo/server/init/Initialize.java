@@ -554,6 +554,11 @@ public class Initialize implements KeywordExecutable {
   }
 
   @Override
+  public Object getOptions() {
+    return new Opts();
+  }
+
+  @Override
   public void execute(final String[] args) {
     boolean success = true;
     Opts opts = new Opts();

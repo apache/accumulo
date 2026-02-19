@@ -32,6 +32,11 @@ public abstract class BaseKeywordExecutable<OPTS extends Help> implements Keywor
   }
 
   @Override
+  public Object getOptions() {
+    return this.options;
+  }
+
+  @Override
   public final void execute(String[] args) throws Exception {
     JCommander cl = new JCommander(this.options);
     cl.setProgramName("accumulo "

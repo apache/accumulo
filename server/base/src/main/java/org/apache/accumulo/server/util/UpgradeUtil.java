@@ -116,6 +116,11 @@ public class UpgradeUtil implements KeywordExecutable {
     return CommandGroups.OTHER;
   }
 
+  @Override
+  public Object getOptions() {
+    return new Opts();
+  }
+
   private static class UpgradeUsageFormatter extends DefaultUsageFormatter {
 
     public UpgradeUsageFormatter(JCommander commander) {
