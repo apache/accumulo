@@ -25,7 +25,7 @@ import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -505,8 +505,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    renamePool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
+    renamePool = ThreadPools.getServerThreadPools().getPoolBuilder(FILE_RENAME_POOL.poolName)
+        .numCoreThreads(poolSize).build();
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balanceManager = new BalanceManager();
