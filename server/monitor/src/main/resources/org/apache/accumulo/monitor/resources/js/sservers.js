@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    getGroups, getSserversDetail
+    getGroups, getSserversDetail, REST_V2_PREFIX
 */
 "use strict";
 
@@ -34,7 +34,11 @@ var METRICS = {
   QUERY_RESULTS_BYTES: 'accumulo.scan.query.results.bytes',
   BUSY_TIMEOUTS: 'accumulo.scan.busy.timeout.count',
   RESERVATION_CONFLICTS: 'accumulo.scan.reservation.conflict.count',
-  ZOMBIE_THREADS: 'accumulo.scan.zombie.threads'
+  ZOMBIE_THREADS: 'accumulo.scan.zombie.threads',
+  SERVER_IDLE: 'accumulo.server.idle',
+  LOW_MEMORY_DETECTED: 'accumulo.detected.low.memory',
+  SCANS_PAUSED_FOR_MEMORY: 'accumulo.scan.paused.for.memory',
+  SCANS_RETURNED_EARLY_FOR_MEMORY: 'accumulo.scan.return.early.for.memory'
 };
 
 function normalizeStatistic(value) {
@@ -61,6 +65,7 @@ function extractStatistic(tags) {
 
 function getMetricValue(metrics, name, statistic) {
   if (!metrics) {
+    console.warn('Missing scan-server metrics array when reading metric: ' + name);
     return 0;
   }
   var desiredStatistic = normalizeStatistic(statistic);
@@ -78,24 +83,48 @@ function getMetricValue(metrics, name, statistic) {
       return metric.value;
     }
   }
+  console.warn('Missing expected scan-server metric: ' + name);
   return 0;
 }
 
 function buildScanServerRow(response) {
   var metrics = response.metrics || [];
-  return {
+  var hasMetrics = Array.isArray(metrics) && metrics.length > 0;
+  var row = {
     host: response.host,
     resourceGroup: response.resourceGroup,
-    lastContact: Date.now() - response.timestamp,
-    openFiles: getMetricValue(metrics, METRICS.OPEN_FILES),
-    queries: getMetricValue(metrics, METRICS.QUERIES),
-    scannedEntries: getMetricValue(metrics, METRICS.SCANNED_ENTRIES),
-    queryResults: getMetricValue(metrics, METRICS.QUERY_RESULTS),
-    queryResultBytes: getMetricValue(metrics, METRICS.QUERY_RESULTS_BYTES),
-    busyTimeouts: getMetricValue(metrics, METRICS.BUSY_TIMEOUTS),
-    reservationConflicts: getMetricValue(metrics, METRICS.RESERVATION_CONFLICTS),
-    zombieThreads: getMetricValue(metrics, METRICS.ZOMBIE_THREADS)
+    lastContact: Date.now() - response.timestamp
   };
+
+  if (!hasMetrics) {
+    row.openFiles = null;
+    row.queries = null;
+    row.scannedEntries = null;
+    row.queryResults = null;
+    row.queryResultBytes = null;
+    row.busyTimeouts = null;
+    row.reservationConflicts = null;
+    row.zombieThreads = null;
+    row.serverIdle = null;
+    row.lowMemoryDetected = null;
+    row.scansPausedForMemory = null;
+    row.scansReturnedEarlyForMemory = null;
+    return row;
+  }
+
+  row.openFiles = getMetricValue(metrics, METRICS.OPEN_FILES);
+  row.queries = getMetricValue(metrics, METRICS.QUERIES);
+  row.scannedEntries = getMetricValue(metrics, METRICS.SCANNED_ENTRIES);
+  row.queryResults = getMetricValue(metrics, METRICS.QUERY_RESULTS);
+  row.queryResultBytes = getMetricValue(metrics, METRICS.QUERY_RESULTS_BYTES);
+  row.busyTimeouts = getMetricValue(metrics, METRICS.BUSY_TIMEOUTS);
+  row.reservationConflicts = getMetricValue(metrics, METRICS.RESERVATION_CONFLICTS);
+  row.zombieThreads = getMetricValue(metrics, METRICS.ZOMBIE_THREADS);
+  row.serverIdle = getMetricValue(metrics, METRICS.SERVER_IDLE);
+  row.lowMemoryDetected = getMetricValue(metrics, METRICS.LOW_MEMORY_DETECTED);
+  row.scansPausedForMemory = getMetricValue(metrics, METRICS.SCANS_PAUSED_FOR_MEMORY);
+  row.scansReturnedEarlyForMemory = getMetricValue(metrics, METRICS.SCANS_RETURNED_EARLY_FOR_MEMORY);
+  return row;
 }
 
 function getStoredRows() {
@@ -113,6 +142,7 @@ function setStoredRows(rows) {
 
 function buildRowsFromSessionStorage(groups) {
   var rows = [];
+  var metricsUnavailable = false;
 
   groups.forEach(function (group) {
     var sessionKey = 'sserversDetail_' + group;
@@ -123,14 +153,62 @@ function buildRowsFromSessionStorage(groups) {
     if (!Array.isArray(responses)) {
       return;
     }
+    for (var i = 0; i < responses.length; i++) {
+      if (!Array.isArray(responses[i].metrics) || responses[i].metrics.length === 0) {
+        metricsUnavailable = true;
+        break;
+      }
+    }
     rows = rows.concat(responses.map(buildScanServerRow));
   });
 
-  return rows;
+  return {
+    rows: rows,
+    metricsUnavailable: metricsUnavailable
+  };
 }
 
 function refreshScanServersTable() {
   ajaxReloadTable(sserversTable);
+}
+
+function refreshSserversBanner(metricsUnavailable) {
+  return $.when(
+    $.getJSON(REST_V2_PREFIX + '/sservers/summary'),
+    $.getJSON(REST_V2_PREFIX + '/problems')
+  ).done(function (summaryResp, problemsResp) {
+    var summary = summaryResp && summaryResp[0] ? summaryResp[0] : {};
+    var problems = problemsResp && problemsResp[0] ? problemsResp[0] : [];
+    var hasSservers = summary && Object.keys(summary).length > 0;
+    var hasProblemSserver = problems.some(function (problem) {
+      return problem.type === 'SCAN_SERVER' || problem.serverType === 'SCAN_SERVER';
+    });
+
+    if (metricsUnavailable || hasProblemSserver) {
+      var warnings = [];
+      if (hasProblemSserver) {
+        warnings.push('one or more scan servers are unavailable');
+      }
+      if (metricsUnavailable) {
+        warnings.push('scan-server metrics are not present (are metrics enabled?)');
+      }
+      $('#sservers-banner-message')
+        .removeClass('alert-danger')
+        .addClass('alert-warning')
+        .text('WARN: ' + warnings.join('; ') + '.');
+      $('#sserversStatusBanner').show();
+    } else if (!hasSservers) {
+      $('#sserversStatusBanner').hide();
+    } else {
+      $('#sserversStatusBanner').hide();
+    }
+  }).fail(function () {
+    $('#sservers-banner-message')
+      .removeClass('alert-warning')
+      .addClass('alert-danger')
+      .text('ERROR: unable to retrieve scan-server status.');
+    $('#sserversStatusBanner').show();
+  });
 }
 
 function refreshScanServers() {
@@ -140,6 +218,7 @@ function refreshScanServers() {
     if (!Array.isArray(groupList) || groupList.length === 0) {
       setStoredRows([]);
       refreshScanServersTable();
+      refreshSserversBanner(false);
       return;
     }
 
@@ -148,15 +227,19 @@ function refreshScanServers() {
     });
 
     $.when.apply($, requests).done(function () {
-      setStoredRows(buildRowsFromSessionStorage(groupList));
+      var detailData = buildRowsFromSessionStorage(groupList);
+      setStoredRows(detailData.rows);
       refreshScanServersTable();
+      refreshSserversBanner(detailData.metricsUnavailable);
     }).fail(function () {
       setStoredRows([]);
       refreshScanServersTable();
+      refreshSserversBanner(false);
     });
   }).fail(function () {
     setStoredRows([]);
     refreshScanServersTable();
+    refreshSserversBanner(false);
   });
 }
 
@@ -179,6 +262,9 @@ $(function () {
         "targets": "big-num",
         "render": function (data, type) {
           if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
             data = bigNumberForQuantity(data);
           }
           return data;
@@ -188,6 +274,9 @@ $(function () {
         "targets": "big-size",
         "render": function (data, type) {
           if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
             data = bigNumberForSize(data);
           }
           return data;
@@ -235,6 +324,18 @@ $(function () {
       },
       {
         "data": "zombieThreads"
+      },
+      {
+        "data": "serverIdle"
+      },
+      {
+        "data": "lowMemoryDetected"
+      },
+      {
+        "data": "scansPausedForMemory"
+      },
+      {
+        "data": "scansReturnedEarlyForMemory"
       }
     ]
   });
