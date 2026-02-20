@@ -69,7 +69,7 @@ import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.Partitioner;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.PreAllocatedArray;
+import org.apache.accumulo.core.util.PreallocatedList;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.commons.lang3.mutable.MutableLong;
@@ -280,17 +280,17 @@ public class InMemoryMap {
 
   private static class LocalityGroupMap implements SimpleMap {
 
-    private final PreAllocatedArray<Map<ByteSequence,MutableLong>> groupFams;
+    private final List<Map<ByteSequence,MutableLong>> groupFams;
 
     // the last map in the array is the default locality group
     private final SimpleMap[] maps;
     private final Partitioner partitioner;
-    private final PreAllocatedArray<List<Mutation>> partitioned;
+    private final List<List<Mutation>> partitioned;
 
     LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
-      this.groupFams = new PreAllocatedArray<>(groups.size());
+      this.groupFams = PreallocatedList.create(groups.size());
       this.maps = new SimpleMap[groups.size() + 1];
-      this.partitioned = new PreAllocatedArray<>(groups.size() + 1);
+      this.partitioned = PreallocatedList.create(groups.size() + 1);
 
       for (int i = 0; i < maps.length; i++) {
         maps[i] = newMap(useNativeMap);
@@ -307,7 +307,7 @@ public class InMemoryMap {
 
       partitioner = new LocalityGroupUtil.Partitioner(this.groupFams);
 
-      for (int i = 0; i < partitioned.length; i++) {
+      for (int i = 0; i < partitioned.size(); i++) {
         partitioned.set(i, new ArrayList<>());
       }
     }
@@ -329,7 +329,7 @@ public class InMemoryMap {
 
       LocalityGroup[] groups = new LocalityGroup[maps.length];
       for (int i = 0; i < groups.length; i++) {
-        if (i < groupFams.length) {
+        if (i < groupFams.size()) {
           groups[i] = new LocalityGroup(maps[i].skvIterator(null), groupFams.get(i), false);
         } else {
           groups[i] = new LocalityGroup(maps[i].skvIterator(null), null, true);
@@ -364,7 +364,7 @@ public class InMemoryMap {
       try {
         partitioner.partition(mutations, partitioned);
 
-        for (int i = 0; i < partitioned.length; i++) {
+        for (int i = 0; i < partitioned.size(); i++) {
           if (!partitioned.get(i).isEmpty()) {
             maps[i].mutate(partitioned.get(i), kvCount);
             for (Mutation m : partitioned.get(i)) {

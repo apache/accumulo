@@ -45,7 +45,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
-import org.apache.accumulo.core.util.PreAllocatedArray;
+import org.apache.accumulo.core.util.PreallocatedList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -181,7 +181,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     private NMIterator source;
 
-    private PreAllocatedArray<Entry<Key,Value>> nextEntries;
+    private List<Entry<Key,Value>> nextEntries;
     private int index;
     private int end;
 
@@ -191,7 +191,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     ConcurrentIterator(Key key) {
       // start off with a small read ahead
-      nextEntries = new PreAllocatedArray<>(1);
+      nextEntries = PreallocatedList.create(1);
 
       rlock.lock();
       try {
@@ -214,12 +214,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       int amountRead = 0;
 
       // as we keep filling, increase the read ahead buffer
-      if (nextEntries.length < MAX_READ_AHEAD_ENTRIES) {
+      if (nextEntries.size() < MAX_READ_AHEAD_ENTRIES) {
         nextEntries =
-            new PreAllocatedArray<>(Math.min(nextEntries.length * 2, MAX_READ_AHEAD_ENTRIES));
+            PreallocatedList.create(Math.min(nextEntries.size() * 2, MAX_READ_AHEAD_ENTRIES));
       }
 
-      while (source.hasNext() && end < nextEntries.length) {
+      while (source.hasNext() && end < nextEntries.size()) {
         Entry<Key,Value> ne = source.next();
         nextEntries.set(end++, ne);
         amountRead += ne.getKey().getSize() + ne.getValue().getSize();

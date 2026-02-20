@@ -290,32 +290,31 @@ public class LocalityGroupUtil {
   public static class Partitioner {
 
     private Map<ByteSequence,Integer> colfamToLgidMap;
-    private PreAllocatedArray<Map<ByteSequence,MutableLong>> groups;
+    private List<Map<ByteSequence,MutableLong>> groups;
 
-    public Partitioner(PreAllocatedArray<Map<ByteSequence,MutableLong>> groups) {
+    public Partitioner(List<Map<ByteSequence,MutableLong>> groups) {
       this.groups = groups;
       this.colfamToLgidMap = new HashMap<>();
 
-      for (int i = 0; i < groups.length; i++) {
+      for (int i = 0; i < groups.size(); i++) {
         for (ByteSequence cf : groups.get(i).keySet()) {
           colfamToLgidMap.put(cf, i);
         }
       }
     }
 
-    public void partition(List<Mutation> mutations,
-        PreAllocatedArray<List<Mutation>> partitionedMutations) {
+    public void partition(List<Mutation> mutations, List<List<Mutation>> partitionedMutations) {
 
       final var mbs = new ArrayByteSequence(new byte[0], 0, 0);
 
-      PreAllocatedArray<List<ColumnUpdate>> parts = new PreAllocatedArray<>(groups.length + 1);
+      List<List<ColumnUpdate>> parts = PreallocatedList.create(groups.size() + 1);
 
       for (Mutation mutation : mutations) {
         if (mutation.getUpdates().size() == 1) {
           int lgid = getLgid(mbs, mutation.getUpdates().get(0));
           partitionedMutations.get(lgid).add(mutation);
         } else {
-          for (int i = 0; i < parts.length; i++) {
+          for (int i = 0; i < parts.size(); i++) {
             parts.set(i, null);
           }
 
@@ -333,14 +332,14 @@ public class LocalityGroupUtil {
           }
 
           if (lgcount == 1) {
-            for (int i = 0; i < parts.length; i++) {
+            for (int i = 0; i < parts.size(); i++) {
               if (parts.get(i) != null) {
                 partitionedMutations.get(i).add(mutation);
                 break;
               }
             }
           } else {
-            for (int i = 0; i < parts.length; i++) {
+            for (int i = 0; i < parts.size(); i++) {
               if (parts.get(i) != null) {
                 partitionedMutations.get(i)
                     .add(new PartitionedMutation(mutation.getRow(), parts.get(i)));
@@ -355,7 +354,7 @@ public class LocalityGroupUtil {
       mbs.reset(cu.getColumnFamily(), 0, cu.getColumnFamily().length);
       Integer lgid = colfamToLgidMap.get(mbs);
       if (lgid == null) {
-        lgid = groups.length;
+        lgid = groups.size();
       }
       return lgid;
     }
