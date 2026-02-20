@@ -308,7 +308,7 @@ public class FateExecutor<T> {
     public void run() {
       while (fate.getKeepRunning().get() && !isShutdown()) {
         try {
-          fate.getStore().runnable(fate.getKeepRunning(), fateIdStatus -> {
+          fate.getStore().runnable(() -> fate.getKeepRunning().get(), fateIdStatus -> {
             // The FateId with the fate operation 'fateOp' is workable by this FateExecutor if
             // 1) This FateExecutor is assigned to work on 'fateOp' ('fateOp' is in 'fateOps')
             // 2) The transaction was cancelled while NEW. This is an edge case that needs to be

@@ -199,7 +199,7 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
     try {
       // Run and verify all 10 transactions still exist and were not
       // run because of the deferral time of all the transactions
-      future = executor.submit(() -> store.runnable(keepRunning,
+      future = executor.submit(() -> store.runnable(keepRunning::get,
           fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
       Thread.sleep(2000);
       assertEquals(10, transactions.size());
@@ -225,7 +225,7 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
       // Run and verify all 11 transactions were processed
       // and removed from the store
       keepRunning.set(true);
-      future = executor.submit(() -> store.runnable(keepRunning,
+      future = executor.submit(() -> store.runnable(keepRunning::get,
           fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
       Wait.waitFor(transactions::isEmpty);
       // Setting this flag to false should terminate the task if sleeping

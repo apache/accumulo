@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -161,11 +162,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       EnumSet.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
+  public void runnable(BooleanSupplier keepWaiting, Consumer<FateIdStatus> idConsumer) {
 
     AtomicLong seen = new AtomicLong(0);
 
-    while (keepWaiting.get() && seen.get() == 0) {
+    while (keepWaiting.getAsBoolean() && seen.get() == 0) {
       final long beforeCount = unreservedRunnableCount.getCount();
       final boolean beforeDeferredOverflow = deferredOverflow.get();
 
@@ -207,8 +208,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
           }
 
           if (waitTime > 0) {
-            unreservedRunnableCount.waitFor(count -> count != beforeCount, waitTime,
-                keepWaiting::get);
+            unreservedRunnableCount.waitFor(count -> count != beforeCount, waitTime, keepWaiting);
           }
         }
       }
