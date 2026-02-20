@@ -130,7 +130,7 @@ public class CreateEmpty extends ServerKeywordExecutable<CreateEmptyOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.FILE;
   }
 
   @Override

@@ -51,7 +51,7 @@ public class ScanServerMetadataEntries extends ServerKeywordExecutable<ServerOpt
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

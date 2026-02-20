@@ -134,7 +134,7 @@ public class RestoreZookeeper extends ServerKeywordExecutable<RestoreZooCommandO
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.CONFIG;
   }
 
   @Override

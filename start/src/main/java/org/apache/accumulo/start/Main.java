@@ -113,6 +113,8 @@ public class Main {
     Runnable r = () -> {
       try {
         keywordExec.execute(args);
+      } catch (JCommanderParseException e) {
+        System.exit(1);
       } catch (Exception e) {
         die(e, null);
       }
@@ -193,26 +195,42 @@ public class Main {
 
   public static void printUsage() {
 
-    System.out.println("\nUsage one of:");
-    System.out.println("    accumulo --help");
-    System.out.println("    accumulo classpath");
-    System.out.println("    accumulo jshell (<argument> ...)");
-    System.out.println("    accumulo className (<argument> ...)");
-    System.out.println("    accumulo <command>* <subcommand> [--help] (<argument> ...)");
-    System.out.println("    * client commands can be run using 'accumulo <subcommand> ...'\n");
+    final String header =
+        """
+
+            Usage one of:
+                accumulo --help
+                    Prints this help
+
+                accumulo classpath
+                    Prints the classpath for the accumulo script
+
+                accumulo jshell [ARG]...
+                    Starts a Java JShell session for use with an Accumulo instance
+
+                accumulo className [ARG]...
+                    Executes a Java class passing the provided arguments
+
+                accumulo <command> <subcommand> --help | [ARG]...
+                    Provides a common execution environment to run various Accumulo related commands and subcommands.
+                    Client commands support a shorter command structure where the command does not have to be specified,
+                    'accumulo shell' instead of 'accumulo client shell', for example. Commands other than 'client'
+                    require access to the accumulo.properties file for the instance.
+            """;
+
+    System.out.println(header);
 
     Map<CommandGroup,Map<String,KeywordExecutable>> executables = getExecutables(getClassLoader());
 
-    System.out.println(CommandGroups.CLIENT.title() + " Commands:");
+    System.out.println(CommandGroups.CLIENT.title() + " Commands (accumulo <command>):");
     executables.get(CommandGroups.CLIENT).entrySet().forEach(ce -> {
       System.out.printf("  %-30s %s\n", ce.getValue().usage(), ce.getValue().description());
     });
 
-    System.out.println("\nThe following commands require access to the accumulo.properties file\n");
-
     executables.entrySet().forEach(e -> {
       if (e.getKey() != CommandGroups.CLIENT) {
-        System.out.println("\n" + e.getKey().title() + " Commands:");
+        System.out.println(
+            "\n" + e.getKey().title() + " Commands (accumulo " + e.getKey().key() + " <command>):");
         e.getValue().values()
             .forEach(ke -> System.out.printf("  %-30s %s\n", ke.usage(), ke.description()));
       }

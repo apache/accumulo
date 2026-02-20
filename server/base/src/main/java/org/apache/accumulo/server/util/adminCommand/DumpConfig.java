@@ -127,7 +127,7 @@ public class DumpConfig extends ServerKeywordExecutable<DumpConfigOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.CONFIG;
   }
 
   @Override

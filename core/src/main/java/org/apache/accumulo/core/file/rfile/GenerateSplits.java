@@ -120,7 +120,7 @@ public class GenerateSplits extends ClientKeywordExecutable<SplitOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.FILE;
   }
 
   @Override

@@ -102,7 +102,7 @@ public class LogReader extends ServerKeywordExecutable<ReaderOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.FILE;
   }
 
   @Override

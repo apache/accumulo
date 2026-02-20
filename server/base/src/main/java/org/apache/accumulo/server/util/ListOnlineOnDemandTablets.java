@@ -62,7 +62,7 @@ public class ListOnlineOnDemandTablets extends ServerKeywordExecutable<ServerOpt
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.TABLE;
   }
 
   @Override

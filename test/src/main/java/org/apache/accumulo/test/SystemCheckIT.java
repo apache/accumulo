@@ -142,7 +142,7 @@ public class SystemCheckIT extends ConfigurableMacBase {
     // no provided pattern
     p = getCluster().exec(SystemCheck.class, "run", "--name_pattern");
     assertNotEquals(0, p.getProcess().waitFor());
-    assertTrue(p.readStdOut().contains("ParameterException"));
+    assertTrue(p.readStdOut().contains("Usage:"));
     // no checks match pattern
     p = getCluster().exec(SystemCheck.class, "run", "--name_pattern", "abc");
     assertNotEquals(0, p.getProcess().waitFor());
@@ -666,7 +666,14 @@ public class SystemCheckIT extends ConfigurableMacBase {
 
   private SystemCheck createDummyCheckCommand(boolean[] checksPass) throws Exception {
     DummyCheckCommand opts = new DummyCheckCommand(checksPass);
-    SystemCheck check = new SystemCheck(opts);
+    SystemCheck check = new SystemCheck(opts) {
+
+      @Override
+      public ServerContext getServerContext() {
+        return getCluster().getServerContext();
+      }
+
+    };
     return check;
   }
 

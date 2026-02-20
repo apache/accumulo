@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.cli;
 
+import org.apache.accumulo.start.JCommanderParseException;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.beust.jcommander.JCommander;
@@ -40,7 +41,7 @@ public abstract class BaseKeywordExecutable<OPTS extends Help> implements Keywor
       cl.parse(args);
     } catch (ParameterException e) {
       cl.usage();
-      return;
+      throw new JCommanderParseException();
     }
     this.options.validateArgs();
     if (this.options.help) {
