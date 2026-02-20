@@ -342,7 +342,8 @@ public class SecurityOperation {
   private boolean hasTablePermission(TCredentials credentials, TableId tableId,
       NamespaceId namespaceId, TablePermission permission, boolean useCached)
       throws ThriftSecurityException {
-    if (isSystemUser(credentials)) {
+    if (isSystemUser(credentials)
+        || hasSystemPermission(credentials, SystemPermission.SYSTEM, false)) {
       return true;
     }
     return _hasTablePermission(credentials.getPrincipal(), tableId, permission, useCached)
