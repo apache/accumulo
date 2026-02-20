@@ -46,6 +46,7 @@ import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.file.rfile.SplitLarge;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
+import org.apache.accumulo.core.util.ShellCompletionCommand;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.gc.GCExecutable;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -236,6 +237,8 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.FILE, "rfile-info", PrintInfo.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "service-status", ServiceStatus.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "shell", Shell.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "create-autocomplete-script",
+        ShellCompletionCommand.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "split-large", SplitLarge.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "sserver", ScanServerExecutable.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-all", StopAll.class));
