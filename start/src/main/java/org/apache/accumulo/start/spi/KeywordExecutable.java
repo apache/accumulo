@@ -83,6 +83,13 @@ public interface KeywordExecutable {
   String description();
 
   /**
+   * @return options object used for this command, may be null
+   */
+  default Object getOptions() {
+    return null;
+  }
+
+  /**
    * Execute the item with the given arguments.
    *
    * @param args command-line arguments to pass to the executed class

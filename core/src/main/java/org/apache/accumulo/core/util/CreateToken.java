@@ -75,6 +75,11 @@ public class CreateToken implements KeywordExecutable {
   }
 
   @Override
+  public Object getOptions() {
+    return new Opts();
+  }
+
+  @Override
   public CommandGroup commandGroup() {
     return CommandGroups.CLIENT;
   }

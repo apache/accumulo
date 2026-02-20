@@ -32,6 +32,11 @@ public class MiniClusterExecutable extends ServerProcessKeywordExecutable {
   }
 
   @Override
+  public Object getOptions() {
+    return new MiniAccumuloRunner.Opts();
+  }
+
+  @Override
   public void execute(final String[] args) throws Exception {
     MiniAccumuloRunner.main(args);
   }
