@@ -565,7 +565,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   @Override
-  public FileRangeCache getSplitFileCache() {
+  public FileRangeCache getFileRangeCache() {
     return fileRangeCache;
   }
 

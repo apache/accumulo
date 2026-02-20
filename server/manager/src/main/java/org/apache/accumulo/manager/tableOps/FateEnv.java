@@ -55,7 +55,7 @@ public interface FateEnv {
 
   ExecutorService getTabletRefreshThreadPool();
 
-  FileRangeCache getSplitFileCache();
+  FileRangeCache getFileRangeCache();
 
   ExecutorService getRenamePool();
 
