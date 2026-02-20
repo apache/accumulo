@@ -16,29 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.miniclusterImpl;
+package org.apache.accumulo.start;
 
-import org.apache.accumulo.minicluster.MiniAccumuloRunner;
-import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
-import org.apache.accumulo.start.spi.KeywordExecutable;
+public class JCommanderParseException extends RuntimeException {
 
-import com.google.auto.service.AutoService;
-
-@AutoService(KeywordExecutable.class)
-public class MiniClusterExecutable extends ServerProcessKeywordExecutable {
-
-  public MiniClusterExecutable() {
-    super("minicluster", "MiniCluster");
-  }
-
-  @Override
-  public Object getOptions() {
-    return new MiniAccumuloRunner.Opts();
-  }
-
-  @Override
-  public void execute(final String[] args) throws Exception {
-    MiniAccumuloRunner.main(args);
-  }
+  private static final long serialVersionUID = 1L;
 
 }

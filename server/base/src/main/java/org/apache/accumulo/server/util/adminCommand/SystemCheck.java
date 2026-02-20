@@ -170,7 +170,7 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

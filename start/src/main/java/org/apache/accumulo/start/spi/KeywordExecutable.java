@@ -73,12 +73,21 @@ public interface KeywordExecutable {
    * @return CommandGroup for this command
    * @since 4.0.0
    */
-  CommandGroup commandGroup();
+  default CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
+  }
 
   /**
    * @return Description of service
    */
   String description();
+
+  /**
+   * @return options object used for this command, may be null
+   */
+  default Object getOptions() {
+    return null;
+  }
 
   /**
    * Execute the item with the given arguments.

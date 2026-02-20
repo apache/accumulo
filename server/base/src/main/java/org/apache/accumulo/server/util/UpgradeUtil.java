@@ -113,7 +113,12 @@ public class UpgradeUtil implements KeywordExecutable {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.INSTANCE;
+  }
+
+  @Override
+  public Object getOptions() {
+    return new Opts();
   }
 
   private static class UpgradeUsageFormatter extends DefaultUsageFormatter {

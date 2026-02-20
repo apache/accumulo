@@ -545,12 +545,17 @@ public class Initialize implements KeywordExecutable {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CORE;
+    return CommandGroups.INSTANCE;
   }
 
   @Override
   public String description() {
     return "Initializes Accumulo";
+  }
+
+  @Override
+  public Object getOptions() {
+    return new Opts();
   }
 
   @Override

@@ -88,7 +88,7 @@ public class StopServers extends ServerKeywordExecutable<StopServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.PROCESS;
   }
 
   @Override

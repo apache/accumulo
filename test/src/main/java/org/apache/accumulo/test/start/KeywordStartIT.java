@@ -46,6 +46,7 @@ import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.file.rfile.SplitLarge;
 import org.apache.accumulo.core.util.CreateToken;
 import org.apache.accumulo.core.util.Help;
+import org.apache.accumulo.core.util.ShellCompletionCommand;
 import org.apache.accumulo.core.util.Version;
 import org.apache.accumulo.gc.GCExecutable;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -183,76 +184,79 @@ public class KeywordStartIT {
     SortedSet<CommandInfo> expectSet = new TreeSet<>();
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "binary-rows", TestBinaryRows.class));
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "cancel", CancelCompaction.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "change-secret", ChangeSecret.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "check", SystemCheck.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "check-accumulo-properties",
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "change-secret", ChangeSecret.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "check", SystemCheck.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-accumulo-properties",
         CheckAccumuloProperties.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "check-compaction-config",
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-compaction-config",
         CheckCompactionConfig.class));
     expectSet.add(
-        new CommandInfo(CommandGroups.ADMIN, "check-metadata", CheckForMetadataProblems.class));
+        new CommandInfo(CommandGroups.INSTANCE, "check-metadata", CheckForMetadataProblems.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "compactor", CompactorExecutable.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "create-empty", CreateEmpty.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "create-token", CreateToken.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "delete-instance", DeleteZooInstance.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "dump-config", DumpConfig.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "dump-zoo", DumpZookeeper.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "fate", Fate.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "find-online-ondemand-tablets",
+    expectSet.add(new CommandInfo(CommandGroups.FILE, "create-empty", CreateEmpty.class));
+    expectSet.add(new CommandInfo(CommandGroups.CLIENT, "create-token", CreateToken.class));
+    expectSet
+        .add(new CommandInfo(CommandGroups.INSTANCE, "delete-instance", DeleteZooInstance.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-config", DumpConfig.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-zoo", DumpZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "fate", Fate.class));
+    expectSet.add(new CommandInfo(CommandGroups.TABLE, "find-online-ondemand-tablets",
         ListOnlineOnDemandTablets.class));
     expectSet.add(
-        new CommandInfo(CommandGroups.ADMIN, "find-offline-tablets", FindOfflineTablets.class));
+        new CommandInfo(CommandGroups.TABLE, "find-offline-tablets", FindOfflineTablets.class));
     expectSet.add(
         new CommandInfo(CommandGroups.COMPACTION, "find-tmp-files", FindCompactionTmpFiles.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "gc", GCExecutable.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "generate-splits", GenerateSplits.class));
+    expectSet.add(new CommandInfo(CommandGroups.FILE, "generate-splits", GenerateSplits.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "help", Help.class));
-    expectSet.add(new CommandInfo(CommandGroups.CORE, "info", Info.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "info", Info.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "ingest", TestIngest.class));
-    expectSet.add(new CommandInfo(CommandGroups.CORE, "init", Initialize.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "list-instances", ListInstances.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "init", Initialize.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "list-instances", ListInstances.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "list-compactors", ListCompactors.class));
     expectSet.add(new CommandInfo(CommandGroups.COMPACTION, "list", ListCompactions.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "list-volumes", ListVolumesUsed.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "locks", Locks.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "login-info", LoginProperties.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "list-volumes", ListVolumesUsed.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "locks", Locks.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "login-info", LoginProperties.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "manager", ManagerExecutable.class));
     expectSet
         .add(new CommandInfo(CommandGroups.PROCESS, "minicluster", MiniClusterExecutable.class));
-    expectSet.add(
-        new CommandInfo(CommandGroups.ADMIN, "missing-files", RemoveEntriesForMissingFiles.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "missing-files",
+        RemoveEntriesForMissingFiles.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "monitor", MonitorExecutable.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "multi-table-ingest",
         TestMultiTableIngest.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "ping", PingServer.class));
+    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "ping", PingServer.class));
     expectSet
         .add(new CommandInfo(TestCommandGroup.INSTANCE, "random-deletes", TestRandomDeletes.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "random-writer", RandomWriter.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "remove-scan-server-references",
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "remove-scan-server-references",
         ScanServerMetadataEntries.class));
     expectSet
-        .add(new CommandInfo(CommandGroups.ADMIN, "restore-zookeeper", RestoreZookeeper.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "rfile-info", PrintInfo.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "service-status", ServiceStatus.class));
+        .add(new CommandInfo(CommandGroups.CONFIG, "restore-zookeeper", RestoreZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.FILE, "rfile-info", PrintInfo.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "service-status", ServiceStatus.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "shell", Shell.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "split-large", SplitLarge.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "create-autocomplete-script",
+        ShellCompletionCommand.class));
+    expectSet.add(new CommandInfo(CommandGroups.FILE, "split-large", SplitLarge.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "sserver", ScanServerExecutable.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "stop-all", StopAll.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "stop-manager", StopManager.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "stop-servers", StopServers.class));
+    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-all", StopAll.class));
+    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-manager", StopManager.class));
+    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-servers", StopServers.class));
     expectSet
         .add(new CommandInfo(TestCommandGroup.INSTANCE, "tablet-stats", CollectTabletStats.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "tserver", TServerExecutable.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "upgrade", UpgradeUtil.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "upgrade", UpgradeUtil.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "verify-ingest", VerifyIngest.class));
-    expectSet.add(new CommandInfo(CommandGroups.ADMIN, "verify-tablet-assignments",
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "verify-tablet-assignments",
         VerifyTabletAssignments.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "version", Version.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "wal-info", LogReader.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "zoo-info-viewer", ZooInfoViewer.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "zoo-prop-editor", ZooPropEditor.class));
-    expectSet.add(new CommandInfo(CommandGroups.OTHER, "zoo-zap", ZooZap.class));
-    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "zookeeper", ZooKeeperMain.class));
+    expectSet.add(new CommandInfo(CommandGroups.FILE, "wal-info", LogReader.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "zoo-info-viewer", ZooInfoViewer.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "zoo-prop-editor", ZooPropEditor.class));
+    expectSet.add(new CommandInfo(CommandGroups.PROCESS, "zoo-zap", ZooZap.class));
+    expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "zk-cli", ZooKeeperMain.class));
 
     Map<CommandGroup,Map<String,KeywordExecutable>> actualExecutables = getKeywordExecutables();
     SortedSet<CommandInfo> actualSet = new TreeSet<>();
@@ -373,11 +377,6 @@ public class KeywordStartIT {
     @Override
     public String description() {
       return kw;
-    }
-
-    @Override
-    public CommandGroup commandGroup() {
-      return CommandGroups.OTHER;
     }
 
     @Override

@@ -84,7 +84,7 @@ public class ListInstances extends ServerKeywordExecutable<Opts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

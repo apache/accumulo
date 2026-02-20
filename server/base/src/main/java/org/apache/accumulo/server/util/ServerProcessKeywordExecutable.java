@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
@@ -45,6 +46,11 @@ public abstract class ServerProcessKeywordExecutable implements KeywordExecutabl
   @Override
   public String description() {
     return "Starts Accumulo " + name;
+  }
+
+  @Override
+  public Object getOptions() {
+    return new ServerOpts();
   }
 
 }

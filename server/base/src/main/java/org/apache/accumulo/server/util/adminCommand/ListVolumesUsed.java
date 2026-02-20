@@ -53,7 +53,7 @@ public class ListVolumesUsed extends ServerKeywordExecutable<ServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

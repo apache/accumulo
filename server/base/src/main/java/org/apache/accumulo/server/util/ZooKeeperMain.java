@@ -54,7 +54,7 @@ public class ZooKeeperMain extends ServerKeywordExecutable<ZKOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CORE;
+    return CommandGroups.INSTANCE;
   }
 
   @Override
