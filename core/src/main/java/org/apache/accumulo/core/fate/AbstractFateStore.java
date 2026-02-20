@@ -430,6 +430,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     FateId newRandomId(FateInstanceType instanceType);
   }
 
+  @Override
   public void seeded() {
     unreservedRunnableCount.increment();
   }
