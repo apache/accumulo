@@ -55,7 +55,7 @@ public class PingServer extends ServerKeywordExecutable<PingCommandOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.PROCESS;
   }
 
   @Override

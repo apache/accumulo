@@ -55,7 +55,7 @@ public class DumpZookeeper extends ServerKeywordExecutable<DumpZooOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.CONFIG;
   }
 
   private static class Encoded {

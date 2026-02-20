@@ -193,7 +193,7 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

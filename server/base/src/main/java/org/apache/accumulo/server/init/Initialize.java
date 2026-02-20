@@ -545,7 +545,7 @@ public class Initialize implements KeywordExecutable {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CORE;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

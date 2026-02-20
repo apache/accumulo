@@ -81,7 +81,7 @@ public class CreateToken implements KeywordExecutable {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.CLIENT;
   }
 
   @Override

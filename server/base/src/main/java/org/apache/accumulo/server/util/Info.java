@@ -45,7 +45,7 @@ public class Info extends ServerKeywordExecutable<ServerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CORE;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

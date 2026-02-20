@@ -78,7 +78,7 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.ADMIN;
+    return CommandGroups.INSTANCE;
   }
 
   @Override

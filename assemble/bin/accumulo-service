@@ -111,7 +111,7 @@ function start_service() {
     rotate_log "$outfile"
     rotate_log "$errfile"
 
-    nohup "${bin}/accumulo" "process" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
+    nohup "${bin}/accumulo" "proc" "$service_type" "$@" >"$outfile" 2>"$errfile" </dev/null &
     echo "$!" >"${pid_file}"
 
   done
