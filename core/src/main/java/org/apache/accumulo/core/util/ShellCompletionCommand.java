@@ -97,7 +97,7 @@ public class ShellCompletionCommand implements KeywordExecutable {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.OTHER;
+    return CommandGroups.CONFIG;
   }
 
   @Override
