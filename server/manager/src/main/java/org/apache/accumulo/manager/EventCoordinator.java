@@ -140,6 +140,7 @@ public class EventCoordinator implements EventPublisher {
       return extent;
     }
 
+    @Override
     public String toString() {
       return "{ scope:" + scope + ", level:" + level + ", extent:" + extent + " }";
     }

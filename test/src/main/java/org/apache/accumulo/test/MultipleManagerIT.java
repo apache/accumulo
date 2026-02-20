@@ -36,7 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import com.google.common.collect.Sets;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Accumulo;
@@ -67,6 +66,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
 /**
