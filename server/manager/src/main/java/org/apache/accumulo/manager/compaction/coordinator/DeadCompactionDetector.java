@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -27,14 +28,14 @@ import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -62,16 +63,16 @@ public class DeadCompactionDetector {
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
   private final Set<TableId> tablesWithUnreferencedTmpFiles = new HashSet<>();
-  private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances;
+  private final Function<FateInstanceType,FateClient<FateEnv>> fateClients;
 
   public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
       ScheduledThreadPoolExecutor stpe,
-      AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances) {
+      Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.context = context;
     this.coordinator = coordinator;
     this.schedExecutor = stpe;
     this.deadCompactions = new ConcurrentHashMap<>();
-    this.fateInstances = fateInstances;
+    this.fateClients = fateClients;
   }
 
   public void addTableId(TableId tableWithUnreferencedTmpFiles) {
@@ -196,13 +197,8 @@ public class DeadCompactionDetector {
 
       if (!tabletCompactions.isEmpty()) {
         // look for any compactions committing in fate and remove those
-        var fateMap = fateInstances.get();
-        if (fateMap == null) {
-          log.warn("Fate is not present, can not look for dead compactions");
-          return;
-        }
-        try (Stream<FateKey> keyStream = fateMap.values().stream()
-            .flatMap(fate -> fate.list(FateKey.FateKeyType.COMPACTION_COMMIT))) {
+        try (Stream<FateKey> keyStream = Arrays.stream(FateInstanceType.values()).map(fateClients)
+            .flatMap(fateClient -> fateClient.list(FateKey.FateKeyType.COMPACTION_COMMIT))) {
           keyStream.map(fateKey -> fateKey.getCompactionId().orElseThrow()).forEach(ecid -> {
             if (tabletCompactions.remove(ecid) != null) {
               log.debug("Ignoring compaction {} that is committing in a fate", ecid);
