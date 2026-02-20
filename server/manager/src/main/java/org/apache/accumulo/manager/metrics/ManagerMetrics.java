@@ -27,14 +27,11 @@ import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -42,7 +39,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
 import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
-import org.apache.accumulo.manager.tableOps.FateEnv;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -66,17 +62,14 @@ public class ManagerMetrics implements MetricsProducer {
     goalState.set(newValue);
   }
 
-  public void configureFateMetrics(final AccumuloConfiguration conf, final Manager manager,
-      Map<FateInstanceType,Fate<FateEnv>> fateRefs) {
+  public void configureFateMetrics(final AccumuloConfiguration conf, final Manager manager) {
     requireNonNull(conf, "AccumuloConfiguration must not be null");
     requireNonNull(conf, "Manager must not be null");
     fateMetrics = List.of(
         new MetaFateMetrics(manager.getContext(),
-            conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
-            fateRefs.get(FateInstanceType.META).getFateExecutors()),
+            conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)),
         new UserFateMetrics(manager.getContext(),
-            conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
-            fateRefs.get(FateInstanceType.USER).getFateExecutors()));
+            conf.getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
   }
 
   public void incrementTabletGroupWatcherError(DataLevel level) {

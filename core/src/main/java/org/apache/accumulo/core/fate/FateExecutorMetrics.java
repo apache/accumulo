@@ -22,14 +22,13 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.Metric;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
-public class FateExecutorMetrics<T> implements MetricsProducer {
+public class FateExecutorMetrics<T> {
   private static final Logger log = LoggerFactory.getLogger(FateExecutorMetrics.class);
   private final FateInstanceType type;
   private final String poolName;
@@ -49,7 +48,6 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
     this.idleWorkerCount = idleWorkerCount;
   }
 
-  @Override
   public void registerMetrics(MeterRegistry registry) {
     // noop if already registered or cleared
     if (state == State.UNREGISTERED) {
