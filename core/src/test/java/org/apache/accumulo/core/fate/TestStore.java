@@ -30,7 +30,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
@@ -273,7 +273,7 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
+  public void runnable(BooleanSupplier keepWaiting, Consumer<FateIdStatus> idConsumer) {
     throw new UnsupportedOperationException();
   }
 
