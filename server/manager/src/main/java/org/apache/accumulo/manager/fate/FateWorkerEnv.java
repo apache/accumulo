@@ -154,8 +154,6 @@ public class FateWorkerEnv implements FateEnv {
         .numMaxThreads(ctx.getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
         .build();
     int poolSize = ctx.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    // FOLLOW_ON this import table name is not correct for the thread pool name, fix in stand alone
-    // PR
     this.renamePool = ThreadPools.getServerThreadPools().getPoolBuilder(FILE_RENAME_POOL.poolName)
         .numCoreThreads(poolSize).build();
     this.serviceLock = lock;
