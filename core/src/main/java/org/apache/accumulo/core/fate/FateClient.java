@@ -84,7 +84,8 @@ public class FateClient<T> {
   public void seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     try (var seeder = store.beginSeeding()) {
-      seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+      @SuppressWarnings("unused")
+      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
     }
   }
 

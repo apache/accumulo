@@ -48,12 +48,12 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.hadoop.util.Sets;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonParser;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

@@ -56,6 +56,8 @@ import com.google.common.collect.Sets;
 import com.google.common.collect.TreeRangeMap;
 import com.google.common.net.HostAndPort;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Partitions {@link FateInstanceType#USER} fate across manager assistant processes. This is done by
  * assigning ranges of the fate uuid key space to different processes. The partitions are logical
@@ -189,6 +191,9 @@ public class FateManager {
     ntfyThread.start();
   }
 
+  @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
+      justification = "Sleep is okay. Can hold the lock as long as needed, as we are shutting down."
+          + " Don't need or want other operations to run.")
   public synchronized void stop(Duration timeout) {
     if (!stop.compareAndSet(false, true)) {
       return;
