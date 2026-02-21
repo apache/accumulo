@@ -385,7 +385,6 @@ public class Tablet extends TabletBase {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
-
     long count = 0;
 
     String oldName = Thread.currentThread().getName();
@@ -395,7 +394,6 @@ public class Tablet extends TabletBase {
       Span span = TraceUtil.startSpan(this.getClass(), "minorCompact::write");
       try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
-
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
@@ -585,9 +583,10 @@ public class Tablet extends TabletBase {
   private MinorCompactionTask createMinorCompactionTask(long flushId,
       MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
+    long pauseLimit =
+        getContext().getTableConfiguration(extent.tableId()).getCount(Property.TABLE_FILE_PAUSE);
     long t1;
     long t2;
-
     StringBuilder logMessage = null;
 
     try {
@@ -595,7 +594,9 @@ public class Tablet extends TabletBase {
         t1 = System.currentTimeMillis();
 
         if (isClosing() || isClosed() || getTabletMemory().memoryReservedForMinC()
-            || getTabletMemory().getMemTable().getNumEntries() == 0 || updatingFlushID) {
+            || getTabletMemory().getMemTable().getNumEntries() == 0 || updatingFlushID
+            || (mincReason == MinorCompactionReason.SYSTEM
+                && getDatafiles().size() >= pauseLimit)) {
 
           logMessage = new StringBuilder();
 
@@ -608,6 +609,10 @@ public class Tablet extends TabletBase {
           if (getTabletMemory() != null && getTabletMemory().getMemTable() != null) {
             logMessage.append(" tabletMemory.getMemTable().getNumEntries() "
                 + getTabletMemory().getMemTable().getNumEntries());
+          }
+          if (mincReason == MinorCompactionReason.SYSTEM && getDatafiles().size() >= pauseLimit) {
+            logMessage.append(" fileCount " + getDatafiles().size());
+            logMessage.append(" fileCountPauseLimit " + pauseLimit);
           }
           logMessage.append(" updatingFlushID " + updatingFlushID);
 
