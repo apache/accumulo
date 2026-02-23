@@ -99,6 +99,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   public interface CompactionEnv {
 
+    String getThreadPrefix();
+
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
@@ -324,8 +326,8 @@ public class FileCompactor implements Callable<CompactionStats> {
     clearCurrentEntryCounts();
 
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName =
-        "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
+    String newThreadName = env.getThreadPrefix() + " compacting " + extent + " started "
+        + threadStartDate + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
     // Use try w/ resources for clearing the thread instead of finally because clearing may throw an
     // exception. Java's handling of exceptions thrown in finally blocks is not good.

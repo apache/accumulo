@@ -42,6 +42,11 @@ public class MinCEnv implements FileCompactor.CompactionEnv {
   }
 
   @Override
+  public String getThreadPrefix() {
+    return "MinC";
+  }
+
+  @Override
   public boolean isCompactionEnabled() {
     return true;
   }

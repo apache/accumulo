@@ -49,6 +49,11 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
   }
 
   @Override
+  public String getThreadPrefix() {
+    return "MajC";
+  }
+
+  @Override
   public boolean isCompactionEnabled() {
     return compactionCheck.isCompactionEnabled();
   }

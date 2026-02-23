@@ -81,6 +81,11 @@ public class ExtCEnv implements CompactionEnv {
   }
 
   @Override
+  public String getThreadPrefix() {
+    return "ExtC";
+  }
+
+  @Override
   public boolean isCompactionEnabled() {
     return !jobHolder.isCancelled();
   }
