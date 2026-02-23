@@ -80,6 +80,11 @@ public class GrepCommand extends ScanCommand {
         negate = true;
       }
 
+      String classLoaderContext = null;
+      if (cl.hasOption(contextOpt.getOpt())) {
+        classLoaderContext = cl.getOptionValue(contextOpt.getOpt());
+      }
+
       final Authorizations auths = getAuths(cl, shellState);
       final BatchScanner scanner =
           shellState.getAccumuloClient().createBatchScanner(tableName, auths, numThreads);
@@ -88,6 +93,10 @@ public class GrepCommand extends ScanCommand {
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
       scanner.setConsistencyLevel(getConsistency(cl));
+
+      if (classLoaderContext != null) {
+        scanner.setClassLoaderContext(classLoaderContext);
+      }
 
       setupSampling(tableName, cl, shellState, scanner);
       addScanIterators(shellState, cl, scanner, "");

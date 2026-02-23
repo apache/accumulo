@@ -45,10 +45,19 @@ public class DeleteManyCommand extends ScanCommand {
     final org.apache.accumulo.core.util.interpret.ScanInterpreter interpreter =
         getInterpreter(cl, tableName, shellState);
 
+    String classLoaderContext = null;
+    if (cl.hasOption(contextOpt.getOpt())) {
+      classLoaderContext = cl.getOptionValue(contextOpt.getOpt());
+    }
+
     // handle first argument, if present, the authorizations list to
     // scan with
     final Authorizations auths = getAuths(cl, shellState);
     final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
+
+    if (classLoaderContext != null) {
+      scanner.setClassLoaderContext(classLoaderContext);
+    }
 
     scanner.addScanIterator(
         new IteratorSetting(Integer.MAX_VALUE, "NOVALUE", SortedKeyIterator.class));
