@@ -332,12 +332,12 @@ Files (in server/monitor/src/main/resources/):
     Copyright 2019-2023 The Bootstrap Authors
     Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
 
-## DataTables 1.13.6 (https://datatables.net)
+## DataTables 1.13.11 (https://datatables.net)
 
 Files (in server/monitor/src/main/resources/):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
 
-    Copyright (c) 2008-2023 SpryMedia Ltd
+    Copyright (c) 2008-2024 SpryMedia Ltd
     Licensed under the MIT license (see above)
 
 **********

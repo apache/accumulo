@@ -1,23 +1,23 @@
-/*! DataTables 1.13.6
- * ©2008-2023 SpryMedia Ltd - datatables.net/license
+/*! DataTables 1.13.11
+ * ©2008-2024 SpryMedia Ltd - datatables.net/license
  */
 
 /**
  * @summary     DataTables
  * @description Paginate, search and order HTML tables
- * @version     1.13.6
+ * @version     1.13.11
  * @author      SpryMedia Ltd
  * @contact     www.datatables.net
  * @copyright   SpryMedia Ltd.
  *
  * This source file is free software, available under the following license:
- *   MIT license - http://datatables.net/license
+ *   MIT license - https://datatables.net/license
  *
  * This source file is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
  * or FITNESS FOR A PARTICULAR PURPOSE. See the license files for details.
  *
- * For details please refer to: http://www.datatables.net
+ * For details please refer to: https://www.datatables.net
  */
 
 /*jslint evil: true, undef: true, browser: true */
@@ -54,7 +54,7 @@
 			};
 		}
 		else {
-			return factory( jq, window, window.document );
+			module.exports = factory( jq, window, window.document );
 		}
 	}
 	else {
@@ -1345,7 +1345,7 @@
 	// Escape regular expression special characters
 	var _re_escape_regex = new RegExp( '(\\' + [ '/', '.', '*', '+', '?', '|', '(', ')', '[', ']', '{', '}', '\\', '$', '^', '-' ].join('|\\') + ')', 'g' );
 	
-	// http://en.wikipedia.org/wiki/Foreign_exchange_market
+	// https://en.wikipedia.org/wiki/Foreign_exchange_market
 	// - \u20BD - Russian ruble.
 	// - \u20a9 - South Korean Won
 	// - \u20BA - Turkish Lira
@@ -4313,7 +4313,7 @@
 			/* Update all other filter input elements for the new display */
 			var n = features.f;
 			var val = !this.value ? "" : this.value; // mental IE8 fix :-(
-			if(previousSearch.return && event.key !== "Enter") {
+			if(previousSearch['return'] && event.key !== "Enter") {
 				return;
 			}
 			/* Now do the filter */
@@ -4323,7 +4323,7 @@
 					"bRegex": previousSearch.bRegex,
 					"bSmart": previousSearch.bSmart ,
 					"bCaseInsensitive": previousSearch.bCaseInsensitive,
-					"return": previousSearch.return
+					"return": previousSearch['return']
 				} );
 	
 				// Need to redraw, without resorting
@@ -4398,7 +4398,7 @@
 			oPrevSearch.bRegex = oFilter.bRegex;
 			oPrevSearch.bSmart = oFilter.bSmart;
 			oPrevSearch.bCaseInsensitive = oFilter.bCaseInsensitive;
-			oPrevSearch.return = oFilter.return;
+			oPrevSearch['return'] = oFilter['return'];
 		};
 		var fnRegex = function ( o ) {
 			// Backwards compatibility with the bEscapeRegex option
@@ -4650,7 +4650,7 @@
 					// If it looks like there is an HTML entity in the string,
 					// attempt to decode it so sorting works as expected. Note that
 					// we could use a single line of jQuery to do this, but the DOM
-					// method used here is much faster http://jsperf.com/html-decode
+					// method used here is much faster https://jsperf.com/html-decode
 					if ( cellData.indexOf && cellData.indexOf('&') !== -1 ) {
 						__filter_div.innerHTML = cellData;
 						cellData = __filter_div_textContent ?
@@ -5675,11 +5675,13 @@
 		}
 	
 		/* Convert any user input sizes into pixel sizes */
+		var sizes = _fnConvertToWidth(_pluck(columns, 'sWidthOrig'), tableContainer);
+	
 		for ( i=0 ; i<visibleColumns.length ; i++ ) {
 			column = columns[ visibleColumns[i] ];
 	
 			if ( column.sWidth !== null ) {
-				column.sWidth = _fnConvertToWidth( column.sWidthOrig, tableContainer );
+				column.sWidth = sizes[i];
 	
 				userInputs = true;
 			}
@@ -5882,26 +5884,40 @@
 	
 	
 	/**
-	 * Convert a CSS unit width to pixels (e.g. 2em)
-	 *  @param {string} width width to be converted
+	 * Convert a set of CSS units width to pixels (e.g. 2em)
+	 *  @param {string[]} widths widths to be converted
 	 *  @param {node} parent parent to get the with for (required for relative widths) - optional
-	 *  @returns {int} width in pixels
+	 *  @returns {int[]} widths in pixels
 	 *  @memberof DataTable#oApi
 	 */
-	function _fnConvertToWidth ( width, parent )
+	function _fnConvertToWidth ( widths, parent )
 	{
-		if ( ! width ) {
-			return 0;
+		var els = [];
+		var results = [];
+	
+		// Add the elements in a single loop so we only need to reflow once
+		for (var i=0 ; i<widths.length ; i++) {
+			if (widths[i]) {
+				els.push(
+					$('<div/>')
+						.css( 'width', _fnStringToCss( widths[i] ) )
+						.appendTo( parent || document.body )
+				)
+			}
+			else {
+				els.push(null);
+			}
 		}
 	
-		var n = $('<div/>')
-			.css( 'width', _fnStringToCss( width ) )
-			.appendTo( parent || document.body );
+		// Get the sizes (will reflow once)
+		for (var i=0 ; i<widths.length ; i++) {
+			results.push(els[i] ? els[i][0].offsetWidth : null);
+		}
 	
-		var val = n[0].offsetWidth;
-		n.remove();
+		// Tidy
+		$(els).remove();
 	
-		return val;
+		return results;
 	}
 	
 	
@@ -6636,7 +6652,7 @@
 	
 		if ( tn ) {
 			msg += '. For more information about this error, please see '+
-			'http://datatables.net/tn/'+tn;
+			'https://datatables.net/tn/'+tn;
 		}
 	
 		if ( ! level  ) {
@@ -8567,7 +8583,13 @@
 					row = data[i];
 	
 					if ( row._details ) {
-						row._details.children('td[colspan]').attr('colspan', visible );
+						row._details.each(function () {
+							var el = $(this).children('td');
+	
+							if (el.length == 1) {
+								el.attr('colspan', visible);
+							}
+						});
 					}
 				}
 			} );
@@ -9774,12 +9796,12 @@
 	/**
 	 * Version string for plug-ins to check compatibility. Allowed format is
 	 * `a.b.c-d` where: a:int, b:int, c:int, d:string(dev|beta|alpha). `d` is used
-	 * only for non-release builds. See http://semver.org/ for more information.
+	 * only for non-release builds. See https://semver.org/ for more information.
 	 *  @member
 	 *  @type string
 	 *  @default Version number
 	 */
-	DataTable.version = "1.13.6";
+	DataTable.version = "1.13.11";
 	
 	/**
 	 * Private data store, containing all of the settings objects that are
@@ -10355,7 +10377,7 @@
 		 * --------
 		 *
 		 * As an object, the parameters in the object are passed to
-		 * [jQuery.ajax](http://api.jquery.com/jQuery.ajax/) allowing fine control
+		 * [jQuery.ajax](https://api.jquery.com/jQuery.ajax/) allowing fine control
 		 * of the Ajax request. DataTables has a number of default parameters which
 		 * you can override using this option. Please refer to the jQuery
 		 * documentation for a full description of the options available, although
@@ -12063,7 +12085,7 @@
 			 *    $(document).ready( function() {
 			 *      $('#example').dataTable( {
 			 *        "language": {
-			 *          "url": "http://www.sprymedia.co.uk/dataTables/lang.txt"
+			 *          "url": "https://www.sprymedia.co.uk/dataTables/lang.txt"
 			 *        }
 			 *      } );
 			 *    } );
@@ -15140,7 +15162,7 @@
 		// string
 		"string-pre": function ( a ) {
 			// This is a little complex, but faster than always calling toString,
-			// http://jsperf.com/tostring-v-check
+			// https://jsperf.com/tostring-v-check
 			return _empty(a) ?
 				'' :
 				typeof a === 'string' ?
