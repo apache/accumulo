@@ -29,6 +29,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -151,8 +153,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T>, AutoCloseable {
      * longer interact with it.
      *
      * @param deferTime time to keep this transaction from being returned by
-     *        {@link #runnable(java.util.concurrent.atomic.AtomicBoolean, java.util.function.Consumer)}.
-     *        Must be non-negative.
+     *        {@link #runnable(BooleanSupplier, Consumer)}. Must be non-negative.
      */
     void unreserve(Duration deferTime);
   }
