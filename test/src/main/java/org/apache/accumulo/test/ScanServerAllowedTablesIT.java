@@ -216,7 +216,7 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        Wait.waitFor(() -> Iterables.size(scanner) == 100);
       }
 
       // Change the GROUP1 property so that subsequent test tables don't work

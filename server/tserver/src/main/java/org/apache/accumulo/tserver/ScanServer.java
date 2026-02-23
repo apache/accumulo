@@ -219,7 +219,7 @@ public class ScanServer extends AbstractServer
 
   private final String groupName;
 
-  private final ConcurrentHashMap<TableId,TableId> allowedTables = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<TableId,Boolean> allowedTables = new ConcurrentHashMap<>();
   private volatile String currentAllowedTableRegex;
 
   public ScanServer(ScanServerOpts opts, String[] args) {
@@ -490,13 +490,13 @@ public class ScanServer extends AbstractServer
 
   // Visible for testing
   protected boolean isAllowed(TableId tid) {
-    boolean result = allowedTables.containsKey(tid);
-    if (!result) {
+    Boolean result = allowedTables.get(tid);
+    if (result == null) {
       // Clear the cache and try again, maybe there
       // is a race condition in table creation and
       // scan
       updateAllowedTables(true);
-      result = allowedTables.containsKey(tid);
+      result = allowedTables.get(tid);
     }
     return result;
   }
@@ -550,12 +550,10 @@ public class ScanServer extends AbstractServer
       Matcher m = p.matcher(tname);
       if (m.matches()) {
         LOG.debug("Table {} can now be scanned via this ScanServer", tname);
-        allowedTables.put(tid, tid);
-      } else if (allowedTables.containsKey(tid)) {
-        LOG.debug("Table {} can no longer be scanned via this ScanServer", tname);
-        allowedTables.remove(tid);
+        allowedTables.put(tid, Boolean.TRUE);
       } else {
-        LOG.debug("Table name: {} does not match regex: {}", tname, p.pattern());
+        LOG.debug("Table {} cannot be scanned via this ScanServer", tname);
+        allowedTables.put(tid, Boolean.FALSE);
       }
     });
 
