@@ -45,6 +45,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -54,6 +57,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -177,6 +181,8 @@ public class ScanServer extends AbstractServer
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(ScanServer.class);
+  // Default pattern to allow scans on all tables not in accumulo namespace
+  private static final String DEFAULT_SCAN_ALLOWED_PATTERN = "^(?!accumulo\\.).*$";
 
   protected ThriftScanClientHandler delegate;
   private UUID serverLockUUID;
@@ -212,6 +218,9 @@ public class ScanServer extends AbstractServer
   private final ZooCache managerLockCache;
 
   private final String groupName;
+
+  private final ConcurrentHashMap<TableId,TableId> allowedTables = new ConcurrentHashMap<>();
+  private volatile String currentAllowedTableRegex;
 
   public ScanServer(ScanServerOpts opts, String[] args) {
     super("sserver", opts, args);
@@ -388,6 +397,7 @@ public class ScanServer extends AbstractServer
     }
 
     SecurityUtil.serverLogin(getConfiguration());
+    updateAllowedTables(false);
 
     ServerAddress address = null;
     try {
@@ -423,6 +433,7 @@ public class ScanServer extends AbstractServer
           Thread.sleep(1000);
           updateIdleStatus(sessionManager.getActiveScans().isEmpty()
               && tabletMetadataCache.estimatedSize() == 0);
+          updateAllowedTables(false);
         } catch (InterruptedException e) {
           LOG.info("Interrupt Exception received, shutting down");
           gracefulShutdown(getContext().rpcCreds());
@@ -475,6 +486,79 @@ public class ScanServer extends AbstractServer
       }
 
     }
+  }
+
+  // Visible for testing
+  protected boolean isAllowed(TableId tid) {
+    boolean result = allowedTables.containsKey(tid);
+    if (!result) {
+      // Clear the cache and try again, maybe there
+      // is a race condition in table creation and
+      // scan
+      updateAllowedTables(true);
+      result = allowedTables.containsKey(tid);
+    }
+    return result;
+  }
+
+  private synchronized void updateAllowedTables(boolean clearCache) {
+
+    LOG.debug("Updating allowed tables for ScanServer");
+    if (clearCache) {
+      context.clearTableListCache();
+    }
+
+    // Remove tables that no longer exist
+    allowedTables.keySet().forEach(tid -> {
+      if (!getContext().getTableIdToNameMap().containsKey(tid)) {
+        LOG.debug("Removing table {} from allowed table map as it no longer exists", tid);
+        allowedTables.remove(tid);
+      }
+    });
+
+    final String propName = Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + groupName;
+    String allowedTableRegex = getConfiguration().get(propName);
+    if (allowedTableRegex == null) {
+      allowedTableRegex = DEFAULT_SCAN_ALLOWED_PATTERN;
+    }
+
+    if (currentAllowedTableRegex == null) {
+      LOG.debug("Property {} initial value: {}", propName, allowedTableRegex);
+    } else if (currentAllowedTableRegex.equals(allowedTableRegex)) {
+      // Property value has not changed, do nothing
+    } else {
+      LOG.debug("Property {} has changed. Old value: {}, new value: {}", propName,
+          currentAllowedTableRegex, allowedTableRegex);
+    }
+
+    Pattern allowedTablePattern;
+    try {
+      allowedTablePattern = Pattern.compile(allowedTableRegex);
+    } catch (PatternSyntaxException e) {
+      LOG.error(
+          "Property {} contains an invalid regular expression. Property value: {}. Using default pattern: {}",
+          propName, allowedTableRegex, DEFAULT_SCAN_ALLOWED_PATTERN);
+      allowedTablePattern = Pattern.compile(DEFAULT_SCAN_ALLOWED_PATTERN);
+    }
+    // Regex is valid, store it
+    currentAllowedTableRegex = allowedTableRegex;
+
+    Pattern p = allowedTablePattern;
+    context.getTableNameToIdMap().entrySet().forEach(e -> {
+      String tname = e.getKey();
+      TableId tid = e.getValue();
+      Matcher m = p.matcher(tname);
+      if (m.matches()) {
+        LOG.debug("Table {} can now be scanned via this ScanServer", tname);
+        allowedTables.put(tid, tid);
+      } else if (allowedTables.containsKey(tid)) {
+        LOG.debug("Table {} can no longer be scanned via this ScanServer", tname);
+        allowedTables.remove(tid);
+      } else {
+        LOG.debug("Table name: {} does not match regex: {}", tname, p.pattern());
+      }
+    });
+
   }
 
   @SuppressWarnings("unchecked")
@@ -945,11 +1029,6 @@ public class ScanServer extends AbstractServer
     };
   }
 
-  /* Exposed for testing */
-  protected boolean isSystemUser(TCredentials creds) {
-    return context.getSecurityOperation().isSystemUser(creds);
-  }
-
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -966,9 +1045,9 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
 
-    if (extent.isMeta() && !isSystemUser(credentials)) {
-      throw new TException(
-          "Only the system user can perform eventual consistency scans on the root and metadata tables");
+    if (!isAllowed(extent.tableId())) {
+      throw new TException("Scan of table " + extent.tableId() + " disallowed by property: "
+          + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
     }
 
     try (ScanReservation reservation =
@@ -1038,9 +1117,9 @@ public class ScanServer extends AbstractServer
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
 
-      if (extent.isMeta() && !context.getSecurityOperation().isSystemUser(credentials)) {
-        throw new TException(
-            "Only the system user can perform eventual consistency scans on the root and metadata tables");
+      if (!isAllowed(extent.tableId())) {
+        throw new TException("Scan of table " + extent.tableId() + " disallowed by property: "
+            + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
       }
 
       batch.put(extent, entry.getValue());
