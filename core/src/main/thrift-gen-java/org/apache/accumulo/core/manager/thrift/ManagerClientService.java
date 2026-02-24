@@ -41294,14 +41294,14 @@ public class ManagerClientService {
             case 3: // EVENTS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list130 = iprot.readListBegin();
-                  struct.events = new java.util.ArrayList<TEvent>(_list130.size);
-                  @org.apache.thrift.annotation.Nullable TEvent _elem131;
-                  for (int _i132 = 0; _i132 < _list130.size; ++_i132)
+                  org.apache.thrift.protocol.TList _list122 = iprot.readListBegin();
+                  struct.events = new java.util.ArrayList<TEvent>(_list122.size);
+                  @org.apache.thrift.annotation.Nullable TEvent _elem123;
+                  for (int _i124 = 0; _i124 < _list122.size; ++_i124)
                   {
-                    _elem131 = new TEvent();
-                    _elem131.read(iprot);
-                    struct.events.add(_elem131);
+                    _elem123 = new TEvent();
+                    _elem123.read(iprot);
+                    struct.events.add(_elem123);
                   }
                   iprot.readListEnd();
                 }
@@ -41340,9 +41340,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(EVENTS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.events.size()));
-            for (TEvent _iter133 : struct.events)
+            for (TEvent _iter125 : struct.events)
             {
-              _iter133.write(oprot);
+              _iter125.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -41386,9 +41386,9 @@ public class ManagerClientService {
         if (struct.isSetEvents()) {
           {
             oprot.writeI32(struct.events.size());
-            for (TEvent _iter134 : struct.events)
+            for (TEvent _iter126 : struct.events)
             {
-              _iter134.write(oprot);
+              _iter126.write(oprot);
             }
           }
         }
@@ -41410,14 +41410,14 @@ public class ManagerClientService {
         }
         if (incoming.get(2)) {
           {
-            org.apache.thrift.protocol.TList _list135 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.events = new java.util.ArrayList<TEvent>(_list135.size);
-            @org.apache.thrift.annotation.Nullable TEvent _elem136;
-            for (int _i137 = 0; _i137 < _list135.size; ++_i137)
+            org.apache.thrift.protocol.TList _list127 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.events = new java.util.ArrayList<TEvent>(_list127.size);
+            @org.apache.thrift.annotation.Nullable TEvent _elem128;
+            for (int _i129 = 0; _i129 < _list127.size; ++_i129)
             {
-              _elem136 = new TEvent();
-              _elem136.read(iprot);
-              struct.events.add(_elem136);
+              _elem128 = new TEvent();
+              _elem128.read(iprot);
+              struct.events.add(_elem128);
             }
           }
           struct.setEventsIsSet(true);
