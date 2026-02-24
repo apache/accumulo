@@ -53,6 +53,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -539,26 +540,30 @@ public class ScanServer extends AbstractServer
     Pattern allowedTablePattern;
     try {
       allowedTablePattern = Pattern.compile(allowedTableRegex);
+      // Regex is valid, store it
+      currentAllowedTableRegex = allowedTableRegex;
     } catch (PatternSyntaxException e) {
       LOG.error(
-          "Property {} contains an invalid regular expression. Property value: {}. Using default pattern: {}",
-          propName, allowedTableRegex, DEFAULT_SCAN_ALLOWED_PATTERN);
-      allowedTablePattern = Pattern.compile(DEFAULT_SCAN_ALLOWED_PATTERN);
+          "Property {} contains an invalid regular expression. Property value: {}. Disabling all tables.",
+          propName, allowedTableRegex);
+      allowedTablePattern = null;
     }
-    // Regex is valid, store it
-    currentAllowedTableRegex = allowedTableRegex;
 
     Pattern p = allowedTablePattern;
     context.getTableNameToIdMap().entrySet().forEach(e -> {
       String tname = e.getKey();
       TableId tid = e.getValue();
-      Matcher m = p.matcher(tname);
-      if (m.matches()) {
-        LOG.debug("Table {} can now be scanned via this ScanServer", tname);
-        allowedTables.put(tid, Boolean.TRUE);
-      } else {
-        LOG.debug("Table {} cannot be scanned via this ScanServer", tname);
+      if (p == null) {
         allowedTables.put(tid, Boolean.FALSE);
+      } else {
+        Matcher m = p.matcher(tname);
+        if (m.matches()) {
+          LOG.debug("Table {} can now be scanned via this ScanServer", tname);
+          allowedTables.put(tid, Boolean.TRUE);
+        } else {
+          LOG.debug("Table {} cannot be scanned via this ScanServer", tname);
+          allowedTables.put(tid, Boolean.FALSE);
+        }
       }
     });
 
@@ -1121,8 +1126,10 @@ public class ScanServer extends AbstractServer
       KeyExtent extent = getKeyExtent(entry.getKey());
 
       if (!isAllowed(credentials, extent.tableId())) {
-        throw new TException("Scan of table " + extent.tableId() + " disallowed by property: "
-            + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
+        throw new ThriftSecurityException(
+            "Scan of table " + extent.tableId() + " disallowed by property: "
+                + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName,
+            SecurityErrorCode.PERMISSION_DENIED);
       }
 
       batch.put(extent, entry.getValue());

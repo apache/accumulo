@@ -203,7 +203,7 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
       getCluster().getServerContext().instanceOperations()
           .setProperty(Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + "GROUP1", "^foo.*");
 
-      // Using GROUP1 ScanServer should fail, only allowed to test tables
+      // Using GROUP1 ScanServer should fail, only allowed to test 'test*' tables
       try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
@@ -216,10 +216,18 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
-        Wait.waitFor(() -> Iterables.size(scanner) == 100);
+        // Try multiple times waiting for the server to pick up the property change
+        Wait.waitFor(() -> {
+          try {
+            Iterables.size(scanner);
+            return false;
+          } catch (RuntimeException e) {
+            return true;
+          }
+        });
       }
 
-      // Change the GROUP1 property so that subsequent test tables don't work
+      // Change the GROUP1 property so that subsequent test tables do work
       getCluster().getServerContext().instanceOperations()
           .setProperty(Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + "GROUP1", "^test.*");
 
@@ -228,7 +236,16 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
-        assertEquals(100, Iterables.size(scanner));
+        // Try multiple times waiting for the server to pick up the property change
+        Wait.waitFor(() -> {
+          try {
+            int size = Iterables.size(scanner);
+            return size == 100;
+          } catch (RuntimeException e) {
+            return false;
+          }
+        });
+
       }
 
     }
