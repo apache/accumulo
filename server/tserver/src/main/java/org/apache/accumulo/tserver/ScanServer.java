@@ -489,13 +489,18 @@ public class ScanServer extends AbstractServer
   }
 
   // Visible for testing
-  protected boolean isAllowed(TableId tid) {
+  protected boolean isAllowed(TCredentials credentials, TableId tid)
+      throws ThriftSecurityException {
     Boolean result = allowedTables.get(tid);
-    if (result == null) {
+    while (result == null) {
+      LOG.debug(
+          "Allowed tables mapping does not contain an entry for table: {}, refreshing table...",
+          tid);
       // Clear the cache and try again, maybe there
-      // is a race condition in table creation and
-      // scan
+      // is a race condition in table creation and scan
       updateAllowedTables(true);
+      // validate that the table exists, else throw
+      delegate.getNamespaceId(credentials, tid);
       result = allowedTables.get(tid);
     }
     return result;
@@ -1043,7 +1048,7 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
 
-    if (!isAllowed(extent.tableId())) {
+    if (!isAllowed(credentials, extent.tableId())) {
       throw new TException("Scan of table " + extent.tableId() + " disallowed by property: "
           + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
     }
@@ -1115,7 +1120,7 @@ public class ScanServer extends AbstractServer
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
 
-      if (!isAllowed(extent.tableId())) {
+      if (!isAllowed(credentials, extent.tableId())) {
         throw new TException("Scan of table " + extent.tableId() + " disallowed by property: "
             + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
       }

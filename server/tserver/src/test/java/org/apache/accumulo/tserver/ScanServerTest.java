@@ -125,7 +125,7 @@ public class ScanServerTest {
     }
 
     @Override
-    protected boolean isAllowed(TableId tid) {
+    protected boolean isAllowed(TCredentials credentials, TableId tid) {
       return allowedTables.containsKey(tid);
     }
 
