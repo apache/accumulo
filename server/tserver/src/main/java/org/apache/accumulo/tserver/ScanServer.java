@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCAN_SERVER_TABLET_METADATA_CACHE_POOL;
 
@@ -53,7 +54,6 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -93,6 +93,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TooManyFilesException;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.AbstractServer;
@@ -116,6 +117,7 @@ import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.zookeeper.KeeperException;
@@ -493,23 +495,43 @@ public class ScanServer extends AbstractServer
   protected boolean isAllowed(TCredentials credentials, TableId tid)
       throws ThriftSecurityException {
     Boolean result = allowedTables.get(tid);
-    while (result == null) {
-      LOG.debug(
-          "Allowed tables mapping does not contain an entry for table: {}, refreshing table...",
-          tid);
-      // Clear the cache and try again, maybe there
-      // is a race condition in table creation and scan
-      updateAllowedTables(true);
-      // validate that the table exists, else throw
-      delegate.getNamespaceId(credentials, tid);
-      result = allowedTables.get(tid);
+    if (result == null) {
+
+      final Retry retry =
+          Retry.builder().maxRetries(10).retryAfter(1, SECONDS).incrementBy(0, SECONDS)
+              .maxWait(2, SECONDS).backOffFactor(1.0).logInterval(3, SECONDS).createRetry();
+
+      while (result == null && retry.canRetry()) {
+        try {
+          retry.waitForNextAttempt(LOG,
+              "Allowed tables mapping does not contain an entry for table: " + tid
+                  + ", refreshing table...");
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          LOG.error("Interrupted while waiting for next retry", e);
+          break;
+        }
+        // Clear the cache and try again, maybe there
+        // is a race condition in table creation and scan
+        updateAllowedTables(true);
+        // validate that the table exists, else throw
+        delegate.getNamespaceId(credentials, tid);
+        result = allowedTables.get(tid);
+        retry.useRetry();
+      }
+
+      if (result == null) {
+        // Ran out of retries
+        throw new IllegalStateException(
+            "Unable to get allowed table mapping for table: " + tid + " within 10s");
+      }
     }
     return result;
   }
 
   private synchronized void updateAllowedTables(boolean clearCache) {
 
-    LOG.debug("Updating allowed tables for ScanServer");
+    LOG.trace("Updating allowed tables for ScanServer");
     if (clearCache) {
       context.clearTableListCache();
     }
@@ -517,7 +539,7 @@ public class ScanServer extends AbstractServer
     // Remove tables that no longer exist
     allowedTables.keySet().forEach(tid -> {
       if (!getContext().getTableIdToNameMap().containsKey(tid)) {
-        LOG.debug("Removing table {} from allowed table map as it no longer exists", tid);
+        LOG.trace("Removing table {} from allowed table map as it no longer exists", tid);
         allowedTables.remove(tid);
       }
     });
@@ -529,11 +551,11 @@ public class ScanServer extends AbstractServer
     }
 
     if (currentAllowedTableRegex == null) {
-      LOG.debug("Property {} initial value: {}", propName, allowedTableRegex);
+      LOG.trace("Property {} initial value: {}", propName, allowedTableRegex);
     } else if (currentAllowedTableRegex.equals(allowedTableRegex)) {
       // Property value has not changed, do nothing
     } else {
-      LOG.debug("Property {} has changed. Old value: {}, new value: {}", propName,
+      LOG.info("Property {} has changed. Old value: {}, new value: {}", propName,
           currentAllowedTableRegex, allowedTableRegex);
     }
 
@@ -558,10 +580,10 @@ public class ScanServer extends AbstractServer
       } else {
         Matcher m = p.matcher(tname);
         if (m.matches()) {
-          LOG.debug("Table {} can now be scanned via this ScanServer", tname);
+          LOG.trace("Table {} can now be scanned via this ScanServer", tname);
           allowedTables.put(tid, Boolean.TRUE);
         } else {
-          LOG.debug("Table {} cannot be scanned via this ScanServer", tname);
+          LOG.trace("Table {} cannot be scanned via this ScanServer", tname);
           allowedTables.put(tid, Boolean.FALSE);
         }
       }
@@ -1054,8 +1076,9 @@ public class ScanServer extends AbstractServer
     KeyExtent extent = getKeyExtent(textent);
 
     if (!isAllowed(credentials, extent.tableId())) {
-      throw new TException("Scan of table " + extent.tableId() + " disallowed by property: "
-          + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
+      throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+          "Scan of table " + extent.tableId() + " disallowed by property: "
+              + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
     }
 
     try (ScanReservation reservation =
@@ -1126,10 +1149,9 @@ public class ScanServer extends AbstractServer
       KeyExtent extent = getKeyExtent(entry.getKey());
 
       if (!isAllowed(credentials, extent.tableId())) {
-        throw new ThriftSecurityException(
+        throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
             "Scan of table " + extent.tableId() + " disallowed by property: "
-                + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName,
-            SecurityErrorCode.PERMISSION_DENIED);
+                + Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + this.groupName);
       }
 
       batch.put(extent, entry.getValue());

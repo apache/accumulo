@@ -61,6 +61,7 @@ import org.apache.accumulo.tserver.session.ScanSession.TabletResolver;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.junit.jupiter.api.Test;
 
@@ -485,7 +486,10 @@ public class ScanServerTest {
       ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
           tsc, 30L, classLoaderContext, execHints, 0L);
     });
-    assertTrue(te.getMessage().startsWith("Scan of table !0 disallowed by property"));
+    assertTrue(te instanceof TApplicationException);
+    TApplicationException tae = (TApplicationException) te;
+    assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
+    assertTrue(tae.getMessage().contains("disallowed by property"));
     verify(sextent, reservation, handler);
 
   }

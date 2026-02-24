@@ -23,12 +23,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -43,11 +47,14 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.ScanServer;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.thrift.TApplicationException;
 import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 
 import com.google.common.collect.Iterables;
 
@@ -143,9 +150,30 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
+  public static enum ScannerType {
+    BATCH_SCANNER, SCANNER;
+  }
+
+  private ScannerBase createScanner(AccumuloClient client, ScannerType stype, String tableName)
+      throws TableNotFoundException {
+    switch (stype) {
+      case BATCH_SCANNER:
+        BatchScanner batchScanner = client.createBatchScanner(tableName, Authorizations.EMPTY);
+        batchScanner.setRanges(Set.of(new Range()));
+        return batchScanner;
+      case SCANNER:
+        Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY);
+        scanner.setRange(new Range());
+        return scanner;
+      default:
+        throw new IllegalArgumentException("Unknown scanner type: " + stype);
+    }
+  }
+
   @SuppressWarnings("unused")
-  @Test
-  public void testAllowedTables() throws Exception {
+  @ParameterizedTest
+  @EnumSource(value = ScannerType.class)
+  public void testAllowedTables(ScannerType stype) throws Exception {
 
     final String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
     final ZooKeeper zk = getCluster().getServerContext().getZooReaderWriter().getZooKeeper();
@@ -165,36 +193,42 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
           .anyMatch((p) -> p.getSecond().equals("GROUP1")) == true);
 
       // Create table with test prefix, load some data
-      final String testTableName = "testAllowedTables";
+      final String testTableName = "testAllowedTables" + stype.name();
       final int ingestedEntryCount =
           ScanServerIT.createTableAndIngest(client, testTableName, null, 10, 10, "colf");
       assertEquals(100, ingestedEntryCount);
 
       // Using default ScanServer should succeed, only allowed to scan system tables
-      try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, MetadataTable.NAME)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         assertTrue(Iterables.size(scanner) > 0);
       }
 
       // Using default ScanServer should fail, only allowed to scan system tables
-      try (Scanner scanner = client.createScanner(testTableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, testTableName)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        RuntimeException re = assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        Throwable root = ExceptionUtils.getRootCause(re);
+        assertTrue(root instanceof TApplicationException);
+        TApplicationException tae = (TApplicationException) root;
+        assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
+        assertTrue(tae.getMessage().contains("disallowed by property"));
       }
 
       // Using GROUP1 ScanServer should fail, only allowed to test tables
-      try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, MetadataTable.NAME)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        RuntimeException re = assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        Throwable root = ExceptionUtils.getRootCause(re);
+        assertTrue(root instanceof TApplicationException);
+        TApplicationException tae = (TApplicationException) root;
+        assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
+        assertTrue(tae.getMessage().contains("disallowed by property"));
       }
 
       // Using GROUP1 ScanServer should succeed
-      try (Scanner scanner = client.createScanner(testTableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, testTableName)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(100, Iterables.size(scanner));
@@ -205,16 +239,19 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
           .setProperty(Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + "GROUP1", "^foo.*");
 
       // Using GROUP1 ScanServer should fail, only allowed to test 'test*' tables
-      try (Scanner scanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, MetadataTable.NAME)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        RuntimeException re = assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        Throwable root = ExceptionUtils.getRootCause(re);
+        assertTrue(root instanceof TApplicationException);
+        TApplicationException tae = (TApplicationException) root;
+        assertEquals(TApplicationException.INTERNAL_ERROR, tae.getType());
+        assertTrue(tae.getMessage().contains("disallowed by property"));
       }
 
       // Using GROUP1 ScanServer should fail as the property was changed
-      try (Scanner scanner = client.createScanner(testTableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, testTableName)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         // Try multiple times waiting for the server to pick up the property change
@@ -233,8 +270,7 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
           .setProperty(Property.SSERV_SCAN_ALLOWED_TABLES.getKey() + "GROUP1", "^test.*");
 
       // Using GROUP1 ScanServer should succeed as the property was changed back
-      try (Scanner scanner = client.createScanner(testTableName, Authorizations.EMPTY)) {
-        scanner.setRange(new Range());
+      try (ScannerBase scanner = createScanner(client, stype, testTableName)) {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         // Try multiple times waiting for the server to pick up the property change
