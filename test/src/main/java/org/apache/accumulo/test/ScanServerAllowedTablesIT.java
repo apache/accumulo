@@ -143,6 +143,7 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
+  @SuppressWarnings("unused")
   @Test
   public void testAllowedTables() throws Exception {
 
@@ -219,7 +220,7 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
         // Try multiple times waiting for the server to pick up the property change
         Wait.waitFor(() -> {
           try {
-            Iterables.size(scanner);
+            var unused = Iterables.size(scanner);
             return false;
           } catch (RuntimeException e) {
             return true;
