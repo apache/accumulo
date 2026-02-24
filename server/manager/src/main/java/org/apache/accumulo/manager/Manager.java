@@ -73,6 +73,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -89,7 +90,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -119,7 +119,6 @@ import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
@@ -138,7 +137,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyMana
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
-import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -268,8 +266,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       tserverStatusNtfyObj.notifyAll();
     }
   }
-
-  final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
@@ -1646,7 +1642,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
     DeadServerList obit = new DeadServerList(getContext());
     result.deadTabletServers = obit.getList();
-    result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;
   }
 
@@ -1661,16 +1656,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     synchronized (serversToShutdown) {
       return Set.copyOf(serversToShutdown);
     }
-  }
-
-  @Override
-  public void updateBulkImportStatus(String directory, BulkImportState state) {
-    bulkImportStatus.updateBulkImportStatus(Collections.singletonList(directory), state);
-  }
-
-  @Override
-  public void removeBulkImportStatus(String directory) {
-    bulkImportStatus.removeBulkImportStatus(Collections.singletonList(directory));
   }
 
   /**

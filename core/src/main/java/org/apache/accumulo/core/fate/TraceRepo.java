@@ -16,11 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps;
+package org.apache.accumulo.core.fate;
 
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
 
 import io.opentelemetry.api.trace.Span;
@@ -107,12 +105,16 @@ public class TraceRepo<T> implements Repo<T> {
     return repo.getReturn();
   }
 
+  public Repo<T> getWrapped() {
+    return repo;
+  }
+
   /**
    * @return string version of Repo that is suitable for logging
    */
-  public static String toLogString(Repo<FateEnv> repo) {
+  public static <T2> String toLogString(Repo<T2> repo) {
     if (repo instanceof TraceRepo) {
-      repo = ((TraceRepo<FateEnv>) repo).repo;
+      repo = ((TraceRepo<T2>) repo).repo;
     }
 
     return repo.getClass() + " " + repo.getName();

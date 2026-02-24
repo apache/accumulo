@@ -3182,13 +3182,13 @@ public class FateService {
             case 5: // ARGUMENTS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list78 = iprot.readListBegin();
-                  struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list78.size);
-                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem79;
-                  for (int _i80 = 0; _i80 < _list78.size; ++_i80)
+                  org.apache.thrift.protocol.TList _list70 = iprot.readListBegin();
+                  struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list70.size);
+                  @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem71;
+                  for (int _i72 = 0; _i72 < _list70.size; ++_i72)
                   {
-                    _elem79 = iprot.readBinary();
-                    struct.arguments.add(_elem79);
+                    _elem71 = iprot.readBinary();
+                    struct.arguments.add(_elem71);
                   }
                   iprot.readListEnd();
                 }
@@ -3200,15 +3200,15 @@ public class FateService {
             case 6: // OPTIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map81 = iprot.readMapBegin();
-                  struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map81.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _key82;
-                  @org.apache.thrift.annotation.Nullable java.lang.String _val83;
-                  for (int _i84 = 0; _i84 < _map81.size; ++_i84)
+                  org.apache.thrift.protocol.TMap _map73 = iprot.readMapBegin();
+                  struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map73.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _key74;
+                  @org.apache.thrift.annotation.Nullable java.lang.String _val75;
+                  for (int _i76 = 0; _i76 < _map73.size; ++_i76)
                   {
-                    _key82 = iprot.readString();
-                    _val83 = iprot.readString();
-                    struct.options.put(_key82, _val83);
+                    _key74 = iprot.readString();
+                    _val75 = iprot.readString();
+                    struct.options.put(_key74, _val75);
                   }
                   iprot.readMapEnd();
                 }
@@ -3265,9 +3265,9 @@ public class FateService {
           oprot.writeFieldBegin(ARGUMENTS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.arguments.size()));
-            for (java.nio.ByteBuffer _iter85 : struct.arguments)
+            for (java.nio.ByteBuffer _iter77 : struct.arguments)
             {
-              oprot.writeBinary(_iter85);
+              oprot.writeBinary(_iter77);
             }
             oprot.writeListEnd();
           }
@@ -3277,10 +3277,10 @@ public class FateService {
           oprot.writeFieldBegin(OPTIONS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING, struct.options.size()));
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter86 : struct.options.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter78 : struct.options.entrySet())
             {
-              oprot.writeString(_iter86.getKey());
-              oprot.writeString(_iter86.getValue());
+              oprot.writeString(_iter78.getKey());
+              oprot.writeString(_iter78.getValue());
             }
             oprot.writeMapEnd();
           }
@@ -3345,19 +3345,19 @@ public class FateService {
         if (struct.isSetArguments()) {
           {
             oprot.writeI32(struct.arguments.size());
-            for (java.nio.ByteBuffer _iter87 : struct.arguments)
+            for (java.nio.ByteBuffer _iter79 : struct.arguments)
             {
-              oprot.writeBinary(_iter87);
+              oprot.writeBinary(_iter79);
             }
           }
         }
         if (struct.isSetOptions()) {
           {
             oprot.writeI32(struct.options.size());
-            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter88 : struct.options.entrySet())
+            for (java.util.Map.Entry<java.lang.String, java.lang.String> _iter80 : struct.options.entrySet())
             {
-              oprot.writeString(_iter88.getKey());
-              oprot.writeString(_iter88.getValue());
+              oprot.writeString(_iter80.getKey());
+              oprot.writeString(_iter80.getValue());
             }
           }
         }
@@ -3391,28 +3391,28 @@ public class FateService {
         }
         if (incoming.get(4)) {
           {
-            org.apache.thrift.protocol.TList _list89 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list89.size);
-            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem90;
-            for (int _i91 = 0; _i91 < _list89.size; ++_i91)
+            org.apache.thrift.protocol.TList _list81 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.arguments = new java.util.ArrayList<java.nio.ByteBuffer>(_list81.size);
+            @org.apache.thrift.annotation.Nullable java.nio.ByteBuffer _elem82;
+            for (int _i83 = 0; _i83 < _list81.size; ++_i83)
             {
-              _elem90 = iprot.readBinary();
-              struct.arguments.add(_elem90);
+              _elem82 = iprot.readBinary();
+              struct.arguments.add(_elem82);
             }
           }
           struct.setArgumentsIsSet(true);
         }
         if (incoming.get(5)) {
           {
-            org.apache.thrift.protocol.TMap _map92 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
-            struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map92.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _key93;
-            @org.apache.thrift.annotation.Nullable java.lang.String _val94;
-            for (int _i95 = 0; _i95 < _map92.size; ++_i95)
+            org.apache.thrift.protocol.TMap _map84 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRING); 
+            struct.options = new java.util.HashMap<java.lang.String,java.lang.String>(2*_map84.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _key85;
+            @org.apache.thrift.annotation.Nullable java.lang.String _val86;
+            for (int _i87 = 0; _i87 < _map84.size; ++_i87)
             {
-              _key93 = iprot.readString();
-              _val94 = iprot.readString();
-              struct.options.put(_key93, _val94);
+              _key85 = iprot.readString();
+              _val86 = iprot.readString();
+              struct.options.put(_key85, _val86);
             }
           }
           struct.setOptionsIsSet(true);

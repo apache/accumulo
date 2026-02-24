@@ -324,10 +324,19 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     clearCurrentEntryCounts();
 
+    final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
+
+    StringBuilder newThreadName = new StringBuilder();
+    if (isMinC) {
+      newThreadName.append("MinC ");
+    } else {
+      newThreadName.append("MajC ");
+    }
+
     String oldThreadName = Thread.currentThread().getName();
-    String newThreadName =
-        "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
-    Thread.currentThread().setName(newThreadName);
+    newThreadName.append("compacting ").append(extent).append(" started ").append(threadStartDate)
+        .append(" file: ").append(outputFile);
+    Thread.currentThread().setName(newThreadName.toString());
     // Use try w/ resources for clearing the thread instead of finally because clearing may throw an
     // exception. Java's handling of exceptions thrown in finally blocks is not good.
     try (var ignored = setThread()) {
@@ -348,8 +357,6 @@ public class FileCompactor implements Callable<CompactionStats> {
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
       final EnumSet<FilePrefix> dropCacheFileTypes =
           ConfigurationTypeHelper.getDropCacheBehindFilePrefixes(dropCachePrefixProperty);
-
-      final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
       final boolean dropCacheBehindOutput =
           !SystemTables.ROOT.tableId().equals(this.extent.tableId())

@@ -16,34 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.bulkImports;
+package org.apache.accumulo.server.util.bulkCommand;
 
-import org.apache.accumulo.server.util.bulkCommand.ListBulk;
+import java.time.Instant;
 
-/**
- * Stores bulk import in a JSON object
- *
- * @since 2.0.0
- */
-public class BulkImportInformation {
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 
-  // Variable names become JSON key
-  public String filename;
-  public long age;
-  public ListBulk.BulkState state;
+public interface BulkFateOperation {
+  TableId getTableId();
 
-  public BulkImportInformation() {}
+  String getSourceDir();
 
-  /**
-   * Creates new bulk import object
-   *
-   * @param filename name of the bulk import file
-   * @param age age of the bulk import
-   * @param state state of the bulk import
-   */
-  public BulkImportInformation(String filename, long age, ListBulk.BulkState state) {
-    this.filename = filename;
-    this.age = age;
-    this.state = state;
-  }
+  String getDestDir();
+
+  Instant getCreationTime();
+
+  BulkState getState();
 }

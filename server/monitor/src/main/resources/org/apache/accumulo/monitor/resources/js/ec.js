@@ -36,6 +36,7 @@ $(function () {
   $.fn.dataTable.ext.errMode = 'throw';
 
   compactorsTable = $('#compactorsTable').DataTable({
+    "autoWidth": false,
     "ajax": {
       "url": contextPath + 'rest/ec/compactors',
       "dataSrc": "compactors"
@@ -72,10 +73,12 @@ $(function () {
   const hostnameColumnName = 'hostname';
   const queueNameColumnName = 'queueName';
   const tableIdColumnName = 'tableId';
+  const ecidColumnName = 'ecid';
   const durationColumnName = 'duration';
 
   // Create a table for running compactors
   runningTable = $('#runningTable').DataTable({
+    "autoWidth": false,
     "ajax": {
       "url": contextPath + 'rest/ec/running',
       "dataSrc": "running"
@@ -114,6 +117,10 @@ $(function () {
       {
         "data": "tableId",
         "name": tableIdColumnName
+      },
+      {
+        "data": "ecid",
+        "name": ecidColumnName
       },
       {
         "data": "numFiles"
@@ -179,6 +186,10 @@ $(function () {
     handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), tableIdColumnName);
   });
 
+  $('#ecid-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#ecid-feedback'), ecidColumnName);
+  });
+
   $('#duration-filter').on('keyup', function () {
     runningTable.draw();
   });
@@ -191,6 +202,7 @@ $(function () {
     $('#hostname-filter').val('').trigger('keyup');
     $('#queue-filter').val('').trigger('keyup');
     $('#tableid-filter').val('').trigger('keyup');
+    $('#ecid-filter').val('').trigger('keyup');
     $('#duration-filter').val('').trigger('keyup');
 
     $(this).prop('disabled', false); // re-enable the clear
@@ -274,6 +286,7 @@ $(function () {
 
   // Create a table for compaction coordinator
   coordinatorTable = $('#coordinatorTable').DataTable({
+    "autoWidth": false,
     "ajax": {
       "url": contextPath + 'rest/ec',
       "dataSrc": function (data) {
