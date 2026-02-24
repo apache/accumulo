@@ -111,7 +111,7 @@ public class CompactionCoordinatorTest {
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
     public TestCoordinator(Manager manager, List<RunningCompaction> runningCompactions) {
-      super(manager, fit -> null);
+      super(manager, t -> null);
       this.runningCompactions = runningCompactions;
     }
 
