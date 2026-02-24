@@ -32,7 +32,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -196,19 +195,6 @@ public class FateWorkerEnv implements FateEnv {
   @Override
   public VolumeManager getVolumeManager() {
     return ctx.getVolumeManager();
-  }
-
-  @Override
-  public void updateBulkImportStatus(String string, BulkImportState bulkImportState) {
-    // FOLLOW_ON This data is stored in memory on the manager. This entire feature needs to be
-    // examined and potentially reworked. One solution would be to send an RPC to the manager to
-    // update it's in memory state. A better solution would be to move away from in memory state
-    // that is lost when the manager restarts.
-  }
-
-  @Override
-  public void removeBulkImportStatus(String sourceDir) {
-    // FOLLOW_ON
   }
 
   @Override
