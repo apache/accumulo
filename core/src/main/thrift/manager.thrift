@@ -113,28 +113,6 @@ struct RecoveryStatus {
   6:double progress
 }
 
-enum BulkImportState {
-  INITIAL
-  // manager moves the files into the accumulo area
-  MOVING
-  // tserver examines the index of the file
-  PROCESSING
-  // tserver assigns the file to tablets
-  ASSIGNING
-  // tserver incorporates file into tablet
-  LOADING
-  // manager moves error files into the error directory
-  COPY_FILES
-  // flags and locks removed
-  CLEANUP
-}
-
-struct BulkImportStatus {
-  1:i64 startTime
-  2:string filename
-  3:BulkImportState state
-}
-
 struct TabletServerStatus {
   1:map<string, TableInfo> tableMap
   2:i64 lastContact
@@ -162,7 +140,6 @@ struct ManagerMonitorInfo {
   6:i32 unassignedTablets
   7:set<string> serversShuttingDown
   8:list<DeadServer> deadTabletServers
-  9:list<BulkImportStatus> bulkImports
 }
 
 enum TFateInstanceType {
