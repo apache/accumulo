@@ -132,8 +132,8 @@ public class LocalityGroupUtil {
           Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
           if (!Collections.disjoint(all, colFamsSet)) {
             colFamsSet.retainAll(all);
-            throw new LocalityGroupConfigurationException("Column families " + colFamsSet + " in group "
-                + group + " is already used by another locality group");
+            throw new LocalityGroupConfigurationException("Column families " + colFamsSet
+                + " in group " + group + " is already used by another locality group");
           }
 
           all.addAll(colFamsSet);
@@ -179,7 +179,8 @@ public class LocalityGroupUtil {
         i++;
 
         if (i >= colFam.length()) {
-          throw new LocalityGroupConfigurationException("Expected 'x' or '\' after '\'  in " + colFam);
+          throw new LocalityGroupConfigurationException(
+              "Expected 'x' or '\' after '\'  in " + colFam);
         }
 
         char nc = colFam.charAt(i);
