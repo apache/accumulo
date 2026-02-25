@@ -81,6 +81,8 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -324,9 +326,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
 
   private Future<Void> upgradeMetadataFuture;
-
-  private FateServiceHandler fateServiceHandler;
-  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -1239,9 +1238,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // when a hot-standby
     //
     // Start the Manager's Fate Service. Ensure that calls before the manager gets the lock fail
-    fateServiceHandler = HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    FateService.Iface fateServiceHandler =
+        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
     // Start the Manager's Client service. Ensure that calls before the manager gets the lock fail
-    managerClientHandler =
+    ManagerClientService.Iface managerClientHandler =
         HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
 
     ServerAddress sa;
