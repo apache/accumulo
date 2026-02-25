@@ -35,7 +35,7 @@ enum TCompactionState {
   SUCCEEDED
   # Compactor should set state to FAILED when compaction job fails, message should be mandatory
   FAILED
-  # Compactor should set state to CANCELLED to acknowledge that it has stopped compacting 
+  # Compactor should set state to CANCELLED to acknowledge that it has stopped compacting
   CANCELLED
 }
 
@@ -79,12 +79,15 @@ service CompactionCoordinatorService {
    */
   void compactionCompleted(
     1:client.TInfo tinfo
-    2:security.TCredentials credentials  
+    2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
     5:tabletserver.TCompactionStats stats
+  )throws(
+     1:client.ThriftSecurityException sec
+     2:client.ThriftNotActiveServiceException tnase
   )
-  
+
   /*
    * Called by Compactor to get the next compaction job
    */
@@ -94,8 +97,11 @@ service CompactionCoordinatorService {
     3:string groupName
     4:string compactor
     5:string externalCompactionId
+  )throws(
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
-  
+
   /*
    * Called by Compactor to update the Coordinator with the state of the compaction
    */
@@ -105,8 +111,11 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:TCompactionStatusUpdate status
     5:i64 timestamp
+  )throws(
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
-  
+
   /*
    * Called by Compactor on unsuccessful completion of compaction job
    */
@@ -117,6 +126,9 @@ service CompactionCoordinatorService {
     4:data.TKeyExtent extent
     5:string exceptionClassName
     6:TCompactionState failureState
+  )throws(
+     1:client.ThriftSecurityException sec
+     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -125,6 +137,9 @@ service CompactionCoordinatorService {
   TExternalCompactionMap getRunningCompactions(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
+  )throws(
+     1:client.ThriftSecurityException sec
+     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -134,6 +149,9 @@ service CompactionCoordinatorService {
   map<string,TExternalCompactionList> getLongRunningCompactions(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
+  )throws(
+     1:client.ThriftSecurityException sec
+     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -142,14 +160,19 @@ service CompactionCoordinatorService {
   TExternalCompactionMap getCompletedCompactions(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
+  )throws(
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
 
   void cancel(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
+  )throws(
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
-
 }
 
 service CompactorService {

@@ -50,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -60,6 +61,7 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -90,6 +92,8 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -122,6 +126,7 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -131,6 +136,7 @@ import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
@@ -163,7 +169,8 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer implements LiveTServerSet.Listener, FateEnv {
+public class Manager extends AbstractServer
+    implements LiveTServerSet.Listener, FateEnv, HighlyAvailableService {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -266,6 +273,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       tserverStatusNtfyObj.notifyAll();
     }
   }
+
+  private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
 
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
@@ -399,8 +408,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   private Future<Void> upgradeMetadataFuture;
 
-  private FateServiceHandler fateServiceHandler;
-  private ManagerClientServiceHandler managerClientHandler;
   private CompactionCoordinator compactionCoordinator;
 
   private int assignedOrHosted(TableId tableId) {
@@ -940,18 +947,26 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // when a hot-standby
     //
     // Start the Manager's Fate Service
-    fateServiceHandler = new FateServiceHandler(this);
-    managerClientHandler = new ManagerClientServiceHandler(this);
+    FateService.Iface fateServiceHandler =
+        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    ManagerClientService.Iface managerClientHandler =
+        HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
+    CompactionCoordinatorService.Iface wrappedCoordinator =
+        HighlyAvailableServiceWrapper.service(compactionCoordinator.getThriftService(), this);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        compactionCoordinator.getThriftService(), managerClientHandler, getContext());
+        wrappedCoordinator, managerClientHandler, getContext());
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
             Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
       }, false);
+      // Now that the Manager is up, start the ThriftServer
+      Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
+      getThriftServerAddress().startThriftServer("Manager Client Service Handler");
+      log.info("Started Manager client service at {}", getAdvertiseAddress());
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
@@ -1197,11 +1212,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    // Now that the Manager is up, start the ThriftServer
-    Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
-    getThriftServerAddress().startThriftServer("Manager Client Service Handler");
-    log.info("Started Manager client service at {}", getAdvertiseAddress());
-
     // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager
     // for the Coordinator, Fate, and Manager services. Do **not** do this until
@@ -1221,6 +1231,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
+
+    // The manager is fully initialized. Clients are allowed to connect now.
+    managerInitialized.set(true);
 
     while (!isShutdownRequested() && getThriftServer().isServing()) {
       if (Thread.currentThread().isInterrupted()) {
@@ -1668,6 +1681,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return timeKeeper.getTime();
   }
 
+  @Override
+  public boolean isActiveService() {
+    return managerInitialized.get();
+  }
+
+  @Override
   public boolean isUpgrading() {
     return upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE;
   }

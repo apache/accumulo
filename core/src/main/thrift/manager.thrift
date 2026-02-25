@@ -501,6 +501,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException toe
+    3:client.ThriftNotActiveServiceException tnase
   )
 
   list<data.TKeyExtent> updateTabletMergeability(
@@ -511,6 +512,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException toe
+    3:client.ThriftNotActiveServiceException tnase
   )
 
   i64 getManagerTimeNanos(
@@ -518,6 +520,7 @@ service ManagerClientService {
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
 
   void processEvents(
