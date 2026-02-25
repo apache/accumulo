@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +45,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -57,6 +61,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -93,6 +98,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -118,6 +124,7 @@ import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -202,9 +209,11 @@ public class ScanServer extends AbstractServer
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
+  private final ConcurrentHashMap<TableId,Boolean> allowedTables = new ConcurrentHashMap<>();
+  private volatile String currentAllowedTableRegex;
+
   public ScanServer(ServerOpts opts, String[] args) {
     super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
-
     context = super.getContext();
     LOG.info("Version " + Constants.VERSION);
     LOG.info("Instance " + getContext().getInstanceID());
@@ -361,6 +370,7 @@ public class ScanServer extends AbstractServer
     }
 
     SecurityUtil.serverLogin(getConfiguration());
+    updateAllowedTables(false);
 
     try {
       startScanServerClientService();
@@ -410,6 +420,7 @@ public class ScanServer extends AbstractServer
         Thread.sleep(1000);
         updateIdleStatus(
             sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
+        updateAllowedTables(false);
       } catch (InterruptedException e) {
         LOG.info("Interrupt Exception received, shutting down");
         gracefulShutdown(getContext().rpcCreds());
@@ -447,6 +458,126 @@ public class ScanServer extends AbstractServer
       LOG.debug("Shutting down TabletMetadataCache executor");
       tmCacheExecutor.shutdownNow();
     }
+  }
+
+  // Visible for testing
+  protected boolean isAllowed(TCredentials credentials, TableId tid)
+      throws ThriftSecurityException {
+    Boolean result = allowedTables.get(tid);
+    if (result == null) {
+
+      final Retry retry = Retry.builder().maxRetries(10).retryAfter(Duration.ofSeconds(1))
+          .incrementBy(Duration.ZERO).maxWait(Duration.ofSeconds(2)).backOffFactor(1.0)
+          .logInterval(Duration.ofSeconds(3)).createRetry();
+
+      while (result == null && retry.canRetry()) {
+        try {
+          retry.waitForNextAttempt(LOG,
+              "Allowed tables mapping does not contain an entry for table: " + tid
+                  + ", refreshing table...");
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          LOG.error("Interrupted while waiting for next retry", e);
+          break;
+        }
+        // Clear the cache and try again, maybe there
+        // is a race condition in table creation and scan
+        updateAllowedTables(true);
+        // validate that the table exists, else throw
+        delegate.getNamespaceId(credentials, tid);
+        result = allowedTables.get(tid);
+        retry.useRetry();
+      }
+
+      if (result == null) {
+        // Ran out of retries
+        throw new IllegalStateException(
+            "Unable to get allowed table mapping for table: " + tid + " within 10s");
+      }
+    }
+    return result;
+  }
+
+  private synchronized void updateAllowedTables(boolean clearCache) {
+
+    LOG.trace("Updating allowed tables for ScanServer");
+    if (clearCache) {
+      context.clearTableListCache();
+    }
+
+    // Remove tables that no longer exist
+    allowedTables.keySet().forEach(tid -> {
+      if (!getContext().tableNodeExists(tid)) {
+        LOG.trace("Removing table {} from allowed table map as it no longer exists", tid);
+        allowedTables.remove(tid);
+      }
+    });
+
+    @SuppressWarnings("deprecation")
+    final String oldPropName = Property.SSERV_SCAN_ALLOWED_TABLES_DEPRECATED.getKey()
+        + this.getResourceGroup().canonical();
+    final String oldPropVal = getConfiguration().get(oldPropName);
+
+    final String propName = Property.SSERV_SCAN_ALLOWED_TABLES.getKey();
+    final String propVal = getConfiguration().get(propName);
+
+    String allowedTableRegex = null;
+    if (propVal != null && oldPropVal != null) {
+      LOG.warn(
+          "Property {} is deprecated, using value from replacement property {}. Remove old property from config.",
+          oldPropName, propName);
+      allowedTableRegex = propVal;
+    } else if (propVal == null && oldPropVal != null) {
+      LOG.warn("Property {} is deprecated, please use the newer replacement property {}",
+          oldPropName, propName);
+      allowedTableRegex = oldPropVal;
+    } else if (propVal != null && oldPropVal == null) {
+      allowedTableRegex = propVal;
+    }
+
+    if (allowedTableRegex == null) {
+      allowedTableRegex = Property.SSERV_SCAN_ALLOWED_TABLES.getDefaultValue();
+    }
+
+    if (currentAllowedTableRegex == null) {
+      LOG.trace("Property {} initial value: {}", propName, allowedTableRegex);
+    } else if (currentAllowedTableRegex.equals(allowedTableRegex)) {
+      // Property value has not changed, do nothing
+    } else {
+      LOG.info("Property {} has changed. Old value: {}, new value: {}", propName,
+          currentAllowedTableRegex, allowedTableRegex);
+    }
+
+    Pattern allowedTablePattern;
+    try {
+      allowedTablePattern = Pattern.compile(allowedTableRegex);
+      // Regex is valid, store it
+      currentAllowedTableRegex = allowedTableRegex;
+    } catch (PatternSyntaxException e) {
+      LOG.error(
+          "Property {} contains an invalid regular expression. Property value: {}. Disabling all tables.",
+          propName, allowedTableRegex);
+      allowedTablePattern = null;
+    }
+
+    Pattern p = allowedTablePattern;
+    context.createTableIdToQualifiedNameMap().entrySet().forEach(te -> {
+      String tname = te.getValue();
+      TableId tid = te.getKey();
+      LOG.info("Table Mapping: {} -> {}", tid, tname);
+      if (p == null) {
+        allowedTables.put(tid, Boolean.FALSE);
+      } else {
+        Matcher m = p.matcher(tname);
+        if (m.matches()) {
+          LOG.trace("Table {} can now be scanned via this ScanServer", tname);
+          allowedTables.put(tid, Boolean.TRUE);
+        } else {
+          LOG.trace("Table {} cannot be scanned via this ScanServer", tname);
+          allowedTables.put(tid, Boolean.FALSE);
+        }
+      }
+    });
   }
 
   @SuppressWarnings("unchecked")
@@ -916,11 +1047,6 @@ public class ScanServer extends AbstractServer
     };
   }
 
-  /* Exposed for testing */
-  protected boolean isSystemUser(TCredentials creds) {
-    return context.getSecurityOperation().isSystemUser(creds);
-  }
-
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -937,9 +1063,10 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
 
-    if (extent.isSystemTable() && !isSystemUser(credentials)) {
-      throw new TException(
-          "Only the system user can perform eventual consistency scans on the root and metadata tables");
+    if (!isAllowed(credentials, extent.tableId())) {
+      throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+          "Scan of table " + extent.tableId() + " disallowed by property: "
+              + Property.SSERV_SCAN_ALLOWED_TABLES.getKey());
     }
 
     try (ScanReservation reservation =
@@ -1010,9 +1137,10 @@ public class ScanServer extends AbstractServer
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
 
-      if (extent.isSystemTable() && !isSystemUser(credentials)) {
-        throw new TException(
-            "Only the system user can perform eventual consistency scans on the root and metadata tables");
+      if (!isAllowed(credentials, extent.tableId())) {
+        throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+            "Scan of table " + extent.tableId() + " disallowed by property: "
+                + Property.SSERV_SCAN_ALLOWED_TABLES.getKey());
       }
 
       batch.put(extent, entry.getValue());

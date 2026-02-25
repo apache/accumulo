@@ -72,7 +72,7 @@ public class ScanCommand extends Command {
   private Option optEndRowExclusive;
   private Option timeoutOption;
   private Option sampleOpt;
-  private Option contextOpt;
+  protected Option contextOpt;
   private Option executionHintsOpt;
   private Option scanServerOpt;
 

@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Test;
 public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
   // @formatter:off
-  private static final String clientConfiguration =
+  public static final String clientConfiguration =
      "["+
      " {"+
      "   \"isDefault\": true,"+
@@ -161,7 +161,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             ScanServerIT.ingest(client, tableName, 10, 10, 10, "colf", true);
         assertEquals(100, additionalIngest1);
 
-        // A a scan server for resource group GROUP1
+        // Add a scan server for resource group GROUP1
         getCluster().getConfig().getClusterServerConfiguration()
             .addScanServerResourceGroup("GROUP1", 1);
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
