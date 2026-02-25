@@ -32,11 +32,14 @@ import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotNull;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
@@ -46,12 +49,17 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
+import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
+import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
+import org.apache.accumulo.monitor.next.ec.RunningCompactionDetails;
+import org.apache.accumulo.monitor.next.ec.RunningCompactionsSummary;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -337,6 +345,49 @@ public class Endpoints {
       return List.of();
     }
     return compactions;
+  }
+
+  @GET
+  @Path("ec")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns External Compaction coordinator summary")
+  public CoordinatorSummary getExternalCompactionCoordinator() {
+    return new CoordinatorSummary(monitor.getCompactionCoordinatorHost(),
+        monitor.getCompactorServers(), monitor.getCompactorInfoFetchedTimeMillis());
+  }
+
+  @GET
+  @Path("ec/compactors")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns External Compactor process details")
+  public CompactorsSummary getExternalCompactors() {
+    return new CompactorsSummary(monitor.getCompactorServers(),
+        monitor.getCompactorInfoFetchedTimeMillis());
+  }
+
+  @GET
+  @Path("ec/running")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns running External Compactions")
+  public RunningCompactionsSummary getExternalCompactions() {
+    return new RunningCompactionsSummary(monitor.getRunningCompactionsMap());
+  }
+
+  @GET
+  @Path("ec/details")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns details for a running External Compaction by ECID")
+  public RunningCompactionDetails
+      getExternalCompactionDetails(@QueryParam("ecid") @NotNull String ecid) {
+    if (ecid.isBlank()) {
+      throw new BadRequestException("Missing required query parameter: ecid");
+    }
+    final var externalCompactionId = ExternalCompactionId.from(ecid);
+    var runningCompaction = monitor.getRunningCompaction(externalCompactionId);
+    if (runningCompaction == null) {
+      throw new IllegalStateException("Failed to find details for ECID: " + externalCompactionId);
+    }
+    return new RunningCompactionDetails(runningCompaction);
   }
 
   @GET
