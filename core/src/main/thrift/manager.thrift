@@ -216,7 +216,7 @@ service FateService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
-  
+
 }
 
 service ManagerClientService {
@@ -348,7 +348,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
-  
+
   void tabletServerStopping(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
@@ -369,7 +369,7 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
     3:ThriftPropertyException tpe
   )
- 
+
   void modifySystemProperties(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
@@ -398,7 +398,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
-  
+
   void removeResourceGroupNode(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
@@ -406,9 +406,9 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftResourceGroupNotExistsException rgne    
+    3:client.ThriftResourceGroupNotExistsException rgne
   )
-    
+
   void setResourceGroupProperty(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
@@ -421,7 +421,7 @@ service ManagerClientService {
     3:ThriftPropertyException tpe
     4:client.ThriftResourceGroupNotExistsException rgne
   )
- 
+
   void modifyResourceGroupProperties(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
@@ -496,6 +496,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException toe
+    3:client.ThriftNotActiveServiceException tnase
   )
 
   list<data.TKeyExtent> updateTabletMergeability(
@@ -506,6 +507,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException toe
+    3:client.ThriftNotActiveServiceException tnase
   )
 
   i64 getManagerTimeNanos(
@@ -513,5 +515,6 @@ service ManagerClientService {
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
 }
