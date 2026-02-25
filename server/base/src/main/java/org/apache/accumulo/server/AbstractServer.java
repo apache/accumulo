@@ -449,8 +449,9 @@ public abstract class AbstractServer
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
                 if (serverThread.isAlive()) {
-                  // throw an Error, which will cause this process to be terminated
-                  throw new Error("Sleep interrupted in ServiceLock verification thread");
+                  // this is marked as a critical thread, and will halt the process when it dies
+                  throw new IllegalStateException(
+                      "Sleep interrupted in ServiceLock verification thread", e);
                 }
               }
             }

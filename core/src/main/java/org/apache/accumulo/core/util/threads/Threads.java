@@ -75,9 +75,16 @@ public class Threads {
       try {
         r.run();
       } catch (RuntimeException e) {
-        System.err.println("Critical thread " + name + " died");
-        e.printStackTrace();
-        Runtime.getRuntime().halt(-1);
+        try {
+          e.printStackTrace();
+          System.err.println("Critical thread died: " + Thread.currentThread() + ", halting VM.");
+          System.err.flush();
+        } catch (Throwable e1) {
+          // If e == OutOfMemoryError, then it's probable that another Error might be
+          // thrown when trying to print to System.err.
+        } finally {
+          Runtime.getRuntime().halt(-1);
+        }
       }
     };
 

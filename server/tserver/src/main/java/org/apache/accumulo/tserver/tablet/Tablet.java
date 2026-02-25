@@ -222,7 +222,7 @@ public class Tablet extends TabletBase {
     public boolean closed = false;
   }
 
-  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
+  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) {
     return TabletNameGenerator.getNextDataFilename(prefix, context, extent,
         getMetadata().getDirName(), dir -> checkTabletDir(new Path(dir)));
   }
@@ -249,8 +249,7 @@ public class Tablet extends TabletBase {
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
-      final TabletResourceManager trm, TabletMetadata metadata)
-      throws IOException, IllegalArgumentException {
+      final TabletResourceManager trm, TabletMetadata metadata) {
 
     super(tabletServer, extent);
 
@@ -322,7 +321,7 @@ public class Tablet extends TabletBase {
           logEntries.clear();
         }
 
-      } catch (Exception t) {
+      } catch (IOException | RuntimeException t) {
         String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           log.warn(msg, t);
@@ -399,7 +398,7 @@ public class Tablet extends TabletBase {
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         TraceUtil.setException(span, e, true);
         throw e;
       } finally {
@@ -411,7 +410,7 @@ public class Tablet extends TabletBase {
         bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId, mincReason);
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         final ServiceLock tserverLock = tabletServer.getLock();
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
           log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
@@ -426,14 +425,14 @@ public class Tablet extends TabletBase {
       }
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
-    } catch (Exception | Error e) {
+    } catch (RuntimeException e) {
       failed = true;
       throw new RuntimeException("Exception occurred during minor compaction on " + extent, e);
     } finally {
       Thread.currentThread().setName(oldName);
       try {
         getTabletMemory().finalizeMinC();
-      } catch (Exception t) {
+      } catch (RuntimeException t) {
         log.error("Failed to free tablet memory on {}", extent, t);
       }
 
@@ -1010,7 +1009,7 @@ public class Tablet extends TabletBase {
 
       try {
         getTabletMemory().getMemTable().delete(0);
-      } catch (Exception t) {
+      } catch (RuntimeException t) {
         log.error("Failed to delete mem table : " + t.getMessage() + " for tablet " + extent, t);
       }
 
@@ -1054,11 +1053,10 @@ public class Tablet extends TabletBase {
         log.error(msg);
         throw new RuntimeException(msg);
       }
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
       throw new RuntimeException(msg, e);
-
     }
 
     if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {
