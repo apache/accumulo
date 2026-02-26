@@ -19,10 +19,18 @@
 package org.apache.accumulo.server.rpc;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.util.ClassUtil;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.server.HighlyAvailableService;
+import org.apache.thrift.ProcessFunction;
+import org.apache.thrift.TBaseProcessor;
 
 /**
  * A class to wrap invocations to the Thrift handler to prevent these invocations from succeeding
@@ -38,26 +46,75 @@ import org.apache.accumulo.server.HighlyAvailableService;
  */
 public class HighlyAvailableServiceWrapper {
 
-  private static final HighlyAvailableServiceWrapper INSTANCE = new HighlyAvailableServiceWrapper();
+  /**
+   * Returns all thrift methods on a processor along w/ an indication if they are oneway or not.
+   */
+  static <I> Map<String,Boolean> getThriftMethods(TBaseProcessor<I> tbProcessor) {
+    Map<String,ProcessFunction<I,?>> pmv = tbProcessor.getProcessMapView();
+
+    Method method;
+    try {
+      method = ProcessFunction.class.getDeclaredMethod("isOneway");
+    } catch (NoSuchMethodException e) {
+      throw new IllegalStateException(e);
+    }
+    method.setAccessible(true);
+
+    Map<String,Boolean> thriftMethods = new HashMap<>(pmv.size());
+
+    pmv.forEach((m, pf) -> {
+      try {
+        thriftMethods.put(m, (Boolean) method.invoke(pf));
+      } catch (IllegalAccessException | InvocationTargetException e) {
+        throw new IllegalStateException(e);
+      }
+    });
+
+    return thriftMethods;
+  }
+
+  /**
+   * Ensures all non oneway thrift methods throw {@link ThriftNotActiveServiceException}
+   */
+  private static void validateHAServerExceptions(Class<?> thriftInterface,
+      Map<String,Boolean> thriftMethods) {
+    String className = thriftInterface.getName();
+    Method[] methods = thriftInterface.getDeclaredMethods();
+    outer: for (Method m : methods) {
+      Class<?>[] exceptionClasses = m.getExceptionTypes();
+      Boolean oneway = thriftMethods.get(m.getName());
+      if (oneway) {
+        continue;
+      }
+
+      for (Class<?> ec : exceptionClasses) {
+        if (ThriftNotActiveServiceException.class.getName().equals(ec.getName())) {
+          continue outer;
+        }
+      }
+      throw new IllegalStateException(
+          "Method " + m.getName() + " on " + className + " does not declare "
+              + ThriftNotActiveServiceException.class.getSimpleName() + " to be thrown");
+    }
+  }
 
   // Not for public use.
   private HighlyAvailableServiceWrapper() {}
 
-  public static <I> I service(final I instance, HighlyAvailableService service) {
-    InvocationHandler handler = INSTANCE.getInvocationHandler(instance, service);
+  public static <I> I service(Class<I> iface, Function<I,TBaseProcessor<I>> processorFactory,
+      final I handler, HighlyAvailableService service) {
+    var processor = processorFactory.apply(handler);
+    var thriftMethods = getThriftMethods(processor);
+    validateHAServerExceptions(iface, thriftMethods);
 
-    ClassUtil.getInterfaces(instance.getClass()).forEach(iface -> {
-      System.out.println("Interface " + iface.getName() + " of " + instance.getClass().getName());
-    });
+    var onewayMethods = thriftMethods.entrySet().stream().filter(Map.Entry::getValue)
+        .map(Map.Entry::getKey).collect(Collectors.toSet());
 
+    InvocationHandler proxyHandler =
+        new HighlyAvailableServiceInvocationHandler<>(handler, service, onewayMethods);
     @SuppressWarnings("unchecked")
-    I proxiedInstance = (I) Proxy.newProxyInstance(instance.getClass().getClassLoader(),
-        ClassUtil.getInterfaces(instance.getClass()).toArray(new Class<?>[0]), handler);
+    I proxiedInstance = (I) Proxy.newProxyInstance(handler.getClass().getClassLoader(),
+        new Class<?>[] {iface}, proxyHandler);
     return proxiedInstance;
-  }
-
-  protected <T> HighlyAvailableServiceInvocationHandler<T> getInvocationHandler(final T instance,
-      final HighlyAvailableService service) {
-    return new HighlyAvailableServiceInvocationHandler<>(instance, service);
   }
 }

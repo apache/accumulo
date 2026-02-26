@@ -21,7 +21,9 @@ package org.apache.accumulo.server.rpc;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 import java.util.Objects;
+import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -39,10 +41,13 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
 
   private final I instance;
   private final HighlyAvailableService service;
+  private final Set<String> onewayMethods;
 
-  public HighlyAvailableServiceInvocationHandler(I instance, HighlyAvailableService service) {
+  public HighlyAvailableServiceInvocationHandler(I instance, HighlyAvailableService service,
+      Set<String> onewayMethods) {
     this.instance = Objects.requireNonNull(instance);
     this.service = Objects.requireNonNull(service);
+    this.onewayMethods = onewayMethods;
   }
 
   @Override
@@ -50,16 +55,28 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
 
     // If the service is upgrading, throw an exception
     if (service.isUpgrading()) {
-      LOG.trace("Service can not be accessed while it is upgrading.");
-      throw new ThriftNotActiveServiceException(service.getServiceName(),
-          "Service can not be accessed while it is upgrading");
+      if (onewayMethods.contains(method.getName())) {
+        // if thrift one way method throws an exception it will just log an error
+        LOG.debug("Ignoring one way thrift call during upgrade : {} {}", method.getName(),
+            Arrays.asList(args));
+      } else {
+        LOG.trace("Service can not be accessed while it is upgrading.");
+        throw new ThriftNotActiveServiceException(service.getServiceName(),
+            "Service can not be accessed while it is upgrading");
+      }
     }
 
     // If the service is not active, throw an exception
     if (!service.isActiveService()) {
-      LOG.trace("Denying access to RPC service as this instance is not the active instance.");
-      throw new ThriftNotActiveServiceException(service.getServiceName(),
-          "Denying access to RPC service as this instance is not the active instance");
+      if (onewayMethods.contains(method.getName())) {
+        // if thrift one way method throws an exception it will just log an error
+        LOG.debug("Ignoring one way thrift call because not active : {} {}", method.getName(),
+            Arrays.asList(args));
+      } else {
+        LOG.trace("Denying access to RPC service as this instance is not the active instance.");
+        throw new ThriftNotActiveServiceException(service.getServiceName(),
+            "Denying access to RPC service as this instance is not the active instance");
+      }
     }
     try {
       // Otherwise, call the real method

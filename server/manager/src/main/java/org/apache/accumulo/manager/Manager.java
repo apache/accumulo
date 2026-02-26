@@ -935,17 +935,15 @@ public class Manager extends AbstractServer
       throw new RuntimeException(e);
     }
 
-    // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
-    // when a hot-standby
-    //
-    // Start the Manager's Fate Service
-    FateService.Iface fateServiceHandler =
-        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    FateService.Iface fateServiceHandler = HighlyAvailableServiceWrapper.service(
+        FateService.Iface.class, FateService.Processor::new, new FateServiceHandler(this), this);
     ManagerClientService.Iface managerClientHandler =
-        HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
+        HighlyAvailableServiceWrapper.service(ManagerClientService.Iface.class,
+            ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
-    CompactionCoordinatorService.Iface wrappedCoordinator =
-        HighlyAvailableServiceWrapper.service(compactionCoordinator.getThriftService(), this);
+    CompactionCoordinatorService.Iface wrappedCoordinator = HighlyAvailableServiceWrapper.service(
+        CompactionCoordinatorService.Iface.class, CompactionCoordinatorService.Processor::new,
+        compactionCoordinator.getThriftService(), this);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         wrappedCoordinator, managerClientHandler, getContext());
