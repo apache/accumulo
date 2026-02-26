@@ -85,7 +85,7 @@ public class TabletServerLogger {
   // The current logger
   private DfsLogger currentLog = null;
   private final SynchronousQueue<Object> nextLog = new SynchronousQueue<>();
-  private final AtomicReference<Thread> nextLogMaker = new AtomicReference<>(null);;
+  private Thread nextLogMaker = null;
 
   // The current generation of logs.
   // Because multiple threads can be using a log at one time, a log
@@ -265,79 +265,77 @@ public class TabletServerLogger {
     }
   }
 
-  private void startLogMaker() {
-    nextLogMaker.getAndUpdate(thread -> {
-      if (thread != null) {
-        return thread;
-      }
-      Thread newThread = Threads.createCriticalThread(TSERVER_WAL_CREATOR_POOL.poolName, () -> {
-        while (true) {
-          log.debug("Creating next WAL");
-          final DfsLogger alog;
+  private synchronized void startLogMaker() {
+    if (nextLogMaker != null) {
+      return;
+    }
+    Thread newThread = Threads.createCriticalThread(TSERVER_WAL_CREATOR_POOL.poolName, () -> {
+      while (true) {
+        log.debug("Creating next WAL");
+        final DfsLogger alog;
 
+        try {
+          alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
+              tserver.getAdvertiseAddress().toString());
+        } catch (IOException | RuntimeException e) {
+          log.error("Failed to open WAL", e);
           try {
-            alog = DfsLogger.createNew(tserver.getContext(), syncCounter, flushCounter,
-                tserver.getAdvertiseAddress().toString());
-          } catch (IOException | RuntimeException e) {
-            log.error("Failed to open WAL", e);
-            try {
-              nextLog.offer(e, 12, TimeUnit.HOURS);
-            } catch (InterruptedException ex) {
-              // This is a critical thread, so dying will log this then halt the VM.
-              throw new IllegalStateException("Next log maker thread interrupted", ex);
-            }
-            continue;
-          }
-
-          log.debug("Created next WAL {}", alog.getLogEntry());
-
-          try {
-            tserver.addNewLogMarker(alog);
-          } catch (Exception e) {
-            log.error("Failed to add new WAL marker for " + alog.getLogEntry(), e);
-
-            try {
-              // Intentionally not deleting walog because it may have been advertised in ZK. See
-              // #949
-              alog.close();
-            } catch (IOException | RuntimeException e2) {
-              log.error("Failed to close WAL after it failed to open", e2);
-            }
-
-            // it's possible the log was advertised in ZK even though we got an
-            // exception. If there's a chance the WAL marker may have been created,
-            // this will ensure it's closed. Either the close will be written and
-            // the GC will clean it up, or the tserver is about to die due to sesson
-            // expiration and the GC will also clean it up.
-            try {
-              tserver.walogClosed(alog);
-            } catch (WalMarkerException | RuntimeException e2) {
-              log.error("Failed to close WAL that failed to open: " + alog.getLogEntry(), e2);
-            }
-
-            try {
-              nextLog.offer(e, 12, TimeUnit.HOURS);
-            } catch (InterruptedException e2) {
-              // This is a critical thread, so dying will log this then halt the VM.
-              throw new IllegalStateException("Next log maker thread interrupted", e2);
-            }
-
-            continue;
-          }
-
-          try {
-            while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
-              log.info("Our WAL was not used for 12 hours: {}", alog.getLogEntry());
-            }
-          } catch (InterruptedException e) {
+            nextLog.offer(e, 12, TimeUnit.HOURS);
+          } catch (InterruptedException ex) {
             // This is a critical thread, so dying will log this then halt the VM.
-            throw new IllegalStateException("Next log maker thread interrupted", e);
+            throw new IllegalStateException("Next log maker thread interrupted", ex);
           }
+          continue;
         }
-      });
-      newThread.start();
-      return newThread;
+
+        log.debug("Created next WAL {}", alog.getLogEntry());
+
+        try {
+          tserver.addNewLogMarker(alog);
+        } catch (Exception e) {
+          log.error("Failed to add new WAL marker for " + alog.getLogEntry(), e);
+
+          try {
+            // Intentionally not deleting walog because it may have been advertised in ZK. See
+            // #949
+            alog.close();
+          } catch (IOException | RuntimeException e2) {
+            log.error("Failed to close WAL after it failed to open", e2);
+          }
+
+          // it's possible the log was advertised in ZK even though we got an
+          // exception. If there's a chance the WAL marker may have been created,
+          // this will ensure it's closed. Either the close will be written and
+          // the GC will clean it up, or the tserver is about to die due to sesson
+          // expiration and the GC will also clean it up.
+          try {
+            tserver.walogClosed(alog);
+          } catch (WalMarkerException | RuntimeException e2) {
+            log.error("Failed to close WAL that failed to open: " + alog.getLogEntry(), e2);
+          }
+
+          try {
+            nextLog.offer(e, 12, TimeUnit.HOURS);
+          } catch (InterruptedException e2) {
+            // This is a critical thread, so dying will log this then halt the VM.
+            throw new IllegalStateException("Next log maker thread interrupted", e2);
+          }
+
+          continue;
+        }
+
+        try {
+          while (!nextLog.offer(alog, 12, TimeUnit.HOURS)) {
+            log.info("Our WAL was not used for 12 hours: {}", alog.getLogEntry());
+          }
+        } catch (InterruptedException e) {
+          // This is a critical thread, so dying will log this then halt the VM.
+          throw new IllegalStateException("Next log maker thread interrupted", e);
+        }
+      }
     });
+    newThread.start();
+    nextLogMaker = newThread;
   }
 
   private synchronized void close() throws IOException {
