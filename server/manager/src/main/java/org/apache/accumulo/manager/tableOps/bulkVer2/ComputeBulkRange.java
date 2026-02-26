@@ -26,27 +26,21 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ComputeBulkRange extends AbstractFateOperation {
+public class ComputeBulkRange extends AbstractBulkFateOperation {
   private static final long serialVersionUID = 1L;
 
   private static final Logger log = LoggerFactory.getLogger(ComputeBulkRange.class);
 
-  private final BulkInfo bulkInfo;
-
   public ComputeBulkRange(TableId tableId, String sourceDir, boolean setTime) {
-    BulkInfo info = new BulkInfo();
-    info.tableId = tableId;
-    info.sourceDir = sourceDir;
-    info.setTime = setTime;
-    this.bulkInfo = info;
+    super(BulkInfo.create(tableId, sourceDir, setTime));
   }
 
   @Override
@@ -71,5 +65,10 @@ public class ComputeBulkRange extends AbstractFateOperation {
 
       return new PrepBulkImport(bulkInfo);
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.PREPARING;
   }
 }

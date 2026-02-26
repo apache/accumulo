@@ -35618,13 +35618,13 @@ public class ManagerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list96 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<java.lang.String>(_list96.size);
-                  @org.apache.thrift.annotation.Nullable java.lang.String _elem97;
-                  for (int _i98 = 0; _i98 < _list96.size; ++_i98)
+                  org.apache.thrift.protocol.TList _list88 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<java.lang.String>(_list88.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem89;
+                  for (int _i90 = 0; _i90 < _list88.size; ++_i90)
                   {
-                    _elem97 = iprot.readString();
-                    struct.success.add(_elem97);
+                    _elem89 = iprot.readString();
+                    struct.success.add(_elem89);
                   }
                   iprot.readListEnd();
                 }
@@ -35671,9 +35671,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRING, struct.success.size()));
-            for (java.lang.String _iter99 : struct.success)
+            for (java.lang.String _iter91 : struct.success)
             {
-              oprot.writeString(_iter99);
+              oprot.writeString(_iter91);
             }
             oprot.writeListEnd();
           }
@@ -35721,9 +35721,9 @@ public class ManagerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (java.lang.String _iter100 : struct.success)
+            for (java.lang.String _iter92 : struct.success)
             {
-              oprot.writeString(_iter100);
+              oprot.writeString(_iter92);
             }
           }
         }
@@ -35741,13 +35741,13 @@ public class ManagerClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list101 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
-            struct.success = new java.util.ArrayList<java.lang.String>(_list101.size);
-            @org.apache.thrift.annotation.Nullable java.lang.String _elem102;
-            for (int _i103 = 0; _i103 < _list101.size; ++_i103)
+            org.apache.thrift.protocol.TList _list93 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.success = new java.util.ArrayList<java.lang.String>(_list93.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem94;
+            for (int _i95 = 0; _i95 < _list93.size; ++_i95)
             {
-              _elem102 = iprot.readString();
-              struct.success.add(_elem102);
+              _elem94 = iprot.readString();
+              struct.success.add(_elem94);
             }
           }
           struct.setSuccessIsSet(true);
@@ -37579,14 +37579,14 @@ public class ManagerClientService {
             case 4: // EXTENTS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list104 = iprot.readListBegin();
-                  struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list104.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem105;
-                  for (int _i106 = 0; _i106 < _list104.size; ++_i106)
+                  org.apache.thrift.protocol.TList _list96 = iprot.readListBegin();
+                  struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list96.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem97;
+                  for (int _i98 = 0; _i98 < _list96.size; ++_i98)
                   {
-                    _elem105 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                    _elem105.read(iprot);
-                    struct.extents.add(_elem105);
+                    _elem97 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _elem97.read(iprot);
+                    struct.extents.add(_elem97);
                   }
                   iprot.readListEnd();
                 }
@@ -37630,9 +37630,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(EXTENTS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.extents.size()));
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter107 : struct.extents)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter99 : struct.extents)
             {
-              _iter107.write(oprot);
+              _iter99.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -37682,9 +37682,9 @@ public class ManagerClientService {
         if (struct.isSetExtents()) {
           {
             oprot.writeI32(struct.extents.size());
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter108 : struct.extents)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter100 : struct.extents)
             {
-              _iter108.write(oprot);
+              _iter100.write(oprot);
             }
           }
         }
@@ -37710,14 +37710,14 @@ public class ManagerClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list109 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list109.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem110;
-            for (int _i111 = 0; _i111 < _list109.size; ++_i111)
+            org.apache.thrift.protocol.TList _list101 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.extents = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list101.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem102;
+            for (int _i103 = 0; _i103 < _list101.size; ++_i103)
             {
-              _elem110 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              _elem110.read(iprot);
-              struct.extents.add(_elem110);
+              _elem102 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _elem102.read(iprot);
+              struct.extents.add(_elem102);
             }
           }
           struct.setExtentsIsSet(true);
@@ -38829,17 +38829,17 @@ public class ManagerClientService {
             case 4: // SPLITS
               if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
                 {
-                  org.apache.thrift.protocol.TMap _map112 = iprot.readMapBegin();
-                  struct.splits = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,TTabletMergeability>(2*_map112.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key113;
-                  @org.apache.thrift.annotation.Nullable TTabletMergeability _val114;
-                  for (int _i115 = 0; _i115 < _map112.size; ++_i115)
+                  org.apache.thrift.protocol.TMap _map104 = iprot.readMapBegin();
+                  struct.splits = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,TTabletMergeability>(2*_map104.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key105;
+                  @org.apache.thrift.annotation.Nullable TTabletMergeability _val106;
+                  for (int _i107 = 0; _i107 < _map104.size; ++_i107)
                   {
-                    _key113 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                    _key113.read(iprot);
-                    _val114 = new TTabletMergeability();
-                    _val114.read(iprot);
-                    struct.splits.put(_key113, _val114);
+                    _key105 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _key105.read(iprot);
+                    _val106 = new TTabletMergeability();
+                    _val106.read(iprot);
+                    struct.splits.put(_key105, _val106);
                   }
                   iprot.readMapEnd();
                 }
@@ -38883,10 +38883,10 @@ public class ManagerClientService {
           oprot.writeFieldBegin(SPLITS_FIELD_DESC);
           {
             oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT, struct.splits.size()));
-            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, TTabletMergeability> _iter116 : struct.splits.entrySet())
+            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, TTabletMergeability> _iter108 : struct.splits.entrySet())
             {
-              _iter116.getKey().write(oprot);
-              _iter116.getValue().write(oprot);
+              _iter108.getKey().write(oprot);
+              _iter108.getValue().write(oprot);
             }
             oprot.writeMapEnd();
           }
@@ -38936,10 +38936,10 @@ public class ManagerClientService {
         if (struct.isSetSplits()) {
           {
             oprot.writeI32(struct.splits.size());
-            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, TTabletMergeability> _iter117 : struct.splits.entrySet())
+            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, TTabletMergeability> _iter109 : struct.splits.entrySet())
             {
-              _iter117.getKey().write(oprot);
-              _iter117.getValue().write(oprot);
+              _iter109.getKey().write(oprot);
+              _iter109.getValue().write(oprot);
             }
           }
         }
@@ -38965,17 +38965,17 @@ public class ManagerClientService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TMap _map118 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT); 
-            struct.splits = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,TTabletMergeability>(2*_map118.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key119;
-            @org.apache.thrift.annotation.Nullable TTabletMergeability _val120;
-            for (int _i121 = 0; _i121 < _map118.size; ++_i121)
+            org.apache.thrift.protocol.TMap _map110 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.STRUCT); 
+            struct.splits = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,TTabletMergeability>(2*_map110.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key111;
+            @org.apache.thrift.annotation.Nullable TTabletMergeability _val112;
+            for (int _i113 = 0; _i113 < _map110.size; ++_i113)
             {
-              _key119 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              _key119.read(iprot);
-              _val120 = new TTabletMergeability();
-              _val120.read(iprot);
-              struct.splits.put(_key119, _val120);
+              _key111 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _key111.read(iprot);
+              _val112 = new TTabletMergeability();
+              _val112.read(iprot);
+              struct.splits.put(_key111, _val112);
             }
           }
           struct.setSplitsIsSet(true);
@@ -39481,14 +39481,14 @@ public class ManagerClientService {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list122 = iprot.readListBegin();
-                  struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list122.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem123;
-                  for (int _i124 = 0; _i124 < _list122.size; ++_i124)
+                  org.apache.thrift.protocol.TList _list114 = iprot.readListBegin();
+                  struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list114.size);
+                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem115;
+                  for (int _i116 = 0; _i116 < _list114.size; ++_i116)
                   {
-                    _elem123 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                    _elem123.read(iprot);
-                    struct.success.add(_elem123);
+                    _elem115 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+                    _elem115.read(iprot);
+                    struct.success.add(_elem115);
                   }
                   iprot.readListEnd();
                 }
@@ -39535,9 +39535,9 @@ public class ManagerClientService {
           oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.success.size()));
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter125 : struct.success)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter117 : struct.success)
             {
-              _iter125.write(oprot);
+              _iter117.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -39585,9 +39585,9 @@ public class ManagerClientService {
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
-            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter126 : struct.success)
+            for (org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _iter118 : struct.success)
             {
-              _iter126.write(oprot);
+              _iter118.write(oprot);
             }
           }
         }
@@ -39605,14 +39605,14 @@ public class ManagerClientService {
         java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           {
-            org.apache.thrift.protocol.TList _list127 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list127.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem128;
-            for (int _i129 = 0; _i129 < _list127.size; ++_i129)
+            org.apache.thrift.protocol.TList _list119 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.success = new java.util.ArrayList<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent>(_list119.size);
+            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _elem120;
+            for (int _i121 = 0; _i121 < _list119.size; ++_i121)
             {
-              _elem128 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              _elem128.read(iprot);
-              struct.success.add(_elem128);
+              _elem120 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
+              _elem120.read(iprot);
+              struct.success.add(_elem120);
             }
           }
           struct.setSuccessIsSet(true);

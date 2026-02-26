@@ -36,7 +36,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
   private static final org.apache.thrift.protocol.TField UNASSIGNED_TABLETS_FIELD_DESC = new org.apache.thrift.protocol.TField("unassignedTablets", org.apache.thrift.protocol.TType.I32, (short)6);
   private static final org.apache.thrift.protocol.TField SERVERS_SHUTTING_DOWN_FIELD_DESC = new org.apache.thrift.protocol.TField("serversShuttingDown", org.apache.thrift.protocol.TType.SET, (short)7);
   private static final org.apache.thrift.protocol.TField DEAD_TABLET_SERVERS_FIELD_DESC = new org.apache.thrift.protocol.TField("deadTabletServers", org.apache.thrift.protocol.TType.LIST, (short)8);
-  private static final org.apache.thrift.protocol.TField BULK_IMPORTS_FIELD_DESC = new org.apache.thrift.protocol.TField("bulkImports", org.apache.thrift.protocol.TType.LIST, (short)9);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new ManagerMonitorInfoStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new ManagerMonitorInfoTupleSchemeFactory();
@@ -57,7 +56,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
   public int unassignedTablets; // required
   public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> serversShuttingDown; // required
   public @org.apache.thrift.annotation.Nullable java.util.List<DeadServer> deadTabletServers; // required
-  public @org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
@@ -76,8 +74,7 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     GOAL_STATE((short)5, "goalState"),
     UNASSIGNED_TABLETS((short)6, "unassignedTablets"),
     SERVERS_SHUTTING_DOWN((short)7, "serversShuttingDown"),
-    DEAD_TABLET_SERVERS((short)8, "deadTabletServers"),
-    BULK_IMPORTS((short)9, "bulkImports");
+    DEAD_TABLET_SERVERS((short)8, "deadTabletServers");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -109,8 +106,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
           return SERVERS_SHUTTING_DOWN;
         case 8: // DEAD_TABLET_SERVERS
           return DEAD_TABLET_SERVERS;
-        case 9: // BULK_IMPORTS
-          return BULK_IMPORTS;
         default:
           return null;
       }
@@ -182,9 +177,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     tmpMap.put(_Fields.DEAD_TABLET_SERVERS, new org.apache.thrift.meta_data.FieldMetaData("deadTabletServers", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, DeadServer.class))));
-    tmpMap.put(_Fields.BULK_IMPORTS, new org.apache.thrift.meta_data.FieldMetaData("bulkImports", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.ListMetaData(org.apache.thrift.protocol.TType.LIST, 
-            new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, BulkImportStatus.class))));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(ManagerMonitorInfo.class, metaDataMap);
   }
@@ -200,8 +192,7 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     ManagerGoalState goalState,
     int unassignedTablets,
     java.util.Set<java.lang.String> serversShuttingDown,
-    java.util.List<DeadServer> deadTabletServers,
-    java.util.List<BulkImportStatus> bulkImports)
+    java.util.List<DeadServer> deadTabletServers)
   {
     this();
     this.tableMap = tableMap;
@@ -213,7 +204,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     setUnassignedTabletsIsSet(true);
     this.serversShuttingDown = serversShuttingDown;
     this.deadTabletServers = deadTabletServers;
-    this.bulkImports = bulkImports;
   }
 
   /**
@@ -265,13 +255,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       }
       this.deadTabletServers = __this__deadTabletServers;
     }
-    if (other.isSetBulkImports()) {
-      java.util.List<BulkImportStatus> __this__bulkImports = new java.util.ArrayList<BulkImportStatus>(other.bulkImports.size());
-      for (BulkImportStatus other_element : other.bulkImports) {
-        __this__bulkImports.add(new BulkImportStatus(other_element));
-      }
-      this.bulkImports = __this__bulkImports;
-    }
   }
 
   @Override
@@ -290,7 +273,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     this.unassignedTablets = 0;
     this.serversShuttingDown = null;
     this.deadTabletServers = null;
-    this.bulkImports = null;
   }
 
   public int getTableMapSize() {
@@ -577,47 +559,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     }
   }
 
-  public int getBulkImportsSize() {
-    return (this.bulkImports == null) ? 0 : this.bulkImports.size();
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public java.util.Iterator<BulkImportStatus> getBulkImportsIterator() {
-    return (this.bulkImports == null) ? null : this.bulkImports.iterator();
-  }
-
-  public void addToBulkImports(BulkImportStatus elem) {
-    if (this.bulkImports == null) {
-      this.bulkImports = new java.util.ArrayList<BulkImportStatus>();
-    }
-    this.bulkImports.add(elem);
-  }
-
-  @org.apache.thrift.annotation.Nullable
-  public java.util.List<BulkImportStatus> getBulkImports() {
-    return this.bulkImports;
-  }
-
-  public ManagerMonitorInfo setBulkImports(@org.apache.thrift.annotation.Nullable java.util.List<BulkImportStatus> bulkImports) {
-    this.bulkImports = bulkImports;
-    return this;
-  }
-
-  public void unsetBulkImports() {
-    this.bulkImports = null;
-  }
-
-  /** Returns true if field bulkImports is set (has been assigned a value) and false otherwise */
-  public boolean isSetBulkImports() {
-    return this.bulkImports != null;
-  }
-
-  public void setBulkImportsIsSet(boolean value) {
-    if (!value) {
-      this.bulkImports = null;
-    }
-  }
-
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -685,14 +626,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       }
       break;
 
-    case BULK_IMPORTS:
-      if (value == null) {
-        unsetBulkImports();
-      } else {
-        setBulkImports((java.util.List<BulkImportStatus>)value);
-      }
-      break;
-
     }
   }
 
@@ -724,9 +657,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     case DEAD_TABLET_SERVERS:
       return getDeadTabletServers();
 
-    case BULK_IMPORTS:
-      return getBulkImports();
-
     }
     throw new java.lang.IllegalStateException();
   }
@@ -755,8 +685,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       return isSetServersShuttingDown();
     case DEAD_TABLET_SERVERS:
       return isSetDeadTabletServers();
-    case BULK_IMPORTS:
-      return isSetBulkImports();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -846,15 +774,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         return false;
     }
 
-    boolean this_present_bulkImports = true && this.isSetBulkImports();
-    boolean that_present_bulkImports = true && that.isSetBulkImports();
-    if (this_present_bulkImports || that_present_bulkImports) {
-      if (!(this_present_bulkImports && that_present_bulkImports))
-        return false;
-      if (!this.bulkImports.equals(that.bulkImports))
-        return false;
-    }
-
     return true;
   }
 
@@ -891,10 +810,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     hashCode = hashCode * 8191 + ((isSetDeadTabletServers()) ? 131071 : 524287);
     if (isSetDeadTabletServers())
       hashCode = hashCode * 8191 + deadTabletServers.hashCode();
-
-    hashCode = hashCode * 8191 + ((isSetBulkImports()) ? 131071 : 524287);
-    if (isSetBulkImports())
-      hashCode = hashCode * 8191 + bulkImports.hashCode();
 
     return hashCode;
   }
@@ -987,16 +902,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         return lastComparison;
       }
     }
-    lastComparison = java.lang.Boolean.compare(isSetBulkImports(), other.isSetBulkImports());
-    if (lastComparison != 0) {
-      return lastComparison;
-    }
-    if (isSetBulkImports()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.bulkImports, other.bulkImports);
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-    }
     return 0;
   }
 
@@ -1078,14 +983,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       sb.append("null");
     } else {
       sb.append(this.deadTabletServers);
-    }
-    first = false;
-    if (!first) sb.append(", ");
-    sb.append("bulkImports:");
-    if (this.bulkImports == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.bulkImports);
     }
     first = false;
     sb.append(")");
@@ -1256,25 +1153,6 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
-          case 9: // BULK_IMPORTS
-            if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
-              {
-                org.apache.thrift.protocol.TList _list43 = iprot.readListBegin();
-                struct.bulkImports = new java.util.ArrayList<BulkImportStatus>(_list43.size);
-                @org.apache.thrift.annotation.Nullable BulkImportStatus _elem44;
-                for (int _i45 = 0; _i45 < _list43.size; ++_i45)
-                {
-                  _elem44 = new BulkImportStatus();
-                  _elem44.read(iprot);
-                  struct.bulkImports.add(_elem44);
-                }
-                iprot.readListEnd();
-              }
-              struct.setBulkImportsIsSet(true);
-            } else { 
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-            }
-            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -1295,10 +1173,10 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         oprot.writeFieldBegin(TABLE_MAP_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, struct.tableMap.size()));
-          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter46 : struct.tableMap.entrySet())
+          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter43 : struct.tableMap.entrySet())
           {
-            oprot.writeString(_iter46.getKey());
-            _iter46.getValue().write(oprot);
+            oprot.writeString(_iter43.getKey());
+            _iter43.getValue().write(oprot);
           }
           oprot.writeMapEnd();
         }
@@ -1308,9 +1186,9 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         oprot.writeFieldBegin(T_SERVER_INFO_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.tServerInfo.size()));
-          for (TabletServerStatus _iter47 : struct.tServerInfo)
+          for (TabletServerStatus _iter44 : struct.tServerInfo)
           {
-            _iter47.write(oprot);
+            _iter44.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1320,10 +1198,10 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         oprot.writeFieldBegin(BAD_TSERVERS_FIELD_DESC);
         {
           oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE, struct.badTServers.size()));
-          for (java.util.Map.Entry<java.lang.String, java.lang.Byte> _iter48 : struct.badTServers.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.Byte> _iter45 : struct.badTServers.entrySet())
           {
-            oprot.writeString(_iter48.getKey());
-            oprot.writeByte(_iter48.getValue());
+            oprot.writeString(_iter45.getKey());
+            oprot.writeByte(_iter45.getValue());
           }
           oprot.writeMapEnd();
         }
@@ -1346,9 +1224,9 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         oprot.writeFieldBegin(SERVERS_SHUTTING_DOWN_FIELD_DESC);
         {
           oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.serversShuttingDown.size()));
-          for (java.lang.String _iter49 : struct.serversShuttingDown)
+          for (java.lang.String _iter46 : struct.serversShuttingDown)
           {
-            oprot.writeString(_iter49);
+            oprot.writeString(_iter46);
           }
           oprot.writeSetEnd();
         }
@@ -1358,21 +1236,9 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
         oprot.writeFieldBegin(DEAD_TABLET_SERVERS_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.deadTabletServers.size()));
-          for (DeadServer _iter50 : struct.deadTabletServers)
+          for (DeadServer _iter47 : struct.deadTabletServers)
           {
-            _iter50.write(oprot);
-          }
-          oprot.writeListEnd();
-        }
-        oprot.writeFieldEnd();
-      }
-      if (struct.bulkImports != null) {
-        oprot.writeFieldBegin(BULK_IMPORTS_FIELD_DESC);
-        {
-          oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.bulkImports.size()));
-          for (BulkImportStatus _iter51 : struct.bulkImports)
-          {
-            _iter51.write(oprot);
+            _iter47.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1421,36 +1287,33 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       if (struct.isSetDeadTabletServers()) {
         optionals.set(7);
       }
-      if (struct.isSetBulkImports()) {
-        optionals.set(8);
-      }
-      oprot.writeBitSet(optionals, 9);
+      oprot.writeBitSet(optionals, 8);
       if (struct.isSetTableMap()) {
         {
           oprot.writeI32(struct.tableMap.size());
-          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter52 : struct.tableMap.entrySet())
+          for (java.util.Map.Entry<java.lang.String, TableInfo> _iter48 : struct.tableMap.entrySet())
           {
-            oprot.writeString(_iter52.getKey());
-            _iter52.getValue().write(oprot);
+            oprot.writeString(_iter48.getKey());
+            _iter48.getValue().write(oprot);
           }
         }
       }
       if (struct.isSetTServerInfo()) {
         {
           oprot.writeI32(struct.tServerInfo.size());
-          for (TabletServerStatus _iter53 : struct.tServerInfo)
+          for (TabletServerStatus _iter49 : struct.tServerInfo)
           {
-            _iter53.write(oprot);
+            _iter49.write(oprot);
           }
         }
       }
       if (struct.isSetBadTServers()) {
         {
           oprot.writeI32(struct.badTServers.size());
-          for (java.util.Map.Entry<java.lang.String, java.lang.Byte> _iter54 : struct.badTServers.entrySet())
+          for (java.util.Map.Entry<java.lang.String, java.lang.Byte> _iter50 : struct.badTServers.entrySet())
           {
-            oprot.writeString(_iter54.getKey());
-            oprot.writeByte(_iter54.getValue());
+            oprot.writeString(_iter50.getKey());
+            oprot.writeByte(_iter50.getValue());
           }
         }
       }
@@ -1466,27 +1329,18 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       if (struct.isSetServersShuttingDown()) {
         {
           oprot.writeI32(struct.serversShuttingDown.size());
-          for (java.lang.String _iter55 : struct.serversShuttingDown)
+          for (java.lang.String _iter51 : struct.serversShuttingDown)
           {
-            oprot.writeString(_iter55);
+            oprot.writeString(_iter51);
           }
         }
       }
       if (struct.isSetDeadTabletServers()) {
         {
           oprot.writeI32(struct.deadTabletServers.size());
-          for (DeadServer _iter56 : struct.deadTabletServers)
+          for (DeadServer _iter52 : struct.deadTabletServers)
           {
-            _iter56.write(oprot);
-          }
-        }
-      }
-      if (struct.isSetBulkImports()) {
-        {
-          oprot.writeI32(struct.bulkImports.size());
-          for (BulkImportStatus _iter57 : struct.bulkImports)
-          {
-            _iter57.write(oprot);
+            _iter52.write(oprot);
           }
         }
       }
@@ -1495,48 +1349,48 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, ManagerMonitorInfo struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(9);
+      java.util.BitSet incoming = iprot.readBitSet(8);
       if (incoming.get(0)) {
         {
-          org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
-          struct.tableMap = new java.util.HashMap<java.lang.String,TableInfo>(2*_map58.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key59;
-          @org.apache.thrift.annotation.Nullable TableInfo _val60;
-          for (int _i61 = 0; _i61 < _map58.size; ++_i61)
+          org.apache.thrift.protocol.TMap _map53 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
+          struct.tableMap = new java.util.HashMap<java.lang.String,TableInfo>(2*_map53.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key54;
+          @org.apache.thrift.annotation.Nullable TableInfo _val55;
+          for (int _i56 = 0; _i56 < _map53.size; ++_i56)
           {
-            _key59 = iprot.readString();
-            _val60 = new TableInfo();
-            _val60.read(iprot);
-            struct.tableMap.put(_key59, _val60);
+            _key54 = iprot.readString();
+            _val55 = new TableInfo();
+            _val55.read(iprot);
+            struct.tableMap.put(_key54, _val55);
           }
         }
         struct.setTableMapIsSet(true);
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list62 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.tServerInfo = new java.util.ArrayList<TabletServerStatus>(_list62.size);
-          @org.apache.thrift.annotation.Nullable TabletServerStatus _elem63;
-          for (int _i64 = 0; _i64 < _list62.size; ++_i64)
+          org.apache.thrift.protocol.TList _list57 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.tServerInfo = new java.util.ArrayList<TabletServerStatus>(_list57.size);
+          @org.apache.thrift.annotation.Nullable TabletServerStatus _elem58;
+          for (int _i59 = 0; _i59 < _list57.size; ++_i59)
           {
-            _elem63 = new TabletServerStatus();
-            _elem63.read(iprot);
-            struct.tServerInfo.add(_elem63);
+            _elem58 = new TabletServerStatus();
+            _elem58.read(iprot);
+            struct.tServerInfo.add(_elem58);
           }
         }
         struct.setTServerInfoIsSet(true);
       }
       if (incoming.get(2)) {
         {
-          org.apache.thrift.protocol.TMap _map65 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE); 
-          struct.badTServers = new java.util.HashMap<java.lang.String,java.lang.Byte>(2*_map65.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _key66;
-          byte _val67;
-          for (int _i68 = 0; _i68 < _map65.size; ++_i68)
+          org.apache.thrift.protocol.TMap _map60 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.BYTE); 
+          struct.badTServers = new java.util.HashMap<java.lang.String,java.lang.Byte>(2*_map60.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _key61;
+          byte _val62;
+          for (int _i63 = 0; _i63 < _map60.size; ++_i63)
           {
-            _key66 = iprot.readString();
-            _val67 = iprot.readByte();
-            struct.badTServers.put(_key66, _val67);
+            _key61 = iprot.readString();
+            _val62 = iprot.readByte();
+            struct.badTServers.put(_key61, _val62);
           }
         }
         struct.setBadTServersIsSet(true);
@@ -1555,44 +1409,30 @@ public class ManagerMonitorInfo implements org.apache.thrift.TBase<ManagerMonito
       }
       if (incoming.get(6)) {
         {
-          org.apache.thrift.protocol.TSet _set69 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
-          struct.serversShuttingDown = new java.util.HashSet<java.lang.String>(2*_set69.size);
-          @org.apache.thrift.annotation.Nullable java.lang.String _elem70;
-          for (int _i71 = 0; _i71 < _set69.size; ++_i71)
+          org.apache.thrift.protocol.TSet _set64 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
+          struct.serversShuttingDown = new java.util.HashSet<java.lang.String>(2*_set64.size);
+          @org.apache.thrift.annotation.Nullable java.lang.String _elem65;
+          for (int _i66 = 0; _i66 < _set64.size; ++_i66)
           {
-            _elem70 = iprot.readString();
-            struct.serversShuttingDown.add(_elem70);
+            _elem65 = iprot.readString();
+            struct.serversShuttingDown.add(_elem65);
           }
         }
         struct.setServersShuttingDownIsSet(true);
       }
       if (incoming.get(7)) {
         {
-          org.apache.thrift.protocol.TList _list72 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.deadTabletServers = new java.util.ArrayList<DeadServer>(_list72.size);
-          @org.apache.thrift.annotation.Nullable DeadServer _elem73;
-          for (int _i74 = 0; _i74 < _list72.size; ++_i74)
+          org.apache.thrift.protocol.TList _list67 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.deadTabletServers = new java.util.ArrayList<DeadServer>(_list67.size);
+          @org.apache.thrift.annotation.Nullable DeadServer _elem68;
+          for (int _i69 = 0; _i69 < _list67.size; ++_i69)
           {
-            _elem73 = new DeadServer();
-            _elem73.read(iprot);
-            struct.deadTabletServers.add(_elem73);
+            _elem68 = new DeadServer();
+            _elem68.read(iprot);
+            struct.deadTabletServers.add(_elem68);
           }
         }
         struct.setDeadTabletServersIsSet(true);
-      }
-      if (incoming.get(8)) {
-        {
-          org.apache.thrift.protocol.TList _list75 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.bulkImports = new java.util.ArrayList<BulkImportStatus>(_list75.size);
-          @org.apache.thrift.annotation.Nullable BulkImportStatus _elem76;
-          for (int _i77 = 0; _i77 < _list75.size; ++_i77)
-          {
-            _elem76 = new BulkImportStatus();
-            _elem76.read(iprot);
-            struct.bulkImports.add(_elem76);
-          }
-        }
-        struct.setBulkImportsIsSet(true);
       }
     }
   }

@@ -68,9 +68,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateCleaner;
+import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -87,7 +89,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -115,7 +116,6 @@ import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
@@ -134,7 +134,6 @@ import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyMana
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
-import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
@@ -260,8 +259,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
-
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
   private ThreadPoolExecutor tabletRefreshThreadPool;
@@ -294,17 +291,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return getManagerState() != ManagerState.STOP;
   }
 
-  /**
-   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
-   * operations are attempted to be used prior to the Manager being ready for them. If these
-   * operations are triggered by a client side request from a tserver or client, it should be safe
-   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
-   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
-   * fixed.
-   *
-   * @return the Fate object, only after the fate components are running and ready
-   */
-  public Fate<FateEnv> fate(FateInstanceType type) {
+  private void waitForFate() {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -325,7 +312,26 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
-    return getFateRefs().get(type);
+  }
+
+  /**
+   * Retrieve the Fate object, blocking until it is ready. This could cause problems if Fate
+   * operations are attempted to be used prior to the Manager being ready for them. If these
+   * operations are triggered by a client side request from a tserver or client, it should be safe
+   * to wait to handle those until Fate is ready, but if it occurs during an upgrade, or some other
+   * time in the Manager before Fate is started, that may result in a deadlock and will need to be
+   * fixed.
+   *
+   * @return the Fate object, only after the fate components are running and ready
+   */
+  public Fate<FateEnv> fate(FateInstanceType type) {
+    waitForFate();
+    var fate = Objects.requireNonNull(fateRefs.get(), "fateRefs is not set yet").get(type);
+    return Objects.requireNonNull(fate, () -> "fate type " + type + " is not present");
+  }
+
+  public FateClient<FateEnv> fateClient(FateInstanceType type) {
+    return fate(type);
   }
 
   static final boolean X = true;
@@ -928,7 +934,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(this, fateRefs);
+    compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
@@ -1588,7 +1594,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
     DeadServerList obit = new DeadServerList(getContext());
     result.deadTabletServers = obit.getList();
-    result.bulkImports = bulkImportStatus.getBulkLoadStatus();
     return result;
   }
 
@@ -1603,16 +1608,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     synchronized (serversToShutdown) {
       return Set.copyOf(serversToShutdown);
     }
-  }
-
-  @Override
-  public void updateBulkImportStatus(String directory, BulkImportState state) {
-    bulkImportStatus.updateBulkImportStatus(Collections.singletonList(directory), state);
-  }
-
-  @Override
-  public void removeBulkImportStatus(String directory) {
-    bulkImportStatus.removeBulkImportStatus(Collections.singletonList(directory));
   }
 
   /**

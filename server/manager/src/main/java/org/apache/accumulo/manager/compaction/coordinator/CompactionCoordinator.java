@@ -56,8 +56,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -90,6 +90,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
@@ -121,7 +122,6 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -271,7 +271,7 @@ public class CompactionCoordinator
   private final ServerContext ctx;
   private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
-  private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances;
+  private final Function<FateInstanceType,FateClient<FateEnv>> fateClients;
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
@@ -291,7 +291,7 @@ public class CompactionCoordinator
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
   public CompactionCoordinator(Manager manager,
-      AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateInstances) {
+      Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.ctx = manager.getContext();
     this.security = ctx.getSecurityOperation();
     this.manager = Objects.requireNonNull(manager);
@@ -303,7 +303,7 @@ public class CompactionCoordinator
 
     this.queueMetrics = new QueueMetrics(jobQueues);
 
-    this.fateInstances = fateInstances;
+    this.fateClients = fateClients;
 
     completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
         .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
@@ -326,7 +326,7 @@ public class CompactionCoordinator
         .maximumWeight(10485760L).weigher(weigher).build();
 
     deadCompactionDetector =
-        new DeadCompactionDetector(this.ctx, this, ctx.getScheduledExecutor(), fateInstances);
+        new DeadCompactionDetector(this.ctx, this, ctx.getScheduledExecutor(), fateClients);
 
     var rootReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
         ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT, true);
@@ -789,17 +789,9 @@ public class CompactionCoordinator
     }
 
     // maybe fate has not started yet
-    var localFates = fateInstances.get();
-    while (localFates == null) {
-      UtilWaitThread.sleep(100);
-      if (shutdown.getCount() == 0) {
-        return;
-      }
-      localFates = fateInstances.get();
-    }
-
     var extent = KeyExtent.fromThrift(textent);
-    var localFate = localFates.get(FateInstanceType.fromTableId(extent.tableId()));
+    var fateType = FateInstanceType.fromTableId(extent.tableId());
+    var localFate = fateClients.apply(fateType);
 
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);

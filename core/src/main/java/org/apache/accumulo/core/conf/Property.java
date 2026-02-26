@@ -624,6 +624,22 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
+  SSERV_SCAN_ALLOWED_TABLES("sserver.scan.allowed.tables", "^(?!accumulo\\.).*$",
+      PropertyType.STRING,
+      "A regular expression that determines which tables are allowed to be scanned for"
+          + " servers in the specified group. The property name should end with the scan server"
+          + " group and the property value should take into account the table namespace and name."
+          + " The default value disallows scans on tables in the accumulo namespace.",
+      "4.0.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = SSERV_SCAN_ALLOWED_TABLES)
+  SSERV_SCAN_ALLOWED_TABLES_DEPRECATED("sserver.scan.allowed.tables.group.", null,
+      PropertyType.PREFIX,
+      "A regular expression that determines which tables are allowed to be scanned for"
+          + " servers in the specified group. The property name should end with the scan server"
+          + " group and the property value should take into account the table namespace and name."
+          + " The default value disallows scans on tables in the accumulo namespace.",
+      "2.1.5"),
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
   SSERV_WAL_SORT_MAX_CONCURRENT("sserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,

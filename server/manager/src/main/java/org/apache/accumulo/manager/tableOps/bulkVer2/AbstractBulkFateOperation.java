@@ -18,30 +18,42 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import java.io.Serializable;
+import java.time.Instant;
 
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.server.util.bulkCommand.BulkFateOperation;
 
-/**
- * Package private class to hold all the information used for bulk import2
- */
-class BulkInfo implements Serializable {
+public abstract class AbstractBulkFateOperation extends AbstractFateOperation
+    implements BulkFateOperation {
+
   private static final long serialVersionUID = 1L;
 
-  TableId tableId;
-  String sourceDir;
-  String bulkDir;
-  boolean setTime;
-  // firstSplit and lastSplit describe the min and max splits in the table that overlap the bulk
-  // imported data
-  byte[] firstSplit;
-  byte[] lastSplit;
+  protected final BulkInfo bulkInfo;
+  private final Instant creation;
 
-  static BulkInfo create(TableId tableId, String sourceDir, boolean setTime) {
-    BulkInfo info = new BulkInfo();
-    info.tableId = tableId;
-    info.sourceDir = sourceDir;
-    info.setTime = setTime;
-    return info;
+  AbstractBulkFateOperation(BulkInfo bulkInfo) {
+    this.bulkInfo = bulkInfo;
+    this.creation = Instant.now();
+  }
+
+  @Override
+  public TableId getTableId() {
+    return bulkInfo.tableId;
+  }
+
+  @Override
+  public String getSourceDir() {
+    return bulkInfo.sourceDir;
+  }
+
+  @Override
+  public String getDestDir() {
+    return bulkInfo.bulkDir;
+  }
+
+  @Override
+  public Instant getCreationTime() {
+    return creation;
   }
 }
