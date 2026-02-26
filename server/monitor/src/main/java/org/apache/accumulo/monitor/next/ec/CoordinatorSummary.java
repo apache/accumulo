@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.monitor.next.ec;
 
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -29,10 +28,9 @@ import com.google.common.net.HostAndPort;
 public record CoordinatorSummary(long lastContact, String server, long numQueues,
     int numCompactors) {
 
-  public CoordinatorSummary(Optional<HostAndPort> serverOpt, Set<ServerId> compactors,
+  public CoordinatorSummary(HostAndPort coordinatorHost, Set<ServerId> compactors,
       long fetchedTimeMillis) {
-    this(System.currentTimeMillis() - fetchedTimeMillis,
-        serverOpt.map(HostAndPort::toString).orElse("none"),
+    this(System.currentTimeMillis() - fetchedTimeMillis, coordinatorHost.toString(),
         compactors.stream().map(ServerId::getResourceGroup).distinct().count(), compactors.size());
   }
 }

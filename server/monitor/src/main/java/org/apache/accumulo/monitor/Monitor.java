@@ -592,10 +592,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   /**
    * @return compaction coordinator host from the latest external compaction fetch.
    */
-  public Optional<HostAndPort> getCompactionCoordinatorHost() {
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException("Tried fetching from compaction coordinator that's missing");
-    }
+  public HostAndPort getCompactionCoordinatorHost() {
     return compactorInfoSupplier.get().coordinatorHost;
   }
 
@@ -603,9 +600,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
    * @return compactors from the latest external compaction fetch.
    */
   public Set<ServerId> getCompactorServers() {
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException("Tried fetching from compaction coordinator that's missing");
-    }
     return compactorInfoSupplier.get().compactors;
   }
 
@@ -613,9 +607,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
    * @return timestamp in millis when external compactor info was last fetched.
    */
   public long getCompactorInfoFetchedTimeMillis() {
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException("Tried fetching from compaction coordinator that's missing");
-    }
     return compactorInfoSupplier.get().fetchedTimeMillis;
   }
 
@@ -680,16 +671,19 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   }
 
   private ExternalCompactorSnapshot fetchCompactorsInfo() {
+    var compactionCoordinatorHost =
+        coordinatorHost.orElseThrow(() -> new IllegalStateException(coordinatorMissingMsg));
     Set<ServerId> compactors =
         getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
     log.debug("Found compactors: {}", compactors);
-    return new ExternalCompactorSnapshot(coordinatorHost, compactors, System.currentTimeMillis());
+    return new ExternalCompactorSnapshot(compactionCoordinatorHost, compactors,
+        System.currentTimeMillis());
   }
 
-  private record ExternalCompactorSnapshot(Optional<HostAndPort> coordinatorHost,
-      Set<ServerId> compactors, long fetchedTimeMillis) {
-    private ExternalCompactorSnapshot(Optional<HostAndPort> coordinatorHost,
-        Set<ServerId> compactors, long fetchedTimeMillis) {
+  private record ExternalCompactorSnapshot(HostAndPort coordinatorHost, Set<ServerId> compactors,
+      long fetchedTimeMillis) {
+    private ExternalCompactorSnapshot(HostAndPort coordinatorHost, Set<ServerId> compactors,
+        long fetchedTimeMillis) {
       this.coordinatorHost = coordinatorHost;
       this.compactors = Set.copyOf(compactors);
       this.fetchedTimeMillis = fetchedTimeMillis;
