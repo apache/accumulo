@@ -350,14 +350,11 @@ public abstract class AbstractServer
    * @param start true to start the server, else false
    * @throws UnknownHostException thrown from ThriftServer when binding to bad address
    */
-  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
-      throws UnknownHostException {
+  protected void updateThriftServer(ThriftServerSupplier supplier) throws UnknownHostException {
     thriftServer = supplier.get();
-    if (start) {
-      thriftServer.startThriftServer("Thrift Client Server");
-      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
-          thriftServer.address);
-    }
+    thriftServer.startThriftServer("Thrift Client Server");
+    log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+        thriftServer.address);
     updateAdvertiseAddress(thriftServer.address);
   }
 

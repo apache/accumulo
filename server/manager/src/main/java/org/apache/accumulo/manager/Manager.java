@@ -952,11 +952,7 @@ public class Manager extends AbstractServer
         return TServerUtils.createThriftServer(context, getBindAddress(),
             Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
-      }, false);
-      // Now that the Manager is up, start the ThriftServer
-      Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
-      getThriftServerAddress().startThriftServer("Manager Client Service Handler");
-      log.info("Started Manager client service at {}", getAdvertiseAddress());
+      });
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }

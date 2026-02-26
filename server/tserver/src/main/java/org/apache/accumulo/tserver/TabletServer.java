@@ -412,7 +412,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       return TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT,
           processor, this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH,
           Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-    }, true);
+    });
   }
 
   private HostAndPort getManagerAddress() {
