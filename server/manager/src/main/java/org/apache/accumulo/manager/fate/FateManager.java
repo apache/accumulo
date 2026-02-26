@@ -417,7 +417,7 @@ public class FateManager {
 
   private Map<HostAndPort,CurrentPartitions> getCurrentAssignments() throws TException {
     var workers =
-        context.getServerPaths().getManagerWorker(DEFAULT_RG_ONLY, AddressSelector.all(), true);
+        context.getServerPaths().getManagerAssistants(DEFAULT_RG_ONLY, AddressSelector.all(), true);
 
     log.trace("getting current assignments from {}", workers);
 

@@ -140,6 +140,7 @@ public class RecoveryManager {
 
   private boolean exists(final Path path) throws IOException {
     try {
+      // TODO NPE
       return existenceCache.get(path, k -> {
         try {
           return manager.getVolumeManager().exists(path);

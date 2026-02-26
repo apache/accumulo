@@ -106,6 +106,7 @@ import org.slf4j.Logger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
+// TODO this could be split into two thrift services one for primary and one for non-primary.  Some of these thrift calls could be processes by any manager.
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
@@ -174,7 +175,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         try {
           final TServerConnection server = manager.tserverSet.getConnection(instance);
           if (server != null) {
-            server.flush(manager.managerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
+            server.flush(manager.primaryManagerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
                 ByteBufferUtil.toBytes(endRowBB));
           }
         } catch (TException ex) {
@@ -405,6 +406,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
+  // TODO need to ensure SAFE_MODE and CLEAN_STOP work w/ multiple managers. Probably need tests for
+  // this.
   @Override
   public void setManagerGoalState(TInfo info, TCredentials c, ManagerGoalState state)
       throws ThriftSecurityException {

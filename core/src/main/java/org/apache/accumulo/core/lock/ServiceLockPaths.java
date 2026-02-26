@@ -296,7 +296,7 @@ public class ServiceLockPaths {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
-  public Set<ServiceLockPath> getManagerWorker(ResourceGroupPredicate resourceGroupPredicate,
+  public Set<ServiceLockPath> getManagerAssistants(ResourceGroupPredicate resourceGroupPredicate,
       AddressSelector address, boolean withLock) {
     return get(Constants.ZMANAGER_ASSISTANT_LOCK, resourceGroupPredicate, address, withLock);
   }

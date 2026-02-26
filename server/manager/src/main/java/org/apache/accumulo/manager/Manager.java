@@ -50,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -86,9 +87,11 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -115,6 +118,7 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.fate.FateManager;
+import org.apache.accumulo.manager.fate.FateWorker;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
@@ -169,6 +173,8 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
+// TODO create standalone PrimaryFateEnv class and pull everything into there relatated to
+// FateEnv... this will make it much more clear the env is for metadata ops only
 public class Manager extends AbstractServer
     implements LiveTServerSet.Listener, FateEnv, HighlyAvailableService {
 
@@ -206,6 +212,7 @@ public class Manager extends AbstractServer
   private AuthenticationTokenKeyManager authenticationTokenKeyManager;
 
   ServiceLock managerLock = null;
+  ServiceLock primaryManagerLock = null;
   private final BalanceManager balanceManager;
 
   private ManagerState state = ManagerState.INITIAL;
@@ -219,7 +226,6 @@ public class Manager extends AbstractServer
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
   private volatile FateManager fateManager;
-  private volatile ManagerAssistant assitantManager;
 
   private final ManagerMetrics managerMetrics = new ManagerMetrics();
 
@@ -758,7 +764,7 @@ public class Manager extends AbstractServer
                     for (TServerInstance server : currentServers) {
                       try {
                         serversToShutdown.add(server);
-                        tserverSet.getConnection(server).fastHalt(managerLock);
+                        tserverSet.getConnection(server).fastHalt(primaryManagerLock);
                       } catch (TException e) {
                         // its probably down, and we don't care
                       } finally {
@@ -823,7 +829,7 @@ public class Manager extends AbstractServer
         try {
           TServerConnection connection = tserverSet.getConnection(instance);
           if (connection != null) {
-            connection.fastHalt(managerLock);
+            connection.fastHalt(primaryManagerLock);
           }
         } catch (TException e) {
           log.error("{}", e.getMessage(), e);
@@ -884,7 +890,7 @@ public class Manager extends AbstractServer
               try {
                 TServerConnection connection2 = tserverSet.getConnection(server);
                 if (connection2 != null) {
-                  connection2.halt(managerLock);
+                  connection2.halt(primaryManagerLock);
                 }
               } catch (TTransportException e1) {
                 // ignore: it's probably down
@@ -955,8 +961,12 @@ public class Manager extends AbstractServer
     CompactionCoordinatorService.Iface wrappedCoordinator =
         HighlyAvailableServiceWrapper.service(compactionCoordinator.getThriftService(), this);
 
+    // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
+    // TODO However, should probably consider upgrade?
+    FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
+
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        wrappedCoordinator, managerClientHandler, getContext());
+        wrappedCoordinator, managerClientHandler, fateWorker, getContext());
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
@@ -975,14 +985,18 @@ public class Manager extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    // Start manager assistant before getting lock, this allows non primary manager processes to
-    // work on stuff.
-    var shutdownComplete = getShutdownComplete();
-    assitantManager = new ManagerAssistant(getContext(), getBindAddress(), tserverSet,
-        this::createFateInstance, shutdownComplete::get);
-    assitantManager.start();
+    try {
+      // Acquire the lock that all managers get before the primary lock, this allows non primary
+      // manager processes to work on stuff.
+      getManagerLock();
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Unable to get manager lock ", e);
+    }
+
+    fateWorker.setLock(managerLock);
+
     metricsInfo
-        .addMetricsProducers(assitantManager.getMetricsProducers().toArray(new MetricsProducer[0]));
+        .addMetricsProducers(fateWorker.getMetricsProducers().toArray(new MetricsProducer[0]));
 
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
@@ -995,7 +1009,7 @@ public class Manager extends AbstractServer
     // for each of these services.
     ServiceLockData sld;
     try {
-      sld = getManagerLock(context.getServerPaths().createManagerPath());
+      sld = getPrimaryManagerLock(context.getServerPaths().createManagerPath());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1006,7 +1020,7 @@ public class Manager extends AbstractServer
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
     context.getZooCache().addZooCacheWatcher(new TableStateWatcher((tableId, event) -> {
-      TableState state = getTableManager().getTableState(tableId);
+      TableState state = context.getTableManager().getTableState(tableId);
       log.debug("Table state transition to {} @ {}", state, event);
       nextEvent.event(tableId, "Table state in zookeeper changed for %s to %s", tableId, state);
     }));
@@ -1225,9 +1239,9 @@ public class Manager extends AbstractServer
     }
 
     sld = new ServiceLockData(descriptors);
-    log.info("Setting manager lock data to {}", sld);
+    log.info("Setting primary manager lock data to {}", sld);
     try {
-      managerLock.replaceLockData(sld);
+      primaryManagerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
@@ -1257,7 +1271,6 @@ public class Manager extends AbstractServer
     log.debug("Shutting down fate.");
     fate(FateInstanceType.META).close();
     fateManager.stop(Duration.ZERO);
-    assitantManager.stop();
 
     splitter.stop();
 
@@ -1315,8 +1328,8 @@ public class Manager extends AbstractServer
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      var metaStore =
-          new MetaFateStore<FateEnv>(context.getZooSession(), managerLock.getLockID(), isLockHeld);
+      var metaStore = new MetaFateStore<FateEnv>(context.getZooSession(),
+          primaryManagerLock.getLockID(), isLockHeld);
       var metaInstance = createFateInstance(this, metaStore, context);
       // configure this instance to process all data
       metaInstance.setPartitions(Set.of(FatePartition.all(FateInstanceType.META)));
@@ -1444,16 +1457,63 @@ public class Manager extends AbstractServer
     return Math.max(1, deadline - System.currentTimeMillis());
   }
 
-  @Override
-  public ServiceLock getServiceLock() {
-    return managerLock;
+  private void getManagerLock() throws KeeperException, InterruptedException {
+    log.info("trying to get assistant manager lock");
+
+    final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
+    try {
+
+      var advertiseAddress = getAdvertiseAddress();
+
+      final ServiceLockPaths.ServiceLockPath zLockPath = getContext().getServerPaths()
+          .createManagerWorkerPath(getResourceGroup(), advertiseAddress);
+      ServiceLockSupport.createNonHaServiceLockPath(Type.MANAGER, zoo, zLockPath);
+      // TODO use same uuid?
+      var serverLockUUID = UUID.randomUUID();
+      managerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
+      // TODO is the correct thing being done for shutdown?
+      ServiceLock.LockWatcher lw = new ServiceLockSupport.ServiceLockWatcher(Type.MANAGER,
+          () -> getShutdownComplete().get(),
+          (type) -> getContext().getLowMemoryDetector().logGCInfo(getContext().getConfiguration()));
+
+      for (int i = 0; i < 120 / 5; i++) {
+        zoo.putPersistentData(zLockPath.toString(), new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+
+        ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
+        for (ServiceLockData.ThriftService svc : new ServiceLockData.ThriftService[] {
+            ThriftService.FATE_WORKER}) { // TODO is this thrift service correct?
+          descriptors.addService(new ServiceLockData.ServiceDescriptor(serverLockUUID, svc,
+              advertiseAddress.toString(), this.getResourceGroup()));
+        }
+
+        if (managerLock.tryLock(lw, new ServiceLockData(descriptors))) {
+          log.info("Obtained manager assistant lock {}", managerLock.getLockPath());
+          this.getContext().setServiceLock(managerLock);
+          return;
+        }
+        log.info("Waiting for manager assistant lock");
+        sleepUninterruptibly(5, TimeUnit.SECONDS);
+      }
+      String msg = "Too many retries, exiting.";
+      log.info(msg);
+      throw new RuntimeException(msg);
+    } catch (Exception e) {
+      log.info("Could not obtain manager assistant lock, exiting.", e);
+      throw new RuntimeException(e);
+    }
   }
 
-  private ServiceLockData getManagerLock(final ServiceLockPath zManagerLoc)
+  @Override
+  public ServiceLock getServiceLock() {
+    return primaryManagerLock;
+  }
+
+  private ServiceLockData getPrimaryManagerLock(final ServiceLockPath zManagerLoc)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooSession();
-    log.info("trying to get manager lock");
+    log.info("trying to get primary manager lock");
 
+    // TODO do both locks need the same UUID? in #3262 both had the same uuid
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
@@ -1464,13 +1524,13 @@ public class Manager extends AbstractServer
     descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
         ServerOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
-    managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
+    primaryManagerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
         new HAServiceLockWatcher(Type.MANAGER, () -> getShutdownComplete().get());
 
     while (true) {
 
-      managerLock.lock(managerLockWatcher, sld);
+      primaryManagerLock.lock(managerLockWatcher, sld);
 
       managerLockWatcher.waitForChange();
 
@@ -1483,12 +1543,10 @@ public class Manager extends AbstractServer
         throw new IllegalStateException("manager lock in unknown state");
       }
 
-      managerLock.tryToCancelAsyncLockOrUnlock();
+      primaryManagerLock.tryToCancelAsyncLockOrUnlock();
 
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
-
-    this.getContext().setServiceLock(getServiceLock());
     return sld;
   }
 
@@ -1582,7 +1640,6 @@ public class Manager extends AbstractServer
     return result;
   }
 
-  @Override
   public Set<TServerInstance> onlineTabletServers() {
     return tserverSet.getSnapshot().getTservers();
   }
