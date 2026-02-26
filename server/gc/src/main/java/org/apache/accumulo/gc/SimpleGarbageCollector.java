@@ -430,7 +430,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           getContext().getServerSslParams(), getContext().getSaslParams(), 0,
           getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
           addresses);
-    }, true);
+    });
   }
 
   /**

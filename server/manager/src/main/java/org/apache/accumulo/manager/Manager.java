@@ -949,17 +949,15 @@ public class Manager extends AbstractServer
       throw new RuntimeException(e);
     }
 
-    // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
-    // when a hot-standby
-    //
-    // Start the Manager's Fate Service
-    FateService.Iface fateServiceHandler =
-        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    FateService.Iface fateServiceHandler = HighlyAvailableServiceWrapper.service(
+        FateService.Iface.class, FateService.Processor::new, new FateServiceHandler(this), this);
     ManagerClientService.Iface managerClientHandler =
-        HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
+        HighlyAvailableServiceWrapper.service(ManagerClientService.Iface.class,
+            ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
-    CompactionCoordinatorService.Iface wrappedCoordinator =
-        HighlyAvailableServiceWrapper.service(compactionCoordinator.getThriftService(), this);
+    CompactionCoordinatorService.Iface wrappedCoordinator = HighlyAvailableServiceWrapper.service(
+        CompactionCoordinatorService.Iface.class, CompactionCoordinatorService.Processor::new,
+        compactionCoordinator.getThriftService(), this);
 
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
     // TODO However, should probably consider upgrade?
@@ -972,11 +970,7 @@ public class Manager extends AbstractServer
         return TServerUtils.createThriftServer(context, getBindAddress(),
             Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
-      }, false);
-      // Now that the Manager is up, start the ThriftServer
-      Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
-      getThriftServerAddress().startThriftServer("Manager Client Service Handler");
-      log.info("Started Manager client service at {}", getAdvertiseAddress());
+      });
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
