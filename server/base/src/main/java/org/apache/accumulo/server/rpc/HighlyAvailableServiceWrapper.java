@@ -56,7 +56,8 @@ public class HighlyAvailableServiceWrapper {
     try {
       method = ProcessFunction.class.getDeclaredMethod("isOneway");
     } catch (NoSuchMethodException e) {
-      throw new IllegalStateException(e);
+      throw new IllegalStateException(
+          "Failed to find isOneway method on class " + ProcessFunction.class.getName(), e);
     }
     method.setAccessible(true);
 
