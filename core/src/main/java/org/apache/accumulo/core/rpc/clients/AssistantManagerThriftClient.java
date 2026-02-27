@@ -18,14 +18,15 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import org.apache.accumulo.core.fate.thrift.FateWorkerService;
+import org.apache.accumulo.core.manager.thrift.AssistantManagerService;
 
 /**
- * Client side object that can be used to interact with services that support scan operations
- * against tablets. See TabletScanClientService$Iface for a list of supported operations.
+ * Client side object that can be used to interact with operatoins that are supported by any manager
+ * process.
  */
-public class FateWorkerServiceThriftClient extends ThriftClientTypes<FateWorkerService.Client> {
-  FateWorkerServiceThriftClient(String serviceName) {
-    super(serviceName, new FateWorkerService.Client.Factory());
+public class AssistantManagerThriftClient
+    extends ThriftClientTypes<AssistantManagerService.Client> {
+  AssistantManagerThriftClient(String serviceName) {
+    super(serviceName, new AssistantManagerService.Client.Factory());
   }
 }

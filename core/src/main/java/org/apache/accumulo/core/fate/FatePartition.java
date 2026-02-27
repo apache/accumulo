@@ -20,7 +20,7 @@ package org.apache.accumulo.core.fate;
 
 import java.util.UUID;
 
-import org.apache.accumulo.core.fate.thrift.TFatePartition;
+import org.apache.accumulo.core.manager.thrift.TFatePartition;
 
 public record FatePartition(FateId start, FateId end) {
 

@@ -22,10 +22,10 @@
  * DO NOT EDIT UNLESS YOU ARE SURE THAT YOU KNOW WHAT YOU ARE DOING
  *  @generated
  */
-package org.apache.accumulo.core.fate.thrift;
+package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class FateWorkerService {
+public class AssistantManagerService {
 
   public interface Iface {
 
@@ -2224,14 +2224,14 @@ public class FateWorkerService {
             case 4: // DESIRED
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list8 = iprot.readListBegin();
-                  struct.desired = new java.util.ArrayList<TFatePartition>(_list8.size);
-                  @org.apache.thrift.annotation.Nullable TFatePartition _elem9;
-                  for (int _i10 = 0; _i10 < _list8.size; ++_i10)
+                  org.apache.thrift.protocol.TList _list138 = iprot.readListBegin();
+                  struct.desired = new java.util.ArrayList<TFatePartition>(_list138.size);
+                  @org.apache.thrift.annotation.Nullable TFatePartition _elem139;
+                  for (int _i140 = 0; _i140 < _list138.size; ++_i140)
                   {
-                    _elem9 = new TFatePartition();
-                    _elem9.read(iprot);
-                    struct.desired.add(_elem9);
+                    _elem139 = new TFatePartition();
+                    _elem139.read(iprot);
+                    struct.desired.add(_elem139);
                   }
                   iprot.readListEnd();
                 }
@@ -2273,9 +2273,9 @@ public class FateWorkerService {
           oprot.writeFieldBegin(DESIRED_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.desired.size()));
-            for (TFatePartition _iter11 : struct.desired)
+            for (TFatePartition _iter141 : struct.desired)
             {
-              _iter11.write(oprot);
+              _iter141.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -2325,9 +2325,9 @@ public class FateWorkerService {
         if (struct.isSetDesired()) {
           {
             oprot.writeI32(struct.desired.size());
-            for (TFatePartition _iter12 : struct.desired)
+            for (TFatePartition _iter142 : struct.desired)
             {
-              _iter12.write(oprot);
+              _iter142.write(oprot);
             }
           }
         }
@@ -2353,14 +2353,14 @@ public class FateWorkerService {
         }
         if (incoming.get(3)) {
           {
-            org.apache.thrift.protocol.TList _list13 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.desired = new java.util.ArrayList<TFatePartition>(_list13.size);
-            @org.apache.thrift.annotation.Nullable TFatePartition _elem14;
-            for (int _i15 = 0; _i15 < _list13.size; ++_i15)
+            org.apache.thrift.protocol.TList _list143 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.desired = new java.util.ArrayList<TFatePartition>(_list143.size);
+            @org.apache.thrift.annotation.Nullable TFatePartition _elem144;
+            for (int _i145 = 0; _i145 < _list143.size; ++_i145)
             {
-              _elem14 = new TFatePartition();
-              _elem14.read(iprot);
-              struct.desired.add(_elem14);
+              _elem144 = new TFatePartition();
+              _elem144.read(iprot);
+              struct.desired.add(_elem144);
             }
           }
           struct.setDesiredIsSet(true);
@@ -3373,14 +3373,14 @@ public class FateWorkerService {
             case 3: // TPARTITIONS
               if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
                 {
-                  org.apache.thrift.protocol.TList _list16 = iprot.readListBegin();
-                  struct.tpartitions = new java.util.ArrayList<TFatePartition>(_list16.size);
-                  @org.apache.thrift.annotation.Nullable TFatePartition _elem17;
-                  for (int _i18 = 0; _i18 < _list16.size; ++_i18)
+                  org.apache.thrift.protocol.TList _list146 = iprot.readListBegin();
+                  struct.tpartitions = new java.util.ArrayList<TFatePartition>(_list146.size);
+                  @org.apache.thrift.annotation.Nullable TFatePartition _elem147;
+                  for (int _i148 = 0; _i148 < _list146.size; ++_i148)
                   {
-                    _elem17 = new TFatePartition();
-                    _elem17.read(iprot);
-                    struct.tpartitions.add(_elem17);
+                    _elem147 = new TFatePartition();
+                    _elem147.read(iprot);
+                    struct.tpartitions.add(_elem147);
                   }
                   iprot.readListEnd();
                 }
@@ -3419,9 +3419,9 @@ public class FateWorkerService {
           oprot.writeFieldBegin(TPARTITIONS_FIELD_DESC);
           {
             oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.tpartitions.size()));
-            for (TFatePartition _iter19 : struct.tpartitions)
+            for (TFatePartition _iter149 : struct.tpartitions)
             {
-              _iter19.write(oprot);
+              _iter149.write(oprot);
             }
             oprot.writeListEnd();
           }
@@ -3465,9 +3465,9 @@ public class FateWorkerService {
         if (struct.isSetTpartitions()) {
           {
             oprot.writeI32(struct.tpartitions.size());
-            for (TFatePartition _iter20 : struct.tpartitions)
+            for (TFatePartition _iter150 : struct.tpartitions)
             {
-              _iter20.write(oprot);
+              _iter150.write(oprot);
             }
           }
         }
@@ -3489,14 +3489,14 @@ public class FateWorkerService {
         }
         if (incoming.get(2)) {
           {
-            org.apache.thrift.protocol.TList _list21 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-            struct.tpartitions = new java.util.ArrayList<TFatePartition>(_list21.size);
-            @org.apache.thrift.annotation.Nullable TFatePartition _elem22;
-            for (int _i23 = 0; _i23 < _list21.size; ++_i23)
+            org.apache.thrift.protocol.TList _list151 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+            struct.tpartitions = new java.util.ArrayList<TFatePartition>(_list151.size);
+            @org.apache.thrift.annotation.Nullable TFatePartition _elem152;
+            for (int _i153 = 0; _i153 < _list151.size; ++_i153)
             {
-              _elem22 = new TFatePartition();
-              _elem22.read(iprot);
-              struct.tpartitions.add(_elem22);
+              _elem152 = new TFatePartition();
+              _elem152.read(iprot);
+              struct.tpartitions.add(_elem152);
             }
           }
           struct.setTpartitionsIsSet(true);

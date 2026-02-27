@@ -527,5 +527,44 @@ service ManagerClientService {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<TEvent> events
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
   )
+
+}
+
+struct TFatePartitions {
+  1:i64 updateId
+  2:list<TFatePartition> partitions
+}
+
+struct TFatePartition {
+  1:string start
+  2:string stop
+}
+
+service AssistantManagerService {
+
+  TFatePartitions getPartitions(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+
+  bool setPartitions(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials,
+    3:i64 updateId,
+    4:list<TFatePartition> desired
+   ) throws (
+     1:client.ThriftSecurityException sec
+   )
+
+  void seeded(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials,
+    3:list<TFatePartition> tpartitions
+   )
 }
