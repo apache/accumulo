@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
+import static java.util.Objects.requireNonNull;
+
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.data.NamespaceId;
@@ -35,7 +38,7 @@ public class CreateNamespace extends ManagerRepo {
     namespaceInfo = new NamespaceInfo();
     namespaceInfo.namespaceName = namespaceName;
     namespaceInfo.user = user;
-    namespaceInfo.props = props;
+    namespaceInfo.props = new HashMap<>(requireNonNull(props));
   }
 
   @Override
