@@ -303,6 +303,7 @@
               <excludes />
               <allows>
                 <allow>io[.]micrometer[.]core[.]instrument[.]MeterRegistry</allow>
+                <allow>io[.]micrometer[.]core[.]instrument[.]config[.]MeterFilter</allow>
                 <allow>io[.]opentelemetry[.]api[.]OpenTelemetry</allow>
                 <allow>org[.]apache[.]hadoop[.]io[.]Text</allow>
                 <allow>org[.]apache[.]accumulo[.]core[.]client[.].*</allow>
