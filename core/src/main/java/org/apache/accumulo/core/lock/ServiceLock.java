@@ -74,26 +74,26 @@ public class ServiceLock implements Watcher {
     LOCK_DELETED, SESSION_EXPIRED
   }
 
-  public interface LockWatcher {
+  public interface AccumuloLockWatcher {
+
+    void acquiredLock();
+
+    void failedToAcquireLock(Exception e);
+
     void lostLock(LockLossReason reason);
 
     /**
      * lost the ability to monitor the lock node, and its status is unknown
      */
     void unableToMonitorLockNode(Exception e);
-  }
 
-  public interface AccumuloLockWatcher extends LockWatcher {
-    void acquiredLock();
-
-    void failedToAcquireLock(Exception e);
   }
 
   private final ServiceLockPath path;
   protected final ZooSession zooKeeper;
   private final Prefix vmLockPrefix;
 
-  private LockWatcher lockWatcher;
+  private AccumuloLockWatcher lockWatcher;
   private String lockNodeName;
   private volatile boolean lockWasAcquired;
   private volatile boolean watchingParent;
@@ -114,45 +114,11 @@ public class ServiceLock implements Watcher {
     }
   }
 
-  private static class LockWatcherWrapper implements AccumuloLockWatcher {
-
-    boolean acquiredLock = false;
-    final LockWatcher lw;
-
-    public LockWatcherWrapper(LockWatcher lw2) {
-      this.lw = lw2;
-    }
-
-    @Override
-    public void acquiredLock() {
-      acquiredLock = true;
-    }
-
-    @Override
-    public void failedToAcquireLock(Exception e) {
-      LOG.debug("Failed to acquire lock", e);
-    }
-
-    @Override
-    public void lostLock(LockLossReason reason) {
-      lw.lostLock(reason);
-    }
-
-    @Override
-    public void unableToMonitorLockNode(Exception e) {
-      lw.unableToMonitorLockNode(e);
-    }
-
-  }
-
-  public synchronized boolean tryLock(LockWatcher lw, ServiceLockData lockData)
+  public synchronized boolean tryLock(AccumuloLockWatcher lw, ServiceLockData lockData)
       throws KeeperException, InterruptedException {
 
-    LockWatcherWrapper lww = new LockWatcherWrapper(lw);
-
-    lock(lww, lockData);
-
-    if (lww.acquiredLock) {
+    lock(lw, lockData);
+    if (isLocked()) {
       return true;
     }
 
@@ -372,7 +338,7 @@ public class ServiceLock implements Watcher {
   }
 
   private void lostLock(LockLossReason reason) {
-    LockWatcher localLw = lockWatcher;
+    AccumuloLockWatcher localLw = lockWatcher;
     lockNodeName = null;
     lockId = null;
     lockWatcher = null;
@@ -542,7 +508,7 @@ public class ServiceLock implements Watcher {
       throw new IllegalStateException();
     }
 
-    LockWatcher localLw = lockWatcher;
+    AccumuloLockWatcher localLw = lockWatcher;
     String localLock = lockNodeName;
 
     lockNodeName = null;
