@@ -59,6 +59,7 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
         // if thrift one way method throws an exception it will just log an error
         LOG.debug("Ignoring one way thrift call during upgrade : {} {}", method.getName(),
             Arrays.asList(args));
+        return null;
       } else {
         LOG.trace("Service can not be accessed while it is upgrading.");
         throw new ThriftNotActiveServiceException(service.getServiceName(),
@@ -72,6 +73,7 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
         // if thrift one way method throws an exception it will just log an error
         LOG.debug("Ignoring one way thrift call because not active : {} {}", method.getName(),
             Arrays.asList(args));
+        return null;
       } else {
         LOG.trace("Denying access to RPC service as this instance is not the active instance.");
         throw new ThriftNotActiveServiceException(service.getServiceName(),
