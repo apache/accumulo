@@ -179,7 +179,7 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapGc) {
       String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
       try {
-        ServiceLock.removeLock(zoo, gcLockPath, ServerServices.Service.GC_CLIENT, hostPortPredicate,
+        ServiceLock.deleteLock(zoo, gcLockPath, ServerServices.Service.GC_CLIENT, hostPortPredicate,
             m -> message(m, opts), opts.dryRun);
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting gc lock", e);

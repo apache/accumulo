@@ -785,7 +785,7 @@ public class ServiceLock implements Watcher {
 
   }
 
-  public static void removeLock(ZooReaderWriter zoo, String path,
+  public static void deleteLock(ZooReaderWriter zoo, String path,
       ServerServices.Service serviceType, Predicate<HostAndPort> hostPortPredicate,
       Consumer<String> messageOutput, Boolean dryRun) throws KeeperException, InterruptedException {
     var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
