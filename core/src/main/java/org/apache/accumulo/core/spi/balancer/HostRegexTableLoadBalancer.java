@@ -66,7 +66,6 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.HashMultimap;
@@ -106,8 +105,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   private static final String PROP_PREFIX = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey();
 
   private static final Logger LOG = LoggerFactory.getLogger(HostRegexTableLoadBalancer.class);
-  private static final Logger MIGRATIONS_LOGGER =
-      new EscalatingLogger(LOG, Duration.ofMinutes(5), 1000, Level.WARN);
+  private static final EscalatingLogger MIGRATIONS_LOGGER =
+      new EscalatingLogger(LOG, Duration.ofMinutes(5), 1000, Logger::warn);
   public static final String HOST_BALANCER_PREFIX = PROP_PREFIX + "balancer.host.regex.";
   public static final String HOST_BALANCER_OOB_CHECK_KEY =
       PROP_PREFIX + "balancer.host.regex.oob.period";

@@ -16,28 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.compactions.external;
+package org.apache.accumulo.monitor.next.ec;
 
-import java.util.Optional;
-import java.util.Set;
+import java.util.List;
+import java.util.Map;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 
-import com.google.common.net.HostAndPort;
+// Variable names become JSON keys
+public record RunningCompactionsSummary(List<RunningCompactionInfo> running) {
 
-public class CoordinatorInfo {
-
-  // Variable names become JSON keys
-  public long lastContact;
-  public String server;
-  public long numQueues;
-  public int numCompactors;
-
-  public CoordinatorInfo(Optional<HostAndPort> serverOpt, ExternalCompactionInfo ecInfo) {
-    server = serverOpt.map(HostAndPort::toString).orElse("none");
-    Set<ServerId> compactors = ecInfo.getCompactors();
-    numQueues = compactors.stream().map(csi -> csi.getResourceGroup()).distinct().count();
-    numCompactors = compactors.size();
-    lastContact = System.currentTimeMillis() - ecInfo.getFetchedTimeMillis();
+  public RunningCompactionsSummary(Map<String,TExternalCompaction> runningMap) {
+    this(runningMap == null ? List.of()
+        : runningMap.values().stream().map(RunningCompactionInfo::new).toList());
   }
 }

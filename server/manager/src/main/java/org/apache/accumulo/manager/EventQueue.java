@@ -29,8 +29,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.manager.EventCoordinator.Event;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -39,7 +37,6 @@ import com.google.common.base.Preconditions;
  */
 public class EventQueue {
 
-  private static final Logger log = LoggerFactory.getLogger(EventQueue.class);
   private boolean allLevels = false;
 
   private static class Table {

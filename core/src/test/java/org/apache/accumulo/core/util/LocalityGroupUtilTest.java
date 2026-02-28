@@ -31,7 +31,7 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -49,13 +49,13 @@ public class LocalityGroupUtilTest {
       assertNotNull(groups.get("lg1"));
       assertEquals(2, groups.get("lg1").size());
       assertTrue(groups.get("lg1").contains(new ArrayByteSequence("cf1")));
-    } catch (LocalityGroupConfigurationError err) {
+    } catch (LocalityGroupConfigurationException err) {
       fail();
     }
 
     conf.set("table.group.lg2", "cf1");
     conf.set("table.groups.enabled", "lg1,lg2");
-    assertThrows(LocalityGroupConfigurationError.class,
+    assertThrows(LocalityGroupConfigurationException.class,
         () -> LocalityGroupUtil.getLocalityGroups(conf));
   }
 

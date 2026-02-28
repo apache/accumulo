@@ -16,23 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.compactions.external;
+package org.apache.accumulo.monitor.next.ec;
 
-/**
- * Class for displaying input files
- */
-public class CompactionInputFile {
+import java.util.List;
+import java.util.Set;
 
-  // Variable names become JSON keys
-  public String metadataFileEntry;
-  public long size;
-  public long entries;
-  public long timestamp;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 
-  public CompactionInputFile(String metadataFileEntry, long size, long entries, long timestamp) {
-    this.metadataFileEntry = metadataFileEntry;
-    this.size = size;
-    this.entries = entries;
-    this.timestamp = timestamp;
+// Variable names become JSON keys
+public record CompactorsSummary(int numCompactors, List<CompactorSummary> compactors) {
+
+  public CompactorsSummary(Set<ServerId> compactors, long fetchedTimeMillis) {
+    this(compactors.size(),
+        compactors.stream().map(csi -> CompactorSummary.fromFetchedTime(fetchedTimeMillis,
+            csi.getResourceGroup().canonical(), csi.toHostPortString())).toList());
   }
 }

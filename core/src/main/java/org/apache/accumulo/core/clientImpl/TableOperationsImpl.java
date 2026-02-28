@@ -156,7 +156,7 @@ import org.apache.accumulo.core.summary.SummarizerConfigurationUtil;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
@@ -1157,7 +1157,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Map<String,String> allProps = getConfiguration(tableName);
       try {
         LocalityGroupUtil.checkLocalityGroups(allProps);
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn(
             "Changing '{}' for table '{}' resulted in bad locality group config.  This may be a transient situation since the config spreads over multiple properties.  Setting properties in a different order may help.  Even though this warning was displayed, the property was updated. Please check your config to ensure consistency.",
             propChanged, tableName, e);

@@ -38,7 +38,7 @@ $(function () {
   compactorsTable = $('#compactorsTable').DataTable({
     "autoWidth": false,
     "ajax": {
-      "url": contextPath + 'rest/ec/compactors',
+      "url": contextPath + 'rest-v2/ec/compactors',
       "dataSrc": "compactors"
     },
     "stateSave": true,
@@ -80,7 +80,7 @@ $(function () {
   runningTable = $('#runningTable').DataTable({
     "autoWidth": false,
     "ajax": {
-      "url": contextPath + 'rest/ec/running',
+      "url": contextPath + 'rest-v2/ec/running',
       "dataSrc": "running"
     },
     "stateSave": true,
@@ -288,7 +288,7 @@ $(function () {
   coordinatorTable = $('#coordinatorTable').DataTable({
     "autoWidth": false,
     "ajax": {
-      "url": contextPath + 'rest/ec',
+      "url": contextPath + 'rest-v2/ec',
       "dataSrc": function (data) {
         // the data needs to be in an array to work with DataTables
         var arr = [];
@@ -418,7 +418,7 @@ async function refreshCoordinatorStatus() {
 }
 
 function getRunningDetails(ecid, idSuffix) {
-  var ajaxUrl = contextPath + 'rest/ec/details?ecid=' + ecid;
+  var ajaxUrl = contextPath + 'rest-v2/ec/details?ecid=' + ecid;
   console.log("Ajax call to " + ajaxUrl);
   $.getJSON(ajaxUrl, function (data) {
     populateDetails(data, idSuffix);

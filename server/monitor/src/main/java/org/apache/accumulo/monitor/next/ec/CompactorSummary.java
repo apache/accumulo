@@ -16,26 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.compactions.external;
+package org.apache.accumulo.monitor.next.ec;
 
-import java.util.ArrayList;
-import java.util.List;
+// Variable names become JSON keys
+public record CompactorSummary(long lastContact, String groupName, String server) {
 
-/**
- * JSON Object for displaying External Compactions. Variable names become JSON Keys.
- */
-public class Compactors {
-
-  // Variable names become JSON keys
-  public final int numCompactors;
-  public final List<CompactorInfo> compactors = new ArrayList<>();
-
-  public Compactors(ExternalCompactionInfo ecInfo) {
-    ecInfo.getCompactors().forEach(csi -> {
-      var fetchedTime = ecInfo.getFetchedTimeMillis();
-      compactors.add(new CompactorInfo(fetchedTime, csi.getResourceGroup().canonical(),
-          csi.toHostPortString()));
-    });
-    numCompactors = compactors.size();
+  public static CompactorSummary fromFetchedTime(long fetchedTimeMillis, String groupName,
+      String server) {
+    return new CompactorSummary(System.currentTimeMillis() - fetchedTimeMillis, groupName, server);
   }
 }

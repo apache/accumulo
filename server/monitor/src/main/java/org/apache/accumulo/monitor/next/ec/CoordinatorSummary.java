@@ -16,46 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.compactions.external;
+package org.apache.accumulo.monitor.next.ec;
 
-import java.util.HashSet;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 
 import com.google.common.net.HostAndPort;
 
-/**
- * Bag of everything going on with external compactions.
- */
-public class ExternalCompactionInfo {
+// Variable names become JSON keys
+public record CoordinatorSummary(long lastContact, String server, long numQueues,
+    int numCompactors) {
 
-  private Optional<HostAndPort> coordinatorHost;
-  private Set<ServerId> compactors = new HashSet<>();
-  private long fetchedTimeMillis;
-
-  public void setCoordinatorHost(Optional<HostAndPort> coordinatorHost) {
-    this.coordinatorHost = coordinatorHost;
-  }
-
-  public Optional<HostAndPort> getCoordinatorHost() {
-    return coordinatorHost;
-  }
-
-  public Set<ServerId> getCompactors() {
-    return compactors;
-  }
-
-  public void setCompactors(Set<ServerId> compactors) {
-    this.compactors = compactors;
-  }
-
-  public long getFetchedTimeMillis() {
-    return fetchedTimeMillis;
-  }
-
-  public void setFetchedTimeMillis(long fetchedTimeMillis) {
-    this.fetchedTimeMillis = fetchedTimeMillis;
+  public CoordinatorSummary(HostAndPort coordinatorHost, Set<ServerId> compactors,
+      long fetchedTimeMillis) {
+    this(System.currentTimeMillis() - fetchedTimeMillis, coordinatorHost.toString(),
+        compactors.stream().map(ServerId::getResourceGroup).distinct().count(), compactors.size());
   }
 }

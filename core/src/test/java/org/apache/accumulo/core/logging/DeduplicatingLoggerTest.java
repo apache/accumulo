@@ -37,7 +37,7 @@ import org.slf4j.LoggerFactory;
 public class DeduplicatingLoggerTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(DeduplicatingLoggerTest.class);
-  private static final Logger TEST_LOGGER =
+  private static final DeduplicatingLogger TEST_LOGGER =
       new DeduplicatingLogger(LOG, Duration.ofMinutes(1), 100);
 
   @Test

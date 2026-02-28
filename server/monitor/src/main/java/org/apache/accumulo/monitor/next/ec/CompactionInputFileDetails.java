@@ -16,24 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.compactions.external;
+package org.apache.accumulo.monitor.next.ec;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
-
-public class RunningCompactions {
-
-  public final List<RunningCompactionInfo> running = new ArrayList<>();
-
-  public RunningCompactions(Map<String,TExternalCompaction> rMap) {
-    if (rMap != null) {
-      for (var entry : rMap.entrySet()) {
-        running.add(new RunningCompactionInfo(entry.getValue()));
-      }
-    }
-  }
+// Variable names become JSON keys
+public record CompactionInputFileDetails(String metadataFileEntry, long size, long entries,
+    long timestamp) {
 }

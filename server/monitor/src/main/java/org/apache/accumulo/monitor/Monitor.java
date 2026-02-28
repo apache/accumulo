@@ -78,9 +78,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.InformationFetcher;
-import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionInfo;
-import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
-import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -562,7 +559,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final Supplier<Map<HostAndPort,CompactionStats>> compactionsSupplier =
       Suppliers.memoizeWithExpiration(this::fetchCompactions, expirationTimeMinutes, MINUTES);
 
-  private final Supplier<ExternalCompactionInfo> compactorInfoSupplier =
+  private final Supplier<ExternalCompactorSnapshot> compactorInfoSupplier =
       Suppliers.memoizeWithExpiration(this::fetchCompactorsInfo, expirationTimeMinutes, MINUTES);
 
   private final Supplier<ExternalCompactionsSnapshot> externalCompactionsSupplier =
@@ -593,35 +590,38 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   }
 
   /**
-   * @return external compaction information. Values are cached and refresh after
-   *         {@link #expirationTimeMinutes}.
+   * @return compaction coordinator host from the latest external compaction fetch.
    */
-  public ExternalCompactionInfo getCompactorsInfo() {
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException("Tried fetching from compaction coordinator that's missing");
-    }
-    return compactorInfoSupplier.get();
+  public HostAndPort getCompactionCoordinatorHost() {
+    return compactorInfoSupplier.get().coordinatorHost;
   }
 
   /**
-   * @return running compactions. Values are cached and refresh after
-   *         {@link #expirationTimeMinutes}.
+   * @return compactors from the latest external compaction fetch.
    */
-  public RunningCompactions getRunningCompactions() {
-    return externalCompactionsSupplier.get().runningCompactions;
+  public Set<ServerId> getCompactorServers() {
+    return compactorInfoSupplier.get().compactors;
   }
 
   /**
-   * @return running compactor details. Values are cached and refresh after
-   *         {@link #expirationTimeMinutes}.
+   * @return timestamp in millis when external compactor info was last fetched.
    */
-  public RunningCompactorDetails getRunningCompactorDetails(ExternalCompactionId ecid) {
-    TExternalCompaction extCompaction =
-        externalCompactionsSupplier.get().ecRunningMap.get(ecid.canonical());
-    if (extCompaction == null) {
-      return null;
-    }
-    return new RunningCompactorDetails(extCompaction);
+  public long getCompactorInfoFetchedTimeMillis() {
+    return compactorInfoSupplier.get().fetchedTimeMillis;
+  }
+
+  /**
+   * @return running external compactions keyed by ECID.
+   */
+  public Map<String,TExternalCompaction> getRunningCompactionsMap() {
+    return externalCompactionsSupplier.get().ecRunningMap;
+  }
+
+  /**
+   * @return running external compaction for the provided ECID, or null when not found.
+   */
+  public TExternalCompaction getRunningCompaction(ExternalCompactionId ecid) {
+    return getRunningCompactionsMap().get(ecid.canonical());
   }
 
   private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {
@@ -670,25 +670,29 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     return Collections.unmodifiableMap(allCompactions);
   }
 
-  private ExternalCompactionInfo fetchCompactorsInfo() {
+  private ExternalCompactorSnapshot fetchCompactorsInfo() {
+    var compactionCoordinatorHost =
+        coordinatorHost.orElseThrow(() -> new IllegalStateException(coordinatorMissingMsg));
     Set<ServerId> compactors =
         getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
     log.debug("Found compactors: {}", compactors);
-    ExternalCompactionInfo ecInfo = new ExternalCompactionInfo();
-    ecInfo.setFetchedTimeMillis(System.currentTimeMillis());
-    ecInfo.setCompactors(compactors);
-    ecInfo.setCoordinatorHost(coordinatorHost);
-    return ecInfo;
+    return new ExternalCompactorSnapshot(compactionCoordinatorHost, compactors,
+        System.currentTimeMillis());
   }
 
-  private static class ExternalCompactionsSnapshot {
-    public final RunningCompactions runningCompactions;
-    public final Map<String,TExternalCompaction> ecRunningMap;
+  private record ExternalCompactorSnapshot(HostAndPort coordinatorHost, Set<ServerId> compactors,
+      long fetchedTimeMillis) {
+    private ExternalCompactorSnapshot(HostAndPort coordinatorHost, Set<ServerId> compactors,
+        long fetchedTimeMillis) {
+      this.coordinatorHost = coordinatorHost;
+      this.compactors = Set.copyOf(compactors);
+      this.fetchedTimeMillis = fetchedTimeMillis;
+    }
+  }
 
-    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMapOpt) {
-      this.ecRunningMap =
-          ecRunningMapOpt.map(Collections::unmodifiableMap).orElse(Collections.emptyMap());
-      this.runningCompactions = new RunningCompactions(this.ecRunningMap);
+  private record ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
+    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMap) {
+      this(ecRunningMap.map(Collections::unmodifiableMap).orElse(Collections.emptyMap()));
     }
   }
 

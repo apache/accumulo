@@ -76,10 +76,10 @@ public class LocalityGroupUtil {
         .collect(toUnmodifiableSet());
   }
 
-  public static class LocalityGroupConfigurationError extends AccumuloException {
-    private static final long serialVersionUID = 855450342044719186L;
+  public static class LocalityGroupConfigurationException extends AccumuloException {
+    private static final long serialVersionUID = 1L;
 
-    LocalityGroupConfigurationError(String why) {
+    LocalityGroupConfigurationException(String why) {
       super(why);
     }
   }
@@ -90,7 +90,7 @@ public class LocalityGroupUtil {
   }
 
   public static void checkLocalityGroups(Map<String,String> config)
-      throws LocalityGroupConfigurationError {
+      throws LocalityGroupConfigurationException {
     ConfigurationCopy cc = new ConfigurationCopy(config);
     if (cc.get(Property.TABLE_LOCALITY_GROUPS) != null) {
       getLocalityGroups(cc);
@@ -101,7 +101,7 @@ public class LocalityGroupUtil {
       getLocalityGroupsIgnoringErrors(AccumuloConfiguration acuconf, TableId tableId) {
     try {
       return getLocalityGroups(acuconf);
-    } catch (LocalityGroupConfigurationError | RuntimeException e) {
+    } catch (LocalityGroupConfigurationException | RuntimeException e) {
       log.warn("Failed to get locality group config for tableId:" + tableId
           + ", proceeding without locality groups.", e);
     }
@@ -110,7 +110,7 @@ public class LocalityGroupUtil {
   }
 
   public static Map<String,Set<ByteSequence>> getLocalityGroups(AccumuloConfiguration acuconf)
-      throws LocalityGroupConfigurationError {
+      throws LocalityGroupConfigurationException {
     Map<String,Set<ByteSequence>> result = new HashMap<>();
     String[] groups = acuconf.get(Property.TABLE_LOCALITY_GROUPS).split(",");
     for (String group : groups) {
@@ -132,8 +132,8 @@ public class LocalityGroupUtil {
           Set<ByteSequence> colFamsSet = decodeColumnFamilies(value);
           if (!Collections.disjoint(all, colFamsSet)) {
             colFamsSet.retainAll(all);
-            throw new LocalityGroupConfigurationError("Column families " + colFamsSet + " in group "
-                + group + " is already used by another locality group");
+            throw new LocalityGroupConfigurationException("Column families " + colFamsSet
+                + " in group " + group + " is already used by another locality group");
           }
 
           all.addAll(colFamsSet);
@@ -145,7 +145,7 @@ public class LocalityGroupUtil {
     Set<Entry<String,Set<ByteSequence>>> es = result.entrySet();
     for (Entry<String,Set<ByteSequence>> entry : es) {
       if (entry.getValue().isEmpty()) {
-        throw new LocalityGroupConfigurationError(
+        throw new LocalityGroupConfigurationException(
             "Locality group " + entry.getKey() + " specified but not declared");
       }
     }
@@ -155,7 +155,7 @@ public class LocalityGroupUtil {
   }
 
   public static Set<ByteSequence> decodeColumnFamilies(String colFams)
-      throws LocalityGroupConfigurationError {
+      throws LocalityGroupConfigurationException {
     HashSet<ByteSequence> colFamsSet = new HashSet<>();
 
     for (String family : colFams.split(",")) {
@@ -167,7 +167,7 @@ public class LocalityGroupUtil {
   }
 
   public static ByteSequence decodeColumnFamily(String colFam)
-      throws LocalityGroupConfigurationError {
+      throws LocalityGroupConfigurationException {
     byte[] output = new byte[colFam.length()];
     int pos = 0;
 
@@ -179,7 +179,8 @@ public class LocalityGroupUtil {
         i++;
 
         if (i >= colFam.length()) {
-          throw new LocalityGroupConfigurationError("Expected 'x' or '\' after '\'  in " + colFam);
+          throw new LocalityGroupConfigurationException(
+              "Expected 'x' or '\' after '\'  in " + colFam);
         }
 
         char nc = colFam.charAt(i);
@@ -195,7 +196,7 @@ public class LocalityGroupUtil {
             i++;
             break;
           default:
-            throw new LocalityGroupConfigurationError(
+            throw new LocalityGroupConfigurationException(
                 "Expected 'x' or '\' after '\'  in " + colFam);
         }
       } else {
