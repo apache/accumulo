@@ -228,6 +228,7 @@ public abstract class AbstractServer
     log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
+      log.error("Uncaught exception ", thrown);
       if (thrown instanceof Error) {
         throw (Error) thrown;
       }
