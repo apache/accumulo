@@ -1475,7 +1475,7 @@ public class Manager extends AbstractServer
 
         ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
         for (ServiceLockData.ThriftService svc : new ServiceLockData.ThriftService[] {
-            ThriftService.FATE_WORKER}) { // TODO is this thrift service correct?
+            ThriftService.MANAGER}) {
           descriptors.addService(new ServiceLockData.ServiceDescriptor(serverLockUUID, svc,
               advertiseAddress.toString(), this.getResourceGroup()));
         }
