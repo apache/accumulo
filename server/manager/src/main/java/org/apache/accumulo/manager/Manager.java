@@ -1161,7 +1161,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     public void startTimer() {
-      timer = Timer.startNew();
+      if(timer == null){
+         timer = Timer.startNew();
+      }
     }
 
     public boolean shouldForceHalt() {
