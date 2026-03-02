@@ -1160,13 +1160,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           Duration.ofMillis(config.getTimeInMillis(Property.MANAGER_TSERVER_HALT_DURATION));
     }
 
-    public void startTimer() {
-      if(timer == null){
-         timer = Timer.startNew();
+    public synchronized void startTimer() {
+      if (timer == null) {
+        timer = Timer.startNew();
       }
     }
 
-    public boolean shouldForceHalt() {
+    public synchronized boolean shouldForceHalt() {
       return maxHaltGraceDuration.toMillis() != 0 && timer != null
           && timer.hasElapsed(maxHaltGraceDuration);
     }
