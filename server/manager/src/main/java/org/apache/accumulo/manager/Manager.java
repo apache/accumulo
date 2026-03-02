@@ -1749,12 +1749,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
       Set<TServerInstance> deleted, Set<TServerInstance> added) {
-    if (!deleted.isEmpty() || !added.isEmpty()) {
-      HashSet<HostAndPort> removalSet = new HashSet<>(deleted.size() + added.size());
-      deleted.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
-      added.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
-      badServers.removeIf(badServer -> removalSet.contains(badServer.getHostAndPort()));
+    if (badServers.isEmpty() || (deleted.isEmpty() && added.isEmpty())) {
+      // nothing to do
+      return;
     }
+    HashSet<HostAndPort> removalSet = new HashSet<>(deleted.size() + added.size());
+    deleted.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    added.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    badServers.removeIf(badServer -> removalSet.contains(badServer.getHostAndPort()));
   }
 
   @Override
