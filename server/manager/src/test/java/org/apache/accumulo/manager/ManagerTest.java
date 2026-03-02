@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.manager;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class ManagerTest {
@@ -39,27 +40,27 @@ public class ManagerTest {
     // check deleted set removes by host port
     Manager.cleanListByHostAndPort(servers, Set.of(new TServerInstance("host1:1234[SESSION5]")),
         Set.of());
-    Assertions.assertEquals(Set.of(server3, server4), servers);
+    assertEquals(Set.of(server3, server4), servers);
 
     servers = new HashSet<>(List.of(server1, server2, server3, server4));
     // check added set removes by host port
     Manager.cleanListByHostAndPort(servers, Set.of(),
         Set.of(new TServerInstance("host1:1234[SESSION5]")));
-    Assertions.assertEquals(Set.of(server3, server4), servers);
+    assertEquals(Set.of(server3, server4), servers);
 
     // check using both sets
     servers = new HashSet<>(List.of(server1, server2, server3, server4));
     Manager.cleanListByHostAndPort(servers, Set.of(new TServerInstance("host1:1235[SESSION5]")),
         Set.of(new TServerInstance("host1:1234[SESSION6]")));
-    Assertions.assertEquals(Set.of(server4), servers);
+    assertEquals(Set.of(server4), servers);
 
     // Test empty sets
     servers = new HashSet<>(List.of(server1, server2, server3, server4));
     Manager.cleanListByHostAndPort(servers, Set.of(), Set.of());
-    Assertions.assertEquals(Set.of(server1, server2, server3, server4), servers);
+    assertEquals(Set.of(server1, server2, server3, server4), servers);
     servers.clear();
     Manager.cleanListByHostAndPort(servers, Set.of(),
         Set.of(new TServerInstance("host1:1234[SESSION5]")));
-    Assertions.assertEquals(Set.of(), servers);
+    assertEquals(Set.of(), servers);
   }
 }
