@@ -1147,7 +1147,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   /**
-   * This class tracks details about the haltRPCs used
+   * This class tracks the duration of a haltRPC and is used to determine when the manager should
+   * delete the server zLock.
    */
   private static class GracefulHaltTimer {
 
