@@ -90,7 +90,8 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
     private final AtomicInteger cacheCount = new AtomicInteger(0);
     private final Eviction<KeyExtent,KeyExtent> evictionPolicy;
 
-    private OfflineTabletsCache(ClientContext context) {
+    private OfflineTabletsCache(ClientContext context)
+        throws TableNotFoundException, AccumuloSecurityException, AccumuloException {
       this.context = context;
       Properties clientProperties = context.getProperties();
       Duration cacheDuration = Duration.ofMillis(
@@ -109,17 +110,25 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
       // set the maximum size much larger than the property and use the cacheCount
       // variable to manage the max size manually.
       // @formatter:off
-      cache = Caffeine.newBuilder()
+      Caffeine<KeyExtent,KeyExtent> builder = Caffeine.newBuilder()
           .expireAfterAccess(cacheDuration)
-          .initialCapacity(maxCacheSize)
-          .maximumSize(maxCacheSize * 2)
           .removalListener(this)
           .scheduler(Scheduler.systemScheduler())
           .recordStats(() -> new CaffeineStatsCounter(Metrics.globalRegistry,
-              OfflineTabletsCache.class.getSimpleName()))
-          .build();
+              OfflineTabletsCache.class.getSimpleName()));
+      if (maxCacheSize > 0) {
+        builder.initialCapacity(maxCacheSize).maximumSize(maxCacheSize * 2);
+      } else {
+        String tname = context.getTableName(tid);
+        builder.initialCapacity(context.tableOperations().listSplits(tname).size());
+      }
+      cache = builder.build();
       // @formatter:on
-      evictionPolicy = cache.policy().eviction().orElseThrow();
+      if (maxCacheSize > 0) {
+        evictionPolicy = cache.policy().eviction().orElseThrow();
+      } else {
+        evictionPolicy = null;
+      }
     }
 
     @Override
@@ -182,7 +191,7 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
       // before the searchKey.endRow to make room for the next
       // batch of extents that we are going to load into the
       // cache so that they are not immediately evicted.
-      if (cacheCount.get() + prefetch + 1 >= maxCacheSize) {
+      if (maxCacheSize > 0 && cacheCount.get() + prefetch + 1 >= maxCacheSize) {
         int evictionSize = prefetch * 2;
         Set<KeyExtent> candidates = new HashSet<>(evictionPolicy.coldest(evictionSize).keySet());
         LOG.trace("Cache near max size, evaluating {} coldest entries", candidates);
@@ -251,7 +260,13 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
     if (context.getTableState(tid) != TableState.OFFLINE) {
       throw new IllegalStateException("Table " + tableId + " is not offline");
     }
-    extentCache = new OfflineTabletsCache(context);
+    try {
+      extentCache = new OfflineTabletsCache(context);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Table " + tableId + " does not exist", e);
+    } catch (AccumuloSecurityException | AccumuloException e) {
+      throw new IllegalStateException("Unable to get split points for table: " + tableId, e);
+    }
   }
 
   @Override

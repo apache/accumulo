@@ -154,9 +154,11 @@ public enum ClientProperty {
       "The number of offline extents that should be pre-loaded into the cache. The offline"
           + " extent information is used when performing eventual scans on offline tables.",
       "2.1.5", false),
-  OFFLINE_LOCATOR_CACHE_SIZE("offline.locator.cache.size", "100", PropertyType.COUNT,
+  @Experimental
+  OFFLINE_LOCATOR_CACHE_SIZE("offline.locator.cache.size", "0", PropertyType.COUNT,
       "The number of offline extents that should be cached in the client. The offline"
-          + " extent information is used when performing eventual scans on offline tables.",
+          + " extent information is used when performing eventual scans on offline tables. The"
+          + " value zero disables the size limitation.",
       "2.1.5", false);
 
   @Deprecated(since = "2.1.0", forRemoval = true)

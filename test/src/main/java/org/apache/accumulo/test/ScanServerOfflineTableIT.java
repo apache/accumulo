@@ -20,8 +20,12 @@ package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -30,6 +34,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -42,7 +47,11 @@ import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.ArgumentsProvider;
+import org.junit.jupiter.params.provider.ArgumentsSource;
 import org.junit.jupiter.params.provider.EnumSource;
 
 import com.google.common.collect.Iterables;
@@ -111,14 +120,31 @@ public class ScanServerOfflineTableIT extends SharedMiniClusterBase {
     }
   }
 
+  public static class ArgProvider implements ArgumentsProvider {
+
+    @Override
+    public Stream<? extends Arguments> provideArguments(ExtensionContext context) throws Exception {
+      List<Arguments> args = new ArrayList<>();
+      args.add(Arguments.of(ScannerType.BATCH_SCANNER, 0));
+      args.add(Arguments.of(ScannerType.SCANNER, 0));
+      args.add(Arguments.of(ScannerType.BATCH_SCANNER, 100));
+      args.add(Arguments.of(ScannerType.SCANNER, 100));
+      return args.stream();
+    }
+
+  }
+
   @ParameterizedTest
-  @EnumSource(value = ScanServerAllowedTablesIT.ScannerType.class)
-  public void testScan(ScannerType stype) throws Exception {
+  @ArgumentsSource(ArgProvider.class)
+  public void testScan(ScannerType stype, int maxCacheSize) throws Exception {
 
     final int rows = 1000;
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0] + stype.name();
+    final Properties p = getClientProps();
+    p.put(ClientProperty.OFFLINE_LOCATOR_CACHE_SIZE.getKey(), Integer.toString(maxCacheSize));
+
+    try (AccumuloClient client = Accumulo.newClient().from(p).build()) {
+      String tableName = getUniqueNames(1)[0] + stype.name() + "_" + maxCacheSize;
 
       final int ingestedEntryCount =
           ScanServerIT.createTableAndIngest(client, tableName, null, rows, 10, "colf");
