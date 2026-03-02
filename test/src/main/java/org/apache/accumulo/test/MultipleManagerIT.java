@@ -107,7 +107,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // TODO add a way to start multiple managers to mini
+    // FOLLOW_ON add a way to start multiple managers to mini
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(8);
     // Set this lower so that locks timeout faster
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
