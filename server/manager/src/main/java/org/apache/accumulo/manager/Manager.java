@@ -899,7 +899,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                   break;
               }
           }
-        } catch (Exception t) {
+        } catch (RuntimeException t) {
           log.error("Error occurred reading / switching manager goal state. Will"
               + " continue with attempt to update status", t);
         }
@@ -908,7 +908,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
-        } catch (Exception t) {
+        } catch (RuntimeException t) {
           TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
@@ -1030,6 +1030,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
     }
 
+    @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
+        justification = "balance state checked before notification")
     private long balanceTablets() {
 
       // Check for balancer property change
@@ -1844,7 +1846,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
+  @SuppressFBWarnings(value = "UW_UNCOND_WAIT",
+      justification = "balance condition is modified in another thread")
   public void waitForBalance() {
     synchronized (balancedNotifier) {
       long eventCounter;
