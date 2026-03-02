@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -53,6 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.Policy.Eviction;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Ticker;
@@ -81,37 +83,54 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
     // cached in the TreeSet. The TreeSet is necessary for expedient operations.
 
     private final ClientContext context;
+    private final int maxCacheSize;
     private final int prefetch;
     private final Cache<KeyExtent,KeyExtent> cache;
     private final LinkedBlockingQueue<KeyExtent> evictions = new LinkedBlockingQueue<>();
     private final TreeSet<KeyExtent> extents = new TreeSet<>();
     private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
     private final Timer scanTimer = Timer.startNew();
+    private final AtomicInteger cacheCount = new AtomicInteger(0);
+    private final Eviction<KeyExtent,KeyExtent> evictionPolicy;
 
     private OfflineTabletsCache(ClientContext context) {
       this.context = context;
       Properties clientProperties = context.getProperties();
       Duration cacheDuration = Duration.ofMillis(
           ClientProperty.OFFLINE_LOCATOR_CACHE_DURATION.getTimeInMillis(clientProperties));
-      int maxCacheSize =
+      maxCacheSize =
           Integer.parseInt(ClientProperty.OFFLINE_LOCATOR_CACHE_SIZE.getValue(clientProperties));
       prefetch = Integer
           .parseInt(ClientProperty.OFFLINE_LOCATOR_CACHE_PREFETCH.getValue(clientProperties));
+
+      // This cache is used to evict KeyExtents from the extents TreeSet when
+      // they have not been accessed in cacheDuration. We are targeting to have
+      // maxCacheSize objects in the cache, but are not using the Cache's maximumSize
+      // to achieve this as the Cache will remove things from the Cache that were
+      // newly inserted and not yet used. This negates the pre-fetching feature
+      // that we have added into this TabletLocator for offline tables. Here we
+      // set the maximum size much larger that the property and use the cacheCount
+      // variable to manage the max size manually.
       cache = Caffeine.newBuilder().expireAfterAccess(cacheDuration).initialCapacity(maxCacheSize)
-          .maximumSize(maxCacheSize).removalListener(this).ticker(Ticker.systemTicker())
+          .maximumSize(maxCacheSize * 2).removalListener(this).ticker(Ticker.systemTicker())
           .recordStats(() -> new CaffeineStatsCounter(Metrics.globalRegistry,
               OfflineTabletsCache.class.getSimpleName()))
           .build();
+      evictionPolicy = cache.policy().eviction().orElseThrow();
     }
 
     @Override
     public void onRemoval(KeyExtent key, KeyExtent value, RemovalCause cause) {
-      LOG.trace("Extent was evicted from cache: {}", key);
+      if (cause == RemovalCause.REPLACED) {
+        return;
+      }
+      LOG.trace("Extent {} was evicted from cache for {} ", key, cause);
+      cacheCount.decrementAndGet();
       evictions.add(key);
       try {
-        if (lock.writeLock().tryLock(50, TimeUnit.MILLISECONDS)) {
+        if (lock.writeLock().tryLock(1, TimeUnit.MILLISECONDS)) {
           try {
-            processEvictions();
+            processRecentCacheEvictions();
           } finally {
             lock.writeLock().unlock();
           }
@@ -122,19 +141,22 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
       }
     }
 
-    private void processEvictions() {
+    private void processRecentCacheEvictions() {
       Preconditions.checkArgument(lock.writeLock().isHeldByCurrentThread());
-      LOG.trace("Processing prior evictions");
       Set<KeyExtent> copy = new HashSet<>();
       evictions.drainTo(copy);
-      extents.removeAll(copy);
+      int numEvictions = copy.size();
+      if (numEvictions > 0) {
+        LOG.trace("Processing {} prior evictions", numEvictions);
+        extents.removeAll(copy);
+      }
     }
 
     private KeyExtent findOrLoadExtent(KeyExtent searchKey) {
       lock.readLock().lock();
       try {
         KeyExtent match = extents.ceiling(searchKey);
-        if (match != null && match.contains(searchKey)) {
+        if (match != null && match.contains(searchKey.endRow())) {
           // update access time in cache
           @SuppressWarnings("unused")
           var unused = cache.getIfPresent(match);
@@ -146,7 +168,26 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
       }
       lock.writeLock().lock();
       // process prior evictions since we have the write lock
-      processEvictions();
+      processRecentCacheEvictions();
+      // The following block of code fixes an issue with
+      // the cache where recently pre-fetched extents
+      // will be evicted from the cache when it reaches
+      // the maxCacheSize. This is because from the cache's
+      // perspective they are the coldest objects. The code
+      // below manually removes the coldest extents that are
+      // before the searchKey.endRow to make room for the next
+      // batch of extents that we are going to load into the
+      // cache so that they are not immediately evicted.
+      if (cacheCount.get() + prefetch + 1 >= maxCacheSize) {
+        int evictionSize = prefetch * 2;
+        Set<KeyExtent> candidates = new HashSet<>(evictionPolicy.coldest(evictionSize).keySet());
+        LOG.trace("Cache near max size, evaluating {} coldest entries", candidates);
+        candidates.removeIf(ke -> ke.contains(searchKey.endRow()) || ke.endRow() == null
+            || ke.endRow().compareTo(searchKey.endRow()) >= 0);
+        LOG.trace("Manually evicting coldest entries: {}", candidates);
+        cache.invalidateAll(candidates);
+        cache.cleanUp();
+      }
       // Load TabletMetadata
       if (LOG.isDebugEnabled()) {
         scanTimer.restart();
@@ -169,6 +210,7 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
           }
           LOG.trace("Caching extent: {}", ke);
           cache.put(ke, ke);
+          cacheCount.incrementAndGet();
           TabletLocatorImpl.removeOverlapping(extents, ke);
           extents.add(ke);
           added++;
