@@ -57,7 +57,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Policy.Eviction;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
-import com.github.benmanes.caffeine.cache.Ticker;
+import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.Metrics;
@@ -78,9 +78,6 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
   }
 
   private class OfflineTabletsCache implements RemovalListener<KeyExtent,KeyExtent> {
-
-    // This object uses a Caffeine cache to manage the duration of the extents
-    // cached in the TreeSet. The TreeSet is necessary for expedient operations.
 
     private final ClientContext context;
     private final int maxCacheSize;
@@ -109,19 +106,26 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
       // to achieve this as the Cache will remove things from the Cache that were
       // newly inserted and not yet used. This negates the pre-fetching feature
       // that we have added into this TabletLocator for offline tables. Here we
-      // set the maximum size much larger that the property and use the cacheCount
+      // set the maximum size much larger than the property and use the cacheCount
       // variable to manage the max size manually.
-      cache = Caffeine.newBuilder().expireAfterAccess(cacheDuration).initialCapacity(maxCacheSize)
-          .maximumSize(maxCacheSize * 2).removalListener(this).ticker(Ticker.systemTicker())
+      // @formatter:off
+      cache = Caffeine.newBuilder()
+          .expireAfterAccess(cacheDuration)
+          .initialCapacity(maxCacheSize)
+          .maximumSize(maxCacheSize * 2)
+          .removalListener(this)
+          .scheduler(Scheduler.systemScheduler())
           .recordStats(() -> new CaffeineStatsCounter(Metrics.globalRegistry,
               OfflineTabletsCache.class.getSimpleName()))
           .build();
+      // @formatter:on
       evictionPolicy = cache.policy().eviction().orElseThrow();
     }
 
     @Override
     public void onRemoval(KeyExtent key, KeyExtent value, RemovalCause cause) {
       if (cause == RemovalCause.REPLACED) {
+        // Don't remove from `extents` if the object was replaced in the cache
         return;
       }
       LOG.trace("Extent {} was evicted from cache for {} ", key, cause);
