@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.data.constraints;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Collections;
@@ -39,7 +40,7 @@ public class DefaultKeySizeConstraintTest {
     // pass constraints
     Mutation m = new Mutation("rowId");
     m.put("colf", "colq", new Value());
-    assertEquals(Collections.emptyList(), constraint.check(null, m));
+    assertNull(null, constraint.check(null, m));
 
     // test with row id > 1mb
     m = new Mutation(oversized);
