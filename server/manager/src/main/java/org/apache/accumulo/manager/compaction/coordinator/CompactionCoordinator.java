@@ -96,6 +96,7 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -151,7 +152,6 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
@@ -878,16 +878,14 @@ public class CompactionCoordinator
     for (var key : failureCounts.keySet()) {
       failureCounts.compute(key, (k, counts) -> {
         if (counts != null) {
-          Level level;
+          ConditionalLogAction logAction = Logger::debug;
           if (counts.failures > 0) {
-            level = Level.WARN;
+            logAction = Logger::warn;
           } else if (logSuccessAtTrace) {
-            level = Level.TRACE;
-          } else {
-            level = Level.DEBUG;
+            logAction = Logger::trace;
           }
 
-          LOG.atLevel(level).log("{} {} failures:{} successes:{} since last time this was logged ",
+          logAction.log(LOG, "{} {} failures:{} successes:{} since last time this was logged ",
               logPrefix, k, counts.failures, counts.successes);
         }
 

@@ -421,7 +421,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
           Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
           Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
-    }, true);
+    });
   }
 
   /**

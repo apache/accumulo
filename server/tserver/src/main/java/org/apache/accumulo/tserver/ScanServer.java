@@ -314,7 +314,7 @@ public class ScanServer extends AbstractServer
           Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
           Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
           Property.SSERV_THREADCHECK);
-    }, true);
+    });
   }
 
   /**

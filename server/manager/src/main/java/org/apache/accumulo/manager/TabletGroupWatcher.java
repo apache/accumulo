@@ -104,7 +104,6 @@ import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSortedSet;
@@ -115,9 +114,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
 
-  private static final Logger TABLET_UNLOAD_LOGGER =
-      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Level.INFO);
-
+  private static final EscalatingLogger TABLET_UNLOAD_LOGGER =
+      new EscalatingLogger(Manager.log, Duration.ofMinutes(5), 1000, Logger::info);
   private final Manager manager;
   private final TabletStateStore store;
   private final TabletGroupWatcher dependentWatcher;
@@ -465,7 +463,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tableMgmtParams.getCompactionHints(), tableMgmtParams.getSteadyTime());
 
     try {
-      CheckCompactionConfig.validate(manager.getConfiguration(), Level.TRACE);
+      CheckCompactionConfig.validate(manager.getConfiguration(), Logger::trace);
       this.metrics.clearCompactionServiceConfigurationError();
     } catch (RuntimeException | ReflectiveOperationException e) {
       this.metrics.setCompactionServiceConfigurationError();

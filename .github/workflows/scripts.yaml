@@ -18,8 +18,6 @@
 #
 
 # This workflow will build a Java project with Maven
-# See also:
-#   https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
 
 name: ScriptQA
 

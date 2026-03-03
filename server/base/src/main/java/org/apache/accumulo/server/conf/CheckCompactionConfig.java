@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
@@ -47,7 +48,6 @@ import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -100,18 +100,17 @@ public class CheckCompactionConfig extends ClientKeywordExecutable<CheckOpts> {
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
-    validate(config, Level.INFO);
+    validate(config, Logger::info);
   }
 
-  public static void validate(AccumuloConfiguration config, Level level)
+  public static void validate(AccumuloConfiguration config, ConditionalLogAction logAction)
       throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
     Set<String> defaultService = Set.of(DEFAULT_COMPACTION_SERVICE_NAME);
     if (servicesConfig.getPlanners().keySet().equals(defaultService)) {
-      log.atLevel(level).log("Only the default compaction service was created - {}",
-          defaultService);
+      logAction.log(log, "Only the default compaction service was created - {}", defaultService);
       return;
     }
 
@@ -119,7 +118,7 @@ public class CheckCompactionConfig extends ClientKeywordExecutable<CheckOpts> {
     for (var entry : servicesConfig.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
       String plannerClassName = entry.getValue();
-      log.atLevel(level).log("Service id: {}, planner class:{}", serviceId, plannerClassName);
+      logAction.log(log, "Service id: {}, planner class:{}", serviceId, plannerClassName);
 
       Class<? extends CompactionPlanner> plannerClass =
           Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
@@ -132,8 +131,8 @@ public class CheckCompactionConfig extends ClientKeywordExecutable<CheckOpts> {
       planner.init(initParams);
 
       initParams.getRequestedGroups().forEach(groupId -> {
-        log.atLevel(level).log("Compaction service '{}' requested with compactor group '{}'",
-            serviceId, groupId);
+        logAction.log(log, "Compaction service '{}' requested with compactor group '{}'", serviceId,
+            groupId);
         groupToServices.computeIfAbsent(groupId, f -> new HashSet<>()).add(serviceId);
       });
     }
@@ -153,7 +152,7 @@ public class CheckCompactionConfig extends ClientKeywordExecutable<CheckOpts> {
               + " to undesired behavior. Please fix the configuration");
     }
 
-    log.atLevel(level).log("Properties file has passed all checks.");
+    logAction.log(log, "Properties file has passed all checks.");
 
   }
 

@@ -19,7 +19,7 @@
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
 import java.io.Serializable;
-import java.util.Map;
+import java.util.HashMap;
 
 import org.apache.accumulo.core.data.NamespaceId;
 
@@ -31,5 +31,5 @@ class NamespaceInfo implements Serializable {
   NamespaceId namespaceId;
   String user;
 
-  public Map<String,String> props;
+  public HashMap<String,String> props; // type must be serializable
 }
