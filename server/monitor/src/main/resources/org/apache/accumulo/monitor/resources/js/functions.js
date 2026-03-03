@@ -668,6 +668,14 @@ function getSserversSummaryGroup(group) {
 }
 
 /**
+ * REST GET call for /sservers/view,
+ * stores it on a sessionStorage variable
+ */
+function getSserversView() {
+  return getJSONForTable(REST_V2_PREFIX + '/sservers/view', 'sserversView');
+}
+
+/**
  * REST GET call for /tservers/summary,
  * stores it on a sessionStorage variable
  */

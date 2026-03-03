@@ -26,6 +26,7 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -60,6 +61,7 @@ import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
 import org.apache.accumulo.monitor.next.ec.RunningCompactionDetails;
 import org.apache.accumulo.monitor.next.ec.RunningCompactionsSummary;
+import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -238,7 +240,7 @@ public class Endpoints {
   @GET
   @Path("sservers/detail/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metric responses for the ScanServers in the supplied resource group")
+  @Description("Returns raw metric responses for the ScanServers in the supplied resource group")
   public Collection<MetricResponse>
       getScanServers(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -253,7 +255,7 @@ public class Endpoints {
   @GET
   @Path("sservers/summary/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns an aggregate view of the metric responses for the ScanServers in the supplied resource group")
+  @Description("Returns an aggregate raw metric summary for the ScanServers in the supplied resource group")
   public Map<Id,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -268,9 +270,27 @@ public class Endpoints {
   @GET
   @Path("sservers/summary")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns an aggregate view of the metric responses for all ScanServers")
+  @Description("Returns an aggregate raw metric summary for all ScanServers")
   public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getSServerAllMetricSummary();
+  }
+
+  @GET
+  @Path("sservers/view")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a UI-ready view model for the Scan Server status page")
+  public ScanServerView getScanServerPageView() {
+    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    Set<ServerId> scanServers =
+        summary.getResourceGroups().stream().map(summary::getSServerResourceGroupServers)
+            .filter(Objects::nonNull).flatMap(Set::stream).collect(Collectors.toSet());
+    int problemScanServerCount = (int) summary.getProblemHosts().stream()
+        .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
+    long nowMs = System.currentTimeMillis();
+    Collection<MetricResponse> responses =
+        monitor.getInformationFetcher().getAllMetrics().getAllPresent(scanServers).values();
+    return ScanServerView.fromMetrics(responses, scanServers.size(), problemScanServerCount, nowMs,
+        summary.getTimestamp());
   }
 
   @GET

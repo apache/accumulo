@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/*global REST_V2_PREFIX */
+/*global getSserversView */
 "use strict";
 
 /**
@@ -138,27 +138,18 @@ function updateServerNotifications(statusData) {
  * Updates the scan server notification based on REST v2 metrics status.
  */
 function refreshSserverStatus() {
-  return $.when(
-    $.getJSON(REST_V2_PREFIX + '/sservers/summary'),
-    $.getJSON(REST_V2_PREFIX + '/problems')
-  ).done(function (summaryResp, problemsResp) {
-    var summary = summaryResp && summaryResp[0] ? summaryResp[0] : {};
-    var problems = problemsResp && problemsResp[0] ? problemsResp[0] : [];
+  return getSserversView().done(function () {
+    var view = sessionStorage.sserversView ? JSON.parse(sessionStorage.sserversView) : null;
+    var status = view && view.status ? view.status : null;
+    if (!status) {
+      sessionStorage.sServerStatus = STATUS.ERROR;
+      updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+      return;
+    }
 
-    var hasSservers = summary && Object.keys(summary).length > 0;
-    var hasProblemSserver = problems.some(function (problem) {
-      return problem.type === 'SCAN_SERVER' || problem.serverType === 'SCAN_SERVER';
-    });
-
-    // 1) Display WARN when problem entries show any scan servers
-    if (hasProblemSserver) {
+    if (status.level === STATUS.WARN) {
       sessionStorage.sServerStatus = STATUS.WARN;
       updateElementStatus('sserverStatusNotification', STATUS.WARN);
-      // 2) Display OK when there are no scan servers reported
-    } else if (!hasSservers) {
-      sessionStorage.sServerStatus = STATUS.OK;
-      updateElementStatus('sserverStatusNotification', STATUS.OK);
-      // 3) Display OK when scan servers exist and no problems
     } else {
       sessionStorage.sServerStatus = STATUS.OK;
       updateElementStatus('sserverStatusNotification', STATUS.OK);
