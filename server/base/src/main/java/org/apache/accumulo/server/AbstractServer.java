@@ -285,7 +285,7 @@ public abstract class AbstractServer
       verificationThread.interrupt();
       verificationThread.join();
     }
-    log.info(getClass().getSimpleName() + " process shut down.");
+    log.info(getClass().getSimpleName() + " process shut down. ");
     Throwable thrown = err.get();
     if (thrown != null) {
       System.err.println("Uncaught execption in AbstractServer.runServer");

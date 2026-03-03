@@ -689,7 +689,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               if (client != null) {
                 TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
                     store.name(), location.getServerInstance(), tm.getExtent(), goal.howUnload());
-                client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
+                client.unloadTablet(manager.primaryManagerLock, tm.getExtent(), goal.howUnload(),
                     manager.getSteadyTime().getMillis());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
@@ -1065,7 +1065,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
         if (client != null) {
-          client.assignTablet(manager.managerLock, a.tablet);
+          client.assignTablet(manager.primaryManagerLock, a.tablet);
           manager.assignedTablet(a.tablet);
         } else {
           Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,

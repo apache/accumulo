@@ -96,6 +96,9 @@ public class ServiceStatus extends ServerKeywordExecutable<ServiceStatusCmdOpts>
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
+    // FOLLOW_ON display information about multiple managers. Could display which is primary. Also,
+    // could potentially display the additional port that is being listened on by the assistant
+    // manager.
     services.put(ServiceStatusReport.ReportKey.MANAGER, getManagerStatus(context));
     services.put(ServiceStatusReport.ReportKey.MONITOR, getMonitorStatus(context));
     services.put(ServiceStatusReport.ReportKey.T_SERVER, getTServerStatus(context));
