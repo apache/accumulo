@@ -81,6 +81,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -325,9 +326,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
 
   private Future<Void> upgradeMetadataFuture;
-
-  private FateServiceHandler fateServiceHandler;
-  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -1241,17 +1239,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
-    // Start the Manager's Fate Service
-    fateServiceHandler = new FateServiceHandler(this);
-    managerClientHandler = new ManagerClientServiceHandler(this);
-    // Start the Manager's Client service
-    // Ensure that calls before the manager gets the lock fail
-    ManagerClientService.Iface haProxy =
-        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+    // Start the Manager's Fate Service. Ensure that calls before the manager gets the lock fail
+    FateService.Iface fateServiceHandler =
+        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    // Start the Manager's Client service. Ensure that calls before the manager gets the lock fail
+    ManagerClientService.Iface managerClientHandler =
+        HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
 
     ServerAddress sa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
+        managerClientHandler, getContext());
 
     try {
       @SuppressWarnings("deprecation")
