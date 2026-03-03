@@ -146,18 +146,22 @@ public enum ClientProperty {
   /*
    * For use with OfflineTabletLocatorImpl
    */
+  @Experimental
   OFFLINE_LOCATOR_CACHE_DURATION("offline.locator.cache.duration", "10m", PropertyType.TIMEDURATION,
-      "Amount of time for which offline extent information should be cached in the client. The offline"
-          + " extent information is used when performing eventual scans on offline tables.",
+      "The client caches extent information for offline tables for use with eventually consistent"
+          + " scans and Scan Servers. This property controls how long the extent information is cached"
+          + " in the client after it's last use.",
       "2.1.5", false),
+  @Experimental
   OFFLINE_LOCATOR_CACHE_PREFETCH("offline.locator.cache.prefetch", "10", PropertyType.COUNT,
-      "The number of offline extents that should be pre-loaded into the cache. The offline"
-          + " extent information is used when performing eventual scans on offline tables.",
+      "The number of offline extents that should be pre-loaded into the cache. This may reduce"
+          + " the load on the metadata table when looking up extent information. Smaller values"
+          + " may make sense here in a random lookup workload, larger values in sequential scans"
+          + " over multiple tablets.",
       "2.1.5", false),
   @Experimental
   OFFLINE_LOCATOR_CACHE_SIZE("offline.locator.cache.size", "0", PropertyType.COUNT,
-      "The number of offline extents that should be cached in the client. The offline"
-          + " extent information is used when performing eventual scans on offline tables. The"
+      "The number of offline extents that should be cached in the client. The"
           + " value zero disables the size limitation.",
       "2.1.5", false);
 

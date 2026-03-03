@@ -140,6 +140,8 @@ public abstract class TabletLocator {
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     TableState state = context.getTableState(tableId);
     if (state == TableState.OFFLINE) {
+      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+      locators.remove(key);
       return offlineLocators.computeIfAbsent(tableId,
           f -> new OfflineTabletLocatorImpl(context, tableId));
     } else {
