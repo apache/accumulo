@@ -102,6 +102,11 @@ public record ScanServerView(long lastUpdate, List<Row> servers, Status status) 
   }
 
   private static Row toRow(MetricResponse response, long nowMs) {
+    if (response == null) {
+      return new Row(null, null, 0, false, null, null, null, null, null, null, null, null, null,
+          null, null, null);
+    }
+
     var values = metricValuesByName(response);
     var openFiles = values.get(Metric.SCAN_OPEN_FILES.getName());
     var queries = values.get(Metric.SCAN_QUERIES.getName());
@@ -121,7 +126,7 @@ public record ScanServerView(long lastUpdate, List<Row> servers, Status status) 
             reservationConflicts, zombieThreads, serverIdle, lowMemoryDetected,
             scansPausedForMemory, scansReturnedEarlyForMemory).allMatch(Objects::nonNull);
 
-    long lastContact = response == null ? 0 : Math.max(0, nowMs - response.getTimestamp());
+    long lastContact = Math.max(0, nowMs - response.getTimestamp());
 
     return new Row(response.getServer(), response.getResourceGroup(), lastContact,
         allMetricsPresent, openFiles, queries, scannedEntries, queryResults, queryResultBytes,
