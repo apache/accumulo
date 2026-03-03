@@ -180,51 +180,53 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
         lock.readLock().unlock();
       }
       lock.writeLock().lock();
-      // process prior evictions since we have the write lock
-      processRecentCacheEvictions();
-      // The following block of code fixes an issue with
-      // the cache where recently pre-fetched extents
-      // will be evicted from the cache when it reaches
-      // the maxCacheSize. This is because from the cache's
-      // perspective they are the coldest objects. The code
-      // below manually removes the coldest extents that are
-      // before the searchKey.endRow to make room for the next
-      // batch of extents that we are going to load into the
-      // cache so that they are not immediately evicted.
-      if (maxCacheSize > 0 && cacheCount.get() + prefetch + 1 >= maxCacheSize) {
-        int evictionSize = prefetch * 2;
-        Set<KeyExtent> candidates = new HashSet<>(evictionPolicy.coldest(evictionSize).keySet());
-        LOG.trace("Cache near max size, evaluating {} coldest entries", candidates);
-        candidates.removeIf(ke -> ke.contains(searchKey.endRow()) || ke.endRow() == null
-            || ke.endRow().compareTo(searchKey.endRow()) >= 0);
-        LOG.trace("Manually evicting coldest entries: {}", candidates);
-        cache.invalidateAll(candidates);
-        cache.cleanUp();
-      }
-      // Load TabletMetadata
-      if (LOG.isDebugEnabled()) {
-        scanTimer.restart();
-      }
-      int added = 0;
-      try (TabletsMetadata tm =
-          context.getAmple().readTablets().forTable(tid).overlapping(searchKey.endRow(), true, null)
-              .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION).build()) {
-        Iterator<TabletMetadata> iter = tm.iterator();
-        for (int i = 0; i < prefetch && iter.hasNext(); i++) {
-          TabletMetadata t = iter.next();
-          KeyExtent ke = t.getExtent();
-          LOG.trace("Caching extent: {}", ke);
-          cache.put(ke, ke);
-          cacheCount.incrementAndGet();
-          TabletLocatorImpl.removeOverlapping(extents, ke);
-          extents.add(ke);
-          added++;
+      try {
+        // process prior evictions since we have the write lock
+        processRecentCacheEvictions();
+        // The following block of code fixes an issue with
+        // the cache where recently pre-fetched extents
+        // will be evicted from the cache when it reaches
+        // the maxCacheSize. This is because from the cache's
+        // perspective they are the coldest objects. The code
+        // below manually removes the coldest extents that are
+        // before the searchKey.endRow to make room for the next
+        // batch of extents that we are going to load into the
+        // cache so that they are not immediately evicted.
+        if (maxCacheSize > 0 && cacheCount.get() + prefetch + 1 >= maxCacheSize) {
+          int evictionSize = prefetch * 2;
+          Set<KeyExtent> candidates = new HashSet<>(evictionPolicy.coldest(evictionSize).keySet());
+          LOG.trace("Cache near max size, evaluating {} coldest entries", candidates);
+          candidates.removeIf(ke -> ke.contains(searchKey.endRow()) || ke.endRow() == null
+              || ke.endRow().compareTo(searchKey.endRow()) >= 0);
+          LOG.trace("Manually evicting coldest entries: {}", candidates);
+          cache.invalidateAll(candidates);
+          cache.cleanUp();
         }
+        // Load TabletMetadata
         if (LOG.isDebugEnabled()) {
-          LOG.debug("Took {}ms to scan and load {} metadata tablets for table {}",
-              scanTimer.elapsed(TimeUnit.MILLISECONDS), added, tid);
+          scanTimer.restart();
         }
-        return extents.ceiling(searchKey);
+        int added = 0;
+        try (TabletsMetadata tm = context.getAmple().readTablets().forTable(tid)
+            .overlapping(searchKey.endRow(), true, null)
+            .fetch(ColumnType.PREV_ROW, ColumnType.LOCATION).build()) {
+          Iterator<TabletMetadata> iter = tm.iterator();
+          for (int i = 0; i < prefetch && iter.hasNext(); i++) {
+            TabletMetadata t = iter.next();
+            KeyExtent ke = t.getExtent();
+            LOG.trace("Caching extent: {}", ke);
+            cache.put(ke, ke);
+            cacheCount.incrementAndGet();
+            TabletLocatorImpl.removeOverlapping(extents, ke);
+            extents.add(ke);
+            added++;
+          }
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("Took {}ms to scan and load {} metadata tablets for table {}",
+                scanTimer.elapsed(TimeUnit.MILLISECONDS), added, tid);
+          }
+          return extents.ceiling(searchKey);
+        }
       } finally {
         lock.writeLock().unlock();
       }
