@@ -26,7 +26,6 @@ import java.lang.reflect.Method;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -280,17 +279,7 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a UI-ready view model for the Scan Server status page")
   public ScanServerView getScanServerPageView() {
-    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    Set<ServerId> scanServers =
-        summary.getResourceGroups().stream().map(summary::getSServerResourceGroupServers)
-            .filter(Objects::nonNull).flatMap(Set::stream).collect(Collectors.toSet());
-    int problemScanServerCount = (int) summary.getProblemHosts().stream()
-        .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
-    long nowMs = System.currentTimeMillis();
-    Collection<MetricResponse> responses =
-        monitor.getInformationFetcher().getAllMetrics().getAllPresent(scanServers).values();
-    return ScanServerView.fromMetrics(responses, scanServers.size(), problemScanServerCount, nowMs,
-        summary.getTimestamp());
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getScanServerView();
   }
 
   @GET
