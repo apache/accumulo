@@ -255,7 +255,7 @@ public class Endpoints {
   @GET
   @Path("sservers/summary/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns an aggregate raw metric summary for the ScanServers in the supplied resource group")
+  @Description("Returns an aggregate raw metric summary for the ScanServers in the supplied resource group (diagnostic endpoint)")
   public Map<Id,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -270,7 +270,7 @@ public class Endpoints {
   @GET
   @Path("sservers/summary")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns an aggregate raw metric summary for all ScanServers")
+  @Description("Returns an aggregate raw metric summary for all ScanServers (diagnostic endpoint)")
   public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getSServerAllMetricSummary();
   }
