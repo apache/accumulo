@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -398,9 +399,11 @@ public class UpdateTabletsTest {
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(newExtent1.endRow(), newExtent2.endRow()));
+    var dirNames = new ArrayList<String>();
+    dirNames.add(dir1);
+    dirNames.add(dir2);
     UpdateTablets updateTablets = new UpdateTablets(
-        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
-        List.of(dir1, dir2));
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)), dirNames);
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
@@ -478,9 +481,10 @@ public class UpdateTabletsTest {
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c")));
-    UpdateTablets updateTablets = new UpdateTablets(
-        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
-        List.of("d1"));
+    var dirNames = new ArrayList<String>();
+    dirNames.add("d1");
+    var updateTablets = new UpdateTablets(
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)), dirNames);
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample);
