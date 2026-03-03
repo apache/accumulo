@@ -961,7 +961,6 @@ public class Manager extends AbstractServer
         compactionCoordinator.getThriftService(), this);
 
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
-    // TODO However, should probably consider upgrade?
     FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,

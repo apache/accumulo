@@ -44,6 +44,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
 import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -113,6 +114,18 @@ public class FateWorker implements AssistantManagerService.Iface {
     }
   }
 
+  private boolean upgradeComplete = false;
+
+  // Checks in persistent storage if upgrade is complete. Once it sees its complete remembers this
+  // and stops checking.
+  private synchronized boolean isUpgradeComplete() {
+    if (!upgradeComplete) {
+      upgradeComplete = AccumuloDataVersion.getCurrentVersion(context) >= AccumuloDataVersion.get();
+    }
+
+    return upgradeComplete;
+  }
+
   @Override
   public boolean setPartitions(TInfo tinfo, TCredentials credentials, long updateId,
       List<TFatePartition> desired) throws ThriftSecurityException {
@@ -122,6 +135,8 @@ public class FateWorker implements AssistantManagerService.Iface {
     }
 
     synchronized (this) {
+      // The primary manager should not assign any fate partitions until after upgrade is complete.
+      Preconditions.checkState(isUpgradeComplete());
       if (fate != null && expectedUpdateId != null && updateId == expectedUpdateId) {
         // Set to null which makes it so that an update id can only be used once.
         expectedUpdateId = null;
@@ -130,8 +145,7 @@ public class FateWorker implements AssistantManagerService.Iface {
         log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
         return true;
       } else {
-        log.debug(
-            "Did not change partitions to {} expectedUpdateId:{} updateId:{} localFate==null:{}",
+        log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{} fate==null:{}",
             desired, expectedUpdateId, updateId, fate == null);
         return false;
       }

@@ -87,7 +87,7 @@ public class FateManager {
 
   private final Map<HostAndPort,Set<FatePartition>> pendingNotifications = new HashMap<>();
 
-  private void managerWorkers() throws TException, InterruptedException {
+  private void manageAssistants() throws TException, InterruptedException {
     log.debug("Started Fate Manager");
     long stableCount = 0;
     outer: while (!stop.get()) {
@@ -134,8 +134,7 @@ public class FateManager {
         if (!Sets.difference(curr, partitions).isEmpty()) {
           // This worker has extra partitions that are not desired
           var intersection = Sets.intersection(curr, partitions);
-          if (!setWorkerPartitions(worker, currentPartitions.get(worker).updateId(),
-              intersection)) {
+          if (!setPartitions(worker, currentPartitions.get(worker).updateId(), intersection)) {
             log.debug("Failed to set partitions for {} to {}", worker, intersection);
             // could not set, so start completely over
             continue outer;
@@ -158,7 +157,7 @@ public class FateManager {
         Set<FatePartition> partitions = entry.getValue();
         var curr = currentAssignments.getOrDefault(worker, Set.of());
         if (!curr.equals(partitions)) {
-          if (!setWorkerPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
+          if (!setPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
             log.debug("Failed to set partitions for {} to {}", worker, partitions);
             // could not set, so start completely over
             continue outer;
@@ -180,7 +179,7 @@ public class FateManager {
 
     assignmentThread = Threads.createCriticalThread("Fate Manager", () -> {
       try {
-        managerWorkers();
+        manageAssistants();
       } catch (Exception e) {
         throw new IllegalStateException(e);
       }
@@ -225,7 +224,7 @@ public class FateManager {
       var currentPartitions = entry.getValue();
       if (!currentPartitions.partitions.isEmpty()) {
         try {
-          setWorkerPartitions(hostPort, currentPartitions.updateId(), Set.of());
+          setPartitions(hostPort, currentPartitions.updateId(), Set.of());
         } catch (TException e) {
           log.warn("Failed to unassign fate partitions {}", hostPort, e);
         }
@@ -306,25 +305,25 @@ public class FateManager {
   }
 
   /**
-   * Sets the complete set of partitions a server should work on. It will only succeed if the update
-   * id is valid. The update id avoids race conditions w/ previously queued network messages, it's a
-   * distributed compare and set mechanism that can detect changes.
+   * Sets the complete set of partitions an assistant manager should work on. It will only succeed
+   * if the update id is valid. The update id avoids race conditions w/ previously queued network
+   * messages, it's a distributed compare and set mechanism that can detect changes.
    *
-   * @param address The server to set partitions on
-   * @param updateId What we think the servers current set of fate partitions are.
+   * @param address The assistant manager to set partitions on
+   * @param updateId The update id returned when asking the assistant manager what its current
+   *        partitions were.
    * @param desired The new set of fate partitions this server should start working. It should only
    *        work on these and nothing else.
    * @return true if the partitions were set false if they were not set.
    */
-  private boolean setWorkerPartitions(HostAndPort address, long updateId,
-      Set<FatePartition> desired) throws TException {
+  private boolean setPartitions(HostAndPort address, long updateId, Set<FatePartition> desired)
+      throws TException {
     AssistantManagerService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.ASSISTANT_MANAGER, address, context);
     try {
-      log.trace("Setting partitions {} {}", address, desired);
-      var result = client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
+      log.trace("Setting partitions {} {} {}", address, updateId, desired);
+      return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
-      return result;
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -415,6 +414,9 @@ public class FateManager {
   record CurrentPartitions(long updateId, Set<FatePartition> partitions) {
   }
 
+  /**
+   * @return the fate partitions that assistant managers are currently assigned
+   */
   private Map<HostAndPort,CurrentPartitions> getCurrentAssignments() throws TException {
     var workers =
         context.getServerPaths().getManagerAssistants(DEFAULT_RG_ONLY, AddressSelector.all(), true);
