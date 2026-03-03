@@ -213,14 +213,6 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
         for (int i = 0; i < prefetch && iter.hasNext(); i++) {
           TabletMetadata t = iter.next();
           KeyExtent ke = t.getExtent();
-          if (t.getLocation() != null) {
-            if (context.getTableState(tid) == TableState.ONLINE) {
-              throw new IllegalStateException(
-                  "Cannot continue scan with OfflineTabletLocator, table is now online");
-            }
-            throw new IllegalStateException(
-                "Extent " + ke + " has current or future location, but table is not online");
-          }
           LOG.trace("Caching extent: {}", ke);
           cache.put(ke, ke);
           cacheCount.incrementAndGet();
@@ -286,7 +278,7 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
     KeyExtent searchKey = KeyExtent.fromMetaRow(metadataRow);
     KeyExtent match = extentCache.findOrLoadExtent(searchKey);
     if (match != null) {
-      if (match.prevEndRow() == null || match.prevEndRow().compareTo(row) < 0) {
+      if (match.contains(row)) {
         LOG.trace("Found match for row: {}, extent = {}", row, match);
         return new OfflineTabletLocation(match);
       }
