@@ -18,15 +18,14 @@
  */
 package org.apache.accumulo.core.rpc.clients;
 
-import org.apache.accumulo.core.manager.thrift.AssistantManagerService;
+import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 
 /**
  * Client side object that can be used to interact with operatoins that are supported by any manager
  * process.
  */
-public class AssistantManagerThriftClient
-    extends ThriftClientTypes<AssistantManagerService.Client> {
-  AssistantManagerThriftClient(String serviceName) {
-    super(serviceName, new AssistantManagerService.Client.Factory());
+public class FateWorkerThriftClient extends ThriftClientTypes<FateWorkerService.Client> {
+  FateWorkerThriftClient(String serviceName) {
+    super(serviceName, new FateWorkerService.Client.Factory());
   }
 }

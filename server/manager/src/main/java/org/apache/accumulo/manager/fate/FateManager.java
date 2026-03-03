@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.manager.thrift.AssistantManagerService;
+import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -284,8 +284,8 @@ public class FateManager {
           for (var entry : copy.entrySet()) {
             HostAndPort address = entry.getKey();
             Set<FatePartition> partitions = entry.getValue();
-            AssistantManagerService.Client client =
-                ThriftUtil.getClient(ThriftClientTypes.ASSISTANT_MANAGER, address, context);
+            FateWorkerService.Client client =
+                ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
             try {
               log.trace("Notifying about seeding {} {}", address, partitions);
               client.seeded(TraceUtil.traceInfo(), context.rpcCreds(),
@@ -318,8 +318,8 @@ public class FateManager {
    */
   private boolean setPartitions(HostAndPort address, long updateId, Set<FatePartition> desired)
       throws TException {
-    AssistantManagerService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.ASSISTANT_MANAGER, address, context);
+    FateWorkerService.Client client =
+        ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
     try {
       log.trace("Setting partitions {} {} {}", address, updateId, desired);
       return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
@@ -428,8 +428,8 @@ public class FateManager {
     for (var worker : workers) {
       var address = HostAndPort.fromString(worker.getServer());
 
-      AssistantManagerService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.ASSISTANT_MANAGER, address, context);
+      FateWorkerService.Client client =
+          ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
       try {
 
         var tparitions = client.getPartitions(TraceUtil.traceInfo(), context.rpcCreds());

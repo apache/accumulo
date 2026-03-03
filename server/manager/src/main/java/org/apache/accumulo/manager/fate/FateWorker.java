@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.manager.thrift.AssistantManagerService;
+import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.manager.thrift.TFatePartition;
 import org.apache.accumulo.core.manager.thrift.TFatePartitions;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -54,7 +54,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-public class FateWorker implements AssistantManagerService.Iface {
+public class FateWorker implements FateWorkerService.Iface {
 
   private static final Logger log = LoggerFactory.getLogger(FateWorker.class);
   private final ServerContext context;

@@ -22,8 +22,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
-import org.apache.accumulo.core.manager.thrift.AssistantManagerService;
 import org.apache.accumulo.core.manager.thrift.FateService;
+import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -83,8 +83,8 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   private static final ThriftProcessorTypes<ManagerClientService.Client> MANAGER =
       new ThriftProcessorTypes<>(ThriftClientTypes.MANAGER);
 
-  private static final ThriftProcessorTypes<AssistantManagerService.Client> FATE_WORKER =
-      new ThriftProcessorTypes<>(ThriftClientTypes.ASSISTANT_MANAGER);
+  private static final ThriftProcessorTypes<FateWorkerService.Client> FATE_WORKER =
+      new ThriftProcessorTypes<>(ThriftClientTypes.FATE_WORKER);
 
   @VisibleForTesting
   public static final ThriftProcessorTypes<TabletServerClientService.Client> TABLET_SERVER =
@@ -131,8 +131,8 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static TMultiplexedProcessor getManagerTProcessor(
       ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
       CompactionCoordinatorService.Iface coordinatorServiceHandler,
-      ManagerClientService.Iface managerServiceHandler,
-      AssistantManagerService.Iface fateWorkerService, ServerContext context) {
+      ManagerClientService.Iface managerServiceHandler, FateWorkerService.Iface fateWorkerService,
+      ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
@@ -146,8 +146,8 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));
     muxProcessor.registerProcessor(FATE_WORKER.getServiceName(),
-        FATE_WORKER.getTProcessor(AssistantManagerService.Processor.class,
-            AssistantManagerService.Iface.class, fateWorkerService, context));
+        FATE_WORKER.getTProcessor(FateWorkerService.Processor.class, FateWorkerService.Iface.class,
+            fateWorkerService, context));
     return muxProcessor;
   }
 

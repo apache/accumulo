@@ -544,7 +544,7 @@ struct TFatePartition {
   2:string stop
 }
 
-service AssistantManagerService {
+service FateWorkerService {
 
   TFatePartitions getPartitions(
     1:client.TInfo tinfo,
