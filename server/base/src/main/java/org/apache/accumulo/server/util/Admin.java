@@ -75,6 +75,7 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -600,7 +601,8 @@ public class Admin implements KeywordExecutable {
         String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
         ZooZap.removeSingletonLock(zk, managerLockPath, hostAndPort::contains, opts);
         String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
-        ZooZap.removeSingletonLock(zk, gcLockPath, hostAndPort::contains, opts);
+        ServiceLock.deleteLock(zk, gcLockPath, ServerServices.Service.GC_CLIENT,
+            hostAndPort::contains, log::debug, opts.dryRun);
         String monitorLockPath = Constants.ZROOT + "/" + iid + Constants.ZMONITOR_LOCK;
         ZooZap.removeSingletonLock(zk, monitorLockPath, hostAndPort::contains, opts);
       } else {
