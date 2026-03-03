@@ -1462,10 +1462,9 @@ public class Manager extends AbstractServer
       final ServiceLockPaths.ServiceLockPath zLockPath = getContext().getServerPaths()
           .createManagerWorkerPath(getResourceGroup(), advertiseAddress);
       ServiceLockSupport.createNonHaServiceLockPath(Type.MANAGER, zoo, zLockPath);
-      // TODO use same uuid?
+
       var serverLockUUID = UUID.randomUUID();
       managerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
-      // TODO is the correct thing being done for shutdown?
       ServiceLock.LockWatcher lw = new ServiceLockSupport.ServiceLockWatcher(Type.MANAGER,
           () -> getShutdownComplete().get(),
           (type) -> getContext().getLowMemoryDetector().logGCInfo(getContext().getConfiguration()));
@@ -1507,7 +1506,6 @@ public class Manager extends AbstractServer
     var zooKeeper = getContext().getZooSession();
     log.info("trying to get primary manager lock");
 
-    // TODO do both locks need the same UUID? in #3262 both had the same uuid
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
