@@ -26,15 +26,14 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class ServerConfigCheckRunner implements CheckRunner {
   private static final Check check = Check.SERVER_CONFIG;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
+    boolean status = true;
     printRunning();
 
     log.trace("********** Checking server configuration **********");
@@ -48,7 +47,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
       var val = entry.getValue();
       if (!Property.isValidProperty(key, val)) {
         log.warn("Invalid property (key={} val={}) found in the config", key, val);
-        status = CheckStatus.FAILED;
+        status &= false;
       }
     }
 
@@ -72,7 +71,7 @@ public class ServerConfigCheckRunner implements CheckRunner {
       // it's valid
       if (confPropVal == null || confPropVal.isEmpty()) {
         log.warn("Required property {} is not set!", reqProp);
-        status = CheckStatus.FAILED;
+        status &= false;
       }
     }
 

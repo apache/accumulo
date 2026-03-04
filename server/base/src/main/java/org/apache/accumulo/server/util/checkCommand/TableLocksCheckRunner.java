@@ -30,19 +30,17 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class TableLocksCheckRunner implements CheckRunner {
   private static final Check check = Check.TABLE_LOCKS;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
     printRunning();
 
     log.trace("********** Checking some references **********");
-    status = checkTableLocks(context, status);
+    boolean status = checkTableLocks(context);
 
     printCompleted(status);
     return status;
@@ -53,8 +51,8 @@ public class TableLocksCheckRunner implements CheckRunner {
     return check;
   }
 
-  private static CheckStatus checkTableLocks(ServerContext context, CheckStatus status)
-      throws Exception {
+  private static boolean checkTableLocks(ServerContext context) throws Exception {
+    boolean status = true;
     final AdminUtil<TableLocksCheckRunner> admin = new AdminUtil<>();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final var zk = context.getZooSession();
@@ -74,7 +72,7 @@ public class TableLocksCheckRunner implements CheckRunner {
         lockedIds.removeAll(tableIds);
         lockedIds.removeAll(namespaceIds);
         if (!lockedIds.isEmpty()) {
-          status = CheckStatus.FAILED;
+          status &= false;
           log.warn("...Some table and namespace locks are INVALID (the table/namespace DNE): "
               + lockedIds);
         } else {
@@ -92,7 +90,7 @@ public class TableLocksCheckRunner implements CheckRunner {
                 zTableLocksPath, null, null, null);
         if (!fateStatus.getDanglingHeldLocks().isEmpty()
             || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
-          status = CheckStatus.FAILED;
+          status &= false;
           log.warn("The following locks did not have an associated FATE operation\n");
           for (Map.Entry<FateId,List<String>> entry : fateStatus.getDanglingHeldLocks()
               .entrySet()) {

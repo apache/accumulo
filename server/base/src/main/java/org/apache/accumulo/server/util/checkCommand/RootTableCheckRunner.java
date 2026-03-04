@@ -29,7 +29,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class RootTableCheckRunner implements MetadataCheckRunner {
   private static final Check check = Check.ROOT_TABLE;
@@ -45,15 +44,15 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
+    boolean status = true;
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
     if (FindOfflineTablets.findOffline(context, SystemTables.METADATA.tableName(), true, false,
         log::trace, log::warn) != 0) {
-      status = CheckStatus.FAILED;
+      status &= false;
     } else {
       log.trace("All good... No offline tablets found");
     }
@@ -61,16 +60,16 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
     log.trace("********** Checking some references **********");
     if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(context, tableName(), opts,
         log::trace, log::warn)) {
-      status = CheckStatus.FAILED;
+      status &= false;
     }
 
     log.trace("********** Looking for missing columns **********");
-    status = checkRequiredColumns(context, status);
+    status &= checkRequiredColumns(context);
 
     log.trace("********** Looking for invalid columns **********");
     try (Scanner scanner = context.createScanner(tableName(), Authorizations.EMPTY)) {
-      status = checkColumns(context,
-          scanner.stream().map(AbstractMap.SimpleImmutableEntry::new).iterator(), status);
+      status &= checkColumns(context,
+          scanner.stream().map(AbstractMap.SimpleImmutableEntry::new).iterator());
     }
 
     printCompleted(status);
