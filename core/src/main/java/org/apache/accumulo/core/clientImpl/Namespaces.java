@@ -124,7 +124,7 @@ public class Namespaces {
   }
 
   /**
-   * Look for namespace ID in ZK. Fail quietly by logging and returning null.
+   * Look for namespace ID in ZK. Fail quietly by returning null.
    */
   public static NamespaceId lookupNamespaceId(ClientContext context, String namespaceName) {
     NamespaceId id = null;
