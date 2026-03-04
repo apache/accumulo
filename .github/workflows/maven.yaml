@@ -69,6 +69,7 @@ jobs:
           - {name: 'qa-checks',     javaver: 21, args: 'verify javadoc:jar -Psec-bugs -DskipTests -Dspotbugs.timeout=3600000'}
           - {name: 'compat',        javaver: 21, args: 'package -DskipTests -Dversion.hadoop=3.0.3 -Dversion.zookeeper=3.6.4'}
           - {name: 'errorprone',    javaver: 21, args: 'verify -Perrorprone,skipQA'}
+          - {name: 'jdk25',         javaver: 25, args: 'verify javadoc:jar -DskipTests'}
       fail-fast: false
     runs-on: ubuntu-latest
     steps:
@@ -101,21 +102,21 @@ jobs:
         MAVEN_OPTS: -Djansi.force=true
     - name: Upload unit test results
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: surefire-reports-${{ matrix.profile.name }}
         path: ./**/target/surefire-reports/
         if-no-files-found: ignore
     - name: Upload integration test results
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: failsafe-reports-${{ matrix.profile.name }}
         path: ./**/target/failsafe-reports/
         if-no-files-found: ignore
     - name: Upload mini test logs
       if: ${{ failure() }}
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@v7
       with:
         name: mini-tests-logs-${{ matrix.profile.name }}
         path: ./**/target/**/mini-tests/**/logs/

@@ -153,6 +153,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.common.collect.Maps;
+import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
@@ -1485,24 +1486,16 @@ public class Manager extends AbstractServer
     serversToShutdown.retainAll(current.getCurrentServers());
   }
 
-  private static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
+  static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
       Set<TServerInstance> deleted, Set<TServerInstance> added) {
-    Iterator<TServerInstance> badIter = badServers.iterator();
-    while (badIter.hasNext()) {
-      TServerInstance bad = badIter.next();
-      for (TServerInstance add : added) {
-        if (bad.getHostPort().equals(add.getHostPort())) {
-          badIter.remove();
-          break;
-        }
-      }
-      for (TServerInstance del : deleted) {
-        if (bad.getHostPort().equals(del.getHostPort())) {
-          badIter.remove();
-          break;
-        }
-      }
+    if (badServers.isEmpty() || (deleted.isEmpty() && added.isEmpty())) {
+      // nothing to do
+      return;
     }
+    HashSet<HostAndPort> removalSet = new HashSet<>(deleted.size() + added.size());
+    deleted.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    added.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    badServers.removeIf(badServer -> removalSet.contains(badServer.getHostAndPort()));
   }
 
   public Set<TableId> onlineTables() {
