@@ -62,7 +62,6 @@ import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.CancelCompaction;
-import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindOfflineTablets;
@@ -190,8 +189,6 @@ public class KeywordStartIT {
         CheckAccumuloProperties.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-compaction-config",
         CheckCompactionConfig.class));
-    expectSet.add(
-        new CommandInfo(CommandGroups.INSTANCE, "check-metadata", CheckForMetadataProblems.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "compactor", CompactorExecutable.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "create-empty", CreateEmpty.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "create-token", CreateToken.class));
@@ -308,7 +305,6 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(SystemCheck.class);
-    expectSet.add(CheckForMetadataProblems.class);
     expectSet.add(Compactor.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(DumpConfig.class);

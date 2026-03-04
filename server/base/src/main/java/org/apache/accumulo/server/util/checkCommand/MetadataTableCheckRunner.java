@@ -27,7 +27,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
@@ -65,8 +64,7 @@ public class MetadataTableCheckRunner implements MetadataCheckRunner {
     }
 
     log.trace("********** Checking some references **********");
-    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(context, tableName(), opts,
-        log::trace, log::warn)) {
+    if (MetadataCheckRunner.checkTableEntries(context, tableName(), log::trace, log::warn)) {
       status = CheckStatus.FAILED;
     }
 
