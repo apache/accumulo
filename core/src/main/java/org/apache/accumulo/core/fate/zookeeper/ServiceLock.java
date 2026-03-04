@@ -829,10 +829,6 @@ public class ServiceLock implements Watcher {
     Objects.requireNonNull(path, "Lock path cannot be null");
     Objects.requireNonNull(hostPortPredicate, "host predicate cannot be null");
 
-    if (!zoo.exists(path)) {
-      throw new IllegalStateException("Path " + path + " does not exist");
-    }
-
     var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
     if (lockData != null) {
       ServerServices lock = new ServerServices(new String(lockData, UTF_8));
