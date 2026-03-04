@@ -21,8 +21,8 @@ package org.apache.accumulo.core.rpc.clients;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 
 /**
- * Client side object that can be used to interact with fate operations, which are supported by any manager
- * process.
+ * Client side object that can be used to interact with fate operations, which are supported by any
+ * manager process.
  */
 public class FateWorkerThriftClient extends ThriftClientTypes<FateWorkerService.Client> {
   FateWorkerThriftClient(String serviceName) {
