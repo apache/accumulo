@@ -214,10 +214,15 @@ public class OfflineTabletLocatorImpl extends TabletLocator {
           for (int i = 0; i < prefetch && iter.hasNext(); i++) {
             TabletMetadata t = iter.next();
             KeyExtent ke = t.getExtent();
+            // Its possible that ke could already exist in extents and the following would remove
+            // it, should be ok as this runs before adding ke.
+            for (KeyExtent overlapping : KeyExtent.findOverlapping(ke, extents)) {
+              cache.invalidate(overlapping);
+              extents.remove(overlapping);
+            }
             LOG.trace("Caching extent: {}", ke);
             cache.put(ke, ke);
             cacheCount.incrementAndGet();
-            TabletLocatorImpl.removeOverlapping(extents, ke);
             extents.add(ke);
             added++;
           }
