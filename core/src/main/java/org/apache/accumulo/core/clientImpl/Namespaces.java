@@ -131,9 +131,7 @@ public class Namespaces {
     try {
       id = getNamespaceId(context, namespaceName);
     } catch (NamespaceNotFoundException e) {
-      if (log.isDebugEnabled()) {
-        log.debug("Failed to find namespace ID from name: " + namespaceName, e);
-      }
+      // not found is the expected outcome - callers handle null return
     }
     return id;
   }

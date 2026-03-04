@@ -411,8 +411,12 @@ public class NamespacesIT extends SharedMiniClusterBase {
           EnumSet.allOf(IteratorScope.class));
       c.namespaceOperations().attachIterator(namespace, setting);
       sleepUninterruptibly(2, TimeUnit.SECONDS);
-      var e = assertThrows(AccumuloException.class, () -> c.namespaceOperations()
-          .checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class)));
+      // conflicting iterator with same name and different priority
+      IteratorSetting conflictingSetting = new IteratorSetting(setting.getPriority() + 1,
+          setting.getName(), setting.getIteratorClass());
+      var e = assertThrows(AccumuloException.class,
+          () -> c.namespaceOperations().checkIteratorConflicts(namespace, conflictingSetting,
+              EnumSet.allOf(IteratorScope.class)));
       assertEquals(IllegalArgumentException.class, e.getCause().getClass());
       IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace,
           setting.getName(), IteratorScope.scan);
