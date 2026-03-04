@@ -20,28 +20,42 @@ package org.apache.accumulo.server.util.checkCommand;
 
 import java.io.IOException;
 import java.util.AbstractMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
+import java.util.TreeSet;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.hadoop.io.Text;
+
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 public interface MetadataCheckRunner extends CheckRunner {
 
@@ -67,8 +81,7 @@ public interface MetadataCheckRunner extends CheckRunner {
    * Ensures that the {@link #tableName()} table (either metadata or root table) has all columns
    * that are expected. For the root metadata, ensures that the expected "columns" exist in ZK.
    */
-  default CheckStatus checkRequiredColumns(ServerContext context, CheckStatus status)
-      throws Exception {
+  default boolean checkRequiredColumns(ServerContext context) throws Exception {
     Set<ColumnFQ> requiredColFQs;
     Set<Text> requiredColFams;
     boolean missingReqCol = false;
@@ -99,7 +112,6 @@ public interface MetadataCheckRunner extends CheckRunner {
         if (!requiredColFQs.isEmpty() || !requiredColFams.isEmpty()) {
           log.warn("Tablet {} is missing required columns: col FQs: {}, col fams: {} in the {}\n",
               entry.getKey().getRow(), requiredColFQs, requiredColFams, scanning());
-          status = CheckStatus.FAILED;
           missingReqCol = true;
         }
       }
@@ -107,16 +119,18 @@ public interface MetadataCheckRunner extends CheckRunner {
 
     if (!missingReqCol) {
       log.trace("...The {} contains all required columns for all tablets\n", scanning());
+      return true;
+    } else {
+      return false;
     }
-    return status;
   }
 
   /**
    * Ensures each column in the root or metadata table (or in ZK for the root metadata) is valid -
    * no unexpected columns, and for the columns that are expected, ensures the values are valid
    */
-  default CheckStatus checkColumns(ServerContext context,
-      Iterator<AbstractMap.SimpleImmutableEntry<Key,Value>> iter, CheckStatus status) {
+  default boolean checkColumns(ServerContext context,
+      Iterator<AbstractMap.SimpleImmutableEntry<Key,Value>> iter) {
     boolean invalidCol = false;
     MetadataConstraints mc = new MetadataConstraints();
 
@@ -132,15 +146,16 @@ public interface MetadataCheckRunner extends CheckRunner {
       var violations = mc.check(new ConstraintEnv(context), m);
       if (!violations.isEmpty()) {
         violations.forEach(violationCode -> log.warn(mc.getViolationDescription(violationCode)));
-        status = CheckStatus.FAILED;
         invalidCol = true;
       }
     }
 
     if (!invalidCol) {
       log.trace("...All columns in the {} are valid\n", scanning());
+      return true;
+    } else {
+      return false;
     }
-    return status;
   }
 
   default void fetchRequiredColumns(Scanner scanner) {
@@ -183,4 +198,172 @@ public interface MetadataCheckRunner extends CheckRunner {
       return context;
     }
   }
+
+  private static boolean checkTable(ServerContext context, TableId tableId,
+      TreeSet<KeyExtent> tablets, Consumer<String> printInfoMethod,
+      Consumer<String> printProblemMethod) {
+    // sanity check of metadata table entries
+    // make sure tablets have no holes, and that it starts and ends w/ null
+    String tableName;
+    boolean sawProblems = false;
+
+    try {
+      tableName = context.getQualifiedTableName(tableId);
+    } catch (TableNotFoundException e) {
+      tableName = null;
+    }
+
+    printInfoMethod.accept(String.format("Ensuring tablets for table %s (%s) have: no holes, "
+        + "valid (null) prev end row for first tablet, and valid (null) end row "
+        + "for last tablet...\n", tableName, tableId));
+
+    if (tablets.isEmpty()) {
+      printProblemMethod.accept(String
+          .format("...No entries found in metadata table for table %s (%s)", tableName, tableId));
+      return true;
+    }
+
+    if (tablets.first().prevEndRow() != null) {
+      printProblemMethod
+          .accept(String.format("...First entry for table %s (%s) - %s - has non-null prev end row",
+              tableName, tableId, tablets.first()));
+      return true;
+    }
+
+    if (tablets.last().endRow() != null) {
+      printProblemMethod
+          .accept(String.format("...Last entry for table %s (%s) - %s - has non-null end row",
+              tableName, tableId, tablets.last()));
+      return true;
+    }
+
+    Iterator<KeyExtent> tabIter = tablets.iterator();
+    Text lastEndRow = tabIter.next().endRow();
+    boolean everythingLooksGood = true;
+    while (tabIter.hasNext()) {
+      KeyExtent table = tabIter.next();
+      boolean broke = false;
+      if (table.prevEndRow() == null) {
+        printProblemMethod
+            .accept(String.format("...Table %s (%s) has null prev end row in middle of table %s",
+                tableName, tableId, table));
+        broke = true;
+      } else if (!table.prevEndRow().equals(lastEndRow)) {
+        printProblemMethod.accept(String.format("...Table %s (%s) has a hole %s != %s", tableName,
+            tableId, table.prevEndRow(), lastEndRow));
+        broke = true;
+      }
+      if (broke) {
+        everythingLooksGood = false;
+      }
+
+      lastEndRow = table.endRow();
+    }
+    if (everythingLooksGood) {
+      printInfoMethod.accept(String.format("...All is well for table %s (%s)", tableName, tableId));
+    } else {
+      sawProblems = true;
+    }
+
+    return sawProblems;
+  }
+
+  public static boolean checkTableEntries(ServerContext context, String tableNameToCheck,
+      Consumer<String> printInfoMethod, Consumer<String> printProblemMethod) throws Exception {
+    TableId tableCheckId = context.getTableId(tableNameToCheck);
+    printInfoMethod.accept(String.format("Checking tables whose metadata is found in: %s (%s)...\n",
+        tableNameToCheck, tableCheckId));
+    Map<TableId,TreeSet<KeyExtent>> tables = new HashMap<>();
+    boolean sawProblems = false;
+
+    try (Scanner scanner = context.createScanner(tableNameToCheck, Authorizations.EMPTY)) {
+
+      scanner.setRange(TabletsSection.getRange());
+      TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
+      scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
+
+      Text colf = new Text();
+      Text colq = new Text();
+      boolean justLoc = false;
+
+      int count = 0;
+
+      for (Entry<Key,Value> entry : scanner) {
+        colf = entry.getKey().getColumnFamily(colf);
+        colq = entry.getKey().getColumnQualifier(colq);
+
+        count++;
+
+        TableId tableId = KeyExtent.fromMetaRow(entry.getKey().getRow()).tableId();
+
+        TreeSet<KeyExtent> tablets = tables.get(tableId);
+        if (tablets == null) {
+
+          for (var e : tables.entrySet()) {
+            sawProblems =
+                checkTable(context, e.getKey(), e.getValue(), printInfoMethod, printProblemMethod)
+                    || sawProblems;
+          }
+
+          tables.clear();
+
+          tablets = new TreeSet<>();
+          tables.put(tableId, tablets);
+        }
+
+        if (TabletColumnFamily.PREV_ROW_COLUMN.equals(colf, colq)) {
+          KeyExtent tabletKe = KeyExtent.fromMetaPrevRow(entry);
+          tablets.add(tabletKe);
+          justLoc = false;
+        } else if (colf.equals(CurrentLocationColumnFamily.NAME)) {
+          if (justLoc) {
+            printProblemMethod.accept("Problem at key " + entry.getKey());
+            sawProblems = true;
+          }
+          justLoc = true;
+        }
+      }
+
+      if (count == 0) {
+        printProblemMethod.accept(
+            String.format("ERROR : table %s (%s) is empty", tableNameToCheck, tableCheckId));
+        sawProblems = true;
+      }
+    }
+
+    for (var e : tables.entrySet()) {
+      sawProblems =
+          checkTable(context, e.getKey(), e.getValue(), printInfoMethod, printProblemMethod)
+              || sawProblems;
+    }
+
+    if (!sawProblems) {
+      printInfoMethod.accept(
+          String.format("\n...No problems found in %s (%s)", tableNameToCheck, tableCheckId));
+    }
+    // end METADATA table sanity check
+    return sawProblems;
+  }
+
+  public static void checkMetadataAndRootTableEntries(ServerContext context) throws Exception {
+    Span span = TraceUtil.startSpan(MetadataCheckRunner.class, "main");
+    boolean sawProblems;
+    try (Scope scope = span.makeCurrent()) {
+
+      sawProblems = checkTableEntries(context, SystemTables.ROOT.tableName(), System.out::println,
+          System.out::println);
+      System.out.println();
+      sawProblems = checkTableEntries(context, SystemTables.METADATA.tableName(),
+          System.out::println, System.out::println) || sawProblems;
+      if (sawProblems) {
+        throw new IllegalStateException();
+      }
+    } catch (Exception e) {
+      TraceUtil.setException(span, e, true);
+      throw e;
+    } finally {
+      span.end();
+    }
+  }
+
 }
