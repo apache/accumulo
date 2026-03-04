@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -348,6 +350,7 @@ public class SystemInformation {
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
   private long timestamp = 0;
+  private ScanServerView scanServerView;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
     this.allMetrics = allMetrics;
@@ -371,6 +374,7 @@ public class SystemInformation {
     tablets.clear();
     deployment.clear();
     suggestions.clear();
+    scanServerView = null;
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -510,7 +514,14 @@ public class SystemInformation {
             + " group " + balancerRG + ", but there are no TabletServers.");
       }
     }
+    Set<ServerId> scanServers = new HashSet<>();
+    sservers.values().forEach(scanServers::addAll);
+    int problemScanServerCount = (int) problemHosts.stream()
+        .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
+    var responses = allMetrics.getAllPresent(scanServers).values();
     timestamp = System.currentTimeMillis();
+    scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
+        problemScanServerCount, timestamp);
   }
 
   public Set<String> getResourceGroups() {
@@ -615,6 +626,10 @@ public class SystemInformation {
 
   public long getTimestamp() {
     return this.timestamp;
+  }
+
+  public ScanServerView getScanServerView() {
+    return this.scanServerView;
   }
 
 }

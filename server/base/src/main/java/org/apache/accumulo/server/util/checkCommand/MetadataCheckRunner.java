@@ -52,7 +52,6 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.hadoop.io.Text;
 
 import io.opentelemetry.api.trace.Span;
@@ -82,8 +81,7 @@ public interface MetadataCheckRunner extends CheckRunner {
    * Ensures that the {@link #tableName()} table (either metadata or root table) has all columns
    * that are expected. For the root metadata, ensures that the expected "columns" exist in ZK.
    */
-  default CheckStatus checkRequiredColumns(ServerContext context, CheckStatus status)
-      throws Exception {
+  default boolean checkRequiredColumns(ServerContext context) throws Exception {
     Set<ColumnFQ> requiredColFQs;
     Set<Text> requiredColFams;
     boolean missingReqCol = false;
@@ -114,7 +112,6 @@ public interface MetadataCheckRunner extends CheckRunner {
         if (!requiredColFQs.isEmpty() || !requiredColFams.isEmpty()) {
           log.warn("Tablet {} is missing required columns: col FQs: {}, col fams: {} in the {}\n",
               entry.getKey().getRow(), requiredColFQs, requiredColFams, scanning());
-          status = CheckStatus.FAILED;
           missingReqCol = true;
         }
       }
@@ -122,16 +119,18 @@ public interface MetadataCheckRunner extends CheckRunner {
 
     if (!missingReqCol) {
       log.trace("...The {} contains all required columns for all tablets\n", scanning());
+      return true;
+    } else {
+      return false;
     }
-    return status;
   }
 
   /**
    * Ensures each column in the root or metadata table (or in ZK for the root metadata) is valid -
    * no unexpected columns, and for the columns that are expected, ensures the values are valid
    */
-  default CheckStatus checkColumns(ServerContext context,
-      Iterator<AbstractMap.SimpleImmutableEntry<Key,Value>> iter, CheckStatus status) {
+  default boolean checkColumns(ServerContext context,
+      Iterator<AbstractMap.SimpleImmutableEntry<Key,Value>> iter) {
     boolean invalidCol = false;
     MetadataConstraints mc = new MetadataConstraints();
 
@@ -147,15 +146,16 @@ public interface MetadataCheckRunner extends CheckRunner {
       var violations = mc.check(new ConstraintEnv(context), m);
       if (!violations.isEmpty()) {
         violations.forEach(violationCode -> log.warn(mc.getViolationDescription(violationCode)));
-        status = CheckStatus.FAILED;
         invalidCol = true;
       }
     }
 
     if (!invalidCol) {
       log.trace("...All columns in the {} are valid\n", scanning());
+      return true;
+    } else {
+      return false;
     }
-    return status;
   }
 
   default void fetchRequiredColumns(Scanner scanner) {

@@ -587,14 +587,6 @@ function getCompactorsSummary(group) {
 }
 
 /**
- * REST GET call for /sservers/summary,
- * stores it on a sessionStorage variable
- */
-function getSserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/summary', 'sserversSummary');
-}
-
-/**
  * REST GET call for /tables/{name}/tablets,
  * stores it on a sessionStorage variable
  * @param {string} name Table name
@@ -657,14 +649,11 @@ function getDeployment() {
 }
 
 /**
- * REST GET call for /sservers/summary/{group},
+ * REST GET call for /sservers/view,
  * stores it on a sessionStorage variable
- * @param {string} group Group name
  */
-function getSserversSummaryGroup(group) {
-  const url = `${REST_V2_PREFIX}/sservers/summary/${group}`;
-  const sessionDataVar = `sserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
+function getSserversView() {
+  return getJSONForTable(REST_V2_PREFIX + '/sservers/view', 'sserversView');
 }
 
 /**
