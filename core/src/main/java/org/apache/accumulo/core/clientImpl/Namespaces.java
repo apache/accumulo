@@ -131,7 +131,7 @@ public class Namespaces {
     try {
       id = getNamespaceId(context, namespaceName);
     } catch (NamespaceNotFoundException e) {
-      // not found is the expected outcome - callers handle null return
+      return null;
     }
     return id;
   }
