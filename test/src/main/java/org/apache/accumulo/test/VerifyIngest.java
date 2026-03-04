@@ -30,6 +30,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.Key;
@@ -109,6 +110,12 @@ public class VerifyIngest {
 
   public static void verifyIngest(AccumuloClient accumuloClient, VerifyParams params)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
+    verifyIngest(accumuloClient, params, ConsistencyLevel.IMMEDIATE);
+  }
+
+  public static void verifyIngest(AccumuloClient accumuloClient, VerifyParams params,
+      ConsistencyLevel cl)
+      throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     byte[][] bytevals = TestIngest.generateValues(params.dataSize);
 
     Authorizations labelAuths = new Authorizations("L1", "L2", "G1", "GROUP2");
@@ -136,6 +143,7 @@ public class VerifyIngest {
         Text colq = new Text("col_" + String.format("%07d", expectedCol));
 
         try (Scanner scanner = accumuloClient.createScanner("test_ingest", labelAuths)) {
+          scanner.setConsistencyLevel(cl);
           scanner.setBatchSize(1);
           Key startKey = new Key(rowKey, colf, colq);
           Range range = new Range(startKey, startKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL));
@@ -181,6 +189,7 @@ public class VerifyIngest {
         Key startKey = new Key(new Text("row_" + String.format("%010d", expectedRow)));
 
         try (Scanner scanner = accumuloClient.createScanner(params.tableName, labelAuths)) {
+          scanner.setConsistencyLevel(cl);
           scanner.setRange(new Range(startKey, endKey));
           for (int j = 0; j < params.cols; j++) {
             scanner.fetchColumn(new Text(params.columnFamily),

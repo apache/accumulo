@@ -710,8 +710,8 @@ public class ClientContext implements AccumuloClient {
       int numQueryThreads) throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    return new TabletServerBatchReader(this, requireNotOffline(getTableId(tableName), tableName),
-        tableName, authorizations, numQueryThreads);
+    return new TabletServerBatchReader(this, getTableId(tableName), tableName, authorizations,
+        numQueryThreads);
   }
 
   @Override
@@ -796,8 +796,7 @@ public class ClientContext implements AccumuloClient {
       throws TableNotFoundException {
     ensureOpen();
     checkArgument(authorizations != null, "authorizations is null");
-    Scanner scanner =
-        new ScannerImpl(this, requireNotOffline(getTableId(tableName), tableName), authorizations);
+    Scanner scanner = new ScannerImpl(this, getTableId(tableName), authorizations);
     Integer batchSize = ClientProperty.SCANNER_BATCH_SIZE.getInteger(getProperties());
     if (batchSize != null) {
       scanner.setBatchSize(batchSize);

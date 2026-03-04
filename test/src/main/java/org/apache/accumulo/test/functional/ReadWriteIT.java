@@ -62,6 +62,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -211,18 +212,23 @@ public class ReadWriteIT extends AccumuloClusterHarness {
 
   public static void verify(AccumuloClient accumuloClient, int rows, int cols, int width,
       int offset, String tableName) throws Exception {
-    verify(accumuloClient, rows, cols, width, offset, COLF, tableName);
+    verify(accumuloClient, rows, cols, width, offset, COLF, tableName, ConsistencyLevel.IMMEDIATE);
+  }
+
+  public static void verifyEventual(AccumuloClient accumuloClient, int rows, int cols, int width,
+      int offset, String tableName) throws Exception {
+    verify(accumuloClient, rows, cols, width, offset, COLF, tableName, ConsistencyLevel.EVENTUAL);
   }
 
   private static void verify(AccumuloClient accumuloClient, int rows, int cols, int width,
-      int offset, String colf, String tableName) throws Exception {
+      int offset, String colf, String tableName, ConsistencyLevel cl) throws Exception {
     VerifyParams params = new VerifyParams(accumuloClient.properties(), tableName, rows);
     params.rows = rows;
     params.dataSize = width;
     params.startRow = offset;
     params.columnFamily = colf;
     params.cols = cols;
-    VerifyIngest.verifyIngest(accumuloClient, params);
+    VerifyIngest.verifyIngest(accumuloClient, params, cl);
   }
 
   public static String[] args(String... args) {
@@ -445,7 +451,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
         to.setLocalityGroups(table, getGroups(cfg));
         to.flush(table, null, null, true);
         verify(accumuloClient, ROWS * i, 1, 50, 0, table);
-        verify(accumuloClient, ROWS * i, 1, 50, 0, "xyz", table);
+        verify(accumuloClient, ROWS * i, 1, 50, 0, "xyz", table, ConsistencyLevel.IMMEDIATE);
         i++;
       }
     }
