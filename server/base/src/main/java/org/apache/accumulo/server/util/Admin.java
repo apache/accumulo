@@ -75,6 +75,7 @@ import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -589,20 +590,28 @@ public class Admin implements KeywordExecutable {
         var iid = context.getInstanceID();
 
         String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
-        ZooZap.removeLocks(zk, tserversPath, hostAndPort::contains, opts);
+        ServiceLock.deleteLocks(zk, tserversPath, hostAndPort::contains, log::debug, false);
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
         ZooZap.removeCompactorGroupedLocks(zk, compactorsBasepath, rg -> true,
             hostAndPort::contains, opts);
         String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
-        ZooZap.removeScanServerGroupLocks(zk, sserversPath, hostAndPort::contains, rg -> true,
-            opts);
+        try {
+          ZooZap.removeScanServerGroupLocks(zk, sserversPath, hostAndPort::contains, rg -> true,
+              opts);
+        } catch (IllegalStateException e) {
+          log.debug("No Scan Server locks currently exist", e);
+        }
 
         String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
         ZooZap.removeSingletonLock(zk, managerLockPath, hostAndPort::contains, opts);
         String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
-        ZooZap.removeSingletonLock(zk, gcLockPath, hostAndPort::contains, opts);
+        ServiceLock.deleteLock(zk, gcLockPath, ServerServices.Service.GC_CLIENT,
+            hostAndPort::contains, log::debug, opts.dryRun);
         String monitorLockPath = Constants.ZROOT + "/" + iid + Constants.ZMONITOR_LOCK;
         ZooZap.removeSingletonLock(zk, monitorLockPath, hostAndPort::contains, opts);
+        String compactionCoordinatorLockPath =
+            Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
+        ZooZap.removeSingletonLock(zk, compactionCoordinatorLockPath, hostAndPort::contains, opts);
       } else {
         for (var server : hostAndPort) {
           signalGracefulShutdown(context, server);

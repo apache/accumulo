@@ -825,13 +825,20 @@ public class ServiceLock implements Watcher {
   public static void deleteLock(ZooReaderWriter zoo, String path,
       ServerServices.Service serviceType, Predicate<HostAndPort> hostPortPredicate,
       Consumer<String> messageOutput, Boolean dryRun) throws KeeperException, InterruptedException {
+
+    Objects.requireNonNull(path, "Lock path cannot be null");
+    Objects.requireNonNull(hostPortPredicate, "host predicate cannot be null");
+
     var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
     if (lockData != null) {
       ServerServices lock = new ServerServices(new String(lockData, UTF_8));
       if (hostPortPredicate.test(lock.getAddress(serviceType))) {
-        messageOutput.accept("Deleting " + path + " from zookeeper");
-        if (!dryRun) {
-          zoo.recursiveDelete(path, NodeMissingPolicy.SKIP);
+        List<String> children = zoo.getChildren(path);
+        for (String child : children) {
+          messageOutput.accept("Deleting " + path + "/" + child + " from zookeeper");
+          if (!dryRun) {
+            zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
+          }
         }
       }
     }
