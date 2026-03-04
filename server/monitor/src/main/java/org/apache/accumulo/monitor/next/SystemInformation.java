@@ -514,15 +514,14 @@ public class SystemInformation {
             + " group " + balancerRG + ", but there are no TabletServers.");
       }
     }
-    timestamp = System.currentTimeMillis();
-
     Set<ServerId> scanServers = new HashSet<>();
     sservers.values().forEach(scanServers::addAll);
     int problemScanServerCount = (int) problemHosts.stream()
         .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
     var responses = allMetrics.getAllPresent(scanServers).values();
+    timestamp = System.currentTimeMillis();
     scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
-        problemScanServerCount, timestamp, timestamp);
+        problemScanServerCount, timestamp);
   }
 
   public Set<String> getResourceGroups() {

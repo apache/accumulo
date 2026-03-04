@@ -62,10 +62,10 @@ public record ScanServerView(long lastUpdate, List<Row> servers, Status status) 
   private static final String LEVEL_WARN = "WARN";
 
   public static ScanServerView fromMetrics(Collection<MetricResponse> responses,
-      int scanServerCount, int problemScanServerCount, long nowMs, long lastUpdate) {
-    var rows = rows(responses, nowMs);
+      int scanServerCount, int problemScanServerCount, long snapshotTime) {
+    var rows = rows(responses, snapshotTime);
     Status status = buildStatus(scanServerCount, problemScanServerCount, rows);
-    return new ScanServerView(lastUpdate, rows, status);
+    return new ScanServerView(snapshotTime, rows, status);
   }
 
   private static List<Row> rows(Collection<MetricResponse> responses, long nowMs) {
