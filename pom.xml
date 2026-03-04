@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>35</version>
+    <version>37</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -143,9 +143,9 @@ under the License.
     <failsafe.forkCount>1</failsafe.forkCount>
     <failsafe.groups />
     <failsafe.reuseForks>false</failsafe.reuseForks>
+    <javaVersion>11</javaVersion>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
-    <maven.compiler.target>11</maven.compiler.target>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
     <maven.site.deploy.skip>true</maven.site.deploy.skip>
     <maven.site.skip>true</maven.site.skip>
@@ -153,8 +153,9 @@ under the License.
     <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
     <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
     <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
-    <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
+    <minimalJavaBuildVersion>21</minimalJavaBuildVersion>
     <minimalMavenBuildVersion>3.9</minimalMavenBuildVersion>
+    <modernizer.javaVersion>${javaVersion}</modernizer.javaVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
     <project.build.outputTimestamp>2025-08-13T01:30:03Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
@@ -280,7 +281,7 @@ under the License.
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
-        <artifactId>auto-service</artifactId>
+        <artifactId>auto-service-annotations</artifactId>
         <version>${version.auto-service}</version>
       </dependency>
       <dependency>
@@ -721,6 +722,12 @@ under the License.
       <artifactId>spotbugs-annotations</artifactId>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <!-- needed for compile-time annotations only -->
+      <groupId>com.google.auto.service</groupId>
+      <artifactId>auto-service-annotations</artifactId>
+      <optional>true</optional>
+    </dependency>
   </dependencies>
   <build>
     <pluginManagement>
@@ -729,7 +736,7 @@ under the License.
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.19.0</version>
+          <version>2.21.0</version>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
@@ -774,14 +781,11 @@ under the License.
           <artifactId>modernizer-maven-plugin</artifactId>
           <!-- newer versions suggest changes not worth the effort in 2.1 -->
           <version>2.9.0</version>
-          <configuration>
-            <javaVersion>${maven.compiler.target}</javaVersion>
-          </configuration>
         </plugin>
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.9.5.0</version>
+          <version>4.9.8.2</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -820,7 +824,7 @@ under the License.
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>1.1.1</version>
+          <version>1.1.2</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -836,6 +840,8 @@ under the License.
               <arg>-Xlint:-processing</arg>
               <!-- suppress try to ignore unused variable in try-with-resources -->
               <arg>-Xlint:-try</arg>
+              <!-- suppress too many false positives, including generated thrift code -->
+              <arg>-Xlint:-this-escape</arg>
               <arg>-Xmaxwarns</arg>
               <arg>5</arg>
             </compilerArgs>
@@ -882,11 +888,11 @@ under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-release-plugin</artifactId>
           <configuration>
-            <arguments>-P !autoformat,verifyformat,thrift -DskipTests</arguments>
             <goals>clean deploy</goals>
             <preparationGoals>clean package</preparationGoals>
             <tagNameFormat>rel/@{project.version}</tagNameFormat>
-            <releaseProfiles>apache-release,accumulo-release</releaseProfiles>
+            <preparationProfiles>apache-release,accumulo-release,!autoformat,verifyformat,thrift</preparationProfiles>
+            <releaseProfiles>apache-release,accumulo-release,!autoformat,verifyformat,thrift</releaseProfiles>
             <useReleaseProfile>false</useReleaseProfile>
             <pushChanges>false</pushChanges>
             <localCheckout>true</localCheckout>
@@ -929,7 +935,7 @@ under the License.
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.5.1</version>
+          <version>3.6.3</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -941,6 +947,9 @@ under the License.
           <artifactId>formatter-maven-plugin</artifactId>
           <version>2.29.0</version>
           <configuration>
+            <compilerCompliance>${javaVersion}</compilerCompliance>
+            <compilerSource>${javaVersion}</compilerSource>
+            <compilerTargetPlatform>${javaVersion}</compilerTargetPlatform>
             <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
               <exclude>**/thrift/*.java</exclude>
@@ -985,7 +994,7 @@ under the License.
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.12.0</version>
+          <version>1.13.0</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,jakarta.,org.,com.</groups>
@@ -1008,9 +1017,7 @@ under the License.
             </goals>
             <configuration>
               <failOnWarning>true</failOnWarning>
-              <ignoredUsedUndeclaredDependencies>
-                <!-- auto-service-annotations is transitive via auto-service -->
-                <undeclared>com.google.auto.service:auto-service-annotations:jar:*</undeclared>
+              <ignoredUsedUndeclaredDependencies combine.children="append">
                 <!-- used/undeclared child jars brought in by parents below -->
                 <undeclared>org.apache.curator:curator-client:jar:*</undeclared>
                 <undeclared>org.apache.hadoop:hadoop-common:jar:*</undeclared>
@@ -1023,9 +1030,9 @@ under the License.
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <undeclared>junit:junit:jar:*</undeclared>
               </ignoredUsedUndeclaredDependencies>
-              <ignoredUnusedDeclaredDependencies>
-                <!-- auto-service isn't used in every module -->
-                <unused>com.google.auto.service:auto-service:jar:*</unused>
+              <ignoredUnusedDeclaredDependencies combine.children="append">
+                <!-- auto-service annotations may or may not be used in each module -->
+                <unused>com.google.auto.service:auto-service-annotations:jar:*</unused>
                 <!-- unused/declared implementation jars or parent jars that bring in children -->
                 <unused>org.apache.hadoop:hadoop-client:jar:*</unused>
                 <unused>org.apache.hadoop:hadoop-client-runtime:jar:*</unused>
@@ -1050,6 +1057,15 @@ under the License.
                 <!-- This is only used at runtime only by test, not at compile time  -->
                 <unused>io.opentelemetry.javaagent:opentelemetry-javaagent:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
+            </configuration>
+          </execution>
+          <execution>
+            <id>analyze-exclusions</id>
+            <goals>
+              <goal>analyze-exclusions</goal>
+            </goals>
+            <configuration>
+              <exclusionFail>true</exclusionFail>
             </configuration>
           </execution>
         </executions>
@@ -1785,6 +1801,7 @@ under the License.
             <configuration>
               <compilerArgs>
                 <arg>-XDcompilePolicy=simple</arg>
+                <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
                 <arg>--should-stop=ifError=FLOW</arg>
                 <arg>
                   -Xplugin:ErrorProne \

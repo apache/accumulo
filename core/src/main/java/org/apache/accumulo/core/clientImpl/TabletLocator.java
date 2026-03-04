@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataLocationObtainer;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
@@ -110,6 +111,7 @@ public abstract class TabletLocator {
   }
 
   private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
+  private static final HashMap<TableId,OfflineTabletLocatorImpl> offlineLocators = new HashMap<>();
   private static boolean enabled = true;
 
   public static synchronized void clearLocators() {
@@ -117,6 +119,7 @@ public abstract class TabletLocator {
       locator.isValid = false;
     }
     locators.clear();
+    offlineLocators.clear();
   }
 
   static synchronized boolean isEnabled() {
@@ -135,24 +138,33 @@ public abstract class TabletLocator {
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
-    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
-    TabletLocator tl = locators.get(key);
-    if (tl == null) {
-      MetadataLocationObtainer mlo = new MetadataLocationObtainer();
+    TableState state = context.getTableState(tableId);
+    if (state == TableState.OFFLINE) {
+      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+      locators.remove(key);
+      return offlineLocators.computeIfAbsent(tableId,
+          f -> new OfflineTabletLocatorImpl(context, tableId));
+    } else {
+      offlineLocators.remove(tableId);
+      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+      TabletLocator tl = locators.get(key);
+      if (tl == null) {
+        MetadataLocationObtainer mlo = new MetadataLocationObtainer();
 
-      if (RootTable.ID.equals(tableId)) {
-        tl = new RootTabletLocator(context.getTServerLockChecker());
-      } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-            context.getTServerLockChecker());
-      } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-            context.getTServerLockChecker());
+        if (RootTable.ID.equals(tableId)) {
+          tl = new RootTabletLocator(context.getTServerLockChecker());
+        } else if (MetadataTable.ID.equals(tableId)) {
+          tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
+              context.getTServerLockChecker());
+        } else {
+          tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
+              context.getTServerLockChecker());
+        }
+        locators.put(key, tl);
       }
-      locators.put(key, tl);
+      return tl;
     }
 
-    return tl;
   }
 
   static {

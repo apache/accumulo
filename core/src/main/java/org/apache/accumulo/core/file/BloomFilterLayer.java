@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BLOOM_LOADER
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
@@ -57,7 +56,6 @@ import org.slf4j.LoggerFactory;
  */
 public class BloomFilterLayer {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;

@@ -154,8 +154,8 @@ public class ScanServerAllowedTablesIT extends SharedMiniClusterBase {
     BATCH_SCANNER, SCANNER;
   }
 
-  private ScannerBase createScanner(AccumuloClient client, ScannerType stype, String tableName)
-      throws TableNotFoundException {
+  public static ScannerBase createScanner(AccumuloClient client, ScannerType stype,
+      String tableName) throws TableNotFoundException {
     switch (stype) {
       case BATCH_SCANNER:
         BatchScanner batchScanner = client.createBatchScanner(tableName, Authorizations.EMPTY);

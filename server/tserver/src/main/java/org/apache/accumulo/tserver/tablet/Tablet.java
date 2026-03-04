@@ -146,7 +146,7 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
-  private static final Logger CLOSING_STUCK_LOGGER =
+  private static final DeduplicatingLogger CLOSING_STUCK_LOGGER =
       new DeduplicatingLogger(log, Duration.ofMinutes(5), 1000);
 
   private final TabletServer tabletServer;

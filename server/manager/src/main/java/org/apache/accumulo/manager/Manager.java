@@ -81,6 +81,7 @@ import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -325,9 +326,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
 
   private Future<Void> upgradeMetadataFuture;
-
-  private FateServiceHandler fateServiceHandler;
-  private ManagerClientServiceHandler managerClientHandler;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -899,7 +897,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                   break;
               }
           }
-        } catch (Exception t) {
+        } catch (RuntimeException t) {
           log.error("Error occurred reading / switching manager goal state. Will"
               + " continue with attempt to update status", t);
         }
@@ -908,7 +906,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
           eventListener.waitForEvents(wait);
-        } catch (Exception t) {
+        } catch (RuntimeException t) {
           TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
@@ -1030,6 +1028,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
     }
 
+    @SuppressFBWarnings(value = "NN_NAKED_NOTIFY",
+        justification = "balance state checked before notification")
     private long balanceTablets() {
 
       // Check for balancer property change
@@ -1239,17 +1239,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
-    // Start the Manager's Fate Service
-    fateServiceHandler = new FateServiceHandler(this);
-    managerClientHandler = new ManagerClientServiceHandler(this);
-    // Start the Manager's Client service
-    // Ensure that calls before the manager gets the lock fail
-    ManagerClientService.Iface haProxy =
-        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
+    // Start the Manager's Fate Service. Ensure that calls before the manager gets the lock fail
+    FateService.Iface fateServiceHandler =
+        HighlyAvailableServiceWrapper.service(new FateServiceHandler(this), this);
+    // Start the Manager's Client service. Ensure that calls before the manager gets the lock fail
+    ManagerClientService.Iface managerClientHandler =
+        HighlyAvailableServiceWrapper.service(new ManagerClientServiceHandler(this), this);
 
     ServerAddress sa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
+        managerClientHandler, getContext());
 
     try {
       @SuppressWarnings("deprecation")
@@ -1745,24 +1744,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     serversToShutdown.retainAll(current.getCurrentServers());
   }
 
-  private static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
+  static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
       Set<TServerInstance> deleted, Set<TServerInstance> added) {
-    Iterator<TServerInstance> badIter = badServers.iterator();
-    while (badIter.hasNext()) {
-      TServerInstance bad = badIter.next();
-      for (TServerInstance add : added) {
-        if (bad.getHostPort().equals(add.getHostPort())) {
-          badIter.remove();
-          break;
-        }
-      }
-      for (TServerInstance del : deleted) {
-        if (bad.getHostPort().equals(del.getHostPort())) {
-          badIter.remove();
-          break;
-        }
-      }
+    if (badServers.isEmpty() || (deleted.isEmpty() && added.isEmpty())) {
+      // nothing to do
+      return;
     }
+    HashSet<HostAndPort> removalSet = new HashSet<>(deleted.size() + added.size());
+    deleted.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    added.forEach(tsi -> removalSet.add(tsi.getHostAndPort()));
+    badServers.removeIf(badServer -> removalSet.contains(badServer.getHostAndPort()));
   }
 
   @Override
@@ -1844,7 +1835,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
+  @SuppressFBWarnings(value = "UW_UNCOND_WAIT",
+      justification = "balance condition is modified in another thread")
   public void waitForBalance() {
     synchronized (balancedNotifier) {
       long eventCounter;
