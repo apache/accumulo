@@ -242,9 +242,9 @@ public class ServiceLockPaths {
     return new ServiceLockPath(Constants.ZMANAGER_LOCK);
   }
 
-  public ServiceLockPath createManagerWorkerPath(ResourceGroupId resourceGroup,
-      HostAndPort advertiseAddress) {
-    return new ServiceLockPath(Constants.ZMANAGER_ASSISTANT_LOCK, resourceGroup, advertiseAddress);
+  public ServiceLockPath createAssistantManagerPath(HostAndPort advertiseAddress) {
+    return new ServiceLockPath(Constants.ZMANAGER_ASSISTANT_LOCK, ResourceGroupId.DEFAULT,
+        advertiseAddress);
   }
 
   public ServiceLockPath createMiniPath(String miniUUID) {

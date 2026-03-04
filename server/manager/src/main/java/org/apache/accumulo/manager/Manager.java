@@ -1227,7 +1227,7 @@ public class Manager extends AbstractServer
     UUID uuid = sld.getServerUUID(ThriftService.NONE);
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE}) {
+        ThriftService.FATE_CLIENT}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
           this.getResourceGroup()));
     }
@@ -1459,8 +1459,8 @@ public class Manager extends AbstractServer
 
       var advertiseAddress = getAdvertiseAddress();
 
-      final ServiceLockPaths.ServiceLockPath zLockPath = getContext().getServerPaths()
-          .createManagerWorkerPath(getResourceGroup(), advertiseAddress);
+      final ServiceLockPaths.ServiceLockPath zLockPath =
+          getContext().getServerPaths().createAssistantManagerPath(advertiseAddress);
       ServiceLockSupport.createNonHaServiceLockPath(Type.MANAGER, zoo, zLockPath);
 
       var serverLockUUID = UUID.randomUUID();
@@ -1474,7 +1474,7 @@ public class Manager extends AbstractServer
 
         ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
         for (ServiceLockData.ThriftService svc : new ServiceLockData.ThriftService[] {
-            ThriftService.MANAGER}) {
+            ThriftService.FATE_WORKER}) {
           descriptors.addService(new ServiceLockData.ServiceDescriptor(serverLockUUID, svc,
               advertiseAddress.toString(), this.getResourceGroup()));
         }
