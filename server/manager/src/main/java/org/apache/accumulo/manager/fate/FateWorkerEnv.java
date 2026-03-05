@@ -186,7 +186,7 @@ public class FateWorkerEnv implements FateEnv {
             getContext());
         client.recordCompletion(TraceUtil.traceInfo(), getContext().rpcCreds(), ecid.canonical());
         log.trace("Sent compaction completion {} {}", coordinatorHost, ecid);
-      } catch (Exception te) {
+      } catch (TException te) {
         log.trace("Failed to send compaction completion {} {}", coordinatorHost, ecid, te);
       } finally {
         ThriftUtil.returnClient(client, getContext());
