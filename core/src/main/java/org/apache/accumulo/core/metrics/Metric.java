@@ -37,7 +37,13 @@ public enum Metric {
       "Time to execute an RPC request.", MetricDocSection.GENERAL_SERVER),
 
   // Compactor Metrics
-  COMPACTION_SVC_ERRORS("accumulo.compaction.svc.misconfigured", MetricType.GAUGE,
+  COMPACTION_ROOT_SVC_ERRORS("accumulo.compaction.svc.root.misconfigured", MetricType.GAUGE,
+      "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricDocSection.COMPACTION),
+  COMPACTION_META_SVC_ERRORS("accumulo.compaction.svc.meta.misconfigured", MetricType.GAUGE,
+      "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricDocSection.COMPACTION),
+  COMPACTION_USER_SVC_ERRORS("accumulo.compaction.svc.user.misconfigured", MetricType.GAUGE,
       "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
       MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_CANCELLED("accumulo.compaction.majc.cancelled", MetricType.FUNCTION_COUNTER,
