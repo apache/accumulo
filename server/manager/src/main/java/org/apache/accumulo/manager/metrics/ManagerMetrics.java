@@ -45,7 +45,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class ManagerMetrics implements MetricsProducer {
 
-  private List<FateMetrics<?>> fateMetrics;
+  private List<FateMetrics<?>> fateMetrics = null;
 
   private final AtomicLong rootTGWErrorsGauge = new AtomicLong(0);
   private final AtomicLong metadataTGWErrorsGauge = new AtomicLong(0);
@@ -98,6 +98,7 @@ public class ManagerMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
+    requireNonNull(fateMetrics, "Must register fate metrics first");
     fateMetrics.forEach(fm -> fm.registerMetrics(registry));
     Gauge.builder(MANAGER_ROOT_TGW_ERRORS.getName(), rootTGWErrorsGauge, AtomicLong::get)
         .description(MANAGER_ROOT_TGW_ERRORS.getDescription()).register(registry);
