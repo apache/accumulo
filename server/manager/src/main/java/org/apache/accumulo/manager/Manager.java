@@ -130,7 +130,7 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.HighlyAvailableService;
+import org.apache.accumulo.server.PrimaryManagerThriftService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -140,7 +140,7 @@ import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
-import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
+import org.apache.accumulo.server.rpc.PrimaryManagerThriftServiceWrapper;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
@@ -177,7 +177,7 @@ import io.opentelemetry.context.Scope;
 // TODO create standalone PrimaryFateEnv class and pull everything into there relatated to
 // FateEnv... this will make it much more clear the env is for metadata ops only
 public class Manager extends AbstractServer
-    implements LiveTServerSet.Listener, FateEnv, HighlyAvailableService {
+    implements LiveTServerSet.Listener, FateEnv, PrimaryManagerThriftService {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -950,15 +950,16 @@ public class Manager extends AbstractServer
       throw new RuntimeException(e);
     }
 
-    FateService.Iface fateServiceHandler = HighlyAvailableServiceWrapper.service(
+    FateService.Iface fateServiceHandler = PrimaryManagerThriftServiceWrapper.service(
         FateService.Iface.class, FateService.Processor::new, new FateServiceHandler(this), this);
     ManagerClientService.Iface managerClientHandler =
-        HighlyAvailableServiceWrapper.service(ManagerClientService.Iface.class,
+        PrimaryManagerThriftServiceWrapper.service(ManagerClientService.Iface.class,
             ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
-    CompactionCoordinatorService.Iface wrappedCoordinator = HighlyAvailableServiceWrapper.service(
-        CompactionCoordinatorService.Iface.class, CompactionCoordinatorService.Processor::new,
-        compactionCoordinator.getThriftService(), this);
+    CompactionCoordinatorService.Iface wrappedCoordinator =
+        PrimaryManagerThriftServiceWrapper.service(CompactionCoordinatorService.Iface.class,
+            CompactionCoordinatorService.Processor::new, compactionCoordinator.getThriftService(),
+            this);
 
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
     FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
@@ -1724,7 +1725,7 @@ public class Manager extends AbstractServer
   }
 
   @Override
-  public boolean isActiveService() {
+  public boolean isPrimaryManager() {
     return managerInitialized.get();
   }
 
