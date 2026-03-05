@@ -83,13 +83,12 @@ public class FateClient<T> {
 
   public void seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
+    CompletableFuture<Optional<FateId>> cfuture;
     try (var seeder = store.beginSeeding()) {
-      var cfuture = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
-      cfuture.thenApply(optional -> {
-        optional.ifPresent(seedingConsumer.get());
-        return optional;
-      });
+      cfuture = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
     }
+    var optional = cfuture.join();
+    optional.ifPresent(seedingConsumer.get());
   }
 
   // start work in the transaction.. it is safe to call this
