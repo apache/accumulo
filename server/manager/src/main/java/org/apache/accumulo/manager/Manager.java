@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Thread.State.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -39,7 +40,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -337,8 +337,8 @@ public class Manager extends AbstractServer
    */
   public Fate<FateEnv> fate(FateInstanceType type) {
     waitForFate();
-    var fate = Objects.requireNonNull(fateRefs.get(), "fateRefs is not set yet").get(type);
-    return Objects.requireNonNull(fate, () -> "fate type " + type + " is not present");
+    var fate = requireNonNull(fateRefs.get(), "fateRefs is not set yet").get(type);
+    return requireNonNull(fate, () -> "fate type " + type + " is not present");
   }
 
   public FateClient<FateEnv> fateClient(FateInstanceType type) {
@@ -929,15 +929,19 @@ public class Manager extends AbstractServer
   private void setupMetrics() {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(balanceManager.getMetrics());
+    // ensure all tablet group watchers are setup
+    Preconditions.checkState(watchers.size() == DataLevel.values().length);
     watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
-    metricsInfo.addMetricsProducers(compactionCoordinator);
+    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
+    // ensure fate is completely setup
+    Preconditions.checkState(fateReadyLatch.getCount() == 0);
     metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
         fate(FateInstanceType.META).getFateExecutors()));
     metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
         fate(FateInstanceType.USER).getFateExecutors()));
-    metricsInfo.addMetricsProducers(managerMetrics);
+    metricsInfo.addMetricsProducers(requireNonNull(managerMetrics));
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
