@@ -24,7 +24,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.net.InetAddress;
-import java.net.URL;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -43,8 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
-
-import jakarta.inject.Singleton;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
@@ -107,6 +105,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
+
+import jakarta.inject.Singleton;
 
 /**
  * Serve manager statistics with an embedded web server.
@@ -524,14 +524,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       rootContext = rootContext + "/";
     }
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
-          server.getPort(), rootContext);
+      var uri = new URI(server.isSecure() ? "https" : "http", null, monitorHostAndPort.getHost(),
+          server.getPort(), rootContext, null, null);
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       final ZooReaderWriter zoo = context.getZooReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(path);
-      zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
-      log.info("Set monitor address in zookeeper to {}", url);
+      zoo.putEphemeralData(path, uri.toString().getBytes(UTF_8));
+      log.info("Set monitor address in zookeeper to {}", uri);
     } catch (Exception ex) {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }

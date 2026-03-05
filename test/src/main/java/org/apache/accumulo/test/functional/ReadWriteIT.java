@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.URL;
+import java.net.URI;
 import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -159,7 +159,7 @@ public class ReadWriteIT extends AccumuloClusterHarness {
           HttpsURLConnection.setDefaultHostnameVerifier(new TestHostnameVerifier());
         }
       }
-      URL url = new URL(monitorLocation);
+      var url = new URI(monitorLocation).toURL();
       log.debug("Fetching web page {}", url);
       String result = FunctionalTestUtils.readWebPage(url).body();
       assertTrue(result.length() > 100);

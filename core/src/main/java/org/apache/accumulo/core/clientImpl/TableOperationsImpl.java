@@ -180,15 +180,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
+      log.trace("Fetching list of tables...");
       timer = Timer.startNew();
     }
 
     TreeSet<String> tableNames = new TreeSet<>(context.getTableNameToIdMap().keySet());
 
     if (timer != null) {
-      log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Fetched {} table names in {}", tableNames.size(),
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return tableNames;
@@ -205,14 +205,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if table {} exists...", Thread.currentThread().getId(), tableName);
+      log.trace("Checking if table {} exists...", tableName);
       timer = Timer.startNew();
     }
 
     boolean exists = context.getTableNameToIdMap().containsKey(tableName);
 
     if (timer != null) {
-      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("Checked existence of {} in {}", exists,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -571,8 +571,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             Timer timer = null;
 
             if (log.isTraceEnabled()) {
-              log.trace("tid={} Splitting tablet {} on {} at {}", Thread.currentThread().getId(),
-                  tl.tablet_extent, address, split);
+              log.trace("Splitting tablet {} on {} at {}", tl.tablet_extent, address, split);
               timer = Timer.startNew();
             }
 

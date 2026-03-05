@@ -85,15 +85,15 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Fetching list of namespaces...", Thread.currentThread().getId());
+      log.trace("Fetching list of namespaces...");
       timer = Timer.startNew();
     }
 
     TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context).keySet());
 
     if (timer != null) {
-      log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
-          namespaces.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Fetched {} namespaces in {}", namespaces.size(),
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return namespaces;
@@ -106,15 +106,14 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if namespace {} exists", Thread.currentThread().getId(),
-          namespace);
+      log.trace("Checking if namespace {} exists", namespace);
       timer = Timer.startNew();
     }
 
     boolean exists = Namespaces.namespaceNameExists(context, namespace);
 
     if (timer != null) {
-      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("Checked existence of {} in {}", exists,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
