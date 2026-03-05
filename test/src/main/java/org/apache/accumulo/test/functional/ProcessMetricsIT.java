@@ -191,8 +191,7 @@ public class ProcessMetricsIT extends SharedMiniClusterBase {
     Wait.waitFor(() -> {
       List<String> statsDMetrics = sink.getLines();
       statsDMetrics.stream().filter(line -> line.startsWith(LOW_MEMORY.getName())).peek(log::info)
-          .map(TestStatsDSink::parseStatsDMetric)
-          .forEach(a -> {
+          .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             String processName = a.getTags().get(PROCESS_NAME_TAG_KEY);
             if (ServerId.Type.TABLET_SERVER.name().equals(processName)) {
               sawTServer.set(true);
@@ -207,8 +206,8 @@ public class ProcessMetricsIT extends SharedMiniClusterBase {
             }
 
           });
-      return sawManager.get() && sawGC.get() && sawCompactor.get()
-          && sawSServer.get() && sawTServer.get();
+      return sawManager.get() && sawGC.get() && sawCompactor.get() && sawSServer.get()
+          && sawTServer.get();
     });
   }
 
