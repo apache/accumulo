@@ -178,6 +178,10 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
                 AddressSelector.all(), true)
             .size() == 1);
 
+        // ConfigurableScanServerSelector will only look for new scan servers
+        // after 5 seconds since it looked the last time to reduce the load
+        // on ZooKeeper.
+        Thread.sleep(5_000);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(ingestedEntryCount + additionalIngest1, scanner.stream().count(),
             "The scan server scanner should have seen all ingested and flushed entries");
