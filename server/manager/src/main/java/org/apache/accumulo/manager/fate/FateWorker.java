@@ -179,10 +179,10 @@ public class FateWorker implements FateWorkerService.Iface {
     fateWorkerEnv = null;
   }
 
-  public synchronized List<MetricsProducer> getMetricsProducers() {
+  public synchronized MetricsProducer[] getMetricsProducers() {
     Preconditions.checkState(fate != null, "Not started yet");
-    return List.of(new FateExecutorMetricsProducer(context, fate.getFateExecutors(), context
-        .getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
-
+    return new MetricsProducer[] {
+        new FateExecutorMetricsProducer(context, fate.getFateExecutors(), context.getConfiguration()
+            .getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL))};
   }
 }

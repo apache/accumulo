@@ -22,9 +22,11 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Thread.State.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptySortedMap;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_STATE;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
 import java.io.IOException;
@@ -39,7 +41,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -120,8 +121,9 @@ import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.fate.FateWorker;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
-import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.metrics.fate.FateExecutorMetricsProducer;
+import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
+import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.manager.split.Splitter;
@@ -165,6 +167,7 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -227,8 +230,6 @@ public class Manager extends AbstractServer
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
   private volatile FateManager fateManager;
-
-  private final ManagerMetrics managerMetrics = new ManagerMetrics();
 
   static class TServerStatus {
     // This is the set of tservers that an attempt to gather status from was made
@@ -350,14 +351,14 @@ public class Manager extends AbstractServer
    */
   public Fate<FateEnv> fate(FateInstanceType type) {
     waitForFate();
-    var fate = Objects.requireNonNull(fateRefs.get(), "fateRefs is not set yet").get(type);
-    return Objects.requireNonNull(fate, () -> "fate type " + type + " is not present");
+    var fate = requireNonNull(fateRefs.get(), "fateRefs is not set yet").get(type);
+    return requireNonNull(fate, () -> "fate type " + type + " is not present");
   }
 
   public FateClient<FateEnv> fateClient(FateInstanceType type) {
     waitForFate();
-    var client = Objects.requireNonNull(fateClients.get(), "fateClients is not set yet").get(type);
-    return Objects.requireNonNull(client, () -> "fate client type " + type + " is not present");
+    var client = requireNonNull(fateClients.get(), "fateClients is not set yet").get(type);
+    return requireNonNull(client, () -> "fate client type " + type + " is not present");
   }
 
   static final boolean X = true;
@@ -574,11 +575,11 @@ public class Manager extends AbstractServer
         byte[] data =
             getContext().getZooSession().asReaderWriter().getData(Constants.ZMANAGER_GOAL_STATE);
         ManagerGoalState goal = ManagerGoalState.valueOf(new String(data, UTF_8));
-        try {
-          managerMetrics.updateManagerGoalState(goal);
-        } catch (IllegalStateException e) {
-          log.warn("Error updating goal state metric", e);
-        }
+        metricsGoalState.set(switch (goal) {
+          case CLEAN_STOP -> 0;
+          case SAFE_MODE -> 1;
+          case NORMAL -> 2;
+        });
         return goal;
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -939,6 +940,34 @@ public class Manager extends AbstractServer
     return info;
   }
 
+  // This is called after getting the assistant manager lock
+  private void setupAssistantMetrics(MetricsProducer... producers) {
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addMetricsProducers(producers);
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
+  }
+
+  // This is called after getting the primary manager lock
+  private void setupPrimaryMetrics() {
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
+    // ensure all tablet group watchers are setup
+    Preconditions.checkState(watchers.size() == DataLevel.values().length);
+    watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
+    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
+    // ensure fate is completely setup
+    Preconditions.checkState(fateReadyLatch.getCount() == 0);
+    metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
+        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+    metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
+        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+    metricsInfo.addMetricsProducers(new FateExecutorMetricsProducer(getContext(),
+        fate(FateInstanceType.META).getFateExecutors(),
+        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
+    metricsInfo.addMetricsProducers(this);
+  }
+
   @Override
   public void run() {
     final ServerContext context = getContext();
@@ -978,8 +1007,6 @@ public class Manager extends AbstractServer
 
     tserverSet.startListeningForTabletServerChanges(this);
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
-
     try {
       // Acquire the lock that all managers get before the primary lock, this allows non primary
       // manager processes to work on stuff.
@@ -990,11 +1017,7 @@ public class Manager extends AbstractServer
 
     fateWorker.setLock(managerLock);
 
-    metricsInfo
-        .addMetricsProducers(fateWorker.getMetricsProducers().toArray(new MetricsProducer[0]));
-
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+    setupAssistantMetrics(fateWorker.getMetricsProducers());
 
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
@@ -1055,10 +1078,8 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
-    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
-
     final TabletGroupWatcher userTableTGW =
-        new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
+        new TabletGroupWatcher(this, this.userTabletStore, null) {
           @Override
           boolean canSuspendTablets() {
             // Always allow user data tablets to enter suspended state.
@@ -1068,7 +1089,7 @@ public class Manager extends AbstractServer
     watchers.add(userTableTGW);
 
     final TabletGroupWatcher metadataTableTGW =
-        new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), managerMetrics) {
+        new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0)) {
           @Override
           boolean canSuspendTablets() {
             // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1081,7 +1102,7 @@ public class Manager extends AbstractServer
     watchers.add(metadataTableTGW);
 
     final TabletGroupWatcher rootTableTGW =
-        new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), managerMetrics) {
+        new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1)) {
           @Override
           boolean canSuspendTablets() {
             // Never allow root tablet to enter suspended state.
@@ -1177,14 +1198,13 @@ public class Manager extends AbstractServer
     this.splitter.start();
     this.fileRangeCache = new FileRangeCache(context);
 
-    setupFate(context, metricsInfo);
+    setupFate(context);
 
     fateManager = new FateManager(getContext());
     fateManager.start();
     fateClient(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
 
-    metricsInfo
-        .addMetricsProducers(managerMetrics.getProducers(this).toArray(new MetricsProducer[0]));
+    setupPrimaryMetrics();
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
@@ -1319,7 +1339,7 @@ public class Manager extends AbstractServer
         context.getScheduledExecutor());
   }
 
-  private void setupFate(ServerContext context, MetricsInfo metricsInfo) {
+  private void setupFate(ServerContext context) {
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
@@ -1349,13 +1369,7 @@ public class Manager extends AbstractServer
             "Unexpected previous fate reference map already initialized");
       }
 
-      managerMetrics.configureFateMetrics(getConfiguration(), this);
       fateReadyLatch.countDown();
-
-      var metaFateExecutorMetrics = new FateExecutorMetricsProducer(context,
-          fate(FateInstanceType.META).getFateExecutors(),
-          getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL));
-      metricsInfo.addMetricsProducers(metaFateExecutorMetrics);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1734,10 +1748,13 @@ public class Manager extends AbstractServer
     return upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE;
   }
 
+  private final AtomicInteger metricsGoalState = new AtomicInteger(-1);
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    compactionCoordinator.registerMetrics(registry);
+    Gauge.builder(MANAGER_GOAL_STATE.getName(), metricsGoalState, AtomicInteger::get)
+        .description(MANAGER_GOAL_STATE.getDescription()).register(registry);
   }
 
   @Override
