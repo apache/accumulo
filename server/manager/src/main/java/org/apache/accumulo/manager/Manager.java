@@ -982,7 +982,7 @@ public class Manager extends AbstractServer
     try {
       // Acquire the lock that all managers get before the primary lock, this allows non primary
       // manager processes to work on stuff.
-      getManagerLock();
+      getAssistantManagerLock();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Unable to get manager lock ", e);
     }
@@ -1451,7 +1451,7 @@ public class Manager extends AbstractServer
     return Math.max(1, deadline - System.currentTimeMillis());
   }
 
-  private void getManagerLock() throws KeeperException, InterruptedException {
+  private void getAssistantManagerLock() throws KeeperException, InterruptedException {
     log.info("trying to get assistant manager lock");
 
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.fate;
 
-import static org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate.DEFAULT_RG_ONLY;
-
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -98,7 +96,7 @@ public class FateManager {
       // This map will contain all current workers even if their partitions are empty
       Map<HostAndPort,CurrentPartitions> currentPartitions;
       try {
-        currentPartitions = getCurrentAssignments();
+        currentPartitions = getCurrentAssignments(context);
       } catch (TException e) {
         log.warn("Failed to get current partitions ", e);
         continue;
@@ -214,7 +212,7 @@ public class FateManager {
     // stop looking for work.
     Map<HostAndPort,CurrentPartitions> currentAssignments = null;
     try {
-      currentAssignments = getCurrentAssignments();
+      currentAssignments = getCurrentAssignments(context);
     } catch (TException e) {
       log.warn("Failed to get current assignments", e);
       currentAssignments = Map.of();
@@ -411,15 +409,15 @@ public class FateManager {
   // The updateId accomplishes two things. First it ensures that setting partition RPC can only
   // execute once on the server side. Second when a new update id is requested it cancels any
   // outstanding RPCs to set partitions that have not executed yet.
-  record CurrentPartitions(long updateId, Set<FatePartition> partitions) {
+  public record CurrentPartitions(long updateId, Set<FatePartition> partitions) {
   }
 
   /**
    * @return the fate partitions that assistant managers are currently assigned
    */
-  private Map<HostAndPort,CurrentPartitions> getCurrentAssignments() throws TException {
-    var workers =
-        context.getServerPaths().getManagerAssistants(DEFAULT_RG_ONLY, AddressSelector.all(), true);
+  public static Map<HostAndPort,CurrentPartitions> getCurrentAssignments(ServerContext context)
+      throws TException {
+    var workers = context.getServerPaths().getAssistantManagers(AddressSelector.all(), true);
 
     log.trace("getting current assignments from {}", workers);
 

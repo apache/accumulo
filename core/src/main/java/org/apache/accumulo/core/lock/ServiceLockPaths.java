@@ -296,11 +296,6 @@ public class ServiceLockPaths {
     return get(Constants.ZCOMPACTORS, resourceGroupPredicate, address, withLock);
   }
 
-  public Set<ServiceLockPath> getManagerAssistants(ResourceGroupPredicate resourceGroupPredicate,
-      AddressSelector address, boolean withLock) {
-    return get(Constants.ZMANAGER_ASSISTANT_LOCK, resourceGroupPredicate, address, withLock);
-  }
-
   /**
    * Note that the ServiceLockPath object returned by this method does not populate the server
    * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
