@@ -66,9 +66,9 @@ public class MetricResponseSerializer extends JsonSerializer<MetricResponse> {
         }
         gen.writeEndObject();
       }
-      gen.writeEndArray();
-      gen.writeEndObject();
     }
+    gen.writeEndArray();
+    gen.writeEndObject();
   }
 
 }

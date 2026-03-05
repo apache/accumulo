@@ -105,7 +105,9 @@ public class Endpoints {
      * dependency convergence issues as we were using newer version of some of the same
      * dependencies.
      */
-    final String basePath = request.getRequestURL().toString();
+    final String requestPath = request.getRequestURL().toString();
+    int idx = requestPath.indexOf("/endpoints");
+    final String basePath = requestPath.substring(0, idx);
     final Map<String,String> documentation = new TreeMap<>();
 
     for (Method m : Endpoints.class.getMethods()) {

@@ -275,6 +275,7 @@ public class SystemInformation {
     }
 
     public void addNotResponded(ServerId server) {
+      configured.incrementAndGet();
       notResponded.add(server.getHost() + ":" + server.getPort());
     }
 
@@ -495,7 +496,7 @@ public class SystemInformation {
   }
 
   public void finish() {
-    // Iterate over the metrics
+    // Compute the deployment overview
     allMetrics.asMap().keySet().forEach(serverId -> {
       deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
           .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary()).addResponded();
