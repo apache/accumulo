@@ -26,6 +26,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_GOAL_STATE;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.FILE_RENAME_POOL;
 
 import java.io.IOException;
@@ -113,7 +114,6 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
-import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
 import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
@@ -158,6 +158,7 @@ import com.google.common.net.HostAndPort;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -214,8 +215,6 @@ public class Manager extends AbstractServer
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
-
-  private final ManagerMetrics managerMetrics = new ManagerMetrics();
 
   static class TServerStatus {
     // This is the set of tservers that an attempt to gather status from was made
@@ -559,11 +558,11 @@ public class Manager extends AbstractServer
         byte[] data =
             getContext().getZooSession().asReaderWriter().getData(Constants.ZMANAGER_GOAL_STATE);
         ManagerGoalState goal = ManagerGoalState.valueOf(new String(data, UTF_8));
-        try {
-          managerMetrics.updateManagerGoalState(goal);
-        } catch (IllegalStateException e) {
-          log.warn("Error updating goal state metric", e);
-        }
+        metricsGoalState.set(switch (goal) {
+          case CLEAN_STOP -> 0;
+          case SAFE_MODE -> 1;
+          case NORMAL -> 2;
+        });
         return goal;
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -941,7 +940,6 @@ public class Manager extends AbstractServer
     metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
         fate(FateInstanceType.USER).getFateExecutors()));
-    metricsInfo.addMetricsProducers(requireNonNull(managerMetrics));
     metricsInfo.addMetricsProducers(this);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
@@ -1644,10 +1642,13 @@ public class Manager extends AbstractServer
     return upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE;
   }
 
+  private final AtomicInteger metricsGoalState = new AtomicInteger(-1);
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    compactionCoordinator.registerMetrics(registry);
+    Gauge.builder(MANAGER_GOAL_STATE.getName(), metricsGoalState, AtomicInteger::get)
+        .description(MANAGER_GOAL_STATE.getDescription()).register(registry);
   }
 
   private Map<FateInstanceType,Fate<FateEnv>> getFateRefs() {
