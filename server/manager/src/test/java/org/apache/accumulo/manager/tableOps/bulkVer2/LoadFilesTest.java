@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.clientImpl.bulk.Bulk.FileInfo;
@@ -95,7 +96,7 @@ public class LoadFilesTest {
     }
 
     @Override
-    void load(List<TabletMetadata> tablets, Files files) {
+    void load(List<TabletMetadata> tablets, Files files, Set<String> sharedFiles) {
       results.add(new LoadResult(tablets, files));
     }
 
