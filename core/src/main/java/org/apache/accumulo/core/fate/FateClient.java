@@ -53,7 +53,6 @@ public class FateClient<T> {
 
   public FateClient(FateStore<T> store, Function<Repo<T>,String> toLogStrFunc) {
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
-    ;
   }
 
   // get a transaction id back to the requester before doing any work
