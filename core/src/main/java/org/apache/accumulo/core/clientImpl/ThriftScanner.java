@@ -448,7 +448,7 @@ public final class ThriftScanner {
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
           log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
-              addr);
+              addr.serverAddress);
         } else {
           log.trace(
               "For tablet {} scan server selector chose tablet_server, but the tablet is not currently hosted",
@@ -873,9 +873,10 @@ public final class ThriftScanner {
             + addr.getExtent().tableId());
 
         if (log.isTraceEnabled()) {
-          String msg = "Starting scan server=" + addr.serverAddress + " tablet=" + addr.getExtent()
-              + " range=" + scanState.range + " ssil=" + scanState.serverSideIteratorList + " ssio="
-              + scanState.serverSideIteratorOptions + " context=" + scanState.classLoaderContext;
+          String msg = "Starting scan server=" + addr.serverAddress + " type=" + addr.serverType
+              + " tablet=" + addr.getExtent() + " range=" + scanState.range + " ssil="
+              + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions
+              + " context=" + scanState.classLoaderContext;
           log.trace("tid={} {}", Thread.currentThread().getId(), msg);
           timer = Timer.startNew();
         }

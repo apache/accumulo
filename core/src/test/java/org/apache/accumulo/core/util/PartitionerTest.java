@@ -41,7 +41,7 @@ public class PartitionerTest {
   @Test
   public void test1() {
 
-    PreAllocatedArray<Map<ByteSequence,MutableLong>> groups = new PreAllocatedArray<>(2);
+    List<Map<ByteSequence,MutableLong>> groups = PreallocatedList.create(2);
 
     groups.set(0, new HashMap<>());
     groups.get(0).put(new ArrayByteSequence("cf1"), new MutableLong(1));
@@ -72,9 +72,9 @@ public class PartitionerTest {
     m5.put("cf5", "cq3", "v9");
 
     List<Mutation> mutations = Arrays.asList(m1, m2, m3, m4, m5);
-    PreAllocatedArray<List<Mutation>> partitioned = new PreAllocatedArray<>(3);
+    List<List<Mutation>> partitioned = PreallocatedList.create(3);
 
-    for (int i = 0; i < partitioned.length; i++) {
+    for (int i = 0; i < partitioned.size(); i++) {
       partitioned.set(i, new ArrayList<>());
     }
 

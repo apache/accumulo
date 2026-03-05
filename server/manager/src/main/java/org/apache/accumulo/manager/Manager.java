@@ -938,6 +938,7 @@ public class Manager extends AbstractServer
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
         fate(FateInstanceType.USER).getFateExecutors()));
     metricsInfo.addMetricsProducers(managerMetrics);
+    metricsInfo.addMetricsProducers(this);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
   }

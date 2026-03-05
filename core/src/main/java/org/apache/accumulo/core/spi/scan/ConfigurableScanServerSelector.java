@@ -40,6 +40,8 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.util.Timer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
@@ -173,11 +175,35 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
-  public static final String PROFILES_DEFAULT = "[{'isDefault':true,'maxBusyTimeout':'5m',"
-      + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], "
-      + "'attemptPlans':[{'servers':'3', 'busyTimeout':'33ms', 'salt':'one'},"
-      + "{'servers':'13', 'busyTimeout':'33ms', 'salt':'two'},"
-      + "{'servers':'100%', 'busyTimeout':'33ms'}]}]";
+  private static final Logger LOG = LoggerFactory.getLogger(ConfigurableScanServerSelector.class);
+
+  public static final String PROFILES_DEFAULT = """
+      [
+          {
+              "isDefault": true,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "scanTypeActivations": [
+              ],
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          }
+      ]
+      """;
 
   private Supplier<Collection<ScanServerInfo>> serverSupplier;
   private Map<String,Profile> profiles;
@@ -237,6 +263,11 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       return parsedBusyTimeout;
     }
 
+    @Override
+    public String toString() {
+      return "AttemptPlan [servers=" + servers + ", busyTimeout=" + busyTimeout + ", salt=" + salt
+          + "]";
+    }
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
@@ -300,6 +331,15 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     List<AttemptPlan> getAttemptPlans() {
       return attemptPlans;
     }
+
+    @Override
+    public String toString() {
+      return "Profile [attemptPlans=" + attemptPlans + ", scanTypeActivations="
+          + scanTypeActivations + ", isDefault=" + isDefault + ", busyTimeoutMultiplier="
+          + busyTimeoutMultiplier + ", maxBusyTimeout=" + maxBusyTimeout + ", group=" + group
+          + ", timeToWaitForScanServers=" + timeToWaitForScanServers + "]";
+    }
+
   }
 
   private void parseProfiles(Map<String,String> options) {
@@ -371,7 +411,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Preconditions.checkArgument(diff.isEmpty(), "Unknown options %s", diff);
 
-    parseProfiles(params.getOptions());
+    parseProfiles(opts);
+
+    LOG.trace("init, default profile = {}, other profiles: {}", defaultProfile, profiles);
   }
 
   @Override
@@ -383,7 +425,9 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     if (scanType != null) {
       profile = profiles.getOrDefault(scanType, defaultProfile);
+      LOG.trace("Found profile for scan type {}: {}", scanType, profile);
     } else {
+      LOG.trace("scan_type not set, using default profile");
       profile = defaultProfile;
     }
 
@@ -411,6 +455,8 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
       // there are no scan servers so fall back to the tablet server
+      LOG.trace("No scan servers for group {}, falling back to tablet servers",
+          profile.getGroupId());
       return new ScanServerSelections() {
         @Override
         public String getScanServer(TabletId tabletId) {
@@ -435,6 +481,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
 
+    LOG.trace("Returning servers to use: {}", serversToUse);
     return new ScanServerSelections() {
       @Override
       public String getScanServer(TabletId tabletId) {
