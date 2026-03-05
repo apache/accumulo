@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -45,15 +46,24 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck;
@@ -199,7 +209,8 @@ public class SystemCheckIT extends ConfigurableMacBase {
             + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status OK\n"
             + "Running dummy check METADATA_TABLE\nDummy check METADATA_TABLE completed with status OK\n"
             + "Running dummy check SYSTEM_FILES\nDummy check SYSTEM_FILES completed with status OK\n"
-            + "Running dummy check USER_FILES\nDummy check USER_FILES completed with status OK";
+            + "Running dummy check USER_FILES\nDummy check USER_FILES completed with status OK\n"
+            + "Running dummy check BULK_FATE\nDummy check BULK_FATE completed with status OK\n";
     String expRunSubRunOrder =
         "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status OK\n"
             + "Running dummy check SYSTEM_FILES\nDummy check SYSTEM_FILES completed with status OK\n"
@@ -208,11 +219,11 @@ public class SystemCheckIT extends ConfigurableMacBase {
     // printed table allowing us to ensure the table only includes what is expected
     String expRunAllStatusInfo =
         "-SYSTEM_CONFIG|OKSERVER_CONFIG|OKTABLE_LOCKS|OKROOT_METADATA|OKROOT_TABLE|OK"
-            + "METADATA_TABLE|OKSYSTEM_FILES|OKUSER_FILES|OK-";
+            + "METADATA_TABLE|OKSYSTEM_FILES|OKUSER_FILES|OKBULK_FATE|OK-";
     String expRunSubStatusInfo =
         "-SYSTEM_CONFIG|FILTERED_OUTSERVER_CONFIG|FILTERED_OUTTABLE_LOCKS|FILTERED_OUT"
             + "ROOT_METADATA|FILTERED_OUTROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUT"
-            + "SYSTEM_FILES|OKUSER_FILES|OK-";
+            + "SYSTEM_FILES|OKUSER_FILES|OKBULK_FATE|FILTERED_OUT-";
 
     assertTrue(out1.contains(expRunAllRunOrder));
     assertTrue(out2.contains(expRunAllRunOrder));
@@ -241,10 +252,12 @@ public class SystemCheckIT extends ConfigurableMacBase {
   public void testAdminCheckRunWithCheckFailures() throws Exception {
     // tests running checks with some failing
 
-    boolean[] rootTableFails = new boolean[] {true, true, true, true, false, true, true, true};
-    boolean[] systemConfigFails = new boolean[] {false, true, true, true, true, true, true, true};
+    boolean[] rootTableFails =
+        new boolean[] {true, true, true, true, false, true, true, true, true};
+    boolean[] systemConfigFails =
+        new boolean[] {false, true, true, true, true, true, true, true, true};
     boolean[] userFilesAndMetadataTableFails =
-        new boolean[] {true, true, true, true, true, false, true, false};
+        new boolean[] {true, true, true, true, true, false, true, false, true};
 
     // run all checks with ROOT_TABLE failing: only SYSTEM_CONFIG and ROOT_METADATA should pass
     // the rest should be filtered out as skipped due to dependency failure
@@ -269,7 +282,7 @@ public class SystemCheckIT extends ConfigurableMacBase {
             + "Running dummy check SERVER_CONFIG\nDummy check SERVER_CONFIG completed with status OK\n"
             + "Running dummy check TABLE_LOCKS\nDummy check TABLE_LOCKS completed with status OK\n"
             + "Running dummy check ROOT_METADATA\nDummy check ROOT_METADATA completed with status OK\n"
-            + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status FAILED";
+            + "Running dummy check ROOT_TABLE\nDummy check ROOT_TABLE completed with status FAILED\n";
     String expRunOrder2 =
         "Running dummy check SYSTEM_CONFIG\nDummy check SYSTEM_CONFIG completed with status FAILED\n";
     String expRunOrder3And4 =
@@ -295,15 +308,15 @@ public class SystemCheckIT extends ConfigurableMacBase {
 
     String expStatusInfo1 = "-SYSTEM_CONFIG|OKSERVER_CONFIG|OKTABLE_LOCKS|OKROOT_METADATA|OK"
         + "ROOT_TABLE|FAILEDMETADATA_TABLE|SKIPPED_DEPENDENCY_FAILED"
-        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILED-";
+        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILEDBULK_FATE|SKIPPED_DEPENDENCY_FAILED-";
     String expStatusInfo2 = "-SYSTEM_CONFIG|FAILEDSERVER_CONFIG|SKIPPED_DEPENDENCY_FAILED"
         + "TABLE_LOCKS|SKIPPED_DEPENDENCY_FAILEDROOT_METADATA|SKIPPED_DEPENDENCY_FAILED"
         + "ROOT_TABLE|SKIPPED_DEPENDENCY_FAILEDMETADATA_TABLE|SKIPPED_DEPENDENCY_FAILED"
-        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILED-";
+        + "SYSTEM_FILES|SKIPPED_DEPENDENCY_FAILEDUSER_FILES|SKIPPED_DEPENDENCY_FAILEDBULK_FATE|SKIPPED_DEPENDENCY_FAILED-";
     String expStatusInfo3And4 =
         "-SYSTEM_CONFIG|OKSERVER_CONFIG|FILTERED_OUTTABLE_LOCKS|FILTERED_OUT"
             + "ROOT_METADATA|FILTERED_OUTROOT_TABLE|OKMETADATA_TABLE|FILTERED_OUT"
-            + "SYSTEM_FILES|FILTERED_OUTUSER_FILES|FAILED";
+            + "SYSTEM_FILES|FILTERED_OUTUSER_FILES|FAILEDBULK_FATE|FILTERED_OUT-";
 
     assertTrue(out1.contains(expStatusInfo1));
     assertTrue(out2.contains(expStatusInfo2));
@@ -640,6 +653,68 @@ public class SystemCheckIT extends ConfigurableMacBase {
     // no simple way to test for a failure case
   }
 
+  @Test
+  public void testBulkFateCheck() throws Exception {
+    Check bulkFateCheck = Check.BULK_FATE;
+    String table = getUniqueNames(1)[0];
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      client.tableOperations().create(table);
+      ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+      client.tableOperations().flush(table, null, null, true);
+
+      var p = getCluster().exec(SystemCheck.class, "run", bulkFateCheck.name());
+      assertEquals(0, p.getProcess().waitFor());
+      String out = p.readStdOut();
+      assertTrue(out.contains("Check BULK_FATE completed with status OK"));
+      assertNoOtherChecksRan(out, false, bulkFateCheck);
+
+      final var context = getCluster().getServerContext();
+      final TableId tableId = TableId.of(context.tableOperations().tableIdMap().get(table));
+
+      KeyExtent firstExtent;
+      try (var tabletsMetadata = context.getAmple().readTablets().forTable(tableId)
+          .fetch(TabletMetadata.ColumnType.PREV_ROW).build()) {
+        firstExtent = tabletsMetadata.iterator().next().getExtent();
+      }
+
+      FateId deadLoadedFateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+      ReferencedTabletFile fakeFile = ReferencedTabletFile.of(new org.apache.hadoop.fs.Path(
+          "hdfs://localhost:8020/accumulo/tables/" + tableId + "/t-0000/ghost-bulk.rf"));
+
+      context.getAmple().mutateTablet(firstExtent).putFile(fakeFile, new DataFileValue(100, 10))
+          .putBulkFile(fakeFile, deadLoadedFateId).mutate();
+
+      p = getCluster().exec(SystemCheck.class, "run", bulkFateCheck.name());
+      assertEquals(1, p.getProcess().waitFor());
+      out = p.readStdOut();
+      assertTrue(out.contains("has loaded column for file"));
+      assertTrue(out.contains("referencing dead FATE op"));
+      assertTrue(out.contains("investigate and clean up manually"));
+      assertTrue(out.contains("Check BULK_FATE completed with status FAILED"));
+      assertNoOtherChecksRan(out, false, bulkFateCheck);
+
+      context.getAmple().mutateTablet(firstExtent).deleteFile(fakeFile.insert())
+          .deleteBulkFile(fakeFile.insert()).mutate();
+
+      FateId deadSelectedFateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+      StoredTabletFile storedFF = fakeFile.insert();
+      SelectedFiles orphanedSelected = new SelectedFiles(Set.of(storedFF), true, deadSelectedFateId,
+          SteadyTime.from(1, java.util.concurrent.TimeUnit.NANOSECONDS));
+      context.getAmple().mutateTablet(firstExtent).putSelectedFiles(orphanedSelected).mutate();
+
+      p = getCluster().exec(SystemCheck.class, "run", bulkFateCheck.name());
+      assertEquals(1, p.getProcess().waitFor());
+      out = p.readStdOut();
+      assertTrue(out.contains("has selected column referencing dead FATE op"));
+      assertTrue(out.contains("investigate and clean up manually"));
+      assertTrue(out.contains("Check BULK_FATE completed with status FAILED"));
+      assertNoOtherChecksRan(out, false, bulkFateCheck);
+
+      context.getAmple().mutateTablet(firstExtent).deleteSelectedFiles().mutate();
+    }
+  }
+
   private String executeCheckCommand(String[] checkCmdArgs, boolean[] checksPass) throws Exception {
     String output;
     SystemCheck check = createDummyCheckCommand(checksPass);
@@ -795,6 +870,17 @@ public class SystemCheckIT extends ConfigurableMacBase {
     }
   }
 
+  static class DummyBulkLoadedFateCheckRunner extends DummyCheckRunner {
+    public DummyBulkLoadedFateCheckRunner(boolean passes) {
+      super(passes);
+    }
+
+    @Override
+    public Check getCheck() {
+      return Check.BULK_FATE;
+    }
+  }
+
   class DummyCheckCommand extends CheckCommandOpts {
     final Map<Check,Supplier<CheckRunner>> checkRunners;
 
@@ -813,6 +899,8 @@ public class SystemCheckIT extends ConfigurableMacBase {
       this.checkRunners.put(Check.SYSTEM_FILES,
           () -> new DummySystemFilesCheckRunner(checksPass[6]));
       this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[7]));
+      this.checkRunners.put(Check.BULK_FATE,
+          () -> new DummyBulkLoadedFateCheckRunner(checksPass[8]));
     }
 
     @Override
