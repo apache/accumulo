@@ -103,7 +103,6 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
@@ -115,6 +114,8 @@ import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
+import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
+import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.FileRangeCache;
 import org.apache.accumulo.manager.split.Splitter;
@@ -925,6 +926,22 @@ public class Manager extends AbstractServer
     return info;
   }
 
+  private void setupMetrics() {
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.addMetricsProducers(balanceManager.getMetrics());
+    watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
+    metricsInfo.addMetricsProducers(compactionCoordinator);
+    metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
+        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
+        fate(FateInstanceType.META).getFateExecutors()));
+    metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
+        getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL),
+        fate(FateInstanceType.USER).getFateExecutors()));
+    metricsInfo.addMetricsProducers(managerMetrics);
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
+  }
+
   @Override
   public void run() {
     final ServerContext context = getContext();
@@ -1018,12 +1035,8 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    List<MetricsProducer> producers = new ArrayList<>();
-    producers.add(balanceManager.getMetrics());
-
     final TabletGroupWatcher userTableTGW =
-        new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
+        new TabletGroupWatcher(this, this.userTabletStore, null) {
           @Override
           boolean canSuspendTablets() {
             // Always allow user data tablets to enter suspended state.
@@ -1033,7 +1046,7 @@ public class Manager extends AbstractServer
     watchers.add(userTableTGW);
 
     final TabletGroupWatcher metadataTableTGW =
-        new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), managerMetrics) {
+        new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0)) {
           @Override
           boolean canSuspendTablets() {
             // Allow metadata tablets to enter suspended state only if so configured. Generally
@@ -1046,7 +1059,7 @@ public class Manager extends AbstractServer
     watchers.add(metadataTableTGW);
 
     final TabletGroupWatcher rootTableTGW =
-        new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), managerMetrics) {
+        new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1)) {
           @Override
           boolean canSuspendTablets() {
             // Never allow root tablet to enter suspended state.
@@ -1155,16 +1168,12 @@ public class Manager extends AbstractServer
         throw new IllegalStateException(
             "Unexpected previous fate reference map already initialized");
       }
-      managerMetrics.configureFateMetrics(getConfiguration(), this, fateRefs.get());
       fateReadyLatch.countDown();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
 
-    producers.addAll(managerMetrics.getProducers(this));
-    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+    setupMetrics();
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
