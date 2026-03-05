@@ -110,6 +110,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
@@ -195,6 +196,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
+      Collections.synchronizedMap(new HashMap<>());
+  final Map<TServerInstance,GracefulHaltTimer> tserverHaltRpcAttempts =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
@@ -1141,6 +1144,33 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   }
 
+  /**
+   * This class tracks the duration of a haltRPC and is used to determine when the manager should
+   * delete the server zLock.
+   */
+  private static class GracefulHaltTimer {
+
+    Duration maxHaltGraceDuration;
+    Timer timer;
+
+    public GracefulHaltTimer(AccumuloConfiguration config) {
+      timer = null;
+      maxHaltGraceDuration =
+          Duration.ofMillis(config.getTimeInMillis(Property.MANAGER_TSERVER_HALT_DURATION));
+    }
+
+    public synchronized void startTimer() {
+      if (timer == null) {
+        timer = Timer.startNew();
+      }
+    }
+
+    public synchronized boolean shouldForceHalt() {
+      return maxHaltGraceDuration.toMillis() != 0 && timer != null
+          && timer.hasElapsed(maxHaltGraceDuration);
+    }
+  }
+
   private SortedMap<TServerInstance,TabletServerStatus>
       gatherTableInformation(Set<TServerInstance> currentServers) {
     final long rpcTimeout = getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT);
@@ -1190,15 +1220,35 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
               > MAX_BAD_STATUS_COUNT) {
             if (shutdownServerRateLimiter.tryAcquire()) {
               log.warn("attempting to stop {}", server);
-              try {
-                TServerConnection connection2 = tserverSet.getConnection(server);
-                if (connection2 != null) {
-                  connection2.halt(managerLock);
+              var gracefulHaltTimer = tserverHaltRpcAttempts.computeIfAbsent(server,
+                  s -> new GracefulHaltTimer(getConfiguration()));
+              if (gracefulHaltTimer.shouldForceHalt()) {
+                log.warn("tserver {} is not responding to halt requests, deleting zlock", server);
+                var zk = getContext().getZooReaderWriter();
+                var iid = getContext().getInstanceID();
+                String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
+                try {
+                  ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
+                      log::info, false);
+                  tserverHaltRpcAttempts.remove(server);
+                  badServers.remove(server);
+                } catch (KeeperException | InterruptedException e) {
+                  log.error("Failed to delete zlock for server {}", server, e);
                 }
-              } catch (TTransportException e1) {
-                // ignore: it's probably down
-              } catch (Exception e2) {
-                log.info("error talking to troublesome tablet server", e2);
+              } else {
+                try {
+                  TServerConnection connection2 = tserverSet.getConnection(server);
+                  if (connection2 != null) {
+                    connection2.halt(managerLock);
+                  }
+                } catch (TTransportException e1) {
+                  // ignore: it's probably down so log the exception at trace
+                  log.trace("error attempting to halt tablet server {}", server, e1);
+                } catch (Exception e2) {
+                  log.info("error talking to troublesome tablet server {}", server, e2);
+                } finally {
+                  gracefulHaltTimer.startTimer();
+                }
               }
             } else {
               log.warn("Unable to shutdown {} as over the shutdown limit of {} per minute", server,
@@ -1225,6 +1275,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       badServers.keySet().retainAll(currentServers);
       badServers.keySet().removeAll(info.keySet());
     }
+
+    synchronized (tserverHaltRpcAttempts) {
+      tserverHaltRpcAttempts.keySet().retainAll(currentServers);
+      tserverHaltRpcAttempts.keySet().removeAll(info.keySet());
+    }
+
     log.debug(String.format("Finished gathering information from %d of %d servers in %.2f seconds",
         info.size(), currentServers.size(), (System.currentTimeMillis() - start) / 1000.));
 
@@ -1726,6 +1782,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
       serversToShutdown.removeAll(deleted);
       badServers.keySet().removeAll(deleted);
+      tserverHaltRpcAttempts.keySet().removeAll(deleted);
       // clear out any bad server with the same host/port as a new server
       synchronized (badServers) {
         cleanListByHostAndPort(badServers.keySet(), deleted, added);
@@ -1733,7 +1790,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       synchronized (serversToShutdown) {
         cleanListByHostAndPort(serversToShutdown, deleted, added);
       }
-
+      synchronized (tserverHaltRpcAttempts) {
+        cleanListByHostAndPort(tserverHaltRpcAttempts.keySet(), deleted, added);
+      }
       migrations.removeServers(deleted);
       nextEvent.event("There are now %d tablet servers", current.size());
     }
