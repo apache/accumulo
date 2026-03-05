@@ -97,7 +97,7 @@ public class FateWorkerEnv implements FateEnv {
               client.processEvents(TraceUtil.traceInfo(), ctx.rpcCreds(), tEvents);
             }
           } catch (TException e) {
-            log.warn("Failed to send events to manager", e);
+            log.warn("Failed to send events to primary manager", e);
           } finally {
             if (client != null) {
               ThriftUtil.close(client, ctx);
