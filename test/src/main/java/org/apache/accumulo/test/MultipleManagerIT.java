@@ -107,7 +107,6 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // FOLLOW_ON add a way to start multiple managers to mini
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(8);
     // Set this lower so that locks timeout faster
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
@@ -138,10 +137,6 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       for (int i = 0; i < 10; i++) {
         var table = "t" + i;
 
-        // FOLLOW_ON its hard to find everything related to a table id in the logs across processes,
-        // especially when the
-        // table id is like "b". Was trying to follow a single table across multiple manager workers
-        // processes.
         var tableOpsFuture = executor.submit(() -> {
           int loops = 0;
           while (!stop.get() || loops == 0) {

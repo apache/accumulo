@@ -106,7 +106,6 @@ import org.slf4j.Logger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-// FOLLOW_ON move some of these thrift calls to the assistant manager thrift service
 public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
@@ -406,9 +405,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
   }
 
-  // FOLLOW_ON need to ensure SAFE_MODE and CLEAN_STOP work w/ multiple managers. Probably need
-  // tests for
-  // this.
   @Override
   public void setManagerGoalState(TInfo info, TCredentials c, ManagerGoalState state)
       throws ThriftSecurityException {
