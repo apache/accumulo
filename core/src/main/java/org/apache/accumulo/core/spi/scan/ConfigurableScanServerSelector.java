@@ -178,30 +178,30 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
   private static final Logger LOG = LoggerFactory.getLogger(ConfigurableScanServerSelector.class);
 
   public static final String PROFILES_DEFAULT = """
-      [ \
-          { \
-              "isDefault": true, \
-              "maxBusyTimeout": "5m", \
-              "busyTimeoutMultiplier": 8, \
-              "scanTypeActivations": [  \
-              ], \
-              "attemptPlans": [ \
-                  { \
-                      "servers": "3", \
-                      "busyTimeout": "33ms", \
-                      "salt": "one" \
-                  }, \
-                  { \
-                      "servers": "13", \
-                      "busyTimeout": "33ms", \
-                      "salt": "two" \
-                  }, \
-                  { \
-                      "servers": "100%", \
-                      "busyTimeout": "33ms" \
-                  } \
-              ] \
-          } \
+      [
+          {
+              "isDefault": true,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "scanTypeActivations": [
+              ],
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          }
       ]
       """;
 
@@ -411,7 +411,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
 
     Preconditions.checkArgument(diff.isEmpty(), "Unknown options %s", diff);
 
-    parseProfiles(params.getOptions());
+    parseProfiles(opts);
 
     LOG.trace("init, default profile = {}, other profiles: {}", defaultProfile, profiles);
   }
