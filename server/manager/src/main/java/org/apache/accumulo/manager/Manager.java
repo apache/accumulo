@@ -1020,6 +1020,7 @@ public class Manager extends AbstractServer
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     List<MetricsProducer> producers = new ArrayList<>();
+    producers.add(this);
     producers.add(balanceManager.getMetrics());
 
     final TabletGroupWatcher userTableTGW =
