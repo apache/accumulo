@@ -694,7 +694,7 @@ public class ThriftScanner {
               + loc.tablet_extent + " range=" + scanState.range + " ssil="
               + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions
               + " context=" + scanState.classLoaderContext;
-          log.trace("tid={} {}", Thread.currentThread().getId(), msg);
+          log.trace("{}", msg);
           timer = Timer.startNew();
         }
 
@@ -728,7 +728,7 @@ public class ThriftScanner {
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {
-          log.trace("tid={} {}", Thread.currentThread().getId(), msg);
+          log.trace("{}", msg);
           timer = Timer.startNew();
         }
 
@@ -741,8 +741,7 @@ public class ThriftScanner {
 
       if (sr.more) {
         if (timer != null) {
-          log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(),
+          log.trace("Finished scan in {} #results={} scanid={}",
               String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0), sr.results.size(),
               scanState.scanID);
         }
@@ -753,8 +752,7 @@ public class ThriftScanner {
           scanState.finished = true;
 
           if (timer != null) {
-            log.trace("tid={} Completely finished scan in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Completely finished scan in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
@@ -765,16 +763,14 @@ public class ThriftScanner {
           scanState.skipStartRow = true;
 
           if (timer != null) {
-            log.trace("tid={} Finished scanning tablet in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Finished scanning tablet in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
-            log.trace("tid={} Completely finished in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Completely finished in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }

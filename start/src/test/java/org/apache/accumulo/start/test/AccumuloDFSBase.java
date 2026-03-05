@@ -22,7 +22,6 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 
-import org.apache.accumulo.start.classloader.vfs.MiniDFSUtil;
 import org.apache.commons.vfs2.CacheStrategy;
 import org.apache.commons.vfs2.FileSystemException;
 import org.apache.commons.vfs2.cache.DefaultFilesCache;
@@ -64,9 +63,6 @@ public class AccumuloDFSBase {
 
     // Setup HDFS
     conf = new Configuration();
-    conf.set("hadoop.security.token.service.use_ip", "true");
-
-    conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
     conf.setLong(DFSConfigKeys.DFS_BLOCK_SIZE_KEY, 1024 * 1024); // 1M blocksize
 
     try {
