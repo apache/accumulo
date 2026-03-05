@@ -45,58 +45,59 @@ import org.junit.jupiter.api.Test;
 
 public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
-  // @formatter:off
-  public static final String clientConfiguration =
-     "["+
-     " {"+
-     "   \"isDefault\": true,"+
-     "   \"maxBusyTimeout\": \"5m\","+
-     "   \"busyTimeoutMultiplier\": 8,"+
-     "   \"scanTypeActivations\": [],"+
-     "   \"timeToWaitForScanServers\":\"0s\","+
-     "   \"attemptPlans\": ["+
-     "     {"+
-     "       \"servers\": \"3\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"one\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"13\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"two\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"100%\","+
-     "       \"busyTimeout\": \"33ms\""+
-     "     }"+
-     "   ]"+
-     "  },"+
-     " {"+
-     "   \"isDefault\": false,"+
-     "   \"maxBusyTimeout\": \"5m\","+
-     "   \"busyTimeoutMultiplier\": 8,"+
-     "   \"group\": \"GROUP1\","+
-     "   \"scanTypeActivations\": [\"use_group1\"],"+
-     "   \"timeToWaitForScanServers\":\"0s\","+
-     "   \"attemptPlans\": ["+
-     "     {"+
-     "       \"servers\": \"3\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"one\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"13\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"two\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"100%\","+
-     "       \"busyTimeout\": \"33ms\""+
-     "     }"+
-     "   ]"+
-     "  }"+
-     "]";
-  // @formatter:on
+  public static final String clientConfiguration = """
+      [
+          {
+              "isDefault": true,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "scanTypeActivations": [],
+              "timeToWaitForScanServers": "0s",
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          },
+          {
+              "isDefault": false,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "group": "GROUP1",
+              "scanTypeActivations": [
+                  "use_group1"
+              ],
+              "timeToWaitForScanServers": "0s",
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          }
+      ]
+      """;
 
   private static class Config implements MiniClusterConfigurationCallback {
     @Override

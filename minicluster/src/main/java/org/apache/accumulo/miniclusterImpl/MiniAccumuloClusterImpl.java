@@ -502,12 +502,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void writeConfigProperties(java.nio.file.Path file, Map<String,String> settings)
       throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(file);
+    Properties props = new Properties();
 
     for (Entry<String,String> entry : settings.entrySet()) {
-      fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
+      props.setProperty(entry.getKey(), entry.getValue());
     }
-    fileWriter.close();
+
+    try (BufferedWriter fileWriter = Files.newBufferedWriter(file)) {
+      props.store(fileWriter, null);
+    }
   }
 
   private Configuration loadExistingHadoopConfiguration() {
