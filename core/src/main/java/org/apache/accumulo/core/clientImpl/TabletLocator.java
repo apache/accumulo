@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -41,8 +42,10 @@ import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.hadoop.io.Text;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public abstract class TabletLocator {
@@ -111,7 +114,8 @@ public abstract class TabletLocator {
   }
 
   private static final HashMap<LocatorKey,TabletLocator> locators = new HashMap<>();
-  private static final HashMap<TableId,OfflineTabletLocatorImpl> offlineLocators = new HashMap<>();
+  private static final HashMap<LocatorKey,OfflineTabletLocatorImpl> offlineLocators =
+      new HashMap<>();
   private static boolean enabled = true;
 
   public static synchronized void clearLocators() {
@@ -138,15 +142,17 @@ public abstract class TabletLocator {
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
+
+    clearUnusedTables(context);
+
     TableState state = context.getTableState(tableId);
+    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     if (state == TableState.OFFLINE) {
-      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
       locators.remove(key);
-      return offlineLocators.computeIfAbsent(tableId,
+      return offlineLocators.computeIfAbsent(key,
           f -> new OfflineTabletLocatorImpl(context, tableId));
     } else {
-      offlineLocators.remove(tableId);
-      LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+      offlineLocators.remove(key);
       TabletLocator tl = locators.get(key);
       if (tl == null) {
         MetadataLocationObtainer mlo = new MetadataLocationObtainer();
@@ -165,6 +171,60 @@ public abstract class TabletLocator {
       return tl;
     }
 
+  }
+
+  /**
+   * Checks if a table id is present in the cache w/o creating it.
+   */
+  @VisibleForTesting
+  public static synchronized boolean isPresent(ClientContext context, TableId tableId) {
+    LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
+    return locators.containsKey(key) || offlineLocators.containsKey(key);
+  }
+
+  private static Duration clearFrequency = Duration.ofMinutes(10);
+
+  /**
+   * Sets how often checks for unused tables are done
+   */
+  @VisibleForTesting
+  public static synchronized void setClearFrequency(Duration frequency) {
+    Preconditions.checkArgument(frequency != null && !frequency.isNegative() && !frequency.isZero(),
+        "frequency:%s", frequency);
+    clearFrequency = frequency;
+  }
+
+  /**
+   * Finds and clears any tables ids in the cache that are no longer in used.
+   */
+  private static final Timer lastClearTimer = Timer.startNew();
+
+  private static synchronized void clearUnusedTables(ClientContext context) {
+    if (lastClearTimer.hasElapsed(clearFrequency)) {
+      locators.entrySet().removeIf(entry -> {
+        LocatorKey lkey = entry.getKey();
+        TabletLocator locator = entry.getValue();
+        if (lkey.instanceId.equals(context.getInstanceID())
+            && context.getTableState(lkey.tableId) != TableState.ONLINE) {
+          locator.isValid = false;
+          locator.invalidateCache();
+          return true;
+        }
+        return false;
+      });
+      offlineLocators.entrySet().removeIf(entry -> {
+        LocatorKey lkey = entry.getKey();
+        TabletLocator locator = entry.getValue();
+        if (lkey.instanceId.equals(context.getInstanceID())
+            && context.getTableState(lkey.tableId) != TableState.OFFLINE) {
+          locator.isValid = false;
+          locator.invalidateCache();
+          return true;
+        }
+        return false;
+      });
+      lastClearTimer.restart();
+    }
   }
 
   static {
