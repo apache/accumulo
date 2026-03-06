@@ -208,8 +208,13 @@ public class ZooZap implements KeywordExecutable {
             zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
           }
         } else {
-          ServiceLock.deleteLocks(zoo, tserversPath, hostPortPredicate, m -> message(m, opts),
-              opts.dryRun);
+          try {
+            ServiceLock.deleteLocks(zoo, tserversPath, hostPortPredicate, m -> message(m, opts),
+                opts.dryRun);
+          } catch (IllegalStateException e) {
+            log.debug("No Tablet Server locks currently exist");
+          }
+
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting tserver locks", e);
@@ -249,7 +254,11 @@ public class ZooZap implements KeywordExecutable {
       String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
       try {
         if (opts.includeGroups == null) {
-          removeLocks(zoo, sserversPath, hostPortPredicate, opts);
+          try {
+            removeLocks(zoo, sserversPath, hostPortPredicate, opts);
+          } catch (IllegalStateException e) {
+            log.debug("No Scan Server locks currently exist");
+          }
         } else {
           removeScanServerGroupLocks(zoo, sserversPath, hostPortPredicate, groupPredicate, opts);
         }
@@ -277,8 +286,12 @@ public class ZooZap implements KeywordExecutable {
       List<String> groups = zoo.getChildren(path);
       for (String group : groups) {
         if (groupPredicate.test(group)) {
-          ServiceLock.deleteLocks(zoo, path + "/" + group, hostPortPredicate, m -> message(m, opts),
-              opts.dryRun);
+          try {
+            ServiceLock.deleteLocks(zoo, path + "/" + group, hostPortPredicate,
+                m -> message(m, opts), opts.dryRun);
+          } catch (IllegalStateException e) {
+            log.debug("No Compactor locks currently exist for group: {}", group);
+          }
         }
       }
     }
@@ -294,8 +307,13 @@ public class ZooZap implements KeywordExecutable {
   static void removeScanServerGroupLocks(ZooReaderWriter zoo, String path,
       Predicate<HostAndPort> hostPortPredicate, Predicate<String> groupPredicate, Opts opts)
       throws KeeperException, InterruptedException {
-    ServiceLock.deleteScanServerLocks(zoo, path, hostPortPredicate, groupPredicate,
-        m -> message(m, opts), opts.dryRun);
+    try {
+      ServiceLock.deleteScanServerLocks(zoo, path, hostPortPredicate, groupPredicate,
+          m -> message(m, opts), opts.dryRun);
+    } catch (IllegalStateException e) {
+      log.debug("No Scan Server locks currently exist");
+    }
+
   }
 
   static void removeSingletonLock(ZooReaderWriter zoo, String path,
