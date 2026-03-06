@@ -2093,6 +2093,16 @@ public enum Property {
     return FIXED_PROPERTIES.contains(key);
   }
 
+  private static final Set<String> VALID_ZOO_PROPERTIES = Set.of(
+      Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey(),
+      Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey(),
+      Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey(),
+      Property.COMPACTOR_MIN_JOB_WAIT_TIME.getKey(), Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey(),
+      Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD.getKey(),
+      Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL.getKey(),
+      Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey(),
+      Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD.getKey());
+
   /**
    * Checks if the given property key is valid for a property that may be changed via Zookeeper.
    *
@@ -2109,9 +2119,7 @@ public enum Property {
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
-        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
-        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey())
-        || key.equals(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey())
+        || VALID_ZOO_PROPERTIES.contains(key)
         || key.startsWith(VFS_CONTEXT_CLASSPATH_PROPERTY.getKey())
         || key.startsWith(REPLICATION_PREFIX.getKey());
   }
