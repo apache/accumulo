@@ -28,6 +28,9 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -46,6 +49,8 @@ public class FateClient<T> {
   private static final EnumSet<ReadOnlyFateStore.TStatus> FINISHED_STATES =
       EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
 
+  private AtomicReference<Consumer<FateId>> seedingConsumer = new AtomicReference<>(fid -> {});
+
   public FateClient(FateStore<T> store, Function<Repo<T>,String> toLogStrFunc) {
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
   }
@@ -56,15 +61,33 @@ public class FateClient<T> {
   }
 
   public FateStore.Seeder<T> beginSeeding() {
-    return store.beginSeeding();
+    var seeder = store.beginSeeding();
+    return new FateStore.Seeder<T>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(Fate.FateOperation fateOp,
+          FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+        var cfuture = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+        return cfuture.thenApply(optional -> {
+          optional.ifPresent(seedingConsumer.get());
+          return optional;
+        });
+      }
+
+      @Override
+      public void close() {
+        seeder.close();
+      }
+    };
   }
 
   public void seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
+    CompletableFuture<Optional<FateId>> cfuture;
     try (var seeder = store.beginSeeding()) {
-      @SuppressWarnings("unused")
-      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+      cfuture = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
     }
+    var optional = cfuture.join();
+    optional.ifPresent(seedingConsumer.get());
   }
 
   // start work in the transaction.. it is safe to call this
@@ -73,6 +96,7 @@ public class FateClient<T> {
       boolean autoCleanUp, String goalMessage) {
     Fate.log.info("[{}] Seeding {} {} {}", store.type(), fateOp, fateId, goalMessage);
     store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
+    seedingConsumer.get().accept(fateId);
   }
 
   // check on the transaction
@@ -175,5 +199,9 @@ public class FateClient<T> {
    */
   public Stream<FateKey> list(FateKey.FateKeyType type) {
     return store.list(type);
+  }
+
+  public void setSeedingConsumer(Consumer<FateId> seedingConsumer) {
+    this.seedingConsumer.set(seedingConsumer);
   }
 }

@@ -1074,6 +1074,14 @@ public class CompactionCoordinator
     }
   }
 
+  @Override
+  public void recordCompletion(TInfo tinfo, TCredentials credentials, String externalCompactionId)
+      throws TException {
+    if (security.canPerformSystemActions(credentials)) {
+      recordCompletion(ExternalCompactionId.of(externalCompactionId));
+    }
+  }
+
   public void recordCompletion(ExternalCompactionId ecid) {
     var rc = RUNNING_CACHE.remove(ecid);
     if (rc != null) {
