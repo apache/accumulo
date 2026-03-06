@@ -194,11 +194,11 @@ public abstract class TabletLocator {
     clearFrequency = frequency;
   }
 
+  private static final Timer lastClearTimer = Timer.startNew();
+
   /**
    * Finds and clears any tables ids in the cache that are no longer in used.
    */
-  private static final Timer lastClearTimer = Timer.startNew();
-
   private static synchronized void clearUnusedTables(ClientContext context) {
     if (lastClearTimer.hasElapsed(clearFrequency)) {
       locators.entrySet().removeIf(entry -> {
