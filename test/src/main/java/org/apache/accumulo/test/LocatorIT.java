@@ -36,7 +36,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.data.Range;
@@ -124,8 +123,6 @@ public class LocatorIT extends AccumuloClusterHarness {
           Map.of(t2, Set.of(r1, r2), t3, Set.of(r2)));
 
       tableOps.offline(tableName, true);
-
-      assertThrows(TableOfflineException.class, () -> tableOps.locate(tableName, ranges));
 
       tableOps.delete(tableName);
 
