@@ -100,4 +100,33 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
       verify(client, table, 1);
     }
   }
+
+  /**
+   * Verify compactor properties that are periodically read by the compactor process can be set in
+   * zookeeper.
+   */
+  @Test
+  public void testSystemCompactorProperties() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().setProperty(Property.COMPACTOR_MIN_JOB_WAIT_TIME.getKey(), "1s");
+      client.instanceOperations().setProperty(Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey(), "10s");
+      client.instanceOperations().setProperty(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD.getKey(),
+          "4");
+      client.instanceOperations().setProperty(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL.getKey(),
+          "11s");
+      client.instanceOperations().setProperty(Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey(),
+          "5m");
+      client.instanceOperations()
+          .setProperty(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD.getKey(), "20");
+
+      var props = client.instanceOperations().getSystemConfiguration();
+      assertEquals("1s", props.get(Property.COMPACTOR_MIN_JOB_WAIT_TIME.getKey()));
+      assertEquals("10s", props.get(Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey()));
+      assertEquals("4", props.get(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD.getKey()));
+      assertEquals("11s", props.get(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL.getKey()));
+      assertEquals("5m", props.get(Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey()));
+      assertEquals("20", props.get(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD.getKey()));
+
+    }
+  }
 }
