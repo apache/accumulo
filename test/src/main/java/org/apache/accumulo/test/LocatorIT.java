@@ -52,7 +52,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.ManagerAssignmentIT;
@@ -209,7 +208,6 @@ public class LocatorIT extends AccumuloClusterHarness {
         assertNotNull(ctx.getTabletLocationCache(tableId));
         assertTrue(ctx.isTabletLocationCachePresent(tableId));
       }
-
 
       tableOps.delete(table1);
       tableOps.delete(table4);
