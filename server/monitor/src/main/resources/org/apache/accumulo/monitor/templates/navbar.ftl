@@ -42,6 +42,7 @@
                 <li><a class="dropdown-item" href="manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>
                 <li><a class="dropdown-item" href="tservers"><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers&nbsp;</a></li>
                 <li><a class="dropdown-item" href="sservers"><span id="sserverStatusNotification" class="icon-dot normal"></span>&nbsp;Scan&nbsp;Servers&nbsp;</a></li>
+                <li><a class="dropdown-item" href="compactors"><span id="compactorStatusNotification" class="icon-dot normal"></span>&nbsp;Compactors</a></li>
                 <li><a class="dropdown-item" href="gc"><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector&nbsp;</a></li>
               </ul>
             </li>
@@ -53,10 +54,9 @@
                 Activity
               </a>
               <ul class="dropdown-menu col-xs-12" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" href="compactions">Active&nbsp;Compactions</a></li>
+                <li><a class="dropdown-item" href="ec">Active&nbsp;Compactions</a></li>
                 <li><a class="dropdown-item" href="scans">Active&nbsp;Scans</a></li>
                 <li><a class="dropdown-item" href="bulkImports">Bulk&nbsp;Imports</a></li>
-                <li><a class="dropdown-item" href="ec">External&nbsp;Compactions</a></li>
               </ul>
             </li>
             <li class="dropdown">
