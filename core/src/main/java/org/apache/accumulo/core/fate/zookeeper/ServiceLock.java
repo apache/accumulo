@@ -153,11 +153,11 @@ public class ServiceLock implements Watcher {
   // acquires the lock.
   private volatile String createdNodeName;
 
-  // Represents the name of the ephemeral sequential node that
+  // Represents the path of the ephemeral sequential node that
   // has the next lowest counter value. An instance of this class
   // will watch this node and will attempt to acquire the lock
   // when this node is deleted.
-  private String watchingNodeName;
+  private String watchingNodePath;
 
   public ServiceLock(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = requireNonNull(zookeeper);
@@ -357,8 +357,8 @@ public class ServiceLock implements Watcher {
 
       String lowestPrevNode = findLowestPrevPrefix(children, createdNodeName);
 
-      watchingNodeName = path + "/" + lowestPrevNode;
-      final String nodeToWatch = watchingNodeName;
+      watchingNodePath = path + "/" + lowestPrevNode;
+      final String nodeToWatch = watchingNodePath;
       LOG.debug("[{}] Establishing watch on prior node {}", vmLockPrefix, nodeToWatch);
       Watcher priorNodeWatcher = new Watcher() {
         @Override
@@ -400,22 +400,24 @@ public class ServiceLock implements Watcher {
             renew = false;
           }
           if (renew) {
-            try {
-              Stat restat = zooKeeper.exists(nodeToWatch, this);
-              if (restat == null) {
-                // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
-                // created a Watcher on a node that does not exist. Delete the watcher we just
-                // created.
-                zooKeeper.removeWatches(nodeToWatch, this, WatcherType.Any, true);
-                if (createdNodeName != null) {
-                  determineLockOwnership(lw);
+            synchronized (ServiceLock.this) {
+              if (createdNodeName != null) {
+                try {
+                  Stat restat = zooKeeper.exists(nodeToWatch, this);
+                  if (restat == null) {
+                    // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
+                    // created a Watcher on a node that does not exist. Delete the watcher we just
+                    // created.
+                    zooKeeper.removeWatches(nodeToWatch, this, WatcherType.Any, true);
+                    determineLockOwnership(lw);
+                  } else {
+                    LOG.debug("[{}] Renewed watch on prior node {}", vmLockPrefix, nodeToWatch);
+                  }
+                } catch (KeeperException | InterruptedException e) {
+                  lw.failedToAcquireLock(
+                      new Exception("Failed to renew watch on prior node: " + nodeToWatch, e));
                 }
-              } else {
-                LOG.debug("[{}] Renewed watch on prior node  {}", vmLockPrefix, nodeToWatch);
               }
-            } catch (KeeperException | InterruptedException e) {
-              lw.failedToAcquireLock(
-                  new Exception("Failed to renew watch on other manager node", e));
             }
           }
         }
@@ -427,9 +429,7 @@ public class ServiceLock implements Watcher {
         // if stat is null from the zookeeper.exists(path, Watcher) call, then we just
         // created a Watcher on a node that does not exist. Delete the watcher we just created.
         zooKeeper.removeWatches(nodeToWatch, priorNodeWatcher, WatcherType.Any, true);
-        if (createdNodeName != null) {
-          determineLockOwnership(lw);
-        }
+        determineLockOwnership(lw);
       }
     }
 
@@ -621,7 +621,7 @@ public class ServiceLock implements Watcher {
    * @return path of node that this lock is watching
    */
   public synchronized String getWatching() {
-    return watchingNodeName;
+    return watchingNodePath;
   }
 
   public synchronized String getLockPath() {
