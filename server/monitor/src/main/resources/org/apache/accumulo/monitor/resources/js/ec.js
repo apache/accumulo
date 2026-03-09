@@ -18,11 +18,7 @@
  */
 "use strict";
 
-var coordinatorTable;
-var compactorsTable;
-var compactorsTableData;
 var runningTable;
-var runningTableData;
 
 /**
  * Creates active compactions table
@@ -34,41 +30,6 @@ $(function () {
 
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
-
-  compactorsTable = $('#compactorsTable').DataTable({
-    "autoWidth": false,
-    "ajax": {
-      "url": contextPath + 'rest-v2/ec/compactors',
-      "dataSrc": "compactors"
-    },
-    "stateSave": true,
-    "dom": 't<"align-left"l>p',
-    "columnDefs": [{
-        "targets": "duration",
-        "render": function (data, type, row) {
-          if (type === 'display') data = timeDuration(data);
-          return data;
-        }
-      },
-      {
-        "targets": "date",
-        "render": function (data, type, row) {
-          if (type === 'display') data = dateFormat(data);
-          return data;
-        }
-      }
-    ],
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "groupName"
-      },
-      {
-        "data": "lastContact"
-      }
-    ]
-  });
 
   const hostnameColumnName = 'hostname';
   const queueNameColumnName = 'queueName';
@@ -284,49 +245,6 @@ $(function () {
     return seconds;
   }
 
-  // Create a table for compaction coordinator
-  coordinatorTable = $('#coordinatorTable').DataTable({
-    "autoWidth": false,
-    "ajax": {
-      "url": contextPath + 'rest-v2/ec',
-      "dataSrc": function (data) {
-        // the data needs to be in an array to work with DataTables
-        var arr = [];
-        if (data === undefined) {
-          console.warn('the value of "data" is undefined');
-        } else {
-          arr = [data];
-        }
-
-        return arr;
-      }
-    },
-    "stateSave": true,
-    "searching": false,
-    "paging": false,
-    "info": false,
-    "columnDefs": [{
-      "targets": "duration",
-      "render": function (data, type, row) {
-        if (type === 'display') data = timeDuration(data);
-        return data;
-      }
-    }],
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "numQueues"
-      },
-      {
-        "data": "numCompactors"
-      },
-      {
-        "data": "lastContact"
-      }
-    ]
-  });
-
   // Array to track the ids of the details displayed rows
   var detailRows = [];
   $("#runningTable tbody").on('click', 'tr td.details-control', function () {
@@ -337,7 +255,6 @@ $(function () {
     if (row.child.isShown()) {
       tr.removeClass('details');
       row.child.hide();
-
       // Remove from the 'open' array
       detailRows.splice(idx, 1);
     } else {
@@ -346,12 +263,13 @@ $(function () {
       var idSuffix = ecid.substring(ecid.length - 5, ecid.length);
       tr.addClass('details');
       // put all the information into html for a single row
-      var htmlRow = "<table class='table table-bordered table-striped table-condensed' id='table" + idSuffix + "'>"
+      var htmlRow = "<table class='table table-bordered table-striped table-condensed' id='table" + idSuffix + "'>";
       htmlRow += "<thead><tr><th>#</th><th>Input Files</th><th>Size</th><th>Entries</th></tr></thead>";
       htmlRow += "<tbody></tbody></table>";
       htmlRow += "Output File: <span id='outputFile" + idSuffix + "'></span><br>";
       htmlRow += ecid;
       row.child(htmlRow).show();
+
       // show the row then populate the table
       var ecDetails = getDetailsFromStorage(idSuffix);
       if (ecDetails.length === 0) {
@@ -367,53 +285,49 @@ $(function () {
       }
     }
   });
-  refreshECTables();
+
+  refreshRunningCompactions();
 });
 
 /**
  * Used to redraw the page
  */
 function refresh() {
-  refreshECTables();
+  refreshRunningCompactions();
 }
 
 /**
- * Refreshes the compaction tables
+ * Refreshes the running compactions
  */
-function refreshECTables() {
-  refreshCoordinatorStatus().then(function (coordinatorStatus) {
-
+function refreshRunningCompactions() {
+  refreshManagerStatus().then(function (managerStatus) {
     // tables will not be shown, avoid reloading
-    if (coordinatorStatus === 'ERROR') {
+    if (managerStatus === 'ERROR') {
       return;
     }
 
     // user paging is not reset on reload
-    refreshCompactors();
-    refreshRunning();
-    ajaxReloadTable(coordinatorTable);
+    ajaxReloadTable(runningTable);
   });
 }
 
 /**
- * Updates session storage then checks if the coordinator is running. If it is,
- * show the tables and hide the 'coordinator not running' banner. Else, vise-versa.
- *
- * returns the coordinator status
+ * Updates session storage then checks if the manager is running. If it is,
+ * show the tables and hide the 'manager not running' banner. Else, vice-versa.
  */
-async function refreshCoordinatorStatus() {
+async function refreshManagerStatus() {
   return getStatus().then(function () {
-    var coordinatorStatus = JSON.parse(sessionStorage.status).coordinatorStatus;
-    if (coordinatorStatus === 'ERROR') {
+    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    if (managerStatus === 'ERROR') {
       // show banner and hide tables
-      $('#ccBanner').show();
-      $('#ecDiv').hide();
+      $('#managerBanner').show();
+      $('#runningDiv').hide();
     } else {
       // otherwise, hide banner and show tables
-      $('#ccBanner').hide();
-      $('#ecDiv').show();
+      $('#managerBanner').hide();
+      $('#runningDiv').show();
     }
-    return coordinatorStatus;
+    return managerStatus;
   });
 }
 
@@ -473,18 +387,6 @@ function populateDetails(data, idSuffix) {
     }).appendTo('#' + tableId + ' tbody');
   });
   $('#outputFile' + idSuffix).text(data.outputFile);
-}
-
-function refreshCompactors() {
-  console.log("Refresh compactors table.");
-  // user paging is not reset on reload
-  ajaxReloadTable(compactorsTable);
-}
-
-function refreshRunning() {
-  console.log("Refresh running compactions table.");
-  // user paging is not reset on reload
-  ajaxReloadTable(runningTable);
 }
 
 // Helper function to validate regex
