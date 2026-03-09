@@ -141,8 +141,7 @@ public class ServiceLock implements Watcher {
   // loses the lock.
   private volatile String lockNodeName;
 
-  // boolean to track if this instance has ever held the lock (the
-  // lowest on-up counter value under the base path).
+  // boolean to track if this instance has ever held the lock
   private volatile boolean lockWasAcquired;
 
   // boolean to track if there is a watcher on the base path.
