@@ -1228,12 +1228,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
                 var iid = getContext().getInstanceID();
                 String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
                 try {
-                  try {
-                    ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
-                        log::info, false);
-                  } catch (IllegalStateException e) {
-                    log.debug("No Tablet Server locks currently exist");
-                  }
+                  ServiceLock.deleteLocks(zk, tserversPath, server.getHostAndPort()::equals,
+                      log::info, false);
                   tserverHaltRpcAttempts.remove(server);
                   badServers.remove(server);
                 } catch (KeeperException | InterruptedException e) {

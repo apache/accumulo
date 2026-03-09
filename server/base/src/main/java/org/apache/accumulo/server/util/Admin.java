@@ -590,11 +590,7 @@ public class Admin implements KeywordExecutable {
         var iid = context.getInstanceID();
 
         String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
-        try {
-          ServiceLock.deleteLocks(zk, tserversPath, hostAndPort::contains, log::debug, false);
-        } catch (IllegalStateException e) {
-          log.debug("No Tablet Server locks currently exist");
-        }
+        ServiceLock.deleteLocks(zk, tserversPath, hostAndPort::contains, log::debug, false);
         String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
         ZooZap.removeCompactorGroupedLocks(zk, compactorsBasepath, rg -> true,
             hostAndPort::contains, opts);
