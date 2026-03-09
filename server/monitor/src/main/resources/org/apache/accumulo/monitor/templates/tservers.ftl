@@ -23,6 +23,9 @@
         <h3>${title}</h3>
       </div>
     </div>
+    <div id="tserversManagerBanner" style="display: none;">
+      <div class="alert alert-danger" role="alert">Manager Not Running</div>
+    </div>
     <div class="row">
       <div class="col-xs-12">
         <span id="recovery-caption" style="background-color: gold; display: none;">Highlighted rows correspond to tservers in recovery mode.</span>

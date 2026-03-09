@@ -144,7 +144,7 @@ function updateServerNotifications(statusData) {
 }
 
 /**
- * Updates the scan server notification based on REST v2 metrics status.
+ * Updates the scan server notification based on REST v2 status.
  */
 function refreshSserverStatus() {
   return getSserversView().done(function () {
@@ -156,7 +156,7 @@ function refreshSserverStatus() {
       return;
     }
 
-    if (status.level === STATUS.WARN) {
+    if (status.hasProblemScanServers === true) {
       sessionStorage.sServerStatus = STATUS.WARN;
       updateElementStatus('sserverStatusNotification', STATUS.WARN);
     } else {

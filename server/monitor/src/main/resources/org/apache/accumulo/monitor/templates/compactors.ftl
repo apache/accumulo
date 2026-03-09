@@ -23,6 +23,9 @@
           <h3>${title}</h3>
         </div>
       </div>
+      <div id="compactorsStatusBanner" style="display: none;">
+        <div id="compactors-banner-message" class="alert" role="alert"></div>
+      </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
