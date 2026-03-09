@@ -44,6 +44,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
+import jakarta.inject.Singleton;
+
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -105,8 +107,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
-
-import jakarta.inject.Singleton;
 
 /**
  * Serve manager statistics with an embedded web server.
