@@ -25,6 +25,7 @@
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>37</version>
+    <relativePath />
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
