@@ -363,8 +363,8 @@ public class ServiceLock implements Watcher {
       Watcher priorNodeWatcher = new Watcher() {
         @Override
         public void process(WatchedEvent event) {
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("[{}] Processing {}", vmLockPrefix, event);
+          if (LOG.isDebugEnabled()) {
+            LOG.debug("[{}] Processing {}", vmLockPrefix, event);
           }
           boolean renew = true;
           if (event.getType() == EventType.NodeDeleted && event.getPath().equals(nodeToWatch)) {
