@@ -694,6 +694,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
     loginAs(rootUser);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // check root user permissions on FATE and SCAN_REF tables
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.FATE.tableName(),
+          TablePermission.READ);
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.SCAN_REF.tableName(),
+          TablePermission.READ);
+
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
       try (AccumuloClient test_user_client =
@@ -703,8 +710,16 @@ public class PermissionsIT extends AccumuloClusterHarness {
         loginAs(rootUser);
         verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.METADATA.tableName(),
             TablePermission.READ, TablePermission.ALTER_TABLE);
-        String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 
+        // check test user permissions on FATE and SCAN_REF tables
+        loginAs(testUser);
+        verifyHasOnlyTheseTablePermissions(c, test_user_client.whoami(),
+            SystemTables.FATE.tableName());
+        verifyHasOnlyTheseTablePermissions(c, test_user_client.whoami(),
+            SystemTables.SCAN_REF.tableName());
+
+        loginAs(rootUser);
+        String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
         // test each permission
         for (TablePermission perm : TablePermission.values()) {
           if (perm == TablePermission.ALTER_TABLE) {

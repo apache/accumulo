@@ -355,7 +355,14 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
+    // Allow all users to read root and metadata tables
     if ((table.equals(SystemTables.METADATA.tableId()) || table.equals(SystemTables.ROOT.tableId()))
+        && permission.equals(TablePermission.READ)) {
+      return true;
+    }
+
+    // Allow root user to scan all system tables
+    if (user.equals(getRootUsername()) && SystemTables.containsTableId(table)
         && permission.equals(TablePermission.READ)) {
       return true;
     }
