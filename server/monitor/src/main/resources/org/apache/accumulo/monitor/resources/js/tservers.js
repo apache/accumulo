@@ -18,7 +18,7 @@
  */
 /* JSLint global definitions */
 /*global
-    $, sessionStorage, getTServers, getRecoveryList, bigNumberForQuantity, timeDuration,
+    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
     ajaxReloadTable
 */
 "use strict";
@@ -70,11 +70,34 @@ function refreshTServersTable() {
 }
 
 /**
+ * If manager is down, tserver status will be ERROR. Add a banner to indicate
+ */
+function refreshTServersBanner(managerStatus) {
+  if (managerStatus === 'ERROR') {
+    $('#tserversManagerBanner').show();
+    $('#tservers_wrapper').hide();
+    $('#recovery-caption').hide();
+  } else {
+    $('#tserversManagerBanner').hide();
+    $('#tservers_wrapper').show();
+  }
+}
+
+/**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTServers() {
-  getTServers().then(function () {
-    refreshTServersTable();
+  getStatus().then(function () {
+    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    refreshTServersBanner(managerStatus);
+
+    if (managerStatus === 'ERROR') {
+      return;
+    }
+
+    getTServers().then(function () {
+      refreshTServersTable();
+    });
   });
 }
 

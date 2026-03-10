@@ -20,15 +20,50 @@
 
 var compactorsTable;
 
+/**
+ * Shows a red banner with the given message
+ */
+function showCompactorsBanner(message) {
+  $('#compactors-banner-message')
+    .removeClass('alert-warning')
+    .addClass('alert-danger')
+    .text(message);
+  $('#compactorsStatusBanner').show();
+}
+
+/**
+ * Show the error banner when there are no compactors
+ */
+function updateCompactorsBanner(compactors) {
+  if (!Array.isArray(compactors) || compactors.length === 0) {
+    showCompactorsBanner('No compactors are currently registered.');
+  } else {
+    $('#compactorsStatusBanner').hide();
+  }
+}
+
 $(function () {
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
 
   compactorsTable = $('#compactorsTable').DataTable({
     "autoWidth": false,
-    "ajax": {
-      "url": contextPath + 'rest-v2/ec/compactors',
-      "dataSrc": "compactors"
+    "ajax": function (data, callback) {
+      $.ajax({
+        "url": contextPath + 'rest-v2/ec/compactors',
+        "method": 'GET'
+      }).done(function (response) {
+        var compactors = Array.isArray(response.compactors) ? response.compactors : [];
+        updateCompactorsBanner(compactors);
+        callback({
+          "data": compactors
+        });
+      }).fail(function () {
+        showCompactorsBanner('Unable to retrieve compactor status.');
+        callback({
+          "data": []
+        });
+      });
     },
     "stateSave": true,
     "dom": 't<"align-left"l>p',
