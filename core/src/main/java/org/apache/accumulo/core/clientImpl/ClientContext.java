@@ -486,8 +486,7 @@ public class ClientContext implements AccumuloClient {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zookeeper.",
-          Thread.currentThread().getId());
+      log.trace("Looking up root tablet location in zookeeper.");
       timer = Timer.startNew();
     }
 
@@ -495,7 +494,7 @@ public class ClientContext implements AccumuloClient {
         getAmple().readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
 
     if (timer != null) {
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
+      log.trace("Found root tablet at {} in {}", loc,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -524,15 +523,14 @@ public class ClientContext implements AccumuloClient {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up manager location in zookeeper.", Thread.currentThread().getId());
+      log.trace("Looking up manager location in zookeeper.");
       timer = Timer.startNew();
     }
 
     byte[] loc = zooCache.getLockData(zLockManagerPath);
 
     if (timer != null) {
-      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
-          (loc == null ? "null" : new String(loc, UTF_8)),
+      log.trace("Found manager at {} in {}", (loc == null ? "null" : new String(loc, UTF_8)),
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 

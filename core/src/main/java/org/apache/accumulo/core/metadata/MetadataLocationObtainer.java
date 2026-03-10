@@ -87,9 +87,8 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       Timer timer = null;
 
       if (log.isTraceEnabled()) {
-        log.trace("tid={} Looking up in {} row={} extent={} tserver={}",
-            Thread.currentThread().getId(), src.tablet_extent.tableId(), TextUtil.truncate(row),
-            src.tablet_extent, src.tablet_location);
+        log.trace("Looking up in {} row={} extent={} tserver={}", src.tablet_extent.tableId(),
+            TextUtil.truncate(row), src.tablet_extent, src.tablet_location);
         timer = Timer.startNew();
       }
 
@@ -123,8 +122,7 @@ public class MetadataLocationObtainer implements TabletLocationObtainer {
       }
 
       if (timer != null) {
-        log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.tablet_extent,
+        log.trace("Got {} results from {} in {}", results.size(), src.tablet_extent,
             String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
       }
 
