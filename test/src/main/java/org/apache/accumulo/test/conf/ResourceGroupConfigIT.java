@@ -517,4 +517,37 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
     expected.putAll(rgConfig);
     assertEquals(expected, new TreeMap<>(actual));
   }
+
+  /**
+   * Verify compactor properties that are periodically read by the compactor process can be set in
+   * zookeeper.
+   */
+  @Test
+  public void testSystemCompactorProperties() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      var testRg = ResourceGroupId.of("trg");
+      client.resourceGroupOperations().create(testRg);
+
+      client.resourceGroupOperations().setProperty(testRg,
+              Property.COMPACTOR_MIN_JOB_WAIT_TIME.getKey(), "1s");
+      client.resourceGroupOperations().setProperty(testRg,
+              Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey(), "10s");
+      client.resourceGroupOperations().setProperty(testRg,
+              Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD.getKey(), "4");
+      client.resourceGroupOperations().setProperty(testRg,
+              Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL.getKey(), "11s");
+      client.resourceGroupOperations().setProperty(testRg,
+              Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey(), "5m");
+      client.resourceGroupOperations().setProperty(testRg,
+              Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD.getKey(), "20");
+
+      var props = client.resourceGroupOperations().getProperties(testRg);
+      assertEquals("1s", props.get(Property.COMPACTOR_MIN_JOB_WAIT_TIME.getKey()));
+      assertEquals("10s", props.get(Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey()));
+      assertEquals("4", props.get(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD.getKey()));
+      assertEquals("11s", props.get(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL.getKey()));
+      assertEquals("5m", props.get(Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey()));
+      assertEquals("20", props.get(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD.getKey()));
+    }
+  }
 }
