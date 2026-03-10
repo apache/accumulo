@@ -124,16 +124,14 @@ public class Namespaces {
   }
 
   /**
-   * Look for namespace ID in ZK. Fail quietly by logging and returning null.
+   * Look for namespace ID in ZK. Fail quietly by returning null.
    */
   public static NamespaceId lookupNamespaceId(ClientContext context, String namespaceName) {
     NamespaceId id = null;
     try {
       id = getNamespaceId(context, namespaceName);
     } catch (NamespaceNotFoundException e) {
-      if (log.isDebugEnabled()) {
-        log.debug("Failed to find namespace ID from name: " + namespaceName, e);
-      }
+      return null;
     }
     return id;
   }
