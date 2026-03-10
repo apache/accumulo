@@ -796,7 +796,7 @@ public class ServiceLock implements Watcher {
 
     List<String> servers = zk.getChildren(zPath);
     if (servers.isEmpty()) {
-      throw new IllegalStateException("No server locks are held at " + zPath);
+      return;
     }
 
     for (String server : servers) {
@@ -822,7 +822,7 @@ public class ServiceLock implements Watcher {
 
     List<String> servers = zk.getChildren(zPath);
     if (servers.isEmpty()) {
-      throw new IllegalStateException("No server locks are held at " + zPath);
+      return;
     }
 
     ZooKeeper z = zk.getZooKeeper();
