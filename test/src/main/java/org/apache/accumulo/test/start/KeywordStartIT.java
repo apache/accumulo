@@ -102,7 +102,6 @@ import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.cli.TestCommandGroup;
-import org.apache.accumulo.test.performance.scan.CollectTabletStats;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.ScanServerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
@@ -241,8 +240,6 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-all", StopAll.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-manager", StopManager.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-servers", StopServers.class));
-    expectSet
-        .add(new CommandInfo(TestCommandGroup.INSTANCE, "tablet-stats", CollectTabletStats.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "tserver", TServerExecutable.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "upgrade", UpgradeUtil.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "verify-ingest", VerifyIngest.class));

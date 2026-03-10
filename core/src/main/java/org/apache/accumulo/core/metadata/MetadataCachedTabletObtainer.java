@@ -83,9 +83,9 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       Timer timer = null;
 
       if (log.isTraceEnabled()) {
-        log.trace("tid={} Looking up in {} row={} stopRow={} extent={} tserver={}",
-            Thread.currentThread().getId(), src.getExtent().tableId(), TextUtil.truncate(row),
-            TextUtil.truncate(stopRow), src.getExtent(), src.getTserverLocation());
+        log.trace("Looking up in {} row={} stopRow={} extent={} tserver={}",
+            src.getExtent().tableId(), TextUtil.truncate(row), TextUtil.truncate(stopRow),
+            src.getExtent(), src.getTserverLocation());
         timer = Timer.startNew();
       }
 
@@ -119,12 +119,9 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       }
 
       if (timer != null) {
-        log.trace("tid={} Got {} results from {} in {}", Thread.currentThread().getId(),
-            results.size(), src.getExtent(),
+        log.trace("Got {} results from {} in {}", results.size(), src.getExtent(),
             String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
       }
-
-      // if (log.isTraceEnabled()) log.trace("results "+results);
 
       return MetadataCachedTabletObtainer.getMetadataLocationEntries(results);
 

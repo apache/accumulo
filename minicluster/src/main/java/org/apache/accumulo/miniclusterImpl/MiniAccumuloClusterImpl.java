@@ -112,7 +112,6 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.util.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -227,7 +226,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set(DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY, "1");
       conf.set("dfs.support.append", "true");
       conf.set("dfs.datanode.synconclose", "true");
-      conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
       String oldTestBuildData =
           System.setProperty("test.build.data", dfs.toAbsolutePath().toString());

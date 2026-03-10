@@ -25,7 +25,7 @@ import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.SCAN_S
 import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.TABLET_SERVER;
 
 import java.net.InetAddress;
-import java.net.URL;
+import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
@@ -415,13 +415,13 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       rootContext = rootContext + "/";
     }
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
-          server.getPort(), rootContext);
+      var uri = new URI(server.isSecure() ? "https" : "http", null, monitorHostAndPort.getHost(),
+          server.getPort(), rootContext, null, null);
       final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(Constants.ZMONITOR_HTTP_ADDR);
-      zoo.putEphemeralData(Constants.ZMONITOR_HTTP_ADDR, url.toString().getBytes(UTF_8));
-      log.info("Set monitor address in zookeeper to {}", url);
+      zoo.putEphemeralData(Constants.ZMONITOR_HTTP_ADDR, uri.toString().getBytes(UTF_8));
+      log.info("Set monitor address in zookeeper to {}", uri);
     } catch (Exception ex) {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
     }
