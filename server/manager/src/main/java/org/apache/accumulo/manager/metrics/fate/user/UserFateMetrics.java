@@ -18,21 +18,16 @@
  */
 package org.apache.accumulo.manager.metrics.fate.user;
 
-import java.util.Set;
-
-import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
-import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 
 public class UserFateMetrics extends FateMetrics<UserFateMetricValues> {
 
-  public UserFateMetrics(ServerContext context, long minimumRefreshDelay,
-      Set<FateExecutor<FateEnv>> fateExecutors) {
-    super(context, minimumRefreshDelay, fateExecutors);
+  public UserFateMetrics(ServerContext context, long minimumRefreshDelay) {
+    super(context, minimumRefreshDelay);
   }
 
   @Override

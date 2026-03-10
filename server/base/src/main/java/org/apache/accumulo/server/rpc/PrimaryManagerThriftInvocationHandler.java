@@ -26,24 +26,24 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.server.HighlyAvailableService;
+import org.apache.accumulo.server.PrimaryManagerThriftService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * An {@link InvocationHandler} which checks to see if a {@link HighlyAvailableService} is the
- * current active instance of that service, throwing {@link ThriftNotActiveServiceException} when it
- * is not the current active instance.
+ * An {@link InvocationHandler} which checks to see if a {@link PrimaryManagerThriftService} is the
+ * current active primary manager, throwing {@link ThriftNotActiveServiceException} when it is not
+ * the current active instance.
  */
-public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHandler {
+public class PrimaryManagerThriftInvocationHandler<I> implements InvocationHandler {
   private static final Logger LOG =
-      LoggerFactory.getLogger(HighlyAvailableServiceInvocationHandler.class);
+      LoggerFactory.getLogger(PrimaryManagerThriftInvocationHandler.class);
 
   private final I instance;
-  private final HighlyAvailableService service;
+  private final PrimaryManagerThriftService service;
   private final Set<String> onewayMethods;
 
-  public HighlyAvailableServiceInvocationHandler(I instance, HighlyAvailableService service,
+  public PrimaryManagerThriftInvocationHandler(I instance, PrimaryManagerThriftService service,
       Set<String> onewayMethods) {
     this.instance = Objects.requireNonNull(instance);
     this.service = Objects.requireNonNull(service);
@@ -68,7 +68,7 @@ public class HighlyAvailableServiceInvocationHandler<I> implements InvocationHan
     }
 
     // If the service is not active, throw an exception
-    if (!service.isActiveService()) {
+    if (!service.isPrimaryManager()) {
       if (onewayMethods.contains(method.getName())) {
         // if thrift one way method throws an exception it will just log an error
         LOG.debug("Ignoring one way thrift call because not active : {} {}", method.getName(),
