@@ -312,8 +312,7 @@ public class ScanServer extends AbstractServer
     updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getContext(), getBindAddress(),
           Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-          Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
-          Property.SSERV_THREADCHECK);
+          Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
     });
   }
 
