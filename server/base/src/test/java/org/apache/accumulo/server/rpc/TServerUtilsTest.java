@@ -25,7 +25,6 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,7 +33,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
-import java.util.Set;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
@@ -136,61 +134,6 @@ public class TServerUtilsTest {
     try (ServerSocket s = new ServerSocket(port, 50, addr)) {
       assertNotNull(s);
       assertThrows(UnknownHostException.class, this::startServer);
-    }
-  }
-
-  @SuppressFBWarnings(value = "UNENCRYPTED_SERVER_SOCKET", justification = "socket for testing")
-  @Test
-  public void testStartServerNonDefaultPorts() throws Exception {
-    TServer server = null;
-
-    // This test finds 5 free ports in more-or-less a contiguous way and then
-    // uses those port numbers to Accumulo services in the below (ascending) sequence
-    // 0. TServer default client port (this test binds to this port to force a port search)
-    // 1. GC
-    // 2. Manager
-    // 3. Monitor
-    // 4. One free port - this is the one that we expect the TServer to finally use
-    int[] ports = findTwoFreeSequentialPorts(1024);
-    final int tserverDefaultPort = ports[0];
-    int gcPort = ports[1];
-    conf.set(Property.GC_PORT, Integer.toString(gcPort));
-
-    ports = findTwoFreeSequentialPorts(gcPort + 1);
-    int managerPort = ports[0];
-    conf.set(Property.MANAGER_CLIENTPORT, Integer.toString(managerPort));
-    int monitorPort = ports[1];
-    conf.set(Property.MONITOR_PORT, Integer.toString(monitorPort));
-
-    ports = findTwoFreeSequentialPorts(monitorPort + 1);
-    int tserverFinalPort = ports[0];
-
-    conf.set(Property.TSERV_CLIENTPORT, tserverDefaultPort + "-" + tserverFinalPort);
-
-    // Ensure that the TServer client port we set above is NOT in the reserved ports
-    Set<Integer> reservedPorts = TServerUtils.getReservedPorts(conf, Property.TSERV_CLIENTPORT);
-    assertFalse(reservedPorts.contains(tserverDefaultPort));
-
-    // Ensure that all the ports we assigned (GC, Manager, Monitor) are included in the reserved
-    // ports as returned by TServerUtils
-    assertTrue(reservedPorts.contains(gcPort));
-    assertTrue(reservedPorts.contains(managerPort));
-    assertTrue(reservedPorts.contains(monitorPort));
-
-    InetAddress addr = InetAddress.getByName("localhost");
-    try (ServerSocket s = new ServerSocket(tserverDefaultPort, 50, addr)) {
-      ServerAddress address = startServer();
-      assertNotNull(address);
-      server = address.getServer();
-      assertNotNull(server);
-
-      // Finally ensure that the TServer is using the last port (i.e. port search worked)
-      assertEquals(address.getAddress().getPort(), tserverFinalPort);
-    } finally {
-      if (server != null) {
-        server.stop();
-      }
-
     }
   }
 

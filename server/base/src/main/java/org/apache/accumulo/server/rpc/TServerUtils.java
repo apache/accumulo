@@ -28,12 +28,10 @@ import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import javax.net.ssl.SSLServerSocket;
@@ -41,7 +39,6 @@ import javax.net.ssl.SSLServerSocket;
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -95,18 +92,6 @@ public class TServerUtils {
   }
 
   /**
-   *
-   * @param config Accumulo configuration
-   * @return A set of ports used by other configured port properties
-   */
-  static Set<Integer> getReservedPorts(AccumuloConfiguration config, Property portProperty) {
-    return EnumSet.allOf(Property.class).stream()
-        .filter(p -> p.getType() == PropertyType.PORT && p != portProperty)
-        .flatMap(rp -> config.getPortStream(rp).boxed()).filter(p -> p != 0)
-        .collect(Collectors.toSet());
-  }
-
-  /**
    * Create a ServerAddress, at the given port, or higher, if that port is not available. Callers
    * must start the ThriftServer after calling this method using
    * {@code ServerAddress#startThriftServer(String)}
@@ -127,12 +112,7 @@ public class TServerUtils {
       Property timeBetweenThreadChecksProperty) throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
 
-    final Set<Integer> reservedByOther = getReservedPorts(config, portHintProperty);
-    // Create a stream where ports not reserved by others come first and are followed by ports
-    // reserved by others. This is a best effort attempt to avoid using ports used in other config.
-    final IntStream portHint = IntStream.concat(
-        config.getPortStream(portHintProperty).filter(p -> !reservedByOther.contains(p)),
-        config.getPortStream(portHintProperty).filter(reservedByOther::contains));
+    final IntStream portHint = config.getPortStream(portHintProperty);
 
     int minThreads = 2;
     if (minThreadProperty != null) {
