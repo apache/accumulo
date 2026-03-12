@@ -141,9 +141,12 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
     var zrw = context.getZooSession().asReaderWriter();
     if (opts.zapManager) {
       try {
-        ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
-        filterSingleton(context, managerLockPath, addressSelector)
-            .ifPresent(slp -> removeSingletonLock(zrw, slp, opts));
+        Set<ServiceLockPath> managerPaths =
+            context.getServerPaths().getAssistantManagers(addressSelector, false);
+        for (var serverLockPath : managerPaths) {
+          message("Deleting manager " + serverLockPath.getServer() + " from zookeeper", opts);
+          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+        }
       } catch (RuntimeException e) {
         log.error("Error deleting manager lock", e);
       }

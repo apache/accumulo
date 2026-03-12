@@ -25,7 +25,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
@@ -45,6 +44,7 @@ public class ComprehensiveMultiManagerIT extends ComprehensiveITBase {
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
+      cfg.getClusterServerConfiguration().setNumManagers(3);
     }
   }
 
@@ -55,10 +55,6 @@ public class ComprehensiveMultiManagerIT extends ComprehensiveITBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
     }
-
-    // Start two more managers
-    getCluster().exec(Manager.class);
-    getCluster().exec(Manager.class);
 
     // Wait for 3 managers to have a fate partition assigned to them
     var srvCtx = getCluster().getServerContext();

@@ -105,7 +105,6 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
       cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
       cfg.setProperty(Property.COMPACTOR_CANCEL_CHECK_INTERVAL, "5s");
-      cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
       cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + GROUP_NAME + ".planner",
           RatioBasedCompactionPlanner.class.getName());
       cfg.setProperty(

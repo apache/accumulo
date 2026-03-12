@@ -999,7 +999,7 @@ public class Manager extends AbstractServer
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
-            Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
+            Property.MANAGER_CLIENTPORT, processor, "Manager", Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
       });
     } catch (UnknownHostException e) {
