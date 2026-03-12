@@ -125,6 +125,11 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       // Create a table in order to wait for the single manager to become the primary manager
       client.tableOperations().create("waitTable");
 
+      // Store primary manager ref
+      var managerRefs = getCluster().getProcesses().get(ServerType.MANAGER);
+      assertEquals(1, managerRefs.size());
+      final var primaryManagerRef = managerRefs.iterator().next();
+      
       // start more manager processes, should be assigned fate work
       getCluster().getConfig().getClusterServerConfiguration().setNumManagers(3);
       getCluster().getClusterControl().start(ServerType.MANAGER);
@@ -203,13 +208,18 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
       // Kill two assistant manager processes. Any fate operations that were running should resume
       // elsewhere. Should see three manager running operations after that.
-      var processMap = getCluster().getProcesses();
-      var processes = processMap.get(ServerType.MANAGER);
-      assertEquals(5, processes.size());
-      Iterator<ProcessReference> iter = processes.iterator();
-      iter.next();
-      getCluster().getClusterControl().killProcess(ServerType.MANAGER, iter.next());
-      getCluster().getClusterControl().killProcess(ServerType.MANAGER, iter.next());
+      managerRefs = getCluster().getProcesses().get(ServerType.MANAGER);
+      assertEquals(5, managerRefs.size());
+      Iterator<ProcessReference> iter = managerRefs.iterator();
+      int killed = 0;
+      while (iter.hasNext() && killed < 2) {
+        var candidate = iter.next();
+        if (candidate.equals(primaryManagerRef)) {
+          continue;
+        }
+        getCluster().getClusterControl().killProcess(ServerType.MANAGER, candidate);
+        killed++;
+      }
 
       log.debug("Killed 2 managers");
       waitToSeeManagers(ctx, 3, store, true);
