@@ -83,7 +83,7 @@ import com.google.common.net.HostAndPort;
  * </ul>
  *
  */
-public class MultipleManagerIT extends ConfigurableMacBase {
+public class MultipleManagerFateIT extends ConfigurableMacBase {
 
   // A manager that will quickly clean up fate reservations held by dead managers
   public static class FastFateCleanupManager extends Manager {
