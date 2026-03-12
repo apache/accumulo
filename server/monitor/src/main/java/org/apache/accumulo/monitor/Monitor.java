@@ -78,9 +78,12 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.InformationFetcher;
+import org.apache.accumulo.monitor.rest.bulkImports.BulkImport;
+import org.apache.accumulo.monitor.rest.bulkImports.BulkImportInformation;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.ee10.servlet.ResourceServlet;
@@ -566,6 +569,9 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       Suppliers.memoizeWithExpiration(this::computeExternalCompactionsSnapshot,
           expirationTimeMinutes, MINUTES);
 
+  private final Supplier<BulkImport> bulkImportSupplier =
+      Suppliers.memoizeWithExpiration(this::computeBulkImports, expirationTimeMinutes, MINUTES);
+
   /**
    * @return active tablet server scans. Values are cached and refresh after
    *         {@link #expirationTimeMinutes}.
@@ -608,6 +614,20 @@ public class Monitor extends AbstractServer implements Connection.Listener {
    */
   public long getCompactorInfoFetchedTimeMillis() {
     return compactorInfoSupplier.get().fetchedTimeMillis;
+  }
+
+  private BulkImport computeBulkImports() {
+    BulkImport bulkImport = new BulkImport();
+    ListBulk.list(getContext(), bulkStatus -> {
+      bulkImport.addBulkImport(
+          new BulkImportInformation(bulkStatus.sourceDir(), bulkStatus.lastUpdate().toEpochMilli(),
+              bulkStatus.state(), bulkStatus.tableId(), bulkStatus.fateId()));
+    });
+    return bulkImport;
+  }
+
+  public BulkImport getBulkImports() {
+    return bulkImportSupplier.get();
   }
 
   /**
