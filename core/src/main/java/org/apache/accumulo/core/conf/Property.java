@@ -531,6 +531,19 @@ public enum Property {
       "Allow tablets for the " + SystemTables.METADATA.tableName()
           + " table to be suspended via table.suspend.duration.",
       "1.8.0"),
+  MANAGER_STARTUP_MANAGER_AVAIL_MIN_COUNT("manager.startup.manager.avail.min.count", "0",
+      PropertyType.COUNT,
+      "Minimum number of managers that need to be registered before the primary manager will start. A value "
+          + "greater than 0 is useful when multiple managers are supposed to be running on startup. "
+          + "When set to 0 or less, no blocking occurs. Default is 0 (disabled).",
+      "4.0.0"),
+  MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT("manager.startup.manager.avail.max.wait", "0",
+      PropertyType.TIMEDURATION,
+      "Maximum time manager will wait for manager available threshold "
+          + "to be reached before continuing. When set to 0 or less, will block "
+          + "indefinitely. Default is 0 to block indefinitely. Only valid when manager available "
+          + "threshold is set greater than 1.",
+      "4.0.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
       PropertyType.COUNT, """
           Minimum number of tservers that need to be registered before manager will \
