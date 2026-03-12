@@ -129,7 +129,7 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       var managerRefs = getCluster().getProcesses().get(ServerType.MANAGER);
       assertEquals(1, managerRefs.size());
       final var primaryManagerRef = managerRefs.iterator().next();
-      
+
       // start more manager processes, should be assigned fate work
       getCluster().getConfig().getClusterServerConfiguration().setNumManagers(3);
       getCluster().getClusterControl().start(ServerType.MANAGER);
