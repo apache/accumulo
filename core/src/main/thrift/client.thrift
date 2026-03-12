@@ -41,6 +41,8 @@ enum TableOperation {
   COMPACT_CANCEL
   SET_TABLET_AVAILABILITY
   SPLIT
+  LOCK
+  UNLOCK
 }
 
 enum TableOperationExceptionType {

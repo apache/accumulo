@@ -141,6 +141,7 @@ final class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
+  @SuppressWarnings("deprecation")
   private void nextTablet() throws TableNotFoundException, AccumuloException, IOException,
       AccumuloSecurityException, ReflectiveOperationException {
 
@@ -170,6 +171,11 @@ final class OfflineIterator implements Iterator<Entry<Key,Value>> {
     TabletMetadata tablet = getTabletFiles(nextRange);
 
     while (tablet.getLocation() != null) {
+      if (context.getTableState(tableId) == TableState.LOCKED) {
+        throw new AccumuloException(
+            "Table " + tableId + " is LOCKED. Scanning a locked table is not permitted."
+                + "Use Unlock() to return the table to ONLINE first.");
+      }
       if (context.getTableState(tableId) != TableState.OFFLINE) {
         context.clearTableListCache();
         if (context.getTableState(tableId) != TableState.OFFLINE) {

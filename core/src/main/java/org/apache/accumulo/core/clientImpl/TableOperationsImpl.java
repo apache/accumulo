@@ -1351,6 +1351,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ret;
   }
 
+  @SuppressWarnings("deprecation")
   private void waitForTableStateTransition(TableId tableId, TableState expectedState)
       throws AccumuloException, TableNotFoundException {
     Text startRow = null;
@@ -1456,12 +1457,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
+  @Deprecated
   @Override
   public void offline(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     offline(tableName, false);
   }
 
+  @Deprecated
   @Override
   public void offline(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
@@ -1504,6 +1507,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
           return;
         }
         break;
+      case LOCKED:
+        op = TFateOperation.TABLE_LOCK;
+        if (SystemTables.containsTableName(tableName)) {
+          throw new AccumuloException("Cannot set table to locked state");
+        }
+        break;
       default:
         throw new IllegalArgumentException(newState + " is not handled.");
     }
@@ -1538,6 +1547,31 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void online(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    changeTableState(tableName, wait, TableState.ONLINE);
+  }
+
+  @Override
+  public void lock(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    lock(tableName, false);
+  }
+
+  @Override
+  public void lock(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    changeTableState(tableName, wait, TableState.LOCKED);
+
+  }
+
+  @Override
+  public void unlock(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    unlock(tableName, false);
+  }
+
+  @Override
+  public void unlock(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     changeTableState(tableName, wait, TableState.ONLINE);
   }
