@@ -830,8 +830,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     int mgrExpectedCount = 0;
     for (Process tsp : getClusterControl().managerProcesses) {
       mgrExpectedCount++;
-      requireNonNull(tsp, "Error starting TabletServer " + mgrExpectedCount + " - no process");
-      waitForProcessStart(tsp, "TabletServer" + mgrExpectedCount);
+      requireNonNull(tsp, "Error starting Manager " + mgrExpectedCount + " - no process");
+      waitForProcessStart(tsp, "Manager" + mgrExpectedCount);
     }
 
     requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
@@ -920,7 +920,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return Stream.of(procs).map(ProcessReference::new).collect(toList());
   }
 
-  @SuppressWarnings("removal")
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
