@@ -827,8 +827,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private void verifyUp(ClientContext context, InstanceId instanceId)
       throws InterruptedException, IOException {
 
-    requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
-    waitForProcessStart(getClusterControl().managerProcess, "Manager");
+    int mgrExpectedCount = 0;
+    for (Process tsp : getClusterControl().managerProcesses) {
+      mgrExpectedCount++;
+      requireNonNull(tsp, "Error starting TabletServer " + mgrExpectedCount + " - no process");
+      waitForProcessStart(tsp, "TabletServer" + mgrExpectedCount);
+    }
 
     requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
     waitForProcessStart(getClusterControl().gcProcess, "GC");
@@ -933,9 +937,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           }
           break;
         case MANAGER:
-          if (control.managerProcess != null) {
-            result.put(type, references(control.managerProcess));
-          }
+          result.put(type, references(control.managerProcesses.stream().collect(Collectors.toList())
+              .toArray(new Process[0])));
           break;
         case MONITOR:
           if (control.monitor != null) {
