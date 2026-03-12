@@ -583,24 +583,31 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public Set<Process> getProcesses(ServerType type) {
     switch (type) {
       case COMPACTOR:
-        Set<Process> cprocesses = new HashSet<>();
-        compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
-        return cprocesses;
+        synchronized (compactorProcesses) {
+          Set<Process> cprocesses = new HashSet<>();
+          compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
+          return cprocesses;
+        }
       case GARBAGE_COLLECTOR:
         return gcProcess == null ? Set.of() : Set.of(gcProcess);
       case MANAGER:
-        return managerProcesses.size() == 0 ? Set.of()
-            : Set.copyOf(new HashSet<>(managerProcesses));
+        synchronized (managerProcesses) {
+          return managerProcesses.size() == 0 ? Set.of() : Set.copyOf(managerProcesses);
+        }
       case MONITOR:
         return monitor == null ? Set.of() : Set.of(monitor);
       case SCAN_SERVER:
-        Set<Process> sprocesses = new HashSet<>();
-        scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
-        return sprocesses;
+        synchronized (scanServerProcesses) {
+          Set<Process> sprocesses = new HashSet<>();
+          scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
+          return sprocesses;
+        }
       case TABLET_SERVER:
-        Set<Process> tprocesses = new HashSet<>();
-        tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
-        return tprocesses;
+        synchronized (tabletServerProcesses) {
+          Set<Process> tprocesses = new HashSet<>();
+          tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
+          return tprocesses;
+        }
       case ZOOKEEPER:
         return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
       default:
