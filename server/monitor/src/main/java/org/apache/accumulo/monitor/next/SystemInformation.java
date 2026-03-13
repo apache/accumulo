@@ -22,11 +22,10 @@ import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,7 +39,6 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -52,6 +50,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -60,6 +59,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Meter.Id;
@@ -336,9 +336,12 @@ public class SystemInformation {
       new ConcurrentHashMap<>();
 
   // Compaction Information
+  private static final int ACTIVE_COMPACTIONS_LIMIT = 50;
   private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
-  private final AtomicReference<Map<String,TExternalCompactionList>> oldestCompactions =
-      new AtomicReference<>();
+  private volatile Set<ServerId> registeredCompactors = Set.of();
+  private volatile HostAndPort coordinatorHost;
+  private volatile Map<String,TExternalCompaction> runningCompactions = Map.of();
+  private volatile List<RunningCompactionInfo> runningCompactionsTop = List.of();
 
   // Table Information
   private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
@@ -371,6 +374,10 @@ public class SystemInformation {
     rgSServerMetrics.clear();
     rgTServerMetrics.clear();
     queueMetrics.clear();
+    registeredCompactors = Set.of();
+    coordinatorHost = null;
+    runningCompactions = Map.of();
+    runningCompactionsTop = List.of();
     tables.clear();
     tablets.clear();
     deployment.clear();
@@ -476,8 +483,21 @@ public class SystemInformation {
 
   }
 
-  public void processExternalCompactionList(Map<String,TExternalCompactionList> running) {
-    oldestCompactions.set(running);
+  public void processExternalCompactions(Map<String,TExternalCompaction> running) {
+    if (running == null) {
+      runningCompactions = Map.of();
+    } else {
+      runningCompactions = Map.copyOf(running);
+    }
+  }
+
+  public void processExternalCompactionInventory(Set<ServerId> compactors, HostAndPort host) {
+    if (compactors == null) {
+      registeredCompactors = Set.of();
+    } else {
+      registeredCompactors = Set.copyOf(compactors);
+    }
+    coordinatorHost = host;
   }
 
   public void processTabletInformation(TableId tableId, String tableName, TabletInformation info) {
@@ -523,6 +543,8 @@ public class SystemInformation {
     timestamp = System.currentTimeMillis();
     scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
         problemScanServerCount, timestamp);
+    runningCompactionsTop =
+        buildTopRunningCompactions(runningCompactions, ACTIVE_COMPACTIONS_LIMIT);
   }
 
   public Set<String> getResourceGroups() {
@@ -584,29 +606,20 @@ public class SystemInformation {
     return this.queueMetrics;
   }
 
-  public Map<String,List<TExternalCompaction>> getCompactions() {
-
-    Map<String,TExternalCompactionList> oldest = oldestCompactions.get();
-    if (oldest == null) {
-      return null;
-    }
-
-    Map<String,List<TExternalCompaction>> results = new HashMap<>();
-    for (Entry<String,TExternalCompactionList> e : oldest.entrySet()) {
-      List<TExternalCompaction> compactions = e.getValue().getCompactions();
-      if (compactions != null && compactions.size() > 0) {
-        results.put(e.getKey(), compactions);
-      }
-    }
-    return results;
+  public Set<ServerId> getCompactorServers() {
+    return registeredCompactors;
   }
 
-  public List<TExternalCompaction> getCompactions(String group) {
-    TExternalCompactionList list = oldestCompactions.get().get(group);
-    if (list == null) {
-      return null;
-    }
-    return list.getCompactions();
+  public HostAndPort getCoordinatorHost() {
+    return coordinatorHost;
+  }
+
+  public Map<String,TExternalCompaction> getRunningCompactions() {
+    return runningCompactions;
+  }
+
+  public List<RunningCompactionInfo> getTopRunningCompactions() {
+    return runningCompactionsTop;
   }
 
   public Map<TableId,TableSummary> getTables() {
@@ -631,6 +644,16 @@ public class SystemInformation {
 
   public ScanServerView getScanServerView() {
     return this.scanServerView;
+  }
+
+  private static List<RunningCompactionInfo>
+      buildTopRunningCompactions(Map<String,TExternalCompaction> allCompactions, int limit) {
+    if (allCompactions == null || allCompactions.isEmpty()) {
+      return List.of();
+    }
+    return allCompactions.values().stream().map(RunningCompactionInfo::new)
+        .sorted(Comparator.comparingLong((RunningCompactionInfo r) -> r.duration).reversed())
+        .limit(limit).toList();
   }
 
 }

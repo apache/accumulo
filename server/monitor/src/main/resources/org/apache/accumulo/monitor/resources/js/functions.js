@@ -703,25 +703,6 @@ function getTable(name) {
 }
 
 /**
- * REST GET call for /compactions/detail/{num},
- * stores it on a sessionStorage variable
- * @param {number} num Detail number
- */
-function getCompactionsDetail(num) {
-  const url = `${REST_V2_PREFIX}/compactions/detail/${num}`;
-  const sessionDataVar = `compactionsDetail_${num}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/detail,
- * stores it on a sessionStorage variable
- */
-function getCompactionsDetail() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/detail', 'compactionsDetail');
-}
-
-/**
  * REST GET call for /compactions/summary,
  * stores it on a sessionStorage variable
  */
