@@ -98,12 +98,6 @@ public class MultipleManagerMetricsIT extends ConfigurableMacBase {
     sink.close();
   }
 
-  // @BeforeEach
-  // public void setup() throws Exception {
-  // // Dump the stored metrics
-  // sink.getLines();
-  // }
-
   private String getPrimaryFromZK() {
     Set<ServerId> primaries =
         getCluster().getServerContext().instanceOperations().getServers(ServerId.Type.MANAGER);
