@@ -399,7 +399,7 @@ public enum Property {
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
-  MANAGER_CLIENTPORT("manager.port.client", "9999", PropertyType.PORT,
+  MANAGER_CLIENTPORT("manager.port.client", "9999-10009", PropertyType.PORT,
       "The port used for handling client connections on the manager.", "1.3.5"),
   MANAGER_TABLET_BALANCER("manager.tablet.balancer",
       "org.apache.accumulo.core.spi.balancer.TableLoadBalancer", PropertyType.CLASSNAME,
