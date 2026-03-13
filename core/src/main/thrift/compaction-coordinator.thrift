@@ -69,6 +69,18 @@ struct TNextCompactionJob {
   2:i32 compactorCount
 }
 
+struct TResolvedCompactionJob {
+  1:string selectedFateId
+  2:list<tabletserver.InputFile> jobFiles;
+  3:string kind
+  4:bool compactingAll
+  5:data.TKeyExtent extent
+  6:i16 priority
+  7:string group
+  8:string tabletDir
+  9:bool overlapsSelectedFiles
+}
+
 
 exception UnknownCompactionIdException {}
 
@@ -179,6 +191,31 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
     3:string externalCompactionId
   )
+
+  void beginFullJobScan(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string dataLevel
+  )throws(
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+
+  oneway void addJobs(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:list<TResolvedCompactionJob> jobs
+  )
+
+  void endFullJobScan(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string dataLevel
+  )throws(
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+
 }
 
 service CompactorService {
