@@ -102,7 +102,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   // meter names sorted and formatting disabled to make it easier to diff changes
   // @formatter:off
-  public static Set<Metric> unexpectedMetrics = Set.of(
+  public static final Set<Metric> unexpectedMetrics = Set.of(
           SCAN_YIELDS,
           COMPACTOR_MAJC_CANCELLED,
           COMPACTOR_MAJC_FAILED,
@@ -111,7 +111,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   );
 
   // add sserver as flaky until scan server included in mini tests.
-  public static Set<Metric> flakyMetrics = Set.of(
+  public static final Set<Metric> flakyMetrics = Set.of(
           COMPACTOR_MAJC_STUCK,
           FATE_TYPE_IN_PROGRESS,
           MANAGER_BALANCER_MIGRATIONS_NEEDED,
