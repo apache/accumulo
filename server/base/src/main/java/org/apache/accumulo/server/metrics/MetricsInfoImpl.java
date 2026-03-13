@@ -110,6 +110,7 @@ public class MetricsInfoImpl implements MetricsInfo {
     }
   }
 
+  @Override
   public synchronized boolean isInitialized() {
     return configuration.get() != null;
   }
