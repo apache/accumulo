@@ -461,6 +461,64 @@ class FateServiceHandler implements FateService.Iface {
             autoCleanup, goalMessage);
         break;
       }
+
+      case TABLE_LOCK: {
+        TableOperation tableOp = TableOperation.LOCK;
+        validateArgumentCount(arguments, tableOp, 1);
+        final var tableId =
+            validateTableIdArgument(arguments.get(0), tableOp, NOT_BUILTIN_TABLE_ID);
+        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final boolean canLock;
+        try {
+          canLock = security.canChangeTableState(c, tableId, top, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, null, TableOperation.LOCK);
+          throw e;
+        }
+
+        if (!canLock) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        goalMessage += "Lock table " + tableId;
+
+        // Allow locking from ONLINE, OFFLINE, or LOCKED states to make the lock operation
+        // idempotent
+        final EnumSet<TableState> expectedCurrStates =
+            EnumSet.of(TableState.ONLINE, TableState.OFFLINE, TableState.LOCKED);
+        manager.fateClient(type).seedTransaction(op, fateId,
+            new TraceRepo<>(
+                new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
+            autoCleanup, goalMessage);
+        break;
+      }
+      case TABLE_UNLOCK: {
+        TableOperation tableOp = TableOperation.UNLOCK;
+        validateArgumentCount(arguments, tableOp, 1);
+        final var tableId =
+            validateTableIdArgument(arguments.get(0), tableOp, NOT_BUILTIN_TABLE_ID);
+        NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
+        final boolean canUnlock;
+        try {
+          canUnlock = security.canChangeTableState(c, tableId, top, namespaceId);
+        } catch (ThriftSecurityException e) {
+          throwIfTableMissingSecurityException(e, tableId, null, TableOperation.UNLOCK);
+          throw e;
+        }
+
+        if (!canUnlock) {
+          throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+        }
+
+        goalMessage += "Unlock table " + tableId;
+        // can unlock from LOCKED
+        final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.LOCKED);
+        manager.fateClient(type).seedTransaction(op, fateId,
+            new TraceRepo<>(
+                new ChangeTableState(namespaceId, tableId, tableOp, expectedCurrStates)),
+            autoCleanup, goalMessage);
+        break;
+      }
       case TABLE_MERGE: {
         TableOperation tableOp = TableOperation.MERGE;
         validateArgumentCount(arguments, tableOp, 3);

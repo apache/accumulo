@@ -69,6 +69,8 @@ enum TFateOperation {
   TABLE_BULK_IMPORT2 = 16
   TABLE_TABLET_AVAILABILITY = 17
   TABLE_SPLIT = 18
+  TABLE_LOCK = 19
+  TABLE_UNLOCK = 20
 }
 
 enum ManagerState {

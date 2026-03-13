@@ -107,7 +107,10 @@ public class Fate<T> extends FateClient<T> {
     TABLE_ONLINE(TFateOperation.TABLE_ONLINE),
     TABLE_RENAME(TFateOperation.TABLE_RENAME),
     TABLE_SPLIT(TFateOperation.TABLE_SPLIT),
-    TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY);
+    TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY),
+
+    TABLE_LOCK(TFateOperation.TABLE_LOCK),
+    TABLE_UNLOCK(TFateOperation.TABLE_UNLOCK);
 
     private final TFateOperation top;
     private static final Set<FateOperation> nonThriftOps = Arrays.stream(FateOperation.values())

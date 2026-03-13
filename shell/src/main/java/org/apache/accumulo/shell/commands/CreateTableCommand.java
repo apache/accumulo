@@ -68,6 +68,7 @@ public class CreateTableCommand extends Command {
   private Option createTableOptLocalityProps;
   private Option createTableOptIteratorProps;
   private Option createTableOptOffline;
+  private Option createTableLock;
   private Option createTableOptInitialTabletAvailability;
   private OptionGroup copyConfigGroup;
 
@@ -162,6 +163,10 @@ public class CreateTableCommand extends Command {
     // set offline table creation property
     if (cl.hasOption(createTableOptOffline.getOpt())) {
       ntc.createOffline();
+    }
+
+    if (cl.hasOption(createTableLock.getOpt())) {
+      ntc.createLocked();
     }
 
     // Copy configuration options if flag was set
@@ -369,6 +374,7 @@ public class CreateTableCommand extends Command {
     createTableOptIteratorProps.setArgs(Option.UNLIMITED_VALUES);
 
     createTableOptOffline = new Option("o", "offline", false, "create table in offline mode");
+    createTableLock = new Option("lock", "lock", false, "create table in locked mode");
 
     // Splits and CopySplits are put in an optionsgroup to make them
     // mutually exclusive
@@ -398,6 +404,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptLocalityProps);
     o.addOption(createTableOptIteratorProps);
     o.addOption(createTableOptOffline);
+    o.addOption(createTableLock);
     o.addOption(createTableOptInitialTabletAvailability);
 
     return o;
