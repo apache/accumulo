@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CoordinatorLocations;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
@@ -178,6 +179,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZMANAGER_ASSISTANT_LOCK, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
+    CoordinatorLocations.setLocations(zrwChroot, Map.of());
   }
 
   /**

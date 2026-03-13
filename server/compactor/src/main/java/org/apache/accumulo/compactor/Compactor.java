@@ -568,13 +568,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @throws TTransportException when unable to get client
    */
   protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
-    if (coordinatorHost.isEmpty()) {
+    var coordinatorHost = getContext().getCoordinatorLocations(true).get(getResourceGroup());
+    if (coordinatorHost == null) {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost.orElseThrow());
-    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(),
-        getContext());
+    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost);
+    return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost, getContext());
   }
 
   /**

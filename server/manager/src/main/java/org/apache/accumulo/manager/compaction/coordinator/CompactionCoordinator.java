@@ -82,6 +82,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
+import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -724,6 +725,42 @@ public class CompactionCoordinator
     queueMetrics.registerMetrics(registry);
   }
 
+  @Override
+  public void beginFullJobScan(TInfo tinfo, TCredentials credentials, String dataLevel)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    jobQueues.beginFullScan(DataLevel.valueOf(dataLevel));
+  }
+
+  @Override
+  public void addJobs(TInfo tinfo, TCredentials credentials, List<TResolvedCompactionJob> jobs)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      // this is a oneway method so throwing an exception is not useful
+      return;
+    }
+
+    for (var tjob : jobs) {
+      var job = ResolvedCompactionJob.fromThrift(tjob);
+      // TODO maybe no longer need to pass a list
+      jobQueues.add(job.getExtent(), List.of(job));
+    }
+  }
+
+  @Override
+  public void endFullJobScan(TInfo tinfo, TCredentials credentials, String dataLevel)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    jobQueues.endFullScan(DataLevel.valueOf(dataLevel));
+  }
+
+  // TODO remove
   public void addJobs(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
     ArrayList<CompactionJob> resolvedJobs = new ArrayList<>(jobs.size());
     for (var job : jobs) {
@@ -1286,7 +1323,7 @@ public class CompactionCoordinator
     }
   }
 
-  private Set<ResourceGroupId> getCompactionServicesConfigurationGroups()
+  static Set<ResourceGroupId> getCompactionServicesConfigurationGroups(ServerContext ctx)
       throws ReflectiveOperationException, IllegalArgumentException, SecurityException {
 
     Set<ResourceGroupId> groups = new HashSet<>();
@@ -1357,7 +1394,7 @@ public class CompactionCoordinator
     // Get the set of groups being referenced in the current configuration
     Set<ResourceGroupId> groupsInConfiguration = null;
     try {
-      groupsInConfiguration = getCompactionServicesConfigurationGroups();
+      groupsInConfiguration = getCompactionServicesConfigurationGroups(ctx);
     } catch (RuntimeException | ReflectiveOperationException e) {
       LOG.error(
           "Error getting groups from the compaction services configuration. Unable to clean up internal state.",

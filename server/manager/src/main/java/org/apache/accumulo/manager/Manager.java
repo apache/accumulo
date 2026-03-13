@@ -119,6 +119,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.compaction.coordinator.CoordinatorManager;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.fate.FateWorker;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
@@ -231,6 +232,8 @@ public class Manager extends AbstractServer
   private final AtomicReference<Map<FateInstanceType,Fate<FateEnv>>> fateRefs =
       new AtomicReference<>();
   private volatile FateManager fateManager;
+
+  private volatile CoordinatorManager coordinatorManager;
 
   static class TServerStatus {
     // This is the set of tservers that an attempt to gather status from was made
@@ -1202,6 +1205,9 @@ public class Manager extends AbstractServer
 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
     compactionCoordinator.start();
+
+    coordinatorManager = new CoordinatorManager(context);
+    coordinatorManager.start();
 
     this.splitter = new Splitter(this);
     this.splitter.start();

@@ -52,6 +52,7 @@ public class Constants {
   public static final String ZMANAGER_ASSISTANT_LOCK = ZMANAGERS + "/assistants";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
   public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
+  public static final String ZMANAGER_COORDINATOR = ZMANAGERS + "/coordinators";
 
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
