@@ -48,6 +48,7 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
+import io.micrometer.core.instrument.config.MeterFilter;
 
 public class MetricsInfoImpl implements MetricsInfo {
 
@@ -111,7 +112,7 @@ public class MetricsInfoImpl implements MetricsInfo {
   }
 
   @Override
-  public synchronized void init(Collection<Tag> tags) {
+  public synchronized void init(Collection<Tag> tags, MeterFilter... filters) {
     Objects.requireNonNull(tags);
 
     if (!metricsEnabled) {
@@ -197,7 +198,11 @@ public class MetricsInfoImpl implements MetricsInfo {
             Property.GENERAL_MICROMETER_LOG_METRICS.getKey());
     }
 
-    LOG.info("Metrics initialization. Register producers: {}", producers);
+    for (MeterFilter f : filters) {
+      Metrics.globalRegistry.config().meterFilter(f);
+    }
+
+    LOG.info("Metrics initialization. Registered producers: {}", producers);
     producers.forEach(p -> p.registerMetrics(Metrics.globalRegistry));
   }
 

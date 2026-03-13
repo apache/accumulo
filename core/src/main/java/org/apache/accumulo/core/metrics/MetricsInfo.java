@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.config.MeterFilter;
 
 public interface MetricsInfo {
 
@@ -113,7 +114,7 @@ public interface MetricsInfo {
    * Initialize the metrics system. This sets the list of common tags that are emitted with the
    * metrics.
    */
-  void init(Collection<Tag> commonTags);
+  void init(Collection<Tag> commonTags, MeterFilter... filters);
 
   /**
    * Close the underlying registry and release resources. The registry will not accept new meters
