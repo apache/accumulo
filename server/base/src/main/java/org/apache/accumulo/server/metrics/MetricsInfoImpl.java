@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -55,8 +56,6 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   private final ServerContext context;
 
-  private List<Tag> commonTags = null;
-
   // JvmGcMetrics are declared with AutoCloseable - keep reference to use with close()
   private JvmGcMetrics jvmGcMetrics;
   // Log4j2Metrics and LogbackMetrics are declared with AutoCloseable - keep reference to use with
@@ -65,7 +64,9 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   private final boolean metricsEnabled;
 
-  private final List<MetricsProducer> producers = new ArrayList<>();
+  private List<Tag> commonTags = null;
+  private final List<MetricsProducer> initializedProducers = new ArrayList<>();
+  private final AtomicReference<String> configuration = new AtomicReference<>();
 
   public MetricsInfoImpl(final ServerContext context) {
     this.context = context;
@@ -103,11 +104,15 @@ public class MetricsInfoImpl implements MetricsInfo {
       return;
     }
 
-    if (commonTags == null) {
-      producers.addAll(Arrays.asList(producer));
-    } else {
+    initializedProducers.addAll(Arrays.asList(producer));
+    if (isInitialized()) {
       Arrays.stream(producer).forEach(p -> p.registerMetrics(Metrics.globalRegistry));
     }
+  }
+
+  @Override
+  public synchronized boolean isInitialized() {
+    return configuration.get() != null;
   }
 
   @Override
@@ -120,7 +125,7 @@ public class MetricsInfoImpl implements MetricsInfo {
       return;
     }
 
-    if (commonTags != null) {
+    if (isInitialized()) {
       LOG.warn("metrics registry has already been initialized");
       return;
     }
@@ -141,10 +146,7 @@ public class MetricsInfoImpl implements MetricsInfo {
       }
     }
 
-    commonTags = List.copyOf(tags);
-
-    LOG.info("Metrics initialization. common tags: {}", commonTags);
-
+    commonTags = new ArrayList<>(tags);
     Metrics.globalRegistry.config().commonTags(commonTags);
 
     boolean jvmMetricsEnabled =
@@ -197,8 +199,30 @@ public class MetricsInfoImpl implements MetricsInfo {
             Property.GENERAL_MICROMETER_LOG_METRICS.getKey());
     }
 
-    LOG.info("Metrics initialization. Register producers: {}", producers);
-    producers.forEach(p -> p.registerMetrics(Metrics.globalRegistry));
+    initializedProducers.forEach(p -> p.registerMetrics(Metrics.globalRegistry));
+    configuration.set("Producers: " + initializedProducers + ", common tags: " + commonTags);
+    LOG.info("Metrics initialized. " + configuration.get());
+  }
+
+  @Override
+  public void reinit(Collection<Tag> replacementTags) {
+    LOG.info("Reinitializing Metrics");
+    List<Tag> removals = new ArrayList<>();
+    for (Tag r : replacementTags) {
+      for (Tag t : commonTags) {
+        if (t.getKey().equals(r.getKey())) {
+          removals.add(t);
+        }
+      }
+    }
+    commonTags.removeAll(removals);
+    commonTags.addAll(replacementTags);
+    Metrics.globalRegistry.getRegistries().forEach(r -> r.close());
+    Metrics.globalRegistry.getRegistries().forEach(r -> Metrics.globalRegistry.remove(r));
+    Metrics.globalRegistry.clear();
+    configuration.set(null);
+    ThreadPools.getServerThreadPools().clearMeterRegistry();
+    init(commonTags);
   }
 
   @VisibleForTesting
@@ -239,6 +263,10 @@ public class MetricsInfoImpl implements MetricsInfo {
 
   @Override
   public synchronized String toString() {
-    return "MetricsCommonTags{tags=" + commonTags + '}';
+    String msg = configuration.get();
+    if (msg == null) {
+      return "MetricsInfo not initialized yet.";
+    }
+    return msg;
   }
 }

@@ -763,6 +763,10 @@ public class ThreadPools {
     }
   }
 
+  public void clearMeterRegistry() {
+    registry.set(null);
+  }
+
   /**
    * Called by MetricsInfoImpl.init on the server side if metrics are disabled. ClientContext calls
    * {@code #getClientThreadPools(AccumuloConfiguration, UncaughtExceptionHandler)} above.
