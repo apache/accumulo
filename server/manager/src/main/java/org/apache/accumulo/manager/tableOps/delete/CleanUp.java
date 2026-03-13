@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
@@ -123,29 +124,36 @@ class CleanUp extends ManagerRepo {
 
     int refCount = 0;
 
-    // look for other tables that references this table's files
-    try (BatchScanner bs =
-        manager.getContext().createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
-      Range allTables = TabletsSection.getRange();
-      Range tableRange = TabletsSection.getRange(tableId);
-      Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
-      Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
-      bs.setRanges(Arrays.asList(beforeTable, afterTable));
-      bs.fetchColumnFamily(DataFileColumnFamily.NAME);
-      IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
-      GrepIterator.setTerm(cfg, "/" + tableId + "/");
-      bs.addScanIterator(cfg);
-
-      for (Entry<Key,Value> entry : bs) {
-        if (entry.getKey().getColumnQualifier().toString().contains("/" + tableId + "/")) {
-          refCount = 1;
-          break;
-        }
-      }
-    } catch (Exception e) {
+    if (!manager.getConfiguration().getBoolean(Property.MANAGER_TABLE_DELETE_OPTIMIZATION)) {
+      // Skip scanning the metadata table for each table delete and always allow the GC to handle
+      // file deletion.
       refCount = -1;
-      log.error("Failed to scan {} looking for references to deleted table {}", MetadataTable.NAME,
-          tableId, e);
+    } else {
+      // look for other tables that references this table's files
+      try (BatchScanner bs =
+          manager.getContext().createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
+        Range allTables = TabletsSection.getRange();
+        Range tableRange = TabletsSection.getRange(tableId);
+        Range beforeTable =
+            new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
+        Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
+        bs.setRanges(Arrays.asList(beforeTable, afterTable));
+        bs.fetchColumnFamily(DataFileColumnFamily.NAME);
+        IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
+        GrepIterator.setTerm(cfg, "/" + tableId + "/");
+        bs.addScanIterator(cfg);
+
+        for (Entry<Key,Value> entry : bs) {
+          if (entry.getKey().getColumnQualifier().toString().contains("/" + tableId + "/")) {
+            refCount = 1;
+            break;
+          }
+        }
+      } catch (Exception e) {
+        refCount = -1;
+        log.error("Failed to scan {} looking for references to deleted table {}",
+            MetadataTable.NAME, tableId, e);
+      }
     }
 
     // remove metadata table entries
