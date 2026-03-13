@@ -66,6 +66,7 @@ import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.server.compaction.CoordinatorLocations;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.ServerConfigurationFactory;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -89,6 +90,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
@@ -119,6 +121,8 @@ public class ServerContext extends ClientContext {
   private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
   private final AtomicBoolean sharedMetadataWriterCreated = new AtomicBoolean(false);
   private final AtomicBoolean sharedUserWriterCreated = new AtomicBoolean(false);
+  private final AtomicReference<CoordinatorLocations> coordinatorLocationsRef =
+      new AtomicReference<>();
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig), ResourceGroupId.DEFAULT);
@@ -526,6 +530,15 @@ public class ServerContext extends ClientContext {
 
   public Supplier<ConditionalWriter> getSharedUserWriter() {
     return sharedUserWriter;
+  }
+
+  public Map<ResourceGroupId,HostAndPort> getCoordinatorLocations(boolean useCache) {
+    var cl = coordinatorLocationsRef.get();
+    if (cl == null) {
+      coordinatorLocationsRef.compareAndSet(null, new CoordinatorLocations(this));
+      cl = coordinatorLocationsRef.get();
+    }
+    return cl.getLocations(useCache);
   }
 
   @Override

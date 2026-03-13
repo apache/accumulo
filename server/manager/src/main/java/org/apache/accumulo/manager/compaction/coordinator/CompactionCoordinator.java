@@ -1286,7 +1286,7 @@ public class CompactionCoordinator
     }
   }
 
-  private Set<ResourceGroupId> getCompactionServicesConfigurationGroups()
+  static Set<ResourceGroupId> getCompactionServicesConfigurationGroups(ServerContext ctx)
       throws ReflectiveOperationException, IllegalArgumentException, SecurityException {
 
     Set<ResourceGroupId> groups = new HashSet<>();
@@ -1357,7 +1357,7 @@ public class CompactionCoordinator
     // Get the set of groups being referenced in the current configuration
     Set<ResourceGroupId> groupsInConfiguration = null;
     try {
-      groupsInConfiguration = getCompactionServicesConfigurationGroups();
+      groupsInConfiguration = getCompactionServicesConfigurationGroups(ctx);
     } catch (RuntimeException | ReflectiveOperationException e) {
       LOG.error(
           "Error getting groups from the compaction services configuration. Unable to clean up internal state.",
