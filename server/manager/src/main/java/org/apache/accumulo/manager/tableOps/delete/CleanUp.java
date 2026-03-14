@@ -23,7 +23,6 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -124,33 +123,29 @@ class CleanUp extends ManagerRepo {
 
     int refCount = 0;
 
-    try {
-      // look for other tables that references this table's files
-      AccumuloClient client = manager.getContext();
-      try (BatchScanner bs =
-          client.createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
-        Range allTables = TabletsSection.getRange();
-        Range tableRange = TabletsSection.getRange(tableId);
-        Range beforeTable =
-            new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
-        Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
-        bs.setRanges(Arrays.asList(beforeTable, afterTable));
-        bs.fetchColumnFamily(DataFileColumnFamily.NAME);
-        IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
-        GrepIterator.setTerm(cfg, "/" + tableId + "/");
-        bs.addScanIterator(cfg);
+    // look for other tables that references this table's files
+    try (BatchScanner bs =
+        manager.getContext().createBatchScanner(MetadataTable.NAME, Authorizations.EMPTY, 8)) {
+      Range allTables = TabletsSection.getRange();
+      Range tableRange = TabletsSection.getRange(tableId);
+      Range beforeTable = new Range(allTables.getStartKey(), true, tableRange.getStartKey(), false);
+      Range afterTable = new Range(tableRange.getEndKey(), false, allTables.getEndKey(), true);
+      bs.setRanges(Arrays.asList(beforeTable, afterTable));
+      bs.fetchColumnFamily(DataFileColumnFamily.NAME);
+      IteratorSetting cfg = new IteratorSetting(40, "grep", GrepIterator.class);
+      GrepIterator.setTerm(cfg, "/" + tableId + "/");
+      bs.addScanIterator(cfg);
 
-        for (Entry<Key,Value> entry : bs) {
-          if (entry.getKey().getColumnQualifier().toString().contains("/" + tableId + "/")) {
-            refCount++;
-          }
+      for (Entry<Key,Value> entry : bs) {
+        if (entry.getKey().getColumnQualifier().toString().contains("/" + tableId + "/")) {
+          refCount = 1;
+          break;
         }
       }
-
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + MetadataTable.NAME + " looking for references to deleted table "
-          + tableId, e);
+      log.error("Failed to scan {} looking for references to deleted table {}", MetadataTable.NAME,
+          tableId, e);
     }
 
     // remove metadata table entries
@@ -162,14 +157,14 @@ class CleanUp extends ManagerRepo {
       // are dropped and the operation completes, then the deletes will not be repeated.
       MetadataTableUtil.deleteTable(tableId, refCount != 0, manager.getContext(), null);
     } catch (Exception e) {
-      log.error("error deleting " + tableId + " from metadata table", e);
+      log.error("error deleting {} from metadata table", tableId, e);
     }
 
     // remove any problem reports the table may have
     try {
       ProblemReports.getInstance(manager.getContext()).deleteProblemReports(tableId);
     } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + tableId, e);
+      log.error("Failed to delete problem reports for table {}", tableId, e);
     }
 
     if (refCount == 0) {
@@ -196,7 +191,7 @@ class CleanUp extends ManagerRepo {
       manager.getTableManager().removeTable(tableId);
       manager.getContext().clearTableListCache();
     } catch (Exception e) {
-      log.error("Failed to find table id in zookeeper", e);
+      log.error("Failed to find table id {} in zookeeper", tableId, e);
     }
 
     // remove any permissions associated with this table
@@ -210,7 +205,7 @@ class CleanUp extends ManagerRepo {
     Utils.unreserveTable(manager, tableId, tid, true);
     Utils.unreserveNamespace(manager, namespaceId, tid, false);
 
-    LoggerFactory.getLogger(CleanUp.class).debug("Deleted table " + tableId);
+    log.debug("Deleted table {}", tableId);
 
     return null;
   }
