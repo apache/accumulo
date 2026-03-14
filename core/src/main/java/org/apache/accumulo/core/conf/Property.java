@@ -391,6 +391,11 @@ public enum Property {
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
       "2.1.4"),
+  MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
+      PropertyType.BOOLEAN,
+      "Scans the metadata table for tablet references so creation of delete markers can be skipped"
+          + "This behavior can now be disabled, allowing the GC to handle the deletion of files.",
+      "2.1.5"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
   MANAGER_BULK_THREADPOOL_SIZE("manager.bulk.threadpool.size", "5", PropertyType.COUNT,
