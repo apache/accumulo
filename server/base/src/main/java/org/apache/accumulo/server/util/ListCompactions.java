@@ -33,7 +33,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ListCompactions.RunningCommandOpts;
@@ -64,17 +63,17 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
     private int numFiles = 0;
     private double progress = 0.0;
 
-    public RunningCompactionSummary(RunningCompaction runningCompaction,
-        RunningCompactionInfo runningCompactionInfo) {
+    public RunningCompactionSummary(TExternalCompaction runningCompaction, boolean addDetail) {
       super();
       ecid = runningCompaction.getJob().getExternalCompactionId();
-      addr = runningCompaction.getCompactorAddress();
+      addr = runningCompaction.getCompactor();
       kind = runningCompaction.getJob().kind;
-      groupName = runningCompaction.getGroup();
+      groupName = ResourceGroupId.of(runningCompaction.getGroupName());
       KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().extent);
       ke = extent.obscured();
       tableId = extent.tableId().canonical();
-      if (runningCompactionInfo != null) {
+      if (addDetail) {
+        RunningCompactionInfo runningCompactionInfo = new RunningCompactionInfo(runningCompaction);
         status = runningCompactionInfo.status;
         lastUpdate = runningCompactionInfo.lastUpdate;
         duration = runningCompactionInfo.duration;
@@ -207,8 +206,7 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
         if (ec == null) {
           continue;
         }
-        var summary = new RunningCompactionSummary(new RunningCompaction(ec),
-            details ? new RunningCompactionInfo(ec) : null);
+        var summary = new RunningCompactionSummary(ec, details);
         results.add(summary);
       }
       return results;
