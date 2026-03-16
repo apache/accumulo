@@ -399,15 +399,23 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
     Map<String,String> firstProps = Map.of(
         Property.COMPACTION_WARN_TIME.getKey(), "1m",
         Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
-        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10",
+            Property.COMPACTOR_MIN_JOB_WAIT_TIME.getKey(), "1s",
+            Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey(), "11s",
+            Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL.getKey(), "11s");
 
     Map<String,String> secondProps = Map.of(
         Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "5",
-        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10",
+            Property.COMPACTOR_MAX_JOB_WAIT_TIME.getKey(), "10s",
+            Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey(), "5m");
 
     Map<String,String> thirdProps = Map.of(
         Property.COMPACTION_WARN_TIME.getKey(), "1m",
-        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "6");
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "6",
+            Property.COMPACTOR_FAILURE_BACKOFF_RESET.getKey(), "4m",
+            Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD.getKey(), "4",
+            Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD.getKey(), "20");
     // @formatter:off
 
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
