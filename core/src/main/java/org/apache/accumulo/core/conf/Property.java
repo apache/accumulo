@@ -393,8 +393,11 @@ public enum Property {
       "2.1.4"),
   MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
       PropertyType.BOOLEAN,
-      "Scans the metadata table for tablet references so creation of delete markers can be skipped"
-          + "This behavior can now be disabled, allowing the GC to handle the deletion of files.",
+      "When deleting a table the Manager will remove related table directories from "+
+      " the storage volumes if there are no other references to the files in the "+
+      " metadata table. When deleting a lot of tables this optimization can be costly. " +
+      " Setting this value to false will skip this optimization and the table directory " +
+      " cleanup will occur in the Garbage Collector instead.",
       "2.1.5"),
   MANAGER_BULK_RETRIES("manager.bulk.retries", "3", PropertyType.COUNT,
       "The number of attempts to bulk import a RFile before giving up.", "1.4.0"),
