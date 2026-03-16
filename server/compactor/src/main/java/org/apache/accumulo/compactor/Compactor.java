@@ -314,10 +314,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected void checkIfCanceled() {
-    if (JOB_HOLDER.getCurrentCompaction() == null) {
+    TExternalCompaction tec = JOB_HOLDER.getCurrentCompaction();
+    if (tec == null) {
       return;
     }
-    TExternalCompactionJob job = JOB_HOLDER.getCurrentCompaction().getJob();
+    TExternalCompactionJob job = tec.getJob();
     if (job == null) {
       return;
     }
