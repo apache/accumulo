@@ -43,7 +43,7 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -180,8 +180,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       this.summary = summary;
     }
 
-    // Copied from Monitor
-    private Map<String,TExternalCompactionList> getLongRunningCompactions() {
+    private Map<String,TExternalCompaction> getRunningCompactions() {
       Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
       if (managers.isEmpty()) {
         throw new IllegalStateException(coordinatorMissingMsg);
@@ -192,7 +191,11 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         CompactionCoordinatorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
         try {
-          return client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+          var running = client.getRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+          if (running == null || running.getCompactions() == null) {
+            return Map.of();
+          }
+          return running.getCompactions();
         } catch (Exception e) {
           throw new IllegalStateException("Unable to get running compactions from " + hp, e);
         } finally {
@@ -209,7 +212,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        summary.processExternalCompactionList(getLongRunningCompactions());
+        summary.processExternalCompactions(getRunningCompactions());
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information.", e);
       }
@@ -307,6 +310,14 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       final List<Future<?>> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
+      Set<ServerId> managers = this.ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
+      HostAndPort coordinatorHost = null;
+      if (!managers.isEmpty()) {
+        ServerId manager = managers.iterator().next();
+        coordinatorHost = HostAndPort.fromParts(manager.getHost(), manager.getPort());
+      }
+      Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
+      summary.processExternalCompactionInventory(compactors, coordinatorHost);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {

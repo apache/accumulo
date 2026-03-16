@@ -38,6 +38,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -61,30 +61,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionUtil {
-
-  private static class RunningCompactionFuture {
-    private final ResourceGroupId group;
-    private final HostAndPort compactor;
-    private final Future<TExternalCompactionJob> future;
-
-    public RunningCompactionFuture(ServiceLockPath slp, Future<TExternalCompactionJob> future) {
-      this.group = slp.getResourceGroup();
-      this.compactor = HostAndPort.fromString(slp.getServer());
-      this.future = future;
-    }
-
-    public ResourceGroupId getGroup() {
-      return group;
-    }
-
-    public HostAndPort getCompactor() {
-      return compactor;
-    }
-
-    public Future<TExternalCompactionJob> getFuture() {
-      return future;
-    }
-  }
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtil.class);
 
@@ -178,17 +154,18 @@ public class ExternalCompactionUtil {
    * @param context context
    * @return external compaction job or null if none running
    */
-  public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
+  public static TExternalCompaction getRunningCompaction(HostAndPort compactorAddr,
       ClientContext context) {
 
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      TExternalCompactionJob job =
+      TExternalCompaction current =
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
-      if (job.getExternalCompactionId() != null) {
-        LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
-        return job;
+      if (current.getJob() != null && current.getJob().getExternalCompactionId() != null) {
+        LOG.debug("Compactor {} is running {}", compactorAddr,
+            current.getJob().getExternalCompactionId());
+        return current;
       }
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
@@ -223,27 +200,26 @@ public class ExternalCompactionUtil {
    * @param context server context
    * @return list of compactor and external compaction jobs
    */
-  public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
-    final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
+  public static List<TExternalCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
+    final List<Future<TExternalCompaction>> rcFutures = new ArrayList<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
           final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-          rcFutures.add(new RunningCompactionFuture(slp,
-              executor.submit(() -> getRunningCompaction(hp, context))));
+          rcFutures.add(executor.submit(() -> getRunningCompaction(hp, context)));
         });
     executor.shutdown();
 
-    final List<RunningCompaction> results = new ArrayList<>();
+    final List<TExternalCompaction> results = new ArrayList<>();
     rcFutures.forEach(rcf -> {
       try {
-        TExternalCompactionJob job = rcf.getFuture().get();
-        if (null != job && null != job.getExternalCompactionId()) {
-          var compactorAddress = getHostPortString(rcf.getCompactor());
-          results.add(new RunningCompaction(job, compactorAddress, rcf.getGroup()));
+        TExternalCompaction job = rcf.get();
+        if (job == null || job.getJob() == null || job.getJob().getExternalCompactionId() == null) {
+          return;
         }
+        results.add(job);
       } catch (InterruptedException | ExecutionException e) {
         throw new IllegalStateException(e);
       }

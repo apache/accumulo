@@ -23,19 +23,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.List;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.Test;
 
 public class MultipleManagerStartupWaitIT extends ConfigurableMacBase {
@@ -45,7 +44,7 @@ public class MultipleManagerStartupWaitIT extends ConfigurableMacBase {
     // Set this lower so that locks timeout faster
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
     cfg.setProperty(Property.MANAGER_STARTUP_MANAGER_AVAIL_MIN_COUNT, "2");
-    cfg.setProperty(Property.MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT, "10s");
+    cfg.setProperty(Property.MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT, "5m");
     super.configure(cfg, hadoopCoreSite);
   }
 
@@ -54,11 +53,6 @@ public class MultipleManagerStartupWaitIT extends ConfigurableMacBase {
     // Overriding setup here so that the cluster
     // is not started. We are going to start in
     // manually in the test method
-  }
-
-  private List<String> getAssistantManagers() throws KeeperException, InterruptedException {
-    String zAsstMgrPath = Constants.ZMANAGER_ASSISTANT_LOCK + "/" + ResourceGroupId.DEFAULT;
-    return getCluster().getServerContext().getZooSession().getChildren(zAsstMgrPath, null);
   }
 
   @Test
@@ -74,34 +68,46 @@ public class MultipleManagerStartupWaitIT extends ConfigurableMacBase {
     });
     clusterThread.start();
 
-    // Wait a few seconds for processes to start and
-    // for ServerContext to be created
-    Thread.sleep(10_000);
+    // Wait a few seconds for processes to start
+    // ServiceLock is set during start after starting
+    // the processes and before verifyUp is called.-
+    Wait.waitFor(() -> getCluster() != null);
+    Wait.waitFor(() -> getCluster().getServerContext() != null);
+    Wait.waitFor(() -> getCluster().getServerContext().getServiceLock() != null);
 
     // One Manager should be up and have acquired the assistant manager lock
-    Wait.waitFor(() -> getAssistantManagers().size() == 1);
+    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+        .getAssistantManagers(AddressSelector.all(), true).size() == 1);
 
     // The Primary Manager lock should not be acquired yet
     assertNull(getCluster().getServerContext().getServerPaths().getManager(true));
 
     // Start the 2nd Manager
     getCluster().getConfig().getClusterServerConfiguration().setNumManagers(2);
-    getCluster().start();
+    // Don't call Cluster.start, it's synchronized and the thread
+    // we started is blocked on it until the primary manager lock
+    // is acquired
+    getCluster().getClusterControl().start(ServerType.MANAGER);
 
     // Wait for both Managers to acquire the assistant manager locks
-    Wait.waitFor(() -> getAssistantManagers().size() == 2);
+    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+        .getAssistantManagers(AddressSelector.all(), true).size() == 2);
 
     // The Primary Manager lock should now be acquired yet
-    assertNotNull(getCluster().getServerContext().getServerPaths().getManager(true));
+    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths().getManager(true) != null);
 
-    List<String> managers = getAssistantManagers();
+    var managers = getCluster().getServerContext().getServerPaths()
+        .getAssistantManagers(AddressSelector.all(), true);
     assertEquals(2, managers.size());
+    Set<String> managerHosts = new HashSet<>();
+    managers.forEach(m -> managerHosts.add(m.getServer()));
 
     Set<ServerId> primary =
         getCluster().getServerContext().instanceOperations().getServers(ServerId.Type.MANAGER);
     assertNotNull(primary);
     assertEquals(1, primary.size());
-    assertTrue(managers.contains(primary.iterator().next().toHostPortString()));
+    assertTrue(managerHosts.contains(primary.iterator().next().toHostPortString()));
     assertNull(startError.get());
+    clusterThread.join();
   }
 }

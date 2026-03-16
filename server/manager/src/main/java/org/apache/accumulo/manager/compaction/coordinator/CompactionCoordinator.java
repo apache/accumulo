@@ -128,7 +128,6 @@ import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.volume.Volume;
@@ -175,10 +174,10 @@ public class CompactionCoordinator
 
     private static final int UPPER_LIMIT = 50;
 
-    Comparator<RunningCompaction> oldestFirstComparator =
-        Comparator.comparingLong(RunningCompaction::getStartTime)
+    Comparator<TExternalCompaction> oldestFirstComparator =
+        Comparator.comparingLong(TExternalCompaction::getStartTime)
             .thenComparing(rc -> rc.getJob().getExternalCompactionId());
-    private final ConcurrentSkipListSet<RunningCompaction> compactions =
+    private final ConcurrentSkipListSet<TExternalCompaction> compactions =
         new ConcurrentSkipListSet<>(oldestFirstComparator);
 
     // Tracking size here as ConcurrentSkipListSet.size() is not constant time
@@ -188,7 +187,7 @@ public class CompactionCoordinator
       return size.get();
     }
 
-    public boolean add(RunningCompaction e) {
+    public boolean add(TExternalCompaction e) {
       boolean added = compactions.add(e);
       if (added) {
         if (size.incrementAndGet() > UPPER_LIMIT) {
@@ -206,11 +205,11 @@ public class CompactionCoordinator
       return removed;
     }
 
-    public Iterator<RunningCompaction> iterator() {
+    public Iterator<TExternalCompaction> iterator() {
       return compactions.iterator();
     }
 
-    public Stream<RunningCompaction> stream() {
+    public Stream<TExternalCompaction> stream() {
       return compactions.stream();
     }
 
@@ -254,13 +253,13 @@ public class CompactionCoordinator
       "Coordinator restarted, compaction found in progress";
 
   /*
-   * Map of compactionId to RunningCompactions. This is an informational cache of what external
+   * Map of compactionId to TExternalCompaction. This is an informational cache of what external
    * compactions may be running. Its possible it may contain external compactions that are not
    * actually running. It may not contain compactions that are actually running. The metadata table
    * is the most authoritative source of what external compactions are currently running, but it
    * does not have the stats that this map has.
    */
-  protected final Map<ExternalCompactionId,RunningCompaction> RUNNING_CACHE =
+  protected final Map<ExternalCompactionId,TExternalCompaction> RUNNING_CACHE =
       new ConcurrentHashMap<>();
 
   protected final Map<String,TimeOrderedRunningCompactionSet> LONG_RUNNING_COMPACTIONS_BY_RG =
@@ -276,7 +275,7 @@ public class CompactionCoordinator
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
-  private final Cache<ExternalCompactionId,RunningCompaction> completed;
+  private final Cache<ExternalCompactionId,TExternalCompaction> completed;
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
@@ -408,21 +407,20 @@ public class CompactionCoordinator
     // the external compaction came from to re-populate the RUNNING collection.
     LOG.info("Checking for running external compactions");
     // On re-start contact the running Compactors to try and seed the list of running compactions
-    List<RunningCompaction> running = getCompactionsRunningOnCompactors();
+    List<TExternalCompaction> running = getCompactionsRunningOnCompactors();
     if (running.isEmpty()) {
       LOG.info("No running external compactions found");
     } else {
       LOG.info("Found {} running external compactions", running.size());
-      running.forEach(rc -> {
+      running.forEach(tec -> {
         TCompactionStatusUpdate update = new TCompactionStatusUpdate();
         update.setState(TCompactionState.IN_PROGRESS);
         update.setMessage(RESTART_UPDATE_MSG);
-        rc.addUpdate(System.currentTimeMillis(), update);
-        rc.setStartTime(this.coordinatorStartTime);
-        RUNNING_CACHE.put(ExternalCompactionId.of(rc.getJob().getExternalCompactionId()), rc);
+        tec.putToUpdates(coordinatorStartTime, update);
+        RUNNING_CACHE.put(ExternalCompactionId.of(tec.getJob().getExternalCompactionId()), tec);
         LONG_RUNNING_COMPACTIONS_BY_RG
-            .computeIfAbsent(rc.getGroup().canonical(), k -> new TimeOrderedRunningCompactionSet())
-            .add(rc);
+            .computeIfAbsent(tec.getGroupName(), k -> new TimeOrderedRunningCompactionSet())
+            .add(tec);
       });
     }
 
@@ -450,12 +448,12 @@ public class CompactionCoordinator
     final Set<String> emptyQueues = new HashSet<>();
 
     // Remove all of the compactors that are running a compaction
-    RUNNING_CACHE.values().forEach(rc -> {
-      Set<HostAndPort> busyCompactors = allCompactors.get(rc.getGroup().canonical());
+    RUNNING_CACHE.values().forEach(tec -> {
+      Set<HostAndPort> busyCompactors = allCompactors.get(tec.getGroupName());
       if (busyCompactors != null
-          && busyCompactors.remove(HostAndPort.fromString(rc.getCompactorAddress()))) {
+          && busyCompactors.remove(HostAndPort.fromString(tec.getCompactor()))) {
         if (busyCompactors.isEmpty()) {
-          emptyQueues.add(rc.getGroup().canonical());
+          emptyQueues.add(tec.getGroupName());
         }
       }
     });
@@ -524,8 +522,11 @@ public class CompactionCoordinator
         result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
         // It is possible that by the time this added that the the compactor that made this request
         // is dead. In this cases the compaction is not actually running.
-        RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()),
-            new RunningCompaction(result, compactorAddress, groupId));
+        TExternalCompaction tec = new TExternalCompaction();
+        tec.setCompactor(compactorAddress);
+        tec.setGroupName(groupName);
+        tec.setJob(result);
+        RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()), tec);
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
             rcJob, ecm.getCompactTmpName());
         break;
@@ -886,11 +887,11 @@ public class CompactionCoordinator
   }
 
   private void captureFailure(ExternalCompactionId ecid, KeyExtent extent) {
-    var rc = RUNNING_CACHE.get(ecid);
-    if (rc != null) {
-      failingQueues.compute(rc.getGroup(), FailureCounts::incrementFailure);
-      final String compactor = rc.getCompactorAddress();
-      failingCompactors.compute(compactor, FailureCounts::incrementFailure);
+    var tec = RUNNING_CACHE.get(ecid);
+    if (tec != null) {
+      failingQueues.compute(ResourceGroupId.of(tec.getGroupName()),
+          FailureCounts::incrementFailure);
+      failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementFailure);
     }
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
   }
@@ -945,11 +946,11 @@ public class CompactionCoordinator
   }
 
   private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {
-    var rc = RUNNING_CACHE.get(ecid);
-    if (rc != null) {
-      failingQueues.compute(rc.getGroup(), FailureCounts::incrementSuccess);
-      final String compactor = rc.getCompactorAddress();
-      failingCompactors.compute(compactor, FailureCounts::incrementSuccess);
+    var tec = RUNNING_CACHE.get(ecid);
+    if (tec != null) {
+      failingQueues.compute(ResourceGroupId.of(tec.getGroupName()),
+          FailureCounts::incrementSuccess);
+      failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementSuccess);
     }
     failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
@@ -1085,20 +1086,22 @@ public class CompactionCoordinator
     }
     LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
         timestamp, update);
-    final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    if (null != rc) {
-      rc.addUpdate(timestamp, update);
+    final TExternalCompaction tec =
+        RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
+    if (null != tec) {
+      tec.putToUpdates(timestamp, update);
       switch (update.state) {
         case STARTED:
-          LONG_RUNNING_COMPACTIONS_BY_RG.computeIfAbsent(rc.getGroup().canonical(),
-              k -> new TimeOrderedRunningCompactionSet()).add(rc);
+          LONG_RUNNING_COMPACTIONS_BY_RG
+              .computeIfAbsent(tec.getGroupName(), k -> new TimeOrderedRunningCompactionSet())
+              .add(tec);
           break;
         case CANCELLED:
         case FAILED:
         case SUCCEEDED:
-          var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(rc.getGroup().canonical());
+          var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(tec.getGroupName());
           if (compactionSet != null) {
-            compactionSet.remove(rc);
+            compactionSet.remove(tec);
           }
           break;
         case ASSIGNED:
@@ -1120,12 +1123,12 @@ public class CompactionCoordinator
   }
 
   public void recordCompletion(ExternalCompactionId ecid) {
-    var rc = RUNNING_CACHE.remove(ecid);
-    if (rc != null) {
-      completed.put(ecid, rc);
-      var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(rc.getGroup().canonical());
+    var tec = RUNNING_CACHE.remove(ecid);
+    if (tec != null) {
+      completed.put(ecid, tec);
+      var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(tec.getGroupName());
       if (compactionSet != null) {
-        compactionSet.remove(rc);
+        compactionSet.remove(tec);
       }
     }
   }
@@ -1157,13 +1160,8 @@ public class CompactionCoordinator
     }
 
     final TExternalCompactionMap result = new TExternalCompactionMap();
-    RUNNING_CACHE.forEach((ecid, rc) -> {
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroup().canonical());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setUpdates(rc.getUpdates());
-      trc.setJob(rc.getJob());
-      result.putToCompactions(ecid.canonical(), trc);
+    RUNNING_CACHE.forEach((ecid, tec) -> {
+      result.putToCompactions(ecid.canonical(), tec);
     });
     return result;
   }
@@ -1191,15 +1189,10 @@ public class CompactionCoordinator
     for (Entry<String,TimeOrderedRunningCompactionSet> e : LONG_RUNNING_COMPACTIONS_BY_RG
         .entrySet()) {
       final TExternalCompactionList compactions = new TExternalCompactionList();
-      Iterator<RunningCompaction> iter = e.getValue().iterator();
+      Iterator<TExternalCompaction> iter = e.getValue().iterator();
       while (iter.hasNext()) {
-        RunningCompaction rc = iter.next();
-        TExternalCompaction trc = new TExternalCompaction();
-        trc.setGroupName(rc.getGroup().canonical());
-        trc.setCompactor(rc.getCompactorAddress());
-        trc.setUpdates(rc.getUpdates());
-        trc.setJob(rc.getJob());
-        compactions.addToCompactions(trc);
+        TExternalCompaction tec = iter.next();
+        compactions.addToCompactions(tec);
       }
       result.put(e.getKey(), compactions);
     }
@@ -1223,13 +1216,8 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     final TExternalCompactionMap result = new TExternalCompactionMap();
-    completed.asMap().forEach((ecid, rc) -> {
-      TExternalCompaction trc = new TExternalCompaction();
-      trc.setGroupName(rc.getGroup().canonical());
-      trc.setCompactor(rc.getCompactorAddress());
-      trc.setJob(rc.getJob());
-      trc.setUpdates(rc.getUpdates());
-      result.putToCompactions(ecid.canonical(), trc);
+    completed.asMap().forEach((ecid, tec) -> {
+      result.putToCompactions(ecid.canonical(), tec);
     });
     return result;
   }
@@ -1250,7 +1238,7 @@ public class CompactionCoordinator
           TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
 
-    cancelCompactionOnCompactor(runningCompaction.getCompactorAddress(), externalCompactionId);
+    cancelCompactionOnCompactor(runningCompaction.getCompactor(), externalCompactionId);
   }
 
   /* Method exists to be called from test */
@@ -1259,7 +1247,7 @@ public class CompactionCoordinator
   }
 
   /* Method exists to be overridden in test to hide static method */
-  protected List<RunningCompaction> getCompactionsRunningOnCompactors() {
+  protected List<TExternalCompaction> getCompactionsRunningOnCompactors() {
     return ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx);
   }
 
@@ -1410,14 +1398,13 @@ public class CompactionCoordinator
         Sets.difference(groupsWithJobs, groupsInConfiguration);
 
     if (jobGroupsNotInConfiguration != null && !jobGroupsNotInConfiguration.isEmpty()) {
-      RUNNING_CACHE.values().forEach(rc -> {
-        if (jobGroupsNotInConfiguration.contains(ResourceGroupId.of(rc.getGroup().canonical()))) {
+      RUNNING_CACHE.values().forEach(tec -> {
+        if (jobGroupsNotInConfiguration.contains(ResourceGroupId.of(tec.getGroupName()))) {
           LOG.warn(
               "External compaction {} running in group {} on compactor {},"
                   + " but group not found in current configuration. Failing compaction...",
-              rc.getJob().getExternalCompactionId(), rc.getGroup(), rc.getCompactorAddress());
-          cancelCompactionOnCompactor(rc.getCompactorAddress(),
-              rc.getJob().getExternalCompactionId());
+              tec.getJob().getExternalCompactionId(), tec.getGroupName(), tec.getCompactor());
+          cancelCompactionOnCompactor(tec.getCompactor(), tec.getJob().getExternalCompactionId());
         }
       });
 

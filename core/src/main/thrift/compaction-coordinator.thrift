@@ -53,6 +53,7 @@ struct TExternalCompaction {
   2:string compactor
   3:map<i64,TCompactionStatusUpdate> updates
   4:tabletserver.TExternalCompactionJob job
+  5:i64 startTime
 }
 
 struct TExternalCompactionList {
@@ -220,7 +221,7 @@ service CompactionCoordinatorService {
 
 service CompactorService {
 
-  tabletserver.TExternalCompactionJob getRunningCompaction(
+  TExternalCompaction getRunningCompaction(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
@@ -234,6 +235,10 @@ service CompactorService {
     1:client.ThriftSecurityException sec
   )
 
+  /*
+   * Called by the Shell listcompactions command that is
+   * used to return minc and majc information
+   */
   list<tabletserver.ActiveCompaction> getActiveCompactions(
     2:client.TInfo tinfo
     1:security.TCredentials credentials

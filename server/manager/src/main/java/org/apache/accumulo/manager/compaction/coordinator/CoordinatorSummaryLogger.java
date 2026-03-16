@@ -23,11 +23,11 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
@@ -40,11 +40,11 @@ public class CoordinatorSummaryLogger {
 
   private final ServerContext ctx;
   private final CompactionJobQueues jobQueues;
-  private final Map<ExternalCompactionId,RunningCompaction> running;
+  private final Map<ExternalCompactionId,TExternalCompaction> running;
   private final Cache<ResourceGroupId,Integer> compactorCounts;
 
   public CoordinatorSummaryLogger(ServerContext ctx, CompactionJobQueues jobQueues,
-      Map<ExternalCompactionId,RunningCompaction> running,
+      Map<ExternalCompactionId,TExternalCompaction> running,
       Cache<ResourceGroupId,Integer> compactorCounts) {
     this.ctx = ctx;
     this.jobQueues = jobQueues;
@@ -65,7 +65,9 @@ public class CoordinatorSummaryLogger {
       } catch (TableNotFoundException e) {
         tableName = "Unmapped table id: " + tid.canonical();
       }
-      perQueueRunningCount.computeIfAbsent(rc.getGroup(), q -> new AtomicLong(0)).incrementAndGet();
+      perQueueRunningCount
+          .computeIfAbsent(ResourceGroupId.of(rc.getGroupName()), q -> new AtomicLong(0))
+          .incrementAndGet();
       perTableRunningCount.computeIfAbsent(tableName, t -> new AtomicLong(0)).incrementAndGet();
     });
 
