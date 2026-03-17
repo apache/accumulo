@@ -29,29 +29,31 @@ public class CompactionCoordinatorService {
 
   public interface Iface {
 
-    public void compactionCompleted(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void compactionCompleted(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public TNextCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public TNextCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void updateCompactionStatus(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void updateCompactionStatus(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void compactionFailed(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String exceptionClassName, TCompactionState failureState) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void compactionFailed(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String exceptionClassName, TCompactionState failureState) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public TExternalCompactionMap getRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public TExternalCompactionMap getRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public java.util.Map<java.lang.String,TExternalCompactionList> getLongRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public java.util.Map<java.lang.String,TExternalCompactionList> getLongRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public TExternalCompactionMap getCompletedCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public TExternalCompactionMap getCompletedCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public void cancel(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void cancel(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public void recordCompletion(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.thrift.TException;
 
-    public void beginFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void beginFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public void addJobs(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<TResolvedCompactionJob> jobs) throws org.apache.thrift.TException;
 
-    public void endFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void endFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+
+    public void setResourceGroups(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Set<java.lang.String> groups) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
   }
 
@@ -81,6 +83,8 @@ public class CompactionCoordinatorService {
 
     public void endFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
+    public void setResourceGroups(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Set<java.lang.String> groups, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+
   }
 
   public static class Client extends org.apache.thrift.TServiceClient implements Iface {
@@ -106,7 +110,7 @@ public class CompactionCoordinatorService {
     }
 
     @Override
-    public void compactionCompleted(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void compactionCompleted(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_compactionCompleted(tinfo, credentials, externalCompactionId, extent, stats);
       recv_compactionCompleted();
@@ -123,21 +127,18 @@ public class CompactionCoordinatorService {
       sendBase("compactionCompleted", args);
     }
 
-    public void recv_compactionCompleted() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_compactionCompleted() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       compactionCompleted_result result = new compactionCompleted_result();
       receiveBase(result, "compactionCompleted");
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       return;
     }
 
     @Override
-    public TNextCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TNextCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getCompactionJob(tinfo, credentials, groupName, compactor, externalCompactionId);
       return recv_getCompactionJob();
@@ -154,7 +155,7 @@ public class CompactionCoordinatorService {
       sendBase("getCompactionJob", args);
     }
 
-    public TNextCompactionJob recv_getCompactionJob() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TNextCompactionJob recv_getCompactionJob() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getCompactionJob_result result = new getCompactionJob_result();
       receiveBase(result, "getCompactionJob");
@@ -164,14 +165,11 @@ public class CompactionCoordinatorService {
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompactionJob failed: unknown result");
     }
 
     @Override
-    public void updateCompactionStatus(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void updateCompactionStatus(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, TCompactionStatusUpdate status, long timestamp) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_updateCompactionStatus(tinfo, credentials, externalCompactionId, status, timestamp);
       recv_updateCompactionStatus();
@@ -188,21 +186,18 @@ public class CompactionCoordinatorService {
       sendBase("updateCompactionStatus", args);
     }
 
-    public void recv_updateCompactionStatus() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_updateCompactionStatus() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       updateCompactionStatus_result result = new updateCompactionStatus_result();
       receiveBase(result, "updateCompactionStatus");
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       return;
     }
 
     @Override
-    public void compactionFailed(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String exceptionClassName, TCompactionState failureState) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void compactionFailed(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String exceptionClassName, TCompactionState failureState) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_compactionFailed(tinfo, credentials, externalCompactionId, extent, exceptionClassName, failureState);
       recv_compactionFailed();
@@ -220,21 +215,18 @@ public class CompactionCoordinatorService {
       sendBase("compactionFailed", args);
     }
 
-    public void recv_compactionFailed() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_compactionFailed() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       compactionFailed_result result = new compactionFailed_result();
       receiveBase(result, "compactionFailed");
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       return;
     }
 
     @Override
-    public TExternalCompactionMap getRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TExternalCompactionMap getRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getRunningCompactions(tinfo, credentials);
       return recv_getRunningCompactions();
@@ -248,7 +240,7 @@ public class CompactionCoordinatorService {
       sendBase("getRunningCompactions", args);
     }
 
-    public TExternalCompactionMap recv_getRunningCompactions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TExternalCompactionMap recv_getRunningCompactions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getRunningCompactions_result result = new getRunningCompactions_result();
       receiveBase(result, "getRunningCompactions");
@@ -258,14 +250,11 @@ public class CompactionCoordinatorService {
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getRunningCompactions failed: unknown result");
     }
 
     @Override
-    public java.util.Map<java.lang.String,TExternalCompactionList> getLongRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,TExternalCompactionList> getLongRunningCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getLongRunningCompactions(tinfo, credentials);
       return recv_getLongRunningCompactions();
@@ -279,7 +268,7 @@ public class CompactionCoordinatorService {
       sendBase("getLongRunningCompactions", args);
     }
 
-    public java.util.Map<java.lang.String,TExternalCompactionList> recv_getLongRunningCompactions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public java.util.Map<java.lang.String,TExternalCompactionList> recv_getLongRunningCompactions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getLongRunningCompactions_result result = new getLongRunningCompactions_result();
       receiveBase(result, "getLongRunningCompactions");
@@ -289,14 +278,11 @@ public class CompactionCoordinatorService {
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getLongRunningCompactions failed: unknown result");
     }
 
     @Override
-    public TExternalCompactionMap getCompletedCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TExternalCompactionMap getCompletedCompactions(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_getCompletedCompactions(tinfo, credentials);
       return recv_getCompletedCompactions();
@@ -310,7 +296,7 @@ public class CompactionCoordinatorService {
       sendBase("getCompletedCompactions", args);
     }
 
-    public TExternalCompactionMap recv_getCompletedCompactions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public TExternalCompactionMap recv_getCompletedCompactions() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getCompletedCompactions_result result = new getCompletedCompactions_result();
       receiveBase(result, "getCompletedCompactions");
@@ -320,14 +306,11 @@ public class CompactionCoordinatorService {
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
-      }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompletedCompactions failed: unknown result");
     }
 
     @Override
-    public void cancel(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void cancel(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_cancel(tinfo, credentials, externalCompactionId);
       recv_cancel();
@@ -342,15 +325,12 @@ public class CompactionCoordinatorService {
       sendBase("cancel", args);
     }
 
-    public void recv_cancel() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_cancel() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       cancel_result result = new cancel_result();
       receiveBase(result, "cancel");
       if (result.sec != null) {
         throw result.sec;
-      }
-      if (result.tnase != null) {
-        throw result.tnase;
       }
       return;
     }
@@ -371,7 +351,7 @@ public class CompactionCoordinatorService {
     }
 
     @Override
-    public void beginFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void beginFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_beginFullJobScan(tinfo, credentials, dataLevel);
       recv_beginFullJobScan();
@@ -386,15 +366,12 @@ public class CompactionCoordinatorService {
       sendBase("beginFullJobScan", args);
     }
 
-    public void recv_beginFullJobScan() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_beginFullJobScan() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       beginFullJobScan_result result = new beginFullJobScan_result();
       receiveBase(result, "beginFullJobScan");
       if (result.sec != null) {
         throw result.sec;
-      }
-      if (result.tnase != null) {
-        throw result.tnase;
       }
       return;
     }
@@ -415,7 +392,7 @@ public class CompactionCoordinatorService {
     }
 
     @Override
-    public void endFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void endFullJobScan(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String dataLevel) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       send_endFullJobScan(tinfo, credentials, dataLevel);
       recv_endFullJobScan();
@@ -430,15 +407,38 @@ public class CompactionCoordinatorService {
       sendBase("endFullJobScan", args);
     }
 
-    public void recv_endFullJobScan() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_endFullJobScan() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       endFullJobScan_result result = new endFullJobScan_result();
       receiveBase(result, "endFullJobScan");
       if (result.sec != null) {
         throw result.sec;
       }
-      if (result.tnase != null) {
-        throw result.tnase;
+      return;
+    }
+
+    @Override
+    public void setResourceGroups(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Set<java.lang.String> groups) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_setResourceGroups(tinfo, credentials, groups);
+      recv_setResourceGroups();
+    }
+
+    public void send_setResourceGroups(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Set<java.lang.String> groups) throws org.apache.thrift.TException
+    {
+      setResourceGroups_args args = new setResourceGroups_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setGroups(groups);
+      sendBase("setResourceGroups", args);
+    }
+
+    public void recv_setResourceGroups() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      setResourceGroups_result result = new setResourceGroups_result();
+      receiveBase(result, "setResourceGroups");
+      if (result.sec != null) {
+        throw result.sec;
       }
       return;
     }
@@ -499,7 +499,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -547,7 +547,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public TNextCompactionJob getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public TNextCompactionJob getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -594,7 +594,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -645,7 +645,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -684,7 +684,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public TExternalCompactionMap getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public TExternalCompactionMap getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -722,7 +722,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public java.util.Map<java.lang.String,TExternalCompactionList> getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public java.util.Map<java.lang.String,TExternalCompactionList> getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -760,7 +760,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public TExternalCompactionMap getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public TExternalCompactionMap getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -801,7 +801,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -884,7 +884,7 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -967,13 +967,55 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
         (new Client(prot)).recv_endFullJobScan();
+        return null;
+      }
+    }
+
+    @Override
+    public void setResourceGroups(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Set<java.lang.String> groups, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      setResourceGroups_call method_call = new setResourceGroups_call(tinfo, credentials, groups, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class setResourceGroups_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      private java.util.Set<java.lang.String> groups;
+      public setResourceGroups_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.Set<java.lang.String> groups, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.groups = groups;
+      }
+
+      @Override
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("setResourceGroups", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        setResourceGroups_args args = new setResourceGroups_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setGroups(groups);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      @Override
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        (new Client(prot)).recv_setResourceGroups();
         return null;
       }
     }
@@ -1003,6 +1045,7 @@ public class CompactionCoordinatorService {
       processMap.put("beginFullJobScan", new beginFullJobScan());
       processMap.put("addJobs", new addJobs());
       processMap.put("endFullJobScan", new endFullJobScan());
+      processMap.put("setResourceGroups", new setResourceGroups());
       return processMap;
     }
 
@@ -1033,8 +1076,6 @@ public class CompactionCoordinatorService {
           iface.compactionCompleted(args.tinfo, args.credentials, args.externalCompactionId, args.extent, args.stats);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1067,8 +1108,6 @@ public class CompactionCoordinatorService {
           result.success = iface.getCompactionJob(args.tinfo, args.credentials, args.groupName, args.compactor, args.externalCompactionId);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1101,8 +1140,6 @@ public class CompactionCoordinatorService {
           iface.updateCompactionStatus(args.tinfo, args.credentials, args.externalCompactionId, args.status, args.timestamp);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1135,8 +1172,6 @@ public class CompactionCoordinatorService {
           iface.compactionFailed(args.tinfo, args.credentials, args.externalCompactionId, args.extent, args.exceptionClassName, args.failureState);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1169,8 +1204,6 @@ public class CompactionCoordinatorService {
           result.success = iface.getRunningCompactions(args.tinfo, args.credentials);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1203,8 +1236,6 @@ public class CompactionCoordinatorService {
           result.success = iface.getLongRunningCompactions(args.tinfo, args.credentials);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1237,8 +1268,6 @@ public class CompactionCoordinatorService {
           result.success = iface.getCompletedCompactions(args.tinfo, args.credentials);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1271,8 +1300,6 @@ public class CompactionCoordinatorService {
           iface.cancel(args.tinfo, args.credentials, args.externalCompactionId);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1332,8 +1359,6 @@ public class CompactionCoordinatorService {
           iface.beginFullJobScan(args.tinfo, args.credentials, args.dataLevel);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
         }
         return result;
       }
@@ -1393,8 +1418,38 @@ public class CompactionCoordinatorService {
           iface.endFullJobScan(args.tinfo, args.credentials, args.dataLevel);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-          result.tnase = tnase;
+        }
+        return result;
+      }
+    }
+
+    public static class setResourceGroups<I extends Iface> extends org.apache.thrift.ProcessFunction<I, setResourceGroups_args> {
+      public setResourceGroups() {
+        super("setResourceGroups");
+      }
+
+      @Override
+      public setResourceGroups_args getEmptyArgsInstance() {
+        return new setResourceGroups_args();
+      }
+
+      @Override
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      protected boolean rethrowUnhandledExceptions() {
+        return false;
+      }
+
+      @Override
+      public setResourceGroups_result getResult(I iface, setResourceGroups_args args) throws org.apache.thrift.TException {
+        setResourceGroups_result result = new setResourceGroups_result();
+        try {
+          iface.setResourceGroups(args.tinfo, args.credentials, args.groups);
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
         }
         return result;
       }
@@ -1425,6 +1480,7 @@ public class CompactionCoordinatorService {
       processMap.put("beginFullJobScan", new beginFullJobScan());
       processMap.put("addJobs", new addJobs());
       processMap.put("endFullJobScan", new endFullJobScan());
+      processMap.put("setResourceGroups", new setResourceGroups());
       return processMap;
     }
 
@@ -1463,10 +1519,6 @@ public class CompactionCoordinatorService {
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -1539,10 +1591,6 @@ public class CompactionCoordinatorService {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
-              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -1613,10 +1661,6 @@ public class CompactionCoordinatorService {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
-              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -1686,10 +1730,6 @@ public class CompactionCoordinatorService {
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -1762,10 +1802,6 @@ public class CompactionCoordinatorService {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
-              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -1836,10 +1872,6 @@ public class CompactionCoordinatorService {
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -1912,10 +1944,6 @@ public class CompactionCoordinatorService {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
-              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -1985,10 +2013,6 @@ public class CompactionCoordinatorService {
             if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -2100,10 +2124,6 @@ public class CompactionCoordinatorService {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
-              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -2214,10 +2234,6 @@ public class CompactionCoordinatorService {
               result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
               result.setSecIsSet(true);
               msg = result;
-            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
-              result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
-              result.setTnaseIsSet(true);
-              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -2249,6 +2265,76 @@ public class CompactionCoordinatorService {
       @Override
       public void start(I iface, endFullJobScan_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
         iface.endFullJobScan(args.tinfo, args.credentials, args.dataLevel,resultHandler);
+      }
+    }
+
+    public static class setResourceGroups<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, setResourceGroups_args, Void> {
+      public setResourceGroups() {
+        super("setResourceGroups");
+      }
+
+      @Override
+      public setResourceGroups_args getEmptyArgsInstance() {
+        return new setResourceGroups_args();
+      }
+
+      @Override
+      public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
+          @Override
+          public void onComplete(Void o) {
+            setResourceGroups_result result = new setResourceGroups_result();
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          @Override
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            setResourceGroups_result result = new setResourceGroups_result();
+            if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
+              result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      @Override
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      public void start(I iface, setResourceGroups_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+        iface.setResourceGroups(args.tinfo, args.credentials, args.groups,resultHandler);
       }
     }
 
@@ -3078,18 +3164,15 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("compactionCompleted_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new compactionCompleted_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new compactionCompleted_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -3107,8 +3190,6 @@ public class CompactionCoordinatorService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -3157,8 +3238,6 @@ public class CompactionCoordinatorService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(compactionCompleted_result.class, metaDataMap);
     }
@@ -3167,12 +3246,10 @@ public class CompactionCoordinatorService {
     }
 
     public compactionCompleted_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -3181,9 +3258,6 @@ public class CompactionCoordinatorService {
     public compactionCompleted_result(compactionCompleted_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -3195,7 +3269,6 @@ public class CompactionCoordinatorService {
     @Override
     public void clear() {
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -3223,31 +3296,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public compactionCompleted_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -3256,14 +3304,6 @@ public class CompactionCoordinatorService {
           unsetSec();
         } else {
           setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
         }
         break;
 
@@ -3276,9 +3316,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -3294,8 +3331,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -3322,15 +3357,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -3341,10 +3367,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -3363,16 +3385,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3405,14 +3417,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -3469,15 +3473,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -3497,11 +3492,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -3526,31 +3516,20 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
+        oprot.writeBitSet(optionals, 1);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
-        }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, compactionCompleted_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -4375,20 +4354,17 @@ public class CompactionCoordinatorService {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionJob_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionJob_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TNextCompactionJob success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -4408,8 +4384,6 @@ public class CompactionCoordinatorService {
             return SUCCESS;
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -4460,8 +4434,6 @@ public class CompactionCoordinatorService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TNextCompactionJob.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompactionJob_result.class, metaDataMap);
     }
@@ -4471,13 +4443,11 @@ public class CompactionCoordinatorService {
 
     public getCompactionJob_result(
       TNextCompactionJob success,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -4490,9 +4460,6 @@ public class CompactionCoordinatorService {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
-      }
     }
 
     @Override
@@ -4504,7 +4471,6 @@ public class CompactionCoordinatorService {
     public void clear() {
       this.success = null;
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -4557,31 +4523,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public getCompactionJob_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -4601,14 +4542,6 @@ public class CompactionCoordinatorService {
         }
         break;
 
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
-        }
-        break;
-
       }
     }
 
@@ -4621,9 +4554,6 @@ public class CompactionCoordinatorService {
 
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -4641,8 +4571,6 @@ public class CompactionCoordinatorService {
         return isSetSuccess();
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -4678,15 +4606,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -4701,10 +4620,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -4733,16 +4648,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4783,14 +4688,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -4859,15 +4756,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -4892,11 +4780,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -4924,25 +4807,19 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(1);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionJob_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.success = new TNextCompactionJob();
           struct.success.read(iprot);
@@ -4952,11 +4829,6 @@ public class CompactionCoordinatorService {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -5780,18 +5652,15 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("updateCompactionStatus_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new updateCompactionStatus_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new updateCompactionStatus_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -5809,8 +5678,6 @@ public class CompactionCoordinatorService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -5859,8 +5726,6 @@ public class CompactionCoordinatorService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(updateCompactionStatus_result.class, metaDataMap);
     }
@@ -5869,12 +5734,10 @@ public class CompactionCoordinatorService {
     }
 
     public updateCompactionStatus_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -5883,9 +5746,6 @@ public class CompactionCoordinatorService {
     public updateCompactionStatus_result(updateCompactionStatus_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -5897,7 +5757,6 @@ public class CompactionCoordinatorService {
     @Override
     public void clear() {
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -5925,31 +5784,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public updateCompactionStatus_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -5958,14 +5792,6 @@ public class CompactionCoordinatorService {
           unsetSec();
         } else {
           setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
         }
         break;
 
@@ -5978,9 +5804,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -5996,8 +5819,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -6024,15 +5845,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -6043,10 +5855,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -6065,16 +5873,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -6107,14 +5905,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -6171,15 +5961,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -6199,11 +5980,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -6228,31 +6004,20 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
+        oprot.writeBitSet(optionals, 1);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
-        }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, updateCompactionStatus_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -7202,18 +6967,15 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("compactionFailed_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new compactionFailed_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new compactionFailed_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -7231,8 +6993,6 @@ public class CompactionCoordinatorService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -7281,8 +7041,6 @@ public class CompactionCoordinatorService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(compactionFailed_result.class, metaDataMap);
     }
@@ -7291,12 +7049,10 @@ public class CompactionCoordinatorService {
     }
 
     public compactionFailed_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -7305,9 +7061,6 @@ public class CompactionCoordinatorService {
     public compactionFailed_result(compactionFailed_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -7319,7 +7072,6 @@ public class CompactionCoordinatorService {
     @Override
     public void clear() {
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -7347,31 +7099,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public compactionFailed_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -7380,14 +7107,6 @@ public class CompactionCoordinatorService {
           unsetSec();
         } else {
           setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
         }
         break;
 
@@ -7400,9 +7119,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -7418,8 +7134,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -7446,15 +7160,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -7465,10 +7170,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -7487,16 +7188,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -7529,14 +7220,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -7593,15 +7276,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -7621,11 +7295,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -7650,31 +7319,20 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
+        oprot.writeBitSet(optionals, 1);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
-        }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, compactionFailed_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -8184,20 +7842,17 @@ public class CompactionCoordinatorService {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getRunningCompactions_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getRunningCompactions_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TExternalCompactionMap success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -8217,8 +7872,6 @@ public class CompactionCoordinatorService {
             return SUCCESS;
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -8269,8 +7922,6 @@ public class CompactionCoordinatorService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TExternalCompactionMap.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getRunningCompactions_result.class, metaDataMap);
     }
@@ -8280,13 +7931,11 @@ public class CompactionCoordinatorService {
 
     public getRunningCompactions_result(
       TExternalCompactionMap success,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -8299,9 +7948,6 @@ public class CompactionCoordinatorService {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
-      }
     }
 
     @Override
@@ -8313,7 +7959,6 @@ public class CompactionCoordinatorService {
     public void clear() {
       this.success = null;
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -8366,31 +8011,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public getRunningCompactions_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -8410,14 +8030,6 @@ public class CompactionCoordinatorService {
         }
         break;
 
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
-        }
-        break;
-
       }
     }
 
@@ -8430,9 +8042,6 @@ public class CompactionCoordinatorService {
 
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -8450,8 +8059,6 @@ public class CompactionCoordinatorService {
         return isSetSuccess();
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -8487,15 +8094,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -8510,10 +8108,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -8542,16 +8136,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -8592,14 +8176,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -8668,15 +8244,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -8701,11 +8268,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -8733,25 +8295,19 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(1);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getRunningCompactions_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.success = new TExternalCompactionMap();
           struct.success.read(iprot);
@@ -8761,11 +8317,6 @@ public class CompactionCoordinatorService {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -9275,20 +8826,17 @@ public class CompactionCoordinatorService {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.MAP, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getLongRunningCompactions_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getLongRunningCompactions_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,TExternalCompactionList> success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -9308,8 +8856,6 @@ public class CompactionCoordinatorService {
             return SUCCESS;
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -9362,8 +8908,6 @@ public class CompactionCoordinatorService {
               new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TExternalCompactionList.class))));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getLongRunningCompactions_result.class, metaDataMap);
     }
@@ -9373,13 +8917,11 @@ public class CompactionCoordinatorService {
 
     public getLongRunningCompactions_result(
       java.util.Map<java.lang.String,TExternalCompactionList> success,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -9404,9 +8946,6 @@ public class CompactionCoordinatorService {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
-      }
     }
 
     @Override
@@ -9418,7 +8957,6 @@ public class CompactionCoordinatorService {
     public void clear() {
       this.success = null;
       this.sec = null;
-      this.tnase = null;
     }
 
     public int getSuccessSize() {
@@ -9482,31 +9020,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public getLongRunningCompactions_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -9526,14 +9039,6 @@ public class CompactionCoordinatorService {
         }
         break;
 
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
-        }
-        break;
-
       }
     }
 
@@ -9546,9 +9051,6 @@ public class CompactionCoordinatorService {
 
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -9566,8 +9068,6 @@ public class CompactionCoordinatorService {
         return isSetSuccess();
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -9603,15 +9103,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -9626,10 +9117,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -9658,16 +9145,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -9708,14 +9185,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -9793,15 +9262,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -9836,11 +9296,6 @@ public class CompactionCoordinatorService {
           struct.sec.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -9866,10 +9321,7 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(1);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           {
             oprot.writeI32(struct.success.size());
@@ -9883,15 +9335,12 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getLongRunningCompactions_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           {
             org.apache.thrift.protocol.TMap _map42 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
@@ -9912,11 +9361,6 @@ public class CompactionCoordinatorService {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -10426,20 +9870,17 @@ public class CompactionCoordinatorService {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompletedCompactions_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompletedCompactions_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TExternalCompactionMap success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -10459,8 +9900,6 @@ public class CompactionCoordinatorService {
             return SUCCESS;
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -10511,8 +9950,6 @@ public class CompactionCoordinatorService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TExternalCompactionMap.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompletedCompactions_result.class, metaDataMap);
     }
@@ -10522,13 +9959,11 @@ public class CompactionCoordinatorService {
 
     public getCompletedCompactions_result(
       TExternalCompactionMap success,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.success = success;
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -10541,9 +9976,6 @@ public class CompactionCoordinatorService {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
       }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
-      }
     }
 
     @Override
@@ -10555,7 +9987,6 @@ public class CompactionCoordinatorService {
     public void clear() {
       this.success = null;
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -10608,31 +10039,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public getCompletedCompactions_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -10652,14 +10058,6 @@ public class CompactionCoordinatorService {
         }
         break;
 
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
-        }
-        break;
-
       }
     }
 
@@ -10672,9 +10070,6 @@ public class CompactionCoordinatorService {
 
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -10692,8 +10087,6 @@ public class CompactionCoordinatorService {
         return isSetSuccess();
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -10729,15 +10122,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -10752,10 +10136,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -10784,16 +10164,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -10834,14 +10204,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -10910,15 +10272,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -10943,11 +10296,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -10975,25 +10323,19 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(1);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getCompletedCompactions_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.success = new TExternalCompactionMap();
           struct.success.read(iprot);
@@ -11003,11 +10345,6 @@ public class CompactionCoordinatorService {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -11621,18 +10958,15 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancel_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new cancel_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new cancel_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -11650,8 +10984,6 @@ public class CompactionCoordinatorService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -11700,8 +11032,6 @@ public class CompactionCoordinatorService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancel_result.class, metaDataMap);
     }
@@ -11710,12 +11040,10 @@ public class CompactionCoordinatorService {
     }
 
     public cancel_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -11724,9 +11052,6 @@ public class CompactionCoordinatorService {
     public cancel_result(cancel_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -11738,7 +11063,6 @@ public class CompactionCoordinatorService {
     @Override
     public void clear() {
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -11766,31 +11090,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public cancel_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -11799,14 +11098,6 @@ public class CompactionCoordinatorService {
           unsetSec();
         } else {
           setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
         }
         break;
 
@@ -11819,9 +11110,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -11837,8 +11125,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -11865,15 +11151,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -11884,10 +11161,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -11906,16 +11179,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -11948,14 +11211,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -12012,15 +11267,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -12040,11 +11286,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -12069,31 +11310,20 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
+        oprot.writeBitSet(optionals, 1);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
-        }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, cancel_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -13306,18 +12536,15 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("beginFullJobScan_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new beginFullJobScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new beginFullJobScan_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -13335,8 +12562,6 @@ public class CompactionCoordinatorService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -13385,8 +12610,6 @@ public class CompactionCoordinatorService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(beginFullJobScan_result.class, metaDataMap);
     }
@@ -13395,12 +12618,10 @@ public class CompactionCoordinatorService {
     }
 
     public beginFullJobScan_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -13409,9 +12630,6 @@ public class CompactionCoordinatorService {
     public beginFullJobScan_result(beginFullJobScan_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -13423,7 +12641,6 @@ public class CompactionCoordinatorService {
     @Override
     public void clear() {
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -13451,31 +12668,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public beginFullJobScan_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -13484,14 +12676,6 @@ public class CompactionCoordinatorService {
           unsetSec();
         } else {
           setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
         }
         break;
 
@@ -13504,9 +12688,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -13522,8 +12703,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -13550,15 +12729,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -13569,10 +12739,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -13591,16 +12757,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -13633,14 +12789,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -13697,15 +12845,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -13725,11 +12864,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -13754,31 +12888,20 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
+        oprot.writeBitSet(optionals, 1);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
-        }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, beginFullJobScan_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
         }
       }
     }
@@ -15046,18 +14169,15 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("endFullJobScan_result");
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new endFullJobScan_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new endFullJobScan_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      SEC((short)1, "sec");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -15075,8 +14195,6 @@ public class CompactionCoordinatorService {
         switch(fieldId) {
           case 1: // SEC
             return SEC;
-          case 2: // TNASE
-            return TNASE;
           default:
             return null;
         }
@@ -15125,8 +14243,6 @@ public class CompactionCoordinatorService {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(endFullJobScan_result.class, metaDataMap);
     }
@@ -15135,12 +14251,10 @@ public class CompactionCoordinatorService {
     }
 
     public endFullJobScan_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
       this.sec = sec;
-      this.tnase = tnase;
     }
 
     /**
@@ -15149,9 +14263,6 @@ public class CompactionCoordinatorService {
     public endFullJobScan_result(endFullJobScan_result other) {
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetTnase()) {
-        this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
     }
 
@@ -15163,7 +14274,6 @@ public class CompactionCoordinatorService {
     @Override
     public void clear() {
       this.sec = null;
-      this.tnase = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -15191,31 +14301,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException getTnase() {
-      return this.tnase;
-    }
-
-    public endFullJobScan_result setTnase(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
-      this.tnase = tnase;
-      return this;
-    }
-
-    public void unsetTnase() {
-      this.tnase = null;
-    }
-
-    /** Returns true if field tnase is set (has been assigned a value) and false otherwise */
-    public boolean isSetTnase() {
-      return this.tnase != null;
-    }
-
-    public void setTnaseIsSet(boolean value) {
-      if (!value) {
-        this.tnase = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -15224,14 +14309,6 @@ public class CompactionCoordinatorService {
           unsetSec();
         } else {
           setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case TNASE:
-        if (value == null) {
-          unsetTnase();
-        } else {
-          setTnase((org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException)value);
         }
         break;
 
@@ -15244,9 +14321,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return getSec();
-
-      case TNASE:
-        return getTnase();
 
       }
       throw new java.lang.IllegalStateException();
@@ -15262,8 +14336,6 @@ public class CompactionCoordinatorService {
       switch (field) {
       case SEC:
         return isSetSec();
-      case TNASE:
-        return isSetTnase();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -15290,15 +14362,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_tnase = true && this.isSetTnase();
-      boolean that_present_tnase = true && that.isSetTnase();
-      if (this_present_tnase || that_present_tnase) {
-        if (!(this_present_tnase && that_present_tnase))
-          return false;
-        if (!this.tnase.equals(that.tnase))
-          return false;
-      }
-
       return true;
     }
 
@@ -15309,10 +14372,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
-      if (isSetTnase())
-        hashCode = hashCode * 8191 + tnase.hashCode();
 
       return hashCode;
     }
@@ -15331,16 +14390,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTnase(), other.isSetTnase());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTnase()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -15373,14 +14422,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tnase:");
-      if (this.tnase == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tnase);
       }
       first = false;
       sb.append(")");
@@ -15437,15 +14478,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 2: // TNASE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-                struct.tnase.read(iprot);
-                struct.setTnaseIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -15465,11 +14497,6 @@ public class CompactionCoordinatorService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.tnase != null) {
-          oprot.writeFieldBegin(TNASE_FIELD_DESC);
-          struct.tnase.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -15494,31 +14521,1049 @@ public class CompactionCoordinatorService {
         if (struct.isSetSec()) {
           optionals.set(0);
         }
-        if (struct.isSetTnase()) {
-          optionals.set(1);
-        }
-        oprot.writeBitSet(optionals, 2);
+        oprot.writeBitSet(optionals, 1);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
-        }
-        if (struct.isSetTnase()) {
-          struct.tnase.write(oprot);
         }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, endFullJobScan_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
         }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
+  public static class setResourceGroups_args implements org.apache.thrift.TBase<setResourceGroups_args, setResourceGroups_args._Fields>, java.io.Serializable, Cloneable, Comparable<setResourceGroups_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setResourceGroups_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField GROUPS_FIELD_DESC = new org.apache.thrift.protocol.TField("groups", org.apache.thrift.protocol.TType.SET, (short)3);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setResourceGroups_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setResourceGroups_argsTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    public @org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> groups; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      GROUPS((short)3, "groups");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // GROUPS
+            return GROUPS;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      @Override
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      @Override
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.GROUPS, new org.apache.thrift.meta_data.FieldMetaData("groups", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.SetMetaData(org.apache.thrift.protocol.TType.SET, 
+              new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING))));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setResourceGroups_args.class, metaDataMap);
+    }
+
+    public setResourceGroups_args() {
+    }
+
+    public setResourceGroups_args(
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
+      java.util.Set<java.lang.String> groups)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.groups = groups;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setResourceGroups_args(setResourceGroups_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetGroups()) {
+        java.util.Set<java.lang.String> __this__groups = new java.util.HashSet<java.lang.String>(other.groups);
+        this.groups = __this__groups;
+      }
+    }
+
+    @Override
+    public setResourceGroups_args deepCopy() {
+      return new setResourceGroups_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.groups = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public setResourceGroups_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public setResourceGroups_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    public int getGroupsSize() {
+      return (this.groups == null) ? 0 : this.groups.size();
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.util.Iterator<java.lang.String> getGroupsIterator() {
+      return (this.groups == null) ? null : this.groups.iterator();
+    }
+
+    public void addToGroups(java.lang.String elem) {
+      if (this.groups == null) {
+        this.groups = new java.util.HashSet<java.lang.String>();
+      }
+      this.groups.add(elem);
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.util.Set<java.lang.String> getGroups() {
+      return this.groups;
+    }
+
+    public setResourceGroups_args setGroups(@org.apache.thrift.annotation.Nullable java.util.Set<java.lang.String> groups) {
+      this.groups = groups;
+      return this;
+    }
+
+    public void unsetGroups() {
+      this.groups = null;
+    }
+
+    /** Returns true if field groups is set (has been assigned a value) and false otherwise */
+    public boolean isSetGroups() {
+      return this.groups != null;
+    }
+
+    public void setGroupsIsSet(boolean value) {
+      if (!value) {
+        this.groups = null;
+      }
+    }
+
+    @Override
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
+      case GROUPS:
+        if (value == null) {
+          unsetGroups();
+        } else {
+          setGroups((java.util.Set<java.lang.String>)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case GROUPS:
+        return getGroups();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case GROUPS:
+        return isSetGroups();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof setResourceGroups_args)
+        return this.equals((setResourceGroups_args)that);
+      return false;
+    }
+
+    public boolean equals(setResourceGroups_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_groups = true && this.isSetGroups();
+      boolean that_present_groups = true && that.isSetGroups();
+      if (this_present_groups || that_present_groups) {
+        if (!(this_present_groups && that_present_groups))
+          return false;
+        if (!this.groups.equals(that.groups))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetGroups()) ? 131071 : 524287);
+      if (isSetGroups())
+        hashCode = hashCode * 8191 + groups.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(setResourceGroups_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetGroups(), other.isSetGroups());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetGroups()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.groups, other.groups);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    @Override
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    @Override
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("setResourceGroups_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("groups:");
+      if (this.groups == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.groups);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class setResourceGroups_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setResourceGroups_argsStandardScheme getScheme() {
+        return new setResourceGroups_argsStandardScheme();
+      }
+    }
+
+    private static class setResourceGroups_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<setResourceGroups_args> {
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setResourceGroups_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // GROUPS
+              if (schemeField.type == org.apache.thrift.protocol.TType.SET) {
+                {
+                  org.apache.thrift.protocol.TSet _set54 = iprot.readSetBegin();
+                  struct.groups = new java.util.HashSet<java.lang.String>(2*_set54.size);
+                  @org.apache.thrift.annotation.Nullable java.lang.String _elem55;
+                  for (int _i56 = 0; _i56 < _set54.size; ++_i56)
+                  {
+                    _elem55 = iprot.readString();
+                    struct.groups.add(_elem55);
+                  }
+                  iprot.readSetEnd();
+                }
+                struct.setGroupsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setResourceGroups_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.groups != null) {
+          oprot.writeFieldBegin(GROUPS_FIELD_DESC);
+          {
+            oprot.writeSetBegin(new org.apache.thrift.protocol.TSet(org.apache.thrift.protocol.TType.STRING, struct.groups.size()));
+            for (java.lang.String _iter57 : struct.groups)
+            {
+              oprot.writeString(_iter57);
+            }
+            oprot.writeSetEnd();
+          }
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class setResourceGroups_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setResourceGroups_argsTupleScheme getScheme() {
+        return new setResourceGroups_argsTupleScheme();
+      }
+    }
+
+    private static class setResourceGroups_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<setResourceGroups_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, setResourceGroups_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetGroups()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetGroups()) {
+          {
+            oprot.writeI32(struct.groups.size());
+            for (java.lang.String _iter58 : struct.groups)
+            {
+              oprot.writeString(_iter58);
+            }
+          }
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, setResourceGroups_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(3);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
         if (incoming.get(1)) {
-          struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
-          struct.tnase.read(iprot);
-          struct.setTnaseIsSet(true);
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          {
+            org.apache.thrift.protocol.TSet _set59 = iprot.readSetBegin(org.apache.thrift.protocol.TType.STRING);
+            struct.groups = new java.util.HashSet<java.lang.String>(2*_set59.size);
+            @org.apache.thrift.annotation.Nullable java.lang.String _elem60;
+            for (int _i61 = 0; _i61 < _set59.size; ++_i61)
+            {
+              _elem60 = iprot.readString();
+              struct.groups.add(_elem60);
+            }
+          }
+          struct.setGroupsIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
+  public static class setResourceGroups_result implements org.apache.thrift.TBase<setResourceGroups_result, setResourceGroups_result._Fields>, java.io.Serializable, Cloneable, Comparable<setResourceGroups_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("setResourceGroups_result");
+
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setResourceGroups_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setResourceGroups_resultTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SEC((short)1, "sec");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      @Override
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      @Override
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setResourceGroups_result.class, metaDataMap);
+    }
+
+    public setResourceGroups_result() {
+    }
+
+    public setResourceGroups_result(
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public setResourceGroups_result(setResourceGroups_result other) {
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    @Override
+    public setResourceGroups_result deepCopy() {
+      return new setResourceGroups_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.sec = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public setResourceGroups_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @Override
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SEC:
+        return getSec();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SEC:
+        return isSetSec();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof setResourceGroups_result)
+        return this.equals((setResourceGroups_result)that);
+      return false;
+    }
+
+    public boolean equals(setResourceGroups_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(setResourceGroups_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    @Override
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("setResourceGroups_result(");
+      boolean first = true;
+
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class setResourceGroups_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setResourceGroups_resultStandardScheme getScheme() {
+        return new setResourceGroups_resultStandardScheme();
+      }
+    }
+
+    private static class setResourceGroups_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<setResourceGroups_result> {
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol iprot, setResourceGroups_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol oprot, setResourceGroups_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class setResourceGroups_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public setResourceGroups_resultTupleScheme getScheme() {
+        return new setResourceGroups_resultTupleScheme();
+      }
+    }
+
+    private static class setResourceGroups_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<setResourceGroups_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, setResourceGroups_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSec()) {
+          optionals.set(0);
+        }
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, setResourceGroups_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(1);
+        if (incoming.get(0)) {
+          struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
         }
       }
     }

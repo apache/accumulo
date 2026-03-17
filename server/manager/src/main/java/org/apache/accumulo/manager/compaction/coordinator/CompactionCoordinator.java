@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.compaction.coordinator;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -741,11 +742,14 @@ public class CompactionCoordinator
       throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       // this is a oneway method so throwing an exception is not useful
+      // TODO maybe log?
       return;
     }
 
     for (var tjob : jobs) {
       var job = ResolvedCompactionJob.fromThrift(tjob);
+      // TODO remove or improve
+      LOG.debug("Adding compaction job {} {}", job.getGroup(), job.getExtent());
       // TODO maybe no longer need to pass a list
       jobQueues.add(job.getExtent(), List.of(job));
     }
@@ -759,6 +763,21 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     jobQueues.endFullScan(DataLevel.valueOf(dataLevel));
+  }
+
+  @Override
+  public void setResourceGroups(TInfo tinfo, TCredentials credentials, Set<String> groups)
+      throws ThriftSecurityException, TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      // TODO does not seem like the correct exception, also this code snippet was copied.
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    // TODO validate that upgrade is complete like FateWorker does
+
+    jobQueues.setResourceGroups(groups.stream().map(ResourceGroupId::of).collect(toSet()));
+    LOG.debug("Set resource groups to {}", groups);
   }
 
   // TODO remove
@@ -1138,7 +1157,7 @@ public class CompactionCoordinator
         this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
             .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build()) {
       return tabletsMetadata.stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
-          .collect(Collectors.toSet());
+          .collect(toSet());
     }
   }
 
@@ -1237,6 +1256,9 @@ public class CompactionCoordinator
       throw new ThriftTableOperationException(extent.tableId().canonical(), null,
           TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
     }
+
+    // TODO could contact all compactors OR could scan the metadata table to find the compactor OR
+    // could require passing table and end row of compaction
 
     cancelCompactionOnCompactor(runningCompaction.getCompactor(), externalCompactionId);
   }
@@ -1339,6 +1361,8 @@ public class CompactionCoordinator
 
   public void cleanUpInternalState() {
 
+    // TODO needs to be redone
+
     // This method does the following:
     //
     // 1. Removes entries from RUNNING_CACHE and LONG_RUNNING_COMPACTIONS_BY_RG that are not really
@@ -1363,7 +1387,7 @@ public class CompactionCoordinator
         LONG_RUNNING_COMPACTIONS_BY_RG.values().stream()
             .flatMap(TimeOrderedRunningCompactionSet::stream)
             .map(rc -> rc.getJob().getExternalCompactionId()).map(ExternalCompactionId::of)
-            .collect(Collectors.toSet())));
+            .collect(toSet())));
 
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.

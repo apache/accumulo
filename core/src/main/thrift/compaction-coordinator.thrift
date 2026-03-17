@@ -98,7 +98,6 @@ service CompactionCoordinatorService {
     5:tabletserver.TCompactionStats stats
   )throws(
      1:client.ThriftSecurityException sec
-     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -112,7 +111,6 @@ service CompactionCoordinatorService {
     5:string externalCompactionId
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -126,7 +124,6 @@ service CompactionCoordinatorService {
     5:i64 timestamp
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -141,7 +138,6 @@ service CompactionCoordinatorService {
     6:TCompactionState failureState
   )throws(
      1:client.ThriftSecurityException sec
-     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -152,7 +148,6 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
   )throws(
      1:client.ThriftSecurityException sec
-     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -164,7 +159,6 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
   )throws(
      1:client.ThriftSecurityException sec
-     2:client.ThriftNotActiveServiceException tnase
   )
 
   /*
@@ -175,7 +169,6 @@ service CompactionCoordinatorService {
     2:security.TCredentials credentials
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
   void cancel(
@@ -184,7 +177,6 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
   oneway void recordCompletion(
@@ -199,7 +191,6 @@ service CompactionCoordinatorService {
     3:string dataLevel
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
   oneway void addJobs(
@@ -214,9 +205,15 @@ service CompactionCoordinatorService {
     3:string dataLevel
   )throws(
     1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
   )
 
+  void setResourceGroups(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:set<string> groups
+  )throws(
+    1:client.ThriftSecurityException sec
+  )
 }
 
 service CompactorService {

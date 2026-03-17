@@ -21,7 +21,9 @@ package org.apache.accumulo.manager.compaction.queue;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentHashMap.KeySetView;
@@ -49,6 +51,8 @@ public class CompactionJobQueues {
       new ConcurrentHashMap<>();
 
   private volatile long queueSize;
+
+  private final Set<ResourceGroupId> allowedGroups = Collections.synchronizedSet(new HashSet<>());
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
 
@@ -120,6 +124,16 @@ public class CompactionJobQueues {
     return count;
   }
 
+  private CompactionJobPriorityQueue getOrCreateQueue(ResourceGroupId groupId) {
+    return priorityQueues.computeIfAbsent(groupId, gid -> {
+      if (allowedGroups.contains(gid)) {
+        return new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER);
+      } else {
+        return null;
+      }
+    });
+  }
+
   /**
    * Asynchronously get a compaction job from the queue. If the queue currently has jobs then a
    * completed future will be returned containing the highest priority job in the queue. If the
@@ -127,8 +141,11 @@ public class CompactionJobQueues {
    * is added to the queue the future will be completed.
    */
   public CompletableFuture<CompactionJob> getAsync(ResourceGroupId groupId) {
-    var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
+    var pq = getOrCreateQueue(groupId);
+    if (pq == null) {
+      // TODO callers will not handle null, is there something besides null to return?
+      return null;
+    }
     return pq.getAsync();
   }
 
@@ -149,13 +166,27 @@ public class CompactionJobQueues {
               + ",kind:" + job.getKind()).collect(Collectors.toList()));
     }
 
-    var pq = priorityQueues.computeIfAbsent(groupId,
-        gid -> new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER));
+    var pq = getOrCreateQueue(groupId);
+    if (pq == null) {
+      log.trace("Ignored request to add jobs extent:{} group:{} #jobs:{}", extent, groupId,
+          jobs.size());
+      return;
+    }
     pq.add(extent, jobs, currentGenerations.get(DataLevel.of(extent.tableId())).get());
   }
 
   public void resetMaxSize(long size) {
     this.queueSize = size;
     priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(this.queueSize));
+  }
+
+  public void setResourceGroups(Set<ResourceGroupId> groups) {
+    synchronized (allowedGroups) {
+      allowedGroups.clear();
+      allowedGroups.addAll(groups);
+    }
+
+    priorityQueues.keySet().removeIf(rg -> !allowedGroups.contains(rg));
+    // TODO need to cancel futures
   }
 }

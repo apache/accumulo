@@ -54,7 +54,7 @@ public class CompactionJobClient implements AutoCloseable {
   private final ServerContext context;
 
   record CoordinatorConnection(CompactionCoordinatorService.Client client,
-      List<ResolvedCompactionJob> jobBuffer) {
+      List<ResolvedCompactionJob> jobBuffer, HostAndPort address) {
   }
 
   private final Map<ResourceGroupId,HostAndPort> coordinatorLocations;
@@ -78,9 +78,10 @@ public class CompactionJobClient implements AutoCloseable {
         }
 
         coordinatorConnections.put(hostPort,
-            new CoordinatorConnection(client, new ArrayList<>(BUFFER_SIZE)));
+            new CoordinatorConnection(client, new ArrayList<>(BUFFER_SIZE), hostPort));
       } catch (TException e) {
         // TODO only log
+        // TODO need to return client or add it
         throw new RuntimeException(e);
       }
     }
@@ -91,10 +92,12 @@ public class CompactionJobClient implements AutoCloseable {
       var resolvedJob = new ResolvedCompactionJob(job, tabletMetadata);
       var hostPort = coordinatorLocations.get(resolvedJob.getGroup());
       if (hostPort == null) {
+        log.debug("Ignoring job, no coordinator found {}", job.getGroup());
         continue;
       }
       var coordinator = coordinatorConnections.get(hostPort);
       if (coordinator == null) {
+        log.debug("Ignoring job, no connection found {}", job.getGroup());
         continue;
       }
 
@@ -105,7 +108,7 @@ public class CompactionJobClient implements AutoCloseable {
         } catch (TException e) {
           log.warn("Failed to send compaction jobs to {}", hostPort, e);
           ThriftUtil.returnClient(coordinator.client, context);
-          // ignore this coordinator for the rest of the session
+          // ignore this coordinator for the rest of the session...
           coordinatorConnections.remove(hostPort);
         }
       }
@@ -115,6 +118,7 @@ public class CompactionJobClient implements AutoCloseable {
   private void sendJobs(CoordinatorConnection coordinator) throws TException {
     List<TResolvedCompactionJob> thriftJobs = new ArrayList<>(coordinator.jobBuffer.size());
     for (var job : coordinator.jobBuffer) {
+      log.debug("Sending job {} {} {}", coordinator.address, job.getGroup(), job.getExtent());
       thriftJobs.add(job.toThrift());
     }
     coordinator.client.addJobs(TraceUtil.traceInfo(), context.rpcCreds(), thriftJobs);

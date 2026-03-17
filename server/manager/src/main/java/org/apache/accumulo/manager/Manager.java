@@ -64,7 +64,6 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -989,16 +988,12 @@ public class Manager extends AbstractServer
         PrimaryManagerThriftServiceWrapper.service(ManagerClientService.Iface.class,
             ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
-    CompactionCoordinatorService.Iface wrappedCoordinator =
-        PrimaryManagerThriftServiceWrapper.service(CompactionCoordinatorService.Iface.class,
-            CompactionCoordinatorService.Processor::new, compactionCoordinator.getThriftService(),
-            this);
 
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
     FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        wrappedCoordinator, managerClientHandler, fateWorker, getContext());
+        compactionCoordinator.getThriftService(), managerClientHandler, fateWorker, getContext());
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
