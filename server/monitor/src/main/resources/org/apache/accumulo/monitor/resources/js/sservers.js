@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    getSserversView
+    getSserversView, renderActivityState, renderMemoryState
 */
 "use strict";
 
@@ -171,37 +171,11 @@ $(function () {
       },
       {
         "data": "serverIdle",
-        "render": function (data, type) {
-          if (type !== 'display') {
-            return data;
-          }
-          if (data === null || data === undefined) {
-            return '&mdash;';
-          }
-          if (Number(data) === 1) {
-            return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
-              '<span class="visually-hidden">Idle</span>';
-          }
-          return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
-            '<span class="visually-hidden">Active</span>';
-        }
+        "render": renderActivityState
       },
       {
         "data": "lowMemoryDetected",
-        "render": function (data, type) {
-          if (type !== 'display') {
-            return data;
-          }
-          if (data === null || data === undefined) {
-            return '&mdash;';
-          }
-          if (Number(data) === 1) {
-            return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
-              '<span class="visually-hidden">Low memory detected</span>';
-          }
-          return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
-            '<span class="visually-hidden">Memory normal</span>';
-        }
+        "render": renderMemoryState
       },
       {
         "data": "scansPausedForMemory"
