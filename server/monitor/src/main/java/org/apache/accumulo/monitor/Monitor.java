@@ -140,8 +140,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private ManagerMonitorInfo mmi;
   private GCStatus gcStatus;
   private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
-  private final String coordinatorMissingMsg =
-      "Error getting the compaction coordinator client. Check that the Manager is running.";
 
   private EmbeddedWebServer server;
   private int livePort = 0;

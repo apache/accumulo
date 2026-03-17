@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -200,7 +201,8 @@ public class ExternalCompactionUtil {
    * @param context server context
    * @return list of compactor and external compaction jobs
    */
-  public static List<TExternalCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
+  public static void getCompactionsRunningOnCompactors(ClientContext context,
+      Consumer<TExternalCompaction> consumer) throws InterruptedException {
     final List<Future<TExternalCompaction>> rcFutures = new ArrayList<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
@@ -212,19 +214,26 @@ public class ExternalCompactionUtil {
         });
     executor.shutdown();
 
-    final List<TExternalCompaction> results = new ArrayList<>();
-    rcFutures.forEach(rcf -> {
-      try {
-        TExternalCompaction job = rcf.get();
-        if (job == null || job.getJob() == null || job.getJob().getExternalCompactionId() == null) {
-          return;
+    while (!rcFutures.isEmpty()) {
+      var futureIter = rcFutures.iterator();
+      while (futureIter.hasNext()) {
+        var future = futureIter.next();
+        if (future.isDone()) {
+          try {
+            TExternalCompaction tec = future.get();
+            if (tec != null && tec.getJob() != null
+                && tec.getJob().getExternalCompactionId() != null) {
+              consumer.accept(tec);
+            }
+          } catch (ExecutionException e) {
+            throw new IllegalStateException(e);
+          } finally {
+            futureIter.remove();
+          }
         }
-        results.add(job);
-      } catch (InterruptedException | ExecutionException e) {
-        throw new IllegalStateException(e);
       }
-    });
-    return results;
+      Thread.sleep(100);
+    }
   }
 
   public static Collection<ExternalCompactionId>

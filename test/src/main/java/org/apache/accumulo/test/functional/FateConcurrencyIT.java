@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
@@ -508,7 +510,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   @Test
   public void multipleCompactions() throws InterruptedException, IOException {
 
-    int tableCount = 4;
+    final int tableCount = 4;
 
     // Start 4 Compactors for the default group
     MiniAccumuloClusterImpl mini = (MiniAccumuloClusterImpl) getCluster();
@@ -524,8 +526,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     assertEquals(tableCount,
         tables.stream().map(SlowOps::getTableName).filter(this::findFate).count());
 
-    Wait.waitFor(() -> tableCount
-        == ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).size());
+    Wait.waitFor(() -> {
+      List<TExternalCompaction> compactions = new ArrayList<>();
+      ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client,
+          (t) -> compactions.add(t));
+      return compactions.size() == tableCount;
+    });
 
     tables.forEach(t -> {
       try {

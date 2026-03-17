@@ -24,7 +24,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -42,8 +41,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -53,9 +50,9 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.thrift.transport.TTransportException;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
@@ -171,48 +168,17 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
   private class CompactionListFetcher implements Runnable {
 
-    private final String coordinatorMissingMsg =
-        "Error getting the compaction coordinator client. Check that the Manager is running.";
-
     private final SystemInformation summary;
 
     public CompactionListFetcher(SystemInformation summary) {
       this.summary = summary;
     }
 
-    private Map<String,TExternalCompaction> getRunningCompactions() {
-      Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
-      if (managers.isEmpty()) {
-        throw new IllegalStateException(coordinatorMissingMsg);
-      }
-      ServerId manager = managers.iterator().next();
-      HostAndPort hp = HostAndPort.fromParts(manager.getHost(), manager.getPort());
-      try {
-        CompactionCoordinatorService.Client client =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
-        try {
-          var running = client.getRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
-          if (running == null || running.getCompactions() == null) {
-            return Map.of();
-          }
-          return running.getCompactions();
-        } catch (Exception e) {
-          throw new IllegalStateException("Unable to get running compactions from " + hp, e);
-        } finally {
-          if (client != null) {
-            ThriftUtil.returnClient(client, ctx);
-          }
-        }
-      } catch (TTransportException e) {
-        LOG.error("Unable to get Compaction coordinator at {}", hp, e);
-        throw new IllegalStateException(coordinatorMissingMsg, e);
-      }
-    }
-
     @Override
     public void run() {
       try {
-        summary.processExternalCompactions(getRunningCompactions());
+        ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+            (t) -> summary.processExternalCompaction(t));
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information.", e);
       }
