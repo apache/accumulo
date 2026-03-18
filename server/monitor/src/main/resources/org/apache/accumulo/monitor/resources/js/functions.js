@@ -166,6 +166,50 @@ function levelFormat(level) {
 }
 
 /**
+ * Maps the given activity state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for idle and 0 for active
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderActivityState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Idle</span>';
+  }
+  return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Active</span>';
+}
+
+/**
+ * Maps the given memory state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for low memory and 0 for normal memory
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderMemoryState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Low memory detected</span>';
+  }
+  return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Memory normal</span>';
+}
+
+/**
  * Converts the time to short number and adds unit
  *
  * @param {number} time Time in milliseconds
