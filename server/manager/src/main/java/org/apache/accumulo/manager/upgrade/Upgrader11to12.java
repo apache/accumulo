@@ -313,7 +313,7 @@ public class Upgrader11to12 implements Upgrader {
   private static void addShuttingDownTservers(ServerContext context) {
     try {
       context.getZooSession().asReaderWriter().putPersistentData(Constants.ZSHUTTING_DOWN_TSERVERS,
-              new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
+          new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
