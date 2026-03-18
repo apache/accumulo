@@ -75,9 +75,9 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.compact.CompactionDriver;
 import org.apache.accumulo.manager.tableOps.merge.DeleteRows;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo;
@@ -133,7 +133,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       TestServerAmpleImpl testAmple = (TestServerAmpleImpl) TestAmple
           .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
       testAmple.createMetadataFromExisting(client, tableId);
-      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
+      FateEnv fateEnv = mockWithAmple(getCluster().getServerContext(), testAmple);
 
       // Create a test operation and fate id for testing merge and delete rows
       // and add operation to test metadata for the tablet
@@ -148,15 +148,15 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       // Build either MergeTablets or DeleteRows repo for testing no WALs, both should check this
       // condition
       final MergeInfo mergeInfo = new MergeInfo(tableId,
-          manager.getContext().getNamespaceId(tableId), null, null, operation);
+          fateEnv.getContext().getNamespaceId(tableId), null, null, operation);
       final AbstractFateOperation repo =
           operation == Operation.MERGE ? new MergeTablets(mergeInfo) : new DeleteRows(mergeInfo);
       // Also test ReserveTablets isReady()
       final AbstractFateOperation reserve = new ReserveTablets(mergeInfo);
 
       // First, check no errors with the default case
-      assertEquals(0, reserve.isReady(fateId, manager));
-      assertNotNull(repo.call(fateId, manager));
+      assertEquals(0, reserve.isReady(fateId, fateEnv));
+      assertNotNull(repo.call(fateId, fateEnv));
 
       // Write a WAL to the test metadata and then re-run the repo to check for an error
       try (TabletsMutator tm = testAmple.mutateTablets()) {
@@ -165,10 +165,10 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       }
 
       // Should not be ready due to the presence of a WAL
-      assertTrue(reserve.isReady(fateId, manager) > 0);
+      assertTrue(reserve.isReady(fateId, fateEnv) > 0);
 
       // Repo should throw an exception due to the WAL existence
-      var thrown = assertThrows(IllegalStateException.class, () -> repo.call(fateId, manager));
+      var thrown = assertThrows(IllegalStateException.class, () -> repo.call(fateId, fateEnv));
       assertTrue(thrown.getMessage().contains("has unexpected walogs"));
     }
   }
@@ -200,57 +200,57 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       TestServerAmpleImpl testAmple = (TestServerAmpleImpl) TestAmple
           .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
       testAmple.createMetadataFromExisting(client, tableId);
-      Manager manager =
+      FateEnv fateEnv =
           mockWithAmple(getCluster().getServerContext(), testAmple, Duration.ofDays(1));
 
       // Create a test fate id
       var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
       // Tablet c is set to never merge
-      MergeInfo mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
+      MergeInfo mergeInfo = new MergeInfo(tableId, fateEnv.getContext().getNamespaceId(tableId),
           null, new Text("c").getBytes(), Operation.SYSTEM_MERGE);
-      var repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      var repo = new VerifyMergeability(mergeInfo).call(fateId, fateEnv);
       assertInstanceOf(UnreserveSystemMerge.class, repo);
       assertEquals(UnmergeableReason.TABLET_MERGEABILITY,
           ((UnreserveSystemMerge) repo).getReason());
 
       // Tablets a and b are always merge
-      mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId), null,
+      mergeInfo = new MergeInfo(tableId, fateEnv.getContext().getNamespaceId(tableId), null,
           new Text("b").getBytes(), Operation.SYSTEM_MERGE);
-      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, manager));
+      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, fateEnv));
 
-      var context = manager.getContext();
+      var context = fateEnv.getContext();
 
       // split threshold is 10k so default max merge size is 2500 bytes.
       // this adds 6 files of 450 each which puts the tablets over teh 2500 threshold
       addFileMetadata(context, tableId, null, new Text("c"), 3, 450);
 
       // Data written to the first two tablets totals 2700 bytes and is too large
-      repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      repo = new VerifyMergeability(mergeInfo).call(fateId, fateEnv);
       assertInstanceOf(UnreserveSystemMerge.class, repo);
       assertEquals(UnmergeableReason.MAX_TOTAL_SIZE, ((UnreserveSystemMerge) repo).getReason());
 
       // Not enough time has passed for Tablet, should be able to merge d and e
-      mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
+      mergeInfo = new MergeInfo(tableId, fateEnv.getContext().getNamespaceId(tableId),
           new Text("c").getBytes(), new Text("e").getBytes(), Operation.SYSTEM_MERGE);
-      repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      repo = new VerifyMergeability(mergeInfo).call(fateId, fateEnv);
       assertInstanceOf(UnreserveSystemMerge.class, repo);
       assertEquals(UnmergeableReason.TABLET_MERGEABILITY,
           ((UnreserveSystemMerge) repo).getReason());
 
       // update time to 3 days so enough time has passed
-      manager = mockWithAmple(getCluster().getServerContext(), testAmple, Duration.ofDays(3));
-      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, manager));
+      fateEnv = mockWithAmple(getCluster().getServerContext(), testAmple, Duration.ofDays(3));
+      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, fateEnv));
 
       // last 3 tablets should total 9 files which is < max of 10
-      mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
+      mergeInfo = new MergeInfo(tableId, fateEnv.getContext().getNamespaceId(tableId),
           new Text("c").getBytes(), null, Operation.SYSTEM_MERGE);
       addFileMetadata(context, tableId, new Text("c"), null, 3, 10);
-      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, manager));
+      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, fateEnv));
 
       // last 3 tablets should total 12 files which is > max of 10
       addFileMetadata(context, tableId, new Text("c"), null, 4, 10);
-      repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      repo = new VerifyMergeability(mergeInfo).call(fateId, fateEnv);
       assertInstanceOf(UnreserveSystemMerge.class, repo);
       assertEquals(UnmergeableReason.MAX_FILE_COUNT, ((UnreserveSystemMerge) repo).getReason());
     }
@@ -306,7 +306,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       testAmple.mutateTablet(extent)
           .putOperation(TabletOperationId.from(TabletOperationType.SPLITTING, fateId)).mutate();
 
-      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
+      FateEnv fateEnv = mockWithAmple(getCluster().getServerContext(), testAmple);
 
       assertEquals(opid, testAmple.readTablet(extent).getOperationId());
 
@@ -314,7 +314,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
           TabletMergeabilityUtil.systemDefaultSplits(new TreeSet<>(List.of(new Text("sp1"))))));
 
       // The repo should delete the opid and throw an exception
-      assertThrows(ThriftTableOperationException.class, () -> eoRepo.call(fateId, manager));
+      assertThrows(ThriftTableOperationException.class, () -> eoRepo.call(fateId, fateEnv));
 
       // the operation id should have been cleaned up before the exception was thrown
       assertNull(testAmple.readTablet(extent).getOperationId());
@@ -347,11 +347,11 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
           not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
 
       KeyExtent extent = new KeyExtent(tableId, null, null);
-      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
+      FateEnv fateEnv = mockWithAmple(getCluster().getServerContext(), testAmple);
 
       FindSplits findSplits = new FindSplits(extent);
       PreSplit preSplit = (PreSplit) findSplits
-          .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), manager);
+          .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), fateEnv);
 
       // The table should not need splitting
       assertNull(preSplit);
@@ -366,7 +366,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
 
       findSplits = new FindSplits(extent);
       preSplit = (PreSplit) findSplits.call(FateId.from(FateInstanceType.USER, UUID.randomUUID()),
-          manager);
+          fateEnv);
 
       // The table SHOULD now need splitting
       assertNotNull(preSplit);
@@ -408,11 +408,11 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
           not(SplitColumnFamily.UNSPLITTABLE_COLUMN));
 
       KeyExtent extent = new KeyExtent(tableId, null, null);
-      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
+      FateEnv fateEnv = mockWithAmple(getCluster().getServerContext(), testAmple);
 
       FindSplits findSplits = new FindSplits(extent);
       PreSplit preSplit = (PreSplit) findSplits
-          .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), manager);
+          .call(FateId.from(FateInstanceType.USER, UUID.randomUUID()), fateEnv);
 
       // The table should not need splitting
       assertNull(preSplit);
@@ -428,7 +428,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
 
       findSplits = new FindSplits(extent);
       preSplit = (PreSplit) findSplits.call(FateId.from(FateInstanceType.USER, UUID.randomUUID()),
-          manager);
+          fateEnv);
 
       // The table SHOULD not need splitting
       assertNull(preSplit);
@@ -462,8 +462,8 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       TestServerAmpleImpl testAmple = (TestServerAmpleImpl) TestAmple
           .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
       testAmple.createMetadataFromExisting(client, tableId);
-      Manager manager = mockWithAmple(getCluster().getServerContext(), testAmple);
-      var ctx = manager.getContext();
+      FateEnv fateEnv = mockWithAmple(getCluster().getServerContext(), testAmple);
+      var ctx = fateEnv.getContext();
 
       // Create the CompactionDriver to test with the given range passed into the method
       final AbstractFateOperation repo = new CompactionDriver(ctx.getNamespaceId(tableId), tableId,
@@ -489,7 +489,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       assertEquals(4, extents.size());
 
       // First call undo using the second fateId and verify there's still metadata for the first one
-      repo.undo(fateId2, manager);
+      repo.undo(fateId2, fateEnv);
       try (TabletsMetadata tabletsMetadata = testAmple.readTablets().forTable(tableId).build()) {
         tabletsMetadata.forEach(tm -> {
           assertHasCompactionMetadata(fateId1, tm);
@@ -499,7 +499,7 @@ public class ManagerRepoIT_SimpleSuite extends SharedMiniClusterBase {
       // Now call undo on the first fateId which would clean up all the metadata for all the
       // tablets that overlap with the given range that was provided to the CompactionDriver
       // during the creation of the repo
-      repo.undo(fateId1, manager);
+      repo.undo(fateId1, fateEnv);
 
       // First, iterate over only the overlapping tablets and verify that those tablets
       // were cleaned up and remove any visited tablets from the extents set
