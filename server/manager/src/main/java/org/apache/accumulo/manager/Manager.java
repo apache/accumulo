@@ -58,6 +58,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
@@ -206,7 +207,6 @@ public class Manager extends AbstractServer
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
-  final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final EventCoordinator nextEvent = new EventCoordinator();
   RecoveryManager recoveryManager = null;
   private final ManagerTime timeKeeper;
@@ -557,10 +557,6 @@ public class Manager extends AbstractServer
         aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
   }
 
-  public TServerConnection getConnection(TServerInstance server) {
-    return tserverSet.getConnection(server);
-  }
-
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_GOAL_STATE,
@@ -667,6 +663,7 @@ public class Manager extends AbstractServer
   }
 
   boolean canBalance(DataLevel dataLevel, TServerStatus tServerStatus) {
+    Set<TServerInstance> serversToShutdown;
     if (!badServers.isEmpty()) {
       log.debug("not balancing {} because the balance information is out-of-date {}", dataLevel,
           badServers.keySet());
@@ -674,7 +671,7 @@ public class Manager extends AbstractServer
     } else if (getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
       log.debug("not balancing {} because the manager is attempting to stop cleanly", dataLevel);
       return false;
-    } else if (!serversToShutdown.isEmpty()) {
+    } else if (!(serversToShutdown = shutdownServers()).isEmpty()) {
       log.debug("not balancing {} while shutting down servers {}", dataLevel, serversToShutdown);
       return false;
     } else {
@@ -766,7 +763,6 @@ public class Manager extends AbstractServer
                     log.debug("stopping {} tablet servers", currentServers.size());
                     for (TServerInstance server : currentServers) {
                       try {
-                        serversToShutdown.add(server);
                         tserverSet.getConnection(server).fastHalt(primaryManagerLock);
                       } catch (TException e) {
                         // its probably down, and we don't care
@@ -1591,38 +1587,35 @@ public class Manager extends AbstractServer
           obit.delete(up.getHostPort());
         }
       }
-      for (TServerInstance dead : deleted) {
-        String cause = "unexpected failure";
-        if (serversToShutdown.contains(dead)) {
-          cause = "clean shutdown"; // maybe an incorrect assumption
+
+      if (!deleted.isEmpty()) {
+        // This set is read from zookeeper, so only get it if its actually needed
+        var serversToShutdown = shutdownServers();
+        for (TServerInstance dead : deleted) {
+          String cause = "unexpected failure";
+          if (serversToShutdown.contains(dead)) {
+            cause = "clean shutdown"; // maybe an incorrect assumption
+          }
+          if (!getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
+            obit.post(dead.getHostPort(), cause);
+          }
         }
-        if (!getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
-          obit.post(dead.getHostPort(), cause);
+
+        Set<TServerInstance> unexpected = new HashSet<>(deleted);
+        unexpected.removeAll(serversToShutdown);
+        if (!unexpected.isEmpty()
+            && (stillManager() && !getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP))) {
+          log.warn("Lost servers {}", unexpected);
         }
+        badServers.keySet().removeAll(deleted);
       }
 
-      Set<TServerInstance> unexpected = new HashSet<>(deleted);
-      unexpected.removeAll(this.serversToShutdown);
-      if (!unexpected.isEmpty()
-          && (stillManager() && !getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP))) {
-        log.warn("Lost servers {}", unexpected);
-      }
-      serversToShutdown.removeAll(deleted);
-      badServers.keySet().removeAll(deleted);
       // clear out any bad server with the same host/port as a new server
       synchronized (badServers) {
         cleanListByHostAndPort(badServers.keySet(), deleted, added);
       }
-      synchronized (serversToShutdown) {
-        cleanListByHostAndPort(serversToShutdown, deleted, added);
-      }
       nextEvent.event("There are now %d tablet servers", current.size());
     }
-
-    // clear out any servers that are no longer current
-    // this is needed when we are using a fate operation to shutdown a tserver as it
-    // will continue to add the server to the serversToShutdown (ACCUMULO-4410)
-    serversToShutdown.retainAll(current.getCurrentServers());
   }
 
   static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
@@ -1667,15 +1660,6 @@ public class Manager extends AbstractServer
 
   public LiveTServersSnapshot tserversSnapshot() {
     return tserverSet.getSnapshot();
-  }
-
-  // recovers state from the persistent transaction to shutdown a server
-  public boolean shutdownTServer(TServerInstance server) {
-    if (serversToShutdown.add(server)) {
-      nextEvent.event("Tablet Server shutdown requested for %s", server);
-      return true;
-    }
-    return false;
   }
 
   public EventCoordinator getEventCoordinator() {
@@ -1725,12 +1709,8 @@ public class Manager extends AbstractServer
     result.state = getManagerState();
     result.goalState = getManagerGoalState();
     result.unassignedTablets = displayUnassigned();
-    result.serversShuttingDown = new HashSet<>();
-    synchronized (serversToShutdown) {
-      for (TServerInstance server : serversToShutdown) {
-        result.serversShuttingDown.add(server.getHostPort());
-      }
-    }
+    result.serversShuttingDown =
+        shutdownServers().stream().map(TServerInstance::getHostPort).collect(Collectors.toSet());
     DeadServerList obit = new DeadServerList(getContext());
     result.deadTabletServers = obit.getList();
     return result;
@@ -1744,8 +1724,12 @@ public class Manager extends AbstractServer
   }
 
   public Set<TServerInstance> shutdownServers() {
-    synchronized (serversToShutdown) {
-      return Set.copyOf(serversToShutdown);
+    try {
+      List<String> children =
+          getContext().getZooSession().asReader().getChildren(Constants.ZSHUTTING_DOWN_TSERVERS);
+      return children.stream().map(TServerInstance::new).collect(Collectors.toSet());
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 
