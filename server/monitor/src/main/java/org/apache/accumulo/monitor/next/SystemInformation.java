@@ -305,7 +305,7 @@ public class SystemInformation {
   // oldest RunningCompaction.
   public static class TimeOrderedRunningCompactionSet {
 
-    public static Comparator<TExternalCompaction> OLDEST_FIRST_COMPARATOR =
+    public static final Comparator<TExternalCompaction> OLDEST_FIRST_COMPARATOR =
         Comparator.comparingLong(TExternalCompaction::getStartTime)
             .thenComparing(rc -> rc.getJob().getExternalCompactionId());
     private final ConcurrentSkipListSet<TExternalCompaction> compactions =

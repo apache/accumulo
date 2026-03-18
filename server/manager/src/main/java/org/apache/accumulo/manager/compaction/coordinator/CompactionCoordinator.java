@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -1098,8 +1099,14 @@ public class CompactionCoordinator
   /* Method exists to be overridden in test to hide static method */
   protected List<TExternalCompaction> getCompactionsRunningOnCompactors()
       throws InterruptedException {
+    int numCompactors = this.ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR).size();
+    final ExecutorService executor =
+        ThreadPools.getServerThreadPools().getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL)
+            .numCoreThreads(numCompactors / 10).build();
     List<TExternalCompaction> running = new ArrayList<>();
-    ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx, (t) -> running.add(t));
+    ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx, executor,
+        (t) -> running.add(t));
+    executor.shutdownNow();
     return running;
   }
 

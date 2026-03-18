@@ -194,25 +194,38 @@ public class ExternalCompactionUtil {
   }
 
   /**
-   * This method returns information from the Compactor about the job that is currently running. The
-   * RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
-   * on a restart to re-populate the set of running compactions on the compactors.
+   * This method returns information from the Compactors about the job that is currently running.
+   * This method will use a thread pool with 16 threads to query the Compactors.
    *
    * @param context server context
-   * @return list of compactor and external compaction jobs
+   * @param consumer object that will accept TExternalCompaction objects
    */
   public static void getCompactionsRunningOnCompactors(ClientContext context,
       Consumer<TExternalCompaction> consumer) throws InterruptedException {
-    final List<Future<TExternalCompaction>> rcFutures = new ArrayList<>();
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
+    getCompactionsRunningOnCompactors(context, executor, consumer);
+    executor.shutdownNow();
+  }
+
+  /**
+   * This method returns information from the Compactors about the job that is currently running.
+   *
+   * @param context server context
+   * @param executor thread pool executor to use for querying Compactors
+   * @param consumer object that will accept TExternalCompaction objects
+   */
+  public static void getCompactionsRunningOnCompactors(ClientContext context,
+      ExecutorService executor, Consumer<TExternalCompaction> consumer)
+      throws InterruptedException {
+
+    final List<Future<TExternalCompaction>> rcFutures = new ArrayList<>();
 
     context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(slp -> {
           final HostAndPort hp = HostAndPort.fromString(slp.getServer());
           rcFutures.add(executor.submit(() -> getRunningCompaction(hp, context)));
         });
-    executor.shutdown();
 
     while (!rcFutures.isEmpty()) {
       var futureIter = rcFutures.iterator();

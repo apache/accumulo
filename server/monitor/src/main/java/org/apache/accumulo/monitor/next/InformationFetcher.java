@@ -166,24 +166,25 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class CompactionListFetcher implements Runnable {
+  private class RunningCompactionFetcher implements Runnable {
 
     private final SystemInformation summary;
+    private final ThreadPoolExecutor executor;
 
-    public CompactionListFetcher(SystemInformation summary) {
+    public RunningCompactionFetcher(SystemInformation summary, ThreadPoolExecutor executor) {
       this.summary = summary;
+      this.executor = executor;
     }
 
     @Override
     public void run() {
       try {
-        ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+        ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx, executor,
             (t) -> summary.processExternalCompaction(t));
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information.", e);
       }
     }
-
   }
 
   private final String poolName = "MonitorMetricsThreadPool";
@@ -296,7 +297,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
       // Fetch external compaction information from the Manager
-      futures.add(this.pool.submit(new CompactionListFetcher(summary)));
+      futures.add(this.pool.submit(new RunningCompactionFetcher(summary, pool)));
 
       // Fetch Tablet / Tablet information from the metadata table
       for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
