@@ -997,6 +997,9 @@ public class CompactionCoordinator
     final TExternalCompaction tec =
         RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     if (null != tec) {
+      if (update.getState() == TCompactionState.STARTED) {
+        tec.setStartTime(timestamp);
+      }
       tec.putToUpdates(timestamp, update);
     }
   }
