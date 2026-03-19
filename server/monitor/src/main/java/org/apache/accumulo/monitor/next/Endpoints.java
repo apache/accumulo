@@ -333,14 +333,11 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns all long running major compactions")
   public List<RunningCompactionInfo> getExternalCompactions() {
-    Set<TExternalCompaction> all =
-        new TreeSet<>(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR);
     Map<String,TimeOrderedRunningCompactionSet> longRunning =
         monitor.getInformationFetcher().getSummaryForEndpoint().getTopRunningCompactions();
-    longRunning.values().stream().forEach(set -> set.stream().forEach(t -> all.add(t)));
-    List<RunningCompactionInfo> allResults = new ArrayList<>(all.size());
-    all.forEach(a -> allResults.add(new RunningCompactionInfo(a)));
-    return allResults;
+    return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
+        .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
+        .map(RunningCompactionInfo::new).collect(Collectors.toList());
   }
 
   @GET
