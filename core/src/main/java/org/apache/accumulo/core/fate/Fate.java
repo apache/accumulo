@@ -245,7 +245,7 @@ public class Fate<T> {
     }
 
     private void doCleanUp(long tid) {
-      log.debug("Cleaning up {}", tid);
+      log.debug("Cleaning up {}", FateTxId.formatTid(tid));
       Boolean autoClean = (Boolean) store.getTransactionInfo(tid, TxInfo.AUTO_CLEAN);
       if (autoClean != null && autoClean) {
         store.delete(tid);
@@ -262,7 +262,7 @@ public class Fate<T> {
       try {
         op.undo(tid, environment);
       } catch (Exception e) {
-        log.warn("Failed to undo Repo, " + FateTxId.formatTid(tid), e);
+        log.warn("Failed to undo Repo, {}", FateTxId.formatTid(tid), e);
       }
     }
   }
@@ -411,7 +411,7 @@ public class Fate<T> {
         UtilWaitThread.sleep(500);
       }
     }
-    log.info("Unable to reserve transaction {} to cancel it", tid);
+    log.info("Unable to reserve transaction {} to cancel it", FateTxId.formatTid(tid));
     return false;
   }
 
