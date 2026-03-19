@@ -179,8 +179,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx, executor,
-            (t) -> summary.processExternalCompaction(t));
+        List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+            executor, (t) -> summary.processExternalCompaction(t));
+        summary.getProblemHosts().addAll(failures);
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information.", e);
       }

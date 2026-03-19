@@ -1107,8 +1107,9 @@ public class CompactionCoordinator
         ThreadPools.getServerThreadPools().getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL)
             .numCoreThreads(numCompactors / 10).build();
     List<TExternalCompaction> running = new ArrayList<>();
-    ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx, executor,
-        (t) -> running.add(t));
+    @SuppressWarnings("unused")
+    List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx,
+        executor, (t) -> running.add(t));
     executor.shutdownNow();
     return running;
   }

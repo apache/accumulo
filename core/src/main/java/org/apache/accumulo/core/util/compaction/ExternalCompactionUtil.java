@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.rpc.RpcFuture;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
@@ -156,7 +158,7 @@ public class ExternalCompactionUtil {
    * @return external compaction job or null if none running
    */
   public static TExternalCompaction getRunningCompaction(HostAndPort compactorAddr,
-      ClientContext context) {
+      ClientContext context) throws TException {
 
     CompactorService.Client client = null;
     try {
@@ -170,6 +172,7 @@ public class ExternalCompactionUtil {
       }
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
+      throw e;
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -214,18 +217,22 @@ public class ExternalCompactionUtil {
    * @param context server context
    * @param executor thread pool executor to use for querying Compactors
    * @param consumer object that will accept TExternalCompaction objects
+   * @return list of compactor addresses where RPC failed
    */
-  public static void getCompactionsRunningOnCompactors(ClientContext context,
+  public static List<ServerId> getCompactionsRunningOnCompactors(ClientContext context,
       ExecutorService executor, Consumer<TExternalCompaction> consumer)
       throws InterruptedException {
 
-    final List<Future<TExternalCompaction>> rcFutures = new ArrayList<>();
+    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>();
+    final List<ServerId> failures = new ArrayList<>();
 
-    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(slp -> {
-          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-          rcFutures.add(executor.submit(() -> getRunningCompaction(hp, context)));
-        });
+    Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+    compactors.forEach(s -> {
+      final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
+      Future<TExternalCompaction> future =
+          executor.submit(() -> getRunningCompaction(address, context));
+      rcFutures.add(new RpcFuture<TExternalCompaction>(future, s));
+    });
 
     while (!rcFutures.isEmpty()) {
       var futureIter = rcFutures.iterator();
@@ -239,7 +246,8 @@ public class ExternalCompactionUtil {
               consumer.accept(tec);
             }
           } catch (ExecutionException e) {
-            throw new IllegalStateException(e);
+            LOG.error("Error getting compaction from compactor: " + future.getServer(), e);
+            failures.add(future.getServer());
           } finally {
             futureIter.remove();
           }
@@ -247,6 +255,7 @@ public class ExternalCompactionUtil {
       }
       Thread.sleep(100);
     }
+    return failures;
   }
 
   public static Collection<ExternalCompactionId>

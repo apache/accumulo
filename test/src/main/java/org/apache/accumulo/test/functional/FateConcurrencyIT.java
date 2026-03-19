@@ -36,6 +36,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -528,9 +529,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     Wait.waitFor(() -> {
       List<TExternalCompaction> compactions = new ArrayList<>();
+      AtomicInteger compactionCount = new AtomicInteger(0);
       ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client,
-          (t) -> compactions.add(t));
-      return compactions.size() == tableCount;
+          (t) -> compactionCount.incrementAndGet());
+      return compactions.size() == compactionCount.get();
     });
 
     tables.forEach(t -> {
