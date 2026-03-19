@@ -238,6 +238,10 @@ public class ExternalCompactionUtil {
       var futureIter = rcFutures.iterator();
       while (futureIter.hasNext()) {
         var future = futureIter.next();
+        if (Thread.currentThread().isInterrupted()) {
+          future.cancel(true);
+          futureIter.remove();
+        }
         if (future.isDone()) {
           try {
             TExternalCompaction tec = future.get();
