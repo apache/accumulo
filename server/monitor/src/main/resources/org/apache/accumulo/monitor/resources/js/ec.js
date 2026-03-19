@@ -41,7 +41,7 @@ $(function () {
   runningTable = $('#runningTable').DataTable({
     "autoWidth": false,
     "ajax": {
-      "url": contextPath + 'rest-v2/ec/running',
+      "url": contextPath + 'rest-v2/compactions/running',
       "dataSrc": "running"
     },
     "stateSave": true,
