@@ -355,9 +355,7 @@ public class Endpoints {
     if (longRunning == null) {
       return List.of();
     }
-    List<RunningCompactionInfo> rgResults = new ArrayList<>(longRunning.size());
-    longRunning.stream().forEach(a -> rgResults.add(new RunningCompactionInfo(a)));
-    return rgResults;
+    return longRunning.stream().map(RunningCompactionInfo::new).collect(Collectors.toList());
   }
 
   @GET
