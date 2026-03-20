@@ -68,7 +68,6 @@ public class FateWorker implements FateWorkerService.Iface {
   private final LiveTServerSet liveTserverSet;
   private final FateFactory fateFactory;
   private final Map<FateInstanceType,Fate<FateEnv>> fates = new ConcurrentHashMap<>();
-  private FateWorkerEnv fateWorkerEnv;
 
   public interface FateFactory {
     Fate<FateEnv> create(FateEnv env, FateStore<FateEnv> store, ServerContext context);
@@ -79,11 +78,10 @@ public class FateWorker implements FateWorkerService.Iface {
     this.security = ctx.getSecurityOperation();
     this.liveTserverSet = liveTServerSet;
     this.fateFactory = fateFactory;
-    Thread.interrupted()
   }
 
   public synchronized void setLock(ServiceLock lock) {
-    fateWorkerEnv = new FateWorkerEnv(context, lock, liveTserverSet);
+    FateWorkerEnv fateWorkerEnv = new FateWorkerEnv(context, lock, liveTserverSet);
     Predicate<ZooUtil.LockID> isLockHeld = l -> ServiceLock.isLockHeld(context.getZooCache(), l);
     try {
       MetaFateStore<FateEnv> metaStore =
