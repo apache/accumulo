@@ -38,7 +38,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
@@ -81,7 +80,7 @@ public class CompactionDriverTest {
 
   @BeforeEach
   public void setup() {
-    fateEnv = createMock(Manager.class);
+    fateEnv = createMock(FateEnv.class);
     ctx = createMock(ServerContext.class);
     zk = createMock(ZooSession.class);
     expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
