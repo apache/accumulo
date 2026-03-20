@@ -37,7 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -1328,15 +1327,12 @@ public class ClientContext implements AccumuloClient {
   }
 
   private static Set<String> createPersistentWatcherPaths() {
-    Set<String> pathsToWatch = new HashSet<>();
-    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+    return Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
         Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
-        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS)) {
-      pathsToWatch.add(path);
-    }
-    return pathsToWatch;
+        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS,
+        Constants.ZMANAGER_ASSIGNMENTS);
   }
 
 }
