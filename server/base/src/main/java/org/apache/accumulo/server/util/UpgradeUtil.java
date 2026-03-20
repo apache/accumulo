@@ -202,7 +202,7 @@ public class UpgradeUtil implements KeywordExecutable {
     try {
       LOG.info("Forcing removal of all server locks");
       new ZooZap().execute(
-          new String[] {"-manager", "-tservers", "-compactors", "-sservers", "--monitor", "--gc"});
+          new String[] {"-managers", "-tservers", "-compactors", "-sservers", "--monitor", "--gc"});
     } catch (Exception e) {
       throw new IllegalStateException("Error deleting server locks", e);
     }
