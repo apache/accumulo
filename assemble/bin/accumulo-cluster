@@ -728,7 +728,8 @@ function prune() {
 
   local manager
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
-    prune_group "manager" "default" "1" "$MANAGER_HOSTS"
+    local expected=${MANAGERS_PER_HOST_default:-1}
+    prune_group "manager" "default" "$expected" "$MANAGER_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
