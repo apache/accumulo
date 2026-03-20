@@ -297,7 +297,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       }
       ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
-      // Fetch external compaction information from the Manager
+      // Fetch external compaction information from the Compactors
       futures.add(this.pool.submit(new RunningCompactionFetcher(summary, pool)));
 
       // Fetch Tablet / Tablet information from the metadata table

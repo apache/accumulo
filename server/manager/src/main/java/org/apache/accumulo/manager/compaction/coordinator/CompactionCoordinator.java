@@ -1106,12 +1106,15 @@ public class CompactionCoordinator
     final ExecutorService executor =
         ThreadPools.getServerThreadPools().getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL)
             .numCoreThreads(numCompactors / 10).build();
-    List<TExternalCompaction> running = new ArrayList<>();
-    @SuppressWarnings("unused")
-    List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx,
-        executor, (t) -> running.add(t));
-    executor.shutdownNow();
-    return running;
+    try {
+      List<TExternalCompaction> running = new ArrayList<>();
+      @SuppressWarnings("unused")
+      List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx,
+          executor, (t) -> running.add(t));
+      return running;
+    } finally {
+      executor.shutdownNow();
+    }
   }
 
   /* Method exists to be overridden in test to hide static method */

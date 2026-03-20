@@ -207,8 +207,11 @@ public class ExternalCompactionUtil {
       Consumer<TExternalCompaction> consumer) throws InterruptedException {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
-    getCompactionsRunningOnCompactors(context, executor, consumer);
-    executor.shutdownNow();
+    try {
+      getCompactionsRunningOnCompactors(context, executor, consumer);
+    } finally {
+      executor.shutdownNow();
+    }
   }
 
   /**
@@ -226,40 +229,47 @@ public class ExternalCompactionUtil {
     final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>();
     final List<ServerId> failures = new ArrayList<>();
 
-    Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
-    compactors.forEach(s -> {
-      final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
-      Future<TExternalCompaction> future =
-          executor.submit(() -> getRunningCompaction(address, context));
-      rcFutures.add(new RpcFuture<TExternalCompaction>(future, s));
-    });
+    try {
+      Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+      compactors.forEach(s -> {
+        final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
+        Future<TExternalCompaction> future =
+            executor.submit(() -> getRunningCompaction(address, context));
+        rcFutures.add(new RpcFuture<TExternalCompaction>(future, s));
+      });
 
-    while (!rcFutures.isEmpty()) {
+      while (!rcFutures.isEmpty()) {
+        var futureIter = rcFutures.iterator();
+        while (futureIter.hasNext()) {
+          var future = futureIter.next();
+          if (future.isDone()) {
+            try {
+              TExternalCompaction tec = future.get();
+              if (tec != null && tec.getJob() != null
+                  && tec.getJob().getExternalCompactionId() != null) {
+                consumer.accept(tec);
+              }
+            } catch (ExecutionException e) {
+              LOG.error("Error getting compaction from compactor: " + future.getServer(), e);
+              failures.add(future.getServer());
+            } finally {
+              futureIter.remove();
+            }
+          }
+        }
+        Thread.sleep(100);
+      }
+      return failures;
+    } catch (InterruptedException e) {
+      // If this thread is interrupted, cancel all remaining tasks
       var futureIter = rcFutures.iterator();
       while (futureIter.hasNext()) {
         var future = futureIter.next();
-        if (Thread.currentThread().isInterrupted()) {
-          future.cancel(true);
-          futureIter.remove();
-        }
-        if (future.isDone()) {
-          try {
-            TExternalCompaction tec = future.get();
-            if (tec != null && tec.getJob() != null
-                && tec.getJob().getExternalCompactionId() != null) {
-              consumer.accept(tec);
-            }
-          } catch (ExecutionException e) {
-            LOG.error("Error getting compaction from compactor: " + future.getServer(), e);
-            failures.add(future.getServer());
-          } finally {
-            futureIter.remove();
-          }
-        }
+        future.cancel(true);
+        futureIter.remove();
       }
-      Thread.sleep(100);
+      throw e;
     }
-    return failures;
   }
 
   public static Collection<ExternalCompactionId>
