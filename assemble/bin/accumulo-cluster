@@ -210,8 +210,6 @@ function parse_args() {
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
-  debug "ARG_CREATE_MISSING_RG=$ARG_CREATE_MISSING_RG"
-
 }
 
 function invalid_args() {
