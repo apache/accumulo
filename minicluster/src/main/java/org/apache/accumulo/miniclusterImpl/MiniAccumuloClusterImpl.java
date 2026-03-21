@@ -1031,7 +1031,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // and not wait for the old locks to be cleaned up.
     try {
       new ZooZap()
-          .execute(new String[] {"-manager", "-tservers", "-compactors", "-sservers", "--gc"});
+          .execute(new String[] {"-managers", "-tservers", "-compactors", "-sservers", "--gc"});
     } catch (Exception e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
