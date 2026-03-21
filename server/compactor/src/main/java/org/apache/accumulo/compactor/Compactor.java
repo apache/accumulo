@@ -473,7 +473,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
       throws RetriesExceededException {
-    JOB_HOLDER.getCurrentCompaction().putToUpdates(System.currentTimeMillis(), update);
+    long updateTime = System.currentTimeMillis();
+    TExternalCompaction tec = JOB_HOLDER.getCurrentCompaction();
+    if (update.getState() == TCompactionState.STARTED) {
+      tec.setStartTime(updateTime);
+    }
+    tec.putToUpdates(updateTime, update);
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
@@ -481,7 +486,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             LOG.trace("Attempting to update compaction state in coordinator {}",
                 job.getExternalCompactionId());
             coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), update, System.currentTimeMillis());
+                job.getExternalCompactionId(), update, updateTime);
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -902,6 +907,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         current.setCompactor(clientAddress.toString());
         current.setGroupName(getResourceGroup().canonical());
         current.setJob(job);
+        // start time for the current compaction is set when the
+        // STARTED msg is sent to the coordinator. The coordinator
+        // updates its copy of the TExternalCompaction when it
+        // receives the STARTED msg.
         JOB_HOLDER.set(current, compactionThread, fcr.getFileCompactor());
 
         try {
@@ -924,7 +933,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           }
 
           compactionThread.start(); // start the compactionThread
-          current.setStartTime(System.currentTimeMillis());
           started.await(); // wait until the compactor is started
           final long inputEntries = totalInputEntries.sum();
           final long waitTime = calculateProgressCheckTime(totalInputBytes.sum());

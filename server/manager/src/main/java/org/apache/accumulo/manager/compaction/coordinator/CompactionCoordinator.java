@@ -1111,6 +1111,9 @@ public class CompactionCoordinator
       tec.putToUpdates(timestamp, update);
       switch (update.state) {
         case STARTED:
+          // Start time is used by the comparator, so set it first
+          // before adding to the LONG_RUNNING_COMPACTIONS_BY_RG object.
+          tec.setStartTime(timestamp);
           LONG_RUNNING_COMPACTIONS_BY_RG
               .computeIfAbsent(tec.getGroupName(), k -> new TimeOrderedRunningCompactionSet())
               .add(tec);

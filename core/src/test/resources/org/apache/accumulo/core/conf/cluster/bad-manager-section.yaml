@@ -19,6 +19,7 @@
 
 manager:
   servers_per_host: 1
+  extra_broken: 2
   hosts:
     - localhost
 
@@ -37,10 +38,6 @@ compactor:
 sserver:
   default:
     servers_per_host: 1
-    hosts:
-      - localhost
-  bad-group-name:
-    servers_per_host: 1	
     hosts:
       - localhost
 

@@ -79,7 +79,7 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
   }
 
   static class ZapOpts extends ServerOpts {
-    @Parameter(names = "-manager", description = "remove manager locks")
+    @Parameter(names = "-managers", description = "remove manager locks")
     boolean zapManager = false;
     @Parameter(names = "-tservers", description = "remove tablet server locks")
     boolean zapTservers = false;
@@ -109,9 +109,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
     final AddressSelector addressSelector;
 
     if (opts.hostPortExcludeFile != null) {
-      try {
-        var hostPorts = Files.lines(java.nio.file.Path.of(opts.hostPortExcludeFile))
-            .map(String::trim).map(HostAndPort::fromString).collect(Collectors.toSet());
+      try (var exclusions = Files.lines(java.nio.file.Path.of(opts.hostPortExcludeFile))) {
+        var hostPorts =
+            exclusions.map(String::trim).map(HostAndPort::fromString).collect(Collectors.toSet());
         addressSelector =
             AddressSelector.matching(hp -> !hostPorts.contains(HostAndPort.fromString(hp)));
       } catch (IOException e) {
@@ -145,7 +145,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
             context.getServerPaths().getAssistantManagers(addressSelector, false);
         for (var serverLockPath : managerPaths) {
           message("Deleting manager " + serverLockPath.getServer() + " from zookeeper", opts);
-          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          if (!opts.dryRun) {
+            zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          }
         }
       } catch (RuntimeException e) {
         log.error("Error deleting manager lock", e);
@@ -178,7 +180,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
             context.getServerPaths().getTabletServer(rgp, addressSelector, false);
         for (var serverLockPath : tserverLockPaths) {
           message("Deleting tserver " + serverLockPath.getServer() + " from zookeeper", opts);
-          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          if (!opts.dryRun) {
+            zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          }
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting tserver locks", e);
@@ -191,7 +195,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
       try {
         for (var serverLockPath : compactorLockPaths) {
           message("Deleting compactor " + serverLockPath.getServer() + " from zookeeper", opts);
-          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          if (!opts.dryRun) {
+            zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          }
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting compactors from zookeeper", e);
@@ -205,7 +211,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
       try {
         for (var serverLockPath : sserverLockPaths) {
           message("Deleting sserver " + serverLockPath.getServer() + " from zookeeper", opts);
-          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          if (!opts.dryRun) {
+            zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
+          }
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting scan server locks", e);
