@@ -52,7 +52,9 @@ public class Constants {
   public static final String ZMANAGER_ASSISTANT_LOCK = ZMANAGERS + "/assistants";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";
   public static final String ZMANAGER_TICK = ZMANAGERS + "/tick";
-  public static final String ZMANAGER_COORDINATOR = ZMANAGERS + "/coordinators";
+  public static final String ZMANAGER_ASSIGNMENTS = ZMANAGERS + "/assignments";
+  public static final String ZMANAGER_FATE_ASSIGNMENTS = ZMANAGER_ASSIGNMENTS + "/fate";
+  public static final String ZMANAGER_COORDINATOR = ZMANAGER_ASSIGNMENTS + "/coordinators";
 
   public static final String ZGC = "/gc";
   public static final String ZGC_LOCK = ZGC + "/lock";
@@ -74,6 +76,8 @@ public class Constants {
 
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
+
+  public static final String ZSHUTTING_DOWN_TSERVERS = "/shutting-down-tservers";
 
   public static final String ZFATE = "/fate";
 

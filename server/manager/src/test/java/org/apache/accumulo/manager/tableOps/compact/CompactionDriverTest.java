@@ -38,7 +38,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.delete.PreDeleteTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.data.Stat;
@@ -74,24 +74,24 @@ public class CompactionDriverTest {
     }
   }
 
-  private Manager manager;
+  private FateEnv fateEnv;
   private ServerContext ctx;
   private ZooSession zk;
 
   @BeforeEach
   public void setup() {
-    manager = createMock(Manager.class);
+    fateEnv = createMock(FateEnv.class);
     ctx = createMock(ServerContext.class);
     zk = createMock(ZooSession.class);
     expect(ctx.getInstanceID()).andReturn(instance).anyTimes();
     expect(ctx.getZooSession()).andReturn(zk).anyTimes();
     expect(zk.asReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
-    expect(manager.getContext()).andReturn(ctx).anyTimes();
+    expect(fateEnv.getContext()).andReturn(ctx).anyTimes();
   }
 
   @AfterEach
   public void teardown() {
-    verify(manager, ctx, zk);
+    verify(fateEnv, ctx, zk);
   }
 
   @Test
@@ -107,9 +107,9 @@ public class CompactionDriverTest {
   }
 
   private void runDriver(CompactionDriver driver, String expectedMessage) {
-    replay(manager, ctx, zk);
+    replay(fateEnv, ctx, zk);
     var e = assertThrows(AcceptableThriftTableOperationException.class,
-        () -> driver.isReady(FateId.from(FateInstanceType.USER, UUID.randomUUID()), manager));
+        () -> driver.isReady(FateId.from(FateInstanceType.USER, UUID.randomUUID()), fateEnv));
     assertEquals(e.getTableId(), tableId.toString());
     assertEquals(e.getOp(), TableOperation.COMPACT);
     assertEquals(e.getType(), TableOperationExceptionType.OTHER);

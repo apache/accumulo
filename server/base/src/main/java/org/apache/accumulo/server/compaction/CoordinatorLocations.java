@@ -27,7 +27,7 @@ import java.util.Map;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
@@ -67,14 +67,13 @@ public class CoordinatorLocations {
     return lastLocations;
   }
 
-  public static void setLocations(ZooReaderWriter zk, Map<ResourceGroupId,HostAndPort> locations)
-      throws InterruptedException, KeeperException {
+  public static void setLocations(ZooReaderWriter zk, Map<ResourceGroupId,HostAndPort> locations,
+      NodeExistsPolicy nodeExistsPolicy) throws InterruptedException, KeeperException {
     Map<String,String> stringMap = new HashMap<>(locations.size());
     locations.forEach((rg, hp) -> {
       stringMap.put(rg.canonical(), hp.toString());
     });
     byte[] serializedMap = GSON.get().toJson(stringMap).getBytes(UTF_8);
-    zk.putPersistentData(Constants.ZMANAGER_COORDINATOR, serializedMap,
-        ZooUtil.NodeExistsPolicy.OVERWRITE);
+    zk.putPersistentData(Constants.ZMANAGER_COORDINATOR, serializedMap, nodeExistsPolicy);
   }
 }

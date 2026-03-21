@@ -84,7 +84,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.gc.AllVolumesDirectory;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
@@ -425,7 +425,7 @@ public class MergeTabletsTest {
             end == null ? null : end.getBytes(UTF_8), MergeInfo.Operation.MERGE);
     MergeTablets mergeTablets = new MergeTablets(mergeInfo);
 
-    Manager manager = EasyMock.mock(Manager.class);
+    FateEnv fateEnv = EasyMock.mock(FateEnv.class);
     ServerContext context = EasyMock.mock(ServerContext.class);
     Ample ample = EasyMock.mock(Ample.class);
     TabletsMetadata.Builder tabletBuilder = EasyMock.mock(TabletsMetadata.Builder.class);
@@ -438,7 +438,7 @@ public class MergeTabletsTest {
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
 
     // setup reading the tablets
-    EasyMock.expect(manager.getContext()).andReturn(context).atLeastOnce();
+    EasyMock.expect(fateEnv.getContext()).andReturn(context).atLeastOnce();
     EasyMock.expect(context.getAmple()).andReturn(ample).atLeastOnce();
     EasyMock.expect(ample.readTablets()).andReturn(tabletBuilder).once();
     EasyMock.expect(tabletBuilder.forTable(tableId)).andReturn(tabletBuilder).once();
@@ -478,12 +478,12 @@ public class MergeTabletsTest {
     ample.putGcFileAndDirCandidates(tableId, dirs);
     EasyMock.expectLastCall().once();
 
-    EasyMock.replay(manager, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
+    EasyMock.replay(fateEnv, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
         tabletMutator, cr, managerLock);
 
-    mergeTablets.call(fateId, manager);
+    mergeTablets.call(fateId, fateEnv);
 
-    EasyMock.verify(manager, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
+    EasyMock.verify(fateEnv, context, ample, tabletBuilder, tabletsMetadata, tabletsMutator,
         tabletMutator, cr, managerLock);
   }
 }

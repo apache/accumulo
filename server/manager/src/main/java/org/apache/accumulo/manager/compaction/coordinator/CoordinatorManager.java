@@ -28,6 +28,7 @@ import java.util.Set;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -123,7 +124,7 @@ public class CoordinatorManager {
             });
 
             CoordinatorLocations.setLocations(context.getZooSession().asReaderWriter(),
-                newLocations);
+                newLocations, NodeExistsPolicy.OVERWRITE);
             log.debug("Set locations {}", newLocations);
           }
         }
