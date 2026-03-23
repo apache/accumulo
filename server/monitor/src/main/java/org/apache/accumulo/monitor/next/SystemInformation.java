@@ -268,36 +268,29 @@ public class SystemInformation {
   }
 
   public static class ProcessSummary {
-    private final AtomicLong configured = new AtomicLong(0);
-    private final AtomicLong responded = new AtomicLong();
-    private final Set<String> notResponded = ConcurrentHashMap.newKeySet();
+    private final Set<ServerId> responded = ConcurrentHashMap.newKeySet();
+    private final Set<ServerId> notResponded = ConcurrentHashMap.newKeySet();
 
-    public void addResponded() {
-      configured.incrementAndGet();
-      responded.incrementAndGet();
+    public void addResponded(ServerId server) {
+      responded.add(server);
     }
 
     public void addNotResponded(ServerId server) {
-      configured.incrementAndGet();
-      notResponded.add(server.getHost() + ":" + server.getPort());
+      responded.remove(server);
+      notResponded.add(server);
     }
 
-    public long getConfigured() {
-      return this.configured.get();
+    public long getTotal() {
+      return this.responded.size() + this.notResponded.size();
     }
 
     public long getResponded() {
-      return this.responded.get();
+      return this.responded.size();
     }
 
     public long getNotResponded() {
       return this.notResponded.size();
     }
-
-    public Set<String> getNotRespondedHosts() {
-      return this.notResponded;
-    }
-
   }
 
   // Object that serves as a TopN view of the RunningCompactions, ordered by
@@ -364,6 +357,7 @@ public class SystemInformation {
 
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
+  private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> manager = new AtomicReference<>();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
@@ -403,7 +397,7 @@ public class SystemInformation {
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
 
   // Deployment Overview
-  private final Map<ResourceGroupId,Map<String,ProcessSummary>> deployment =
+  private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
 
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
@@ -422,6 +416,7 @@ public class SystemInformation {
   public void clear() {
     resourceGroups.clear();
     problemHosts.clear();
+    metricProblemHosts.clear();
     compactors.clear();
     sservers.clear();
     tservers.clear();
@@ -503,10 +498,11 @@ public class SystemInformation {
 
   public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
+    metricProblemHosts.remove(server);
     allMetrics.put(server, response);
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
-        .computeIfAbsent(server.getType().name(), t -> new ProcessSummary()).addResponded();
+        .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
     switch (response.serverType) {
       case COMPACTOR:
         compactors
@@ -570,13 +566,17 @@ public class SystemInformation {
     problemHosts.add(server);
   }
 
+  public void processMetricsError(ServerId server) {
+    problemHosts.add(server);
+    metricProblemHosts.add(server);
+  }
+
   public void finish() {
     // Update the deployment not-responded numbers based
-    // on the problem hosts.
-    problemHosts.forEach(serverId -> {
+    // on metric fetch failures for this refresh.
+    metricProblemHosts.forEach(serverId -> {
       deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
-          .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary())
-          .addNotResponded(serverId);
+          .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
     });
     for (SystemTables table : SystemTables.values()) {
       TableConfiguration tconf = this.ctx.getTableConfiguration(table.tableId());
@@ -676,7 +676,7 @@ public class SystemInformation {
     return this.tablets.get(tableId);
   }
 
-  public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
+  public Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> getDeploymentOverview() {
     return this.deployment;
   }
 

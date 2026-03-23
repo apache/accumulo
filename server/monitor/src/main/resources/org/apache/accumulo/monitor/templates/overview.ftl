@@ -54,3 +54,8 @@
           </table>
         </div>
       </div>
+      <div class="row d-flex justify-content-center">
+        <div class="col-sm-10" id="deploymentOverview">
+          <div id="deploymentTables"></div>
+        </div>
+      </div>
