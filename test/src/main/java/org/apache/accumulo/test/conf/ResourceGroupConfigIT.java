@@ -100,7 +100,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   @BeforeEach
   public void beforeTest() throws Exception {
     var rgops = getCluster().getServerContext().resourceGroupOperations();
-    for(var rgid : rgops.list()){
+    for (var rgid : rgops.list()) {
       if (!rgid.equals(ResourceGroupId.DEFAULT)) {
         rgops.remove(rgid);
       }
