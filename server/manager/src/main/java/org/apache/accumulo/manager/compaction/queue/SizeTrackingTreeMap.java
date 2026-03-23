@@ -18,9 +18,12 @@
  */
 package org.apache.accumulo.manager.compaction.queue;
 
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.accumulo.core.util.Timer;
 
 import com.google.common.base.Preconditions;
 
@@ -43,6 +46,7 @@ public class SizeTrackingTreeMap<K,V> {
   private final TreeMap<K,ValueWrapper<V>> map = new TreeMap<>();
   private long dataSize = 0;
   private Weigher<V> weigher;
+  private final Timer notEmptyTimer = Timer.startNew();
 
   private Map.Entry<K,V> unwrap(Map.Entry<K,ValueWrapper<V>> wrapperEntry) {
     if (wrapperEntry == null) {
@@ -54,6 +58,9 @@ public class SizeTrackingTreeMap<K,V> {
 
   private void incrementDataSize(ValueWrapper<V> val) {
     Preconditions.checkState(dataSize >= 0);
+    if (dataSize == 0) {
+      notEmptyTimer.restart();
+    }
     dataSize += val.computedSize;
   }
 
@@ -96,6 +103,17 @@ public class SizeTrackingTreeMap<K,V> {
 
   public Map.Entry<K,V> firstEntry() {
     return unwrap(map.firstEntry());
+  }
+
+  /**
+   * @return The duration since transitioning from empty to not empty.
+   */
+  public Duration getNotEmptyDuration() {
+    if (map.isEmpty()) {
+      return Duration.ZERO;
+    } else {
+      return notEmptyTimer.elapsed();
+    }
   }
 
   public void remove(K key) {

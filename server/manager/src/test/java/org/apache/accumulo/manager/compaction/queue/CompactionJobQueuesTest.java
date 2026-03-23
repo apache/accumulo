@@ -21,12 +21,14 @@ package org.apache.accumulo.manager.compaction.queue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -425,5 +427,66 @@ public class CompactionJobQueuesTest {
     assertEquals(Set.of(cg1, cg2), jobQueues.getQueueIds());
     assertEquals(500000, jobQueues.getQueueMaxSize(cg1));
     assertEquals(500000, jobQueues.getQueueMaxSize(cg2));
+  }
+
+  @Test
+  public void testNonEmptyDuration() throws Exception {
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+    var extent2 = new KeyExtent(tid, new Text("c"), new Text("b"));
+
+    var cg1 = ResourceGroupId.of("CG1");
+    var cg2 = ResourceGroupId.of("CG2");
+
+    assertEquals(Duration.ZERO, jobQueues.getNotEmptyDuration(cg1));
+
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    Thread.sleep(2);
+    assertTrue(jobQueues.getNotEmptyDuration(cg1).toMillis() >= 2);
+
+    assertEquals(Duration.ZERO, jobQueues.getNotEmptyDuration(cg2));
+
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg2)));
+    Thread.sleep(2);
+    assertTrue(jobQueues.getNotEmptyDuration(cg2).toMillis() >= 2);
+    assertTrue(jobQueues.getNotEmptyDuration(cg1).toMillis() >= 4);
+    assertTrue(
+        jobQueues.getNotEmptyDuration(cg1).compareTo(jobQueues.getNotEmptyDuration(cg2)) > 0);
+
+    // adding a job should not reset the duration
+    jobQueues.add(extent2, List.of(newJob((short) 1, 3, cg1)));
+    assertTrue(jobQueues.getNotEmptyDuration(cg2).toMillis() >= 2);
+    assertTrue(jobQueues.getNotEmptyDuration(cg1).toMillis() >= 4);
+    assertTrue(
+        jobQueues.getNotEmptyDuration(cg1).compareTo(jobQueues.getNotEmptyDuration(cg2)) > 0);
+
+    // Removing all jobs from the queue should reset the duration
+    assertEquals(0, jobQueues.getDequeuedJobs(cg1));
+    assertNotNull(jobQueues.poll(cg1));
+    assertNotNull(jobQueues.poll(cg1));
+    assertTrue(jobQueues.getNotEmptyDuration(cg2).toMillis() >= 2);
+    assertEquals(Duration.ZERO, jobQueues.getNotEmptyDuration(cg1));
+
+    assertEquals(2, jobQueues.getDequeuedJobs(cg1));
+    assertEquals(0, jobQueues.getDequeuedJobs(cg2));
+
+    // Adding another should should reset the non empty timer
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    Thread.sleep(2);
+    assertTrue(jobQueues.getNotEmptyDuration(cg2).toMillis() >= 4);
+    assertTrue(jobQueues.getNotEmptyDuration(cg1).toMillis() >= 2);
+    assertTrue(
+        jobQueues.getNotEmptyDuration(cg1).compareTo(jobQueues.getNotEmptyDuration(cg2)) < 0);
+
+    // remove everything from all queues
+    assertNotNull(jobQueues.poll(cg1));
+    assertNotNull(jobQueues.poll(cg2));
+    assertEquals(Duration.ZERO, jobQueues.getNotEmptyDuration(cg1));
+    assertEquals(Duration.ZERO, jobQueues.getNotEmptyDuration(cg2));
+    assertEquals(3, jobQueues.getDequeuedJobs(cg1));
+    assertEquals(1, jobQueues.getDequeuedJobs(cg2));
+
   }
 }

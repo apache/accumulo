@@ -117,6 +117,7 @@ import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -206,9 +207,6 @@ public class CompactionCoordinator
    */
   protected final Map<ExternalCompactionId,TExternalCompaction> RUNNING_CACHE =
       new ConcurrentHashMap<>();
-
-  /* Map of group name to last time compactor called to get a compaction job */
-  private final Map<ResourceGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
   private final AuditedSecurityOperation security;
@@ -382,30 +380,6 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  private Map<String,Set<HostAndPort>> getIdleCompactors(Set<ServerId> runningCompactors) {
-
-    final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
-    runningCompactors.forEach((csi) -> allCompactors
-        .computeIfAbsent(csi.getResourceGroup().canonical(), (k) -> new HashSet<>())
-        .add(HostAndPort.fromParts(csi.getHost(), csi.getPort())));
-
-    final Set<String> emptyQueues = new HashSet<>();
-
-    // Remove all of the compactors that are running a compaction
-    RUNNING_CACHE.values().forEach(tec -> {
-      Set<HostAndPort> busyCompactors = allCompactors.get(tec.getGroupName());
-      if (busyCompactors != null
-          && busyCompactors.remove(HostAndPort.fromString(tec.getCompactor()))) {
-        if (busyCompactors.isEmpty()) {
-          emptyQueues.add(tec.getGroupName());
-        }
-      }
-    });
-    // Remove entries with empty queues
-    emptyQueues.forEach(e -> allCompactors.remove(e));
-    return allCompactors;
-  }
-
   protected void startDeadCompactionDetector() {
     deadCompactionDetector.start();
   }
@@ -438,7 +412,6 @@ public class CompactionCoordinator
     }
     ResourceGroupId groupId = ResourceGroupId.of(groupName);
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
 
@@ -1203,17 +1176,46 @@ public class CompactionCoordinator
     return groups;
   }
 
+  record DequeuedSample(Timer timer, long dequeuedCount) {
+  }
+
+  // Used to track how long a resource groups dequeued count is the same.
+  private final Map<ResourceGroupId,DequeuedSample> dequeuedCountTracker =
+      Collections.synchronizedMap(new HashMap<>());
+
+  private void logNonEmptyQueuesThatAreInactive() {
+    dequeuedCountTracker.keySet().retainAll(jobQueues.getQueueIds());
+
+    Duration warnDuration = Duration.ofMillis(getMissingCompactorWarningTime());
+
+    for (var rgid : jobQueues.getQueueIds()) {
+      var last = dequeuedCountTracker.get(rgid);
+      long dequeued = jobQueues.getDequeuedJobs(rgid);
+      if (last == null || last.dequeuedCount != dequeued) {
+        dequeuedCountTracker.put(rgid, new DequeuedSample(Timer.startNew(), dequeued));
+        continue;
+      }
+
+      Duration notEmptyDuration = jobQueues.getNotEmptyDuration(rgid);
+      if (last.timer.elapsed().compareTo(warnDuration) > 0
+          && notEmptyDuration.compareTo(warnDuration) > 0) {
+        // This queue has been non empty and nothing has been dequeued from it for greater than the
+        // warn duration.
+        LOG.warn(
+            "Compactor group {} has {} queued jobs, has had queued jobs for {}ms, and nothing was dequeued for {}ms",
+            rgid, jobQueues.getQueuedJobs(rgid), notEmptyDuration.toMillis(),
+            last.timer.elapsed(TimeUnit.MILLISECONDS));
+      }
+    }
+  }
+
   public void cleanUpInternalState() {
 
     // This method does the following:
     //
-    // 1. Removes entries from RUNNING_CACHE and LONG_RUNNING_COMPACTIONS_BY_RG that are not really
-    // running
+    // 1. Removes entries from RUNNING_CACHE that are not really running
     // 2. Cancels running compactions for groups that are not in the current configuration
-    // 3. Remove groups not in configuration from TIME_COMPACTOR_LAST_CHECKED
-    // 4. Log groups with no compactors
     // 5. Log compactors with no groups
-    // 6. Log groups with compactors and queued jos that have not checked in
 
     var config = ctx.getConfiguration();
     ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
@@ -1269,11 +1271,6 @@ public class CompactionCoordinator
           cancelCompactionOnCompactor(tec.getCompactor(), tec.getJob().getExternalCompactionId());
         }
       });
-
-      final Set<ResourceGroupId> trackedGroups = Set.copyOf(TIME_COMPACTOR_LAST_CHECKED.keySet());
-      TIME_COMPACTOR_LAST_CHECKED.keySet().retainAll(groupsInConfiguration);
-      LOG.debug("No longer tracking compactor check-in times for groups: {}",
-          Sets.difference(trackedGroups, TIME_COMPACTOR_LAST_CHECKED.keySet()));
     }
 
     final Set<ServerId> runningCompactors = getRunningCompactors();
@@ -1281,18 +1278,6 @@ public class CompactionCoordinator
     final Set<ResourceGroupId> runningCompactorGroups = new HashSet<>();
     runningCompactors.forEach(
         c -> runningCompactorGroups.add(ResourceGroupId.of(c.getResourceGroup().canonical())));
-
-    final Set<ResourceGroupId> groupsWithNoCompactors =
-        Sets.difference(groupsInConfiguration, runningCompactorGroups);
-    if (groupsWithNoCompactors != null && !groupsWithNoCompactors.isEmpty()) {
-      for (ResourceGroupId group : groupsWithNoCompactors) {
-        long queuedJobCount = jobQueues.getQueuedJobs(group);
-        if (queuedJobCount > 0) {
-          LOG.warn("Compactor group {} has {} queued compactions but no running compactors", group,
-              queuedJobCount);
-        }
-      }
-    }
 
     final Set<ResourceGroupId> compactorsWithNoGroups =
         Sets.difference(runningCompactorGroups, groupsInConfiguration);
@@ -1302,19 +1287,6 @@ public class CompactionCoordinator
           compactorsWithNoGroups);
     }
 
-    final long now = System.currentTimeMillis();
-    final long warningTime = getMissingCompactorWarningTime();
-    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors(runningCompactors);
-    for (ResourceGroupId groupName : groupsInConfiguration) {
-      long lastCheckTime =
-          TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, coordinatorStartTime);
-      if ((now - lastCheckTime) > warningTime && jobQueues.getQueuedJobs(groupName) > 0
-          && idleCompactors.containsKey(groupName.canonical())) {
-        LOG.warn(
-            "The group {} has queued jobs and {} idle compactors, however none have checked in "
-                + "with coordinator for {}ms",
-            groupName, idleCompactors.get(groupName.canonical()).size(), warningTime);
-      }
-    }
+    logNonEmptyQueuesThatAreInactive();
   }
 }

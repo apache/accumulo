@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.compaction.queue;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -106,6 +107,16 @@ public class CompactionJobQueues {
   public long getQueuedJobs(ResourceGroupId groupId) {
     var prioQ = priorityQueues.get(groupId);
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
+  }
+
+  public long getDequeuedJobs(ResourceGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
+    return prioQ == null ? 0 : prioQ.getDequeuedJobs();
+  }
+
+  public Duration getNotEmptyDuration(ResourceGroupId groupId) {
+    var prioQ = priorityQueues.get(groupId);
+    return prioQ == null ? Duration.ZERO : prioQ.getNotEmptyDuration();
   }
 
   public long getQueueCount() {

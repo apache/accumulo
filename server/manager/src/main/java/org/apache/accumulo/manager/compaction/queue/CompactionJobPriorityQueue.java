@@ -238,6 +238,10 @@ public class CompactionJobPriorityQueue {
     return jobsAdded;
   }
 
+  public synchronized Duration getNotEmptyDuration() {
+    return jobQueue.getNotEmptyDuration();
+  }
+
   public synchronized long getMaxSize() {
     return maxSize.get();
   }
