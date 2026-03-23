@@ -369,7 +369,6 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
-    startQueueRunningSummaryLogging();
     startFailureSummaryLogging();
     startInternalStateCleaner(ctx.getScheduledExecutor());
 
@@ -802,15 +801,6 @@ public class CompactionCoordinator
       failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementFailure);
     }
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
-  }
-
-  protected void startQueueRunningSummaryLogging() {
-    CoordinatorSummaryLogger summaryLogger =
-        new CoordinatorSummaryLogger(ctx, this.jobQueues, this.RUNNING_CACHE, compactorCounts);
-
-    ScheduledFuture<?> future = ctx.getScheduledExecutor()
-        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 1, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startFailureSummaryLogging() {
