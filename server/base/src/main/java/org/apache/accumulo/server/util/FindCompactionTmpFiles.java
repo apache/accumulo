@@ -127,6 +127,9 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
         });
       }
     }
+
+    // TODO also need to remove compactions that are committing in fate
+
     LOG.trace("Final set of compaction tmp files after removing active compactions: {}", matches);
     return matches;
   }

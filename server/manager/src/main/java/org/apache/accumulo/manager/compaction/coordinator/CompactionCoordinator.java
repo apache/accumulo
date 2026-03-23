@@ -983,6 +983,10 @@ public class CompactionCoordinator
           ecidsForTablet.clear();
           ecidsForTablet.addAll(compactions.get(extent));
 
+          // TODO this entire process may be better off as a batch process that periodically looks
+          // for tmp files to delete. If this fails, it will never try again. This adds a lot of
+          // work to processing a failed compaction. There is already code for a batch process, its
+          // just not called all the time.
           if (!ecidsForTablet.isEmpty()) {
             final TabletMetadata tm = ctx.getAmple().readTablet(extent, ColumnType.DIR);
             if (tm != null) {
