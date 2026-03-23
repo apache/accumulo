@@ -266,8 +266,8 @@ public class ExternalCompactionUtil {
       while (futureIter.hasNext()) {
         var future = futureIter.next();
         future.cancel(true);
-        futureIter.remove();
       }
+      rcFutures.clear();
       throw e;
     }
   }
