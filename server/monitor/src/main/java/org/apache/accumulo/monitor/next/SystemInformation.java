@@ -505,6 +505,8 @@ public class SystemInformation {
     problemHosts.remove(server);
     allMetrics.put(server, response);
     resourceGroups.add(response.getResourceGroup());
+    deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
+        .computeIfAbsent(server.getType().name(), t -> new ProcessSummary()).addResponded();
     switch (response.serverType) {
       case COMPACTOR:
         compactors
@@ -537,7 +539,6 @@ public class SystemInformation {
         LOG.error("Unhandled server type in fetch metric response: {}", response.serverType);
         break;
     }
-
   }
 
   public void processExternalCompaction(TExternalCompaction tec) {
@@ -570,11 +571,8 @@ public class SystemInformation {
   }
 
   public void finish() {
-    // Compute the deployment overview
-    allMetrics.asMap().keySet().forEach(serverId -> {
-      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
-          .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary()).addResponded();
-    });
+    // Update the deployment not-responded numbers based
+    // on the problem hosts.
     problemHosts.forEach(serverId -> {
       deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
           .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary())
