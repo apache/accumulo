@@ -65,6 +65,7 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -94,6 +95,16 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @BeforeEach
+  public void beforeTest() throws Exception {
+    var rgops = getCluster().getServerContext().resourceGroupOperations();
+    for (var rgid : rgops.list()) {
+      if (!rgid.equals(ResourceGroupId.DEFAULT)) {
+        rgops.remove(rgid);
+      }
+    }
   }
 
   @Test
@@ -321,9 +332,9 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   @Test
   public void testMultipleProperties() throws Exception {
 
-    final String FIRST = "FIRST";
-    final String SECOND = "SECOND";
-    final String THIRD = "THIRD";
+    final String FIRST = "FIRST_MP";
+    final String SECOND = "SECOND_MP";
+    final String THIRD = "THIRD_MP";
 
     final ResourceGroupId first = ResourceGroupId.of(FIRST);
     final ResourceGroupId second = ResourceGroupId.of(SECOND);
@@ -356,6 +367,10 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       rgops.create(second);
       rgops.create(third);
 
+      assertEquals(Map.of(), rgops.getProperties(first));
+      assertEquals(Map.of(), rgops.getProperties(second));
+      assertEquals(Map.of(), rgops.getProperties(third));
+
       rgops.modifyProperties(first, (map) -> map.putAll(firstProps));
       rgops.modifyProperties(second, (map) -> map.putAll(secondProps));
       rgops.modifyProperties(third, (map) -> map.putAll(thirdProps));
@@ -381,15 +396,18 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       assertEquals(defaultProps, rgops.getProperties(ResourceGroupId.DEFAULT));
       assertThrows(ResourceGroupNotFoundException.class, ()->rgops.getProperties(third));
       assertEquals(Set.of(ResourceGroupId.DEFAULT, first, second), rgops.list());
+
+      rgops.remove(first);
+      rgops.remove(second);
     }
   }
 
   @Test
   public void testMultipleConfigurations() throws Exception {
 
-    final String FIRST = "FIRST";
-    final String SECOND = "SECOND";
-    final String THIRD = "THIRD";
+    final String FIRST = "FIRST_MC";
+    final String SECOND = "SECOND_MC";
+    final String THIRD = "THIRD_MC";
 
     final ResourceGroupId first = ResourceGroupId.of(FIRST);
     final ResourceGroupId second = ResourceGroupId.of(SECOND);
@@ -435,6 +453,10 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       rgops.create(first);
       rgops.create(second);
       rgops.create(third);
+
+      assertEquals(Map.of(), rgops.getProperties(first));
+      assertEquals(Map.of(), rgops.getProperties(second));
+      assertEquals(Map.of(), rgops.getProperties(third));
 
       getCluster().getConfig().getClusterServerConfiguration().setNumDefaultCompactors(1);
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(FIRST, 1);
@@ -497,6 +519,11 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       Wait.waitFor(() -> cc.getServerPaths()
           .getTabletServer(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
           == 0);
+
+      rgops.remove(first);
+      rgops.remove(second);
+      rgops.remove(third);
+
     }
   }
 
