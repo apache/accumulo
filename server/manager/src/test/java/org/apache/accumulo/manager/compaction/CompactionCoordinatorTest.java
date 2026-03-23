@@ -27,7 +27,6 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -168,10 +167,6 @@ public class CompactionCoordinatorTest {
       return RUNNING_CACHE;
     }
 
-    public Map<String,TimeOrderedRunningCompactionSet> getLongRunningByGroup() {
-      return LONG_RUNNING_COMPACTIONS_BY_RG;
-    }
-
     public void resetInternals() {
       getRunning().clear();
       metadataCompactionIds = null;
@@ -269,13 +264,11 @@ public class CompactionCoordinatorTest {
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
-    assertEquals(0, coordinator.getLongRunningByGroup().size());
     coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
-    assertEquals(0, coordinator.getLongRunningByGroup().size());
   }
 
   @Test
@@ -301,23 +294,15 @@ public class CompactionCoordinatorTest {
     coordinator.resetInternals();
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(0, coordinator.getRunning().size());
-    assertEquals(0, coordinator.getLongRunningByGroup().size());
     coordinator.run();
     coordinator.shutdown();
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
     assertEquals(1, coordinator.getRunning().size());
-    assertEquals(1, coordinator.getLongRunningByGroup().size());
 
     Map<ExternalCompactionId,TExternalCompaction> running = coordinator.getRunning();
     Entry<ExternalCompactionId,TExternalCompaction> ecomp = running.entrySet().iterator().next();
     assertEquals(eci, ecomp.getKey());
     TExternalCompaction tec = ecomp.getValue();
-    assertEquals(GROUP_ID, ResourceGroupId.of(tec.getGroupName()));
-    assertEquals(tserverAddr.toString(), tec.getCompactor());
-
-    assertTrue(coordinator.getLongRunningByGroup().containsKey(GROUP_ID.toString()));
-    assertTrue(coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).size() == 1);
-    tec = coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).iterator().next();
     assertEquals(GROUP_ID, ResourceGroupId.of(tec.getGroupName()));
     assertEquals(tserverAddr.toString(), tec.getCompactor());
 

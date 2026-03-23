@@ -22,15 +22,24 @@ import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
+import java.util.Comparator;
+import java.util.List;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RunningCompactionInfo {
+
+  // Variable names become JSON keys
+  public static record CompactionInputFileDetails(String metadataFileEntry, long size, long entries,
+      long timestamp) {
+  }
+
   private static final Logger log = LoggerFactory.getLogger(RunningCompactionInfo.class);
 
   // DO NOT CHANGE Variable names - they map to JSON keys in the Monitor
@@ -44,6 +53,8 @@ public class RunningCompactionInfo {
   public final long duration;
   public final String status;
   public final long lastUpdate;
+  public final List<CompactionInputFileDetails> inputFiles;
+  public final String outputFile;
 
   /**
    * Info parsed about the external running compaction. Calculate the progress, which is defined as
@@ -76,40 +87,52 @@ public class RunningCompactionInfo {
       last = lastEntry.getValue();
       updateMillis = lastEntry.getKey();
       duration = NANOSECONDS.toMillis(last.getCompactionAgeNanos());
+      long durationMinutes = MILLISECONDS.toMinutes(duration);
+      if (durationMinutes > 15) {
+        log.trace("Compaction {} has been running for {} minutes", ecid, durationMinutes);
+      }
+
+      lastUpdate = nowMillis - updateMillis;
+      long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(lastUpdate);
+      log.trace("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
+          sinceLastUpdateSeconds);
+
+      var total = last.getEntriesToBeCompacted();
+      if (total > 0) {
+        percent = (last.getEntriesRead() / (float) total) * 100;
+      }
+      progress = percent;
+
+      if (updates.isEmpty()) {
+        status = "na";
+      } else {
+        status = last.state.name();
+      }
+      log.trace("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
+      if (sinceLastUpdateSeconds > 30) {
+        log.trace("Compaction hasn't progressed from {} in {} seconds.", progress,
+            sinceLastUpdateSeconds);
+      }
     } else {
       log.trace("No updates found for {}", ecid);
       lastUpdate = 1;
       progress = percent;
       status = "na";
       duration = 0;
-      return;
     }
-    long durationMinutes = MILLISECONDS.toMinutes(duration);
-    if (durationMinutes > 15) {
-      log.trace("Compaction {} has been running for {} minutes", ecid, durationMinutes);
-    }
+    this.inputFiles = convertInputFiles(job.files);
+    this.outputFile = job.outputFile;
 
-    lastUpdate = nowMillis - updateMillis;
-    long sinceLastUpdateSeconds = MILLISECONDS.toSeconds(lastUpdate);
-    log.trace("Time since Last update {} - {} = {} seconds", nowMillis, updateMillis,
-        sinceLastUpdateSeconds);
+  }
 
-    var total = last.getEntriesToBeCompacted();
-    if (total > 0) {
-      percent = (last.getEntriesRead() / (float) total) * 100;
-    }
-    progress = percent;
-
-    if (updates.isEmpty()) {
-      status = "na";
-    } else {
-      status = last.state.name();
-    }
-    log.trace("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
-    if (sinceLastUpdateSeconds > 30) {
-      log.trace("Compaction hasn't progressed from {} in {} seconds.", progress,
-          sinceLastUpdateSeconds);
-    }
+  /**
+   * @return a list of {@link CompactionInputFileDetails} sorted largest to smallest
+   */
+  private List<CompactionInputFileDetails> convertInputFiles(List<InputFile> files) {
+    return files.stream()
+        .map(file -> new CompactionInputFileDetails(file.metadataFileEntry, file.size, file.entries,
+            file.timestamp))
+        .sorted(Comparator.comparingLong(CompactionInputFileDetails::size).reversed()).toList();
   }
 
   @Override
