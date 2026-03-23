@@ -24,14 +24,17 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -39,6 +42,7 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -50,7 +54,6 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
-import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -297,6 +300,58 @@ public class SystemInformation {
 
   }
 
+  // Object that serves as a TopN view of the RunningCompactions, ordered by
+  // RunningCompaction start time. The first entry in this Set should be the
+  // oldest RunningCompaction.
+  public static class TimeOrderedRunningCompactionSet {
+
+    public static final Comparator<TExternalCompaction> OLDEST_FIRST_COMPARATOR =
+        Comparator.comparingLong(TExternalCompaction::getStartTime)
+            .thenComparing(rc -> rc.getJob().getExternalCompactionId());
+    private final ConcurrentSkipListSet<TExternalCompaction> compactions =
+        new ConcurrentSkipListSet<>(OLDEST_FIRST_COMPARATOR);
+
+    // Tracking size here as ConcurrentSkipListSet.size() is not constant time
+    private final AtomicInteger size = new AtomicInteger(0);
+
+    private final int limit;
+
+    public TimeOrderedRunningCompactionSet(int limit) {
+      this.limit = limit;
+    }
+
+    public int size() {
+      return size.get();
+    }
+
+    public boolean add(TExternalCompaction e) {
+      boolean added = compactions.add(e);
+      if (added) {
+        if (size.incrementAndGet() > this.limit) {
+          this.remove(compactions.last());
+        }
+      }
+      return added;
+    }
+
+    public boolean remove(Object o) {
+      boolean removed = compactions.remove(o);
+      if (removed) {
+        size.decrementAndGet();
+      }
+      return removed;
+    }
+
+    public Iterator<TExternalCompaction> iterator() {
+      return compactions.iterator();
+    }
+
+    public Stream<TExternalCompaction> stream() {
+      return compactions.stream();
+    }
+
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -336,12 +391,12 @@ public class SystemInformation {
       new ConcurrentHashMap<>();
 
   // Compaction Information
-  private static final int ACTIVE_COMPACTIONS_LIMIT = 50;
   private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
   private volatile Set<ServerId> registeredCompactors = Set.of();
   private volatile HostAndPort coordinatorHost;
-  private volatile Map<String,TExternalCompaction> runningCompactions = Map.of();
-  private volatile List<RunningCompactionInfo> runningCompactionsTop = List.of();
+
+  protected final Map<String,TimeOrderedRunningCompactionSet> longRunningCompactionsByRg =
+      new ConcurrentHashMap<>();
 
   // Table Information
   private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
@@ -355,10 +410,13 @@ public class SystemInformation {
 
   private long timestamp = 0;
   private ScanServerView scanServerView;
+  private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
     this.allMetrics = allMetrics;
     this.ctx = ctx;
+    this.rgLongRunningCompactionSize =
+        this.ctx.getConfiguration().getCount(Property.MONITOR_LONG_RUNNING_COMPACTION_LIMIT);
   }
 
   public void clear() {
@@ -376,8 +434,7 @@ public class SystemInformation {
     queueMetrics.clear();
     registeredCompactors = Set.of();
     coordinatorHost = null;
-    runningCompactions = Map.of();
-    runningCompactionsTop = List.of();
+    longRunningCompactionsByRg.clear();
     tables.clear();
     tablets.clear();
     deployment.clear();
@@ -484,12 +541,9 @@ public class SystemInformation {
     }
   }
 
-  public void processExternalCompactions(Map<String,TExternalCompaction> running) {
-    if (running == null) {
-      runningCompactions = Map.of();
-    } else {
-      runningCompactions = Map.copyOf(running);
-    }
+  public void processExternalCompaction(TExternalCompaction tec) {
+    this.longRunningCompactionsByRg.computeIfAbsent(tec.getGroupName(),
+        k -> new TimeOrderedRunningCompactionSet(rgLongRunningCompactionSize)).add(tec);
   }
 
   public void processExternalCompactionInventory(Set<ServerId> compactors, HostAndPort host) {
@@ -541,8 +595,6 @@ public class SystemInformation {
     timestamp = System.currentTimeMillis();
     scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
         problemScanServerCount, timestamp);
-    runningCompactionsTop =
-        buildTopRunningCompactions(runningCompactions, ACTIVE_COMPACTIONS_LIMIT);
   }
 
   public Set<String> getResourceGroups() {
@@ -612,12 +664,8 @@ public class SystemInformation {
     return coordinatorHost;
   }
 
-  public Map<String,TExternalCompaction> getRunningCompactions() {
-    return runningCompactions;
-  }
-
-  public List<RunningCompactionInfo> getTopRunningCompactions() {
-    return runningCompactionsTop;
+  public Map<String,TimeOrderedRunningCompactionSet> getTopRunningCompactions() {
+    return this.longRunningCompactionsByRg;
   }
 
   public Map<TableId,TableSummary> getTables() {
@@ -642,16 +690,6 @@ public class SystemInformation {
 
   public ScanServerView getScanServerView() {
     return this.scanServerView;
-  }
-
-  private static List<RunningCompactionInfo>
-      buildTopRunningCompactions(Map<String,TExternalCompaction> allCompactions, int limit) {
-    if (allCompactions == null || allCompactions.isEmpty()) {
-      return List.of();
-    }
-    return allCompactions.values().stream().map(RunningCompactionInfo::new)
-        .sorted(Comparator.comparingLong((RunningCompactionInfo r) -> r.duration).reversed())
-        .limit(limit).toList();
   }
 
 }

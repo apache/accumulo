@@ -16,9 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.next.ec;
+package org.apache.accumulo.monitor.next.endpoint.responses;
+
+import java.util.List;
+import java.util.Map;
+
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 
 // Variable names become JSON keys
-public record CompactionInputFileDetails(String metadataFileEntry, long size, long entries,
-    long timestamp) {
+public record RunningCompactionsSummary(List<RunningCompactionInfo> running) {
+
+  public RunningCompactionsSummary(Map<String,TExternalCompaction> runningMap) {
+    this(runningMap == null ? List.of()
+        : runningMap.values().stream().map(RunningCompactionInfo::new).toList());
+  }
 }

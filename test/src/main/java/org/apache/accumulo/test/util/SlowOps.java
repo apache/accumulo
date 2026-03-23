@@ -29,6 +29,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -221,14 +222,20 @@ public class SlowOps {
      * wait for compaction to start on table - The compaction will acquire a fate transaction lock
      * that used to block a subsequent online command while the fate transaction lock was held.
      */
-    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     do {
-      boolean tableFound =
-          ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).stream()
-              .map(rc -> KeyExtent.fromThrift(rc.getJob().getExtent()).tableId())
-              .anyMatch(tableId::equals);
+      final AtomicBoolean tableFound = new AtomicBoolean(false);
+      try {
+        ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client, (e) -> {
+          if (KeyExtent.fromThrift(e.getJob().getExtent()).tableId().equals(tableId)) {
+            tableFound.compareAndSet(false, true);
+          }
+        });
+      } catch (InterruptedException e) {
+        throw new IllegalStateException("Interruped while getting compactions from compactors", e);
+      }
 
-      if (tableFound) {
+      if (tableFound.get()) {
         return true;
       }
 
