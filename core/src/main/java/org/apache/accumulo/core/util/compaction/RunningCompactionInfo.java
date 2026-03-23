@@ -43,6 +43,7 @@ public class RunningCompactionInfo {
   private static final Logger log = LoggerFactory.getLogger(RunningCompactionInfo.class);
 
   // DO NOT CHANGE Variable names - they map to JSON keys in the Monitor
+  public final long startTime;
   public final String server;
   public final String queueName;
   public final String ecid;
@@ -65,6 +66,7 @@ public class RunningCompactionInfo {
     var updates = requireNonNull(ec.getUpdates(), "Missing Thrift external compaction updates");
     var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
 
+    startTime = ec.getStartTime();
     server = ec.getCompactor();
     queueName = ec.getGroupName();
     ecid = job.getExternalCompactionId();
@@ -123,6 +125,10 @@ public class RunningCompactionInfo {
     this.inputFiles = convertInputFiles(job.files);
     this.outputFile = job.outputFile;
 
+  }
+
+  public long getStartTime() {
+    return this.startTime;
   }
 
   /**
