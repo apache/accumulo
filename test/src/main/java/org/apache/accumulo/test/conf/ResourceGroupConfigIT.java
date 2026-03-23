@@ -65,6 +65,7 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -94,6 +95,16 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @BeforeEach
+  public void beforeTest() throws Exception {
+    var rgops = getCluster().getServerContext().resourceGroupOperations();
+    for(var rgid : rgops.list()){
+      if (!rgid.equals(ResourceGroupId.DEFAULT)) {
+        rgops.remove(rgid);
+      }
+    }
   }
 
   @Test
