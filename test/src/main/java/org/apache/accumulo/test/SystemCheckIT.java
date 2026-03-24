@@ -654,7 +654,7 @@ public class SystemCheckIT extends ConfigurableMacBase {
   }
 
   @Test
-  public void testBulkFateCheck() throws Exception {
+  public void testTabletFateCheck() throws Exception {
     Check bulkFateCheck = Check.BULK_FATE;
     String table = getUniqueNames(1)[0];
 
@@ -870,8 +870,8 @@ public class SystemCheckIT extends ConfigurableMacBase {
     }
   }
 
-  static class DummyBulkLoadedFateCheckRunner extends DummyCheckRunner {
-    public DummyBulkLoadedFateCheckRunner(boolean passes) {
+  static class DummyTabletLoadedFateCheckRunner extends DummyCheckRunner {
+    public DummyTabletLoadedFateCheckRunner(boolean passes) {
       super(passes);
     }
 
@@ -900,7 +900,7 @@ public class SystemCheckIT extends ConfigurableMacBase {
           () -> new DummySystemFilesCheckRunner(checksPass[6]));
       this.checkRunners.put(Check.USER_FILES, () -> new DummyUserFilesCheckRunner(checksPass[7]));
       this.checkRunners.put(Check.BULK_FATE,
-          () -> new DummyBulkLoadedFateCheckRunner(checksPass[8]));
+          () -> new DummyTabletLoadedFateCheckRunner(checksPass[8]));
     }
 
     @Override

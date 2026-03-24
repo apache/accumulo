@@ -33,7 +33,6 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckCommandOpts;
-import org.apache.accumulo.server.util.checkCommand.BulkLoadedFateCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.server.util.checkCommand.MetadataTableCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootMetadataCheckRunner;
@@ -42,6 +41,7 @@ import org.apache.accumulo.server.util.checkCommand.ServerConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.TabletFateCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
@@ -114,7 +114,7 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
         Collections.singletonList(ROOT_TABLE)),
     USER_FILES(UserFilesCheckRunner::new, "Checks that files in user tablet metadata exist in DFS",
         Collections.singletonList(METADATA_TABLE)),
-    BULK_FATE(BulkLoadedFateCheckRunner::new,
+    BULK_FATE(TabletFateCheckRunner::new,
         "Checks that loaded columns in tablet metadata reference live fate operations",
         Collections.singletonList(METADATA_TABLE));
 
