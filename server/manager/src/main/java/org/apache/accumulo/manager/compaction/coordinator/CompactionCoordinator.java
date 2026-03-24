@@ -71,7 +71,6 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -211,7 +210,6 @@ public class CompactionCoordinator
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
-  private final Cache<ExternalCompactionId,TExternalCompaction> completed;
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
@@ -240,9 +238,6 @@ public class CompactionCoordinator
     this.queueMetrics = new QueueMetrics(jobQueues);
 
     this.fateClients = fateClients;
-
-    completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
-        .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     CacheLoader<FateId,CompactionConfig> loader =
         fateId -> CompactionConfigStorage.getConfig(ctx, fateId);
@@ -1041,9 +1036,6 @@ public class CompactionCoordinator
 
   public void recordCompletion(ExternalCompactionId ecid) {
     var tec = RUNNING_CACHE.remove(ecid);
-    if (tec != null) {
-      completed.put(ecid, tec);
-    }
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
@@ -1053,29 +1045,6 @@ public class CompactionCoordinator
       return tabletsMetadata.stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
           .collect(toSet());
     }
-  }
-
-  /**
-   * Return information about recently completed compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionMap getCompletedCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    final TExternalCompactionMap result = new TExternalCompactionMap();
-    completed.asMap().forEach((ecid, tec) -> {
-      result.putToCompactions(ecid.canonical(), tec);
-    });
-    return result;
   }
 
   /* Method exists to be called from test */

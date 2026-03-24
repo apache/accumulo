@@ -140,16 +140,6 @@ service CompactionCoordinatorService {
      1:client.ThriftSecurityException sec
   )
 
-  /*
-   * Called by the Monitor to get progress information
-   */
-  TExternalCompactionMap getCompletedCompactions(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-  )throws(
-    1:client.ThriftSecurityException sec
-  )
-
   oneway void recordCompletion(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
