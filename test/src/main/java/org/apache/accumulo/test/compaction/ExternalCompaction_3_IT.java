@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -232,8 +231,8 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
     final Map<ExternalCompactionId,RunningCompactionInfo> results = new HashMap<>();
 
     while (results.isEmpty()) {
-      TExternalCompactionMap running = null;
-      while (running == null || running.getCompactions() == null) {
+      Map<String,TExternalCompaction> running = null;
+      while (running == null || running.isEmpty()) {
         try {
           Optional<HostAndPort> coordinatorHost =
               ExternalCompactionUtil.findCompactionCoordinator(ctx);
@@ -241,14 +240,14 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
             throw new TTransportException(
                 "Unable to get CompactionCoordinator address from ZooKeeper");
           }
-          running = getRunningCompactions(ctx, coordinatorHost);
+          running = getRunningCompactions(ctx);
         } catch (TException t) {
           running = null;
           Thread.sleep(2000);
         }
       }
       for (ExternalCompactionId ecid : ecids) {
-        final TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
+        final TExternalCompaction tec = running.get(ecid.canonical());
         if (tec != null && tec.getUpdatesSize() > 0) {
           // When the coordinator restarts it inserts a message into the updates. If this
           // is the last message, then don't insert this into the results. We want to get

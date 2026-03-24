@@ -1056,30 +1056,6 @@ public class CompactionCoordinator
   }
 
   /**
-   * Return information about running compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionMap getRunningCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    final TExternalCompactionMap result = new TExternalCompactionMap();
-    RUNNING_CACHE.forEach((ecid, tec) -> {
-      result.putToCompactions(ecid.canonical(), tec);
-    });
-    return result;
-  }
-
-  /**
    * Return information about recently completed compactions
    *
    * @param tinfo trace info
