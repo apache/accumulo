@@ -209,9 +209,6 @@ public class CompactionCoordinator
   protected final Map<ExternalCompactionId,TExternalCompaction> RUNNING_CACHE =
       new ConcurrentHashMap<>();
 
-  /* Map of group name to last time compactor called to get a compaction job */
-  private final Map<ResourceGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
-
   private final ServerContext ctx;
   private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
@@ -384,30 +381,6 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  private Map<String,Set<HostAndPort>> getIdleCompactors(Set<ServerId> runningCompactors) {
-
-    final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
-    runningCompactors.forEach((csi) -> allCompactors
-        .computeIfAbsent(csi.getResourceGroup().canonical(), (k) -> new HashSet<>())
-        .add(HostAndPort.fromParts(csi.getHost(), csi.getPort())));
-
-    final Set<String> emptyQueues = new HashSet<>();
-
-    // Remove all of the compactors that are running a compaction
-    RUNNING_CACHE.values().forEach(tec -> {
-      Set<HostAndPort> busyCompactors = allCompactors.get(tec.getGroupName());
-      if (busyCompactors != null
-          && busyCompactors.remove(HostAndPort.fromString(tec.getCompactor()))) {
-        if (busyCompactors.isEmpty()) {
-          emptyQueues.add(tec.getGroupName());
-        }
-      }
-    });
-    // Remove entries with empty queues
-    emptyQueues.forEach(e -> allCompactors.remove(e));
-    return allCompactors;
-  }
-
   protected void startDeadCompactionDetector() {
     deadCompactionDetector.start();
   }
@@ -440,7 +413,6 @@ public class CompactionCoordinator
     }
     ResourceGroupId groupId = ResourceGroupId.of(groupName);
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
 
@@ -1335,10 +1307,6 @@ public class CompactionCoordinator
         }
       });
 
-      final Set<ResourceGroupId> trackedGroups = Set.copyOf(TIME_COMPACTOR_LAST_CHECKED.keySet());
-      TIME_COMPACTOR_LAST_CHECKED.keySet().retainAll(groupsInConfiguration);
-      LOG.debug("No longer tracking compactor check-in times for groups: {}",
-          Sets.difference(trackedGroups, TIME_COMPACTOR_LAST_CHECKED.keySet()));
     }
 
     final Set<ServerId> runningCompactors = getRunningCompactors();
@@ -1367,19 +1335,5 @@ public class CompactionCoordinator
           compactorsWithNoGroups);
     }
 
-    final long now = System.currentTimeMillis();
-    final long warningTime = getMissingCompactorWarningTime();
-    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors(runningCompactors);
-    for (ResourceGroupId groupName : groupsInConfiguration) {
-      long lastCheckTime =
-          TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, coordinatorStartTime);
-      if ((now - lastCheckTime) > warningTime && jobQueues.getQueuedJobs(groupName) > 0
-          && idleCompactors.containsKey(groupName.canonical())) {
-        LOG.warn(
-            "The group {} has queued jobs and {} idle compactors, however none have checked in "
-                + "with coordinator for {}ms",
-            groupName, idleCompactors.get(groupName.canonical()).size(), warningTime);
-      }
-    }
   }
 }
