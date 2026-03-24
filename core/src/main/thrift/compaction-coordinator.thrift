@@ -130,7 +130,7 @@ service CompactionCoordinatorService {
     5:string exceptionClassName
     6:TCompactionState failureState
     7:string groupName
-    8:string compactorAddress
+    8:string compactor
   )throws(
      1:client.ThriftSecurityException sec
      2:client.ThriftNotActiveServiceException tnase
