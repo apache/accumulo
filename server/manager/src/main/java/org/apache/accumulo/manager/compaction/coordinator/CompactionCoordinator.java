@@ -378,10 +378,6 @@ public class CompactionCoordinator
     return this.ctx.getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
   }
 
-  public long getNumRunningCompactions() {
-    return RUNNING_CACHE.size();
-  }
-
   /**
    * Return the next compaction job from the queue to a Compactor
    *
