@@ -85,7 +85,7 @@ service CompactionCoordinatorService {
     4:data.TKeyExtent extent
     5:tabletserver.TCompactionStats stats
     6:string groupName
-    7:string compactorAddress
+    7:string compactor
   )throws(
      1:client.ThriftSecurityException sec
      2:client.ThriftNotActiveServiceException tnase
