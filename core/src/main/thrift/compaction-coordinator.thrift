@@ -143,17 +143,6 @@ service CompactionCoordinatorService {
      2:client.ThriftNotActiveServiceException tnase
   )
 
-  /*
-   * Called by the Monitor to get progress information
-   */
-  TExternalCompactionMap getCompletedCompactions(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-  )throws(
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
-
   void cancel(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
