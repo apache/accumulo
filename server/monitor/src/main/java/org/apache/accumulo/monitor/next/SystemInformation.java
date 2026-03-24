@@ -605,8 +605,6 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                // TODO: May need to track the duration of this condition
-                // to avoid flapping
                 suggestions.add("Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
