@@ -508,7 +508,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, message, why);
+                job.getExternalCompactionId(), job.extent, message, why,
+                getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -531,7 +532,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, stats);
+                job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
+                getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());

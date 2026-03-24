@@ -744,8 +744,8 @@ public class CompactionCoordinator
    */
   @Override
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
+      String externalCompactionId, TKeyExtent textent, TCompactionStats stats, String groupName,
+      String compactorAddress) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -760,7 +760,7 @@ public class CompactionCoordinator
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    captureSuccess(ecid, extent);
+    captureSuccess(ResourceGroupId.of(groupName), compactorAddress, extent);
     var tabletMeta =
         ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
 
@@ -791,8 +791,8 @@ public class CompactionCoordinator
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent, String exceptionMessage, TCompactionState failureState)
-      throws ThriftSecurityException {
+      TKeyExtent extent, String exceptionMessage, TCompactionState failureState, String groupName,
+      String compactorAddress) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -807,18 +807,14 @@ public class CompactionCoordinator
         externalCompactionId, fromThriftExtent, exceptionMessage);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     if (failureState == TCompactionState.FAILED) {
-      captureFailure(ecid, fromThriftExtent);
+      captureFailure(ResourceGroupId.of(groupName), compactorAddress, fromThriftExtent);
     }
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
-  private void captureFailure(ExternalCompactionId ecid, KeyExtent extent) {
-    var tec = RUNNING_CACHE.get(ecid);
-    if (tec != null) {
-      failingQueues.compute(ResourceGroupId.of(tec.getGroupName()),
-          FailureCounts::incrementFailure);
-      failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementFailure);
-    }
+  private void captureFailure(ResourceGroupId group, String compactorAddress, KeyExtent extent) {
+    failingQueues.compute(group, FailureCounts::incrementFailure);
+    failingCompactors.compute(compactorAddress, FailureCounts::incrementFailure);
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
   }
 
@@ -871,13 +867,9 @@ public class CompactionCoordinator
     printStats("Compactor", failingCompactors, true);
   }
 
-  private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {
-    var tec = RUNNING_CACHE.get(ecid);
-    if (tec != null) {
-      failingQueues.compute(ResourceGroupId.of(tec.getGroupName()),
-          FailureCounts::incrementSuccess);
-      failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementSuccess);
-    }
+  private void captureSuccess(ResourceGroupId groupId, String compactorAddress, KeyExtent extent) {
+    failingQueues.compute(groupId, FailureCounts::incrementSuccess);
+    failingCompactors.compute(compactorAddress, FailureCounts::incrementSuccess);
     failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
 
