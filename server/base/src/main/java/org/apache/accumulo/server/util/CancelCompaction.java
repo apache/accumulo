@@ -18,11 +18,16 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+
+import java.util.Map;
+import java.util.Optional;
+
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.CancelCompaction.CancelCommandOpts;
@@ -33,6 +38,7 @@ import org.apache.accumulo.start.spi.KeywordExecutable;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
+import com.google.common.net.HostAndPort;
 
 @AutoService(KeywordExecutable.class)
 public class CancelCompaction extends ServerKeywordExecutable<CancelCommandOpts> {
@@ -63,15 +69,28 @@ public class CancelCompaction extends ServerKeywordExecutable<CancelCommandOpts>
 
   protected void cancelCompaction(ServerContext context, String ecid) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    ecid = ExternalCompactionId.from(ecid).canonical();
-    try {
-      coordinatorClient = ExternalCompactionUtil.getCoordinatorClient(context);
-      coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
-      System.out.println("Cancel sent to coordinator for " + ecid);
+
+    try (var tablets =
+        context.getAmple().readTablets().forLevel(Ample.DataLevel.USER).fetch(ECOMP).build()) {
+      var cid = ExternalCompactionId.from(ecid);
+      System.out.println("Looking for " + ecid + " in metadata table");
+      Optional<Map.Entry<ExternalCompactionId,CompactionMetadata>> ecomp =
+          tablets.stream().flatMap(tm -> tm.getExternalCompactions().entrySet().stream())
+              .filter(e -> e.getKey().equals(cid)).findFirst();
+
+      if (ecomp.isPresent()) {
+        var entry = ecomp.orElseThrow();
+        System.out.println(
+            "Asking compactor " + entry.getValue().getCompactorId() + " to cancel " + ecid);
+        ExternalCompactionUtil.cancelCompaction(context,
+            HostAndPort.fromString(entry.getValue().getCompactorId()), entry.getKey().canonical());
+        System.out
+            .println("Asked compactor " + entry.getValue().getCompactorId() + " to cancel " + ecid);
+      } else {
+        System.out.println("No compaction found for " + ecid);
+      }
     } catch (Exception e) {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
-    } finally {
-      ThriftUtil.returnClient(coordinatorClient, context);
     }
   }
 
