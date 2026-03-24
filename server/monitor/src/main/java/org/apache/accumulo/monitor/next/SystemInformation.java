@@ -27,6 +27,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -463,24 +465,18 @@ public class SystemInformation {
           break;
         }
       }
-      double value = fm.dvalue();
-      if (value == 0.0) {
-        value = fm.ivalue();
-        if (value == 0.0) {
-          value = fm.lvalue();
-        }
-      }
+      Number value = getMetricValue(fm);
       final Id id = new Id(name,
           (statisticTag == null) ? Tags.empty() : Tags.of(statisticTag.key(), statisticTag.value()),
           null, null, Type.valueOf(fm.type()));
       total
           .computeIfAbsent(id,
               (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM, DSC, 1.0, false))
-          .record(value);
+          .record(value.doubleValue());
       rgMetrics
           .computeIfAbsent(id,
               (k) -> new CumulativeDistributionSummary(id, Clock.SYSTEM, DSC, 1.0, false))
-          .record(value);
+          .record(value.doubleValue());
     });
 
   }
@@ -585,6 +581,36 @@ public class SystemInformation {
       if (!tservers.containsKey(balancerRG)) {
         suggestions.add("Table " + table.tableName() + " configured to balance tablets in resource"
             + " group " + balancerRG + ", but there are no TabletServers.");
+      }
+    }
+    for (String rg : getResourceGroups()) {
+      Set<ServerId> rgCompactors = getCompactorResourceGroupServers(rg);
+      List<FMetric> metrics = queueMetrics.get(rg);
+      Optional<FMetric> queued = metrics.stream()
+          .filter(fm -> fm.name().equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName()))
+          .findFirst();
+      if (queued.isPresent()) {
+        Number numQueued = getMetricValue(queued.orElseThrow());
+        if (numQueued.longValue() > 0) {
+          if (rgCompactors == null || rgCompactors.size() == 0) {
+            suggestions.add("Compactor group " + rg + " has " + numQueued.longValue()
+                + " queued compactions but no running compactors");
+          } else {
+            // Check for idle compactors.
+            Map<Id,CumulativeDistributionSummary> rgMetrics =
+                getCompactorResourceGroupMetricSummary(rg);
+            Optional<Entry<Id,CumulativeDistributionSummary>> idleMetric = rgMetrics.entrySet()
+                .stream().filter(e -> e.getKey().getName().equals(Metric.SERVER_IDLE.getName()))
+                .findFirst();
+            if (idleMetric.isPresent()) {
+              var metric = idleMetric.orElseThrow().getValue();
+              if (metric.max() == 1.0D) {
+                suggestions.add("Compactor group " + rg + " has queued jobs and idle compactors.");
+              }
+            }
+
+          }
+        }
       }
     }
     Set<ServerId> scanServers = new HashSet<>();
@@ -692,4 +718,16 @@ public class SystemInformation {
     return this.scanServerView;
   }
 
+  public static Number getMetricValue(FMetric metric) {
+    if (metric.ivalue() != 0) {
+      return metric.ivalue();
+    }
+    if (metric.lvalue() != 0L) {
+      return metric.lvalue();
+    }
+    if (metric.dvalue() != 0.0d) {
+      return metric.dvalue();
+    }
+    return 0;
+  }
 }
