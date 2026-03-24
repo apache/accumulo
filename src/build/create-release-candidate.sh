@@ -23,8 +23,10 @@ scriptname=$(basename "$0")
 projectroot="$(git rev-parse --show-toplevel)" || exit 1
 cd "$projectroot" || exit 1
 export tlpName=accumulo
-export projName="$(xmllint --shell assemble/pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="artifactId"]/text()' | grep content= | cut -f2 -d=)"
-export projNameLong="$(xmllint --shell assemble/pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="name"]/text()' | grep content= | cut -f2 -d=)"
+projName="$(xmllint --shell assemble/pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="artifactId"]/text()' | grep content= | cut -f2 -d=)"
+export projName
+projNameLong="$(xmllint --shell assemble/pom.xml <<<'xpath /*[local-name()="project"]/*[local-name()="name"]/text()' | grep content= | cut -f2 -d=)"
+export projNameLong
 export stagingRepoPrefix="https://repository.apache.org/content/repositories/orgapache$tlpName"
 export srcQualifier="src"
 export relTestingUrl="https://$tlpName.apache.org/contributor/verifying-release"
