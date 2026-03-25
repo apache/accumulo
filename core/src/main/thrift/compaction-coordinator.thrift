@@ -137,15 +137,6 @@ service CompactionCoordinatorService {
   )
 
 
-  void cancel(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-  )throws(
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
-
   oneway void recordCompletion(
     1:client.TInfo tinfo
     2:security.TCredentials credentials

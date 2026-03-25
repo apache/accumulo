@@ -60,16 +60,12 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
@@ -77,7 +73,6 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -361,7 +356,6 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
-    startQueueRunningSummaryLogging();
     startFailureSummaryLogging();
     startInternalStateCleaner(ctx.getScheduledExecutor());
 
@@ -767,15 +761,6 @@ public class CompactionCoordinator
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
   }
 
-  protected void startQueueRunningSummaryLogging() {
-    CoordinatorSummaryLogger summaryLogger =
-        new CoordinatorSummaryLogger(ctx, this.jobQueues, this.RUNNING_CACHE, compactorCounts);
-
-    ScheduledFuture<?> future = ctx.getScheduledExecutor()
-        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 1, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
   protected void startFailureSummaryLogging() {
     ScheduledFuture<?> future =
         ctx.getScheduledExecutor().scheduleWithFixedDelay(this::printStats, 0, 5, TimeUnit.MINUTES);
@@ -982,25 +967,6 @@ public class CompactionCoordinator
       return tabletsMetadata.stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
           .collect(Collectors.toSet());
     }
-  }
-
-  @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
-    try {
-      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
-      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
-    } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
-    }
-
-    cancelCompactionOnCompactor(runningCompaction.getCompactor(), externalCompactionId);
   }
 
   /* Method exists to be called from test */
