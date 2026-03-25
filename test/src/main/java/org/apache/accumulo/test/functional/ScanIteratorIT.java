@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -297,6 +298,18 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
         Mutation m = new Mutation("r1");
         m.put("", "", "base:");
         writer.addMutation(m);
+      }
+
+      // Ensures duplicate scan iterator priorities fail
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals("base:xa", scanner.iterator().next().getValue().toString());
+        scanner.addScanIterator(AppendingIterator.configure(70, "m"));
+        assertEquals("base:xma", scanner.iterator().next().getValue().toString());
+        // These have the same priority as a table iterator so the iterators should be ordered by
+        // their name in that case
+        scanner.addScanIterator(AppendingIterator.configure(50, "b"));
+        scanner.addScanIterator(AppendingIterator.configure(100, "c"));
+        assertThrows(IllegalStateException.class, () -> scanner.iterator().next().getValue().toString());
       }
 
       try (var scanner = c.createScanner(tableName)) {
