@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -409,7 +410,9 @@ public class SystemInformation {
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
   private long timestamp = 0;
-  private ScanServerView scanServerView;
+  private ScanServerView scanServerView = new ScanServerView(0L, List.of(),
+      new ScanServerView.Status(false, false, false, 0, 0, 0L, "OK", null));
+  private DeploymentOverview deploymentOverview = new DeploymentOverview(0, List.of());
   private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
@@ -442,7 +445,6 @@ public class SystemInformation {
     suggestions.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
-    scanServerView = null;
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -631,6 +633,7 @@ public class SystemInformation {
         .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
     var responses = allMetrics.getAllPresent(scanServers).values();
     timestamp = System.currentTimeMillis();
+    deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
     scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
         problemScanServerCount, timestamp);
   }
@@ -714,8 +717,12 @@ public class SystemInformation {
     return this.tablets.get(tableId);
   }
 
-  public Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> getDeploymentOverview() {
+  public Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> getDeploymentSummary() {
     return this.deployment;
+  }
+
+  public DeploymentOverview getDeploymentView() {
+    return this.deploymentOverview;
   }
 
   public Set<String> getSuggestions() {

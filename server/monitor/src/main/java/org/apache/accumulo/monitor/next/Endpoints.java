@@ -413,8 +413,7 @@ public class Endpoints {
   @Description("Returns a UI-ready deployment overview grouped by resource group. Each process row"
       + " contains the total, responding, and not responding server counts.")
   public DeploymentOverview getDeploymentOverview() {
-    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return DeploymentOverview.fromSummary(summary.getDeploymentOverview(), summary.getTimestamp());
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentView();
   }
 
   @GET
