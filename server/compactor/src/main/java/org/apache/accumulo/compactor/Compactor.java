@@ -389,8 +389,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         ServiceDescriptors descriptors = new ServiceDescriptors();
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.COMPACTOR}) {
-          descriptors.addService(new ServiceDescriptor(compactorId, svc,
-              ExternalCompactionUtil.getHostPortString(clientAddress), this.getResourceGroup()));
+          descriptors.addService(new ServiceDescriptor(compactorId, svc, clientAddress.toString(),
+              this.getResourceGroup()));
         }
 
         if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -508,7 +508,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, message, why);
+                job.getExternalCompactionId(), job.extent, message, why,
+                getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -531,7 +532,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, stats);
+                job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
+                getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -562,7 +564,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
                 getContext().rpcCreds(), this.getResourceGroup().canonical(),
-                ExternalCompactionUtil.getHostPortString(getAdvertiseAddress()), eci.toString());
+                getAdvertiseAddress().toString(), eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;

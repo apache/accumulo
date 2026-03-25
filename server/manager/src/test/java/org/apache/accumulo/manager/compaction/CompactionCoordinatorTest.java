@@ -141,13 +141,13 @@ public class CompactionCoordinatorTest {
 
     @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-        throws ThriftSecurityException {}
+        String externalCompactionId, TKeyExtent textent, TCompactionStats stats, String groupName,
+        String compactorAddress) throws ThriftSecurityException {}
 
     @Override
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent, String exceptionClassName, TCompactionState failureState)
-        throws ThriftSecurityException {}
+        TKeyExtent extent, String exceptionClassName, TCompactionState failureState,
+        String groupName, String compactorAddress) throws ThriftSecurityException {}
 
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;
