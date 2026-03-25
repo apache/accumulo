@@ -24,6 +24,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.CompactionSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
@@ -149,24 +151,35 @@ public class Endpoints {
   @Path("manager")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metric response for the Manager")
-  public MetricResponse getManager() {
-    final ServerId s = monitor.getInformationFetcher().getSummaryForEndpoint().getManager();
-    if (s == null) {
-      throw new NotFoundException("Manager not found");
+  public Collection<MetricResponse> getManagers() {
+    final Set<ServerId> managers =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getManagers();
+    if (managers == null) {
+      return List.of();
     }
-    return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
+    return monitor.getInformationFetcher().getAllMetrics().getAllPresent(managers).values();
   }
 
   @GET
   @Path("manager/metrics")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metrics for the Manager")
-  public List<FMetric> getManagerMetrics() {
-    var managerMetrics = getManager().getMetrics();
-    if (managerMetrics != null) {
-      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
+  public Map<ServerId,List<FMetric>> getManagerMetrics() {
+    final Set<ServerId> managers =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getManagers();
+    if (managers == null) {
+      return Map.of();
     }
-    return List.of();
+
+    Map<ServerId,List<FMetric>> results = new HashMap<>(managers.size());
+    for (ServerId s : managers) {
+      MetricResponse mr = monitor.getInformationFetcher().getAllMetrics().getIfPresent(s);
+      if (mr != null) {
+        results.put(s,
+            mr.getMetrics().stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList()));
+      }
+    }
+    return results;
   }
 
   @GET
@@ -320,8 +333,8 @@ public class Endpoints {
   @GET
   @Path("compactions/summary")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metrics for all compaction queues")
-  public Map<String,List<FMetric>> getCompactionMetricSummary() {
+  @Description("Returns summary information for compactions")
+  public CompactionSummary getCompactionSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getCompactionMetricSummary();
   }
 

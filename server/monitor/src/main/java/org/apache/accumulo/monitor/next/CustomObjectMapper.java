@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor.next;
 import jakarta.ws.rs.ext.ContextResolver;
 import jakarta.ws.rs.ext.Provider;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
@@ -30,6 +31,7 @@ import org.apache.accumulo.monitor.next.serializers.CumulativeDistributionSummar
 import org.apache.accumulo.monitor.next.serializers.FMetricSerializer;
 import org.apache.accumulo.monitor.next.serializers.IdSerializer;
 import org.apache.accumulo.monitor.next.serializers.MetricResponseSerializer;
+import org.apache.accumulo.monitor.next.serializers.ServerIdSerializer;
 import org.apache.accumulo.monitor.next.serializers.TabletIdSerializer;
 import org.apache.accumulo.monitor.next.serializers.ThriftSerializer;
 
@@ -50,6 +52,7 @@ public class CustomObjectMapper implements ContextResolver<ObjectMapper> {
     // Configure the ObjectMapper
     mapper = new ObjectMapper();
     SimpleModule module = new SimpleModule();
+    module.addKeySerializer(ServerId.class, new ServerIdSerializer());
     module.addKeySerializer(Id.class, new IdSerializer());
     module.addSerializer(FMetric.class, new FMetricSerializer());
     module.addSerializer(MetricResponse.class, new MetricResponseSerializer());

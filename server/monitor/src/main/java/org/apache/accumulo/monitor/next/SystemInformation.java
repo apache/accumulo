@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -356,6 +357,23 @@ public class SystemInformation {
 
   }
 
+  public record CompactionSummary(Map<TableId,Long> tableCompactions,
+      Map<String,Long> groupCompactions,
+      Map<ServerId,Map<String,List<FMetric>>> compactionQueueMetrics) {
+
+    public List<FMetric> getQueueMetrics(String resourceGroup) {
+      final List<FMetric> metrics = new ArrayList<>();
+      this.compactionQueueMetrics().forEach((k, v) -> {
+        v.forEach((k2, v2) -> {
+          if (k2.equals(resourceGroup)) {
+            metrics.addAll(v2);
+          }
+        });
+      });
+      return metrics;
+    }
+  };
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -368,7 +386,7 @@ public class SystemInformation {
 
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
-  private final AtomicReference<ServerId> manager = new AtomicReference<>();
+  private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
   // index of resource group name to set of servers
@@ -395,7 +413,8 @@ public class SystemInformation {
       new ConcurrentHashMap<>();
 
   // Compaction Information
-  private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
+  private final AtomicReference<CompactionSummary> compactionSummary = new AtomicReference<>();
+
   private volatile Set<ServerId> registeredCompactors = Set.of();
   private volatile HostAndPort coordinatorHost;
 
@@ -429,6 +448,8 @@ public class SystemInformation {
   public void clear() {
     resourceGroups.clear();
     problemHosts.clear();
+    managers.clear();
+    gc.set(null);
     compactors.clear();
     sservers.clear();
     tservers.clear();
@@ -438,9 +459,9 @@ public class SystemInformation {
     rgCompactorMetrics.clear();
     rgSServerMetrics.clear();
     rgTServerMetrics.clear();
-    queueMetrics.clear();
     registeredCompactors = Set.of();
     coordinatorHost = null;
+    compactionSummary.set(null);
     longRunningCompactionsByRg.clear();
     tables.clear();
     tablets.clear();
@@ -488,20 +509,35 @@ public class SystemInformation {
 
   }
 
-  private void createCompactionSummary(MetricResponse response) {
-    if (response.getMetrics() != null) {
-      for (final ByteBuffer binary : response.getMetrics()) {
-        FMetric fm = FMetric.getRootAsFMetric(binary);
-        for (int i = 0; i < fm.tagsLength(); i++) {
-          FTag t = fm.tags(i);
-          if (t.key().equals("queue.id")) {
-            queueMetrics
-                .computeIfAbsent(t.value(), (k) -> Collections.synchronizedList(new ArrayList<>()))
-                .add(fm);
+  private void createCompactionSummary() {
+
+    Map<TableId,Long> tableCompactions = new HashMap<>();
+    runningCompactionsPerTable.forEach((k, v) -> tableCompactions.put(k, v.sum()));
+
+    Map<String,Long> groupCompactions = new HashMap<>();
+    runningCompactionsPerGroup.forEach((k, v) -> groupCompactions.put(k, v.sum()));
+
+    Map<ServerId,Map<String,List<FMetric>>> coordinatorMetrics = new HashMap<>();
+
+    for (ServerId manager : managers) {
+      MetricResponse managerMetrics = allMetrics.getIfPresent(manager);
+      if (managerMetrics.getMetrics() != null) {
+        Map<String,List<FMetric>> queueMetrics = new HashMap<>();
+        for (final ByteBuffer binary : managerMetrics.getMetrics()) {
+          FMetric fm = FMetric.getRootAsFMetric(binary);
+          for (int i = 0; i < fm.tagsLength(); i++) {
+            FTag t = fm.tags(i);
+            if (t.key().equals("queue.id")) {
+              queueMetrics.computeIfAbsent(t.value(),
+                  (k) -> Collections.synchronizedList(new ArrayList<>())).add(fm);
+            }
           }
         }
+        coordinatorMetrics.put(manager, queueMetrics);
       }
     }
+    compactionSummary
+        .set(new CompactionSummary(tableCompactions, groupCompactions, coordinatorMetrics));
   }
 
   public void processResponse(final ServerId server, final MetricResponse response) {
@@ -523,10 +559,7 @@ public class SystemInformation {
         }
         break;
       case MANAGER:
-        if (manager.get() == null || !manager.get().equals(server)) {
-          manager.set(server);
-        }
-        createCompactionSummary(response);
+        managers.add(server);
         break;
       case SCAN_SERVER:
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
@@ -588,6 +621,9 @@ public class SystemInformation {
           .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary())
           .addNotResponded(serverId);
     });
+    // Create a summary of compaction information
+    createCompactionSummary();
+
     for (SystemTables table : SystemTables.values()) {
       TableConfiguration tconf = this.ctx.getTableConfiguration(table.tableId());
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
@@ -599,7 +635,7 @@ public class SystemInformation {
     }
     for (String rg : getResourceGroups()) {
       Set<ServerId> rgCompactors = getCompactorResourceGroupServers(rg);
-      List<FMetric> metrics = queueMetrics.get(rg);
+      List<FMetric> metrics = compactionSummary.get().getQueueMetrics(rg);
       Optional<FMetric> queued = metrics.stream()
           .filter(fm -> fm.name().equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName()))
           .findFirst();
@@ -645,8 +681,8 @@ public class SystemInformation {
     return this.problemHosts;
   }
 
-  public ServerId getManager() {
-    return this.manager.get();
+  public Set<ServerId> getManagers() {
+    return this.managers;
   }
 
   public ServerId getGarbageCollector() {
@@ -692,8 +728,8 @@ public class SystemInformation {
     return this.totalTServerMetrics;
   }
 
-  public Map<String,List<FMetric>> getCompactionMetricSummary() {
-    return this.queueMetrics;
+  public CompactionSummary getCompactionMetricSummary() {
+    return this.compactionSummary.get();
   }
 
   public Set<ServerId> getCompactorServers() {
