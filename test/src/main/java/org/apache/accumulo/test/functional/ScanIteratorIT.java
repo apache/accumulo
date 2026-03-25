@@ -309,7 +309,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
         // their name in that case
         scanner.addScanIterator(AppendingIterator.configure(50, "b"));
         scanner.addScanIterator(AppendingIterator.configure(100, "c"));
-        assertThrows(IllegalStateException.class, () -> scanner.iterator().next().getValue().toString());
+        assertThrows(IllegalStateException.class,
+            () -> scanner.iterator().next().getValue().toString());
       }
 
       try (var scanner = c.createScanner(tableName)) {
