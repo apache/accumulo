@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.compaction;
 
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -162,7 +162,7 @@ public class ExternalCompactionTestUtils {
       }
     }
 
-    client.tableOperations().flush(table1);
+    client.tableOperations().flush(table1, null, null, true);
   }
 
   public static void writeData(AccumuloClient client, String table1)
@@ -265,19 +265,6 @@ public class ExternalCompactionTestUtils {
     }
   }
 
-  private static TExternalCompactionMap getCompletedCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws Exception {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
-    try {
-      TExternalCompactionMap completed =
-          client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      return completed;
-    } finally {
-      ThriftUtil.returnClient(client, context);
-    }
-  }
-
   public static TCompactionState getLastState(TExternalCompaction status) {
     ArrayList<Long> timestamps = new ArrayList<>(status.getUpdates().size());
     status.getUpdates().keySet().forEach(k -> timestamps.add(k));
@@ -349,33 +336,18 @@ public class ExternalCompactionTestUtils {
     return matches;
   }
 
-  public static void confirmCompactionCompleted(ServerContext ctx, Set<ExternalCompactionId> ecids,
-      TCompactionState expectedState) throws Exception {
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
+  /**
+   * Waits for compactions to no longer be running on compactors
+   */
+  public static void confirmCompactionsNoLongerRunning(ServerContext ctx,
+      Set<ExternalCompactionId> ecids) {
+    Wait.waitFor(() -> {
+      Set<ExternalCompactionId> running = new HashSet<>();
+      ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+          tec -> running.add(ExternalCompactionId.of(tec.getJob().getExternalCompactionId())));
 
-    // The running compaction should be removed
-    TExternalCompactionMap running =
-        ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
-    while (running.getCompactions() != null && running.getCompactions().keySet().stream()
-        .anyMatch((e) -> ecids.contains(ExternalCompactionId.of(e)))) {
-      running = ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
-    }
-    // The compaction should be in the completed list with the expected state
-    TExternalCompactionMap completed =
-        ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
-    while (completed.getCompactions() == null) {
-      UtilWaitThread.sleep(50);
-      completed = ExternalCompactionTestUtils.getCompletedCompactions(ctx, coordinatorHost);
-    }
-    for (ExternalCompactionId e : ecids) {
-      TExternalCompaction tec = completed.getCompactions().get(e.canonical());
-      assertNotNull(tec);
-      assertEquals(expectedState, ExternalCompactionTestUtils.getLastState(tec));
-    }
-
+      return Collections.disjoint(running, ecids);
+    }, MINUTES.toMillis(5));
   }
 
   public static void assertNoCompactionMetadata(ServerContext ctx, String tableName) {
