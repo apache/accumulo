@@ -149,6 +149,9 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
             zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
           }
         }
+        ServiceLockPath primaryMgrPath = context.getServerPaths().createManagerPath();
+        filterSingleton(context, primaryMgrPath, addressSelector)
+            .ifPresent(slp -> removeSingletonLock(zrw, slp, opts));
       } catch (RuntimeException e) {
         log.error("Error deleting manager lock", e);
       }

@@ -23,8 +23,8 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GR
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP4;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionRunning;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionsNoLongerRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.countTablets;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -122,8 +121,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       client.tableOperations().addSplits(table1, splits);
 
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // ensure compaction ids were deleted by split operation from metadata table
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()
@@ -192,8 +190,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
       assertNotNull(e);
       assertEquals(TableOperationsImpl.COMPACTION_CANCELED_MSG, e.getMessage());
 
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // ensure the canceled compaction deletes any tablet metadata related to the compaction
       while (countTablets(getCluster().getServerContext(), table1,
@@ -236,8 +233,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       client.tableOperations().delete(table1);
 
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // Ensure compaction did not write anything to metadata table after delete table
       try (var scanner = client.createScanner(SystemTables.METADATA.tableName())) {
@@ -281,6 +277,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
       Thread t = new Thread(r);
       t.start();
       latch.await();
+      assertNull(error.get());
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids =
           ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids(ctx, tid);
@@ -293,7 +290,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       LoggerFactory.getLogger(getClass()).debug("Table deleted.");
 
-      confirmCompactionCompleted(ctx, ecids, TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(ctx, ecids);
 
       LoggerFactory.getLogger(getClass()).debug("Confirmed compaction cancelled.");
 
