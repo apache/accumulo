@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
@@ -63,7 +64,8 @@ public class RunningCompactionInfo {
    */
   public RunningCompactionInfo(TExternalCompaction ec) {
     requireNonNull(ec, "Thrift external compaction is null.");
-    var updates = requireNonNull(ec.getUpdates(), "Missing Thrift external compaction updates");
+    Map<Long,TCompactionStatusUpdate> updates =
+        ec.getUpdates() == null ? Map.of() : ec.getUpdates();
     var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
 
     startTime = ec.getStartTime();
