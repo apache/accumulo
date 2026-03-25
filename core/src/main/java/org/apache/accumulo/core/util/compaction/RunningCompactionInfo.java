@@ -63,7 +63,6 @@ public class RunningCompactionInfo {
    */
   public RunningCompactionInfo(TExternalCompaction ec) {
     requireNonNull(ec, "Thrift external compaction is null.");
-    var updates = requireNonNull(ec.getUpdates(), "Missing Thrift external compaction updates");
     var job = requireNonNull(ec.getJob(), "Thrift external compaction job is null");
 
     startTime = ec.getStartTime();
@@ -80,12 +79,11 @@ public class RunningCompactionInfo {
     long updateMillis;
     TCompactionStatusUpdate last;
 
-    // sort updates by key, which is a timestamp
-    TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(updates);
-    var lastEntry = sorted.lastEntry();
-
     // last entry is all we care about so bail if null
-    if (lastEntry != null) {
+    if (ec.getUpdates() != null) {
+      // sort updates by key, which is a timestamp
+      TreeMap<Long,TCompactionStatusUpdate> sorted = new TreeMap<>(ec.getUpdates());
+      var lastEntry = sorted.lastEntry();
       last = lastEntry.getValue();
       updateMillis = lastEntry.getKey();
       duration = NANOSECONDS.toMillis(last.getCompactionAgeNanos());
@@ -104,12 +102,7 @@ public class RunningCompactionInfo {
         percent = (last.getEntriesRead() / (float) total) * 100;
       }
       progress = percent;
-
-      if (updates.isEmpty()) {
-        status = "na";
-      } else {
-        status = last.state.name();
-      }
+      status = last.state.name();
       log.trace("Parsed running compaction {} for {} with progress = {}%", status, ecid, progress);
       if (sinceLastUpdateSeconds > 30) {
         log.trace("Compaction hasn't progressed from {} in {} seconds.", progress,
