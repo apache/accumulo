@@ -192,7 +192,7 @@ public class RecoveryManager {
     String[] parts = walog.split("/");
     String sortId = parts[parts.length - 1];
     String filename = new Path(walog).toString();
-    String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
+    String dest = RecoveryPath.transformToRecoveryPath(filename);
 
     boolean sortQueued;
     synchronized (this) {

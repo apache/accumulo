@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.Test;
 
+@SuppressWarnings("deprecation")
 public class RecoveryPathTest {
 
   private static final String UUID = "2d961760-db4f-47eb-97fe-d283331ec254";

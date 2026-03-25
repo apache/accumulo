@@ -100,6 +100,7 @@ public class RecoveryPath {
     return recoveryPath.toString();
   }
 
+  @Deprecated(since = "2.1.5")
   // given a wal path, transform it to a recovery path
   public static Path getRecoveryPath(Path walPath) {
     if (walPath.depth() >= 3 && walPath.toUri().getScheme() != null) {
