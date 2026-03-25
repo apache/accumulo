@@ -84,6 +84,8 @@ service CompactionCoordinatorService {
     3:string externalCompactionId
     4:data.TKeyExtent extent
     5:tabletserver.TCompactionStats stats
+    6:string groupName
+    7:string compactor
   )throws(
      1:client.ThriftSecurityException sec
      2:client.ThriftNotActiveServiceException tnase
@@ -127,21 +129,13 @@ service CompactionCoordinatorService {
     4:data.TKeyExtent extent
     5:string exceptionClassName
     6:TCompactionState failureState
+    7:string groupName
+    8:string compactor
   )throws(
      1:client.ThriftSecurityException sec
      2:client.ThriftNotActiveServiceException tnase
   )
 
-  /*
-   * Called by the Monitor to get progress information
-   */
-  TExternalCompactionMap getCompletedCompactions(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-  )throws(
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
 
   void cancel(
     1:client.TInfo tinfo

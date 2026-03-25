@@ -20,7 +20,7 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP2;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionsNoLongerRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getRunningCompactions;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
@@ -136,8 +136,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       Text end = md.get(1).getEndRow();
       client.tableOperations().merge(table1, start, end);
 
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
 
       // ensure compaction ids were deleted by merge operation from metadata table
       try (TabletsMetadata tm = getCluster().getServerContext().getAmple().readTablets()

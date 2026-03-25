@@ -68,19 +68,6 @@ public class ExternalCompactionUtil {
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtil.class);
 
   /**
-   * Utility for returning the address of a service in the form host:port
-   *
-   * @param address HostAndPort of service
-   * @return host and port
-   */
-  public static String getHostPortString(HostAndPort address) {
-    if (address == null) {
-      return null;
-    }
-    return address.toString();
-  }
-
-  /**
    *
    * @return Optional HostAndPort of Coordinator node if found
    */

@@ -39,7 +39,6 @@ import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -142,13 +141,13 @@ public class CompactionCoordinatorTest {
 
     @Override
     public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-        String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-        throws ThriftSecurityException {}
+        String externalCompactionId, TKeyExtent textent, TCompactionStats stats, String groupName,
+        String compactorAddress) throws ThriftSecurityException {}
 
     @Override
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent, String exceptionClassName, TCompactionState failureState)
-        throws ThriftSecurityException {}
+        TKeyExtent extent, String exceptionClassName, TCompactionState failureState,
+        String groupName, String compactorAddress) throws ThriftSecurityException {}
 
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;
@@ -370,11 +369,8 @@ public class CompactionCoordinatorTest {
   @Test
   public void testCleanUpRunning() throws Exception {
     TExternalCompaction ext1 = createMock(TExternalCompaction.class);
-    expect(ext1.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).atLeastOnce();
     TExternalCompaction ext2 = createMock(TExternalCompaction.class);
-    expect(ext2.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).atLeastOnce();
     TExternalCompaction ext3 = createMock(TExternalCompaction.class);
-    expect(ext3.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).atLeastOnce();
     replay(ext1, ext2, ext3);
 
     TestCoordinator coordinator = new TestCoordinator(manager, new ArrayList<>());
