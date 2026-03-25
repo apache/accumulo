@@ -18,15 +18,9 @@
  */
 package org.apache.accumulo.server.util;
 
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
-
-import java.util.Map;
 import java.util.Optional;
 
 import org.apache.accumulo.core.cli.ServerOpts;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.server.ServerContext;
@@ -68,29 +62,18 @@ public class CancelCompaction extends ServerKeywordExecutable<CancelCommandOpts>
   }
 
   protected void cancelCompaction(ServerContext context, String ecid) {
-    CompactionCoordinatorService.Client coordinatorClient = null;
+    System.out.println("Looking for " + ecid + " in metadata table");
 
-    try (var tablets =
-        context.getAmple().readTablets().forLevel(Ample.DataLevel.USER).fetch(ECOMP).build()) {
-      var cid = ExternalCompactionId.from(ecid);
-      System.out.println("Looking for " + ecid + " in metadata table");
-      Optional<Map.Entry<ExternalCompactionId,CompactionMetadata>> ecomp =
-          tablets.stream().flatMap(tm -> tm.getExternalCompactions().entrySet().stream())
-              .filter(e -> e.getKey().equals(cid)).findFirst();
+    Optional<HostAndPort> compactor = ExternalCompactionUtil.findCompactorRunningCompaction(context,
+        ExternalCompactionId.of(ecid));
 
-      if (ecomp.isPresent()) {
-        var entry = ecomp.orElseThrow();
-        System.out.println(
-            "Asking compactor " + entry.getValue().getCompactorId() + " to cancel " + ecid);
-        ExternalCompactionUtil.cancelCompaction(context,
-            HostAndPort.fromString(entry.getValue().getCompactorId()), entry.getKey().canonical());
-        System.out
-            .println("Asked compactor " + entry.getValue().getCompactorId() + " to cancel " + ecid);
-      } else {
-        System.out.println("No compaction found for " + ecid);
-      }
-    } catch (Exception e) {
-      throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
+    if (compactor.isPresent()) {
+      var addr = compactor.orElseThrow();
+      System.out.println("Asking compactor " + addr + " to cancel " + ecid);
+      ExternalCompactionUtil.cancelCompaction(context, addr, ecid);
+      System.out.println("Asked compactor " + addr + " to cancel " + ecid);
+    } else {
+      System.out.println("No compaction found for " + ecid);
     }
   }
 

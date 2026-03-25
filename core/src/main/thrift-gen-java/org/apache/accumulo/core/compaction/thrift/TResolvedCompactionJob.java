@@ -1004,14 +1004,14 @@ public class TResolvedCompactionJob implements org.apache.thrift.TBase<TResolved
           case 2: // JOB_FILES
             if (schemeField.type == org.apache.thrift.protocol.TType.LIST) {
               {
-                org.apache.thrift.protocol.TList _list28 = iprot.readListBegin();
-                struct.jobFiles = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list28.size);
-                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.InputFile _elem29;
-                for (int _i30 = 0; _i30 < _list28.size; ++_i30)
+                org.apache.thrift.protocol.TList _list18 = iprot.readListBegin();
+                struct.jobFiles = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list18.size);
+                @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.InputFile _elem19;
+                for (int _i20 = 0; _i20 < _list18.size; ++_i20)
                 {
-                  _elem29 = new org.apache.accumulo.core.tabletserver.thrift.InputFile();
-                  _elem29.read(iprot);
-                  struct.jobFiles.add(_elem29);
+                  _elem19 = new org.apache.accumulo.core.tabletserver.thrift.InputFile();
+                  _elem19.read(iprot);
+                  struct.jobFiles.add(_elem19);
                 }
                 iprot.readListEnd();
               }
@@ -1102,9 +1102,9 @@ public class TResolvedCompactionJob implements org.apache.thrift.TBase<TResolved
         oprot.writeFieldBegin(JOB_FILES_FIELD_DESC);
         {
           oprot.writeListBegin(new org.apache.thrift.protocol.TList(org.apache.thrift.protocol.TType.STRUCT, struct.jobFiles.size()));
-          for (org.apache.accumulo.core.tabletserver.thrift.InputFile _iter31 : struct.jobFiles)
+          for (org.apache.accumulo.core.tabletserver.thrift.InputFile _iter21 : struct.jobFiles)
           {
-            _iter31.write(oprot);
+            _iter21.write(oprot);
           }
           oprot.writeListEnd();
         }
@@ -1192,9 +1192,9 @@ public class TResolvedCompactionJob implements org.apache.thrift.TBase<TResolved
       if (struct.isSetJobFiles()) {
         {
           oprot.writeI32(struct.jobFiles.size());
-          for (org.apache.accumulo.core.tabletserver.thrift.InputFile _iter32 : struct.jobFiles)
+          for (org.apache.accumulo.core.tabletserver.thrift.InputFile _iter22 : struct.jobFiles)
           {
-            _iter32.write(oprot);
+            _iter22.write(oprot);
           }
         }
       }
@@ -1231,14 +1231,14 @@ public class TResolvedCompactionJob implements org.apache.thrift.TBase<TResolved
       }
       if (incoming.get(1)) {
         {
-          org.apache.thrift.protocol.TList _list33 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
-          struct.jobFiles = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list33.size);
-          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.InputFile _elem34;
-          for (int _i35 = 0; _i35 < _list33.size; ++_i35)
+          org.apache.thrift.protocol.TList _list23 = iprot.readListBegin(org.apache.thrift.protocol.TType.STRUCT);
+          struct.jobFiles = new java.util.ArrayList<org.apache.accumulo.core.tabletserver.thrift.InputFile>(_list23.size);
+          @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.InputFile _elem24;
+          for (int _i25 = 0; _i25 < _list23.size; ++_i25)
           {
-            _elem34 = new org.apache.accumulo.core.tabletserver.thrift.InputFile();
-            _elem34.read(iprot);
-            struct.jobFiles.add(_elem34);
+            _elem24 = new org.apache.accumulo.core.tabletserver.thrift.InputFile();
+            _elem24.read(iprot);
+            struct.jobFiles.add(_elem24);
           }
         }
         struct.setJobFilesIsSet(true);
