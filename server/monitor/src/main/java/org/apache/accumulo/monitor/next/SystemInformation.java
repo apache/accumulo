@@ -443,6 +443,8 @@ public class SystemInformation {
     tablets.clear();
     deployment.clear();
     suggestions.clear();
+    runningCompactionsPerGroup.clear();
+    runningCompactionsPerTable.clear();
     scanServerView = null;
   }
 
