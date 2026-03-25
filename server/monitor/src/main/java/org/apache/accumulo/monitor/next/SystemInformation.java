@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -398,6 +399,9 @@ public class SystemInformation {
   protected final Map<String,TimeOrderedRunningCompactionSet> longRunningCompactionsByRg =
       new ConcurrentHashMap<>();
 
+  protected final Map<TableId,LongAdder> runningCompactionsPerTable = new ConcurrentHashMap<>();
+  protected final Map<String,LongAdder> runningCompactionsPerGroup = new ConcurrentHashMap<>();
+
   // Table Information
   private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
@@ -542,6 +546,12 @@ public class SystemInformation {
   }
 
   public void processExternalCompaction(TExternalCompaction tec) {
+
+    var tableId = KeyExtent.fromThrift(tec.getJob().extent).tableId();
+    runningCompactionsPerTable.computeIfAbsent(tableId, t -> new LongAdder()).increment();
+    runningCompactionsPerGroup.computeIfAbsent(tec.getGroupName(), t -> new LongAdder())
+        .increment();
+
     this.longRunningCompactionsByRg.computeIfAbsent(tec.getGroupName(),
         k -> new TimeOrderedRunningCompactionSet(rgLongRunningCompactionSize)).add(tec);
   }
