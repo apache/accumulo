@@ -38,7 +38,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -146,11 +145,6 @@ public class CompactionCoordinatorTest {
 
     public void resetInternals() {
       metadataCompactionIds = null;
-    }
-
-    @Override
-    protected Set<ServerId> getRunningCompactors() {
-      return Set.of();
     }
 
     @Override
