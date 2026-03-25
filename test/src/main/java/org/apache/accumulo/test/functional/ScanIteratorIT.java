@@ -303,10 +303,8 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
         assertEquals("base:xa", scanner.iterator().next().getValue().toString());
         scanner.addScanIterator(AppendingIterator.configure(70, "m"));
         assertEquals("base:xma", scanner.iterator().next().getValue().toString());
-        // These have the same priority as a table iterator so the iterators should be ordered by
-        // their name in that case
-        scanner.addScanIterator(AppendingIterator.configure(50, "b"));
-        scanner.addScanIterator(AppendingIterator.configure(100, "c"));
+        scanner.addScanIterator(AppendingIterator.configure(49, "b"));
+        scanner.addScanIterator(AppendingIterator.configure(101, "c"));
         assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
         // There are no compaction iterators, so this should not change value
         c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
