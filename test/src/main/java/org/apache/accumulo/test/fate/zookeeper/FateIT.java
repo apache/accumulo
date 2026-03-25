@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED_IN_PRO
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -432,6 +433,8 @@ public class FateIT {
     fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
     // Wait for the transaction runner to be in progress
     Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txId));
+    // Wait for the background fate thread to get into Repo.call()
+    callStarted.await();
 
     assertFalse(fate.cancel(txId));
 
@@ -450,6 +453,10 @@ public class FateIT {
       var fateTableLocks = tableLocksPath + "/" + tableName;
       assertTrue(zk.getChildren(fateTableLocks).isEmpty(), " table fate locks are still present");
     }
+
+    // Let the background fate thread continue and exit Repo.call()
+    finishCall.countDown();
+    Wait.waitFor(() -> SUCCESSFUL == getTxStatus(zk, txId));
   }
 
   @Test
