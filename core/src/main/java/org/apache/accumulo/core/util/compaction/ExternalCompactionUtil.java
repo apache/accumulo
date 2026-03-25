@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
@@ -47,6 +48,8 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.RpcFuture;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -66,19 +69,6 @@ import com.google.common.net.HostAndPort;
 public class ExternalCompactionUtil {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtil.class);
-
-  /**
-   * Utility for returning the address of a service in the form host:port
-   *
-   * @param address HostAndPort of service
-   * @return host and port
-   */
-  public static String getHostPortString(HostAndPort address) {
-    if (address == null) {
-      return null;
-    }
-    return address.toString();
-  }
 
   /**
    *
@@ -326,4 +316,29 @@ public class ExternalCompactionUtil {
       ThriftUtil.returnClient(client, context);
     }
   }
+
+  public static Optional<HostAndPort> findCompactorRunningCompaction(ClientContext context,
+      ExternalCompactionId ecid) {
+    for (var level : Ample.DataLevel.values()) {
+      var compactor = findCompactorRunningCompaction(context, level, ecid);
+      if (compactor.isPresent()) {
+        return compactor;
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  private static Optional<HostAndPort> findCompactorRunningCompaction(ClientContext context,
+      Ample.DataLevel level, ExternalCompactionId ecid) {
+    try (var tablets = context.getAmple().readTablets().forLevel(level).fetch(ECOMP).build()) {
+      Optional<Map.Entry<ExternalCompactionId,CompactionMetadata>> ecomp =
+          tablets.stream().flatMap(tm -> tm.getExternalCompactions().entrySet().stream())
+              .filter(e -> e.getKey().equals(ecid)).findFirst();
+      return ecomp.map(entry -> HostAndPort.fromString(entry.getValue().getCompactorId()));
+    } catch (Exception e) {
+      throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
+    }
+  }
+
 }
