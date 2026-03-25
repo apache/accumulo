@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -49,10 +50,8 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
@@ -64,11 +63,8 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -79,7 +75,6 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 
 import com.beust.jcommander.internal.Maps;
@@ -252,16 +247,14 @@ public class ExternalCompactionTestUtils {
     coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  public static TExternalCompactionMap getRunningCompactions(ClientContext context,
-      Optional<HostAndPort> coordinatorHost) throws TException {
-    CompactionCoordinatorService.Client client =
-        ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
+  public static Map<String,TExternalCompaction> getRunningCompactions(ClientContext context) {
+    Map<String,TExternalCompaction> running = new HashMap<>();
     try {
-      TExternalCompactionMap running =
-          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      ExternalCompactionUtil.getCompactionsRunningOnCompactors(context,
+          tec -> running.put(tec.getJob().getExternalCompactionId(), tec));
       return running;
-    } finally {
-      ThriftUtil.returnClient(client, context);
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
@@ -318,15 +311,12 @@ public class ExternalCompactionTestUtils {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
     while (matches == 0) {
-      TExternalCompactionMap running =
-          ExternalCompactionTestUtils.getRunningCompactions(ctx, coordinatorHost);
-      if (running.getCompactions() != null) {
-        for (ExternalCompactionId ecid : ecids) {
-          TExternalCompaction tec = running.getCompactions().get(ecid.canonical());
-          if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
-            matches++;
-            assertEquals(TCompactionState.STARTED, ExternalCompactionTestUtils.getLastState(tec));
-          }
+      var running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
+      for (ExternalCompactionId ecid : ecids) {
+        TExternalCompaction tec = running.get(ecid.canonical());
+        if (tec != null && tec.getUpdates() != null && !tec.getUpdates().isEmpty()) {
+          matches++;
+          assertEquals(TCompactionState.STARTED, ExternalCompactionTestUtils.getLastState(tec));
         }
       }
       if (matches == 0) {
