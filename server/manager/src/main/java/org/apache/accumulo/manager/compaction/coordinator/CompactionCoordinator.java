@@ -66,7 +66,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -853,29 +852,6 @@ public class CompactionCoordinator
         }
       });
     }
-  }
-
-  /**
-   * Compactor calls to update the status of the assigned compaction
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param update compaction status update
-   * @param timestamp timestamp of the message
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
-        timestamp, update);
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
