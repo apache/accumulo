@@ -339,8 +339,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "No tablets should need attention");
       // Lower the split threshold for the table, should cause the files added to need attention.
-      client.tableOperations().setProperty(t4, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "1K");
+      client.tableOperations().setProperty(t4, Property.TABLE_SPLIT_THRESHOLD.getKey(), "1K");
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
       assertEquals(expected,
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
