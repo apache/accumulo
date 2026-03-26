@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.compaction;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
@@ -32,7 +31,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -40,7 +38,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
@@ -84,13 +81,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 
-import com.google.common.net.HostAndPort;
-
 public class CompactionCoordinatorTest {
 
   private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
-
-  private final HostAndPort tserverAddr = HostAndPort.fromParts("192.168.1.1", 9090);
 
   public MetricsInfo getMockMetrics() {
     MetricsInfo metricsInfo = createMock(MetricsInfo.class);
@@ -150,32 +143,8 @@ public class CompactionCoordinatorTest {
       metadataCompactionIds = mci;
     }
 
-    @Override
-    protected Set<ExternalCompactionId> readExternalCompactionIds() {
-      if (metadataCompactionIds == null) {
-        return RUNNING_CACHE.keySet();
-      } else {
-        return metadataCompactionIds;
-      }
-    }
-
-    public Map<ExternalCompactionId,TExternalCompaction> getRunning() {
-      return RUNNING_CACHE;
-    }
-
     public void resetInternals() {
-      getRunning().clear();
       metadataCompactionIds = null;
-    }
-
-    @Override
-    protected List<TExternalCompaction> getCompactionsRunningOnCompactors() {
-      return runningCompactions;
-    }
-
-    @Override
-    protected Set<ServerId> getRunningCompactors() {
-      return Set.of();
     }
 
     @Override
@@ -206,10 +175,6 @@ public class CompactionCoordinatorTest {
               .toThrift(),
           Map.of());
     }
-
-    @Override
-    protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {}
-
   }
 
   private TableId tableId;
@@ -259,50 +224,10 @@ public class CompactionCoordinatorTest {
   public void testCoordinatorColdStart() throws Exception {
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(0, coordinator.getRunning().size());
     coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(0, coordinator.getRunning().size());
-  }
-
-  @Test
-  public void testCoordinatorRestartOneRunningCompaction() throws Exception {
-    List<TExternalCompaction> runningCompactions = new ArrayList<>();
-    ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-
-    TExternalCompactionJob job = createMock(TExternalCompactionJob.class);
-    expect(job.getExternalCompactionId()).andReturn(eci.toString()).atLeastOnce();
-    TKeyExtent extent = new TKeyExtent();
-    extent.setTable("1".getBytes(UTF_8));
-
-    TExternalCompaction current = new TExternalCompaction();
-    current.setCompactor(tserverAddr.toString());
-    current.setGroupName(GROUP_ID.canonical());
-    current.setJob(job);
-
-    runningCompactions.add(current);
-
-    replay(job);
-
-    var coordinator = new TestCoordinator(manager, runningCompactions);
-    coordinator.resetInternals();
-    assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(0, coordinator.getRunning().size());
-    coordinator.run();
-    coordinator.shutdown();
-    assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(1, coordinator.getRunning().size());
-
-    Map<ExternalCompactionId,TExternalCompaction> running = coordinator.getRunning();
-    Entry<ExternalCompactionId,TExternalCompaction> ecomp = running.entrySet().iterator().next();
-    assertEquals(eci, ecomp.getKey());
-    TExternalCompaction tec = ecomp.getValue();
-    assertEquals(GROUP_ID, ResourceGroupId.of(tec.getGroupName()));
-    assertEquals(tserverAddr.toString(), tec.getCompactor());
-
-    verify(job);
   }
 
   @Test
@@ -318,14 +243,12 @@ public class CompactionCoordinatorTest {
 
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(0, coordinator.getRunning().size());
     // Use coordinator.run() to populate the internal data structures. This is tested in a different
     // test.
     coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(0, coordinator.getRunning().size());
 
     // Add a job to the job queue
     CompactionJob job =
@@ -344,12 +267,6 @@ public class CompactionCoordinatorTest {
     assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    assertEquals(1, coordinator.getRunning().size());
-    Entry<ExternalCompactionId,TExternalCompaction> entry =
-        coordinator.getRunning().entrySet().iterator().next();
-    assertEquals(eci.toString(), entry.getKey().toString());
-    assertEquals("localhost:10241", entry.getValue().getCompactor());
-    assertEquals(eci.toString(), entry.getValue().getJob().getExternalCompactionId());
 
     verify(tm);
   }
@@ -361,33 +278,5 @@ public class CompactionCoordinatorTest {
         GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
     assertEquals(3, nextJob.getCompactorCount());
     assertNull(nextJob.getJob().getExternalCompactionId());
-  }
-
-  @Test
-  public void testCleanUpRunning() throws Exception {
-    TExternalCompaction ext1 = createMock(TExternalCompaction.class);
-    TExternalCompaction ext2 = createMock(TExternalCompaction.class);
-    TExternalCompaction ext3 = createMock(TExternalCompaction.class);
-    replay(ext1, ext2, ext3);
-
-    TestCoordinator coordinator = new TestCoordinator(manager, new ArrayList<>());
-
-    var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-    var ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
-    var ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
-
-    coordinator.getRunning().put(ecid1, ext1);
-    coordinator.getRunning().put(ecid2, ext2);
-    coordinator.getRunning().put(ecid3, ext3);
-    coordinator.cleanUpInternalState();
-
-    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
-
-    coordinator.setMetadataCompactionIds(Set.of(ecid1, ecid2));
-    coordinator.cleanUpInternalState();
-
-    assertEquals(Set.of(ecid1, ecid2), coordinator.getRunning().keySet());
-
-    verify(ext1, ext2, ext3);
   }
 }

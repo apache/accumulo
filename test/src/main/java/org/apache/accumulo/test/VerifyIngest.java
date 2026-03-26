@@ -295,4 +295,9 @@ public class VerifyIngest extends ClientKeywordExecutable<Opts> {
     }
   }
 
+  // For execution from ITs
+  public static void main(String[] args) throws Exception {
+    new VerifyIngest().execute(args);
+  }
+
 }

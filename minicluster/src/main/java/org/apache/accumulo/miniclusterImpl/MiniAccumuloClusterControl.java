@@ -37,6 +37,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -317,6 +318,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
             cluster.stopProcessesWithTimeout(ServerType.MANAGER, managerProcesses, 30,
                 TimeUnit.SECONDS);
             try {
+              System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+                  "file://" + cluster.getAccumuloPropertiesPath());
               new ZooZap().execute(new String[] {"-managers"});
             } catch (Exception e) {
               log.error("Error zapping Manager zookeeper lock", e);
