@@ -185,7 +185,10 @@ public class LoadFilesTest {
     TabletsMetadataFactory tmf = (startRow) -> tabletMeta;
     FateId txid = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
-    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, txid, 0);
+    Set<String> sharedFiles = LoadFiles.computeSharedFiles(txid, lmi);
+    LoadMappingIterator lmi2 = PrepBulkImportTest.createLoadMappingIter(loadRanges);
+
+    LoadFiles.loadFiles(cl, info, bulkDir, lmi2, tmf, txid, 0, sharedFiles);
     EasyMock.verify(env, ctx, tconf, bulkDir);
     List<CaptureLoader.LoadResult> results = cl.getLoadResults();
     assertEquals(loadRanges.size(), results.size());

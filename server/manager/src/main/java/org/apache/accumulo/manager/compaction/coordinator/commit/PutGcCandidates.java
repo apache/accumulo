@@ -18,8 +18,11 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -29,6 +32,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,18 +55,40 @@ public class PutGcCandidates extends AbstractFateOperation {
 
   @Override
   public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
-    if (filesToDeleteViaGc != null && !filesToDeleteViaGc.isEmpty()) {
-      var extent = KeyExtent.fromThrift(commitData.textent);
-      List<ReferenceFile> deleteMarkers = new ArrayList<>();
+    var extent = KeyExtent.fromThrift(commitData.textent);
+    Set<String> nonSharedSet = new HashSet<>(filesToDeleteViaGc);
+    List<ReferenceFile> gcCandidates = new ArrayList<>();
 
-      for (String filePath : filesToDeleteViaGc) {
-        StoredTabletFile file = new StoredTabletFile(filePath);
-        deleteMarkers.add(ReferenceFile.forFile(extent.tableId(), file));
-        LOG.debug("Creating GC delete marker for file: {}", file.getFileName());
+    for (StoredTabletFile jobFile : commitData.getJobFiles()) {
+      if (nonSharedSet.contains(jobFile.getMetadataPath())) {
+        // File is confirmed non-shared, attempt direct filesystem deletion
+        try {
+          Path filePath = new Path(jobFile.getMetadataPath());
+          boolean deleted = env.getContext().getVolumeManager().deleteRecursively(filePath);
+          if (deleted) {
+            LOG.debug("Directly deleted non-shared compaction input file: {}",
+                jobFile.getFileName());
+          } else {
+            LOG.debug("Non-shared file {} was already absent (likely retry), no GC marker needed",
+                jobFile.getFileName());
+          }
+        } catch (IOException e) {
+          // Direct deletion failed, fall back to GC marker to ensure eventual cleanup
+          LOG.warn("Failed to directly delete non-shared file {}, falling back to GC marker: {}",
+              jobFile.getFileName(), e.getMessage());
+          gcCandidates.add(ReferenceFile.forFile(extent.tableId(), jobFile));
+        }
+      } else {
+        LOG.debug("File {} is shared or shared status unknown, will create GC delete marker",
+            jobFile.getFileName());
+        gcCandidates.add(ReferenceFile.forFile(extent.tableId(), jobFile));
       }
+    }
 
-      env.getContext().getAmple().putGcFileAndDirCandidates(extent.tableId(), deleteMarkers);
-      LOG.debug("Created {} GC delete markers for compaction", deleteMarkers.size());
+    // Write GC delete markers for any shared files or direct-delete fallbacks
+    if (!gcCandidates.isEmpty()) {
+      env.getContext().getAmple().putGcFileAndDirCandidates(extent.tableId(), gcCandidates);
+      LOG.debug("Created {} GC delete markers for compaction", gcCandidates.size());
     }
 
     if (refreshLocation == null) {

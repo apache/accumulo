@@ -113,7 +113,15 @@ class LoadFiles extends AbstractFateOperation {
     VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
-    try (LoadMappingIterator lmi =
+
+    // Compute which files appear in more than one tablet range
+    Set<String> sharedFiles;
+    try (LoadMappingIterator lmiPass1 =
+        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
+      sharedFiles = computeSharedFiles(fateId, lmiPass1);
+    }
+
+    try (LoadMappingIterator lmiPass2 =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
       Loader loader = new Loader(env, bulkInfo.tableId);
@@ -129,8 +137,26 @@ class LoadFiles extends AbstractFateOperation {
 
       int skip = env.getContext().getTableConfiguration(bulkInfo.tableId)
           .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, fateId, skip);
+      return loadFiles(loader, bulkInfo, bulkDir, lmiPass2, tmf, fateId, skip, sharedFiles);
     }
+  }
+
+  /**
+   * Iterate the load mapping once to compute which file names appear in more than one tablet range,
+   * returns the set of "shared" file names
+   */
+  static Set<String> computeSharedFiles(FateId fateId, LoadMappingIterator lmi) throws Exception {
+    Map<String,Integer> fileTabletCount = new HashMap<>();
+    while (lmi.hasNext()) {
+      for (var fileInfo : lmi.next().getValue()) {
+        fileTabletCount.merge(fileInfo.getFileName(), 1, Integer::sum);
+      }
+    }
+    Set<String> sharedFiles = fileTabletCount.entrySet().stream().filter(e -> e.getValue() > 1)
+        .map(Map.Entry::getKey).collect(Collectors.toSet());
+    log.debug("{}: Detected {} shared files out of {} total files", fateId.getTxUUIDStr(),
+        sharedFiles.size(), fileTabletCount.size());
+    return sharedFiles;
   }
 
   @Override
@@ -395,40 +421,18 @@ class LoadFiles extends AbstractFateOperation {
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
       LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, FateId fateId,
-      int skipDistance) throws Exception {
+      int skipDistance, Set<String> sharedFiles) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
-    Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
-    Text startRow = loadMapEntry.getKey().prevEndRow();
-
-    String fmtTid = fateId.getTxUUIDStr();
-    log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
-
-    List<Map.Entry<KeyExtent,Bulk.Files>> allEntries = new ArrayList<>();
-    while (lmi.hasNext()) {
-      allEntries.add(lmi.next());
-    }
-
-    if (allEntries.isEmpty()) {
+    if (!lmi.hasNext()) {
       log.warn("{}: No files to load", fateId.getTxUUIDStr());
       return 0;
     }
 
-    Map<String,Integer> fileTabletCount = new HashMap<>();
-    for (var entry : allEntries) {
-      for (var fileInfo : entry.getValue()) {
-        String fileName = fileInfo.getFileName();
-        fileTabletCount.merge(fileName, 1, Integer::sum);
-      }
-    }
+    Text startRow = lmi.peek().getKey().prevEndRow();
 
-    Set<String> sharedFiles = fileTabletCount.entrySet().stream().filter(e -> e.getValue() > 1)
-        .map(Map.Entry::getKey).collect(Collectors.toSet());
-
-    log.debug("{}:  Detected {} shared files out of {} total files", fmtTid, sharedFiles.size(),
-        fileTabletCount.size());
-
-    startRow = allEntries.get(0).getKey().prevEndRow();
+    String fmtTid = fateId.getTxUUIDStr();
+    log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
     loader.start(bulkDir, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
@@ -438,7 +442,8 @@ class LoadFiles extends AbstractFateOperation {
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
     try {
       PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
-      for (var entry : allEntries) {
+      while (lmi.hasNext()) {
+        var entry = lmi.next();
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
         if (skipDistance > 0) {

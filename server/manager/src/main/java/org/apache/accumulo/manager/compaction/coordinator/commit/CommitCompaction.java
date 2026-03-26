@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -103,6 +102,19 @@ public class CommitCompaction extends AbstractFateOperation {
     return KeyExtent.fromThrift(commitData.textent);
   }
 
+  private ArrayList<StoredTabletFile> computeNonSharedFiles(TabletMetadata tablet,
+      CompactionMetadata ecm) {
+    ArrayList<StoredTabletFile> nonSharedFiles = new ArrayList<>();
+    var tabletFilesMap = tablet.getFilesMap();
+    for (StoredTabletFile file : ecm.getJobFiles()) {
+      DataFileValue dfv = tabletFilesMap.get(file);
+      if (dfv == null || !dfv.isShared()) {
+        nonSharedFiles.add(file);
+      }
+    }
+    return nonSharedFiles;
+  }
+
   private CompactionFileResult commitCompaction(ServerContext ctx, ExternalCompactionId ecid,
       Optional<ReferencedTabletFile> newDatafile) {
 
@@ -127,15 +139,14 @@ public class CommitCompaction extends AbstractFateOperation {
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
             .requireCompaction(ecid).requireSame(tablet, LOCATION)
-            .requireFiles(commitData.getJobFiles());
+            .requireFiles(tablet.getFilesMap());
 
         if (ecm.getKind() == CompactionKind.USER) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
         }
 
         // make the needed updates to the tablet
-        filesToDeleteViaGc = updateTabletForCompaction(ctx, commitData.stats, ecid, tablet,
-            newDatafile, ecm, tabletMutator);
+        updateTabletForCompaction(commitData.stats, ecid, tablet, newDatafile, ecm, tabletMutator);
 
         tabletMutator.submit(
             tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid),
@@ -149,6 +160,7 @@ public class CommitCompaction extends AbstractFateOperation {
 
         var result = tabletsMutator.process().get(getExtent());
         if (result.getStatus() == Ample.ConditionalResult.Status.ACCEPTED) {
+          filesToDeleteViaGc = computeNonSharedFiles(tablet, ecm);
           // Compaction was successfully committed to the tablet so log it
           TabletLogger.compacted(getExtent(), ecid, commitData.kind, commitData.getJobFiles(),
               newDatafile);
@@ -168,12 +180,9 @@ public class CommitCompaction extends AbstractFateOperation {
     return new CompactionFileResult(tablet, filesToDeleteViaGc);
   }
 
-  private ArrayList<StoredTabletFile> updateTabletForCompaction(ServerContext ctx,
-      TCompactionStats stats, ExternalCompactionId ecid, TabletMetadata tablet,
-      Optional<ReferencedTabletFile> newDatafile, CompactionMetadata ecm,
+  private void updateTabletForCompaction(TCompactionStats stats, ExternalCompactionId ecid,
+      TabletMetadata tablet, Optional<ReferencedTabletFile> newDatafile, CompactionMetadata ecm,
       Ample.ConditionalTabletMutator tabletMutator) {
-
-    ArrayList<StoredTabletFile> filesToDeleteViaGc = new ArrayList<>();
 
     if (ecm.getKind() == CompactionKind.USER) {
       if (tablet.getSelectedFiles().getFiles().equals(ecm.getJobFiles())) {
@@ -223,51 +232,16 @@ public class CommitCompaction extends AbstractFateOperation {
       // scan
       ecm.getJobFiles().forEach(tabletMutator::putScan);
     }
-    for (StoredTabletFile file : ecm.getJobFiles()) {
-      // Check if file is shared
-      DataFileValue fileMetadata = tablet.getFilesMap().get(file);
-      boolean isShared = fileMetadata != null && fileMetadata.isShared();
-
-      if (isShared) {
-        // File is shared - must use GC delete markers
-        LOG.debug("File {} is shared, will create GC delete marker", file.getFileName());
-        filesToDeleteViaGc.add(file);
-      } else {
-        // File is not shared - try to delete directly
-        try {
-          Path filePath = new Path(file.getMetadataPath());
-          boolean deleted = ctx.getVolumeManager().deleteRecursively(filePath);
-
-          if (deleted) {
-            LOG.debug("Successfully deleted non-shared compaction input file: {}",
-                file.getFileName());
-          } else {
-            LOG.warn("Failed to delete non-shared file {}, will create GC delete marker",
-                file.getFileName());
-            filesToDeleteViaGc.add(file);
-          }
-        } catch (IOException e) {
-          LOG.warn("Error deleting non-shared file {}, will create GC delete marker:  {}",
-              file.getFileName(), e.getMessage());
-          filesToDeleteViaGc.add(file);
-        }
-      }
-
-      // Always delete from tablet metadata
-      tabletMutator.deleteFile(file);
-    }
+    ecm.getJobFiles().forEach(tabletMutator::deleteFile);
 
     tabletMutator.deleteExternalCompaction(ecid);
 
     if (newDatafile.isPresent()) {
-      // NEW: Mark new compaction output files as not shared
-      DataFileValue newFileValue = new DataFileValue(stats.getFileSize(), stats.getEntriesWritten(),
-          System.currentTimeMillis(), false // New file created by this tablet alone - not shared
-      );
+      // Mark new compaction files as not shared.
+      DataFileValue newFileValue =
+          new DataFileValue(stats.getFileSize(), stats.getEntriesWritten(), false);
       tabletMutator.putFile(newDatafile.orElseThrow(), newFileValue);
     }
-
-    return filesToDeleteViaGc;
   }
 
   public static boolean canCommitCompaction(ExternalCompactionId ecid,
