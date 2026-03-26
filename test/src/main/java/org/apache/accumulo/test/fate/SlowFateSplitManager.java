@@ -20,12 +20,12 @@ package org.apache.accumulo.test.fate;
 
 import java.io.IOException;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,18 +40,19 @@ public class SlowFateSplitManager extends Manager {
   // important that this is an op that can be initiated on some system table as well as user tables
   public static final Fate.FateOperation SLOW_OP = Fate.FateOperation.TABLE_SPLIT;
 
-  protected SlowFateSplitManager(ConfigOpts opts, String[] args) throws IOException {
+  protected SlowFateSplitManager(ServerOpts opts, String[] args) throws IOException {
     super(opts, ServerContext::new, args);
   }
 
   @Override
-  protected Fate<FateEnv> initializeFateInstance(ServerContext context, FateStore<FateEnv> store) {
+  protected Fate<FateEnv> createFateInstance(FateEnv env, FateStore<FateEnv> store,
+      ServerContext context) {
     log.info("Creating Slow Split Fate for {}", store.type());
-    return new SlowFateSplit<>(this, store, TraceRepo::toLogString, getConfiguration());
+    return new SlowFateSplit<>(env, store, TraceRepo::toLogString, getConfiguration());
   }
 
   public static void main(String[] args) throws Exception {
-    try (SlowFateSplitManager manager = new SlowFateSplitManager(new ConfigOpts(), args)) {
+    try (SlowFateSplitManager manager = new SlowFateSplitManager(new ServerOpts(), args)) {
       manager.runServer();
     }
   }

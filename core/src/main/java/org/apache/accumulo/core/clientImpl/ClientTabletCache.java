@@ -48,7 +48,7 @@ import org.apache.hadoop.io.Text;
 public abstract class ClientTabletCache {
 
   /**
-   * Flipped false on call to {@link #clearInstances}. Checked by client classes that locally cache
+   * Flipped false on call to {@link #invalidate}. Checked by client classes that locally cache
    * Locators.
    */
   private volatile boolean isValid = true;

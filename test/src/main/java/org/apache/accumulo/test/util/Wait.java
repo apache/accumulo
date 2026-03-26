@@ -23,6 +23,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.util.function.ToIntFunction;
 
+import org.apache.accumulo.core.util.CountDownTimer;
+
 public class Wait {
 
   public static final long MAX_WAIT_MILLIS = SECONDS.toMillis(30);
@@ -103,14 +105,15 @@ public class Wait {
       final String failMessage) {
 
     final int timeoutFactor = getTimeoutFactor(e -> 1); // default to factor of 1
-    final long scaledDurationNanos = MILLISECONDS.toNanos(duration) * timeoutFactor;
-    final long scaledSleepMillis = sleepMillis * timeoutFactor;
 
-    final long startNanos = System.nanoTime();
+    final long scaledWaitMillis = multiplyClampToRange(duration, timeoutFactor);
+    final long scaledSleepMillis = multiplyClampToRange(sleepMillis, timeoutFactor);
+
+    final CountDownTimer maxWaitTimer = CountDownTimer.startNew(scaledWaitMillis, MILLISECONDS);
     boolean success;
     try {
       success = condition.isSatisfied();
-      while (!success && System.nanoTime() - startNanos < scaledDurationNanos) {
+      while (!success && !maxWaitTimer.isExpired()) {
         MILLISECONDS.sleep(scaledSleepMillis);
         success = condition.isSatisfied();
       }
@@ -123,6 +126,20 @@ public class Wait {
     }
     if (!success) {
       throw new IllegalStateException(failMessage + ". Timeout exceeded");
+    }
+  }
+
+  /**
+   * @return the product of the inputs, clamped to the range [0, Long.MAX_VALUE]
+   */
+  private static long multiplyClampToRange(long value, int factor) {
+    if (value <= 0 || factor <= 0) {
+      return 0;
+    }
+    try {
+      return Math.multiplyExact(value, factor);
+    } catch (ArithmeticException e) {
+      return Long.MAX_VALUE;
     }
   }
 }

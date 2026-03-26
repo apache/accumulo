@@ -37,7 +37,7 @@ public enum ThreadPoolNames {
   GC_WAL_DELETE_POOL("accumulo.pool.gc.threads.delete.wal"),
   GENERAL_SERVER_POOL("accumulo.pool.general.server"),
   SERVICE_LOCK_POOL("accumulo.pool.service.lock"),
-  IMPORT_TABLE_RENAME_POOL("accumulo.pool.import.table.rename"),
+  FILE_RENAME_POOL("accumulo.pool.file.rename"),
   INSTANCE_OPS_COMPACTIONS_FINDER_POOL("accumulo.pool.instance.ops.active.compactions.finder"),
   INSTANCE_OPS_SCANS_FINDER_POOL("accumulo.pool.instance.ops.active.scans.finder"),
   MANAGER_FATE_POOL_PREFIX("accumulo.pool.manager.fate."),

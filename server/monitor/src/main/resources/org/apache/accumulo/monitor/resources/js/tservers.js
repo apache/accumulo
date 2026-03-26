@@ -18,12 +18,12 @@
  */
 /* JSLint global definitions */
 /*global
-    $, document, sessionStorage, getTServers, clearDeadServers, refreshNavBar,
-    getRecoveryList, bigNumberForQuantity, timeDuration, dateFormat, ajaxReloadTable
+    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
+    ajaxReloadTable
 */
 "use strict";
 
-var tserversTable, deadTServersTable, badTServersTable;
+var tserversTable;
 var recoveryList = [];
 
 /**
@@ -70,30 +70,16 @@ function refreshTServersTable() {
 }
 
 /**
- * Refreshes data in the deadtservers table
+ * If manager is down, tserver status will be ERROR. Add a banner to indicate
  */
-function refreshDeadTServersTable() {
-  ajaxReloadTable(deadTServersTable);
-
-  // Only show the table if there are non-empty rows
-  if ($('#deadtservers tbody .dataTables_empty').length) {
-    $('#deadtservers_wrapper').hide();
+function refreshTServersBanner(managerStatus) {
+  if (managerStatus === 'ERROR') {
+    $('#tserversManagerBanner').show();
+    $('#tservers_wrapper').hide();
+    $('#recovery-caption').hide();
   } else {
-    $('#deadtservers_wrapper').show();
-  }
-}
-
-/**
- * Refreshes data in the badtservers table
- */
-function refreshBadTServersTable() {
-  ajaxReloadTable(badTServersTable);
-
-  // Only show the table if there are non-empty rows
-  if ($('#badtservers tbody .dataTables_empty').length) {
-    $('#badtservers_wrapper').hide();
-  } else {
-    $('#badtservers_wrapper').show();
+    $('#tserversManagerBanner').hide();
+    $('#tservers_wrapper').show();
   }
 }
 
@@ -101,10 +87,17 @@ function refreshBadTServersTable() {
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTServers() {
-  getTServers().then(function () {
-    refreshBadTServersTable();
-    refreshDeadTServersTable();
-    refreshTServersTable();
+  getStatus().then(function () {
+    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    refreshTServersBanner(managerStatus);
+
+    if (managerStatus === 'ERROR') {
+      return;
+    }
+
+    getTServers().then(function () {
+      refreshTServersTable();
+    });
   });
 }
 
@@ -113,17 +106,6 @@ function refreshTServers() {
  */
 function refresh() {
   refreshTServers();
-}
-
-/**
- * Makes the REST POST call to clear dead table server
- *
- * @param {string} server Dead TServer to clear
- */
-function clearDeadTServers(server) {
-  clearDeadServers(server);
-  refreshTServers();
-  refreshNavBar();
 }
 
 /**
@@ -258,69 +240,6 @@ $(function () {
         $(row).css('background-color', 'gold');
       }
     }
-  });
-
-  // Create a table for deadServers list
-  deadTServersTable = $('#deadtservers').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/tservers',
-      "dataSrc": "deadServers"
-    },
-    "stateSave": true,
-    "columnDefs": [{
-      "targets": "date",
-      "render": function (data, type) {
-        if (type === 'display' && data > 0) {
-          data = dateFormat(data);
-        }
-        return data;
-      }
-    }],
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "lastStatus"
-      },
-      {
-        "data": "status"
-      },
-      {
-        "data": "server",
-        "type": "html",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = '<a href="javascript:clearDeadTServers(\'' + data + '\');">clear</a>';
-          }
-          return data;
-        }
-      }
-    ]
-  });
-
-  // Create a table for badServers list
-  badTServersTable = $('#badtservers').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/tservers',
-      "dataSrc": "badServers"
-    },
-    "stateSave": true,
-    "columnDefs": [{
-      "targets": "date",
-      "render": function (data, type) {
-        if (type === 'display' && data > 0) {
-          data = dateFormat(data);
-        }
-        return data;
-      }
-    }],
-    "columns": [{
-        "data": "id"
-      },
-      {
-        "data": "status"
-      }
-    ]
   });
 
   refreshTServers();

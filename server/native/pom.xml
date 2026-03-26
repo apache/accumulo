@@ -33,6 +33,7 @@
   <description>C++ native libraries for improved performance in Apache Accumulo.</description>
   <properties>
     <CXX>g++</CXX>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
   </properties>
   <dependencies>
     <dependency>

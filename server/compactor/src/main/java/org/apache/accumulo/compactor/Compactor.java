@@ -50,7 +50,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -67,6 +67,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -227,7 +228,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   private final AtomicLong terminated = new AtomicLong(0);
 
   @VisibleForTesting
-  protected Compactor(ConfigOpts opts, String[] args) {
+  protected Compactor(ServerOpts opts, String[] args) {
     super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
   }
 
@@ -313,48 +314,53 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   protected void checkIfCanceled() {
-    TExternalCompactionJob job = JOB_HOLDER.getJob();
-    if (job != null) {
-      try {
-        var extent = KeyExtent.fromThrift(job.getExtent());
-        var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
+    TExternalCompaction tec = JOB_HOLDER.getCurrentCompaction();
+    if (tec == null) {
+      return;
+    }
+    TExternalCompactionJob job = tec.getJob();
+    if (job == null) {
+      return;
+    }
+    try {
+      var extent = KeyExtent.fromThrift(job.getExtent());
+      var ecid = ExternalCompactionId.of(job.getExternalCompactionId());
 
-        TabletMetadata tabletMeta =
-            getContext().getAmple().readTablet(extent, ColumnType.ECOMP, ColumnType.PREV_ROW);
-        if (tabletMeta == null || !tabletMeta.getExternalCompactions().containsKey(ecid)) {
-          // table was deleted OR tablet was split or merged OR tablet no longer thinks compaction
-          // is running for some reason
-          LOG.info("Cancelling compaction {} that no longer has a metadata entry at {}", ecid,
-              extent);
-          JOB_HOLDER.cancel(job.getExternalCompactionId());
-          return;
-        }
-
-        var tableState = getContext().getTableState(extent.tableId());
-        if (tableState != TableState.ONLINE) {
-          LOG.info("Cancelling compaction {} because table state is {}", ecid, tableState);
-          JOB_HOLDER.cancel(job.getExternalCompactionId());
-          return;
-        }
-
-        if (job.getKind() == TCompactionKind.USER) {
-
-          var cconf =
-              CompactionConfigStorage.getConfig(getContext(), FateId.fromThrift(job.getFateId()));
-
-          if (cconf == null) {
-            LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}",
-                ecid, FateId.fromThrift(job.getFateId()), extent);
-            JOB_HOLDER.cancel(job.getExternalCompactionId());
-          }
-        }
-      } catch (RuntimeException | KeeperException e) {
-        LOG.warn("Failed to check if compaction {} for {} was canceled.",
-            job.getExternalCompactionId(), KeyExtent.fromThrift(job.getExtent()), e);
-      } catch (InterruptedException e) {
-        Thread.currentThread().interrupt();
-        throw new RuntimeException(e);
+      TabletMetadata tabletMeta =
+          getContext().getAmple().readTablet(extent, ColumnType.ECOMP, ColumnType.PREV_ROW);
+      if (tabletMeta == null || !tabletMeta.getExternalCompactions().containsKey(ecid)) {
+        // table was deleted OR tablet was split or merged OR tablet no longer thinks compaction
+        // is running for some reason
+        LOG.info("Cancelling compaction {} that no longer has a metadata entry at {}", ecid,
+            extent);
+        JOB_HOLDER.cancel(job.getExternalCompactionId());
+        return;
       }
+
+      var tableState = getContext().getTableState(extent.tableId());
+      if (tableState != TableState.ONLINE) {
+        LOG.info("Cancelling compaction {} because table state is {}", ecid, tableState);
+        JOB_HOLDER.cancel(job.getExternalCompactionId());
+        return;
+      }
+
+      if (job.getKind() == TCompactionKind.USER) {
+
+        var cconf =
+            CompactionConfigStorage.getConfig(getContext(), FateId.fromThrift(job.getFateId()));
+
+        if (cconf == null) {
+          LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}", ecid,
+              FateId.fromThrift(job.getFateId()), extent);
+          JOB_HOLDER.cancel(job.getExternalCompactionId());
+        }
+      }
+    } catch (RuntimeException | KeeperException e) {
+      LOG.warn("Failed to check if compaction {} for {} was canceled.",
+          job.getExternalCompactionId(), KeyExtent.fromThrift(job.getExtent()), e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException(e);
     }
   }
 
@@ -383,8 +389,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         ServiceDescriptors descriptors = new ServiceDescriptors();
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.COMPACTOR}) {
-          descriptors.addService(new ServiceDescriptor(compactorId, svc,
-              ExternalCompactionUtil.getHostPortString(clientAddress), this.getResourceGroup()));
+          descriptors.addService(new ServiceDescriptor(compactorId, svc, clientAddress.toString(),
+              this.getResourceGroup()));
         }
 
         if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -419,9 +425,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getContext(), getBindAddress(),
           Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
-          Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
-          Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
-    }, true);
+          Property.COMPACTOR_MINTHREADS, Property.COMPACTOR_MINTHREADS_TIMEOUT,
+          Property.COMPACTOR_THREADCHECK);
+    });
   }
 
   /**
@@ -467,6 +473,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    */
   protected void updateCompactionState(TExternalCompactionJob job, TCompactionStatusUpdate update)
       throws RetriesExceededException {
+    long updateTime = System.currentTimeMillis();
+    TExternalCompaction tec = JOB_HOLDER.getCurrentCompaction();
+    if (update.getState() == TCompactionState.STARTED) {
+      tec.setStartTime(updateTime);
+    }
+    tec.putToUpdates(updateTime, update);
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
@@ -474,7 +486,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             LOG.trace("Attempting to update compaction state in coordinator {}",
                 job.getExternalCompactionId());
             coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), update, System.currentTimeMillis());
+                job.getExternalCompactionId(), update, updateTime);
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -489,14 +501,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @param job current compaction job
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
-  protected void updateCompactionFailed(TExternalCompactionJob job, String cause)
-      throws RetriesExceededException {
+  protected void updateCompactionFailed(TExternalCompactionJob job, TCompactionState why,
+      String message) throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, cause);
+                job.getExternalCompactionId(), job.extent, message, why,
+                getResourceGroup().canonical(), getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -519,7 +532,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent, stats);
+                job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
+                getAdvertiseAddress().toString());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -550,7 +564,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
                 getContext().rpcCreds(), this.getResourceGroup().canonical(),
-                ExternalCompactionUtil.getHostPortString(getAdvertiseAddress()), eci.toString());
+                getAdvertiseAddress().toString(), eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
@@ -819,7 +833,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
-    metricsInfo.addMetricsProducers(this, pausedMetrics);
+    final LogSorter logSorter = new LogSorter(this);
+    metricsInfo.addMetricsProducers(this, pausedMetrics, logSorter);
     metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
@@ -831,7 +846,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     LOG.info("Compactor started, waiting for work");
 
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    final LogSorter logSorter = new LogSorter(this);
     long nextSortLogsCheckTime = System.currentTimeMillis();
 
     while (!isShutdownRequested()) {
@@ -891,7 +905,15 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         final Thread compactionThread = Threads.createNonCriticalThread(
             "Compaction job for tablet " + job.getExtent().toString(), fcr);
 
-        JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
+        final TExternalCompaction current = new TExternalCompaction();
+        current.setCompactor(clientAddress.toString());
+        current.setGroupName(getResourceGroup().canonical());
+        current.setJob(job);
+        // start time for the current compaction is set when the
+        // STARTED msg is sent to the coordinator. The coordinator
+        // updates its copy of the TExternalCompaction when it
+        // receives the STARTED msg.
+        JOB_HOLDER.set(current, compactionThread, fcr.getFileCompactor());
 
         try {
           // mark compactor as busy while compacting
@@ -970,7 +992,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                   new TCompactionStatusUpdate(TCompactionState.CANCELLED, "Compaction cancelled",
                       -1, -1, -1, fcr.getCompactionAge().toNanos());
               updateCompactionState(job, update);
-              updateCompactionFailed(job, InterruptedException.class.getName());
+              updateCompactionFailed(job, TCompactionState.CANCELLED, "Compaction cancelled");
               cancelled.incrementAndGet();
             } catch (RetriesExceededException e) {
               LOG.error("Error updating coordinator with compaction cancellation.", e);
@@ -986,7 +1008,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
                   "Compaction failed due to: " + err.get().getMessage(), -1, -1, -1,
                   fcr.getCompactionAge().toNanos());
               updateCompactionState(job, update);
-              updateCompactionFailed(job, err.get().getClass().getName());
+              updateCompactionFailed(job, TCompactionState.FAILED,
+                  "Compaction failed due to: " + err.get().getMessage());
               failed.incrementAndGet();
               errorHistory.addError(fromThriftExtent.tableId(), err.get());
             } catch (RetriesExceededException e) {
@@ -1062,7 +1085,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new Compactor(new ConfigOpts(), args), LOG);
+    AbstractServer.startServer(new Compactor(new ServerOpts(), args), LOG);
   }
 
   @Override
@@ -1092,7 +1115,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
    * @return current compaction job or empty compaction job is none running
    */
   @Override
-  public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
+  public TExternalCompaction getRunningCompaction(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
@@ -1104,13 +1127,13 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     // method is called by a coordinator starting up to determine what is currently running on all
     // compactors.
 
-    TExternalCompactionJob job = null;
+    TExternalCompaction job = null;
     synchronized (JOB_HOLDER) {
-      job = JOB_HOLDER.getJob();
+      job = JOB_HOLDER.getCurrentCompaction();
     }
 
     if (null == job) {
-      return new TExternalCompactionJob();
+      return new TExternalCompaction();
     } else {
       return job;
     }

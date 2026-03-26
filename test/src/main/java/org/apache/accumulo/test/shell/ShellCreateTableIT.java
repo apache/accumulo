@@ -50,7 +50,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -752,7 +754,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   @Test
   public void copyConfigOptionsTest() throws Exception {
     String[] names = getUniqueNames(2);
-    String srcNS = "ns1"; // + names[0];
+    String srcNS = "ns1";
 
     String srcTable = srcNS + ".src_table_" + names[1];
     String destTable = srcNS + ".dest_table_" + names[1];
@@ -824,8 +826,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
 
     ts.exec("createtable " + srcTable);
-    ts.exec("createtable --exclude-parent-properties --copy-config " + srcTable + " " + destTable,
-        true);
+    ts.exec("createtable --copy-properties " + srcTable + " " + destTable, true);
 
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
@@ -904,6 +905,89 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
     ts.exec("createtable --exclude-parent --copy-config " + names[0] + " " + names[1], true);
     ts.exec("createtable --copy-config " + names[0] + " --exclude-parent " + names[2], true);
+  }
+
+  @Test
+  public void testCreateTableCopiedConfig() throws Exception {
+    // tests that changes to default iterator settings on table1 are carried over to a new table2
+    // when created using the config of table1
+    final String[] tableNames = getUniqueNames(2);
+    final String table1 = tableNames[0];
+    final String table2 = tableNames[1];
+
+    ts.exec("createtable " + table1, true);
+    for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+      ts.exec("config -t " + table1 + " -d " + Property.TABLE_ITERATOR_PREFIX + iterScope.name()
+          + ".vers", true);
+      ts.exec("config -t " + table1 + " -s " + Property.TABLE_ITERATOR_PREFIX + iterScope.name()
+          + ".vers.opt.maxVersions=999", true);
+    }
+
+    ts.exec("createtable " + table2 + " -cc " + table1, true);
+    for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+      var res = ts.exec(
+          "config -t " + table2 + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
+      // verify deleted table1 prop is also deleted in table2
+      // note the space: ".vers "
+      assertFalse(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers "));
+      // verify changed table1 prop is also changed in table2
+      assertTrue(res
+          .contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers.opt.maxVersions"));
+      assertTrue(res.contains("999"));
+    }
+  }
+
+  @Test
+  public void testCreateTableNoDefaults() throws Exception {
+    // tests the no defaults settings
+    final String table = getUniqueNames(1)[0];
+
+    ts.exec("createtable -ndtp " + table, true);
+
+    // verify no default iterator props
+    for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
+      var res = ts.exec(
+          "config -t " + table + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
+      assertFalse(res.contains(Property.TABLE_ITERATOR_PREFIX + iterScope.name() + ".vers"));
+    }
+    // verify no default non-iterator props
+    // note filtering by "table.constraint" but checking output for "table.constraint."
+    // don't want to match command itself
+    var res = ts.exec("config -t " + table + " -f table.constraint", true);
+    assertFalse(res.contains(Property.TABLE_CONSTRAINT_PREFIX.getKey()));
+  }
+
+  @Test
+  public void testCreateTableMutuallyExclusiveCopyOpts() throws Exception {
+    final String[] tableNames = getUniqueNames(3);
+    final String optArg = "foo";
+    final String src = tableNames[0];
+    final String src2 = tableNames[1];
+    final String dest = tableNames[2];
+
+    ts.exec("createtable " + src, true);
+    ts.exec("createtable " + src2, true);
+
+    var res = ts.exec(String.format("createtable -cc %s -cp %s %s", src, src2, dest), false);
+    assertTrue(res.contains("AlreadySelectedException"));
+    res = ts.exec(String.format("createtable -cc %s -pf %s %s", src, optArg, dest), false);
+    assertTrue(res.contains("AlreadySelectedException"));
+    res = ts.exec(String.format("createtable -cp %s -pf %s %s", src, optArg, dest), false);
+    assertTrue(res.contains("AlreadySelectedException"));
+
+    for (var copyOpt : List.of("-cp", "-pf")) {
+      for (var noArgPropOpt : List.of("-ndtp", "-evc")) {
+        res = ts.exec(String.format("createtable %s %s %s %s", noArgPropOpt, copyOpt, src, dest),
+            false);
+        assertTrue(res.contains("mutually exclusive with"));
+      }
+      for (var propOpt : List.of("-prop", "-i", "-f", "-l")) {
+        res = ts.exec(
+            String.format("createtable %s %s %s %s %s", propOpt, optArg, copyOpt, src, dest),
+            false);
+        assertTrue(res.contains("mutually exclusive with"));
+      }
+    }
   }
 
   private Collection<Text> generateNonBinarySplits(final int numItems, final int len) {

@@ -33,12 +33,12 @@ import org.apache.accumulo.core.client.rfile.RFileSource;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
+import org.apache.accumulo.core.file.blockfile.cache.BlockCacheUtil;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
-import org.apache.accumulo.core.logging.LoggingBlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
@@ -196,8 +196,8 @@ public class SummaryReader {
       // the reason BCFile is used instead of RFile is to avoid reading in the RFile meta block when
       // only summary data is wanted.
       CompositeCache compositeCache =
-          new CompositeCache(LoggingBlockCache.wrap(CacheType.SUMMARY, summaryCache),
-              LoggingBlockCache.wrap(CacheType.INDEX, indexCache));
+          new CompositeCache(BlockCacheUtil.instrument(CacheType.SUMMARY, summaryCache),
+              BlockCacheUtil.instrument(CacheType.INDEX, indexCache));
       CachableBuilder cb = new CachableBuilder().fsPath(fs, file).conf(conf).fileLen(fileLenCache)
           .cacheProvider(new BasicCacheProvider(compositeCache, null)).cryptoService(cryptoService);
       bcReader = new CachableBlockFile.Reader(cb);

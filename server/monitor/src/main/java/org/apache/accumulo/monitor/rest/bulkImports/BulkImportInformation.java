@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.rest.bulkImports;
 
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk;
 
 /**
  * Stores bulk import in a JSON object
@@ -30,7 +30,7 @@ public class BulkImportInformation {
   // Variable names become JSON key
   public String filename;
   public long age;
-  public BulkImportState state;
+  public ListBulk.BulkState state;
 
   public BulkImportInformation() {}
 
@@ -41,7 +41,7 @@ public class BulkImportInformation {
    * @param age age of the bulk import
    * @param state state of the bulk import
    */
-  public BulkImportInformation(String filename, long age, BulkImportState state) {
+  public BulkImportInformation(String filename, long age, ListBulk.BulkState state) {
     this.filename = filename;
     this.age = age;
     this.state = state;

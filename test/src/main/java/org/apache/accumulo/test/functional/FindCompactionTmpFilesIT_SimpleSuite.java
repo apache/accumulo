@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -38,6 +39,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterAll;
@@ -94,7 +96,7 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       String tdir = tablesDirs.iterator().next() + "/" + tid.canonical() + "/default_tablet";
       Path defaultTabletPath = new Path(tdir);
-      assertTrue(fs.exists(defaultTabletPath));
+      Wait.waitFor(() -> fs.exists(defaultTabletPath));
 
       assertEquals(0, FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical()).size());
 
@@ -142,7 +144,7 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       String tdir = tablesDirs.iterator().next() + "/" + tid.canonical() + "/default_tablet";
       Path defaultTabletPath = new Path(tdir);
-      assertTrue(fs.exists(defaultTabletPath));
+      Wait.waitFor(() -> fs.exists(defaultTabletPath));
 
       assertEquals(0, FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical()).size());
 
@@ -158,9 +160,10 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
       assertEquals(100, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 
-      System.setProperty("accumulo.properties",
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
           "file://" + getCluster().getAccumuloPropertiesPath());
-      FindCompactionTmpFiles.main(new String[] {"--tables", tableName});
+      FindCompactionTmpFiles fctf = new FindCompactionTmpFiles();
+      fctf.execute(new String[] {"--tables", tableName});
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(100, foundPaths.size());
@@ -190,7 +193,7 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       String tdir = tablesDirs.iterator().next() + "/" + tid.canonical() + "/default_tablet";
       Path defaultTabletPath = new Path(tdir);
-      assertTrue(fs.exists(defaultTabletPath));
+      Wait.waitFor(() -> fs.exists(defaultTabletPath));
 
       assertEquals(0, FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical()).size());
 
@@ -206,14 +209,14 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
       assertEquals(100, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 
-      System.setProperty("accumulo.properties",
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
           "file://" + getCluster().getAccumuloPropertiesPath());
-      FindCompactionTmpFiles.main(new String[] {"--tables", tableName, "--delete"});
+      FindCompactionTmpFiles fctf = new FindCompactionTmpFiles();
+      fctf.execute(new String[] {"--tables", tableName, "--delete"});
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(0, foundPaths.size());
 
     }
   }
-
 }

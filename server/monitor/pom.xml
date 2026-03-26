@@ -30,6 +30,9 @@
   <artifactId>accumulo-monitor</artifactId>
   <name>Apache Accumulo Monitor Server</name>
   <description>A web server for monitoring Apache Accumulo.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.fasterxml.jackson.core</groupId>
@@ -50,11 +53,6 @@
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.service</groupId>
-      <artifactId>auto-service</artifactId>
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -99,10 +97,6 @@
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-start</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>

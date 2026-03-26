@@ -1300,6 +1300,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
       assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
 
+      result = ts.exec("getavailability -e m");
+      assertTrue(result.matches("(?s).*" + tableId + ";d<\\s+ONDEMAND.*"));
+      assertTrue(result.matches("(?s).*" + tableId + ";m;d\\s+ONDEMAND.*"));
+      assertFalse(result.matches("(?s).*" + tableId + ";s;m\\s+HOSTED.*"));
+      assertFalse(result.matches("(?s).*" + tableId + "<;s\\s+ONDEMAND.*"));
+
     } finally {
       if (splitsFilePath != null) {
         Files.delete(splitsFilePath);
@@ -2384,6 +2390,38 @@ public class ShellServerIT extends SharedMiniClusterBase {
         results.contains(tableId2 + "     m                    t                    HOSTED"));
     assertTrue(
         results.contains(tableId2 + "     t                    +INF                 ONDEMAND"));
+
+    String filtered = ts.exec("listtablets -np -t " + table1 + " -b h -e t", true);
+    assertTrue(
+        filtered.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertTrue(
+        filtered.contains(tableId1 + "     n                    u                    HOSTED"));
+    assertFalse(filtered.contains(tableId1 + "     -INF                 g"));
+    assertFalse(filtered.contains(tableId1 + "     u                    +INF"));
+
+    filtered = ts.exec("listtablets -np -t " + table1 + " -b n", true);
+    assertFalse(filtered.contains(tableId1 + "     -INF                 g"));
+    assertTrue(
+        filtered.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertTrue(
+        filtered.contains(tableId1 + "     n                    u                    HOSTED"));
+    assertTrue(
+        filtered.contains(tableId1 + "     u                    +INF                 ONDEMAND"));
+
+    filtered = ts.exec("listtablets -np -t " + table1 + " -e n", true);
+    assertTrue(
+        filtered.contains(tableId1 + "     -INF                 g                    HOSTED"));
+    assertTrue(
+        filtered.contains(tableId1 + "     g                    n                    ONDEMAND"));
+    assertFalse(
+        filtered.contains(tableId1 + "     n                    u                    HOSTED"));
+    assertFalse(filtered.contains(tableId1 + "     u                    +INF"));
+
+    filtered = ts.exec("listtablets -np -t " + table1 + " -b n -be", true);
+    assertFalse(filtered.contains(tableId1 + "     -INF                 g"));
+    assertFalse(filtered.contains(tableId1 + "     g                    n"));
+    assertTrue(filtered.contains(tableId1 + "     n                    u"));
+    assertTrue(filtered.contains(tableId1 + "     u                    +INF"));
 
     // verify the sum of the tablets sizes, number of entries, and dir name match the data in a
     // metadata scan

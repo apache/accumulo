@@ -409,9 +409,8 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
           EnumSet.allOf(IteratorScope.class));
       c.namespaceOperations().attachIterator(namespace, setting);
       Thread.sleep(SECONDS.toMillis(2));
-      var e = assertThrows(AccumuloException.class, () -> c.namespaceOperations()
-          .checkIteratorConflicts(namespace, setting, EnumSet.allOf(IteratorScope.class)));
-      assertEquals(IllegalArgumentException.class, e.getCause().getClass());
+      c.namespaceOperations().checkIteratorConflicts(namespace, setting,
+          EnumSet.allOf(IteratorScope.class));
       IteratorSetting setting2 = c.namespaceOperations().getIteratorSetting(namespace,
           setting.getName(), IteratorScope.scan);
       assertEquals(setting, setting2);
@@ -552,7 +551,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
   public void verifyConstraintInheritance() throws Exception {
     String t1 = namespace + ".1";
     c.namespaceOperations().create(namespace);
-    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaultIterators());
+    c.tableOperations().create(t1, new NewTableConfiguration().withoutDefaults());
     String constraintClassName = NumericValueConstraint.class.getName();
 
     assertFalse(

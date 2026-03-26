@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.crypto;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -36,7 +37,7 @@ import org.junit.jupiter.api.Test;
 
 public class BlockedIOStreamTest {
 
-  private static final SecureRandom random = new SecureRandom();
+  private static final SecureRandom random = RANDOM.get();
 
   @Test
   public void testLargeBlockIO() throws IOException {

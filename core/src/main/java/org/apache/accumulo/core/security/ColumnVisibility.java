@@ -29,8 +29,10 @@ import java.util.List;
 import java.util.TreeSet;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.access.Access;
 import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
@@ -39,6 +41,8 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparator;
 
 import com.google.common.base.Suppliers;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See
@@ -79,6 +83,8 @@ import com.google.common.base.Suppliers;
  * &quot;A#C&quot; &amp; B
  * </pre>
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnVisibility {
 
   // This functionality is deprecated so its setup as a supplier so it is only computed if the
@@ -521,7 +527,7 @@ public class ColumnVisibility {
   public ColumnVisibility(byte[] expression) {
     this.expression = expression;
     try {
-      AccessExpression.validate(this.expression);
+      BytesAccess.validate(this.expression);
     } catch (InvalidAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.
@@ -603,11 +609,11 @@ public class ColumnVisibility {
    *
    * @param term term to quote
    * @return quoted term (unquoted if unnecessary)
-   * @deprecated use {@link AccessExpression#quote(String)}
+   * @deprecated use {@link Access#quote(String)}
    */
   @Deprecated(since = "4.0.0")
   public static String quote(String term) {
-    return AccessExpression.quote(term);
+    return BytesAccess.quote(term);
   }
 
   /**
@@ -617,10 +623,10 @@ public class ColumnVisibility {
    * @param term term to quote, encoded as UTF-8 bytes
    * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
    * @see #quote(String)
-   * @deprecated use {@link AccessExpression#quote(byte[])}
+   * @deprecated use {@link Access#quote(String)}
    */
   @Deprecated(since = "4.0.0")
   public static byte[] quote(byte[] term) {
-    return AccessExpression.quote(term);
+    return BytesAccess.quote(term);
   }
 }

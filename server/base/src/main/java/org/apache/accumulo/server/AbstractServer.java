@@ -29,7 +29,7 @@ import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -96,7 +96,7 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
+  protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
     log = LoggerFactory.getLogger(getClass());
@@ -109,12 +109,12 @@ public abstract class AbstractServer
         && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       this.bindAddress = newBindParameter;
     } else {
-      this.bindAddress = ConfigOpts.BIND_ALL_ADDRESSES;
+      this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
       HostAndPort advertHP = HostAndPort.fromString(advertAddr);
-      if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
+      if (advertHP.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
       advertiseAddress = new AtomicReference<>(advertHP);
@@ -288,6 +288,10 @@ public abstract class AbstractServer
     log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
+      System.err.println("Uncaught execption in AbstractServer.runServer");
+      thrown.printStackTrace();
+      System.err.flush();
+      log.error("Uncaught exception ", thrown);
       if (thrown instanceof Error) {
         throw (Error) thrown;
       }
@@ -347,17 +351,13 @@ public abstract class AbstractServer
    * advertise address based on the address to which the ThriftServer is bound
    *
    * @param supplier ThriftServer
-   * @param start true to start the server, else false
    * @throws UnknownHostException thrown from ThriftServer when binding to bad address
    */
-  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
-      throws UnknownHostException {
+  protected void updateThriftServer(ThriftServerSupplier supplier) throws UnknownHostException {
     thriftServer = supplier.get();
-    if (start) {
-      thriftServer.startThriftServer("Thrift Client Server");
-      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
-          thriftServer.address);
-    }
+    thriftServer.startThriftServer("Thrift Client Server");
+    log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+        thriftServer.address);
     updateAdvertiseAddress(thriftServer.address);
   }
 
@@ -449,8 +449,9 @@ public abstract class AbstractServer
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
                 if (serverThread.isAlive()) {
-                  // throw an Error, which will cause this process to be terminated
-                  throw new Error("Sleep interrupted in ServiceLock verification thread");
+                  // this is marked as a critical thread, and will halt the process when it dies
+                  throw new IllegalStateException(
+                      "Sleep interrupted in ServiceLock verification thread", e);
                 }
               }
             }

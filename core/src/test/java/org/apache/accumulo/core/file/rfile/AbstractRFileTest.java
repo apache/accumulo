@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
@@ -70,7 +69,6 @@ import org.apache.hadoop.io.Text;
 
 public abstract class AbstractRFileTest {
 
-  protected static final SecureRandom random = new SecureRandom();
   protected static final Collection<ByteSequence> EMPTY_COL_FAMS = List.of();
 
   protected AccumuloConfiguration conf = null;

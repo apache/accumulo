@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Properties;
@@ -64,4 +65,14 @@ public class TestClientOpts {
     assertTrue(opts.getToken().equals(new PasswordToken("mypass")));
     assertEquals("myinst", props.getProperty("instance.name"));
   }
+
+  @Test
+  public void testSasl() throws Exception {
+    ClientOpts opts = new ClientOpts();
+    String[] args =
+        new String[] {"--password", "mypass", "-u", "userabc", "-o", "instance.name=myinst", "-o",
+            "instance.zookeepers=zoo1,zoo2", "-o", "auth.principal=user123", "--sasl"};
+    assertThrows(IllegalArgumentException.class, () -> opts.parseArgs("test", args));
+  }
+
 }

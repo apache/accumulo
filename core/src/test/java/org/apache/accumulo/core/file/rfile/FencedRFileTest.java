@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -487,7 +488,7 @@ public class FencedRFileTest extends AbstractRFileTest {
     // test seeking to random location and reading all data from that point
     // there was an off by one bug with this in the transient index
     for (int i = 0; i < 12; i++) {
-      index = random.nextInt(expectedKeys.size());
+      index = RANDOM.get().nextInt(expectedKeys.size());
       seek(trfIter, expectedKeys.get(index));
       for (; index < expectedKeys.size(); index++) {
         assertTrue(trfIter.hasTop());

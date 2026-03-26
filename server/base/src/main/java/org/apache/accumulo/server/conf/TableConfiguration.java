@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -46,6 +47,8 @@ import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class TableConfiguration extends ZooBasedConfiguration {
 
@@ -69,6 +72,19 @@ public class TableConfiguration extends ZooBasedConfiguration {
         Map<String,Map<String,String>> allOpts = new HashMap<>();
         List<IterInfo> iters =
             IteratorConfigUtil.parseIterConf(scope, Collections.emptyList(), allOpts, conf);
+        // check for duplicate priorities
+        if (!iters.isEmpty()) {
+          for (int i = 1; i < iters.size(); i++) {
+            IterInfo last = iters.get(i - 1);
+            IterInfo curr = iters.get(i);
+            // This code assumes the list of iterators is sorted on priority
+            Preconditions.checkState(last.getPriority() <= curr.getPriority());
+            if (last.getPriority() == curr.getPriority()) {
+              throw new IllegalStateException(String.format(
+                  "iterator priority conflict seen for tableId:%s %s %s", tableId, last, curr));
+            }
+          }
+        }
         return new ParsedIteratorConfig(iters, allOpts, ClassLoaderUtil.tableContext(conf));
       }));
     }
@@ -93,6 +109,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
     private final List<IterInfo> tableIters;
     private final Map<String,Map<String,String>> tableOpts;
     private final String context;
+    private final Set<String> uniqueNames;
+    private final Set<Integer> uniquePriorities;
 
     private ParsedIteratorConfig(List<IterInfo> ii, Map<String,Map<String,String>> opts,
         String context) {
@@ -100,6 +118,10 @@ public class TableConfiguration extends ZooBasedConfiguration {
       tableOpts = opts.entrySet().stream()
           .collect(Collectors.toUnmodifiableMap(Entry::getKey, e -> Map.copyOf(e.getValue())));
       this.context = context;
+      uniqueNames =
+          tableIters.stream().map(IterInfo::getIterName).collect(Collectors.toUnmodifiableSet());
+      uniquePriorities =
+          tableIters.stream().map(IterInfo::getPriority).collect(Collectors.toUnmodifiableSet());
     }
 
     public List<IterInfo> getIterInfo() {
@@ -112,6 +134,14 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
     public String getServiceEnv() {
       return context;
+    }
+
+    public Set<String> getUniqueNames() {
+      return uniqueNames;
+    }
+
+    public Set<Integer> getUniquePriorities() {
+      return uniquePriorities;
     }
   }
 

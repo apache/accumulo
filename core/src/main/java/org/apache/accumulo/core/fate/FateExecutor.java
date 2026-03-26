@@ -33,6 +33,7 @@ import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -43,6 +44,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BooleanSupplier;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
@@ -81,6 +84,7 @@ public class FateExecutor<T> {
   private final Set<Fate.FateOperation> fateOps;
   private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
   private final FateExecutorMetrics<T> fateExecutorMetrics;
+  private final AtomicReference<Set<FatePartition>> partitions = new AtomicReference<>(Set.of());
 
   public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize,
       String name) {
@@ -298,6 +302,11 @@ public class FateExecutor<T> {
     return idleCountHistory;
   }
 
+  public void setPartitions(Set<FatePartition> partitions) {
+    Objects.requireNonNull(partitions);
+    this.partitions.set(Set.copyOf(partitions));
+  }
+
   /**
    * A single thread that finds transactions to work on and queues them up. Do not want each worker
    * thread going to the store and looking for work as it would place more load on the store.
@@ -308,7 +317,12 @@ public class FateExecutor<T> {
     public void run() {
       while (fate.getKeepRunning().get() && !isShutdown()) {
         try {
-          fate.getStore().runnable(fate.getKeepRunning(), fateIdStatus -> {
+          var localPartitions = partitions.get();
+          // if the set of partitions changes, we should stop looking for work w/ the old set of
+          // partitions
+          BooleanSupplier keepRunning =
+              () -> fate.getKeepRunning().get() && localPartitions == partitions.get();
+          fate.getStore().runnable(localPartitions, keepRunning, fateIdStatus -> {
             // The FateId with the fate operation 'fateOp' is workable by this FateExecutor if
             // 1) This FateExecutor is assigned to work on 'fateOp' ('fateOp' is in 'fateOps')
             // 2) The transaction was cancelled while NEW. This is an edge case that needs to be
@@ -319,7 +333,7 @@ public class FateExecutor<T> {
             var fateOp = fateIdStatus.getFateOperation().orElse(null);
             if ((fateOp != null && fateOps.contains(fateOp))
                 || txCancelledWhileNew(status, fateOp)) {
-              while (fate.getKeepRunning().get() && !isShutdown()) {
+              while (keepRunning.getAsBoolean() && !isShutdown()) {
                 try {
                   // The reason for calling transfer instead of queueing is avoid rescanning the
                   // storage layer and adding the same thing over and over. For example if all
@@ -394,6 +408,24 @@ public class FateExecutor<T> {
       return Optional.empty();
     }
 
+    private boolean isInterruptedException(Throwable e) {
+      if (e == null) {
+        return false;
+      }
+
+      if (e instanceof InterruptedException) {
+        return true;
+      }
+
+      for (Throwable suppressed : e.getSuppressed()) {
+        if (isInterruptedException(suppressed)) {
+          return true;
+        }
+      }
+
+      return isInterruptedException(e.getCause());
+    }
+
     @Override
     public void run() {
       runnerLog.trace("A TransactionRunner is starting for {} {} ", fate.getStore().type(),
@@ -419,6 +451,12 @@ public class FateExecutor<T> {
             } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
               try {
                 execute(txStore, state);
+                // It's possible that a Fate operation impl
+                // may not do the right thing with an
+                // InterruptedException.
+                if (Thread.currentThread().isInterrupted()) {
+                  throw new InterruptedException("Fate Transaction Runner thread interrupted");
+                }
                 if (state.op != null && state.deferTime != 0) {
                   // The current op is not ready to execute
                   continue;
@@ -429,9 +467,21 @@ public class FateExecutor<T> {
                 transitionToFailed(txStore, e);
                 continue;
               } catch (Exception e) {
-                blockIfHadoopShutdown(txStore.getID(), e);
-                transitionToFailed(txStore, e);
-                continue;
+                if (!isInterruptedException(e)) {
+                  blockIfHadoopShutdown(txStore.getID(), e);
+                  transitionToFailed(txStore, e);
+                  continue;
+                } else {
+                  if (fate.getKeepRunning().get()) {
+                    throw e;
+                  } else {
+                    // If we are shutting down then Fate.shutdown was called
+                    // and ExecutorService.shutdownNow was called resulting
+                    // in this exception. We will exit at the top of the loop.
+                    Thread.interrupted();
+                    continue;
+                  }
+                }
               }
 
               if (state.op == null) {
@@ -447,9 +497,23 @@ public class FateExecutor<T> {
           } catch (Exception e) {
             String name = state.op == null ? null : state.op.getName();
             FateId txid = txStore == null ? null : txStore.getID();
-            runnerLog.error(
-                "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
-                txid, state.status, e);
+            if (isInterruptedException(e)) {
+              if (fate.getKeepRunning().get()) {
+                runnerLog.error(
+                    "Uncaught InterruptedException in FATE runner thread processing {} id: {} status: {}",
+                    name, txid, state.status, e);
+              } else {
+                // If we are shutting down then Fate.shutdown was called
+                // and ExecutorService.shutdownNow was called resulting
+                // in this exception. We will exit at the top of the loop,
+                // so continue this loop iteration normally.
+                Thread.interrupted();
+              }
+            } else {
+              runnerLog.error(
+                  "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
+                  txid, state.status, e);
+            }
           } finally {
             if (txStore != null) {
               if (runnerLog.isTraceEnabled()) {

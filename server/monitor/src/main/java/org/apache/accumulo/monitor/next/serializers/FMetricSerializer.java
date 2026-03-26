@@ -47,18 +47,22 @@ public class FMetricSerializer extends JsonSerializer<FMetric> {
       gen.writeEndObject();
     }
     gen.writeEndArray();
-    // Write the non-zero number as the value
-    if (fm.lvalue() > 0) {
-      gen.writeNumberField("value", fm.lvalue());
-    } else if (fm.ivalue() > 0) {
+    serializeValueField(gen, fm);
+    gen.writeEndObject();
+
+  }
+
+  public static void serializeValueField(JsonGenerator gen, FMetric fm) throws IOException {
+    // Write the number as the value (preserve negatives)
+    if (fm.ivalue() != 0) {
       gen.writeNumberField("value", fm.ivalue());
-    } else if (fm.dvalue() > 0.0d) {
+    } else if (fm.lvalue() != 0L) {
+      gen.writeNumberField("value", fm.lvalue());
+    } else if (fm.dvalue() != 0.0d) {
       gen.writeNumberField("value", fm.dvalue());
     } else {
       gen.writeNumberField("value", 0);
     }
-    gen.writeEndObject();
-
   }
 
 }

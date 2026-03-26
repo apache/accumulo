@@ -18,8 +18,10 @@
 #
 
 manager:
-  - localhost1
-  - localhost2
+  servers_per_host: 2
+  hosts:
+    - localhost1
+    - localhost2
 
 monitor:
   - localhost1

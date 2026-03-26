@@ -31,6 +31,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,7 +41,7 @@ public class LowMemoryDetector {
   private static class LowMemDetectorState {
     private long lastMemorySize = 0;
     private int lowMemCount = 0;
-    private long lastMemoryCheckTime = 0;
+    private Timer lastMemoryCheckTimer = null;
     private boolean runningLowOnMemory = false;
   }
 
@@ -101,7 +102,6 @@ public class LowMemoryDetector {
     memCheckTimeLock.lock();
     try {
       LowMemDetectorState localState = state.get();
-      final long now = TimeUnit.NANOSECONDS.toMillis(System.nanoTime());
 
       List<GarbageCollectorMXBean> gcmBeans = ManagementFactory.getGarbageCollectorMXBeans();
 
@@ -171,15 +171,16 @@ public class LowMemoryDetector {
       }
 
       final long keepAliveTimeout = conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-      if (localState.lastMemoryCheckTime > 0 && localState.lastMemoryCheckTime < now) {
-        final long diff = now - localState.lastMemoryCheckTime;
-        if (diff > keepAliveTimeout + 1000) {
+      if (localState.lastMemoryCheckTimer != null) {
+        if (localState.lastMemoryCheckTimer.hasElapsed(keepAliveTimeout + 1000,
+            TimeUnit.MILLISECONDS)) {
+          final long diff = localState.lastMemoryCheckTimer.elapsed(TimeUnit.MILLISECONDS);
           LOG.warn(String.format(
               "GC pause checker not called in a timely"
                   + " fashion. Expected every %.1f seconds but was %.1f seconds since last check",
               keepAliveTimeout / 1000., diff / 1000.));
         }
-        localState.lastMemoryCheckTime = now;
+        localState.lastMemoryCheckTimer.restart();
         return;
       }
 
@@ -188,7 +189,7 @@ public class LowMemoryDetector {
       }
 
       localState.lastMemorySize = freeMemory;
-      localState.lastMemoryCheckTime = now;
+      localState.lastMemoryCheckTimer = Timer.startNew();
     } finally {
       memCheckTimeLock.unlock();
     }

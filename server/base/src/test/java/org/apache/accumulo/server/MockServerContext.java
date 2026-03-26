@@ -38,6 +38,7 @@ public class MockServerContext {
   public static ServerContext get() {
     ServerContext context = EasyMock.createMock(ServerContext.class);
     ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
+    conf.set(Property.INSTANCE_RPC_SASL_ENABLED, "false");
     conf.set(Property.INSTANCE_VOLUMES, "file:///");
     expect(context.getConfiguration()).andReturn(conf).anyTimes();
     return context;

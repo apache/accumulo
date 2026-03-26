@@ -70,7 +70,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Cl
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
@@ -194,7 +194,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       try {
         LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration());
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' resulted in bad locality group config. This may be a transient situation since "
             + "the config spreads over multiple properties. Setting properties in a different "

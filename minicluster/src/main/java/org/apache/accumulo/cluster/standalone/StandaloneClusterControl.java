@@ -36,7 +36,7 @@ import org.apache.accumulo.cluster.RemoteShellOptions;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,7 +133,7 @@ public class StandaloneClusterControl implements ClusterControl {
   @Override
   public void adminStopAll() throws IOException {
     String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
-    String[] cmd = {serverCmdPrefix, accumuloPath, Admin.class.getName(), "stopAll"};
+    String[] cmd = {serverCmdPrefix, accumuloPath, StopAll.class.getName()};
     // Directly invoke the RemoteShell
     Entry<Integer,String> pair = exec(manager, cmd);
     if (pair.getKey() != 0) {

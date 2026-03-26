@@ -23,6 +23,9 @@
         <h3>${title}</h3>
       </div>
     </div>
+    <div id="tserversManagerBanner" style="display: none;">
+      <div class="alert alert-danger" role="alert">Manager Not Running</div>
+    </div>
     <div class="row">
       <div class="col-xs-12">
         <span id="recovery-caption" style="background-color: gold; display: none;">Highlighted rows correspond to tservers in recovery mode.</span>
@@ -45,34 +48,6 @@
               <th title="The recent index cache hit rate." class="percent">Index Cache<br />Hit Rate&nbsp;</th>
               <th title="The recent data cache hit rate." class="percent">Data Cache<br />Hit Rate&nbsp;</th>
               <th title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval."class="big-num">OS&nbsp;Load&nbsp;</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <br />
-        <table id="badtservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Non-Functioning Tablet Servers</span><br />
-            <span class="table-subcaption">The following tablet servers reported a status other than Online.</span><br />
-          </caption>
-          <thead>
-            <tr>
-              <th>Server</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <br />
-        <table id="deadtservers" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Dead Tablet Servers</span><br />
-            <span class="table-subcaption">The following tablet servers are no longer reachable.</span><br />
-          </caption>
-          <thead>
-            <tr>
-              <th>Server</th>
-              <th class="date">Last Updated</th>
-              <th>Event</th>
-              <th>Clear</th>
             </tr>
           </thead>
           <tbody></tbody>

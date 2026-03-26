@@ -19,26 +19,21 @@
 package org.apache.accumulo.miniclusterImpl;
 
 import org.apache.accumulo.minicluster.MiniAccumuloRunner;
+import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class MiniClusterExecutable implements KeywordExecutable {
+public class MiniClusterExecutable extends ServerProcessKeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "minicluster";
+  public MiniClusterExecutable() {
+    super("minicluster", "MiniCluster");
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo minicluster";
+  public Object getOptions() {
+    return new MiniAccumuloRunner.Opts();
   }
 
   @Override

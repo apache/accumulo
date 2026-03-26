@@ -69,7 +69,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.security.SystemCredentials;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.commons.configuration2.PropertiesConfiguration;
@@ -268,7 +268,7 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
     }
 
     if (cleanShutdown) {
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
     }
 
     cluster.stop();

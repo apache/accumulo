@@ -18,25 +18,25 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 
 public class SystemFilesCheckRunner implements CheckRunner {
-  private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.SYSTEM_FILES;
+  private static final Check check = Check.SYSTEM_FILES;
 
   @Override
-  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+      throws Exception {
+    boolean status = true;
     printRunning();
 
     log.trace("********** Looking for missing system files **********");
     if (RemoveEntriesForMissingFiles.checkTable(context, SystemTables.METADATA.tableName(),
         fixFiles, log::trace, log::warn) != 0) {
-      status = Admin.CheckCommand.CheckStatus.FAILED;
+      status &= false;
     }
 
     printCompleted(status);
@@ -44,7 +44,7 @@ public class SystemFilesCheckRunner implements CheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.Check getCheck() {
+  public Check getCheck() {
     return check;
   }
 }

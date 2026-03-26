@@ -19,23 +19,18 @@
 package org.apache.accumulo.server.util.checkCommand;
 
 import java.util.AbstractMap;
-import java.util.Set;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
-import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
 
 public class RootTableCheckRunner implements MetadataCheckRunner {
-  private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.ROOT_TABLE;
+  private static final Check check = Check.ROOT_TABLE;
 
   @Override
   public String tableName() {
@@ -48,45 +43,31 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public Set<ColumnFQ> requiredColFQs() {
-    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN);
-  }
-
-  @Override
-  public Set<Text> requiredColFams() {
-    return Set.of(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
-  }
-
-  @Override
-  public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
-      boolean fixFiles) throws Exception {
-    Admin.CheckCommand.CheckStatus status = Admin.CheckCommand.CheckStatus.OK;
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+      throws Exception {
+    boolean status = true;
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
     if (FindOfflineTablets.findOffline(context, SystemTables.METADATA.tableName(), true, false,
         log::trace, log::warn) != 0) {
-      status = Admin.CheckCommand.CheckStatus.FAILED;
+      status &= false;
     } else {
       log.trace("All good... No offline tablets found");
     }
 
     log.trace("********** Checking some references **********");
-    if (CheckForMetadataProblems.checkMetadataAndRootTableEntries(tableName(), opts, log::trace,
-        log::warn)) {
-      status = Admin.CheckCommand.CheckStatus.FAILED;
+    if (MetadataCheckRunner.checkTableEntries(context, tableName(), log::trace, log::warn)) {
+      status &= false;
     }
 
     log.trace("********** Looking for missing columns **********");
-    status = checkRequiredColumns(context, status);
+    status &= checkRequiredColumns(context);
 
     log.trace("********** Looking for invalid columns **********");
     try (Scanner scanner = context.createScanner(tableName(), Authorizations.EMPTY)) {
-      status = checkColumns(context,
-          scanner.stream().map(AbstractMap.SimpleImmutableEntry::new).iterator(), status);
+      status &= checkColumns(context,
+          scanner.stream().map(AbstractMap.SimpleImmutableEntry::new).iterator());
     }
 
     printCompleted(status);
@@ -94,7 +75,7 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public Admin.CheckCommand.Check getCheck() {
+  public Check getCheck() {
     return check;
   }
 }

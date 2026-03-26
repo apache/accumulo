@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.core.iteratorsImpl.system;
 
-import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
  * class.
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
-  protected final AccessEvaluator ve;
+  protected final BytesAccess.BytesEvaluator ve;
   protected final ArrayByteSequence defaultVisibility;
   protected final LRUMap<ByteSequence,Boolean> cache;
   protected final Authorizations authorizations;
@@ -53,7 +53,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
   private VisibilityFilter(SortedKeyValueIterator<Key,Value> iterator,
       Authorizations authorizations, byte[] defaultVisibility) {
     super(iterator);
-    this.ve = AccessEvaluator.of(authorizations.toAccessAuthorizations());
+    this.ve = BytesAccess.newEvaluator(authorizations);
     this.authorizations = authorizations;
     this.defaultVisibility = new ArrayByteSequence(defaultVisibility);
     this.cache = new LRUMap<>(1000);

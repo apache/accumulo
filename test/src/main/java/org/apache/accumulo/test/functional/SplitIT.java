@@ -76,7 +76,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.CheckForMetadataProblems;
+import org.apache.accumulo.server.util.checkCommand.MetadataCheckRunner;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -274,8 +274,7 @@ public class SplitIT extends AccumuloClusterHarness {
         assertTrue(count > 10, "Count should be greater than 10: " + count);
       }
 
-      assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
-          new String[] {"-c", cluster.getClientPropsPath()}));
+      MetadataCheckRunner.checkMetadataAndRootTableEntries(getCluster().getServerContext());
     }
   }
 

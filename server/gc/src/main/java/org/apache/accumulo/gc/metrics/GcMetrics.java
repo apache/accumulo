@@ -33,8 +33,6 @@ import static org.apache.accumulo.core.metrics.Metric.GC_WAL_FINISHED;
 import static org.apache.accumulo.core.metrics.Metric.GC_WAL_IN_USE;
 import static org.apache.accumulo.core.metrics.Metric.GC_WAL_STARTED;
 
-import java.util.concurrent.TimeUnit;
-
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
 
@@ -81,8 +79,7 @@ public class GcMetrics implements MetricsProducer {
     Gauge.builder(GC_WAL_ERRORS.getName(), metricValues, v -> v.getLastWalCollect().getErrors())
         .description(GC_WAL_ERRORS.getDescription()).register(registry);
     Gauge
-        .builder(GC_POST_OP_DURATION.getName(), metricValues,
-            v -> TimeUnit.NANOSECONDS.toMillis(v.getPostOpDurationNanos()))
+        .builder(GC_POST_OP_DURATION.getName(), metricValues, v -> v.getPostOpDuration().toMillis())
         .description(GC_POST_OP_DURATION.getDescription()).register(registry);
     Gauge.builder(GC_RUN_CYCLE.getName(), metricValues, GcCycleMetrics::getRunCycleCount)
         .description(GC_RUN_CYCLE.getDescription()).register(registry);

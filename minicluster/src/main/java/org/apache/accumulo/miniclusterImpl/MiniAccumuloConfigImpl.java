@@ -33,9 +33,11 @@ import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -88,6 +90,7 @@ public class MiniAccumuloConfigImpl {
   private final Map<ServerType,Function<String,Class<?>>> rgServerClassOverrides = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
+  private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
@@ -174,7 +177,6 @@ public class MiniAccumuloConfigImpl {
       // enable metrics reporting - by default will appear in standard log files.
       mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
 
-      mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
@@ -187,8 +189,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-
-      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
@@ -640,6 +640,16 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<>(systemProperties);
+  }
+
+  /**
+   * Get the set of JVM options. Changes to this set will affect the Configuration
+   *
+   * @return set of options
+   * @since 2.1.5
+   */
+  public Set<String> getJvmOptions() {
+    return jvmOptions;
   }
 
   /**

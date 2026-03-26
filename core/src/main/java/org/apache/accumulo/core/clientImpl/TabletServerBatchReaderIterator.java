@@ -91,7 +91,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.net.HostAndPort;
 
-public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
+public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value>> {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchReaderIterator.class);
 
@@ -421,11 +421,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
       Map<KeyExtent,List<Range>> tsFailures = new HashMap<>();
       try {
-        TimeoutTracker timeoutTracker = timeoutTrackers.get(tsLocation);
-        if (timeoutTracker == null) {
-          timeoutTracker = new TimeoutTracker(tsLocation, timedoutServers, retryTimeout);
-          timeoutTrackers.put(tsLocation, timeoutTracker);
-        }
+        TimeoutTracker timeoutTracker = timeoutTrackers.computeIfAbsent(tsLocation,
+            key -> new TimeoutTracker(key, timedoutServers, retryTimeout));
         doLookup(context, tsLocation, tabletsRanges, tsFailures, unscanned, receiver, columns,
             options, authorizations, timeoutTracker, busyTimeout);
 
@@ -881,11 +878,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Timer timer = null;
 
         if (log.isTraceEnabled()) {
-          log.trace(
-              "tid={} Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}",
-              Thread.currentThread().getId(), server, requested.size(),
-              sumSizes(requested.values()), options.serverSideIteratorList,
-              options.serverSideIteratorOptions);
+          log.trace("Starting multi scan, tserver={}  #tablets={}  #ranges={} ssil={} ssio={}",
+              server, requested.size(), sumSizes(requested.values()),
+              options.serverSideIteratorList, options.serverSideIteratorOptions);
 
           timer = Timer.startNew();
         }
@@ -917,8 +912,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         MultiScanResult scanResult = imsr.result;
 
         if (timer != null) {
-          log.trace("tid={} Got 1st multi scan results, #results={} {} in {}",
-              Thread.currentThread().getId(), scanResult.results.size(),
+          log.trace("Got 1st multi scan results, #results={} {} in {}", scanResult.results.size(),
               (scanResult.more ? "scanID=" + imsr.scanID : ""),
               String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
         }
@@ -945,17 +939,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           timeoutTracker.check();
 
           if (timer != null) {
-            log.trace("tid={} oid={} Continuing multi scan, scanid={}",
-                Thread.currentThread().getId(), nextOpid.get(), imsr.scanID);
+            log.trace("oid={} Continuing multi scan, scanid={}", nextOpid.get(), imsr.scanID);
             timer.restart();
           }
 
           scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID, busyTimeout);
 
           if (timer != null) {
-            log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
-                Thread.currentThread().getId(), nextOpid.getAndIncrement(),
-                scanResult.results.size(), (scanResult.more ? " scanID=" + imsr.scanID : ""),
+            log.trace("oid={} Got more multi scan results, #results={} {} in {}",
+                nextOpid.getAndIncrement(), scanResult.results.size(),
+                (scanResult.more ? " scanID=" + imsr.scanID : ""),
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
           }
 

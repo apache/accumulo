@@ -106,9 +106,9 @@ public class MinorCompactor extends FileCompactor {
           }
 
           return ret;
-        } catch (IOException | ReflectiveOperationException | UnsatisfiedLinkError e) {
+        } catch (IOException | ReflectiveOperationException e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-        } catch (RuntimeException | NoClassDefFoundError e) {
+        } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the
           // iterator config and that the minor compaction would succeed
           // If the minor compaction stalls for too long during recovery, it can interfere with

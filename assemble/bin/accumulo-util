@@ -149,7 +149,7 @@ function main() {
       build_native "${@:2}"
       ;;
     dump-zoo)
-      "$bin"/accumulo org.apache.accumulo.server.util.DumpZookeeper "${@:2}"
+      "$bin"/accumulo config dump-zoo "${@:2}"
       ;;
     gen-monitor-cert)
       gen_monitor_cert

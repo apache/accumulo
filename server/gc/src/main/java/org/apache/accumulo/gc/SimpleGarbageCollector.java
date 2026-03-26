@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -33,7 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -93,7 +94,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final Timer lastCompactorCheck = Timer.startNew();
 
-  protected SimpleGarbageCollector(ConfigOpts opts, String[] args) {
+  protected SimpleGarbageCollector(ServerOpts opts, String[] args) {
     super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -110,7 +111,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new SimpleGarbageCollector(new ConfigOpts(), args), log);
+    AbstractServer.startServer(new SimpleGarbageCollector(new ServerOpts(), args), log);
   }
 
   /**
@@ -216,7 +217,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         try (Scope outerScope = outerSpan.makeCurrent()) {
           Span innerSpan = TraceUtil.startSpan(this.getClass(), "loop");
           try (Scope innerScope = innerSpan.makeCurrent()) {
-            final long tStart = System.nanoTime();
+            final Timer timer = Timer.startNew();
             try {
               System.gc(); // make room
 
@@ -250,9 +251,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               status.current = new GcCycleStats();
             }
 
-            final long tStop = System.nanoTime();
             log.info(String.format("Collect cycle took %.2f seconds",
-                (TimeUnit.NANOSECONDS.toMillis(tStop - tStart) / 1000.0)));
+                timer.elapsed(MILLISECONDS) / 1000.0));
 
             // Clean up any unused write-ahead logs
             Span walSpan = TraceUtil.startSpan(this.getClass(), "walogs");
@@ -279,7 +279,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           try {
             AccumuloClient accumuloClient = getContext();
 
-            final long actionStart = System.nanoTime();
+            final Timer actionTimer = Timer.startNew();
 
             String action = getConfiguration().get(Property.GC_USE_FULL_COMPACTION);
             log.debug("gc post action {} started", action);
@@ -301,12 +301,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
                 log.trace("'none - no action' or invalid value provided: {}", action);
             }
 
-            final long actionComplete = System.nanoTime();
+            final Duration actionDuration = actionTimer.elapsed();
+            gcCycleMetrics.setPostOpDuration(actionDuration);
 
-            gcCycleMetrics.setPostOpDurationNanos(actionComplete - actionStart);
-
-            log.info("gc post action {} completed in {} seconds", action, String.format("%.2f",
-                (TimeUnit.NANOSECONDS.toMillis(actionComplete - actionStart) / 1000.0)));
+            log.info("gc post action {} completed in {} seconds", action,
+                String.format("%.2f", actionDuration.toMillis() / 1000.0));
 
           } catch (Exception e) {
             TraceUtil.setException(outerSpan, e, false);
@@ -429,9 +428,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           processor, getContext().getInstanceID(), this.getClass().getSimpleName(), 2,
           ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
           getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
+          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
           addresses);
-    }, true);
+    });
   }
 
   /**

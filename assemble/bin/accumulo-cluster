@@ -36,7 +36,7 @@ $(cyan Options):
     $(green --local)                  Operates on matching local services only (no SSH)
 
   $(cyan 'Service type selection options (if none are used, all service types are selected)'):
-    $(green --manager)                Selects the manager service (oversees cluster operations)
+    $(green --managers)               Selects the manager services (oversees cluster operations)
     $(green --gc)                     Selects the gc service (cleans up unused files)
     $(green --monitor)                Selects the monitor web service (shows cluster information)
     $(green --tservers)[$(yellow '=group')]       Selects the tablet server services (read/write operations on tablets)
@@ -58,11 +58,11 @@ $(cyan Examples):
   $(purple 'accumulo-cluster start')                                             $(blue '# start all servers')
   $(purple 'accumulo-cluster start --dry-run')                                   $(blue '# print debug information and commands to be executed')
   $(purple 'accumulo-cluster start --local')                                     $(blue '# start all local services')
-  $(purple 'accumulo-cluster start --local --manager')                           $(blue '# start local manager services')
+  $(purple 'accumulo-cluster start --local --managers')                          $(blue '# start local manager services')
   $(purple 'accumulo-cluster start --tservers')                                  $(blue '# start all tservers')
   $(purple 'accumulo-cluster start --sservers=group1')                           $(blue '# start all group1 sservers')
   $(purple 'accumulo-cluster start --sservers="group1 group2"')                  $(blue '# start all group1 and group2 sservers')
-  $(purple 'accumulo-cluster start --local --manager --tservers')                $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster start --local --managers --tservers')               $(blue '# Start the local managers and local tservers')
   $(purple 'accumulo-cluster prune --compactors')                                $(blue '# prune all extra compactors across all groups')
   $(purple 'accumulo-cluster prune --compactors="group1"')                       $(blue '# prune extra compactors running in group1')
 
@@ -144,7 +144,7 @@ function parse_args() {
         ARG_LOCAL=1
         shift 1
         ;;
-      --manager)
+      --managers)
         ARG_ALL=0
         ARG_MANAGER=1
         shift 1
@@ -210,8 +210,6 @@ function parse_args() {
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
-  debug "ARG_CREATE_MISSING_RG=$ARG_CREATE_MISSING_RG"
-
 }
 
 function invalid_args() {
@@ -299,7 +297,7 @@ function parse_config() {
     exit 1
   fi
 
-  AC_TMP_DIR=$(mktemp -t -d "accumulo-cluster-XXXXXXXX") || exit 1
+  AC_TMP_DIR=$(mktemp -t -d "accumulo-cluster-XXXXXXXX") || (echo "Error creating temp file" && exit 1)
   if isDebug; then
     echo "$(blue DEBUG): Temporary files for this run are in $AC_TMP_DIR"
   else
@@ -308,7 +306,7 @@ function parse_config() {
 
   RG_FILE="$AC_TMP_DIR/ZooInfoViewer.out"
   debug "Printing resource groups to $RG_FILE"
-  "$accumulo_cmd" zoo-info-viewer --print-resource-groups >"$RG_FILE" || exit 1
+  "$accumulo_cmd" conf zoo-info-viewer --print-resource-groups >"$RG_FILE" || (echo "Error getting resource groups. Did you init?" && exit 1)
   read -r -a all_resource_groups <<<"$(grep -F 'Resource Groups: ' "$RG_FILE" | cut -c18-)"
   debug "All resource groups: ${all_resource_groups[*]}"
 
@@ -466,7 +464,7 @@ function control_services() {
         fi
       done
       # Try to cleanly stop the TabletServers and Manager
-      if ! "$accumulo_cmd" admin stopAll; then
+      if ! "$accumulo_cmd" proc stop-all; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
         sleep 10
@@ -486,9 +484,9 @@ function control_services() {
       for group in $tserver_groups; do
         G="TSERVER_HOSTS_$group"
         for tserver in ${!G}; do
-          debug "Stopping tservers on $addr via admin command"
+          debug "Stopping tservers on $addr via 'proc stop' command"
           if echo "$tserver" | grep -q "$addr"; then
-            debugOrRunAsync "$accumulo_cmd" admin stop "$addr"
+            debugOrRunAsync "$accumulo_cmd" proc stop "$addr"
           fi
         done
       done
@@ -528,7 +526,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -582,7 +580,7 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -607,14 +605,14 @@ function control_services() {
         # before zapping the nodes in ZooKeeper
         wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors --include-groups "$group"
+        debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -managers -tservers -compactors -sservers --gc --monitor
   fi
 
   wait
@@ -647,7 +645,7 @@ function prune_group() {
   local lockTypeOpt
   case $service_type in
     manager)
-      lockTypeOpt="-manager"
+      lockTypeOpt="-managers"
       ;;
     compaction-coordinator)
       lockTypeOpt="-compaction-coordinators"
@@ -674,9 +672,9 @@ function prune_group() {
   esac
 
   if isDebug; then
-    "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
+    "$accumulo_cmd" proc zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file" --dry-run
   else
-    "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
+    "$accumulo_cmd" proc zoo-zap "$lockTypeOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
   fi
 }
 
@@ -720,7 +718,7 @@ function prune() {
     exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json >"$service_json" 2>/dev/null || exit 1
+  "$accumulo_cmd" inst service-status --json >"$service_json" 2>/dev/null || (echo "Error calling 'inst serviceStatus'" && exit 1)
 
   local var_name
   local hosts
@@ -728,7 +726,8 @@ function prune() {
 
   local manager
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
-    prune_group "manager" "default" "1" "$MANAGER_HOSTS"
+    local expected=${MANAGERS_PER_HOST_default:-1}
+    prune_group "manager" "default" "$expected" "$MANAGER_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
@@ -763,7 +762,7 @@ function prune() {
       read -r -a groups <<<"$ARG_SSERVER_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
-      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | .[] " "$service_json")
+      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | keys | .[]?" "$service_json")
     fi
 
     for group in "${groups[@]}"; do
@@ -782,7 +781,7 @@ function prune() {
       read -r -a groups <<<"$ARG_COMPACTOR_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
-      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | .[] " "$service_json")
+      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | keys | .[]?" "$service_json")
     fi
 
     for group in "${groups[@]}"; do
@@ -826,7 +825,9 @@ function main() {
       fi
       cat <<EOF >"$conf"/cluster.yaml
 manager:
-  - localhost
+  servers_per_host: 1
+  hosts:
+    - localhost
 
 monitor:
   - localhost

@@ -20,8 +20,8 @@ package org.apache.accumulo.server.metadata;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
@@ -92,7 +92,7 @@ public class RootGcCandidates {
   }
 
   public Stream<GcCandidate> sortedStream() {
-    var uidGen = new SecureRandom();
+    var uidGen = RANDOM.get();
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();

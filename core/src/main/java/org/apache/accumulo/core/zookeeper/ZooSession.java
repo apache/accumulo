@@ -20,7 +20,7 @@ package org.apache.accumulo.core.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.zookeeper.AddWatchMode;
 import org.apache.zookeeper.AsyncCallback.StringCallback;
@@ -195,11 +196,11 @@ public class ZooSession implements AutoCloseable {
     log.debug("{} (re-)connecting to {} with timeout {}{}", reconnectName, connectString, timeout,
         instanceSecret == null ? "" : " with auth");
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
-    int connectTimeWait = Math.min(10_000, timeout);
+    long connectTimeWait = Math.min(10_000, timeout);
     boolean tryAgain = true;
     long sleepTime = 100;
 
-    long startTime = System.nanoTime();
+    Timer timer = Timer.startNew();
 
     ZooKeeper zk = null;
 
@@ -235,8 +236,7 @@ public class ZooSession implements AutoCloseable {
         }
       }
 
-      long stopTime = System.nanoTime();
-      long duration = NANOSECONDS.toMillis(stopTime - startTime);
+      long duration = timer.elapsed(MILLISECONDS);
 
       if (duration > 2L * timeout) {
         throw new IllegalStateException("Failed to connect to zookeeper (" + connectString

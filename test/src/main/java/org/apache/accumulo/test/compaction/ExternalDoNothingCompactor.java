@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,7 +48,7 @@ public class ExternalDoNothingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalDoNothingCompactor.class);
 
-  ExternalDoNothingCompactor(ConfigOpts opts, String[] args) {
+  ExternalDoNothingCompactor(ServerOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -130,7 +130,7 @@ public class ExternalDoNothingCompactor extends Compactor {
   }
 
   public static void main(String[] args) throws Exception {
-    try (var compactor = new ExternalDoNothingCompactor(new ConfigOpts(), args)) {
+    try (var compactor = new ExternalDoNothingCompactor(new ServerOpts(), args)) {
       compactor.runServer();
     }
   }

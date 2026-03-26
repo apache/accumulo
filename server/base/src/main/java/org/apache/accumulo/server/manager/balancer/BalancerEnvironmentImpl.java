@@ -21,16 +21,22 @@ package org.apache.accumulo.server.manager.balancer;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.TabletInformation;
+import org.apache.accumulo.core.clientImpl.TabletInformationCollector;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -109,6 +115,14 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       throw new AccumuloException(e);
     }
     return null;
+  }
+
+  @Override
+  public Stream<TabletInformation> getTabletInformation(TableId tableId, List<RowRange> ranges,
+      TabletInformation.Field... fields) {
+    EnumSet<TabletInformation.Field> fieldSet = fields.length == 0
+        ? EnumSet.allOf(TabletInformation.Field.class) : EnumSet.copyOf(Arrays.asList(fields));
+    return TabletInformationCollector.getTabletInformation(getContext(), tableId, ranges, fieldSet);
   }
 
   @Override

@@ -21,23 +21,54 @@ package org.apache.accumulo.server.util.serviceStatus;
 import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.lang.reflect.Field;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.ExclusionStrategy;
+import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 /**
  * Wrapper for JSON formatted report.
  */
 public class ServiceStatusReport {
+
+  private static class HostExclusionStrategy implements ExclusionStrategy {
+
+    private final static String field = "serviceByGroups";
+    private final Field fieldToIgnore;
+
+    public HostExclusionStrategy() {
+      try {
+        fieldToIgnore = StatusSummary.class.getDeclaredField(field);
+      } catch (NoSuchFieldException e) {
+        throw new IllegalStateException(e);
+      }
+    }
+
+    @Override
+    public boolean shouldSkipField(FieldAttributes f) {
+      if (f.getDeclaringClass().equals(StatusSummary.class)
+          && f.getName().equals(fieldToIgnore.getName())) {
+        return true;
+      }
+      return false;
+    }
+
+    @Override
+    public boolean shouldSkipClass(Class<?> clazz) {
+      return false;
+    }
+
+  }
 
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusReport.class);
 
@@ -89,11 +120,9 @@ public class ServiceStatusReport {
     if (showHosts) {
       return gson.toJson(this, ServiceStatusReport.class);
     } else {
-      Map<ReportKey,StatusSummary> noHostSummaries =
-          summaries.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-              e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
-      ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
-      return gson.toJson(noHostReport, ServiceStatusReport.class);
+      return new GsonBuilder().disableJdkUnsafe()
+          .setExclusionStrategies(new HostExclusionStrategy()).create()
+          .toJson(this, ServiceStatusReport.class);
     }
   }
 

@@ -37,7 +37,13 @@ public enum Metric {
       "Time to execute an RPC request.", MetricDocSection.GENERAL_SERVER),
 
   // Compactor Metrics
-  COMPACTION_SVC_ERRORS("accumulo.compaction.svc.misconfigured", MetricType.GAUGE,
+  COMPACTION_ROOT_SVC_ERRORS("accumulo.compaction.svc.root.misconfigured", MetricType.GAUGE,
+      "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricDocSection.COMPACTION),
+  COMPACTION_META_SVC_ERRORS("accumulo.compaction.svc.meta.misconfigured", MetricType.GAUGE,
+      "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
+      MetricDocSection.COMPACTION),
+  COMPACTION_USER_SVC_ERRORS("accumulo.compaction.svc.user.misconfigured", MetricType.GAUGE,
       "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
       MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_CANCELLED("accumulo.compaction.majc.cancelled", MetricType.FUNCTION_COUNTER,
@@ -303,7 +309,20 @@ public enum Metric {
       MetricDocSection.MANAGER),
   MANAGER_USER_TGW_ERRORS("accumulo.tabletmgmt.user.errors", MetricType.GAUGE,
       "Error count encountered by the TabletGroupWatcher for the USER data level.",
-      MetricDocSection.MANAGER);
+      MetricDocSection.MANAGER),
+  MANAGER_GOAL_STATE("accumulo.manager.goal.state", MetricType.GAUGE,
+      "Manager goal state: -1=unknown, 0=CLEAN_STOP, 1=SAFE_MODE, 2=NORMAL.",
+      MetricDocSection.MANAGER),
+
+  // Recovery Metrics
+  RECOVERIES_IN_PROGRESS("accumulo.recoveries.in.progress", MetricType.GAUGE,
+      "The number of recoveries in progress.", MetricDocSection.GENERAL_SERVER),
+  RECOVERIES_LONGEST_RUNTIME("accumulo.recoveries.runtime.longest", MetricType.GAUGE,
+      "The time (in milliseconds) of the longest running recovery.",
+      MetricDocSection.GENERAL_SERVER),
+  RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
+      "The average percentage (0.0 - 99.9) of the in progress recoveries.",
+      MetricDocSection.GENERAL_SERVER);
 
   private final String name;
   private final MetricType type;

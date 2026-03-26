@@ -18,21 +18,31 @@
  */
 package org.apache.accumulo.core.util;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.start.Main;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class Help implements KeywordExecutable {
+public class Help extends ClientKeywordExecutable<ClientOpts> {
+
+  public Help() {
+    super(new ClientOpts());
+  }
+
   @Override
   public String keyword() {
     return "help";
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.CLIENT;
   }
 
   @Override
@@ -41,7 +51,7 @@ public class Help implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) {
+  public void execute(JCommander cl, ClientOpts options) throws Exception {
     Main.printUsage();
   }
 }

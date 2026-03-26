@@ -50,7 +50,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -66,10 +65,10 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.TabletTime;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -83,7 +82,7 @@ import com.google.common.net.HostAndPort;
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
  * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
-class LoadFiles extends AbstractFateOperation {
+class LoadFiles extends AbstractBulkFateOperation {
 
   // visible for testing
   interface TabletsMetadataFactory {
@@ -96,15 +95,13 @@ class LoadFiles extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(LoadFiles.class);
 
-  private final BulkInfo bulkInfo;
-
   public LoadFiles(BulkInfo bulkInfo) {
-    this.bulkInfo = bulkInfo;
+    super(bulkInfo);
   }
 
   @Override
   public long isReady(FateId fateId, FateEnv env) throws Exception {
-    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
+    log.trace("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
     if (env.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
           + ")");
@@ -451,7 +448,7 @@ class LoadFiles extends AbstractFateOperation {
           if (!pi.findWithin(
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
-            log.debug(
+            log.trace(
                 "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
                 fmtTid, loadMapKey.prevEndRow(), skipDistance);
             tabletsMetadata.close();
@@ -470,8 +467,8 @@ class LoadFiles extends AbstractFateOperation {
 
     log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
 
-    if (importTimingStats.callCount > 0) {
-      log.debug(
+    if (importTimingStats.callCount > 0 && log.isTraceEnabled()) {
+      log.trace(
           "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, fateId, importTimingStats.tabletCount, importTimingStats.callCount,
           totalProcessingTime.toMillis(), totalProcessingTime.toNanos(),
@@ -556,5 +553,10 @@ class LoadFiles extends AbstractFateOperation {
       ne2.initCause(e);
       throw ne2;
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.LOADING;
   }
 }

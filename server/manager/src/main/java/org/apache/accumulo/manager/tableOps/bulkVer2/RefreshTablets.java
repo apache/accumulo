@@ -20,8 +20,8 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 
 /**
  * This Repo asks hosted tablets that were bulk loaded into to refresh their metadata. It works by
@@ -30,14 +30,12 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
  * location its ok. That means the tablet either unloaded before of after the snapshot. In either
  * case the tablet will see the bulk files the next time its hosted somewhere.
  */
-public class RefreshTablets extends AbstractFateOperation {
+public class RefreshTablets extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
-  private final BulkInfo bulkInfo;
-
   public RefreshTablets(BulkInfo bulkInfo) {
-    this.bulkInfo = bulkInfo;
+    super(bulkInfo);
   }
 
   @Override
@@ -52,5 +50,10 @@ public class RefreshTablets extends AbstractFateOperation {
         tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
 
     return new CleanUpBulkImport(bulkInfo);
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.REFRESHING;
   }
 }

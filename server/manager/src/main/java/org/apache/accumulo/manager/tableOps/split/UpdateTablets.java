@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.manager.tableOps.split;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.Objects;
@@ -57,9 +57,9 @@ public class UpdateTablets extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(UpdateTablets.class);
   private static final long serialVersionUID = 1L;
   private final SplitInfo splitInfo;
-  private final List<String> dirNames;
+  private final ArrayList<String> dirNames;
 
-  public UpdateTablets(SplitInfo splitInfo, List<String> dirNames) {
+  public UpdateTablets(SplitInfo splitInfo, ArrayList<String> dirNames) {
     this.splitInfo = splitInfo;
     this.dirNames = dirNames;
   }
@@ -111,7 +111,7 @@ public class UpdateTablets extends AbstractFateOperation {
     var newTablets = splitInfo.getTablets();
 
     var newTabletsFiles = getNewTabletFiles(fateId, newTablets, tabletMetadata,
-        file -> env.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
+        file -> env.getFileRangeCache().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
 
     addNewTablets(fateId, env, tabletMetadata, opid, newTablets, newTabletsFiles);
 

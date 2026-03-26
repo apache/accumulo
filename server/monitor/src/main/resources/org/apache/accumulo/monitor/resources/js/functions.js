@@ -26,6 +26,18 @@
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const REST_V2_PREFIX = contextPath + 'rest-v2';
+const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
+
+// Override Length Menu options for dataTables
+if ($.fn && $.fn.dataTable) {
+  $.extend(true, $.fn.dataTable.defaults, {
+    "lengthMenu": [
+      [10, 25, 50, 100, -1],
+      [10, 25, 50, 100, "All"]
+    ]
+  });
+}
 
 /**
  * Initializes Auto Refresh to false if it is not set,
@@ -151,6 +163,50 @@ function levelFormat(level) {
     return '<span class="label label-danger">' + level + '</span>';
   }
   return level;
+}
+
+/**
+ * Maps the given activity state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for idle and 0 for active
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderActivityState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Idle</span>';
+  }
+  return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Active</span>';
+}
+
+/**
+ * Maps the given memory state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for low memory and 0 for normal memory
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderMemoryState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Low memory detected</span>';
+  }
+  return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Memory normal</span>';
 }
 
 /**
@@ -339,7 +395,54 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
  * stores it on a sessionStorage variable
  */
 function getManager() {
-  return getJSONForTable(contextPath + 'rest/manager', 'manager');
+  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
+}
+
+/**
+ * Extracts the manager goal state from a metrics array.
+ *
+ * @param {array} metrics Metric list from rest-v2/manager or rest-v2/manager/metrics
+ * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
+ */
+function getManagerGoalStateFromMetrics(metrics) {
+  if (!Array.isArray(metrics)) {
+    console.error('Metrics is not an array:', metrics);
+    return null;
+  }
+  const metric = metrics.find(m => m?.name === MANAGER_GOAL_STATE_METRIC);
+  if (!metric || typeof metric.value !== 'number') {
+    console.debug('Manager goal state metric not found or invalid:', metric);
+    return null;
+  }
+  switch (metric.value) {
+  case 0:
+    return 'CLEAN_STOP';
+  case 1:
+    return 'SAFE_MODE';
+  case 2:
+    return 'NORMAL';
+  default:
+    return null;
+  }
+}
+
+/**
+ * Gets the manager goal state from the cached manager response, if available.
+ *
+ * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
+ */
+function getManagerGoalStateFromSession() {
+  if (!sessionStorage?.manager) {
+    console.debug('No manager data in session storage. Returning null.');
+    return null;
+  }
+  try {
+    const managerData = JSON.parse(sessionStorage.manager);
+    return getManagerGoalStateFromMetrics(managerData.metrics);
+  } catch (e) {
+    console.error('Failed to parse manager data from session storage', e);
+    return null;
+  }
 }
 
 /**
@@ -462,8 +565,6 @@ function clearAllTableCells(tableId) {
 
 // NEW REST CALLS
 
-const REST_V2_PREFIX = contextPath + 'rest-v2';
-
 /**
  * REST GET call for /problems,
  * stores it on a sessionStorage variable
@@ -530,14 +631,6 @@ function getCompactorsSummary(group) {
 }
 
 /**
- * REST GET call for /sservers/summary,
- * stores it on a sessionStorage variable
- */
-function getSserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/summary', 'sserversSummary');
-}
-
-/**
  * REST GET call for /tables/{name}/tablets,
  * stores it on a sessionStorage variable
  * @param {string} name Table name
@@ -600,14 +693,11 @@ function getDeployment() {
 }
 
 /**
- * REST GET call for /sservers/summary/{group},
+ * REST GET call for /sservers/view,
  * stores it on a sessionStorage variable
- * @param {string} group Group name
  */
-function getSserversSummaryGroup(group) {
-  const url = `${REST_V2_PREFIX}/sservers/summary/${group}`;
-  const sessionDataVar = `sserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
+function getSserversView() {
+  return getJSONForTable(REST_V2_PREFIX + '/sservers/view', 'sserversView');
 }
 
 /**
@@ -654,25 +744,6 @@ function getTable(name) {
   const url = `${REST_V2_PREFIX}/tables/${name}`;
   const sessionDataVar = `table_${name}`;
   return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/detail/{num},
- * stores it on a sessionStorage variable
- * @param {number} num Detail number
- */
-function getCompactionsDetail(num) {
-  const url = `${REST_V2_PREFIX}/compactions/detail/${num}`;
-  const sessionDataVar = `compactionsDetail_${num}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/detail,
- * stores it on a sessionStorage variable
- */
-function getCompactionsDetail() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/detail', 'compactionsDetail');
 }
 
 /**

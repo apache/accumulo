@@ -30,6 +30,9 @@
   <artifactId>accumulo-tserver</artifactId>
   <name>Apache Accumulo Tablet Server</name>
   <description>The tablet server for Apache Accumulo to host tablets of data tables.</description>
+  <properties>
+    <spotbugs.omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</spotbugs.omitVisitors>
+  </properties>
   <dependencies>
     <dependency>
       <groupId>com.beust</groupId>
@@ -38,11 +41,6 @@
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
       <artifactId>caffeine</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.service</groupId>
-      <artifactId>auto-service</artifactId>
-      <optional>true</optional>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

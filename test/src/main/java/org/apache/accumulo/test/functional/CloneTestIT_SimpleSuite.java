@@ -367,8 +367,9 @@ public class CloneTestIT_SimpleSuite extends SharedMiniClusterBase {
       for (int i = 0; i < sysTables.length; i++) {
         var sysTable = sysTables[i];
         var cloneTableName = tableNames[i];
-        assertThrows(Exception.class, () -> client.tableOperations().clone(sysTable.tableName(),
-            cloneTableName, CloneConfiguration.empty()), () -> "Table:" + sysTable.tableName());
+        assertThrows(AccumuloException.class, () -> client.tableOperations()
+            .clone(sysTable.tableName(), cloneTableName, CloneConfiguration.empty()),
+            () -> "Table:" + sysTable.tableName());
         assertFalse(client.tableOperations().exists(cloneTableName));
       }
     }

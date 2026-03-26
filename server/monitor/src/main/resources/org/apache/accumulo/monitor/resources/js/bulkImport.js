@@ -49,6 +49,7 @@ $(function () {
       "dataSrc": "bulkImport"
     },
     "stateSave": true,
+    "autoWidth": false,
     "columns": [{
         "data": "filename",
         "width": "40%"
@@ -57,17 +58,49 @@ $(function () {
         "data": "age",
         "width": "45%",
         "render": function (data, type) {
-          if (type === 'display' && Number(data) > 0) {
-            data = new Date(Number(data));
-          } else {
-            data = "-";
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : "-";
           }
-          return data;
+          return age > 0 ? age : 0;
         }
       },
       {
         "data": "state",
         "width": "15%"
+      }
+    ]
+  });
+
+  // Generates the bulkPerServerTable DataTable
+  bulkPerServerTable = $('#bulkPerServerTable').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": "tabletServerBulkImport"
+    },
+    "stateSave": true,
+    "columns": [{
+        "data": "server",
+        "type": "html",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = `<a href="tservers?s=${data}">${data}</a>`;
+          }
+          return data;
+        }
+      },
+      {
+        "data": "importSize"
+      },
+      {
+        "data": "oldestAge",
+        "render": function (data, type) {
+          var age = Number(data);
+          if (type === 'display') {
+            return age > 0 ? new Date(age) : "-";
+          }
+          return age > 0 ? age : 0;
+        }
       }
     ]
   });

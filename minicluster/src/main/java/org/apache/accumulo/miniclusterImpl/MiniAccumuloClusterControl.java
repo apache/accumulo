@@ -37,12 +37,13 @@ import java.util.concurrent.TimeoutException;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
-import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ZooZap;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -58,7 +59,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   protected MiniAccumuloClusterImpl cluster;
 
   Process zooKeeperProcess = null;
-  Process managerProcess = null;
+  final List<Process> managerProcesses = new ArrayList<>();
   Process gcProcess = null;
   Process monitor = null;
   final Map<String,List<Process>> tabletServerProcesses = new HashMap<>();
@@ -107,7 +108,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
 
   @Override
   public void adminStopAll() throws IOException {
-    Process p = cluster.exec(Admin.class, "stopAll").getProcess();
+    Process p = cluster.exec(StopAll.class).getProcess();
     try {
       p.waitFor();
     } catch (InterruptedException e) {
@@ -171,10 +172,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MANAGER:
-        if (managerProcess == null) {
+        synchronized (managerProcesses) {
+          int numMgrs = cluster.getConfig().getClusterServerConfiguration().getNumManagers();
           Class<?> classToUse = classOverride != null ? classOverride
               : cluster.getConfig().getServerClass(server, Constants.DEFAULT_RESOURCE_GROUP_NAME);
-          managerProcess = cluster._exec(classToUse, server, configOverrides, args).getProcess();
+          for (int i = managerProcesses.size(); i < numMgrs; i++) {
+            managerProcesses
+                .add(cluster._exec(classToUse, server, configOverrides, args).getProcess());
+          }
         }
         break;
       case ZOOKEEPER:
@@ -308,20 +313,19 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public synchronized void stop(ServerType server, String hostname) throws IOException {
     switch (server) {
       case MANAGER:
-        if (managerProcess != null) {
+        synchronized (managerProcesses) {
           try {
-            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
+            cluster.stopProcessesWithTimeout(ServerType.MANAGER, managerProcesses, 30,
+                TimeUnit.SECONDS);
             try {
-              new ZooZap().zap(cluster.getServerContext(), "-manager");
-            } catch (RuntimeException e) {
+              System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+                  "file://" + cluster.getAccumuloPropertiesPath());
+              new ZooZap().execute(new String[] {"-managers"});
+            } catch (Exception e) {
               log.error("Error zapping Manager zookeeper lock", e);
             }
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Manager did not fully stop after 30 seconds", e);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
           } finally {
-            managerProcess = null;
+            managerProcesses.clear();
           }
         }
         break;
@@ -423,14 +427,21 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     boolean found = false;
     switch (type) {
       case MANAGER:
-        if (procRef.getProcess().equals(managerProcess)) {
-          try {
-            cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
-          } catch (ExecutionException | TimeoutException e) {
-            log.warn("Manager did not fully stop after 30 seconds", e);
+        synchronized (managerProcesses) {
+          Iterator<Process> iter = managerProcesses.iterator();
+          while (!found && iter.hasNext()) {
+            Process process = iter.next();
+            if (procRef.getProcess().equals(process)) {
+              iter.remove();
+              try {
+                cluster.stopProcessWithTimeout(process, 30, TimeUnit.SECONDS);
+              } catch (ExecutionException | TimeoutException e) {
+                log.warn("Manager did not fully stop after 30 seconds", e);
+              }
+              found = true;
+              break;
+            }
           }
-          managerProcess = null;
-          found = true;
         }
         break;
       case TABLET_SERVER:
@@ -549,9 +560,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         }
         break;
       case MANAGER:
-        if (!managerProcess.isAlive()) {
-          managerProcess = null;
-        }
+        managerProcesses.removeIf(process -> !process.isAlive());
         break;
       case MONITOR:
         if (!monitor.isAlive()) {
@@ -577,23 +586,31 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   public Set<Process> getProcesses(ServerType type) {
     switch (type) {
       case COMPACTOR:
-        Set<Process> cprocesses = new HashSet<>();
-        compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
-        return cprocesses;
+        synchronized (compactorProcesses) {
+          Set<Process> cprocesses = new HashSet<>();
+          compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
+          return cprocesses;
+        }
       case GARBAGE_COLLECTOR:
         return gcProcess == null ? Set.of() : Set.of(gcProcess);
       case MANAGER:
-        return managerProcess == null ? Set.of() : Set.of(managerProcess);
+        synchronized (managerProcesses) {
+          return managerProcesses.size() == 0 ? Set.of() : Set.copyOf(managerProcesses);
+        }
       case MONITOR:
         return monitor == null ? Set.of() : Set.of(monitor);
       case SCAN_SERVER:
-        Set<Process> sprocesses = new HashSet<>();
-        scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
-        return sprocesses;
+        synchronized (scanServerProcesses) {
+          Set<Process> sprocesses = new HashSet<>();
+          scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
+          return sprocesses;
+        }
       case TABLET_SERVER:
-        Set<Process> tprocesses = new HashSet<>();
-        tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
-        return tprocesses;
+        synchronized (tabletServerProcesses) {
+          Set<Process> tprocesses = new HashSet<>();
+          tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
+          return tprocesses;
+        }
       case ZOOKEEPER:
         return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
       default:

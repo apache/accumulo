@@ -51,14 +51,12 @@ public class DefaultKeySizeConstraint implements Constraint {
 
   }
 
-  static final List<Short> NO_VIOLATIONS = new ArrayList<>();
-
   @Override
   public List<Short> check(Environment env, Mutation mutation) {
 
     // fast size check
     if (mutation.numBytes() < maxSize) {
-      return NO_VIOLATIONS;
+      return null;
     }
 
     List<Short> violations = new ArrayList<>();

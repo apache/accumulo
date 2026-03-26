@@ -44,6 +44,7 @@ import java.util.ServiceLoader;
  */
 public interface KeywordExecutable {
 
+  @Deprecated(since = "4.0.0")
   enum UsageGroup {
     CORE, PROCESS, OTHER
   }
@@ -63,14 +64,30 @@ public interface KeywordExecutable {
   /**
    * @return Usage group for this command
    */
+  @Deprecated(since = "4.0.0")
   default UsageGroup usageGroup() {
     return UsageGroup.OTHER;
+  }
+
+  /**
+   * @return CommandGroup for this command
+   * @since 4.0.0
+   */
+  default CommandGroup commandGroup() {
+    return CommandGroups.OTHER;
   }
 
   /**
    * @return Description of service
    */
   String description();
+
+  /**
+   * @return options object used for this command, may be null
+   */
+  default Object getOptions() {
+    return null;
+  }
 
   /**
    * Execute the item with the given arguments.

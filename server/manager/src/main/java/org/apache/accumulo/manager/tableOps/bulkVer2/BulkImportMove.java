@@ -28,13 +28,11 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
@@ -51,16 +49,12 @@ import org.slf4j.LoggerFactory;
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
-class BulkImportMove extends AbstractFateOperation {
+class BulkImportMove extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = LoggerFactory.getLogger(BulkImportMove.class);
-
-  private final BulkInfo bulkInfo;
-
   public BulkImportMove(BulkInfo bulkInfo) {
-    this.bulkInfo = bulkInfo;
+    super(bulkInfo);
   }
 
   @Override
@@ -68,12 +62,9 @@ class BulkImportMove extends AbstractFateOperation {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
-    log.debug("{} sourceDir {}", fateId, sourceDir);
-
     VolumeManager fs = env.getVolumeManager();
 
     try {
-      env.updateBulkImportStatus(sourceDir.toString(), BulkImportState.MOVING);
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
       moveFiles(fateId, sourceDir, bulkDir, env, fs, oldToNewNameMap);
@@ -102,10 +93,16 @@ class BulkImportMove extends AbstractFateOperation {
     }
     try {
       fs.bulkRename(oldToNewMap, env.getRenamePool(), fateId);
+      oldToNewMap.forEach((oldPath, newPath) -> BulkLogger.renamed(fateId, oldPath, newPath));
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
           ioe.getCause().getMessage());
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.MOVING;
   }
 }

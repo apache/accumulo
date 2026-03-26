@@ -54,6 +54,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
@@ -61,7 +62,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -202,7 +203,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
 
-  public static final AtomicLong seekCount = new AtomicLong(0);
+  public static final LongAdder seekCount = new LongAdder();
 
   private final AtomicLong totalMinorCompactions = new AtomicLong(0);
   private final AtomicInteger onDemandUnloadedLowMemory = new AtomicInteger(0);
@@ -212,10 +213,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    AbstractServer.startServer(new TabletServer(new ConfigOpts(), ServerContext::new, args), log);
+    AbstractServer.startServer(new TabletServer(new ServerOpts(), ServerContext::new, args), log);
   }
 
-  protected TabletServer(ConfigOpts opts,
+  protected TabletServer(ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
@@ -409,9 +410,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void startServer(String address, TProcessor processor) throws UnknownHostException {
     updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT,
-          processor, this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH,
-          Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-    }, true);
+          processor, this.getClass().getSimpleName(), Property.TSERV_MINTHREADS,
+          Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    });
   }
 
   private HostAndPort getManagerAddress() {
@@ -557,7 +558,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         this.resourceManager.getDataCache(), this.resourceManager.getSummaryCache());
 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
-        pausedMetrics, blockCacheMetrics);
+        pausedMetrics, blockCacheMetrics, logSorter);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 
@@ -844,7 +845,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
     result.name = String.valueOf(getAdvertiseAddress());
     result.holdTime = resourceManager.holdTime();
-    result.lookups = seekCount.get();
+    result.lookups = seekCount.sum();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();
     result.indexCacheRequest = resourceManager.getIndexCache().getStats().requestCount();
     result.dataCacheHits = resourceManager.getDataCache().getStats().hitCount();

@@ -21,7 +21,6 @@ package org.apache.accumulo.miniclusterImpl;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.stream.Collectors.toList;
 
 import java.io.BufferedWriter;
@@ -34,6 +33,7 @@ import java.net.Socket;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -96,6 +96,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ConfigurationImpl;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -111,7 +112,6 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.util.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -152,6 +152,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private final MiniAccumuloClusterControl clusterControl;
   private final Supplier<ServerContext> context;
   private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
+  private final Set<String> defaultJvmOpts =
+      Set.of("-XX:+PerfDisableSharedMem", "-XX:+AlwaysPreTouch");
+  private final Map<String,String> defaultSystemProps =
+      Map.of("apple.awt.UIElement", "true", "java.net.preferIPv4Stack", "true");
 
   private boolean initialized = false;
   private volatile ExecutorService executor;
@@ -222,7 +226,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set(DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY, "1");
       conf.set("dfs.support.append", "true");
       conf.set("dfs.datanode.synconclose", "true");
-      conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
       String oldTestBuildData =
           System.setProperty("test.build.data", dfs.toAbsolutePath().toString());
@@ -378,21 +381,19 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
 
     var basicArgs = Stream.of(javaBin, "-Dproc=" + clazz.getSimpleName());
-    var jvmArgs = extraJvmOpts.stream();
-    var propsArgs = config.getSystemProperties().entrySet().stream()
+
+    var jvmOptions =
+        Stream.concat(Stream.concat(defaultJvmOpts.stream(), config.getJvmOptions().stream()),
+            extraJvmOpts.stream());
+    var systemProps = Stream
+        .concat(defaultSystemProps.entrySet().stream(),
+            config.getSystemProperties().entrySet().stream())
         .map(e -> String.format("-D%s=%s", e.getKey(), e.getValue()));
 
-    // @formatter:off
-    var hardcodedArgs = Stream.of(
-        "-Dapple.awt.UIElement=true",
-        "-Djava.net.preferIPv4Stack=true",
-        "-XX:+PerfDisableSharedMem",
-        "-XX:+AlwaysPreTouch",
-        Main.class.getName(), clazz.getName());
-    // @formatter:on
+    var classArgs = Stream.of(Main.class.getName(), clazz.getName());
 
     // concatenate all the args sources into a single list of args
-    var argList = Stream.of(basicArgs, jvmArgs, propsArgs, hardcodedArgs, Stream.of(args))
+    var argList = Stream.of(basicArgs, jvmOptions, systemProps, classArgs, Stream.of(args))
         .flatMap(Function.identity()).collect(toList());
     ProcessBuilder builder = new ProcessBuilder(argList);
 
@@ -428,7 +429,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     File stdErr = logDir.resolve(clazz.getSimpleName() + "_" + hashcode + ".err").toFile();
 
     Process process = builder.redirectError(stdErr).redirectOutput(stdOut).start();
-
     cleanup.add(process);
 
     return new ProcessInfo(process, stdOut);
@@ -500,12 +500,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void writeConfigProperties(java.nio.file.Path file, Map<String,String> settings)
       throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(file);
+    Properties props = new Properties();
 
     for (Entry<String,String> entry : settings.entrySet()) {
-      fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
+      props.setProperty(entry.getKey(), entry.getValue());
     }
-    fileWriter.close();
+
+    try (BufferedWriter fileWriter = Files.newBufferedWriter(file)) {
+      props.store(fileWriter, null);
+    }
   }
 
   private Configuration loadExistingHadoopConfiguration() {
@@ -811,9 +814,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   // wait up to 10 seconds for the process to start
   private static void waitForProcessStart(Process p, String name) throws InterruptedException {
-    long start = System.nanoTime();
+    CountDownTimer maxWaitTimer = CountDownTimer.startNew(Duration.ofSeconds(10));
     while (p.info().startInstant().isEmpty()) {
-      if (NANOSECONDS.toSeconds(System.nanoTime() - start) > 10) {
+      if (maxWaitTimer.isExpired()) {
         throw new IllegalStateException(
             "Error starting " + name + " - instance not started within 10 seconds");
       }
@@ -824,8 +827,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private void verifyUp(ClientContext context, InstanceId instanceId)
       throws InterruptedException, IOException {
 
-    requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
-    waitForProcessStart(getClusterControl().managerProcess, "Manager");
+    int mgrExpectedCount = 0;
+    for (Process tsp : getClusterControl().managerProcesses) {
+      mgrExpectedCount++;
+      requireNonNull(tsp, "Error starting Manager " + mgrExpectedCount + " - no process");
+      waitForProcessStart(tsp, "Manager" + mgrExpectedCount);
+    }
 
     requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
     waitForProcessStart(getClusterControl().gcProcess, "GC");
@@ -916,23 +923,43 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
-    result.put(ServerType.MANAGER, references(control.managerProcess));
-    result.put(ServerType.TABLET_SERVER, references(control.tabletServerProcesses.values().stream()
-        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    result.put(ServerType.COMPACTOR, references(control.compactorProcesses.values().stream()
-        .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    if (control.scanServerProcesses != null) {
-      result.put(ServerType.SCAN_SERVER, references(control.scanServerProcesses.values().stream()
-          .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
-    }
-    if (control.zooKeeperProcess != null) {
-      result.put(ServerType.ZOOKEEPER, references(control.zooKeeperProcess));
-    }
-    if (control.gcProcess != null) {
-      result.put(ServerType.GARBAGE_COLLECTOR, references(control.gcProcess));
-    }
-    if (control.monitor != null) {
-      result.put(ServerType.MONITOR, references(control.monitor));
+
+    for (ServerType type : ServerType.values()) {
+      switch (type) {
+        case COMPACTOR:
+          result.put(type, references(control.compactorProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case GARBAGE_COLLECTOR:
+          if (control.gcProcess != null) {
+            result.put(type, references(control.gcProcess));
+          }
+          break;
+        case MANAGER:
+          result.put(type, references(control.managerProcesses.stream().collect(Collectors.toList())
+              .toArray(new Process[0])));
+          break;
+        case MONITOR:
+          if (control.monitor != null) {
+            result.put(type, references(control.monitor));
+          }
+          break;
+        case SCAN_SERVER:
+          result.put(type, references(control.scanServerProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case TABLET_SERVER:
+          result.put(type, references(control.tabletServerProcesses.values().stream()
+              .flatMap(List::stream).collect(Collectors.toList()).toArray(new Process[0])));
+          break;
+        case ZOOKEEPER:
+          if (control.zooKeeperProcess != null) {
+            result.put(type, references(control.zooKeeperProcess));
+          }
+          break;
+        default:
+          throw new IllegalArgumentException("Unhandled server type : " + type);
+      }
     }
     return result;
   }
@@ -1003,9 +1030,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext(), "-manager", "-tservers", "-compactors", "-sservers",
-          "--gc");
-    } catch (RuntimeException e) {
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+          "file://" + getAccumuloPropertiesPath());
+      new ZooZap()
+          .execute(new String[] {"-managers", "-tservers", "-compactors", "-sservers", "--gc"});
+    } catch (Exception e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
       }

@@ -43,15 +43,19 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
+import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
+import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
+import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -96,7 +100,9 @@ public class Endpoints {
      * dependency convergence issues as we were using newer version of some of the same
      * dependencies.
      */
-    final String basePath = request.getRequestURL().toString();
+    final String requestPath = request.getRequestURL().toString();
+    int idx = requestPath.indexOf("/endpoints");
+    final String basePath = requestPath.substring(0, idx);
     final Map<String,String> documentation = new TreeMap<>();
 
     for (Method m : Endpoints.class.getMethods()) {
@@ -149,6 +155,18 @@ public class Endpoints {
       throw new NotFoundException("Manager not found");
     }
     return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
+  }
+
+  @GET
+  @Path("manager/metrics")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns the metrics for the Manager")
+  public List<FMetric> getManagerMetrics() {
+    var managerMetrics = getManager().getMetrics();
+    if (managerMetrics != null) {
+      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
+    }
+    return List.of();
   }
 
   @GET
@@ -218,7 +236,7 @@ public class Endpoints {
   @GET
   @Path("sservers/detail/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metric responses for the ScanServers in the supplied resource group")
+  @Description("Returns raw metric responses for the ScanServers in the supplied resource group")
   public Collection<MetricResponse>
       getScanServers(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -233,7 +251,7 @@ public class Endpoints {
   @GET
   @Path("sservers/summary/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns an aggregate view of the metric responses for the ScanServers in the supplied resource group")
+  @Description("Returns an aggregate raw metric summary for the ScanServers in the supplied resource group (diagnostic endpoint)")
   public Map<Id,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
@@ -248,9 +266,17 @@ public class Endpoints {
   @GET
   @Path("sservers/summary")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns an aggregate view of the metric responses for all ScanServers")
+  @Description("Returns an aggregate raw metric summary for all ScanServers (diagnostic endpoint)")
   public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getSServerAllMetricSummary();
+  }
+
+  @GET
+  @Path("sservers/view")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a UI-ready view model for the Scan Server status page")
+  public ScanServerView getScanServerPageView() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getScanServerView();
   }
 
   @GET
@@ -300,31 +326,49 @@ public class Endpoints {
   }
 
   @GET
-  @Path("compactions/detail")
+  @Path("compactions/running")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a map of Compactor resource group to the 50 oldest running compactions")
-  public Map<String,List<TExternalCompaction>> getCompactions() {
-    Map<String,List<TExternalCompaction>> all =
-        monitor.getInformationFetcher().getSummaryForEndpoint().getCompactions();
-    if (all == null) {
-      return Map.of();
-    }
-    return all;
+  @Description("Returns all long running major compactions")
+  public List<RunningCompactionInfo> getCompactions() {
+    Map<String,TimeOrderedRunningCompactionSet> longRunning =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getTopRunningCompactions();
+    return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
+        .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
+        .collect(Collectors.toList());
   }
 
   @GET
-  @Path("compactions/detail/{" + GROUP_PARAM_KEY + "}")
+  @Path("compactions/running/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of the 50 oldest running compactions in the supplied resource group")
-  public List<TExternalCompaction>
+  @Description("Returns all long running major compactions for the resource group")
+  public List<RunningCompactionInfo>
       getCompactions(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    List<TExternalCompaction> compactions =
-        monitor.getInformationFetcher().getSummaryForEndpoint().getCompactions(resourceGroup);
-    if (compactions == null) {
+    TimeOrderedRunningCompactionSet longRunning = monitor.getInformationFetcher()
+        .getSummaryForEndpoint().getTopRunningCompactions().get(resourceGroup);
+    if (longRunning == null) {
       return List.of();
     }
-    return compactions;
+    return longRunning.stream().collect(Collectors.toList());
+  }
+
+  @GET
+  @Path("ec")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns External Compaction coordinator summary")
+  public CoordinatorSummary getExternalCompactionCoordinator() {
+    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return CoordinatorSummary.fromHost(summary.getCoordinatorHost(), summary.getCompactorServers(),
+        summary.getTimestamp());
+  }
+
+  @GET
+  @Path("ec/compactors")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns External Compactor process details")
+  public CompactorsSummary getExternalCompactors() {
+    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return new CompactorsSummary(summary.getCompactorServers(), summary.getTimestamp());
   }
 
   @GET

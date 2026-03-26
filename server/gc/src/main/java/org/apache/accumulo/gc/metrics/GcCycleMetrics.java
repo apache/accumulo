@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.gc.metrics;
 
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -34,7 +35,7 @@ public class GcCycleMetrics {
   private final AtomicReference<GcCycleStats> lastWalCollect =
       new AtomicReference<>(new GcCycleStats());
 
-  private final AtomicLong postOpDurationNanos = new AtomicLong(0);
+  private final AtomicReference<Duration> postOpDuration = new AtomicReference<>(Duration.ZERO);
   private final AtomicLong runCycleCount = new AtomicLong(0);
 
   public GcCycleMetrics() {}
@@ -77,21 +78,21 @@ public class GcCycleMetrics {
   }
 
   /**
-   * Duration of post operation (compact, flush, none) in nanoseconds.
+   * Duration of post operation (compact, flush, none).
    *
-   * @return duration in nanoseconds.
+   * @return duration.
    */
-  long getPostOpDurationNanos() {
-    return postOpDurationNanos.get();
+  Duration getPostOpDuration() {
+    return postOpDuration.get();
   }
 
   /**
-   * Set the duration of post operation (compact, flush, none) in nanoseconds.
+   * Set the duration of post operation (compact, flush, none).
    *
-   * @param postOpDurationNanos the duration, in nanoseconds.
+   * @param postOpDuration the duration.
    */
-  public void setPostOpDurationNanos(long postOpDurationNanos) {
-    this.postOpDurationNanos.set(postOpDurationNanos);
+  public void setPostOpDuration(Duration postOpDuration) {
+    this.postOpDuration.set(postOpDuration);
   }
 
   /**
@@ -115,7 +116,7 @@ public class GcCycleMetrics {
     final StringBuilder sb = new StringBuilder("GcMetricsValues{");
     sb.append("lastCollect=").append(lastCollect.get());
     sb.append(", lastWalCollect=").append(lastWalCollect.get());
-    sb.append(", postOpDuration=").append(postOpDurationNanos.get());
+    sb.append(", postOpDuration=").append(postOpDuration.get().toNanos());
     sb.append('}');
     return sb.toString();
   }
