@@ -165,6 +165,10 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
     if (type.isDynamic()) {
       cluster.start();
+      try (AccumuloClient ac = Accumulo.newClient().from(getClientProps()).build()) {
+        AccumuloITBase.setSystemTablePermsForITs(ac,
+            cluster.getServerContext().securityOperations());
+      }
     } else {
       log.info("Removing tables which appear to be from a previous test run");
       cleanupTables();
