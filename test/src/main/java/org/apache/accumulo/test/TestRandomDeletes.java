@@ -184,4 +184,10 @@ public class TestRandomDeletes extends ClientKeywordExecutable<TestOpts> {
       throw new RuntimeException(e);
     }
   }
+
+  // For execution from ITs
+  public static void main(String[] args) throws Exception {
+    new TestRandomDeletes().execute(args);
+  }
+
 }
