@@ -57,6 +57,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -308,10 +309,10 @@ public class SystemInformation {
   // oldest RunningCompaction.
   public static class TimeOrderedRunningCompactionSet {
 
-    public static final Comparator<TExternalCompaction> OLDEST_FIRST_COMPARATOR =
-        Comparator.comparingLong(TExternalCompaction::getStartTime)
-            .thenComparing(rc -> rc.getJob().getExternalCompactionId());
-    private final ConcurrentSkipListSet<TExternalCompaction> compactions =
+    public static final Comparator<RunningCompactionInfo> OLDEST_FIRST_COMPARATOR =
+        Comparator.comparingLong(RunningCompactionInfo::getStartTime).thenComparing(rc -> rc.ecid);
+
+    private final ConcurrentSkipListSet<RunningCompactionInfo> compactions =
         new ConcurrentSkipListSet<>(OLDEST_FIRST_COMPARATOR);
 
     // Tracking size here as ConcurrentSkipListSet.size() is not constant time
@@ -327,7 +328,7 @@ public class SystemInformation {
       return size.get();
     }
 
-    public boolean add(TExternalCompaction e) {
+    public boolean add(RunningCompactionInfo e) {
       boolean added = compactions.add(e);
       if (added) {
         if (size.incrementAndGet() > this.limit) {
@@ -345,11 +346,11 @@ public class SystemInformation {
       return removed;
     }
 
-    public Iterator<TExternalCompaction> iterator() {
+    public Iterator<RunningCompactionInfo> iterator() {
       return compactions.iterator();
     }
 
-    public Stream<TExternalCompaction> stream() {
+    public Stream<RunningCompactionInfo> stream() {
       return compactions.stream();
     }
 
@@ -414,6 +415,8 @@ public class SystemInformation {
 
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
+  private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
+
   private long timestamp = 0;
   private ScanServerView scanServerView;
   private final int rgLongRunningCompactionSize;
@@ -447,6 +450,7 @@ public class SystemInformation {
     suggestions.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
+    configuredCompactionResourceGroups.clear();
     scanServerView = null;
   }
 
@@ -544,14 +548,15 @@ public class SystemInformation {
   }
 
   public void processExternalCompaction(TExternalCompaction tec) {
-
     var tableId = KeyExtent.fromThrift(tec.getJob().extent).tableId();
     runningCompactionsPerTable.computeIfAbsent(tableId, t -> new LongAdder()).increment();
     runningCompactionsPerGroup.computeIfAbsent(tec.getGroupName(), t -> new LongAdder())
         .increment();
 
-    this.longRunningCompactionsByRg.computeIfAbsent(tec.getGroupName(),
-        k -> new TimeOrderedRunningCompactionSet(rgLongRunningCompactionSize)).add(tec);
+    this.longRunningCompactionsByRg
+        .computeIfAbsent(tec.getGroupName(),
+            k -> new TimeOrderedRunningCompactionSet(rgLongRunningCompactionSize))
+        .add(new RunningCompactionInfo(tec));
   }
 
   public void processExternalCompactionInventory(Set<ServerId> compactors, HostAndPort host) {
@@ -576,6 +581,10 @@ public class SystemInformation {
 
   public void processError(ServerId server) {
     problemHosts.add(server);
+  }
+
+  public void addConfiguredCompactionGroups(Set<String> groups) {
+    configuredCompactionResourceGroups.addAll(groups);
   }
 
   public void finish() {
@@ -625,6 +634,14 @@ public class SystemInformation {
         }
       }
     }
+
+    for (var compactorGroup : compactors.keySet()) {
+      if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
+        suggestions.add("Compactor group " + compactorGroup
+            + " has running compactors, but no configuration uses them.");
+      }
+    }
+
     Set<ServerId> scanServers = new HashSet<>();
     sservers.values().forEach(scanServers::addAll);
     int problemScanServerCount = (int) problemHosts.stream()

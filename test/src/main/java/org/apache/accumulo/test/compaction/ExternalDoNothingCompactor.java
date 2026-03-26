@@ -28,8 +28,6 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ServerOpts;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -84,10 +82,6 @@ public class ExternalDoNothingCompactor extends Compactor {
       public void run() {
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-          update.setState(TCompactionState.STARTED);
-          update.setMessage("Compaction started");
-          updateCompactionState(job, update);
 
           // Create tmp output file
           final TabletMetadata tm = getContext().getAmple()

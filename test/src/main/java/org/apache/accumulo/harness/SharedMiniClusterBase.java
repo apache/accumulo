@@ -136,7 +136,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
     cluster = harness.create(getTestClassName(), SharedMiniClusterBase.class.getSimpleName(), token,
         miniClusterCallback, krb);
     cluster.start();
-
+    try (AccumuloClient ac = Accumulo.newClient().from(getClientProps()).build()) {
+      AccumuloITBase.setSystemTablePermsForITs(ac, cluster.getServerContext().securityOperations());
+    }
   }
 
   private static String getTestClassName() {

@@ -37,12 +37,12 @@ $(function () {
   const ecidColumnName = 'ecid';
   const durationColumnName = 'duration';
 
-  // Create a table for running compactors
+  // Create a table for long running compactions
   runningTable = $('#runningTable').DataTable({
     "autoWidth": false,
     "ajax": {
       "url": contextPath + 'rest-v2/compactions/running',
-      "dataSrc": "running"
+      "dataSrc": ""
     },
     "stateSave": true,
     "dom": 't<"align-left"l>p',
@@ -267,17 +267,21 @@ $(function () {
       htmlRow += "<thead><tr><th>#</th><th>Input Files</th><th>Size</th><th>Entries</th></tr></thead>";
       htmlRow += "<tbody></tbody></table>";
       htmlRow += "Output File: <span id='outputFile" + idSuffix + "'></span><br>";
-      htmlRow += ecid;
       row.child(htmlRow).show();
 
-      // show the row then populate the table
-      var ecDetails = getDetailsFromStorage(idSuffix);
-      if (ecDetails.length === 0) {
-        getRunningDetails(ecid, idSuffix);
-      } else {
-        console.log("Got cached details for " + idSuffix);
-        populateDetails(ecDetails, idSuffix);
-      }
+      var tableId = 'table' + idSuffix;
+      clearTableBody(tableId);
+      $.each(rci.inputFiles, function (key, value) {
+        var items = [];
+        items.push(createCenterCell(key, key));
+        items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
+        items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
+        items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
+        $('<tr/>', {
+          html: items.join('')
+        }).appendTo('#' + tableId + ' tbody');
+      });
+      $('#outputFile' + idSuffix).text(rci.outputFile);
 
       // Add to the 'open' array
       if (idx === -1) {
@@ -329,64 +333,6 @@ async function refreshManagerStatus() {
     }
     return managerStatus;
   });
-}
-
-function getRunningDetails(ecid, idSuffix) {
-  var ajaxUrl = contextPath + 'rest-v2/ec/details?ecid=' + ecid;
-  console.log("Ajax call to " + ajaxUrl);
-  $.getJSON(ajaxUrl, function (data) {
-    populateDetails(data, idSuffix);
-    var detailsJSON = JSON.parse(sessionStorage.ecDetailsJSON);
-    if (detailsJSON === undefined) {
-      detailsJSON = [];
-    } else if (detailsJSON.length >= 50) {
-      // drop the oldest 25 from the sessionStorage to limit size of the cache
-      var newDetailsJSON = [];
-      $.each(detailsJSON, function (num, val) {
-        if (num > 24) {
-          newDetailsJSON.push(val);
-        }
-      });
-      detailsJSON = newDetailsJSON;
-    }
-    detailsJSON.push({
-      key: idSuffix,
-      value: data
-    });
-    sessionStorage.ecDetailsJSON = JSON.stringify(detailsJSON);
-  });
-}
-
-function getDetailsFromStorage(idSuffix) {
-  var details = [];
-  var detailsJSON = JSON.parse(sessionStorage.ecDetailsJSON);
-  if (detailsJSON.length === 0) {
-    return details;
-  } else {
-    // details are stored as key value pairs in the JSON val
-    $.each(detailsJSON, function (num, val) {
-      if (val.key === idSuffix) {
-        details = val.value;
-      }
-    });
-    return details;
-  }
-}
-
-function populateDetails(data, idSuffix) {
-  var tableId = 'table' + idSuffix;
-  clearTableBody(tableId);
-  $.each(data.inputFiles, function (key, value) {
-    var items = [];
-    items.push(createCenterCell(key, key));
-    items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
-    items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
-    items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#' + tableId + ' tbody');
-  });
-  $('#outputFile' + idSuffix).text(data.outputFile);
 }
 
 // Helper function to validate regex

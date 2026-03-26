@@ -55,7 +55,6 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
-import org.apache.accumulo.monitor.next.endpoint.responses.RunningCompactionsSummary;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 
 import io.micrometer.core.instrument.Meter.Id;
@@ -330,29 +329,27 @@ public class Endpoints {
   @Path("compactions/running")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns all long running major compactions")
-  public RunningCompactionsSummary getCompactions() {
+  public List<RunningCompactionInfo> getCompactions() {
     Map<String,TimeOrderedRunningCompactionSet> longRunning =
         monitor.getInformationFetcher().getSummaryForEndpoint().getTopRunningCompactions();
-    return new RunningCompactionsSummary(
-        longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
-            .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
-            .map(RunningCompactionInfo::new).collect(Collectors.toList()));
+    return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
+        .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
+        .collect(Collectors.toList());
   }
 
   @GET
   @Path("compactions/running/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns all long running major compactions for the resource group")
-  public RunningCompactionsSummary
+  public List<RunningCompactionInfo>
       getCompactions(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
     TimeOrderedRunningCompactionSet longRunning = monitor.getInformationFetcher()
         .getSummaryForEndpoint().getTopRunningCompactions().get(resourceGroup);
     if (longRunning == null) {
-      return new RunningCompactionsSummary(List.of());
+      return List.of();
     }
-    return new RunningCompactionsSummary(
-        longRunning.stream().map(RunningCompactionInfo::new).collect(Collectors.toList()));
+    return longRunning.stream().collect(Collectors.toList());
   }
 
   @GET

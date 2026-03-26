@@ -112,19 +112,6 @@ service CompactionCoordinatorService {
   )
 
   /*
-   * Called by Compactor to update the Coordinator with the state of the compaction
-   */
-  void updateCompactionStatus(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-    4:TCompactionStatusUpdate status
-    5:i64 timestamp
-  )throws(
-    1:client.ThriftSecurityException sec
-  )
-
-  /*
    * Called by Compactor on unsuccessful completion of compaction job
    */
   void compactionFailed(
@@ -137,38 +124,38 @@ service CompactionCoordinatorService {
     7:string groupName
     8:string compactor
   )throws(
-    1:client.ThriftSecurityException sec
+     1:client.ThriftSecurityException sec
   )
 
-    void beginFullJobScan(
-      1:client.TInfo tinfo
-      2:security.TCredentials credentials
-      3:string dataLevel
-    )throws(
-      1:client.ThriftSecurityException sec
-    )
+  void beginFullJobScan(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:string dataLevel
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
 
-    oneway void addJobs(
-      1:client.TInfo tinfo
-      2:security.TCredentials credentials
-      3:list<TResolvedCompactionJob> jobs
-    )
+   oneway void addJobs(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:list<TResolvedCompactionJob> jobs
+   )
 
-    void endFullJobScan(
-      1:client.TInfo tinfo
-      2:security.TCredentials credentials
-      3:string dataLevel
-    )throws(
-      1:client.ThriftSecurityException sec
-    )
+   void endFullJobScan(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:string dataLevel
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
 
-    void setResourceGroups(
-      1:client.TInfo tinfo
-      2:security.TCredentials credentials
-      3:set<string> groups
-    )throws(
-      1:client.ThriftSecurityException sec
-    )
+   void setResourceGroups(
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:set<string> groups
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
 }
 
 service CompactorService {

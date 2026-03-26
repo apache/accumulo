@@ -36,6 +36,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.compaction.CoordinatorLocations;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -68,8 +69,8 @@ public class CoordinatorManager {
         var assistants = context.getServerPaths()
             .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
         if (!assistants.isEmpty()) {
-          var compactorGroups =
-              CompactionCoordinator.getCompactionServicesConfigurationGroups(context);
+          var compactorGroups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(context)
+              .stream().map(ResourceGroupId::of).collect(toSet());
 
           int minGroupsPerAssistant = compactorGroups.size() / assistants.size();
           int maxGroupsPerAssistant =
