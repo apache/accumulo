@@ -744,7 +744,6 @@ public interface TableOperations {
    * @throws AccumuloException when there is a general accumulo error
    * @throws AccumuloSecurityException when the user does not have the proper permissions
    */
-  @Deprecated
   void offline(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
@@ -756,7 +755,6 @@ public interface TableOperations {
    * @throws AccumuloSecurityException when the user does not have the proper permissions
    * @since 1.6.0
    */
-  @Deprecated
   void offline(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 

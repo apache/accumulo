@@ -24,7 +24,6 @@ package org.apache.accumulo.core.client.admin;
  * @since 2.0.0
  */
 public enum InitialTableState {
-  @Deprecated
   OFFLINE,
   /*
    * Used if table is to be created in ONLINE mode.

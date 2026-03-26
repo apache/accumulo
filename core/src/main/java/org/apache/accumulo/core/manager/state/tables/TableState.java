@@ -26,7 +26,6 @@ public enum TableState {
   ONLINE,
 
   // OFFLINE tablets will be taken offline
-  @Deprecated
   OFFLINE,
 
   // LOCKED tablets will be frozen, where no operations can be preformed on it with the exception od

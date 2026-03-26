@@ -126,8 +126,6 @@ public class NewTableConfiguration {
    *
    * @since 2.0.0
    */
-  @SuppressWarnings("deprecation")
-  @Deprecated
   public NewTableConfiguration createOffline() {
     this.initialTableState = InitialTableState.OFFLINE;
     return this;

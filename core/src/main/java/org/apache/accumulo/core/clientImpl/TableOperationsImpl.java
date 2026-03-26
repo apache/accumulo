@@ -1457,14 +1457,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  @Deprecated
   @Override
   public void offline(String tableName)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     offline(tableName, false);
   }
 
-  @Deprecated
   @Override
   public void offline(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
