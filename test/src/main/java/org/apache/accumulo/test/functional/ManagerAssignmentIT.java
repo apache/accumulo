@@ -122,7 +122,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+      Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1, 60_000);
 
       client.tableOperations().create(tableName);
 
