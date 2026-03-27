@@ -279,19 +279,18 @@ public class Tablet extends TabletBase {
           absPaths.add(ref.getNormalizedPathStr());
         }
 
-        tabletServer.recover(this.getTabletServer().getVolumeManager(), extent, logEntries,
-            absPaths, m -> {
-              Collection<ColumnUpdate> muts = m.getUpdates();
-              for (ColumnUpdate columnUpdate : muts) {
-                if (!columnUpdate.hasTimestamp()) {
-                  // if it is not a user set timestamp, it must have been set
-                  // by the system
-                  maxTime.set(Math.max(maxTime.get(), columnUpdate.getTimestamp()));
-                }
-              }
-              getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
-              entriesUsedOnTablet.incrementAndGet();
-            });
+        tabletServer.recover(extent, logEntries, absPaths, m -> {
+          Collection<ColumnUpdate> muts = m.getUpdates();
+          for (ColumnUpdate columnUpdate : muts) {
+            if (!columnUpdate.hasTimestamp()) {
+              // if it is not a user set timestamp, it must have been set
+              // by the system
+              maxTime.set(Math.max(maxTime.get(), columnUpdate.getTimestamp()));
+            }
+          }
+          getTabletMemory().mutate(commitSession, Collections.singletonList(m), 1);
+          entriesUsedOnTablet.incrementAndGet();
+        });
 
         if (maxTime.get() != Long.MIN_VALUE) {
           tabletTime.updateTimeIfGreater(maxTime.get());

@@ -890,15 +890,15 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
+      return logger.needsRecovery(tabletMetadata.getExtent(), logEntries);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, Collection<LogEntry> logEntries,
-      Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    logger.recover(getContext(), extent, logEntries, tabletFiles, mutationReceiver);
+  public void recover(KeyExtent extent, Collection<LogEntry> logEntries, Set<String> tabletFiles,
+      MutationReceiver mutationReceiver) throws IOException {
+    logger.recover(extent, logEntries, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {

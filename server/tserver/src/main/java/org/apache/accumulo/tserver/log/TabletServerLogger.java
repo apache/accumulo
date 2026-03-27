@@ -50,7 +50,6 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
 import org.apache.accumulo.tserver.TabletMutations;
 import org.apache.accumulo.tserver.TabletServer;
@@ -523,26 +522,25 @@ public class TabletServerLogger {
         LoggingBlockCache.wrap(CacheType.DATA, resourceMgr.getDataCache()));
   }
 
-  public boolean needsRecovery(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs)
-      throws IOException {
+  public boolean needsRecovery(KeyExtent extent, Collection<LogEntry> walogs) throws IOException {
     try {
       var resourceMgr = tserver.getResourceManager();
       var cacheProvider = createCacheProvider(resourceMgr);
       SortedLogRecovery recovery =
-          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+          new SortedLogRecovery(tserver.getContext(), resourceMgr.getFileLenCache(), cacheProvider);
       return recovery.needsRecovery(extent, resolve(walogs));
     } catch (Exception e) {
       throw new IOException(e);
     }
   }
 
-  public void recover(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs,
-      Set<String> tabletFiles, MutationReceiver mr) throws IOException {
+  public void recover(KeyExtent extent, Collection<LogEntry> walogs, Set<String> tabletFiles,
+      MutationReceiver mr) throws IOException {
     try {
       var resourceMgr = tserver.getResourceManager();
       var cacheProvider = createCacheProvider(resourceMgr);
       SortedLogRecovery recovery =
-          new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
+          new SortedLogRecovery(tserver.getContext(), resourceMgr.getFileLenCache(), cacheProvider);
       recovery.recover(extent, resolve(walogs), tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
