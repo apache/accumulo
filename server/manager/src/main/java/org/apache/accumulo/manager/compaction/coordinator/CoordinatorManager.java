@@ -25,10 +25,18 @@ import static org.apache.accumulo.server.compaction.CompactionPluginUtils.getCon
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.fate.FateClient;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -36,7 +44,9 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CoordinatorLocations;
 import org.apache.thrift.TException;
@@ -57,11 +67,16 @@ public class CoordinatorManager {
 
   private final ServerContext context;
 
-  public CoordinatorManager(ServerContext context) {
+  public CoordinatorManager(ServerContext context,
+      Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.context = context;
+    deadCompactionDetector =
+        new DeadCompactionDetector(context, context.getScheduledExecutor(), fateClients);
   }
 
   private Thread assignmentThread = null;
+
+  private final DeadCompactionDetector deadCompactionDetector;
 
   private void managerCoordinators() {
     while (true) {
@@ -160,6 +175,10 @@ public class CoordinatorManager {
   public synchronized void start() {
     Preconditions.checkState(assignmentThread == null);
 
+    startCompactorZKCleaner(context.getScheduledExecutor());
+
+    deadCompactionDetector.start();
+
     assignmentThread = Threads.createCriticalThread("Coordinator Manager", () -> {
       try {
         managerCoordinators();
@@ -168,6 +187,55 @@ public class CoordinatorManager {
       }
     });
     assignmentThread.start();
+  }
+
+  protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {
+    ScheduledFuture<?> future = schedExecutor
+        .scheduleWithFixedDelay(this::cleanUpEmptyCompactorPathInZK, 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  private void deleteEmpty(ZooReaderWriter zoorw, String path)
+      throws KeeperException, InterruptedException {
+    try {
+      log.debug("Deleting empty ZK node {}", path);
+      zoorw.delete(path);
+    } catch (KeeperException.NotEmptyException e) {
+      log.debug("Failed to delete {} its not empty, likely an expected race condition.", path);
+    }
+  }
+
+  private void cleanUpEmptyCompactorPathInZK() {
+
+    final var zoorw = this.context.getZooSession().asReaderWriter();
+
+    try {
+      var groups = zoorw.getChildren(Constants.ZCOMPACTORS);
+
+      for (String group : groups) {
+        final String qpath = Constants.ZCOMPACTORS + "/" + group;
+        final ResourceGroupId cgid = ResourceGroupId.of(group);
+        final var compactors = zoorw.getChildren(qpath);
+
+        if (compactors.isEmpty()) {
+          deleteEmpty(zoorw, qpath);
+        } else {
+          for (String compactor : compactors) {
+            String cpath = Constants.ZCOMPACTORS + "/" + group + "/" + compactor;
+            var lockNodes =
+                zoorw.getChildren(Constants.ZCOMPACTORS + "/" + group + "/" + compactor);
+            if (lockNodes.isEmpty()) {
+              deleteEmpty(zoorw, cpath);
+            }
+          }
+        }
+      }
+    } catch (KeeperException | RuntimeException e) {
+      log.warn("Failed to clean up compactors", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException(e);
+    }
   }
 
   // TODO stop()

@@ -32,7 +32,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -80,7 +79,6 @@ import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.logging.TabletLogger;
@@ -114,7 +112,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
 import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactionFile;
-import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -128,7 +125,6 @@ import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -191,7 +187,6 @@ public class CompactionCoordinator
 
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
-  private final DeadCompactionDetector deadCompactionDetector;
 
   private final QueueMetrics queueMetrics;
   private final Manager manager;
@@ -237,9 +232,6 @@ public class CompactionCoordinator
     tabletDirCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
         .maximumWeight(10485760L).weigher(weigher).build();
 
-    deadCompactionDetector =
-        new DeadCompactionDetector(this.ctx, this, ctx.getScheduledExecutor(), fateClients);
-
     var rootReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
         ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT, true);
 
@@ -284,18 +276,6 @@ public class CompactionCoordinator
     }
   }
 
-  protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future = schedExecutor
-        .scheduleWithFixedDelay(this::cleanUpEmptyCompactorPathInZK, 0, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
-  protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::resizeThreadPools, 0, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
   protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::checkForConfigChanges, 0, 1, TimeUnit.MINUTES);
@@ -306,6 +286,15 @@ public class CompactionCoordinator
     long jobQueueMaxSize =
         ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
     jobQueues.resetMaxSize(jobQueueMaxSize);
+
+    var config = ctx.getConfiguration();
+    ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT);
+    ThreadPools.resizePool(reservationPools.get(DataLevel.METADATA), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
+    ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
+
   }
 
   @Override
@@ -313,11 +302,8 @@ public class CompactionCoordinator
 
     this.coordinatorStartTime = System.currentTimeMillis();
     startConfigMonitor(ctx.getScheduledExecutor());
-    startCompactorZKCleaner(ctx.getScheduledExecutor());
 
-    startDeadCompactionDetector();
     startFailureSummaryLogging();
-    startInternalStateCleaner(ctx.getScheduledExecutor());
 
     try {
       shutdown.await();
@@ -326,10 +312,6 @@ public class CompactionCoordinator
     }
 
     LOG.info("Shutting down");
-  }
-
-  protected void startDeadCompactionDetector() {
-    deadCompactionDetector.start();
   }
 
   /**
@@ -748,7 +730,7 @@ public class CompactionCoordinator
       LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
           tableState);
       // cleanup metadata table and files related to the compaction
-      compactionsFailed(Map.of(ecid, extent));
+      compactionsFailed(ctx, Map.of(ecid, extent));
       return;
     }
 
@@ -783,7 +765,7 @@ public class CompactionCoordinator
     if (failureState == TCompactionState.FAILED) {
       captureFailure(ResourceGroupId.of(groupName), compactorAddress, fromThriftExtent);
     }
-    compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    compactionsFailed(ctx, Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
   private void captureFailure(ResourceGroupId group, String compactorAddress, KeyExtent extent) {
@@ -838,7 +820,8 @@ public class CompactionCoordinator
     failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
 
-  void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
+  static void compactionsFailed(ServerContext ctx,
+      Map<ExternalCompactionId,KeyExtent> compactions) {
     // Need to process each level by itself because the conditional tablet mutator does not support
     // mutating multiple data levels at the same time. Also the conditional tablet mutator does not
     // support submitting multiple mutations for a single tablet, so need to group by extent.
@@ -852,10 +835,11 @@ public class CompactionCoordinator
     });
 
     groupedCompactions
-        .forEach((dataLevel, levelCompactions) -> compactionFailedForLevel(levelCompactions));
+        .forEach((dataLevel, levelCompactions) -> compactionFailedForLevel(ctx, levelCompactions));
   }
 
-  void compactionFailedForLevel(Map<KeyExtent,Set<ExternalCompactionId>> compactions) {
+  static void compactionFailedForLevel(ServerContext ctx,
+      Map<KeyExtent,Set<ExternalCompactionId>> compactions) {
 
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       compactions.forEach((extent, ecids) -> {
@@ -942,7 +926,8 @@ public class CompactionCoordinator
             } else {
               // TabletMetadata does not exist for the extent. This could be due to a merge or
               // split operation. Use the utility to find tmp files at the table level
-              deadCompactionDetector.addTableId(extent.tableId());
+              // TODO
+              // deadCompactionDetector.addTableId(extent.tableId());
             }
           }
         }
@@ -953,64 +938,5 @@ public class CompactionCoordinator
   /* Method exists to be called from test */
   public CompactionJobQueues getJobQueues() {
     return jobQueues;
-  }
-
-  private void deleteEmpty(ZooReaderWriter zoorw, String path)
-      throws KeeperException, InterruptedException {
-    try {
-      LOG.debug("Deleting empty ZK node {}", path);
-      zoorw.delete(path);
-    } catch (KeeperException.NotEmptyException e) {
-      LOG.debug("Failed to delete {} its not empty, likely an expected race condition.", path);
-    }
-  }
-
-  private void cleanUpEmptyCompactorPathInZK() {
-
-    final var zoorw = this.ctx.getZooSession().asReaderWriter();
-
-    try {
-      var groups = zoorw.getChildren(Constants.ZCOMPACTORS);
-
-      for (String group : groups) {
-        final String qpath = Constants.ZCOMPACTORS + "/" + group;
-        final ResourceGroupId cgid = ResourceGroupId.of(group);
-        final var compactors = zoorw.getChildren(qpath);
-
-        if (compactors.isEmpty()) {
-          deleteEmpty(zoorw, qpath);
-          // Group has no compactors, we can clear its
-          // associated priority queue of jobs
-          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
-          if (queue != null) {
-            queue.clearIfInactive(Duration.ofMinutes(10));
-          }
-        } else {
-          for (String compactor : compactors) {
-            String cpath = Constants.ZCOMPACTORS + "/" + group + "/" + compactor;
-            var lockNodes =
-                zoorw.getChildren(Constants.ZCOMPACTORS + "/" + group + "/" + compactor);
-            if (lockNodes.isEmpty()) {
-              deleteEmpty(zoorw, cpath);
-            }
-          }
-        }
-      }
-    } catch (KeeperException | RuntimeException e) {
-      LOG.warn("Failed to clean up compactors", e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
-    }
-  }
-
-  public void resizeThreadPools() {
-    var config = ctx.getConfiguration();
-    ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
-        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT);
-    ThreadPools.resizePool(reservationPools.get(DataLevel.METADATA), config,
-        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
-    ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
-        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
   }
 }

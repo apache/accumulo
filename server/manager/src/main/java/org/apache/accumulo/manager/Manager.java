@@ -941,6 +941,7 @@ public class Manager extends AbstractServer
         PrimaryManagerThriftServiceWrapper.service(ManagerClientService.Iface.class,
             ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
+    compactionCoordinator.start();
 
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
     FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
@@ -1146,10 +1147,7 @@ public class Manager extends AbstractServer
     balanceManager.startBackGroundTask();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
-    // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
-    compactionCoordinator.start();
-
-    coordinatorManager = new CoordinatorManager(context);
+    coordinatorManager = new CoordinatorManager(context, this::fateClient);
     coordinatorManager.start();
 
     this.splitter = new Splitter(this);

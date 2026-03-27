@@ -113,16 +113,11 @@ public class CompactionCoordinatorTest {
     @Override
     protected void startFailureSummaryLogging() {}
 
-    @Override
-    protected void startDeadCompactionDetector() {}
-
-    @Override
-    protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
-
-    @Override
+    // TODO remove this, used to override
     protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
       // This is called from CompactionCoordinator.run(). Counting down
       // the latch will exit the run method
+      // TODO
       this.shutdown.countDown();
     }
 

@@ -59,17 +59,14 @@ public class DeadCompactionDetector {
   private static final Logger log = LoggerFactory.getLogger(DeadCompactionDetector.class);
 
   private final ServerContext context;
-  private final CompactionCoordinator coordinator;
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
   private final Set<TableId> tablesWithUnreferencedTmpFiles = new HashSet<>();
   private final Function<FateInstanceType,FateClient<FateEnv>> fateClients;
 
-  public DeadCompactionDetector(ServerContext context, CompactionCoordinator coordinator,
-      ScheduledThreadPoolExecutor stpe,
+  public DeadCompactionDetector(ServerContext context, ScheduledThreadPoolExecutor stpe,
       Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.context = context;
-    this.coordinator = coordinator;
     this.schedExecutor = stpe;
     this.deadCompactions = new ConcurrentHashMap<>();
     this.fateClients = fateClients;
@@ -227,7 +224,7 @@ public class DeadCompactionDetector {
       tabletCompactions.forEach((ecid, extent) -> {
         log.warn("Compaction believed to be dead, failing it: id: {}, extent: {}", ecid, extent);
       });
-      coordinator.compactionsFailed(tabletCompactions);
+      CompactionCoordinator.compactionsFailed(context, tabletCompactions);
       this.deadCompactions.keySet().removeAll(toFail);
     }
 
