@@ -59,14 +59,15 @@ $(function () {
 
   deploymentBreakdownTable = $('#deploymentBreakdownTable').DataTable({
     "autoWidth": false,
-    "paging": false,
+    "paging": true,
+    "pageLength": 10,
     "searching": true,
-    "info": false,
+    "info": true,
     "order": [
       [0, 'asc'],
       [1, 'asc']
     ],
-    "dom": 't',
+    "dom": 't<"align-left"l>ip',
     "data": [],
     "columnDefs": [{
         "targets": 0,
