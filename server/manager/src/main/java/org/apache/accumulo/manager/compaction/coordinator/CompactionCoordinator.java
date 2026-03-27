@@ -118,6 +118,7 @@ import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
 import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.manager.upgrade.UpgradeCheck;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
@@ -202,6 +203,8 @@ public class CompactionCoordinator
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
+  private final UpgradeCheck upgradeCheck;
+
   public CompactionCoordinator(Manager manager,
       Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.ctx = manager.getContext();
@@ -251,7 +254,8 @@ public class CompactionCoordinator
 
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
         .expireAfterWrite(2, TimeUnit.MINUTES).build(this::countCompactors);
-    // At this point the manager does not have its lock so no actions should be taken yet
+
+    upgradeCheck = new UpgradeCheck(ctx);
   }
 
   protected int countCompactors(ResourceGroupId groupName) {
@@ -586,16 +590,15 @@ public class CompactionCoordinator
   public void addJobs(TInfo tinfo, TCredentials credentials, List<TResolvedCompactionJob> jobs)
       throws TException {
     if (!security.canPerformSystemActions(credentials)) {
-      // this is a oneway method so throwing an exception is not useful
-      // TODO maybe log?
+      LOG.warn("Thrift call attempted to add job and did not have proper access. {}",
+          credentials.getPrincipal());
       return;
     }
 
     for (var tjob : jobs) {
       var job = ResolvedCompactionJob.fromThrift(tjob);
-      // TODO remove or improve
-      LOG.debug("Adding compaction job {} {}", job.getGroup(), job.getExtent());
-      // TODO maybe no longer need to pass a list
+      LOG.trace("Adding compaction job {} {} {} {}", job.getGroup(), job.getPriority(),
+          job.getExtent(), job.getJobFiles().size());
       jobQueues.add(job.getExtent(), List.of(job));
     }
   }
@@ -643,7 +646,8 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    // TODO validate that upgrade is complete like FateWorker does
+    // Do not expect this to be called before upgrade is complete
+    Preconditions.checkState(upgradeCheck.isUpgradeComplete());
 
     // only allow an update id to be used once
     synchronized (expectedUpdateId) {
