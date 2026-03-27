@@ -59,6 +59,7 @@ public class CompactionJobClient implements AutoCloseable {
 
   private final Map<ResourceGroupId,HostAndPort> coordinatorLocations;
   private final Map<HostAndPort,CoordinatorConnection> coordinatorConnections = new HashMap<>();
+  private final Map<ResourceGroupId,Long> ignoredCounts = new HashMap<>();
 
   private static final int BUFFER_SIZE = 1000;
 
@@ -68,6 +69,8 @@ public class CompactionJobClient implements AutoCloseable {
     this.fullScan = fullScan;
 
     this.coordinatorLocations = context.getCoordinatorLocations(true);
+
+    log.trace("Using coordinator locations {}", coordinatorLocations);
 
     var uniqueHosts = new HashSet<>(coordinatorLocations.values());
     for (var hostPort : uniqueHosts) {
@@ -92,12 +95,14 @@ public class CompactionJobClient implements AutoCloseable {
       var resolvedJob = new ResolvedCompactionJob(job, tabletMetadata);
       var hostPort = coordinatorLocations.get(resolvedJob.getGroup());
       if (hostPort == null) {
-        log.debug("Ignoring job, no coordinator found {}", job.getGroup());
+        log.trace("Ignoring job, no coordinator found {}", job.getGroup());
+        ignoredCounts.merge(job.getGroup(), 1L, Long::sum);
         continue;
       }
       var coordinator = coordinatorConnections.get(hostPort);
       if (coordinator == null) {
-        log.debug("Ignoring job, no connection found {}", job.getGroup());
+        log.trace("Ignoring job, no connection found {}", job.getGroup());
+        ignoredCounts.merge(job.getGroup(), 1L, Long::sum);
         continue;
       }
 
@@ -118,7 +123,7 @@ public class CompactionJobClient implements AutoCloseable {
   private void sendJobs(CoordinatorConnection coordinator) throws TException {
     List<TResolvedCompactionJob> thriftJobs = new ArrayList<>(coordinator.jobBuffer.size());
     for (var job : coordinator.jobBuffer) {
-      log.debug("Sending job {} {} {}", coordinator.address, job.getGroup(), job.getExtent());
+      log.trace("Sending job {} {} {}", coordinator.address, job.getGroup(), job.getExtent());
       thriftJobs.add(job.toThrift());
     }
     coordinator.client.addJobs(TraceUtil.traceInfo(), context.rpcCreds(), thriftJobs);
@@ -140,5 +145,9 @@ public class CompactionJobClient implements AutoCloseable {
         ThriftUtil.returnClient(coordinator.client, context);
       }
     }));
+
+    if (!ignoredCounts.isEmpty()) {
+      log.debug("Ignored compaction job counts {}", ignoredCounts);
+    }
   }
 }

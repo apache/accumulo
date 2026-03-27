@@ -78,7 +78,6 @@ struct TResolvedCompactionJob {
   9:bool overlapsSelectedFiles
 }
 
-
 exception UnknownCompactionIdException {}
 
 service CompactionCoordinatorService {
@@ -149,10 +148,19 @@ service CompactionCoordinatorService {
      1:client.ThriftSecurityException sec
    )
 
+   set<string> getResourceGroups(   
+     1:client.TInfo tinfo
+     2:security.TCredentials credentials
+     3:i64 updateId
+   )throws(
+     1:client.ThriftSecurityException sec
+   )
+
    void setResourceGroups(
      1:client.TInfo tinfo
      2:security.TCredentials credentials
-     3:set<string> groups
+     3:i64 updateId
+     4:set<string> groups
    )throws(
      1:client.ThriftSecurityException sec
    )

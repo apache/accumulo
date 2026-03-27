@@ -19,9 +19,10 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.manager.multi.ManagerAssignment.computeAssignments;
+import static org.apache.accumulo.server.compaction.CompactionPluginUtils.getConfiguredCompactionResourceGroups;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,10 +34,10 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.compaction.CoordinatorLocations;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -64,88 +65,89 @@ public class CoordinatorManager {
 
   private void managerCoordinators() {
     while (true) {
+
       try {
+        long updateId = LazySingletons.RANDOM.get().nextLong();
+        var current = getCurrentAssignments(updateId);
 
-        var assistants = context.getServerPaths()
-            .getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
-        if (!assistants.isEmpty()) {
-          var compactorGroups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(context)
-              .stream().map(ResourceGroupId::of).collect(toSet());
+        log.trace("Current assignments {}", current);
 
-          int minGroupsPerAssistant = compactorGroups.size() / assistants.size();
-          int maxGroupsPerAssistant =
-              minGroupsPerAssistant + Math.min(compactorGroups.size() % assistants.size(), 1);
+        var configuredGroups = getConfiguredCompactionResourceGroups(context).stream()
+            .map(ResourceGroupId::of).collect(toSet());
 
-          Map<ResourceGroupId,HostAndPort> currentLocations =
-              context.getCoordinatorLocations(false);
+        log.trace("Configured groups {}", configuredGroups);
 
-          // group by coordinator
-          Map<HostAndPort,Set<ResourceGroupId>> groupsPerCompactor = new HashMap<>();
-          currentLocations.forEach((rg, hp) -> {
-            groupsPerCompactor.computeIfAbsent(hp, hp2 -> new HashSet<>()).add(rg);
-          });
+        var desired = computeAssignments(current, configuredGroups);
 
-          boolean needsUpdates = !currentLocations.keySet().containsAll(compactorGroups);
-          // Look for any compactors that are not correct
-          for (var groups : groupsPerCompactor.values()) {
-            if (groups.size() < minGroupsPerAssistant || groups.size() > maxGroupsPerAssistant
-                || !compactorGroups.containsAll(groups)) {
-              needsUpdates = true;
-            }
-          }
-
-          if (needsUpdates) {
-            // TODO this does not try to keep current assignemnts
-            // TODO this should ask coordinators what they currently have instead of assuming ZK is
-            // correct, on failure ZK could be out of sync... otherwise always set RG on
-            // coordinators to ensure they match ZK
-            // TODO combine/share code w/ fate for assignments, that is why the todos above are not
-            // done, this code is temporary hack and it has problems.
-            Map<HostAndPort,Set<ResourceGroupId>> updates = new HashMap<>();
-            assistants.forEach(
-                slp -> updates.put(HostAndPort.fromString(slp.getServer()), new HashSet<>()));
-
-            var iter = compactorGroups.iterator();
-            updates.values().forEach(groups -> {
-              while (groups.size() < minGroupsPerAssistant) {
-                groups.add(iter.next());
-              }
-            });
-
-            updates.values().forEach(groups -> {
-              while (iter.hasNext() && groups.size() < maxGroupsPerAssistant) {
-                groups.add(iter.next());
-              }
-            });
-
-            updates.forEach(this::setResourceGroups);
-            Map<ResourceGroupId,HostAndPort> newLocations = new HashMap<>();
-            updates.forEach((hp, groups) -> {
-              groups.forEach(group -> newLocations.put(group, hp));
-            });
-
-            CoordinatorLocations.setLocations(context.getZooSession().asReaderWriter(),
-                newLocations, NodeExistsPolicy.OVERWRITE);
-            log.debug("Set locations {}", newLocations);
-          }
+        log.trace("Desired assignments {}", desired);
+        if (!current.equals(desired)) {
+          setAssignments(updateId, desired);
         }
-        // TODO better exception handling
-      } catch (ReflectiveOperationException | IllegalArgumentException | SecurityException
-          | InterruptedException | KeeperException e) {
-        log.warn("Failed to manage coordinators", e);
+
+        updateZookeeper(desired);
+      } catch (ReflectiveOperationException | InterruptedException | KeeperException e) {
+        // TODO
+        throw new RuntimeException(e);
       }
 
-      // TODO not good for test
+      // TODO not good for tests
       UtilWaitThread.sleep(5000);
     }
 
   }
 
-  private void setResourceGroups(HostAndPort hp, Set<ResourceGroupId> groups) {
+  private void updateZookeeper(Map<HostAndPort,Set<ResourceGroupId>> desired)
+      throws InterruptedException, KeeperException {
+    // transform desired set to look like what is in zookeeper
+    HashMap<ResourceGroupId,HostAndPort> transformed = new HashMap<>();
+    desired.forEach((hp, rgs) -> {
+      rgs.forEach(rg -> transformed.put(rg, hp));
+    });
+
+    var assignmentsInZk = context.getCoordinatorLocations(true);
+    if (!transformed.equals(assignmentsInZk)) {
+      CoordinatorLocations.setLocations(context.getZooSession().asReaderWriter(), transformed,
+          NodeExistsPolicy.OVERWRITE);
+      log.debug("Set new coordinator locations {}", desired);
+
+    }
+  }
+
+  private Map<HostAndPort,Set<ResourceGroupId>> getCurrentAssignments(long updateId) {
+    var assistants =
+        context.getServerPaths().getAssistantManagers(ServiceLockPaths.AddressSelector.all(), true);
+
+    Map<HostAndPort,Set<ResourceGroupId>> assignments = new HashMap<>();
+
+    for (var assistant : assistants) {
+      CompactionCoordinatorService.Client client = null;
+      try {
+        var hp = HostAndPort.fromString(assistant.getServer());
+        client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, context);
+        var groups = client.getResourceGroups(TraceUtil.traceInfo(), context.rpcCreds(), updateId);
+        assignments.put(hp, groups.stream().map(ResourceGroupId::of).collect(toSet()));
+      } catch (TException e) {
+        // TODO
+        throw new RuntimeException(e);
+      } finally {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
+
+    return assignments;
+  }
+
+  private void setAssignments(long updateId, Map<HostAndPort,Set<ResourceGroupId>> assignments) {
+    assignments.forEach((hp, groups) -> {
+      setResourceGroups(hp, groups, updateId);
+    });
+  }
+
+  private void setResourceGroups(HostAndPort hp, Set<ResourceGroupId> groups, long updateId) {
     CompactionCoordinatorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, context);
-      client.setResourceGroups(TraceUtil.traceInfo(), context.rpcCreds(),
+      client.setResourceGroups(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           groups.stream().map(AbstractId::canonical).collect(toSet()));
     } catch (TException e) {
       // TODO

@@ -77,7 +77,7 @@ public class CompactionJobQueuesTest {
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
-    jobQueues.setResourceGroups(Set.of(cg1, cg2, cg3));
+    jobQueues.setAllowedGroups(Set.of(cg1, cg2, cg3));
 
     jobQueues.beginFullScan(DataLevel.USER);
 
@@ -239,7 +239,7 @@ public class CompactionJobQueuesTest {
     var cg1 = ResourceGroupId.of("CG1");
 
     CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
-    jobQueues.setResourceGroups(Set.of(cg1));
+    jobQueues.setAllowedGroups(Set.of(cg1));
 
     jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
     jobQueues.add(extent2, List.of(newJob((short) 2, 6, cg1)));
@@ -279,7 +279,7 @@ public class CompactionJobQueuesTest {
     ResourceGroupId[] groups =
         Stream.of("G1", "G2", "G3").map(ResourceGroupId::of).toArray(ResourceGroupId[]::new);
 
-    jobQueues.setResourceGroups(Set.of(groups));
+    jobQueues.setAllowedGroups(Set.of(groups));
 
     var executor = Executors.newFixedThreadPool(groups.length);
 
@@ -345,7 +345,7 @@ public class CompactionJobQueuesTest {
 
     var cg1 = ResourceGroupId.of("CG1");
 
-    jobQueues.setResourceGroups(Set.of(cg1));
+    jobQueues.setAllowedGroups(Set.of(cg1));
 
     var job1 = newJob((short) 1, 5, cg1);
     var job2 = newJob((short) 2, 6, cg1);
@@ -417,7 +417,7 @@ public class CompactionJobQueuesTest {
     var cg1 = ResourceGroupId.of("CG1");
     var cg2 = ResourceGroupId.of("CG2");
 
-    jobQueues.setResourceGroups(Set.of(cg1, cg2));
+    jobQueues.setAllowedGroups(Set.of(cg1, cg2));
 
     jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
 

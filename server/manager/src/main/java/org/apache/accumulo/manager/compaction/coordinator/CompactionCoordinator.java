@@ -70,6 +70,7 @@ import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -609,9 +610,33 @@ public class CompactionCoordinator
     jobQueues.endFullScan(DataLevel.valueOf(dataLevel));
   }
 
+  private static class UpdateId {
+    long updateId;
+    boolean set;
+  }
+
+  private final UpdateId expectedUpdateId = new UpdateId();
+
   @Override
-  public void setResourceGroups(TInfo tinfo, TCredentials credentials, Set<String> groups)
+  public Set<String> getResourceGroups(TInfo tinfo, TCredentials credentials, long updateId)
       throws ThriftSecurityException, TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      // TODO does not seem like the correct exception, also this code snippet was copied.
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    synchronized (expectedUpdateId) {
+      // invalidate any outstanding updates and set a new one time use update id
+      expectedUpdateId.updateId = updateId;
+      expectedUpdateId.set = true;
+      return jobQueues.getAllowedGroups().stream().map(AbstractId::canonical).collect(toSet());
+    }
+  }
+
+  @Override
+  public void setResourceGroups(TInfo tinfo, TCredentials credentials, long updateId,
+      Set<String> groups) throws ThriftSecurityException, TException {
     if (!security.canPerformSystemActions(credentials)) {
       // TODO does not seem like the correct exception, also this code snippet was copied.
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -620,8 +645,16 @@ public class CompactionCoordinator
 
     // TODO validate that upgrade is complete like FateWorker does
 
-    jobQueues.setResourceGroups(groups.stream().map(ResourceGroupId::of).collect(toSet()));
-    LOG.debug("Set resource groups to {}", groups);
+    // only allow an update id to be used once
+    synchronized (expectedUpdateId) {
+      if (expectedUpdateId.updateId == updateId && expectedUpdateId.set) {
+        jobQueues.setAllowedGroups(groups.stream().map(ResourceGroupId::of).collect(toSet()));
+        LOG.debug("Set allowed resource groups to {}", groups);
+        expectedUpdateId.set = false;
+      } else {
+        LOG.debug("Did not set resource groups because update id did not match");
+      }
+    }
   }
 
   // TODO remove

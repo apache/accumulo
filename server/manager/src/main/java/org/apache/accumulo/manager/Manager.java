@@ -1155,8 +1155,6 @@ public class Manager extends AbstractServer
     this.splitter = new Splitter(this);
     this.splitter.start();
 
-    setupFate(context);
-
     fateManager = new FateManager(getContext());
     fateManager.start();
     startFateMaintenance();

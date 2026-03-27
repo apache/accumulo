@@ -180,7 +180,13 @@ public class CompactionJobQueues {
     priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(this.queueSize));
   }
 
-  public void setResourceGroups(Set<ResourceGroupId> groups) {
+  public Set<ResourceGroupId> getAllowedGroups() {
+    synchronized (allowedGroups) {
+      return Set.copyOf(allowedGroups);
+    }
+  }
+
+  public void setAllowedGroups(Set<ResourceGroupId> groups) {
     synchronized (allowedGroups) {
       allowedGroups.clear();
       allowedGroups.addAll(groups);

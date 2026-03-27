@@ -32,19 +32,28 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.compaction.ExternalCompactionTestUtils;
+import org.apache.accumulo.test.functional.ConfigurableMacBase;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class MultipleManagerCompactionIT extends AccumuloClusterHarness {
+public class MultipleManagerCompactionIT extends ConfigurableMacBase {
 
   @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+  public void configure(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
     cfg.getClusterServerConfiguration().setNumManagers(3);
+    // This test could kill a manager after its written a compaction to the metadata table, but
+    // before it returns it to the compactor via RPC which creates a dead compaction. Need to speed
+    // up the dead compaction detection to handle this or else the test will hang.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
+    // Speed up time to detect a dead manager process by lowering ZK timeout
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
   }
 
   @Test
@@ -52,6 +61,10 @@ public class MultipleManagerCompactionIT extends AccumuloClusterHarness {
     String[] names = this.getUniqueNames(2);
     try (AccumuloClient client =
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      // wait for three coordinator locations to show up in zookeeper
+      Wait.waitFor(() -> getServerContext().getCoordinatorLocations(true).values().stream()
+          .distinct().count() == 3);
 
       String table1 = names[0];
       createTable(client, table1, "cs1");
@@ -71,6 +84,37 @@ public class MultipleManagerCompactionIT extends AccumuloClusterHarness {
 
       compact(client, table2, 3, GROUP2, true);
       verify(client, table2, 3);
+
+      getCluster().getConfig().getClusterServerConfiguration().setNumManagers(5);
+      getCluster().getClusterControl().start(ServerType.MANAGER);
+
+      // wait for five coordinator locations to show up in zookeeper
+      Wait.waitFor(() -> getServerContext().getCoordinatorLocations(true).values().stream()
+          .distinct().count() == 5);
+
+      compact(client, table1, 3, GROUP1, true);
+      verify(client, table1, 6);
+
+      compact(client, table2, 5, GROUP2, true);
+      verify(client, table2, 15);
+
+      // kill three managers
+      for (var proc : getCluster().getProcesses().get(ServerType.MANAGER).stream().limit(3)
+          .toList()) {
+        getCluster().getClusterControl().killProcess(ServerType.MANAGER, proc);
+      }
+
+      // TODO check that all compactors RGs are present in coordinator locations
+
+      // wait for three coordinator locations to show up in zookeeper
+      Wait.waitFor(() -> getServerContext().getCoordinatorLocations(true).values().stream()
+          .distinct().count() == 2, 120_000); // TODO adjust ZK timeout
+
+      compact(client, table1, 5, GROUP1, true);
+      verify(client, table1, 30);
+
+      compact(client, table2, 2, GROUP2, true);
+      verify(client, table2, 30);
 
     }
   }
