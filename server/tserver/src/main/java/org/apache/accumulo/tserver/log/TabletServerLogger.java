@@ -293,7 +293,7 @@ public class TabletServerLogger {
         try {
           tserver.addNewLogMarker(alog);
         } catch (Exception e) {
-          log.error("Failed to add new WAL marker for " + alog.getLogEntry(), e);
+          log.error("Failed to add new WAL marker for {}", alog.getLogEntry(), e);
 
           try {
             // Intentionally not deleting walog because it may have been advertised in ZK. See
@@ -311,7 +311,7 @@ public class TabletServerLogger {
           try {
             tserver.walogClosed(alog);
           } catch (WalMarkerException | RuntimeException e2) {
-            log.error("Failed to close WAL that failed to open: " + alog.getLogEntry(), e2);
+            log.error("Failed to close WAL that failed to open: {}", alog.getLogEntry(), e2);
           }
 
           try {
@@ -348,7 +348,7 @@ public class TabletServerLogger {
       } catch (DfsLogger.LogClosedException ex) {
         // ignore
       } catch (IOException | RuntimeException ex) {
-        log.error("Unable to cleanly close log " + currentLog.getLogEntry() + ": " + ex, ex);
+        log.error("Unable to cleanly close log {}: {}", currentLog.getLogEntry(), ex, ex);
       } finally {
         try {
           this.tserver.walogClosed(currentLog);
