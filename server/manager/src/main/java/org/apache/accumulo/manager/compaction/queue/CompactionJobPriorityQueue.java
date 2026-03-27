@@ -369,6 +369,17 @@ public class CompactionJobPriorityQueue {
     }
   }
 
+  public synchronized void clear() {
+    futures.forEach(future -> {
+      future.complete(null);
+    });
+    futures.clear();
+
+    jobQueue.clear();
+    tabletJobs.clear();
+    jobAges.clear();
+  }
+
   public synchronized void resetMaxSize(long size) {
     Preconditions.checkArgument(size > 0);
     long oldSize = maxSize.getAndSet(size);

@@ -18,16 +18,17 @@
  */
 package org.apache.accumulo.manager.compaction.queue;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentHashMap.KeySetView;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -52,7 +53,8 @@ public class CompactionJobQueues {
 
   private volatile long queueSize;
 
-  private final Set<ResourceGroupId> allowedGroups = Collections.synchronizedSet(new HashSet<>());
+  private final AtomicReference<Set<ResourceGroupId>> allowedGroups =
+      new AtomicReference<>(Set.of());
 
   private final Map<DataLevel,AtomicLong> currentGenerations;
 
@@ -94,7 +96,7 @@ public class CompactionJobQueues {
     }
   }
 
-  public KeySetView<ResourceGroupId,CompactionJobPriorityQueue> getQueueIds() {
+  public Set<ResourceGroupId> getQueueIds() {
     return priorityQueues.keySet();
   }
 
@@ -103,12 +105,12 @@ public class CompactionJobQueues {
   }
 
   public long getQueueMaxSize(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
+    var prioQ = getQueue(groupId);
     return prioQ == null ? 0 : prioQ.getMaxSize();
   }
 
   public long getQueuedJobs(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
+    var prioQ = getQueue(groupId);
     return prioQ == null ? 0 : prioQ.getQueuedJobs();
   }
 
@@ -125,13 +127,15 @@ public class CompactionJobQueues {
   }
 
   private CompactionJobPriorityQueue getOrCreateQueue(ResourceGroupId groupId) {
-    return priorityQueues.computeIfAbsent(groupId, gid -> {
-      if (allowedGroups.contains(gid)) {
+    var pq = priorityQueues.computeIfAbsent(groupId, gid -> {
+      if (allowedGroups.get().contains(gid)) {
         return new CompactionJobPriorityQueue(gid, queueSize, ResolvedCompactionJob.WEIGHER);
       } else {
         return null;
       }
     });
+
+    return pq;
   }
 
   /**
@@ -150,7 +154,7 @@ public class CompactionJobQueues {
   }
 
   public CompactionJob poll(ResourceGroupId groupId) {
-    var prioQ = priorityQueues.get(groupId);
+    var prioQ = getQueue(groupId);
     if (prioQ == null) {
       return null;
     }
@@ -181,18 +185,20 @@ public class CompactionJobQueues {
   }
 
   public Set<ResourceGroupId> getAllowedGroups() {
-    synchronized (allowedGroups) {
-      return Set.copyOf(allowedGroups);
-    }
+    return allowedGroups.get();
   }
 
-  public void setAllowedGroups(Set<ResourceGroupId> groups) {
-    synchronized (allowedGroups) {
-      allowedGroups.clear();
-      allowedGroups.addAll(groups);
-    }
+  public synchronized void setAllowedGroups(Set<ResourceGroupId> groups) {
+    var snapshot = Set.copyOf(requireNonNull(groups));
 
-    priorityQueues.keySet().removeIf(rg -> !allowedGroups.contains(rg));
-    // TODO need to cancel futures
+    allowedGroups.set(snapshot);
+
+    priorityQueues.forEach((rg, pq) -> {
+      if (!snapshot.contains(rg)) {
+        pq.clear();
+      }
+    });
+
+    priorityQueues.keySet().removeIf(rg -> !snapshot.contains(rg));
   }
 }
