@@ -30,7 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -75,10 +74,8 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.apache.thrift.transport.TTransportException;
 
 import com.beust.jcommander.internal.Maps;
-import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionTestUtils {
 
@@ -306,10 +303,6 @@ public class ExternalCompactionTestUtils {
   public static int confirmCompactionRunning(ServerContext ctx, Set<ExternalCompactionId> ecids)
       throws Exception {
     int matches = 0;
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
     while (matches == 0) {
       var running = ExternalCompactionTestUtils.getRunningCompactions(ctx);
       for (ExternalCompactionId ecid : ecids) {
