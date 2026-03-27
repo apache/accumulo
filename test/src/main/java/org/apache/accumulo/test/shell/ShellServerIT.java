@@ -157,9 +157,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @BeforeEach
   public void setupShell() throws Exception {
-    ts = new MockShell(getPrincipal(), getRootPassword(),
-        getCluster().getConfig().getInstanceName(), getCluster().getConfig().getZooKeepers(),
-        getCluster().getConfig().getClientPropsFile());
+    ts = new MockShell(getCluster().getConfig().getClientPropsFile());
   }
 
   @AfterAll
