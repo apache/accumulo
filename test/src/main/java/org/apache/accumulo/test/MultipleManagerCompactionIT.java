@@ -23,9 +23,11 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GR
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getExpectedGroups;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -65,6 +67,7 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
       // wait for three coordinator locations to show up in zookeeper
       Wait.waitFor(() -> getServerContext().getCoordinatorLocations(true).values().stream()
           .distinct().count() == 3);
+      assertEquals(getExpectedGroups(), getServerContext().getCoordinatorLocations(true).keySet());
 
       String table1 = names[0];
       createTable(client, table1, "cs1");
@@ -91,6 +94,7 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
       // wait for five coordinator locations to show up in zookeeper
       Wait.waitFor(() -> getServerContext().getCoordinatorLocations(true).values().stream()
           .distinct().count() == 5);
+      assertEquals(getExpectedGroups(), getServerContext().getCoordinatorLocations(true).keySet());
 
       compact(client, table1, 3, GROUP1, true);
       verify(client, table1, 6);
@@ -104,11 +108,10 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
         getCluster().getClusterControl().killProcess(ServerType.MANAGER, proc);
       }
 
-      // TODO check that all compactors RGs are present in coordinator locations
-
       // wait for three coordinator locations to show up in zookeeper
       Wait.waitFor(() -> getServerContext().getCoordinatorLocations(true).values().stream()
-          .distinct().count() == 2, 120_000); // TODO adjust ZK timeout
+          .distinct().count() == 2, 120_000);
+      assertEquals(getExpectedGroups(), getServerContext().getCoordinatorLocations(true).keySet());
 
       compact(client, table1, 5, GROUP1, true);
       verify(client, table1, 30);
