@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +46,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
@@ -528,11 +526,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         tables.stream().map(SlowOps::getTableName).filter(this::findFate).count());
 
     Wait.waitFor(() -> {
-      List<TExternalCompaction> compactions = new ArrayList<>();
       AtomicInteger compactionCount = new AtomicInteger(0);
       ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client,
           (t) -> compactionCount.incrementAndGet());
-      return compactions.size() == compactionCount.get();
+      return tableCount == compactionCount.get();
     });
 
     tables.forEach(t -> {
