@@ -804,7 +804,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
             result.put(type, references(control.gcProcess));
           }
           break;
-        case MASTER:
         case MANAGER:
           if (control.managerProcess != null) {
             result.put(type, references(control.managerProcess));
@@ -827,6 +826,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           }
           break;
         case TRACER:
+        case MASTER:
           break;
         default:
           throw new IllegalArgumentException("Unhandled server type : " + type);
