@@ -334,13 +334,3 @@ async function refreshManagerStatus() {
     return managerStatus;
   });
 }
-
-// Helper function to validate regex
-function isValidRegex(input) {
-  try {
-    new RegExp(input);
-    return true;
-  } catch (e) {
-    return false;
-  }
-}

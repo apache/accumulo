@@ -18,10 +18,100 @@
  */
 "use strict";
 
+var deploymentSummaryTable;
+var deploymentBreakdownTable;
+
 /**
  * Creates overview initial table
  */
 $(function () {
+  // display datatables errors in the console instead of in alerts
+  $.fn.dataTable.ext.errMode = 'throw';
+
+  deploymentSummaryTable = $('#deploymentSummaryTable').DataTable({
+    "autoWidth": false,
+    "paging": false,
+    "searching": false,
+    "info": false,
+    "ordering": false,
+    "dom": 't',
+    "data": [],
+    "columnDefs": [{
+        "targets": 0,
+        "width": "60%"
+      },
+      {
+        "targets": 1,
+        "width": "40%"
+      }
+    ],
+    "columns": [{
+        "data": "serverType"
+      },
+      {
+        "data": null,
+        "render": function (data, type, row) {
+          return row.responding + ' / ' + row.total;
+        }
+      }
+    ]
+  });
+
+  deploymentBreakdownTable = $('#deploymentBreakdownTable').DataTable({
+    "autoWidth": false,
+    "paging": false,
+    "searching": true,
+    "info": false,
+    "order": [
+      [0, 'asc'],
+      [1, 'asc']
+    ],
+    "dom": 't',
+    "data": [],
+    "columnDefs": [{
+        "targets": 0,
+        "width": "30%"
+      },
+      {
+        "targets": 1,
+        "width": "40%"
+      },
+      {
+        "targets": 2,
+        "width": "30%"
+      }
+    ],
+    "columns": [{
+        "data": "resourceGroup",
+        "name": "resourceGroup"
+      },
+      {
+        "data": "serverType"
+      },
+      {
+        "data": null,
+        "render": function (data, type, row) {
+          return row.responding + ' / ' + row.total;
+        }
+      }
+    ]
+  });
+
+  $('#deployment-rg-filter').on('keyup', function () {
+    var input = this.value;
+    if (isValidRegex(input) || input === '') {
+      $('#deployment-rg-feedback').hide();
+      $(this).removeClass('is-invalid');
+      deploymentBreakdownTable
+        .column('resourceGroup:name')
+        .search(input, true, false)
+        .draw();
+    } else {
+      $('#deployment-rg-feedback').show();
+      $(this).addClass('is-invalid');
+    }
+  });
+
   refreshOverview();
 });
 
@@ -29,18 +119,6 @@ $(function () {
  * Makes the REST calls, generates the table with the new information
  */
 function refreshOverview() {
-  getStatus().then(function () {
-    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
-    // If the manager is down, show only the first row, otherwise refresh old values
-    $('#manager tr td').hide();
-    if (managerStatus === 'ERROR') {
-      $('#manager tr td:first').show();
-    } else {
-      $('#manager tr td:not(:first)').show();
-      refreshManagerTable();
-    }
-  });
-
   refreshDeploymentTables();
 }
 
@@ -52,74 +130,42 @@ function refresh() {
 }
 
 /**
- * Refreshes the manager table
- */
-function refreshManagerTable() {
-  getManager().then(function () {
-    var data = JSON.parse(sessionStorage.manager);
-    var table = $('#manager td.right');
-
-    table.eq(0).html(data.host);
-    table.eq(1).html(data.resourceGroup);
-    table.eq(2).html(dateFormat(data.timestamp));
-    table.eq(3).html('<a href="' + contextPath + 'rest-v2/manager/metrics">Metrics</a>');
-  });
-}
-
-/**
  * Refreshes the deployment overview tables
  */
 function refreshDeploymentTables() {
   getDeployment().then(function () {
     var data = JSON.parse(sessionStorage.deployment);
-    var groups = Array.isArray(data.groups) ? data.groups : [];
-    if (groups.length === 0) {
-      $('#deploymentTables').html('<div class="alert alert-warning" role="alert">' +
+    var breakdown = Array.isArray(data.breakdown) ? data.breakdown : [];
+    var summary = buildDeploymentSummary(breakdown);
+
+    if (breakdown.length === 0) {
+      $('#deploymentWarning').html('<div class="alert alert-warning" role="alert">' +
         'No deployment data is currently available.</div>');
-      return;
+    } else {
+      $('#deploymentWarning').empty();
     }
 
-    var tables = groups.map(renderDeploymentTable).join('');
-
-    $('#deploymentTables').html(tables);
+    deploymentSummaryTable.clear().rows.add(summary).draw();
+    deploymentBreakdownTable.clear().rows.add(breakdown).draw();
   });
 }
 
-/**
- * Renders the deployment table for one resource group
- *
- * @param {object} group deployment data for one resource group
- * @returns {string} html for the resource group deployment table
- */
-function renderDeploymentTable(group) {
-  var processes = Array.isArray(group.processes) ? group.processes : [];
-  var rows = processes.map(function (process) {
-    return '<tr>' +
-      '<td>' + process.serverType + '</td>' +
-      '<td>' + process.total + '</td>' +
-      '<td>' + process.responding + '</td>' +
-      '<td>' + process.notResponding + '</td>' +
-      '</tr>';
-  }).join('');
+function buildDeploymentSummary(breakdown) {
+  var totalsByType = new Map();
 
-  return '<div class="mb-4">' +
-    '<table class="table table-bordered table-striped table-condensed" style="table-layout: fixed; width: 100%;">' +
-    '<colgroup>' +
-    '<col style="width: 25%;">' +
-    '<col style="width: 25%;">' +
-    '<col style="width: 25%;">' +
-    '<col style="width: 25%;">' +
-    '</colgroup>' +
-    '<thead>' +
-    '<tr><th colspan="4" class="center">' + group.resourceGroup + '</th></tr>' +
-    '<tr>' +
-    '<th>Process</th>' +
-    '<th>Total</th>' +
-    '<th>Responding</th>' +
-    '<th>Not Responding</th>' +
-    '</tr>' +
-    '</thead>' +
-    '<tbody>' + rows + '</tbody>' +
-    '</table>' +
-    '</div>';
+  breakdown.forEach(function (row) {
+    var existing = totalsByType.get(row.serverType);
+    if (existing === undefined) {
+      totalsByType.set(row.serverType, {
+        serverType: row.serverType,
+        total: row.total,
+        responding: row.responding
+      });
+    } else {
+      existing.total += row.total;
+      existing.responding += row.responding;
+    }
+  });
+
+  return Array.from(totalsByType.values());
 }

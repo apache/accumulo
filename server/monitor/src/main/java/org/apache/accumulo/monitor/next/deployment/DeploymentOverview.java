@@ -27,24 +27,16 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 
 /**
- * Data Transfer Object for the Monitor Overview page deployment tables. It packages the total,
- * responding, and not responding server counts for each process in each resource group into a
- * UI-ready JSON response.
+ * Data Transfer Object for the Monitor Deployment page.
  */
-public record DeploymentOverview(long lastUpdate, List<ResourceGroupDeployment> groups) {
+public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown) {
 
   /**
-   * Data Transfer Object for a resource group and its associated server counts
+   * Data Transfer Object containing counts of total and responding servers for a given resource
+   * group and server type.
    */
-  public record ResourceGroupDeployment(String resourceGroup,
-      List<ServerTypeDeployment> processes) {
-  }
-
-  /**
-   * Data Transfer Object for a server type and its associated counts
-   */
-  public record ServerTypeDeployment(String serverType, long total, long responding,
-      long notResponding) {
+  public record DeploymentRow(String resourceGroup, String serverType, long total,
+      long responding) {
   }
 
   public static DeploymentOverview fromSummary(
@@ -53,30 +45,30 @@ public record DeploymentOverview(long lastUpdate, List<ResourceGroupDeployment> 
       return new DeploymentOverview(lastUpdate, List.of());
     }
 
-    var groups = deployment.entrySet().stream().sorted(Map.Entry.comparingByKey()).map(entry -> {
-      String resourceGroup = entry.getKey().canonical();
-      List<ServerTypeDeployment> processes = buildProcesses(entry.getValue());
-      return new ResourceGroupDeployment(resourceGroup, processes);
-    }).toList();
+    var breakdown =
+        deployment.entrySet().stream().sorted(Map.Entry.comparingByKey()).flatMap(entry -> {
+          var resourceGroup = entry.getKey().canonical();
+          var processes = entry.getValue();
+          if (processes == null || processes.isEmpty()) {
+            return java.util.stream.Stream.empty();
+          }
 
-    return new DeploymentOverview(lastUpdate, groups);
-  }
-
-  private static List<ServerTypeDeployment>
-      buildProcesses(Map<ServerId.Type,ProcessSummary> processes) {
-    if (processes == null || processes.isEmpty()) {
-      return List.of();
-    }
-
-    return processes.entrySet().stream()
-        .sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Enum::ordinal))).map(entry -> {
-          ServerId.Type key = entry.getKey();
-          ProcessSummary value = entry.getValue();
-          return new ServerTypeDeployment(processLabel(key), value.getTotal(), value.getResponded(),
-              value.getNotResponded());
+          return processes.entrySet().stream()
+              .sorted(Map.Entry.comparingByKey(Comparator.comparingInt(Enum::ordinal)))
+              .map(processEntry -> {
+                ServerId.Type type = processEntry.getKey();
+                ProcessSummary processSummary = processEntry.getValue();
+                return new DeploymentRow(resourceGroup, processLabel(type),
+                    processSummary.getTotal(), processSummary.getResponded());
+              });
         }).toList();
+
+    return new DeploymentOverview(lastUpdate, breakdown);
   }
 
+  /**
+   * @return String representation of the server type
+   */
   private static String processLabel(ServerId.Type process) {
     return switch (process) {
       case COMPACTOR -> "Compactor";

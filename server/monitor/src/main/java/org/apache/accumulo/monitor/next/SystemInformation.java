@@ -293,9 +293,6 @@ public class SystemInformation {
       return this.responded.size();
     }
 
-    public long getNotResponded() {
-      return this.notResponded.size();
-    }
   }
 
   // Object that serves as a TopN view of the RunningCompactions, ordered by
@@ -415,7 +412,7 @@ public class SystemInformation {
   private long timestamp = 0;
   private ScanServerView scanServerView = new ScanServerView(0L, List.of(),
       new ScanServerView.Status(false, false, false, 0, 0, 0L, "OK", null));
-  private DeploymentOverview deploymentOverview = new DeploymentOverview(0, List.of());
+  private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
   private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
@@ -609,6 +606,9 @@ public class SystemInformation {
     for (String rg : getResourceGroups()) {
       Set<ServerId> rgCompactors = getCompactorResourceGroupServers(rg);
       List<FMetric> metrics = queueMetrics.get(rg);
+      if (metrics == null || metrics.isEmpty()) {
+        continue;
+      }
       Optional<FMetric> queued = metrics.stream()
           .filter(fm -> fm.name().equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName()))
           .findFirst();
@@ -622,6 +622,9 @@ public class SystemInformation {
             // Check for idle compactors.
             Map<Id,CumulativeDistributionSummary> rgMetrics =
                 getCompactorResourceGroupMetricSummary(rg);
+            if (rgMetrics == null || rgMetrics.isEmpty()) {
+              continue;
+            }
             Optional<Entry<Id,CumulativeDistributionSummary>> idleMetric = rgMetrics.entrySet()
                 .stream().filter(e -> e.getKey().getName().equals(Metric.SERVER_IDLE.getName()))
                 .findFirst();
@@ -732,10 +735,6 @@ public class SystemInformation {
 
   public List<TabletInformation> getTablets(TableId tableId) {
     return this.tablets.get(tableId);
-  }
-
-  public Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> getDeploymentSummary() {
-    return this.deployment;
   }
 
   public DeploymentOverview getDeploymentView() {
