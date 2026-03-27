@@ -80,6 +80,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
      "   \"busyTimeoutMultiplier\": 8,"+
      "   \"group\": \"GROUP1\","+
      "   \"scanTypeActivations\": [\"use_group1\"],"+
+     "   \"timeToWaitForScanServers\": \"120s\","+
      "   \"attemptPlans\": ["+
      "     {"+
      "       \"servers\": \"3\","+
