@@ -113,14 +113,6 @@ public class CompactionCoordinatorTest {
     @Override
     protected void startFailureSummaryLogging() {}
 
-    // TODO remove this, used to override
-    protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-      // This is called from CompactionCoordinator.run(). Counting down
-      // the latch will exit the run method
-      // TODO
-      this.shutdown.countDown();
-    }
-
     @Override
     protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {}
 
@@ -219,7 +211,6 @@ public class CompactionCoordinatorTest {
   public void testCoordinatorColdStart() throws Exception {
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
@@ -238,14 +229,12 @@ public class CompactionCoordinatorTest {
 
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    // Use coordinator.run() to populate the internal data structures. This is tested in a different
-    // test.
-    coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
 
     // Add a job to the job queue
+    coordinator.getJobQueues().setAllowedGroups(Set.of(GROUP_ID));
     CompactionJob job =
         new CompactionJobImpl((short) 1, GROUP_ID, Collections.emptyList(), CompactionKind.SYSTEM);
     coordinator.addJobs(tm, Collections.singleton(job));
