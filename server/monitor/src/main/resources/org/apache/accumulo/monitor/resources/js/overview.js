@@ -67,7 +67,7 @@ $(function () {
       [0, 'asc'],
       [1, 'asc']
     ],
-    "dom": 't<"align-left"l>ip',
+    "dom": 't<"row"<"col-sm-3"l><"col-sm-5 text-center"i><"col-sm-4 text-right"p>>',
     "data": [],
     "columnDefs": [{
         "targets": 0,
