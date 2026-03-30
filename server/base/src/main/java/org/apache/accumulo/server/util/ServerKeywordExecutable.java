@@ -52,10 +52,12 @@ public abstract class ServerKeywordExecutable<OPTS extends ServerOpts>
   @Override
   public void doExecute(JCommander cl, OPTS options) throws Exception {
     // Login as the server on secure HDFS
-    AccumuloConfiguration conf = getServerContext().getConfiguration();
-    if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-      SecurityUtil.serverLogin(conf);
+    try (ServerContext context = getServerContext()) {
+      AccumuloConfiguration conf = context.getConfiguration();
+      if (conf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(conf);
+      }
+      execute(cl, options);
     }
-    execute(cl, options);
   }
 }

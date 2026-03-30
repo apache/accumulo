@@ -156,16 +156,15 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testTablePropInSystemConfigFails() {
     assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      ZooPropEditor tool = new ZooPropEditor();
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
       System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
           "file:///" + getCluster().getAccumuloPropertiesPath());
       for (Entry<String,String> e : defaultProperties.entrySet()) {
+        ZooPropEditor tool = new ZooPropEditor();
         String[] setSystemPropArgs = {"-s", e.getKey() + "=" + e.getValue()};
         IllegalStateException ise =
             assertThrows(IllegalStateException.class, () -> tool.execute(setSystemPropArgs));
-        ise.printStackTrace();
         assertTrue(ise.getMessage().startsWith("Failed to set property for system"),
             ise::getMessage);
       }
@@ -178,17 +177,18 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
   public void testTablePropInResourceGroupConfigFails() {
     assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      ZooPropEditor tool = new ZooPropEditor();
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
       System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
           "file:///" + getCluster().getAccumuloPropertiesPath());
       for (Entry<String,String> e : defaultProperties.entrySet()) {
+        ZooPropEditor tool = new ZooPropEditor();
         String[] setRGPropArgs =
             {"-r", ResourceGroupId.DEFAULT.canonical(), "-s", e.getKey() + "=" + e.getValue()};
         IllegalStateException ise =
             assertThrows(IllegalStateException.class, () -> tool.execute(setRGPropArgs));
-        assertTrue(ise.getMessage().startsWith("Failed to set property for default"));
+        assertTrue(ise.getMessage().startsWith("Failed to set property for default"),
+            ise::getMessage);
       }
     } finally {
       System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
