@@ -55,7 +55,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
-import org.apache.accumulo.monitor.next.sservers.ScanServerView;
+import org.apache.accumulo.monitor.next.views.ServersView;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -275,7 +275,7 @@ public class Endpoints {
   @Path("sservers/view")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a UI-ready view model for the Scan Server status page")
-  public ScanServerView getScanServerPageView() {
+  public ServersView getScanServerPageView() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getScanServerView();
   }
 
