@@ -57,8 +57,8 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -744,69 +744,6 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     }
   }
 
-  /**
-   * This test confirms the behaviour that when a table is created with the copy-configuration
-   * option that the properties that get set on the new table are the effective properties - that is
-   * the table properties include the system and namespace are copied into the table properties.
-   */
-  @Test
-  public void copyConfigOptionsTest() throws Exception {
-    String[] names = getUniqueNames(2);
-    String srcNS = "ns1";
-
-    String srcTable = srcNS + ".src_table_" + names[1];
-    String destTable = srcNS + ".dest_table_" + names[1];
-
-    // define constants
-    final String nsPropName = "table.custom.my_ns_prop";
-    final String nsPropValue1 = "ns_value1";
-    final String nsPropValue2 = "ns_value2";
-
-    ts.exec("createnamespace " + srcNS);
-    ts.exec("config -s " + nsPropName + "=" + nsPropValue1 + " -ns " + srcNS);
-
-    ts.exec("createtable " + srcTable);
-    ts.exec("createtable -cc " + srcTable + " " + destTable);
-
-    try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
-      Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
-
-      // used to grab values directly from ZooKeeper to bypass hierarchy
-      PropStore propStore = getCluster().getServerContext().getPropStore();
-
-      TableId destId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(destTable));
-
-      // the Zk node should have all effective properties copied from configuration
-      var vp1 = propStore.get(TablePropKey.of(destId));
-      assertEquals(nsPropValue1, vp1.asMap().get(nsPropName));
-
-      // check getTableProperties also inherits the effective config
-      Map<String,String> tableEffective =
-          accumuloClient.tableOperations().getTableProperties(destTable);
-      assertEquals(nsPropValue1, tableEffective.get(nsPropName));
-
-      // changing the system and namespace props should leave the copied effective props unchanged
-      ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
-
-      // source will still inherit from sys and namespace (no prop values)
-      var vp2 = propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable))));
-      assertNull(vp2.asMap().get(nsPropName));
-
-      // dest (copied props) should remain local to the table, overriding sys and namespace
-      var vp3 = propStore.get(TablePropKey.of(TableId.of(tids.get(destTable))));
-      assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
-
-      // show change propagated in source table effective hierarchy
-      tableEffective = accumuloClient.tableOperations().getConfiguration(srcTable);
-
-      assertEquals(nsPropValue2, tableEffective.get(nsPropName));
-
-      // because effective config was copied, the change should not propagate to effective hierarchy
-      tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
-      assertEquals(nsPropValue1, tableEffective.get(nsPropName));
-    }
-  }
-
   @Test
   public void copyTablePropsOnlyOptionsTest() throws Exception {
     String[] names = getUniqueNames(2);
@@ -853,35 +790,21 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       assertNull(vp3.asMap().get(nsPropName));
 
       // because effective config was not copied, the changes should propagate to effective
-      // hierarchy
+      // hierarchy. It may take a bit for settings changes to propagate
+      Wait.waitFor(() -> {
+        var tableEffective2 = accumuloClient.tableOperations().getConfiguration(destTable);
+        return nsPropValue2.equals(tableEffective2.get(nsPropName));
+      });
       tableEffective = accumuloClient.tableOperations().getConfiguration(destTable);
       assertEquals(nsPropValue2, tableEffective.get(nsPropName));
     }
   }
 
   @Test
-  public void copyTablePropsInvalidOptsTest() throws Exception {
-    String[] names = getUniqueNames(2);
-
-    ts.exec("createtable " + names[0]);
-    ts.exec("createtable " + names[1]);
-
-    // test --expect-parent requires-cc expect this fail
-    ts.exec("createtable --exclude-parent " + names[0] + "dest", false);
-  }
-
-  @Test
-  public void missingSrcCopyPropsTest() throws Exception {
-    String[] names = getUniqueNames(2);
-    // test command fail if src is not available
-    ts.exec("createtable --exclude-parent -cc " + names[0] + " " + names[1], false);
-  }
-
-  @Test
   public void missingSrcCopyConfigTest() throws Exception {
     String[] names = getUniqueNames(2);
     /// test command fail if src is not available
-    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
   }
 
   @Test
@@ -892,17 +815,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("createtable " + names[1]);
 
     // expect to fail because target already exists
-    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
-  }
-
-  @Test
-  public void optionOrderingTest() throws Exception {
-    String[] names = getUniqueNames(3);
-
-    ts.exec("createtable " + names[0]);
-
-    ts.exec("createtable --exclude-parent --copy-config " + names[0] + " " + names[1], true);
-    ts.exec("createtable --copy-config " + names[0] + " --exclude-parent " + names[2], true);
+    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
   }
 
   @Test
@@ -921,7 +834,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
           + ".vers.opt.maxVersions=999", true);
     }
 
-    ts.exec("createtable " + table2 + " -cc " + table1, true);
+    ts.exec("createtable " + table2 + " -cp " + table1, true);
     for (IteratorUtil.IteratorScope iterScope : IteratorUtil.IteratorScope.values()) {
       var res = ts.exec(
           "config -t " + table2 + " -f " + Property.TABLE_ITERATOR_PREFIX + iterScope.name(), true);
@@ -966,11 +879,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("createtable " + src, true);
     ts.exec("createtable " + src2, true);
 
-    var res = ts.exec(String.format("createtable -cc %s -cp %s %s", src, src2, dest), false);
-    assertTrue(res.contains("AlreadySelectedException"));
-    res = ts.exec(String.format("createtable -cc %s -pf %s %s", src, optArg, dest), false);
-    assertTrue(res.contains("AlreadySelectedException"));
-    res = ts.exec(String.format("createtable -cp %s -pf %s %s", src, optArg, dest), false);
+    var res = ts.exec(String.format("createtable -cp %s -pf %s %s", src, optArg, dest), false);
     assertTrue(res.contains("AlreadySelectedException"));
 
     for (var copyOpt : List.of("-cp", "-pf")) {
