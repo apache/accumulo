@@ -171,8 +171,7 @@ public class ShellIT extends SharedMiniClusterBase {
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(
-        new String[] {"--config-file", config.toString(), "-u", "root", "-p", getRootPassword()});
+    shell.execute(new String[] {"--config-file", config.toString()});
   }
 
   @AfterEach
