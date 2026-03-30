@@ -27,112 +27,112 @@ public enum Metric {
   // General Server Metrics
   SERVER_IDLE("accumulo.server.idle", MetricType.GAUGE,
       "Indicates if the server is idle or not. The value will be 1 when idle and 0 when not idle.",
-      MetricDocSection.GENERAL_SERVER),
+      "Server Idle", MetricDocSection.GENERAL_SERVER),
   LOW_MEMORY("accumulo.detected.low.memory", MetricType.GAUGE,
       "Reports 1 when process memory usage is above the threshold, reports 0 when memory is okay.",
-      MetricDocSection.GENERAL_SERVER),
+      "Low Memory", MetricDocSection.GENERAL_SERVER),
   THRIFT_IDLE("accumulo.thrift.idle", MetricType.DISTRIBUTION_SUMMARY,
-      "Time waiting to execute an RPC request.", MetricDocSection.GENERAL_SERVER),
+      "Time waiting to execute an RPC request.", "Thrift Idle Time", MetricDocSection.GENERAL_SERVER),
   THRIFT_EXECUTE("accumulo.thrift.execute", MetricType.DISTRIBUTION_SUMMARY,
-      "Time to execute an RPC request.", MetricDocSection.GENERAL_SERVER),
+      "Time to execute an RPC request.", "Thrift Execution Time", MetricDocSection.GENERAL_SERVER),
 
   // Compactor Metrics
   COMPACTION_ROOT_SVC_ERRORS("accumulo.compaction.svc.root.misconfigured", MetricType.GAUGE,
       "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
-      MetricDocSection.COMPACTION),
+      "Root Compaction Service Errors", MetricDocSection.COMPACTION),
   COMPACTION_META_SVC_ERRORS("accumulo.compaction.svc.meta.misconfigured", MetricType.GAUGE,
       "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
-      MetricDocSection.COMPACTION),
+      "Meta Compaction Service Errors", MetricDocSection.COMPACTION),
   COMPACTION_USER_SVC_ERRORS("accumulo.compaction.svc.user.misconfigured", MetricType.GAUGE,
       "A value of 1 indicates a misconfiguration in the compaction service, while a value of 0 indicates that the configuration is valid.",
-      MetricDocSection.COMPACTION),
+      "User Compaction Service Errors", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_CANCELLED("accumulo.compaction.majc.cancelled", MetricType.FUNCTION_COUNTER,
-      "Number compactions that have been cancelled on this compactor", MetricDocSection.COMPACTION),
+      "Number compactions that have been cancelled on this compactor", "Majc Cancelled", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_COMPLETED("accumulo.compaction.majc.completed", MetricType.FUNCTION_COUNTER,
-      "Number compactions that have succeeded on this compactor", MetricDocSection.COMPACTION),
+      "Number compactions that have succeeded on this compactor", "Majc Completed", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_FAILED("accumulo.compaction.majc.failed", MetricType.FUNCTION_COUNTER,
-      "Number compactions that have failed on this compactor", MetricDocSection.COMPACTION),
+      "Number compactions that have failed on this compactor", "Majc Failed", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_FAILURES_CONSECUTIVE("accumulo.compaction.majc.failures.consecutive",
       MetricType.GAUGE,
       "Number of consecutive compaction failures. Resets to zero on a successful compaction",
-      MetricDocSection.COMPACTION),
+      "Majc Consecutive Failures", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_FAILURES_TERMINATION("accumulo.compaction.process.terminated",
       MetricType.FUNCTION_COUNTER,
       "Will report 1 if the Compactor terminates due to consecutive failures, else 0. Emitting this metric is a best effort before the process terminates",
-      MetricDocSection.COMPACTION),
+      "Majc Consecutive Failure Termination", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_IN_PROGRESS("accumulo.compaction.majc.in_progress", MetricType.GAUGE,
       "Indicator of whether a compaction is in-progress (value: 1) or not (value: 0). An"
           + " in-progress compaction could also be stuck.",
-      MetricDocSection.COMPACTION),
+      "Majc In Progress", MetricDocSection.COMPACTION),
   COMPACTOR_MAJC_STUCK("accumulo.compaction.majc.stuck", MetricType.LONG_TASK_TIMER,
-      "Number and duration of stuck major compactions.", MetricDocSection.COMPACTION),
+      "Number and duration of stuck major compactions.", "Majc Stuck", MetricDocSection.COMPACTION),
   COMPACTOR_MINC_STUCK("accumulo.compaction.minc.stuck", MetricType.LONG_TASK_TIMER,
-      "Number and duration of stuck minor compactions.", MetricDocSection.COMPACTION),
+      "Number and duration of stuck minor compactions.", "Minc Stuck", MetricDocSection.COMPACTION),
   COMPACTOR_ENTRIES_READ("accumulo.compaction.entries.read", MetricType.FUNCTION_COUNTER,
       "Number of entries read by all compactions that have run on this compactor (majc) or tserver (minc).",
-      MetricDocSection.COMPACTION),
+      "Compaction Entries Read", MetricDocSection.COMPACTION),
   COMPACTOR_ENTRIES_WRITTEN("accumulo.compaction.entries.written", MetricType.FUNCTION_COUNTER,
       "Number of entries written by all compactions that have run on this compactor (majc) or tserver (minc).",
-      MetricDocSection.COMPACTION),
+      "Compaction Entries Written", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUES("accumulo.compaction.queue.count", MetricType.GAUGE,
-      "Number of priority queues for compaction jobs.", MetricDocSection.COMPACTION),
+      "Number of priority queues for compaction jobs.", "Compaction Queue Count", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED("accumulo.compaction.queue.jobs.dequeued",
-      MetricType.GAUGE, "Count of dequeued jobs.", MetricDocSection.COMPACTION),
+      MetricType.GAUGE, "Count of dequeued jobs.", "Compaction Jobs Dequeued", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED("accumulo.compaction.queue.jobs.queued",
-      MetricType.GAUGE, "Count of queued jobs.", MetricDocSection.COMPACTION),
+      MetricType.GAUGE, "Count of queued jobs.", "Compaction Jobs Queued", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE("accumulo.compaction.queue.jobs.size", MetricType.GAUGE,
-      "Size of queued jobs in bytes.", MetricDocSection.COMPACTION),
+      "Size of queued jobs in bytes.", "Compaction Queue Size", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED("accumulo.compaction.queue.jobs.rejected",
-      MetricType.GAUGE, "Count of rejected jobs.", MetricDocSection.COMPACTION),
+      MetricType.GAUGE, "Count of rejected jobs.", "Compaction Jobs Rejected", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY("accumulo.compaction.queue.jobs.priority",
-      MetricType.GAUGE, "Lowest priority queued job.", MetricDocSection.COMPACTION),
+      MetricType.GAUGE, "Lowest priority queued job.", "Compaction Job Lowest Priority", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE("accumulo.compaction.queue.jobs.min.age",
       MetricType.GAUGE, "Minimum age of currently queued jobs in seconds.",
-      MetricDocSection.COMPACTION),
+      "Compaction Job Min Age", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE("accumulo.compaction.queue.jobs.max.age",
       MetricType.GAUGE, "Maximum age of currently queued jobs in seconds.",
-      MetricDocSection.COMPACTION),
+      "Compaction Job Max Age", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE("accumulo.compaction.queue.jobs.avg.age",
       MetricType.GAUGE, "Average age of currently queued jobs in seconds.",
-      MetricDocSection.COMPACTION),
+      "Compaction Job Avg Age", MetricDocSection.COMPACTION),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER("accumulo.compaction.queue.jobs.exit.time",
       MetricType.TIMER, "Tracks time a job spent in the queue before exiting the queue.",
-      MetricDocSection.COMPACTION),
+      "Compaction Job Time in Queue", MetricDocSection.COMPACTION),
 
   // Fate Metrics
   FATE_TYPE_IN_PROGRESS("accumulo.fate.ops.in.progress.by.type", MetricType.GAUGE,
       "Number of FATE operations in progress. The op type is designated by the `op.type` tag.",
-      MetricDocSection.FATE),
+      "Fate Ops In Progress By Type", MetricDocSection.FATE),
   FATE_OPS("accumulo.fate.ops", MetricType.GAUGE,
-      "Number of all the current FATE ops in any state.", MetricDocSection.FATE),
+      "Number of all the current FATE ops in any state.", "Total Current Fate Ops", MetricDocSection.FATE),
   FATE_OPS_ACTIVITY("accumulo.fate.ops.activity", MetricType.GAUGE,
       "Count of the total number of times fate operations are added, updated, and removed.",
-      MetricDocSection.FATE),
+      "Total Fate Ops", MetricDocSection.FATE),
   FATE_ERRORS("accumulo.fate.errors", MetricType.GAUGE,
       "Count of errors that occurred when attempting to gather fate metrics.",
-      MetricDocSection.FATE),
+      "Fate Errors", MetricDocSection.FATE),
   FATE_TX("accumulo.fate.tx", MetricType.GAUGE,
       "Count of FATE operations in a certain state. The state is now in a tag "
           + "(e.g., state=new, state=in.progress, state=failed, etc.).",
-      MetricDocSection.FATE),
+      "Fate Ops By State", MetricDocSection.FATE),
   FATE_OPS_THREADS_INACTIVE("accumulo.fate.ops.threads.inactive", MetricType.GAUGE,
       "Keeps track of the number of idle threads (not working on a fate operation) in the thread "
           + "pool. The pool name can be found in the " + FateExecutorMetrics.POOL_NAME_TAG_KEY
           + " tag. The fate instance type can be found in the "
           + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
-      MetricDocSection.FATE),
+      "Fate Threads Inactive", MetricDocSection.FATE),
   FATE_OPS_THREADS_TOTAL("accumulo.fate.ops.threads.total", MetricType.GAUGE,
       "Keeps track of the total number of threads in the thread pool. The pool name can be found in the "
           + FateExecutorMetrics.POOL_NAME_TAG_KEY
           + " tag. The fate instance type can be found in the "
           + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
-      MetricDocSection.FATE),
+      "Fate Threads Total", MetricDocSection.FATE),
 
   // Garbage Collection Metrics
   GC_STARTED("accumulo.gc.started", MetricType.GAUGE, "Timestamp GC file collection cycle started.",
-      MetricDocSection.GARBAGE_COLLECTION),
+      "GC Cycle Start", MetricDocSection.GARBAGE_COLLECTION),
   GC_FINISHED("accumulo.gc.finished", MetricType.GAUGE, "Timestamp GC file collect cycle finished.",
-      MetricDocSection.GARBAGE_COLLECTION),
+      "GC Cycle End", MetricDocSection.GARBAGE_COLLECTION),
   GC_CANDIDATES("accumulo.gc.candidates", MetricType.GAUGE,
       "Number of files that are candidates for deletion.", MetricDocSection.GARBAGE_COLLECTION),
   GC_IN_USE("accumulo.gc.in.use", MetricType.GAUGE, "Number of candidate files still in use.",
@@ -327,6 +327,7 @@ public enum Metric {
   private final String name;
   private final MetricType type;
   private final String description;
+  private final String columnName;
   private final MetricDocSection section;
 
   private static final Map<String,Metric> NAME_TO_ENUM_MAP = new HashMap<>();
@@ -337,10 +338,11 @@ public enum Metric {
     }
   }
 
-  Metric(String name, MetricType type, String description, MetricDocSection section) {
+  Metric(String name, MetricType type, String description, String monitorColumnName, MetricDocSection section) {
     this.name = name;
     this.type = type;
     this.description = description;
+    this.columnName = monitorColumnName;
     this.section = section;
   }
 
@@ -354,6 +356,10 @@ public enum Metric {
 
   public String getDescription() {
     return description;
+  }
+  
+  public String getMonitorColumnName() {
+    return columnName;
   }
 
   public MetricDocSection getDocSection() {

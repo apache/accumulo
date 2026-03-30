@@ -135,7 +135,7 @@ public record ScanServerView(long lastUpdate, List<Row> servers, Status status) 
         scansPausedForMemory, scansReturnedEarlyForMemory);
   }
 
-  private static Map<String,Number> metricValuesByName(MetricResponse response) {
+  public static Map<String,Number> metricValuesByName(MetricResponse response) {
     var values = new HashMap<String,Number>();
     if (response == null || response.getMetrics() == null || response.getMetrics().isEmpty()) {
       return values;
