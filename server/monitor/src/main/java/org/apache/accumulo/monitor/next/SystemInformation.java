@@ -277,6 +277,7 @@ public class SystemInformation {
     private final Set<ServerId> notResponded = ConcurrentHashMap.newKeySet();
 
     public void addResponded(ServerId server) {
+      notResponded.remove(server);
       responded.add(server);
     }
 
