@@ -801,28 +801,10 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void copyTablePropsInvalidOptsTest() throws Exception {
-    String[] names = getUniqueNames(2);
-
-    ts.exec("createtable " + names[0]);
-    ts.exec("createtable " + names[1]);
-
-    // test --expect-parent requires-cc expect this fail
-    ts.exec("createtable --exclude-parent " + names[0] + "dest", false);
-  }
-
-  @Test
-  public void missingSrcCopyPropsTest() throws Exception {
-    String[] names = getUniqueNames(2);
-    // test command fail if src is not available
-    ts.exec("createtable --exclude-parent -cc " + names[0] + " " + names[1], false);
-  }
-
-  @Test
   public void missingSrcCopyConfigTest() throws Exception {
     String[] names = getUniqueNames(2);
     /// test command fail if src is not available
-    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
   }
 
   @Test
@@ -833,7 +815,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     ts.exec("createtable " + names[1]);
 
     // expect to fail because target already exists
-    ts.exec("createtable -cc " + names[0] + " " + names[1], false);
+    ts.exec("createtable -cp " + names[0] + " " + names[1], false);
   }
 
   @Test
