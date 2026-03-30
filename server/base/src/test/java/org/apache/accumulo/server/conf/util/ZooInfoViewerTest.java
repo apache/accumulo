@@ -28,7 +28,6 @@ import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.isNull;
 import static org.easymock.EasyMock.newCapture;
@@ -150,8 +149,6 @@ public class ZooInfoViewerTest {
         .once();
     expect(zk.getData(eq(ZROOT + ZINSTANCES + "/" + instanceName), isNull(), isNull()))
         .andReturn(uuid.getBytes(UTF_8)).once();
-    context.close();
-    expectLastCall().once();
 
     replay(context, zk);
 
@@ -308,9 +305,6 @@ public class ZooInfoViewerTest {
 
     expect(zk.getData(ZTABLES + "/t" + ZTABLE_NAMESPACE, null, null))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
-
-    context.close();
-    expectLastCall().once();
 
     replay(context, zk);
 
