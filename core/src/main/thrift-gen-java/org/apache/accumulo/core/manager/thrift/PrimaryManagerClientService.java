@@ -25,7 +25,7 @@
 package org.apache.accumulo.core.manager.thrift;
 
 @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-public class ManagerClientService {
+public class PrimaryManagerClientService {
 
   public interface Iface {
 

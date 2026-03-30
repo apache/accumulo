@@ -32,7 +32,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;

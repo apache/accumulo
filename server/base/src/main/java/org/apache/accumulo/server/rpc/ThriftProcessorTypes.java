@@ -24,7 +24,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
@@ -80,7 +80,7 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   private static final ThriftProcessorTypes<GCMonitorService.Client> GC =
       new ThriftProcessorTypes<>(ThriftClientTypes.GC);
 
-  private static final ThriftProcessorTypes<ManagerClientService.Client> MANAGER =
+  private static final ThriftProcessorTypes<PrimaryManagerClientService.Client> MANAGER =
       new ThriftProcessorTypes<>(ThriftClientTypes.MANAGER);
 
   private static final ThriftProcessorTypes<FateWorkerService.Client> FATE_WORKER =
@@ -131,8 +131,8 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static TMultiplexedProcessor getManagerTProcessor(
       ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
       CompactionCoordinatorService.Iface coordinatorServiceHandler,
-      ManagerClientService.Iface managerServiceHandler, FateWorkerService.Iface fateWorkerService,
-      ServerContext context) {
+      PrimaryManagerClientService.Iface managerServiceHandler,
+      FateWorkerService.Iface fateWorkerService, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
@@ -143,8 +143,8 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
         COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
             CompactionCoordinatorService.Iface.class, coordinatorServiceHandler, context));
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
-        MANAGER.getTProcessor(ManagerClientService.Processor.class,
-            ManagerClientService.Iface.class, managerServiceHandler, context));
+        MANAGER.getTProcessor(PrimaryManagerClientService.Processor.class,
+            PrimaryManagerClientService.Iface.class, managerServiceHandler, context));
     muxProcessor.registerProcessor(FATE_WORKER.getServiceName(),
         FATE_WORKER.getTProcessor(FateWorkerService.Processor.class, FateWorkerService.Iface.class,
             fateWorkerService, context));

@@ -98,10 +98,10 @@ import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -976,9 +976,10 @@ public class Manager extends AbstractServer
 
     FateService.Iface fateServiceHandler = PrimaryManagerThriftServiceWrapper.service(
         FateService.Iface.class, FateService.Processor::new, new FateServiceHandler(this), this);
-    ManagerClientService.Iface managerClientHandler =
-        PrimaryManagerThriftServiceWrapper.service(ManagerClientService.Iface.class,
-            ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
+    PrimaryManagerClientService.Iface managerClientHandler =
+        PrimaryManagerThriftServiceWrapper.service(PrimaryManagerClientService.Iface.class,
+            PrimaryManagerClientService.Processor::new, new ManagerClientServiceHandler(this),
+            this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
     CompactionCoordinatorService.Iface wrappedCoordinator =
         PrimaryManagerThriftServiceWrapper.service(CompactionCoordinatorService.Iface.class,

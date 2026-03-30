@@ -224,7 +224,7 @@ service FateService {
 
 }
 
-service ManagerClientService {
+service PrimaryManagerClientService {
 
   // table management methods
   i64 initiateFlush(

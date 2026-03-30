@@ -65,10 +65,10 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
+import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
@@ -106,7 +106,7 @@ import org.slf4j.Logger;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
-public class ManagerClientServiceHandler implements ManagerClientService.Iface {
+public class ManagerClientServiceHandler implements PrimaryManagerClientService.Iface {
 
   private static final Logger log = Manager.log;
   private final Manager manager;
