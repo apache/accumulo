@@ -78,7 +78,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
               "scanTypeActivations": [
                   "use_group1"
               ],
-              "timeToWaitForScanServers": "0s",
+              "timeToWaitForScanServers": "120s",
               "attemptPlans": [
                   {
                       "servers": "3",
