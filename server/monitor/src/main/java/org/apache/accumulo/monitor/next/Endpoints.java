@@ -408,7 +408,7 @@ public class Endpoints {
   @Path("deployment")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a UI-ready deployment overview grouped by resource group. Each process row"
-      + " contains the total, responding, and not responding server counts.")
+      + " contains the total and responding server counts.")
   public DeploymentOverview getDeploymentOverview() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentView();
   }
