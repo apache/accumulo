@@ -434,6 +434,8 @@ public class SystemInformation {
 
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
+  private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
+
   private long timestamp = 0;
   private ScanServerView scanServerView;
   private final int rgLongRunningCompactionSize;
@@ -469,6 +471,7 @@ public class SystemInformation {
     suggestions.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
+    configuredCompactionResourceGroups.clear();
     scanServerView = null;
   }
 
@@ -613,6 +616,10 @@ public class SystemInformation {
     problemHosts.add(server);
   }
 
+  public void addConfiguredCompactionGroups(Set<String> groups) {
+    configuredCompactionResourceGroups.addAll(groups);
+  }
+
   public void finish() {
     // Update the deployment not-responded numbers based
     // on the problem hosts.
@@ -663,6 +670,14 @@ public class SystemInformation {
         }
       }
     }
+
+    for (var compactorGroup : compactors.keySet()) {
+      if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
+        suggestions.add("Compactor group " + compactorGroup
+            + " has running compactors, but no configuration uses them.");
+      }
+    }
+
     Set<ServerId> scanServers = new HashSet<>();
     sservers.values().forEach(scanServers::addAll);
     int problemScanServerCount = (int) problemHosts.stream()

@@ -60,10 +60,6 @@ struct TExternalCompactionList {
   1:list<TExternalCompaction> compactions
 }
 
-struct TExternalCompactionMap {
-  1:map<string,TExternalCompaction> compactions
-}
-
 struct TNextCompactionJob {
   1:tabletserver.TExternalCompactionJob job
   // The total number of compactors servicing the queue this job was requested for
@@ -105,19 +101,6 @@ service CompactionCoordinatorService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
-  /*
-   * Called by Compactor to update the Coordinator with the state of the compaction
-   */
-  void updateCompactionStatus(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-    4:TCompactionStatusUpdate status
-    5:i64 timestamp
-  )throws(
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
 
   /*
    * Called by Compactor on unsuccessful completion of compaction job
@@ -134,13 +117,6 @@ service CompactionCoordinatorService {
   )throws(
      1:client.ThriftSecurityException sec
      2:client.ThriftNotActiveServiceException tnase
-  )
-
-
-  oneway void recordCompletion(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
   )
 }
 

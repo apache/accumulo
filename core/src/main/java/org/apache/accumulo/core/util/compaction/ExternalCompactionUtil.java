@@ -340,5 +340,4 @@ public class ExternalCompactionUtil {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     }
   }
-
 }
