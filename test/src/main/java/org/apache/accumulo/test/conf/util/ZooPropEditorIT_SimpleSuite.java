@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.conf.util;
 
+import static org.apache.accumulo.core.conf.SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -68,7 +69,7 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
     String namespace = names[0];
     String table = namespace + "." + names[1];
 
-    assertNull(System.getProperties().get("accumulo.properties"));
+    assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
 
       client.namespaceOperations().create(namespace);
@@ -94,7 +95,7 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
-      System.setProperty("accumulo.properties",
+      System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
           "file:///" + getCluster().getAccumuloPropertiesPath());
 
       // set table property (table.bloom.enabled=true)
@@ -147,18 +148,18 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
           .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500);
 
     } finally {
-      System.clearProperty("accumulo.properties");
+      System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
   @Test
   public void testTablePropInSystemConfigFails() {
-    assertNull(System.getProperties().get("accumulo.properties"));
+    assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       ZooPropEditor tool = new ZooPropEditor();
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
-      System.setProperty("accumulo.properties",
+      System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
           "file:///" + getCluster().getAccumuloPropertiesPath());
       for (Entry<String,String> e : defaultProperties.entrySet()) {
         String[] setSystemPropArgs = {"-s", e.getKey() + "=" + e.getValue()};
@@ -169,18 +170,18 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
             ise::getMessage);
       }
     } finally {
-      System.clearProperty("accumulo.properties");
+      System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
   @Test
   public void testTablePropInResourceGroupConfigFails() {
-    assertNull(System.getProperties().get("accumulo.properties"));
+    assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
       ZooPropEditor tool = new ZooPropEditor();
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
-      System.setProperty("accumulo.properties",
+      System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
           "file:///" + getCluster().getAccumuloPropertiesPath());
       for (Entry<String,String> e : defaultProperties.entrySet()) {
         String[] setRGPropArgs =
@@ -190,7 +191,7 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
         assertTrue(ise.getMessage().startsWith("Failed to set property for default"));
       }
     } finally {
-      System.clearProperty("accumulo.properties");
+      System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
