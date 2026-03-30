@@ -97,6 +97,7 @@ import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.AssistantManagerClientService;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -986,11 +987,15 @@ public class Manager extends AbstractServer
             CompactionCoordinatorService.Processor::new, compactionCoordinator.getThriftService(),
             this);
 
+    AssistantManagerClientService.Iface assistantManagerClientHandler =
+        new AssistantManagerClientServiceHandler(this);
+
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
     FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
 
-    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        wrappedCoordinator, managerClientHandler, fateWorker, getContext());
+    var processor =
+        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, wrappedCoordinator,
+            managerClientHandler, assistantManagerClientHandler, fateWorker, getContext());
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
