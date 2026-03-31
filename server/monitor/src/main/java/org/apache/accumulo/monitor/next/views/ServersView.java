@@ -43,10 +43,13 @@ import com.github.benmanes.caffeine.cache.Cache;
  * Generic Data Transfer Object (DTO) for a set of Accumulo server processes of the same type. The
  * response object contains several fields:
  *
+ *
  * <pre>
  * columns - contains an array of column definitions that can be used to create the table headers
- * and Data Table columns data - an array of objects that can be used for the Data Table data
- * definition status - overall status information, counts, warnings, etc.
+ *           and Data Table columns
+ * data    - an array of objects that can be used for the Data Table data definition
+ * status  - overall status information, counts, warnings, etc.
+ * </pre>
  */
 public class ServersView {
 
