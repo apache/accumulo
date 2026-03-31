@@ -20,13 +20,17 @@ package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil.checkIteratorPriorityConflicts;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.nio.ByteBuffer;
+import java.util.ConcurrentModificationException;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -38,9 +42,9 @@ import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -54,8 +58,13 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
+import org.apache.accumulo.server.util.PropUtil;
+import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -201,67 +210,222 @@ public class AssistantManagerClientServiceHandler implements AssistantManagerCli
   }
 
   @Override
-  public void setTableProperty(TInfo tinfo, TCredentials credentials, String tableName,
-      String property, String value) throws ThriftSecurityException, ThriftTableOperationException,
-      ThriftNotActiveServiceException, ThriftPropertyException, TException {
-
+  public void setTableProperty(TInfo info, TCredentials credentials, String tableName,
+      String property, String value)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+    alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
   }
 
   @Override
   public void modifyTableProperties(TInfo tinfo, TCredentials credentials, String tableName,
-      TVersionedProperties vProperties) throws ThriftSecurityException,
-      ThriftTableOperationException, ThriftNotActiveServiceException,
-      ThriftConcurrentModificationException, ThriftPropertyException, TException {
+      TVersionedProperties properties)
+      throws ThriftSecurityException, ThriftTableOperationException,
+      ThriftConcurrentModificationException, ThriftPropertyException {
+    final TableId tableId =
+        ClientServiceHandler.checkTableId(context, tableName, TableOperation.SET_PROPERTY);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.SET_PROPERTY, tableId);
+    if (!security.canAlterTable(credentials, tableId, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try {
+      checkIteratorPriorityConflicts("table:" + tableName + " tableId:" + tableId,
+          properties.getProperties(), context.getNamespaceConfiguration(namespaceId)
+              .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+      PropUtil.replaceProperties(context, TablePropKey.of(tableId), properties.getVersion(),
+          properties.getProperties());
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying table properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
+    } catch (IllegalStateException ex) {
+      log.warn("Error modifying table properties: tableId: {}", tableId.canonical());
+      // race condition... table no longer exists? This call will throw an exception if the table
+      // was deleted:
+      ClientServiceHandler.checkTableId(context, tableName, TableOperation.SET_PROPERTY);
+      throw new ThriftTableOperationException(tableId.canonical(), tableName,
+          TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
+          "Error modifying table properties: tableId: " + tableId.canonical());
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
+    }
 
   }
 
   @Override
-  public void removeTableProperty(TInfo tinfo, TCredentials credentials, String tableName,
-      String property) throws ThriftSecurityException, ThriftTableOperationException,
-      ThriftNotActiveServiceException, TException {
-
+  public void removeTableProperty(TInfo info, TCredentials credentials, String tableName,
+      String property)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+    alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
   }
 
   @Override
   public void setNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
-      String property, String value) throws ThriftSecurityException, ThriftTableOperationException,
-      ThriftNotActiveServiceException, ThriftPropertyException, TException {
-
+      String property, String value)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+    alterNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);
   }
 
   @Override
   public void modifyNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns,
-      TVersionedProperties vProperties) throws ThriftSecurityException,
-      ThriftTableOperationException, ThriftNotActiveServiceException,
-      ThriftConcurrentModificationException, ThriftPropertyException, TException {
+      TVersionedProperties properties) throws TException {
+    final NamespaceId namespaceId =
+        ClientServiceHandler.checkNamespaceId(context, ns, TableOperation.SET_PROPERTY);
+    if (!security.canAlterNamespace(credentials, namespaceId)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
 
+    try {
+      checkIteratorPriorityConflicts("namespace:" + ns + " namespaceId:" + namespaceId,
+          properties.getProperties(),
+          context.getConfiguration().getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+      PropUtil.replaceProperties(context, NamespacePropKey.of(namespaceId), properties.getVersion(),
+          properties.getProperties());
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying namespace properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
+    } catch (IllegalStateException ex) {
+      // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
+      // exception will be thrown an exception if the namespace was deleted:
+      ClientServiceHandler.checkNamespaceId(context, ns, TableOperation.SET_PROPERTY);
+      log.warn("Error modifying namespace properties", ex);
+      throw new ThriftTableOperationException(namespaceId.canonical(), ns,
+          TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
+          "Error modifying namespace properties");
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
+    }
   }
 
   @Override
   public void removeNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
-      String property) throws ThriftSecurityException, ThriftTableOperationException,
-      ThriftNotActiveServiceException, TException {
-
+      String property)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+    alterNamespaceProperty(credentials, ns, property, null, TableOperation.REMOVE_PROPERTY);
   }
 
   @Override
-  public void setSystemProperty(TInfo tinfo, TCredentials credentials, String property,
-      String value) throws ThriftSecurityException, ThriftNotActiveServiceException,
-      ThriftPropertyException, TException {
+  public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
+      throws TException {
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
+    try {
+      SystemPropUtil.setSystemProperty(context, property, value);
+    } catch (IllegalArgumentException iae) {
+      Manager.log.error("Problem setting invalid property", iae);
+      throw new ThriftPropertyException(property, value,
+          "Property is invalid. message: " + iae.getMessage());
+    } catch (Exception e) {
+      Manager.log.error("Problem setting config property in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
   }
 
   @Override
-  public void modifySystemProperties(TInfo tinfo, TCredentials credentials,
-      TVersionedProperties vProperties)
-      throws ThriftSecurityException, ThriftNotActiveServiceException,
-      ThriftConcurrentModificationException, ThriftPropertyException, TException {
+  public void modifySystemProperties(TInfo info, TCredentials c, TVersionedProperties properties)
+      throws TException {
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
+    try {
+      SystemPropUtil.modifyProperties(context, properties.getVersion(), properties.getProperties());
+    } catch (IllegalArgumentException iae) {
+      Manager.log.error("Problem setting invalid property", iae);
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
+    } catch (ConcurrentModificationException cme) {
+      log.warn("Error modifying system properties, properties have changed", cme);
+      throw new ThriftConcurrentModificationException(cme.getMessage());
+    } catch (Exception e) {
+      Manager.log.error("Problem setting config property in zookeeper", e);
+      throw new TException(e.getMessage());
+    }
   }
 
   @Override
-  public void removeSystemProperty(TInfo tinfo, TCredentials credentials, String property)
-      throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
+  public void removeSystemProperty(TInfo info, TCredentials c, String property)
+      throws ThriftSecurityException {
+    if (!security.canPerformSystemActions(c)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
 
+    try {
+      SystemPropUtil.removeSystemProperty(context, property);
+    } catch (Exception e) {
+      Manager.log.error("Problem removing config property in zookeeper", e);
+      throw new RuntimeException(e.getMessage());
+    }
   }
+
+  private void alterTableProperty(TCredentials c, String tableName, String property, String value,
+      TableOperation op)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+    final TableId tableId = ClientServiceHandler.checkTableId(context, tableName, op);
+    NamespaceId namespaceId = getNamespaceIdFromTableId(op, tableId);
+    if (!security.canAlterTable(c, tableId, namespaceId)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try {
+      if (op == TableOperation.REMOVE_PROPERTY) {
+        PropUtil.removeProperties(context, TablePropKey.of(tableId), List.of(property));
+      } else if (op == TableOperation.SET_PROPERTY) {
+        if (value == null || value.isEmpty()) {
+          value = "";
+        }
+        checkIteratorPriorityConflicts("table:" + tableName + "tableId:" + tableId,
+            Map.of(property, value), context.getTableConfiguration(tableId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+        PropUtil.setProperties(context, TablePropKey.of(tableId), Map.of(property, value));
+      } else {
+        throw new UnsupportedOperationException("table operation:" + op.name());
+      }
+    } catch (IllegalStateException ex) {
+      log.warn("Invalid table property, tried to {}: tableId: {} to: {}={}", op.name(),
+          tableId.canonical(), property, value, ex);
+      // race condition... table no longer exists? This call will throw an exception if the table
+      // was deleted:
+      ClientServiceHandler.checkTableId(context, tableName, op);
+      throw new ThriftTableOperationException(tableId.canonical(), tableName, op,
+          TableOperationExceptionType.OTHER, "Invalid table property, tried to set: tableId: "
+              + tableId.canonical() + " to: " + property + "=" + value);
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException(property, value, iae.getMessage());
+    }
+  }
+
+  private void alterNamespaceProperty(TCredentials c, String namespace, String property,
+      String value, TableOperation op)
+      throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
+
+    NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(context, namespace, op);
+
+    if (!security.canAlterNamespace(c, namespaceId)) {
+      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    try {
+      if (value == null) {
+        PropUtil.removeProperties(context, NamespacePropKey.of(namespaceId), List.of(property));
+      } else {
+        checkIteratorPriorityConflicts("namespace:" + namespace + " namespaceId:" + namespaceId,
+            Map.of(property, value), context.getNamespaceConfiguration(namespaceId)
+                .getAllPropertiesWithPrefix(Property.TABLE_ITERATOR_PREFIX));
+        PropUtil.setProperties(context, NamespacePropKey.of(namespaceId), Map.of(property, value));
+      }
+    } catch (IllegalStateException ex) {
+      // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
+      // exception will be thrown an exception if the namespace was deleted:
+      ClientServiceHandler.checkNamespaceId(context, namespace, op);
+      log.info("Error altering namespace property", ex);
+      throw new ThriftTableOperationException(namespaceId.canonical(), namespace, op,
+          TableOperationExceptionType.OTHER, "Problem altering namespace property");
+    } catch (IllegalArgumentException iae) {
+      throw new ThriftPropertyException(property, value, iae.getMessage());
+    }
+  }
+
 }

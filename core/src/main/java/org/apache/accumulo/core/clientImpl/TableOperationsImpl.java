@@ -1059,7 +1059,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER.executeVoid(context,
+      ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context,
           client -> client.modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
               tableName, vProperties));
       for (String property : vProperties.getProperties().keySet()) {
@@ -1126,7 +1126,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value));
   }
 
@@ -1147,7 +1147,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   private void removePropertyNoChecks(final String tableName, final String property)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+    ThriftClientTypes.ASSISTANT_MANAGER.executeVoid(context, client -> client
         .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property));
   }
 

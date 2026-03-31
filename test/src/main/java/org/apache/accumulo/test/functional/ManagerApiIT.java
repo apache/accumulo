@@ -189,19 +189,19 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void testPermissions_modifySystemProperties() throws Exception {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
-    primaryOp = user -> client -> {
+    assistantOp = user -> client -> {
       client.modifySystemProperties(TraceUtil.traceInfo(), user.toThrift(instanceId),
           new TVersionedProperties(0, Map.of(propKey, "10000")));
       return null;
     };
-    expectPermissionDenied(primaryOp, regularUser);
-    expectPermissionSuccess(primaryOp, rootUser);
-    primaryOp = user -> client -> {
+    expectAssistantPermissionDenied(assistantOp, regularUser);
+    expectAssistantPermissionSuccess(assistantOp, rootUser);
+    assistantOp = user -> client -> {
       client.modifySystemProperties(TraceUtil.traceInfo(), user.toThrift(instanceId),
           new TVersionedProperties(1, Map.of(propKey, "10000")));
       return null;
     };
-    expectPermissionSuccess(primaryOp, privilegedUser);
+    expectAssistantPermissionSuccess(assistantOp, privilegedUser);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.instanceOperations().removeProperty(propKey); // clean up property
     }
@@ -216,30 +216,30 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       client.instanceOperations().setProperty(propKey1, "10000"); // ensure it exists
       client.instanceOperations().setProperty(propKey2, "10000"); // ensure it exists
     }
-    primaryOp = user -> client -> {
+    assistantOp = user -> client -> {
       client.removeSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey1);
       return null;
     };
-    expectPermissionDenied(primaryOp, regularUser);
-    expectPermissionSuccess(primaryOp, rootUser);
-    primaryOp = user -> client -> {
+    expectAssistantPermissionDenied(assistantOp, regularUser);
+    expectAssistantPermissionSuccess(assistantOp, rootUser);
+    assistantOp = user -> client -> {
       client.removeSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey2);
       return null;
     };
-    expectPermissionSuccess(primaryOp, privilegedUser);
+    expectAssistantPermissionSuccess(assistantOp, privilegedUser);
   }
 
   @Test
   public void testPermissions_setSystemProperty() throws Exception {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
-    primaryOp = user -> client -> {
+    assistantOp = user -> client -> {
       client.setSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey, "10000");
       return null;
     };
-    expectPermissionDenied(primaryOp, regularUser);
-    expectPermissionSuccess(primaryOp, rootUser);
-    expectPermissionSuccess(primaryOp, privilegedUser);
+    expectAssistantPermissionDenied(assistantOp, regularUser);
+    expectAssistantPermissionSuccess(assistantOp, rootUser);
+    expectAssistantPermissionSuccess(assistantOp, privilegedUser);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.instanceOperations().removeProperty(propKey); // clean up property
     }
