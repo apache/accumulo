@@ -33,12 +33,20 @@ function getStoredView() {
   return JSON.parse(sessionStorage[SSERVERS_VIEW_SESSION_KEY]);
 }
 
-function getStoredRows() {
+function getStoredColumns() {
   var view = getStoredView();
-  if (!Array.isArray(view.servers)) {
+  if (!Array.isArray(view.columns)) {
     return [];
   }
-  return view.servers;
+  return view.columns;
+}
+
+function getStoredRows() {
+  var view = getStoredView();
+  if (!Array.isArray(view.data)) {
+    return [];
+  }
+  return view.data;
 }
 
 function getStoredStatus() {
@@ -94,6 +102,26 @@ $(function () {
     status: null
   });
 
+  const sserversHtmlTable = $('#sservers');
+  const thead = $(document.createElement("thead"));
+  const theadRow = $(document.createElement("tr"));
+  sserversHtmlTable.appendChild(thead);
+  thead.appendChild(theadRow);
+
+  var storedColumns = getStoredColumns();
+  var dataTableColumns = [];
+
+  for (var col in storedColumns) {
+    dataTableColumns.push({
+      data: col.name
+    });
+    const th = $(document.createElement("th"));
+    th.title = col.description;
+    th.className = col.uiClass;
+    th.textContent = col.name;
+    theadRow.appendChild(th);
+  }
+
   sserversTable = $('#sservers').DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
@@ -136,54 +164,7 @@ $(function () {
         }
       }
     ],
-    "columns": [{
-        "data": "host"
-      },
-      {
-        "data": "resourceGroup"
-      },
-      {
-        "data": "lastContact"
-      },
-      {
-        "data": "openFiles"
-      },
-      {
-        "data": "queries"
-      },
-      {
-        "data": "scannedEntries"
-      },
-      {
-        "data": "queryResults"
-      },
-      {
-        "data": "queryResultBytes"
-      },
-      {
-        "data": "busyTimeouts"
-      },
-      {
-        "data": "reservationConflicts"
-      },
-      {
-        "data": "zombieThreads"
-      },
-      {
-        "data": "serverIdle",
-        "render": renderActivityState
-      },
-      {
-        "data": "lowMemoryDetected",
-        "render": renderMemoryState
-      },
-      {
-        "data": "scansPausedForMemory"
-      },
-      {
-        "data": "scansReturnedEarlyForMemory"
-      }
-    ]
+    "columns": dataTableColumns
   });
 
   refreshScanServers();

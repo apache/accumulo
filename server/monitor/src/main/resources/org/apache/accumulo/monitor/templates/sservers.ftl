@@ -32,6 +32,7 @@
           <caption><span class="table-caption">Scan Servers</span><br />
             <span class="table-subcaption">The following scan servers reported status and scan metrics when available.</span><br />
           </caption>
+          <!--
           <thead>
             <tr>
               <th class="firstcell">Server</th>
@@ -51,6 +52,7 @@
               <th title="Count of scans returned early due to low memory." class="big-num">Early Mem</th>
             </tr>
           </thead>
+          -->
           <tbody></tbody>
         </table>
       </div>
