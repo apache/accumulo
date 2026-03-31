@@ -809,6 +809,7 @@ public class CompactionIT extends CompactionITBase {
       // The compression type used on the intermediate compaction file should be 'gz'
       assertEquals("gz", interCompressionType);
     } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
       // Re-enable GC
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
     }
