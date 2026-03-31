@@ -70,16 +70,28 @@ function refreshTServersTable() {
 }
 
 /**
- * If manager is down, tserver status will be ERROR. Add a banner to indicate
+ * Show a page banner that matches the tablet server status shown in the navbar.
  */
-function refreshTServersBanner(managerStatus) {
-  if (managerStatus === 'ERROR') {
+function refreshTServersBanner(statusData) {
+  if (statusData.managerStatus === 'ERROR') {
     $('#tserversManagerBanner').show();
+    $('#tserversWarnBanner').hide();
+    $('#tserversErrorBanner').hide();
     $('#tservers_wrapper').hide();
     $('#recovery-caption').hide();
   } else {
     $('#tserversManagerBanner').hide();
     $('#tservers_wrapper').show();
+    if (statusData.tServerStatus === 'ERROR') {
+      $('#tserversWarnBanner').hide();
+      $('#tserversErrorBanner').show();
+    } else if (statusData.tServerStatus === 'WARN') {
+      $('#tserversWarnBanner').show();
+      $('#tserversErrorBanner').hide();
+    } else {
+      $('#tserversWarnBanner').hide();
+      $('#tserversErrorBanner').hide();
+    }
   }
 }
 
@@ -88,8 +100,9 @@ function refreshTServersBanner(managerStatus) {
  */
 function refreshTServers() {
   getStatus().then(function () {
-    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
-    refreshTServersBanner(managerStatus);
+    var statusData = JSON.parse(sessionStorage.status);
+    var managerStatus = statusData.managerStatus;
+    refreshTServersBanner(statusData);
 
     if (managerStatus === 'ERROR') {
       return;
