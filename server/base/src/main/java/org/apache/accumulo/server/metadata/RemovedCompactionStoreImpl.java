@@ -64,6 +64,10 @@ public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore 
 
   private void write(Collection<Ample.RemovedCompaction> removedCompactions,
       Function<Ample.RemovedCompaction,Mutation> converter) {
+    if (removedCompactions.isEmpty()) {
+      return;
+    }
+
     Map<Ample.DataLevel,List<Ample.RemovedCompaction>> byLevel = removedCompactions.stream()
         .collect(Collectors.groupingBy(rc -> Ample.DataLevel.of(rc.table())));
     // Do not expect the root to split or merge so it should never have this data
@@ -81,10 +85,6 @@ public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore 
 
   @Override
   public void add(Collection<Ample.RemovedCompaction> removedCompactions) {
-    if (removedCompactions.isEmpty()) {
-      return;
-    }
-
     write(removedCompactions, rc -> {
       Mutation m = new Mutation(RemovedCompactionSection.encodeRow(rc));
       m.put("", "", "");
@@ -95,10 +95,6 @@ public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore 
 
   @Override
   public void delete(Collection<Ample.RemovedCompaction> removedCompactions) {
-    if (removedCompactions.isEmpty()) {
-      return;
-    }
-
     write(removedCompactions, rc -> {
       Mutation m = new Mutation(RemovedCompactionSection.encodeRow(rc));
       m.putDelete("", "");
