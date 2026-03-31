@@ -137,8 +137,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.manager.thrift.AssistantManagerClientService;
 import org.apache.accumulo.core.manager.thrift.FateService;
-import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
@@ -975,9 +975,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       // so pass the tableid to both calls
 
       while (true) {
-        PrimaryManagerClientService.Client client = null;
+        AssistantManagerClientService.Client client = null;
         try {
-          client = ThriftClientTypes.MANAGER.getConnectionWithRetry(context);
+          client = ThriftClientTypes.ASSISTANT_MANAGER.getConnectionWithRetry(context);
           flushID =
               client.initiateFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical());
           break;
@@ -994,9 +994,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
 
       while (true) {
-        PrimaryManagerClientService.Client client = null;
+        AssistantManagerClientService.Client client = null;
         try {
-          client = ThriftClientTypes.MANAGER.getConnectionWithRetry(context);
+          client = ThriftClientTypes.ASSISTANT_MANAGER.getConnectionWithRetry(context);
           client.waitForFlush(TraceUtil.traceInfo(), context.rpcCreds(), tableId.canonical(),
               TextUtil.getByteBuffer(start), TextUtil.getByteBuffer(end), flushID,
               wait ? Long.MAX_VALUE : 1);

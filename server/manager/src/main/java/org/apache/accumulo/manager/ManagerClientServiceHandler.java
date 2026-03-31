@@ -18,25 +18,16 @@
  */
 package org.apache.accumulo.manager;
 
-import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil.checkIteratorPriorityConflicts;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DelegationTokenConfig;
 import org.apache.accumulo.core.clientImpl.AuthenticationTokenIdentifier;
@@ -63,7 +54,6 @@ import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.TraceRepo;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -73,17 +63,12 @@ import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
-import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
-import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.ServerContext;
@@ -96,11 +81,9 @@ import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.accumulo.server.util.SystemPropUtil;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
 import com.google.common.base.Preconditions;
@@ -117,119 +100,6 @@ public class ManagerClientServiceHandler implements PrimaryManagerClientService.
     this.manager = manager;
     this.context = manager.getContext();
     this.security = context.getSecurityOperation();
-  }
-
-  @Override
-  public long initiateFlush(TInfo tinfo, TCredentials c, String tableIdStr)
-      throws ThriftSecurityException, ThriftTableOperationException {
-    TableId tableId = TableId.of(tableIdStr);
-    NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
-    if (!security.canFlush(c, tableId, namespaceId)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    String zTablePath = Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
-
-    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-    byte[] fid;
-    try {
-      fid = zoo.mutateExisting(zTablePath, currentValue -> {
-        long flushID = Long.parseLong(new String(currentValue, UTF_8));
-        return Long.toString(flushID + 1).getBytes(UTF_8);
-      });
-    } catch (NoNodeException nne) {
-      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
-          TableOperationExceptionType.NOTFOUND, null);
-    } catch (Exception e) {
-      Manager.log.warn("{}", e.getMessage(), e);
-      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
-          TableOperationExceptionType.OTHER, null);
-    }
-    return Long.parseLong(new String(fid, UTF_8));
-  }
-
-  @Override
-  public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRowBB,
-      ByteBuffer endRowBB, long flushID, long maxLoops)
-      throws ThriftSecurityException, ThriftTableOperationException {
-    TableId tableId = TableId.of(tableIdStr);
-    NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
-    if (!security.canFlush(c, tableId, namespaceId)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    Text startRow = ByteBufferUtil.toText(startRowBB);
-    Text endRow = ByteBufferUtil.toText(endRowBB);
-
-    if (endRow != null && startRow != null && startRow.compareTo(endRow) >= 0) {
-      throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
-          TableOperationExceptionType.BAD_RANGE, "start row must be less than end row");
-    }
-
-    Set<TServerInstance> serversToFlush = new HashSet<>(manager.tserverSet.getCurrentServers());
-
-    for (long l = 0; l < maxLoops; l++) {
-
-      for (TServerInstance instance : serversToFlush) {
-        try {
-          final TServerConnection server = manager.tserverSet.getConnection(instance);
-          if (server != null) {
-            server.flush(manager.primaryManagerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
-                ByteBufferUtil.toBytes(endRowBB));
-          }
-        } catch (TException ex) {
-          Manager.log.error(ex.toString());
-        }
-      }
-
-      if (tableId.equals(SystemTables.ROOT.tableId())) {
-        break; // this code does not properly handle the root tablet. See #798
-      }
-
-      if (l == maxLoops - 1) {
-        break;
-      }
-
-      sleepUninterruptibly(50, TimeUnit.MILLISECONDS);
-
-      serversToFlush.clear();
-
-      try (TabletsMetadata tablets = TabletsMetadata.builder(context).forTable(tableId)
-          .overlapping(startRow, endRow).fetch(FLUSH_ID, LOCATION, LOGS, PREV_ROW).build()) {
-        int tabletsToWaitFor = 0;
-        int tabletCount = 0;
-
-        for (TabletMetadata tablet : tablets) {
-          int logs = tablet.getLogs().size();
-
-          // when tablet is not online and has no logs, there is no reason to wait for it
-          if ((tablet.hasCurrent() || logs > 0) && tablet.getFlushId().orElse(-1) < flushID) {
-            tabletsToWaitFor++;
-            if (tablet.hasCurrent()) {
-              serversToFlush.add(tablet.getLocation().getServerInstance());
-            }
-          }
-
-          tabletCount++;
-        }
-
-        if (tabletsToWaitFor == 0) {
-          break;
-        }
-
-        // TODO detect case of table offline AND tablets w/ logs? - ACCUMULO-1296
-
-        if (tabletCount == 0 && !context.tableNodeExists(tableId)) {
-          throw new ThriftTableOperationException(tableId.canonical(), null, TableOperation.FLUSH,
-              TableOperationExceptionType.NOTFOUND, null);
-        }
-
-      } catch (TabletDeletedException e) {
-        Manager.log.debug("Failed to scan {} table to wait for flush {}",
-            SystemTables.METADATA.tableName(), tableId, e);
-      }
-    }
-
   }
 
   private NamespaceId getNamespaceIdFromTableId(TableOperation tableOp, TableId tableId)

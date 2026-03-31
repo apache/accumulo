@@ -227,30 +227,6 @@ service FateService {
 service PrimaryManagerClientService {
 
   // table management methods
-  i64 initiateFlush(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-  )
-
-  void waitForFlush(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string tableName
-    4:binary startRow
-    5:binary endRow
-    6:i64 flushID
-    7:i64 maxLoops
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftTableOperationException tope
-    3:client.ThriftNotActiveServiceException tnase
-  )
-
   void setTableProperty(
     1:client.TInfo tinfo
     2:security.TCredentials credentials

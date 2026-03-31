@@ -92,7 +92,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   private Function<Credentials,
       ThriftClientTypes.Exec<Void,PrimaryManagerClientService.Client>> primaryOp;
   private Function<Credentials,
-      ThriftClientTypes.Exec<Void,AssistantManagerClientService.Client>> assistantOpt;
+      ThriftClientTypes.Exec<Void,AssistantManagerClientService.Client>> assistantOp;
 
   @Test
   public void testPermissions_setManagerGoalState() throws Exception {
@@ -129,17 +129,17 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       tableId = client.tableOperations().tableIdMap().get(tableName);
     }
 
-    primaryOp = user -> client -> {
+    assistantOp = user -> client -> {
       client.initiateFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId);
       return null;
     };
-    expectPermissionDenied(primaryOp, regularUser);
+    expectAssistantPermissionDenied(assistantOp, regularUser);
     // privileged users can grant themselves permission, but it's not default
-    expectPermissionDenied(primaryOp, privilegedUser);
-    expectPermissionSuccess(primaryOp, regUserWithWrite);
-    expectPermissionSuccess(primaryOp, regUserWithAlter);
+    expectAssistantPermissionDenied(assistantOp, privilegedUser);
+    expectAssistantPermissionSuccess(assistantOp, regUserWithWrite);
+    expectAssistantPermissionSuccess(assistantOp, regUserWithAlter);
     // root user can because they created the table
-    expectPermissionSuccess(primaryOp, rootUser);
+    expectAssistantPermissionSuccess(assistantOp, rootUser);
   }
 
   @Test
@@ -165,24 +165,24 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     }
     AtomicLong flushId = new AtomicLong();
     // initiateFlush as the root user to get the flushId, then test waitForFlush with other users
-    primaryOp = user -> client -> {
+    assistantOp = user -> client -> {
       flushId.set(client.initiateFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId));
       return null;
     };
-    expectPermissionSuccess(primaryOp, rootUser);
-    primaryOp = user -> client -> {
+    expectAssistantPermissionSuccess(assistantOp, rootUser);
+    assistantOp = user -> client -> {
       client.waitForFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId,
           TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
           flushId.get(), 1);
       return null;
     };
-    expectPermissionDenied(primaryOp, regularUser);
+    expectAssistantPermissionDenied(assistantOp, regularUser);
     // privileged users can grant themselves permission, but it's not default
-    expectPermissionDenied(primaryOp, privilegedUser);
-    expectPermissionSuccess(primaryOp, regUserWithWrite);
-    expectPermissionSuccess(primaryOp, regUserWithAlter);
+    expectAssistantPermissionDenied(assistantOp, privilegedUser);
+    expectAssistantPermissionSuccess(assistantOp, regUserWithWrite);
+    expectAssistantPermissionSuccess(assistantOp, regUserWithAlter);
     // root user can because they created the table
-    expectPermissionSuccess(primaryOp, rootUser);
+    expectAssistantPermissionSuccess(assistantOp, rootUser);
   }
 
   @Test
