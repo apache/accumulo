@@ -20,6 +20,16 @@
 
 var deploymentSummaryTable;
 var deploymentBreakdownTable;
+const SERVER_TYPE_LINKS = new Map([
+  ['Manager', 'manager'],
+  ['Garbage Collector', 'gc'],
+  ['Compactor', 'compactors'],
+  ['Scan Server', 'sservers'],
+  ['Tablet Server', 'tservers']
+]);
+const SUMMARY_SERVER_TYPES = ['Manager', 'Garbage Collector', 'Compactor', 'Scan Server',
+  'Tablet Server'
+];
 
 /**
  * Creates overview initial table
@@ -46,7 +56,19 @@ $(function () {
       }
     ],
     "columns": [{
-        "data": "serverType"
+        "data": "serverType",
+        "render": function (data, type) {
+          if (type !== 'display') {
+            return data;
+          }
+
+          var link = SERVER_TYPE_LINKS.get(data);
+          if (link === undefined) {
+            return data;
+          }
+
+          return '<a href="' + sanitize(link) + '">' + sanitize(data) + '</a>';
+        }
       },
       {
         "data": null,
@@ -152,7 +174,19 @@ function refreshDeploymentTables() {
 }
 
 function buildDeploymentSummary(breakdown) {
+  if (breakdown.length === 0) {
+    return [];
+  }
+
   var totalsByType = new Map();
+
+  SUMMARY_SERVER_TYPES.forEach(function (serverType) {
+    totalsByType.set(serverType, {
+      serverType: serverType,
+      total: 0,
+      responding: 0
+    });
+  });
 
   breakdown.forEach(function (row) {
     var existing = totalsByType.get(row.serverType);
