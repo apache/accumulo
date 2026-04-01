@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.manager.multi.ManagerAssignment.computeAssignments;
 import static org.apache.accumulo.server.compaction.CompactionPluginUtils.getConfiguredCompactionResourceGroups;
 
@@ -42,7 +43,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.LazySingletons;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -82,7 +82,7 @@ public class CoordinatorManager {
     while (true) {
 
       try {
-        long updateId = LazySingletons.RANDOM.get().nextLong();
+        long updateId = RANDOM.get().nextLong();
         var current = getCurrentAssignments(updateId);
 
         log.trace("Current assignments {}", current);

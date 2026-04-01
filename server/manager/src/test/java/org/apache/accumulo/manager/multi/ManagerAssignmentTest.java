@@ -26,9 +26,9 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.hadoop.util.Sets;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
 public class ManagerAssignmentTest {

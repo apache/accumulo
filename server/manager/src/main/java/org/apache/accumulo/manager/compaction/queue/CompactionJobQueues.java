@@ -37,6 +37,8 @@ import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class CompactionJobQueues {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionJobQueues.class);
@@ -168,6 +170,8 @@ public class CompactionJobQueues {
     priorityQueues.values().forEach(cjpq -> cjpq.resetMaxSize(this.queueSize));
   }
 
+  @SuppressFBWarnings(value = "UG_SYNC_SET_UNSYNC_GET",
+      justification = "reads from atomic ref in getter, setter only wants one thread cleaning queues so it syncs")
   public Set<ResourceGroupId> getAllowedGroups() {
     return allowedGroups.get();
   }
