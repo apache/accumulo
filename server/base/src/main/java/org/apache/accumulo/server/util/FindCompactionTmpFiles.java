@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -32,7 +34,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -46,6 +50,7 @@ import org.apache.accumulo.start.spi.CommandGroup;
 import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,8 +133,6 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
       }
     }
 
-    // TODO also need to remove compactions that are committing in fate
-
     LOG.trace("Final set of compaction tmp files after removing active compactions: {}", matches);
     return matches;
   }
@@ -144,7 +147,8 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
       throws InterruptedException {
 
     final ExecutorService delSvc = Executors.newFixedThreadPool(8);
-    final List<Future<Boolean>> futures = new ArrayList<>(filesToDelete.size());
+    // use a linked list to make removal from the middle of the list quick
+    final List<Future<Boolean>> futures = new LinkedList<>();
     final DeleteStats stats = new DeleteStats();
 
     filesToDelete.forEach(p -> {
@@ -191,6 +195,39 @@ public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
     }
     delSvc.awaitTermination(10, TimeUnit.MINUTES);
     return stats;
+  }
+
+  // Finds any tmp files matching the given compaction ids in table dir and deletes them.
+  public static void deleteTmpFiles(ServerContext ctx, TableId tableId, String dirName,
+      Set<ExternalCompactionId> ecidsForTablet) {
+    final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+    for (Volume vol : vols) {
+      try {
+        final String volPath = vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + tableId.canonical() + Path.SEPARATOR + dirName;
+        final FileSystem fs = vol.getFileSystem();
+        for (ExternalCompactionId ecid : ecidsForTablet) {
+          final String fileSuffix = "_tmp_" + ecid.canonical();
+          FileStatus[] files = null;
+          try {
+            files = fs.listStatus(new Path(volPath), (path) -> path.getName().endsWith(fileSuffix));
+          } catch (FileNotFoundException e) {
+            LOG.trace("Failed to list tablet dir {}", volPath, e);
+          }
+          if (files != null) {
+            for (FileStatus file : files) {
+              if (!fs.delete(file.getPath(), false)) {
+                LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
+              } else {
+                LOG.debug("Deleted ecid tmp file: {}", file.getPath());
+              }
+            }
+          }
+        }
+      } catch (IOException e) {
+        LOG.error("Exception deleting compaction tmp files for table: {}", tableId, e);
+      }
+    }
   }
 
   public FindCompactionTmpFiles() {

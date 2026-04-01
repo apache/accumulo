@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -33,11 +34,11 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -49,8 +50,6 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
-import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
-import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,7 +60,6 @@ public class DeadCompactionDetector {
   private final ServerContext context;
   private final ScheduledThreadPoolExecutor schedExecutor;
   private final ConcurrentHashMap<ExternalCompactionId,Long> deadCompactions;
-  private final Set<TableId> tablesWithUnreferencedTmpFiles = new HashSet<>();
   private final Function<FateInstanceType,FateClient<FateEnv>> fateClients;
 
   public DeadCompactionDetector(ServerContext context, ScheduledThreadPoolExecutor stpe,
@@ -70,12 +68,6 @@ public class DeadCompactionDetector {
     this.schedExecutor = stpe;
     this.deadCompactions = new ConcurrentHashMap<>();
     this.fateClients = fateClients;
-  }
-
-  public void addTableId(TableId tableWithUnreferencedTmpFiles) {
-    synchronized (tablesWithUnreferencedTmpFiles) {
-      tablesWithUnreferencedTmpFiles.add(tableWithUnreferencedTmpFiles);
-    }
   }
 
   private void detectDeadCompactions() {
@@ -159,6 +151,31 @@ public class DeadCompactionDetector {
       });
     }
 
+    // Get the list of compaction entires that were removed from the metadata table by a split or
+    // merge operation. Must get this data before getting the running set of compactions.
+    List<Ample.RemovedCompaction> removedCompactions;
+    try (Stream<Ample.RemovedCompaction> listing = context.getAmple().removedCompactions().list()) {
+      removedCompactions = listing.collect(Collectors.toCollection(ArrayList::new));
+    }
+
+    // Must get the set of running compactions after reading compaction ids from the metadata table
+    Set<ExternalCompactionId> running = null;
+    if (!removedCompactions.isEmpty() || !tabletCompactions.isEmpty()) {
+      running = ExternalCompactionUtil.getCompactionIdsRunningOnCompactors(context);
+    }
+
+    // Delete any tmp files related to compaction metadata entries that were removed by split or
+    // merge and are no longer running.
+    if (!removedCompactions.isEmpty()) {
+      var runningSet = Objects.requireNonNull(running);
+      removedCompactions.removeIf(rc -> runningSet.contains(rc.id()));
+      removedCompactions.forEach(rc -> {
+        log.trace("attempting to delete tmp files for removed compaction {}", rc);
+        FindCompactionTmpFiles.deleteTmpFiles(context, rc.table(), rc.dir(), Set.of(rc.id()));
+      });
+      context.getAmple().removedCompactions().delete(removedCompactions);
+    }
+
     if (tabletCompactions.isEmpty()) {
       // Clear out dead compactions, tservers don't think anything is running
       log.trace("Clearing the dead compaction map, no tablets have compactions running");
@@ -180,9 +197,6 @@ public class DeadCompactionDetector {
       // In order for this overall algorithm to be correct and avoid race conditions, the compactor
       // must return ids covering the time period from before reservation until after commit. If the
       // ids do not cover this time period then legitimate running compactions could be canceled.
-      Collection<ExternalCompactionId> running =
-          ExternalCompactionUtil.getCompactionIdsRunningOnCompactors(context);
-
       running.forEach(ecid -> {
         if (tabletCompactions.remove(ecid) != null) {
           log.debug("Ignoring compaction {} that is running on a compactor", ecid);
@@ -227,37 +241,6 @@ public class DeadCompactionDetector {
       CompactionCoordinator.compactionsFailed(context, tabletCompactions);
       this.deadCompactions.keySet().removeAll(toFail);
     }
-
-    // Find and delete compaction tmp files that are unreferenced
-    if (!tablesWithUnreferencedTmpFiles.isEmpty()) {
-
-      Set<TableId> copy = new HashSet<>();
-      synchronized (tablesWithUnreferencedTmpFiles) {
-        copy.addAll(tablesWithUnreferencedTmpFiles);
-        tablesWithUnreferencedTmpFiles.clear();
-      }
-
-      log.debug("Tables that may have unreferenced compaction tmp files: {}", copy);
-      for (TableId tid : copy) {
-        try {
-          final Set<Path> matches = FindCompactionTmpFiles.findTempFiles(context, tid.canonical());
-          log.debug("Found the following compaction tmp files for table {}:", tid);
-          matches.forEach(p -> log.debug("{}", p));
-
-          if (!matches.isEmpty()) {
-            log.debug("Deleting compaction tmp files for table {}...", tid);
-            DeleteStats stats = FindCompactionTmpFiles.deleteTempFiles(context, matches);
-            log.debug(
-                "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
-                tid, stats.success, stats.failure, stats.error);
-          }
-        } catch (InterruptedException e) {
-          log.error("Interrupted while finding compaction tmp files for table: {}", tid.canonical(),
-              e);
-        }
-      }
-    }
-
   }
 
   public void start() {

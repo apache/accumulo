@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RU
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -262,7 +261,7 @@ public class ExternalCompactionUtil {
     }
   }
 
-  public static Collection<ExternalCompactionId>
+  public static Set<ExternalCompactionId>
       getCompactionIdsRunningOnCompactors(ClientContext context) {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();

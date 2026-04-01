@@ -281,6 +281,11 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
     return scanServerRefStore;
   }
 
+  @Override
+  public RemovedCompactionStore removedCompactions() {
+    return new RemovedCompactionStoreImpl(getContext());
+  }
+
   @VisibleForTesting
   protected ServerContext getContext() {
     return context;
