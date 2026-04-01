@@ -265,63 +265,6 @@ service PrimaryManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
-  void createResourceGroupNode(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-  )
-
-  void removeResourceGroupNode(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-  void setResourceGroupProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-    4:string property
-    5:string value
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:ThriftPropertyException tpe
-    4:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-  void modifyResourceGroupProperties(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-    4:client.TVersionedProperties vProperties
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftConcurrentModificationException tcme
-    4:ThriftPropertyException tpe
-    5:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-  void removeResourceGroupProperty(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string resourceGroup
-    4:string property
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:client.ThriftNotActiveServiceException tnase
-    3:client.ThriftResourceGroupNotExistsException rgne
-  )
-
-
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
     1:client.TInfo tinfo
@@ -535,6 +478,62 @@ service AssistantManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
+
+  void createResourceGroupNode(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string resourceGroup
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftNotActiveServiceException tnase
+    )
+
+  void removeResourceGroupNode(
+      1:client.TInfo tinfo
+      2:security.TCredentials credentials
+      3:string resourceGroup
+    ) throws (
+      1:client.ThriftSecurityException sec
+      2:client.ThriftNotActiveServiceException tnase
+      3:client.ThriftResourceGroupNotExistsException rgne
+    )
+
+      void setResourceGroupProperty(
+        1:client.TInfo tinfo
+        2:security.TCredentials credentials
+        3:string resourceGroup
+        4:string property
+        5:string value
+      ) throws (
+        1:client.ThriftSecurityException sec
+        2:client.ThriftNotActiveServiceException tnase
+        3:ThriftPropertyException tpe
+        4:client.ThriftResourceGroupNotExistsException rgne
+      )
+
+      void modifyResourceGroupProperties(
+        1:client.TInfo tinfo
+        2:security.TCredentials credentials
+        3:string resourceGroup
+        4:client.TVersionedProperties vProperties
+      ) throws (
+        1:client.ThriftSecurityException sec
+        2:client.ThriftNotActiveServiceException tnase
+        3:client.ThriftConcurrentModificationException tcme
+        4:ThriftPropertyException tpe
+        5:client.ThriftResourceGroupNotExistsException rgne
+      )
+
+      void removeResourceGroupProperty(
+        1:client.TInfo tinfo
+        2:security.TCredentials credentials
+        3:string resourceGroup
+        4:string property
+      ) throws (
+        1:client.ThriftSecurityException sec
+        2:client.ThriftNotActiveServiceException tnase
+        3:client.ThriftResourceGroupNotExistsException rgne
+      )
 }
 
 struct TFatePartitions {

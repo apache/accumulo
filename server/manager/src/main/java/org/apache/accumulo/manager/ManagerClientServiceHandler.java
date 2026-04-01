@@ -20,7 +20,6 @@ package org.apache.accumulo.manager;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.ConcurrentModificationException;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,10 +33,8 @@ import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -59,7 +56,6 @@ import org.apache.accumulo.core.manager.thrift.PrimaryManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TEvent;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
-import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -70,17 +66,13 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
-import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenSecretManager;
-import org.apache.accumulo.server.util.PropUtil;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 
 public class ManagerClientServiceHandler implements PrimaryManagerClientService.Iface {
@@ -227,107 +219,6 @@ public class ManagerClientServiceHandler implements PrimaryManagerClientService.
     }
 
     manager.setManagerGoalState(state);
-  }
-
-  @Override
-  public void createResourceGroupNode(TInfo tinfo, TCredentials c, String resourceGroup)
-      throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
-
-    if (!security.canPerformSystemActions(c)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    try {
-      Preconditions.checkArgument(resourceGroup != null && !resourceGroup.isBlank(),
-          "Supplied resource group name is null or empty");
-      final ResourceGroupId rgid = ResourceGroupId.of(resourceGroup);
-      final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
-      key.createZNode(context.getZooSession().asReaderWriter());
-    } catch (KeeperException | InterruptedException e) {
-      Manager.log.error("Problem creating resource group config node in zookeeper", e);
-      throw new TException(e.getMessage());
-    }
-
-  }
-
-  @Override
-  public void removeResourceGroupNode(TInfo tinfo, TCredentials c, String resourceGroup)
-      throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
-
-    if (!security.canPerformSystemActions(c)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    final ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
-    try {
-      if (rgid.equals(ResourceGroupId.DEFAULT)) {
-        throw new IllegalArgumentException(
-            "Cannot remove default resource group configuration node");
-      }
-      final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
-      key.removeZNode(context.getZooSession());
-    } catch (Exception e) {
-      Manager.log.error("Problem removing resource group config node in zookeeper", e);
-      throw new TException(e.getMessage());
-    }
-
-  }
-
-  @Override
-  public void removeResourceGroupProperty(TInfo info, TCredentials c, String resourceGroup,
-      String property) throws TException {
-    if (!security.canPerformSystemActions(c)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-    ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
-    try {
-      PropUtil.removeProperties(context, ResourceGroupPropKey.of(rgid), List.of(property));
-    } catch (Exception e) {
-      Manager.log.error("Problem removing config property in zookeeper", e);
-      throw new TException(e.getMessage());
-    }
-  }
-
-  @Override
-  public void setResourceGroupProperty(TInfo info, TCredentials c, String resourceGroup,
-      String property, String value) throws TException {
-    if (!security.canPerformSystemActions(c)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-
-    final ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
-    try {
-      PropUtil.setProperties(context, ResourceGroupPropKey.of(rgid), Map.of(property, value));
-    } catch (IllegalArgumentException iae) {
-      Manager.log.error("Problem setting invalid property", iae);
-      throw new ThriftPropertyException(property, value,
-          "Property is invalid. message: " + iae.getMessage());
-    } catch (Exception e) {
-      Manager.log.error("Problem setting config property in zookeeper", e);
-      throw new TException(e.getMessage());
-    }
-  }
-
-  @Override
-  public void modifyResourceGroupProperties(TInfo info, TCredentials c, String resourceGroup,
-      TVersionedProperties properties) throws TException {
-    if (!security.canPerformSystemActions(c)) {
-      throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
-    }
-    ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
-    try {
-      PropUtil.replaceProperties(context, ResourceGroupPropKey.of(rgid), properties.getVersion(),
-          properties.getProperties());
-    } catch (IllegalArgumentException iae) {
-      Manager.log.error("Problem setting invalid property", iae);
-      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
-    } catch (ConcurrentModificationException cme) {
-      log.warn("Error modifying resource group properties, properties have changed", cme);
-      throw new ThriftConcurrentModificationException(cme.getMessage());
-    } catch (Exception e) {
-      Manager.log.error("Problem setting config property in zookeeper", e);
-      throw new TException(e.getMessage());
-    }
   }
 
   @Override
