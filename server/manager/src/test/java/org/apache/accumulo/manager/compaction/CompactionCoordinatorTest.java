@@ -237,7 +237,8 @@ public class CompactionCoordinatorTest {
     coordinator.getJobQueues().setAllowedGroups(Set.of(GROUP_ID));
     CompactionJob job =
         new CompactionJobImpl((short) 1, GROUP_ID, Collections.emptyList(), CompactionKind.SYSTEM);
-    coordinator.addJobs(tm, Collections.singleton(job));
+    coordinator.addJobs(new TInfo(), rpcCreds,
+        List.of(new ResolvedCompactionJob(job, tm).toThrift()));
     CompactionJobPriorityQueue queue = coordinator.getJobQueues().getQueue(GROUP_ID);
     assertEquals(1, queue.getQueuedJobs());
 

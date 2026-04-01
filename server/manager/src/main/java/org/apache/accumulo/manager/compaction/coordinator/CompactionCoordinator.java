@@ -32,8 +32,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -95,7 +93,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
@@ -635,16 +632,6 @@ public class CompactionCoordinator
         LOG.debug("Did not set resource groups because update id did not match");
       }
     }
-  }
-
-  // TODO remove
-  public void addJobs(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
-    ArrayList<CompactionJob> resolvedJobs = new ArrayList<>(jobs.size());
-    for (var job : jobs) {
-      resolvedJobs.add(new ResolvedCompactionJob(job, tabletMetadata));
-    }
-
-    jobQueues.add(tabletMetadata.getExtent(), resolvedJobs);
   }
 
   public CompactionCoordinatorService.Iface getThriftService() {
