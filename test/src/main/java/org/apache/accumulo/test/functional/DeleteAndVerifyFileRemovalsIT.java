@@ -94,7 +94,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       final Path tableDir = returnTableHdfsDir(tableId);
 
       // Verify that no GC deletion markers currently exist
-      assertFalse(getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER).hasNext());
+      assertTrue(countGcCandidates(tableId, 0), "GcCandidates should not exist");
 
       assertTrue(fs.exists(tableDir),
           "Table HDFS directory must exist before deleting: " + tableDir);
@@ -103,7 +103,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       client.tableOperations().delete(tableName);
 
       // Verify that no GC deletion markers were created
-      assertFalse(getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER).hasNext());
+      assertTrue(countGcCandidates(tableId, 0), "GcCandidates should not exist");
 
       Wait.waitFor(() -> !fs.exists(tableDir), GC_MAX_WAIT, POLLING_WAIT,
           "Table HDFS directory must be removed after delete: " + tableDir);
@@ -143,14 +143,12 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
           "At least two rfiles must exist before delete: " + tableDir);
 
       // Verify no gcCandidates exist
-      assertFalse(getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER).hasNext());
+      assertTrue(countGcCandidates(tableId, 0), "GcCandidates should not exist");
 
       client.tableOperations().delete(tableName);
 
       // GcCandidates should now exist
-      Wait.waitFor(
-          () -> getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER).hasNext(),
-          1_000);
+      Wait.waitFor(() -> countGcCandidates(tableId, 2), 1_000);
 
       assertTrue(fs.exists(tableDir), "Table HDFS directory must still exist after delete"
           + " but before GC is started: " + tableDir);
@@ -239,7 +237,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       assertTrue(fs.exists(sourceDir), "Source dir must exist before delete");
       client.tableOperations().delete(sourceTable);
 
-      // The source directory and its files must still be present because the GC must not
+      // The source directory and its files must still be present because the GC will not
       // delete files that are still referenced by the clone.
       assertTrue(fs.exists(sourceDir),
           "Source HDFS directory must survive after source table is deleted: " + sourceDir);
@@ -258,35 +256,32 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
         assertEquals(4, ample.stream().count());
       }
 
-      boolean findSourceTableGcCandidates = false;
-      var gcCandidates =
-          getCluster().getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER);
-      while (gcCandidates.hasNext()) {
-        GcCandidate candidate = gcCandidates.next();
-        if (candidate.getPath().contains("/accumulo/tables/" + sourceTableId.canonical())) {
-          findSourceTableGcCandidates = true;
-        }
-      }
-      // Merge away splits so compaction will result in a single file
-      client.tableOperations().merge(cloneTable, null, null);
+      // A GcCandidate for each tablet directory should exist until the shared references are
+      // compacted.
+      Wait.waitFor(() -> countGcCandidates(sourceTableId, 4), GC_MAX_WAIT, POLLING_WAIT);
+
       client.tableOperations().compact(cloneTable, new CompactionConfig().setWait(true));
-      assertTrue(findSourceTableGcCandidates,
-          "Did not find a gcCandidate for the source table" + sourceTableId.canonical());
 
       Wait.waitFor(() -> !fs.exists(sourceDir), GC_MAX_WAIT, POLLING_WAIT,
-          "Table HDFS directory must be removed: " + sourceDir);
+          "The source table's HDFS directory must be removed: " + sourceDir);
 
       // The full compaction should have removed the file Refs to the source directory so those
       // files can now be removed.
       assertTrue(fs.exists(cloneDir),
           "Cloned HDFS directory must survive after source table is deleted: " + cloneDir);
-      assertTrue(hasRFiles(fs, cloneDir, 1),
+      assertTrue(hasRFiles(fs, cloneDir, 4),
           "Cloned RFiles must survive after source table is deleted: " + cloneDir);
+
+      long rows = client.createScanner(cloneTable).stream().count();
+      assertEquals(400L, rows, "Cloned table only had " + rows + " instead of 400");
 
       client.tableOperations().delete(cloneTable);
 
       Wait.waitFor(() -> !fs.exists(cloneDir), GC_MAX_WAIT, POLLING_WAIT,
-          "Clone HDFS directory must be removed after clone is deleted: " + cloneDir);
+          "The clone table's HDFS directory must be removed after clone is deleted: " + cloneDir);
+
+      assertFalse(getCluster().getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER)
+          .hasNext(), "All GcCandidates should have been removed");
     }
   }
 
@@ -376,5 +371,20 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       }
     }
     return children;
+  }
+
+  private boolean countGcCandidates(TableId tableId, int expectedTotal) {
+    int foundTableGcCandidates = 0;
+    var gcCandidates =
+        getCluster().getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER);
+    while (gcCandidates.hasNext()) {
+      GcCandidate candidate = gcCandidates.next();
+      if (candidate.getPath().contains("/accumulo/tables/" + tableId.canonical())) {
+        log.info("Found GcCandidate {} that matches ID {} with path {}", candidate.getUid(),
+            tableId.canonical(), candidate.getPath());
+        foundTableGcCandidates++;
+      }
+    }
+    return foundTableGcCandidates == expectedTotal;
   }
 }
