@@ -540,8 +540,9 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     RetryableThriftCall<TNextCompactionJob> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          Client coordinatorClient = null;
           try {
+            coordinatorClient = getCoordinatorClient();
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
