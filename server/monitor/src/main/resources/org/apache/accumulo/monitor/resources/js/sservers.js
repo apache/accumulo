@@ -54,7 +54,44 @@ function getStoredStatus() {
   return view.status || null;
 }
 
+function getDataTableCols() {
+  var dataTableColumns = [];
+  var storedColumns = getStoredColumns();
+  $.each(storedColumns, function (index, col) {
+    dataTableColumns.push({
+      data: col.name
+    });
+  });
+  return dataTableColumns;
+}
+
 function refreshScanServersTable() {
+
+  // Destroy the DataTable and clear the HTML table
+  if (sserversTable != null) {
+    sserversTable.destroy();
+    $('#sservers').empty();
+  }
+
+  // Create the HTML table columns
+  var sserversHtmlTable = $('#sservers');
+  var thead = $(document.createElement("thead"));
+  var theadRow = $(document.createElement("tr"));
+
+  var storedColumns = getStoredColumns();
+  $.each(storedColumns, function (index, col) {
+    //console.log('Adding column: ' + JSON.stringify(col));
+    var th = $(document.createElement("th"));
+    th.addClass(col.uiClass);
+    th.text(col.name);
+    th.attr("title", col.description);
+    theadRow.append(th);
+  });
+  thead.append(theadRow);
+  sserversHtmlTable.append(thead);
+
+  // Create the DataTable
+  createDataTable();
   ajaxReloadTable(sserversTable);
 }
 
@@ -84,7 +121,8 @@ function refreshScanServers() {
     refreshSserversBanner(getStoredStatus());
   }).fail(function () {
     sessionStorage[SSERVERS_VIEW_SESSION_KEY] = JSON.stringify({
-      servers: [],
+      data: [],
+      columns: [],
       status: null
     });
     refreshScanServersTable();
@@ -96,32 +134,7 @@ function refresh() {
   refreshScanServers();
 }
 
-$(function () {
-  sessionStorage[SSERVERS_VIEW_SESSION_KEY] = JSON.stringify({
-    servers: [],
-    status: null
-  });
-
-  const sserversHtmlTable = $('#sservers');
-  const thead = $(document.createElement("thead"));
-  const theadRow = $(document.createElement("tr"));
-  sserversHtmlTable.appendChild(thead);
-  thead.appendChild(theadRow);
-
-  var storedColumns = getStoredColumns();
-  var dataTableColumns = [];
-
-  for (var col in storedColumns) {
-    dataTableColumns.push({
-      data: col.name
-    });
-    const th = $(document.createElement("th"));
-    th.title = col.description;
-    th.className = col.uiClass;
-    th.textContent = col.name;
-    theadRow.appendChild(th);
-  }
-
+function createDataTable() {
   sserversTable = $('#sservers').DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
@@ -164,7 +177,16 @@ $(function () {
         }
       }
     ],
-    "columns": dataTableColumns
+    "columns": getDataTableCols()
+  });
+
+}
+
+$(function () {
+  sessionStorage[SSERVERS_VIEW_SESSION_KEY] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
   });
 
   refreshScanServers();

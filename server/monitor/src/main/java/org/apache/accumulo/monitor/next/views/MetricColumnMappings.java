@@ -153,11 +153,11 @@ public class MetricColumnMappings {
 
   private static final Map<Metric,ColumnInformation> mappings = new HashMap<>();
 
-  private static final String NUMBER_UI_CLASS = "big-num";
-  private static final String BYTES_UI_CLASS = "big-size";
-  private static final String DURATION_UI_CLASS = "duration";
-  private static final String PERCENT_UI_CLASS = "percent";
-  private static final String TIMESTAMP_UI_CLASS = "timestamp";
+  public static final String NUMBER_UI_CLASS = "big-num";
+  public static final String BYTES_UI_CLASS = "big-size";
+  public static final String DURATION_UI_CLASS = "duration";
+  public static final String PERCENT_UI_CLASS = "percent";
+  public static final String TIMESTAMP_UI_CLASS = "timestamp";
 
   static {
     mappings.put(SERVER_IDLE, new ColumnInformation("Server Idle",

@@ -73,8 +73,8 @@ public class ServersView {
   private static final ColumnInformation ADDR_COL_MAPPING =
       new ColumnInformation(ADDR_COL_NAME, "Server address", "");
   private static final String TIME_COL_NAME = "Last Contact";
-  private static final ColumnInformation TIME_COL_MAPPING =
-      new ColumnInformation(TIME_COL_NAME, "Server last contact time", "");
+  private static final ColumnInformation TIME_COL_MAPPING = new ColumnInformation(TIME_COL_NAME,
+      "Server last contact time", MetricColumnMappings.TIMESTAMP_UI_CLASS);
 
   public final List<Map<String,Object>> data = new ArrayList<>();
   public final Set<ColumnInformation> columns = new TreeSet<>();
