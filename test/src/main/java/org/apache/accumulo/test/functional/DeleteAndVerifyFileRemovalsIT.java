@@ -29,11 +29,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -49,6 +51,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -61,7 +64,6 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
   private static final Logger log = LoggerFactory.getLogger(DeleteAndVerifyFileRemovalsIT.class);
 
   private static final long GC_MAX_WAIT = 90_000;
-
   private static final long POLLING_WAIT = 500;
 
   @Override
@@ -82,7 +84,8 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       final String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      client.tableOperations().create(tableName,
+          new NewTableConfiguration().withSplits(new TreeSet<>(List.of(new Text("row000099")))));
       writeAndFlush(client, tableName, 200);
 
       final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
@@ -95,8 +98,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
 
       assertTrue(fs.exists(tableDir),
           "Table HDFS directory must exist before deleting: " + tableDir);
-      assertTrue(hasRFiles(fs, tableDir),
-          "At least one file must exist before deleting: " + tableDir);
+      assertTrue(hasRFiles(fs, tableDir, 2), "Two files must exist before deleting: " + tableDir);
 
       client.tableOperations().delete(tableName);
 
@@ -125,7 +127,8 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       client.instanceOperations().setProperty(MANAGER_TABLE_DELETE_OPTIMIZATION.getKey(), "false");
 
       final String tableName = getUniqueNames(1)[0];
-      client.tableOperations().create(tableName);
+      client.tableOperations().create(tableName,
+          new NewTableConfiguration().withSplits(new TreeSet<>(List.of(new Text("row000099")))));
       writeAndFlush(client, tableName, 200);
 
       final TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
@@ -136,8 +139,8 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       log.info("Table {} ({}) directory :{}", tableName, tableId, tableDir);
 
       assertTrue(fs.exists(tableDir), "Table HDFS directory must exist before delete: " + tableDir);
-      assertTrue(hasRFiles(fs, tableDir),
-          "At least one rfile must exist before delete: " + tableDir);
+      assertTrue(hasRFiles(fs, tableDir, 2),
+          "At least two rfiles must exist before delete: " + tableDir);
 
       // Verify no gcCandidates exist
       assertFalse(getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER).hasNext());
@@ -148,6 +151,10 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       Wait.waitFor(
           () -> getServerContext().getAmple().getGcCandidates(Ample.DataLevel.USER).hasNext(),
           1_000);
+
+      assertTrue(fs.exists(tableDir), "Table HDFS directory must still exist after delete"
+          + " but before GC is started: " + tableDir);
+
       getCluster().getClusterControl().start(ServerType.GARBAGE_COLLECTOR);
 
       Wait.waitFor(() -> !fs.exists(tableDir), GC_MAX_WAIT, POLLING_WAIT,
@@ -167,9 +174,8 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       final String tableName = getUniqueNames(1)[0];
 
       // Create a pre-split table so there will be multiple tablet directories.
-      client.tableOperations().create(tableName);
-      client.tableOperations().addSplits(tableName, new java.util.TreeSet<>(
-          List.of(new org.apache.hadoop.io.Text("m"), new org.apache.hadoop.io.Text("t"))));
+      client.tableOperations().create(tableName, new NewTableConfiguration()
+          .withSplits(new TreeSet<>(List.of(new Text("row000149"), new Text("row000150")))));
 
       // Write data spread across all splits and flush each tablet to produce RFiles.
       writeAndFlush(client, tableName, 300);
@@ -181,7 +187,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       final Path tableDir = returnTableHdfsDir(tableId);
 
       assertTrue(fs.exists(tableDir), "Table dir must exist: " + tableDir);
-      assertTrue(hasRFiles(fs, tableDir), "RFiles must exist before delete: " + tableDir);
+      assertTrue(hasRFiles(fs, tableDir, 3), "RFiles must exist before delete: " + tableDir);
 
       // Capture every tablet so we can verify they are all removed.
       final List<Path> tabletDirs = listSubDirectories(fs, tableDir);
@@ -211,9 +217,10 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       var names = getUniqueNames(2);
       final String sourceTable = names[0];
       final String cloneTable = names[1];
-      ;
 
-      client.tableOperations().create(sourceTable);
+      client.tableOperations().create(sourceTable,
+          new NewTableConfiguration().withSplits(new TreeSet<>(
+              List.of(new Text("row000100"), new Text("row000200"), new Text("row000300")))));
       writeAndFlush(client, sourceTable, 400);
 
       // Clone shares the same underlying files as the source at clone time.
@@ -236,7 +243,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       // delete files that are still referenced by the clone.
       assertTrue(fs.exists(sourceDir),
           "Source HDFS directory must survive after source table is deleted: " + sourceDir);
-      assertTrue(hasRFiles(fs, sourceDir),
+      assertTrue(hasRFiles(fs, sourceDir, 4),
           "Source RFiles must survive after source table is deleted: " + sourceDir);
 
       // Verify that the files have been removed from accumulo metadata.
@@ -245,9 +252,11 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
         assertEquals(0, ample.stream().count());
       }
 
-      writeAndFlush(client, cloneTable, 100);
-      client.tableOperations().setProperty(cloneTable, Property.TABLE_FILE_MAX.getKey(), "1");
-      client.tableOperations().compact(cloneTable, new CompactionConfig().setWait(true));
+      // Verify that the files have been added to the clone table's accumulo metadata.
+      try (var ample = getCluster().getServerContext().getAmple().readTablets()
+          .forTable(cloneTableId).fetch(TabletMetadata.ColumnType.FILES).build()) {
+        assertEquals(4, ample.stream().count());
+      }
 
       boolean findSourceTableGcCandidates = false;
       var gcCandidates =
@@ -258,6 +267,9 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
           findSourceTableGcCandidates = true;
         }
       }
+      // Merge away splits so compaction will result in a single file
+      client.tableOperations().merge(cloneTable, null, null);
+      client.tableOperations().compact(cloneTable, new CompactionConfig().setWait(true));
       assertTrue(findSourceTableGcCandidates,
           "Did not find a gcCandidate for the source table" + sourceTableId.canonical());
 
@@ -268,7 +280,7 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
       // files can now be removed.
       assertTrue(fs.exists(cloneDir),
           "Cloned HDFS directory must survive after source table is deleted: " + cloneDir);
-      assertTrue(hasRFiles(fs, cloneDir),
+      assertTrue(hasRFiles(fs, cloneDir, 1),
           "Cloned RFiles must survive after source table is deleted: " + cloneDir);
 
       client.tableOperations().delete(cloneTable);
@@ -338,17 +350,19 @@ public class DeleteAndVerifyFileRemovalsIT extends ConfigurableMacBase {
     return new Path(volumeBase, "tables/" + tableId.canonical());
   }
 
-  private boolean hasRFiles(FileSystem fs, Path dir) throws Exception {
+  private boolean hasRFiles(FileSystem fs, Path dir, int numFiles) throws Exception {
     if (!fs.exists(dir)) {
       return false;
     }
     var files = fs.listFiles(dir, true);
+    int foundFiles = 0;
     while (files.hasNext()) {
       if (files.next().getPath().getName().endsWith(".rf")) {
-        return true;
+        foundFiles++;
+        log.info("Found file {} of {}", foundFiles, numFiles);
       }
     }
-    return false;
+    return foundFiles == numFiles;
   }
 
   private List<Path> listSubDirectories(FileSystem fs, Path parent) throws Exception {
