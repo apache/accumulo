@@ -32,6 +32,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -93,6 +94,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
@@ -560,7 +562,7 @@ public class CompactionCoordinator
   }
 
   @Override
-  public void addJobs(TInfo tinfo, TCredentials credentials, List<TResolvedCompactionJob> jobs)
+  public void addJobs(TInfo tinfo, TCredentials credentials, List<TResolvedCompactionJob> tjobs)
       throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       LOG.warn("Thrift call attempted to add job and did not have proper access. {}",
@@ -568,12 +570,17 @@ public class CompactionCoordinator
       return;
     }
 
-    for (var tjob : jobs) {
+    Map<KeyExtent,List<CompactionJob>> jobs = new HashMap<>();
+    for (var tjob : tjobs) {
       var job = ResolvedCompactionJob.fromThrift(tjob);
-      LOG.trace("Adding compaction job {} {} {} {}", job.getGroup(), job.getPriority(),
-          job.getExtent(), job.getJobFiles().size());
-      jobQueues.add(job.getExtent(), List.of(job));
+      LOG.trace("Adding compaction job {} {} {} {} {}", job.getGroup(), job.getPriority(),
+          job.getKind(), job.getExtent(), job.getJobFiles().size());
+      jobs.computeIfAbsent(job.getExtent(), e -> new ArrayList<>()).add(job);
     }
+
+    // its important to add all jobs for an extent at once instead of one by one because the job
+    // queue deletes all existing jobs for an extent when adding an extent
+    jobs.forEach(jobQueues::add);
   }
 
   @Override

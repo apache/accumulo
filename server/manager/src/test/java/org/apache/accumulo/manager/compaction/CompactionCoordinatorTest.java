@@ -235,12 +235,16 @@ public class CompactionCoordinatorTest {
 
     // Add a job to the job queue
     coordinator.getJobQueues().setAllowedGroups(Set.of(GROUP_ID));
-    CompactionJob job =
-        new CompactionJobImpl((short) 1, GROUP_ID, Collections.emptyList(), CompactionKind.SYSTEM);
+    CompactionJob job1 =
+        new CompactionJobImpl((short) 1, GROUP_ID, Set.of(), CompactionKind.SYSTEM);
+    CompactionJob job2 =
+        new CompactionJobImpl((short) 2, GROUP_ID, Set.of(), CompactionKind.SYSTEM);
+    // should add two jobs to the queue
     coordinator.addJobs(new TInfo(), rpcCreds,
-        List.of(new ResolvedCompactionJob(job, tm).toThrift()));
+        List.of(new ResolvedCompactionJob(job1, tm).toThrift(),
+            new ResolvedCompactionJob(job2, tm).toThrift()));
     CompactionJobPriorityQueue queue = coordinator.getJobQueues().getQueue(GROUP_ID);
-    assertEquals(1, queue.getQueuedJobs());
+    assertEquals(2, queue.getQueuedJobs());
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
@@ -251,7 +255,7 @@ public class CompactionCoordinatorTest {
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
     assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
 
-    assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
+    assertEquals(1, coordinator.getJobQueues().getQueuedJobCount());
 
     verify(tm);
   }

@@ -79,8 +79,9 @@ public class CoordinatorManager {
   private final DeadCompactionDetector deadCompactionDetector;
 
   private void managerCoordinators() {
+    final long initialSleepTime = 10;
+    long sleepTime = initialSleepTime;
     while (true) {
-
       try {
         long updateId = RANDOM.get().nextLong();
         var current = getCurrentAssignments(updateId);
@@ -96,7 +97,10 @@ public class CoordinatorManager {
 
         log.trace("Desired assignments {}", desired);
         if (!current.equals(desired)) {
+          sleepTime = initialSleepTime;
           setAssignments(updateId, desired);
+        } else {
+          sleepTime = Math.min(sleepTime + 10, 5000);
         }
 
         updateZookeeper(desired);
@@ -105,8 +109,7 @@ public class CoordinatorManager {
         throw new RuntimeException(e);
       }
 
-      // TODO not good for tests
-      UtilWaitThread.sleep(5000);
+      UtilWaitThread.sleep(sleepTime);
     }
 
   }

@@ -42,9 +42,6 @@ public abstract class ManagerAssignment {
     int maxAssignments = minAssignments + Math.min(desiredPartitions.size() % current.size(), 1);
     int hostThatCanHaveMax = desiredPartitions.size() % current.size();
 
-    System.out.printf("minA:%d maxA:%d htchm:%d\n", minAssignments, maxAssignments,
-        hostThatCanHaveMax);
-
     Map<HostAndPort,Set<T>> assignments = new HashMap<>();
     Set<T> assigned = new HashSet<>();
 
@@ -84,8 +81,6 @@ public abstract class ManagerAssignment {
       }
       assigned.addAll(hostAssignments);
     }
-
-    System.out.println("hostThatHaveMax:" + hostThatHaveMax);
 
     return assignments;
   }
