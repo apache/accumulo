@@ -80,6 +80,7 @@ public class CoordinatorManager {
 
   private void managerCoordinators() {
     final long initialSleepTime = 10;
+    final long maxSleepTime = 5000;
     long sleepTime = initialSleepTime;
     while (true) {
       try {
@@ -100,13 +101,13 @@ public class CoordinatorManager {
           sleepTime = initialSleepTime;
           setAssignments(updateId, desired);
         } else {
-          sleepTime = Math.min(sleepTime + 10, 5000);
+          sleepTime = Math.min(sleepTime + 10, maxSleepTime);
         }
 
         updateZookeeper(desired);
-      } catch (ReflectiveOperationException | InterruptedException | KeeperException e) {
-        // TODO
-        throw new RuntimeException(e);
+      } catch (Exception e) {
+        log.warn("Failed to set compaction coordinator assignments", e);
+        sleepTime = maxSleepTime;
       }
 
       UtilWaitThread.sleep(sleepTime);
@@ -139,14 +140,14 @@ public class CoordinatorManager {
 
     for (var assistant : assistants) {
       CompactionCoordinatorService.Client client = null;
+      var hp = HostAndPort.fromString(assistant.getServer());
       try {
-        var hp = HostAndPort.fromString(assistant.getServer());
         client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, context);
         var groups = client.getResourceGroups(TraceUtil.traceInfo(), context.rpcCreds(), updateId);
         assignments.put(hp, groups.stream().map(ResourceGroupId::of).collect(toSet()));
       } catch (TException e) {
-        // TODO
-        throw new RuntimeException(e);
+        log.warn("Failed to get current assignments from {}", hp, e);
+        return Map.of();
       } finally {
         ThriftUtil.returnClient(client, context);
       }
@@ -168,8 +169,7 @@ public class CoordinatorManager {
       client.setResourceGroups(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           groups.stream().map(AbstractId::canonical).collect(toSet()));
     } catch (TException e) {
-      // TODO
-      throw new RuntimeException(e);
+      log.warn("Failed to set resource groups for {}", hp, e);
     } finally {
       ThriftUtil.returnClient(client, context);
     }
