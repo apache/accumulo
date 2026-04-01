@@ -1087,8 +1087,6 @@ under the License.
                   <ignores>
                     <!-- ignore our own SNAPSHOT versions during development -->
                     <ignore>org.apache.accumulo:*:${project.version}</ignore>
-                    <!-- ignore apache-access, because we haven't had another beta release yet -->
-                    <ignore>org.apache.accumulo:accumulo-access-core:1.0.0-SNAPSHOT</ignore>
                   </ignores>
                 </banDynamicVersions>
                 <bannedDependencies>
