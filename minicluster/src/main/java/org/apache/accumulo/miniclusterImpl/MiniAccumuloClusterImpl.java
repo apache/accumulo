@@ -1030,12 +1030,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+          "file://" + getAccumuloPropertiesPath());
       new ZooZap()
-          .execute(new String[] {"-manager", "-tservers", "-compactors", "-sservers", "--gc"});
+          .execute(new String[] {"-managers", "-tservers", "-compactors", "-sservers", "--gc"});
     } catch (Exception e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
       }
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
 
     // Clear the location of the servers in ZooCache.

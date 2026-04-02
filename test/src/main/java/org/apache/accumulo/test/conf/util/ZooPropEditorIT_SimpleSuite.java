@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.test.conf.util;
 
+import static org.apache.accumulo.core.conf.SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -67,6 +69,7 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
     String namespace = names[0];
     String table = namespace + "." + names[1];
 
+    assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
 
       client.namespaceOperations().create(namespace);
@@ -88,23 +91,24 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
-      ZooPropEditor tool = new ZooPropEditor();
       // before - check setup correct
       Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
+      System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
+          "file:///" + getCluster().getAccumuloPropertiesPath());
+
       // set table property (table.bloom.enabled=true)
-      String[] setTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-t", table,
-          "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=true"};
-      tool.execute(setTablePropArgs);
+      String[] setTablePropArgs =
+          {"-t", table, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=true"};
+      new ZooPropEditor().execute(setTablePropArgs);
 
       // after set - check prop changed in ZooKeeper
       Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
-      String[] deleteTablePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-t", table,
-          "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
-      tool.execute(deleteTablePropArgs);
+      String[] deleteTablePropArgs = {"-t", table, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
+      new ZooPropEditor().execute(deleteTablePropArgs);
 
       // after delete - check map entry is null (removed from ZooKeeper)
       Wait.waitFor(() -> client.tableOperations().getTableProperties(table)
@@ -114,10 +118,9 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
-      String[] setSystemPropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-s",
-          Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
-      IllegalStateException ise =
-          assertThrows(IllegalStateException.class, () -> tool.execute(setSystemPropArgs));
+      String[] setSystemPropArgs = {"-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
+      IllegalStateException ise = assertThrows(IllegalStateException.class,
+          () -> new ZooPropEditor().execute(setSystemPropArgs));
       assertTrue(ise.getMessage().startsWith("Failed to set property for system"));
 
       // after set - check map entry is false
@@ -128,56 +131,67 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
 
-      String[] setNamespacePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-ns",
-          namespace, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
-      tool.execute(setNamespacePropArgs);
+      String[] setNamespacePropArgs =
+          {"-ns", namespace, "-s", Property.TABLE_BLOOM_ENABLED.getKey() + "=false"};
+      new ZooPropEditor().execute(setNamespacePropArgs);
 
       // after set - check map entry is false
       Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
-      String[] deleteNamespacePropArgs = {"-p", getCluster().getAccumuloPropertiesPath(), "-ns",
-          namespace, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
-      tool.execute(deleteNamespacePropArgs);
+      String[] deleteNamespacePropArgs =
+          {"-ns", namespace, "-d", Property.TABLE_BLOOM_ENABLED.getKey()};
+      new ZooPropEditor().execute(deleteNamespacePropArgs);
 
       // after set - check map entry is false
       Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500);
 
+    } finally {
+      System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
   @Test
   public void testTablePropInSystemConfigFails() {
+    assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      ZooPropEditor tool = new ZooPropEditor();
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
+          "file:///" + getCluster().getAccumuloPropertiesPath());
       for (Entry<String,String> e : defaultProperties.entrySet()) {
-
-        String[] setSystemPropArgs =
-            {"-p", getCluster().getAccumuloPropertiesPath(), "-s", e.getKey() + "=" + e.getValue()};
+        ZooPropEditor tool = new ZooPropEditor();
+        String[] setSystemPropArgs = {"-s", e.getKey() + "=" + e.getValue()};
         IllegalStateException ise =
             assertThrows(IllegalStateException.class, () -> tool.execute(setSystemPropArgs));
-        assertTrue(ise.getMessage().startsWith("Failed to set property for system"));
+        assertTrue(ise.getMessage().startsWith("Failed to set property for system"),
+            ise::getMessage);
       }
+    } finally {
+      System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
   @Test
   public void testTablePropInResourceGroupConfigFails() {
+    assertNull(System.getProperties().get(ACCUMULO_PROPERTIES_PROPERTY));
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      ZooPropEditor tool = new ZooPropEditor();
       DefaultConfiguration dc = DefaultConfiguration.getInstance();
       Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      System.setProperty(ACCUMULO_PROPERTIES_PROPERTY,
+          "file:///" + getCluster().getAccumuloPropertiesPath());
       for (Entry<String,String> e : defaultProperties.entrySet()) {
-
-        String[] setRGPropArgs = {"-r", ResourceGroupId.DEFAULT.canonical(), "-p",
-            getCluster().getAccumuloPropertiesPath(), "-s", e.getKey() + "=" + e.getValue()};
+        ZooPropEditor tool = new ZooPropEditor();
+        String[] setRGPropArgs =
+            {"-r", ResourceGroupId.DEFAULT.canonical(), "-s", e.getKey() + "=" + e.getValue()};
         IllegalStateException ise =
             assertThrows(IllegalStateException.class, () -> tool.execute(setRGPropArgs));
-        assertTrue(ise.getMessage().startsWith("Failed to set property for default"));
+        assertTrue(ise.getMessage().startsWith("Failed to set property for default"),
+            ise::getMessage);
       }
+    } finally {
+      System.clearProperty(ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 

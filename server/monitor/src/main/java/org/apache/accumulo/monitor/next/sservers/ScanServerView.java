@@ -31,6 +31,7 @@ import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 
 /**
@@ -145,7 +146,7 @@ public record ScanServerView(long lastUpdate, List<Row> servers, Status status) 
       var metricStatistic = extractStatistic(metric);
       if (metricStatistic == null || metricStatistic.equals("value")
           || metricStatistic.equals("count")) {
-        values.putIfAbsent(metric.name(), metricNumericValue(metric));
+        values.putIfAbsent(metric.name(), SystemInformation.getMetricValue(metric));
       }
     }
     return values;
@@ -168,16 +169,4 @@ public record ScanServerView(long lastUpdate, List<Row> servers, Status status) 
     return statistic.toLowerCase();
   }
 
-  private static Number metricNumericValue(FMetric metric) {
-    if (metric.ivalue() != 0) {
-      return metric.ivalue();
-    }
-    if (metric.lvalue() != 0L) {
-      return metric.lvalue();
-    }
-    if (metric.dvalue() != 0.0d) {
-      return metric.dvalue();
-    }
-    return 0;
-  }
 }

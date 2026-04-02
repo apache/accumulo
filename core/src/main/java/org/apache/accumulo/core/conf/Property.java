@@ -952,6 +952,11 @@ public enum Property {
           would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.
           """,
       "2.1.4"),
+  MONITOR_LONG_RUNNING_COMPACTION_LIMIT("monitor.compactions.long.running.limit", "50",
+      PropertyType.COUNT,
+      "The number of long running compactions to display per resource group. The Monitor server will"
+          + " keep twice this number in memory as it builds the next list while serving up the current list.",
+      "4.0.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX, """
       Properties in this category affect tablet server treatment of tablets, \

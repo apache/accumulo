@@ -28,8 +28,10 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TE
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URL;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -200,9 +202,11 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
           cluster.getConfig().getAccumuloDir().toString(), "classpath"));
       assertTrue(fs.mkdirs(contextDir));
 
+      URL url =
+          this.getClass().getClassLoader().getResource("org/apache/accumulo/test/FooFilter.jar");
+      assertNotNull(url);
       // Copy the FooFilter.jar to the context dir
-      final org.apache.hadoop.fs.Path src = new org.apache.hadoop.fs.Path(
-          System.getProperty("java.io.tmpdir") + "/classes/org/apache/accumulo/test/FooFilter.jar");
+      final org.apache.hadoop.fs.Path src = new org.apache.hadoop.fs.Path(url.toURI());
       final org.apache.hadoop.fs.Path dst = new org.apache.hadoop.fs.Path(contextDir, "Test.jar");
       fs.copyFromLocalFile(src, dst);
       assertTrue(fs.exists(dst));

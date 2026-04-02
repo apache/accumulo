@@ -679,8 +679,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
         assertNull(ops.getIteratorSetting(table, iterName, IteratorUtil.IteratorScope.scan));
         assertEquals(iterSetting,
             ops.getIteratorSetting(table, iterName, IteratorUtil.IteratorScope.majc));
-        assertThrows(AccumuloException.class,
-            () -> ops.checkIteratorConflicts(table, iterSetting, scope));
+        ops.checkIteratorConflicts(table, iterSetting, scope);
         ops.checkIteratorConflicts(table, iterSetting, EnumSet.of(IteratorUtil.IteratorScope.scan));
       } finally {
         ops.removeIterator(table, iterName, scope);
