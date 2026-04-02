@@ -78,86 +78,89 @@ public class FateManager {
 
   private final AtomicBoolean stop = new AtomicBoolean(false);
 
-  private void manageAssistants() throws TException, InterruptedException {
+  private void manageAssistants() {
     log.debug("Started Fate Manager");
     long stableCount = 0;
     long unstableCount = 0;
     outer: while (!stop.get()) {
-
-      long sleepTime = Math.min(stableCount * 100, 5_000);
-      Thread.sleep(sleepTime);
-
-      // This map will contain all current workers even if their partitions are empty
-      Map<HostAndPort,CurrentPartitions> currentPartitions;
       try {
-        currentPartitions = getCurrentAssignments(context);
-      } catch (TException e) {
-        log.warn("Failed to get current partitions ", e);
-        continue;
-      }
-      Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
-      currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
-      Map<FateInstanceType,Set<FatePartition>> desiredParititions =
-          getDesiredPartitions(currentAssignments.size());
+        long sleepTime = Math.min(stableCount * 100, 5_000);
+        Thread.sleep(sleepTime);
 
-      Map<HostAndPort,Set<FatePartition>> desired =
-          computeDesiredAssignments(currentAssignments, desiredParititions);
-
-      if (desired.equals(currentAssignments)) {
-        if (stableCount == 0) {
-          FateLocations.storeLocations(context, currentAssignments);
+        // This map will contain all current workers even if their partitions are empty
+        Map<HostAndPort,CurrentPartitions> currentPartitions;
+        try {
+          currentPartitions = getCurrentAssignments(context);
+        } catch (TException e) {
+          log.warn("Failed to get current partitions ", e);
+          continue;
         }
-        stableCount++;
-        unstableCount = 0;
-        continue;
-      } else {
-        if (unstableCount == 0) {
-          FateLocations.storeLocations(context, Map.of());
-        }
-        stableCount = 0;
-        unstableCount++;
-      }
+        Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
+        currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
+        Map<FateInstanceType,Set<FatePartition>> desiredParititions =
+            getDesiredPartitions(currentAssignments.size());
 
-      // are there any workers with extra partitions? If so need to unload those first.
-      int unloads = 0;
-      for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
-        HostAndPort worker = entry.getKey();
-        Set<FatePartition> partitions = entry.getValue();
-        var curr = currentAssignments.getOrDefault(worker, Set.of());
-        if (!Sets.difference(curr, partitions).isEmpty()) {
-          // This worker has extra partitions that are not desired
-          var intersection = Sets.intersection(curr, partitions);
-          if (!setPartitions(worker, currentPartitions.get(worker).updateId(), intersection)) {
-            log.debug("Failed to set partitions for {} to {}", worker, intersection);
-            // could not set, so start completely over
-            continue outer;
-          } else {
-            log.debug("Set partitions for {} to {} from {}", worker, intersection, curr);
-            unloads++;
+        Map<HostAndPort,Set<FatePartition>> desired =
+            computeDesiredAssignments(currentAssignments, desiredParititions);
+
+        if (desired.equals(currentAssignments)) {
+          if (stableCount == 0) {
+            FateLocations.storeLocations(context, currentAssignments);
+          }
+          stableCount++;
+          unstableCount = 0;
+          continue;
+        } else {
+          if (unstableCount == 0) {
+            FateLocations.storeLocations(context, Map.of());
+          }
+          stableCount = 0;
+          unstableCount++;
+        }
+
+        // are there any workers with extra partitions? If so need to unload those first.
+        int unloads = 0;
+        for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+          HostAndPort worker = entry.getKey();
+          Set<FatePartition> partitions = entry.getValue();
+          var curr = currentAssignments.getOrDefault(worker, Set.of());
+          if (!Sets.difference(curr, partitions).isEmpty()) {
+            // This worker has extra partitions that are not desired
+            var intersection = Sets.intersection(curr, partitions);
+            if (!setPartitions(worker, currentPartitions.get(worker).updateId(), intersection)) {
+              log.debug("Failed to set partitions for {} to {}", worker, intersection);
+              // could not set, so start completely over
+              continue outer;
+            } else {
+              log.debug("Set partitions for {} to {} from {}", worker, intersection, curr);
+              unloads++;
+            }
           }
         }
-      }
 
-      if (unloads > 0) {
-        // some tablets were unloaded, so start over and get new update ids and the current
-        // partitions
-        continue outer;
-      }
+        if (unloads > 0) {
+          // some tablets were unloaded, so start over and get new update ids and the current
+          // partitions
+          continue outer;
+        }
 
-      // Load all partitions on all workers..
-      for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
-        HostAndPort worker = entry.getKey();
-        Set<FatePartition> partitions = entry.getValue();
-        var curr = currentAssignments.getOrDefault(worker, Set.of());
-        if (!curr.equals(partitions)) {
-          if (!setPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
-            log.debug("Failed to set partitions for {} to {}", worker, partitions);
-            // could not set, so start completely over
-            continue outer;
-          } else {
-            log.debug("Set partitions for {} to {} from {}", worker, partitions, curr);
+        // Load all partitions on all workers..
+        for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+          HostAndPort worker = entry.getKey();
+          Set<FatePartition> partitions = entry.getValue();
+          var curr = currentAssignments.getOrDefault(worker, Set.of());
+          if (!curr.equals(partitions)) {
+            if (!setPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
+              log.debug("Failed to set partitions for {} to {}", worker, partitions);
+              // could not set, so start completely over
+              continue outer;
+            } else {
+              log.debug("Set partitions for {} to {} from {}", worker, partitions, curr);
+            }
           }
         }
+      } catch (Exception e) {
+        log.warn("Failed to assign fate partitions to other managers, will try again later", e);
       }
     }
   }
@@ -168,13 +171,7 @@ public class FateManager {
     Preconditions.checkState(assignmentThread == null);
     Preconditions.checkState(!stop.get());
 
-    assignmentThread = Threads.createCriticalThread("Fate Manager", () -> {
-      try {
-        manageAssistants();
-      } catch (Exception e) {
-        throw new IllegalStateException(e);
-      }
-    });
+    assignmentThread = Threads.createCriticalThread("Fate Manager", this::manageAssistants);
     assignmentThread.start();
   }
 
@@ -265,6 +262,9 @@ public class FateManager {
       log.trace("Setting partitions {} {} {}", address, updateId, desired);
       return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
+    } catch (TException e) {
+      log.warn("Failed to set partitions for {}", address, e);
+      return false;
     } finally {
       ThriftUtil.returnClient(client, context);
     }
