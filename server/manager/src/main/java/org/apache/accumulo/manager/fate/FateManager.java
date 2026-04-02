@@ -160,7 +160,7 @@ public class FateManager {
           }
         }
       } catch (Exception e) {
-        log.warn("Failed to assign fate partitions to other managers, will try again later", e);
+        log.warn("Failed to assign fate partitions to managers, will retry later", e);
       }
     }
   }
@@ -263,7 +263,7 @@ public class FateManager {
       return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
     } catch (TException e) {
-      log.warn("Failed to set partitions for {}", address, e);
+      log.warn("Failed to set partition on {}", address, e);
       return false;
     } finally {
       ThriftUtil.returnClient(client, context);

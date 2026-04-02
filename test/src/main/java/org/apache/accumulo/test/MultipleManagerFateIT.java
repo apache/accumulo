@@ -234,6 +234,8 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
       log.debug("Deleted lock of primary manager");
       waitToSeeManagers(ctx, 2, store, true);
 
+      getCluster().getProcesses();
+
       stop.set(true);
       // Wait for the background operations to complete and ensure that none had errors. Managers
       // stoppping/starting should not cause any problems for Accumulo API operations.
