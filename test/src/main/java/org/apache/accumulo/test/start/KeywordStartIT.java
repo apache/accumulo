@@ -317,6 +317,9 @@ public class KeywordStartIT {
     expectSet.add(StopServers.class);
     expectSet.add(ScanServer.class);
     expectSet.add(TabletServer.class);
+    expectSet.add(TestIngest.class);
+    expectSet.add(TestRandomDeletes.class);
+    expectSet.add(VerifyIngest.class);
 
     // check that classes in the expected set contain a main
     // not all have them; these do because they always have, and we don't want to break things

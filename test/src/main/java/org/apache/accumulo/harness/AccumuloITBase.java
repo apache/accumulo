@@ -30,9 +30,15 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -159,5 +165,15 @@ public class AccumuloITBase extends WithTestNames {
     jar.deleteOnExit();
 
     return jar;
+  }
+
+  // ITs may use the client properties to create an AccumuloClient
+  // and then interact with the Fate and ScanRef tables. By default
+  // only the system user can interact with these tables.
+  public static void setSystemTablePermsForITs(AccumuloClient client, SecurityOperations ops)
+      throws AccumuloException, AccumuloSecurityException {
+    ops.grantTablePermission(client.whoami(), SystemTables.FATE.tableName(), TablePermission.READ);
+    ops.grantTablePermission(client.whoami(), SystemTables.SCAN_REF.tableName(),
+        TablePermission.READ);
   }
 }

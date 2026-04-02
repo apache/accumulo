@@ -108,7 +108,6 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -603,11 +602,6 @@ public class Manager extends AbstractServer
 
   public CompactionCoordinator getCompactionCoordinator() {
     return compactionCoordinator;
-  }
-
-  @Override
-  public void recordCompactionCompletion(ExternalCompactionId ecid) {
-    getCompactionCoordinator().recordCompletion(ecid);
   }
 
   public void hostOndemand(List<KeyExtent> extents) {
