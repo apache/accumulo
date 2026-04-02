@@ -117,7 +117,7 @@ JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
   "-Dlog4j2.statusLoggerLevel=ERROR"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
   "-Dotel.service.name=${ACCUMULO_SERVICE_INSTANCE}"
-# Mitigation for CVE-2026-33701
+  # Mitigation for CVE-2026-33701
   "-Dotel.instrumentation.rmi.enabled=false"
   "${JAVA_OPTS[@]}"
 )
