@@ -174,7 +174,7 @@ under the License.
     <version.flatbuffers>24.3.25</version.flatbuffers>
     <version.hadoop>3.4.2</version.hadoop>
     <version.log4j>2.25.3</version.log4j>
-    <version.opentelemetry>1.48.0</version.opentelemetry>
+    <version.opentelemetry>1.60.1</version.opentelemetry>
     <version.slf4j>2.0.17</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
     <version.zookeeper>3.9.5</version.zookeeper>
@@ -326,7 +326,7 @@ under the License.
       <dependency>
         <groupId>com.google.protobuf</groupId>
         <artifactId>protobuf-java</artifactId>
-        <version>4.33.1</version>
+        <version>4.34.1</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -362,7 +362,7 @@ under the License.
         <groupId>io.opentelemetry.javaagent</groupId>
         <artifactId>opentelemetry-javaagent</artifactId>
         <!-- This version was selected because it aligns with the version of open telemetry that Accumulo is using. -->
-        <version>2.14.0</version>
+        <version>2.26.1</version>
       </dependency>
       <dependency>
         <groupId>io.opentelemetry.proto</groupId>
