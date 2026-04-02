@@ -35,56 +35,39 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
-import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -116,16 +99,12 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
-import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
-import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -139,7 +118,6 @@ import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -147,7 +125,6 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -158,61 +135,12 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Weigher;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
-import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class CompactionCoordinator
     implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
-
-  // Object that serves as a TopN view of the RunningCompactions, ordered by
-  // RunningCompaction start time. The first entry in this Set should be the
-  // oldest RunningCompaction.
-  public static class TimeOrderedRunningCompactionSet {
-
-    private static final int UPPER_LIMIT = 50;
-
-    Comparator<TExternalCompaction> oldestFirstComparator =
-        Comparator.comparingLong(TExternalCompaction::getStartTime)
-            .thenComparing(rc -> rc.getJob().getExternalCompactionId());
-    private final ConcurrentSkipListSet<TExternalCompaction> compactions =
-        new ConcurrentSkipListSet<>(oldestFirstComparator);
-
-    // Tracking size here as ConcurrentSkipListSet.size() is not constant time
-    private final AtomicInteger size = new AtomicInteger(0);
-
-    public int size() {
-      return size.get();
-    }
-
-    public boolean add(TExternalCompaction e) {
-      boolean added = compactions.add(e);
-      if (added) {
-        if (size.incrementAndGet() > UPPER_LIMIT) {
-          this.remove(compactions.last());
-        }
-      }
-      return added;
-    }
-
-    public boolean remove(Object o) {
-      boolean removed = compactions.remove(o);
-      if (removed) {
-        size.decrementAndGet();
-      }
-      return removed;
-    }
-
-    public Iterator<TExternalCompaction> iterator() {
-      return compactions.iterator();
-    }
-
-    public Stream<TExternalCompaction> stream() {
-      return compactions.stream();
-    }
-
-  }
 
   static class FailureCounts {
     long failures;
@@ -251,22 +179,6 @@ public class CompactionCoordinator
   public static final String RESTART_UPDATE_MSG =
       "Coordinator restarted, compaction found in progress";
 
-  /*
-   * Map of compactionId to TExternalCompaction. This is an informational cache of what external
-   * compactions may be running. Its possible it may contain external compactions that are not
-   * actually running. It may not contain compactions that are actually running. The metadata table
-   * is the most authoritative source of what external compactions are currently running, but it
-   * does not have the stats that this map has.
-   */
-  protected final Map<ExternalCompactionId,TExternalCompaction> RUNNING_CACHE =
-      new ConcurrentHashMap<>();
-
-  protected final Map<String,TimeOrderedRunningCompactionSet> LONG_RUNNING_COMPACTIONS_BY_RG =
-      new ConcurrentHashMap<>();
-
-  /* Map of group name to last time compactor called to get a compaction job */
-  private final Map<ResourceGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
-
   private final ServerContext ctx;
   private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
@@ -274,7 +186,6 @@ public class CompactionCoordinator
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
-  private final Cache<ExternalCompactionId,TExternalCompaction> completed;
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
   private final DeadCompactionDetector deadCompactionDetector;
@@ -303,9 +214,6 @@ public class CompactionCoordinator
     this.queueMetrics = new QueueMetrics(jobQueues);
 
     this.fateClients = fateClients;
-
-    completed = ctx.getCaches().createNewBuilder(CacheName.COMPACTIONS_COMPLETED, true)
-        .maximumSize(200).expireAfterWrite(10, TimeUnit.MINUTES).build();
 
     CacheLoader<FateId,CompactionConfig> loader =
         fateId -> CompactionConfigStorage.getConfig(ctx, fateId);
@@ -378,7 +286,7 @@ public class CompactionCoordinator
 
   protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpInternalState, 0, 5, TimeUnit.MINUTES);
+        schedExecutor.scheduleWithFixedDelay(this::resizeThreadPools, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -401,30 +309,7 @@ public class CompactionCoordinator
     startConfigMonitor(ctx.getScheduledExecutor());
     startCompactorZKCleaner(ctx.getScheduledExecutor());
 
-    // On a re-start of the coordinator it's possible that external compactions are in-progress.
-    // Attempt to get the running compactions on the compactors and then resolve which tserver
-    // the external compaction came from to re-populate the RUNNING collection.
-    LOG.info("Checking for running external compactions");
-    // On re-start contact the running Compactors to try and seed the list of running compactions
-    List<TExternalCompaction> running = getCompactionsRunningOnCompactors();
-    if (running.isEmpty()) {
-      LOG.info("No running external compactions found");
-    } else {
-      LOG.info("Found {} running external compactions", running.size());
-      running.forEach(tec -> {
-        TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-        update.setState(TCompactionState.IN_PROGRESS);
-        update.setMessage(RESTART_UPDATE_MSG);
-        tec.putToUpdates(coordinatorStartTime, update);
-        RUNNING_CACHE.put(ExternalCompactionId.of(tec.getJob().getExternalCompactionId()), tec);
-        LONG_RUNNING_COMPACTIONS_BY_RG
-            .computeIfAbsent(tec.getGroupName(), k -> new TimeOrderedRunningCompactionSet())
-            .add(tec);
-      });
-    }
-
     startDeadCompactionDetector();
-    startQueueRunningSummaryLogging();
     startFailureSummaryLogging();
     startInternalStateCleaner(ctx.getScheduledExecutor());
 
@@ -437,40 +322,8 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  private Map<String,Set<HostAndPort>> getIdleCompactors(Set<ServerId> runningCompactors) {
-
-    final Map<String,Set<HostAndPort>> allCompactors = new HashMap<>();
-    runningCompactors.forEach((csi) -> allCompactors
-        .computeIfAbsent(csi.getResourceGroup().canonical(), (k) -> new HashSet<>())
-        .add(HostAndPort.fromParts(csi.getHost(), csi.getPort())));
-
-    final Set<String> emptyQueues = new HashSet<>();
-
-    // Remove all of the compactors that are running a compaction
-    RUNNING_CACHE.values().forEach(tec -> {
-      Set<HostAndPort> busyCompactors = allCompactors.get(tec.getGroupName());
-      if (busyCompactors != null
-          && busyCompactors.remove(HostAndPort.fromString(tec.getCompactor()))) {
-        if (busyCompactors.isEmpty()) {
-          emptyQueues.add(tec.getGroupName());
-        }
-      }
-    });
-    // Remove entries with empty queues
-    emptyQueues.forEach(e -> allCompactors.remove(e));
-    return allCompactors;
-  }
-
   protected void startDeadCompactionDetector() {
     deadCompactionDetector.start();
-  }
-
-  protected long getMissingCompactorWarningTime() {
-    return this.ctx.getConfiguration().getTimeInMillis(Property.COMPACTOR_MAX_JOB_WAIT_TIME) * 3;
-  }
-
-  public long getNumRunningCompactions() {
-    return RUNNING_CACHE.size();
   }
 
   /**
@@ -493,7 +346,6 @@ public class CompactionCoordinator
     }
     ResourceGroupId groupId = ResourceGroupId.of(groupName);
     LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
-    TIME_COMPACTOR_LAST_CHECKED.put(groupId, System.currentTimeMillis());
 
     TExternalCompactionJob result = null;
 
@@ -519,13 +371,6 @@ public class CompactionCoordinator
 
       if (ecm != null) {
         result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
-        // It is possible that by the time this added that the the compactor that made this request
-        // is dead. In this cases the compaction is not actually running.
-        TExternalCompaction tec = new TExternalCompaction();
-        tec.setCompactor(compactorAddress);
-        tec.setGroupName(groupName);
-        tec.setJob(result);
-        RUNNING_CACHE.put(ExternalCompactionId.of(result.getExternalCompactionId()), tec);
         TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
             rcJob, ecm.getCompactTmpName());
         break;
@@ -781,8 +626,8 @@ public class CompactionCoordinator
    */
   @Override
   public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
+      String externalCompactionId, TKeyExtent textent, TCompactionStats stats, String groupName,
+      String compactorAddress) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -797,7 +642,7 @@ public class CompactionCoordinator
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    captureSuccess(ecid, extent);
+    captureSuccess(ResourceGroupId.of(groupName), compactorAddress, extent);
     var tabletMeta =
         ctx.getAmple().readTablet(extent, ECOMP, SELECTED, LOCATION, FILES, COMPACTED, OPID);
 
@@ -828,8 +673,8 @@ public class CompactionCoordinator
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent, String exceptionMessage, TCompactionState failureState)
-      throws ThriftSecurityException {
+      TKeyExtent extent, String exceptionMessage, TCompactionState failureState, String groupName,
+      String compactorAddress) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -844,28 +689,15 @@ public class CompactionCoordinator
         externalCompactionId, fromThriftExtent, exceptionMessage);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     if (failureState == TCompactionState.FAILED) {
-      captureFailure(ecid, fromThriftExtent);
+      captureFailure(ResourceGroupId.of(groupName), compactorAddress, fromThriftExtent);
     }
     compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
-  private void captureFailure(ExternalCompactionId ecid, KeyExtent extent) {
-    var tec = RUNNING_CACHE.get(ecid);
-    if (tec != null) {
-      failingQueues.compute(ResourceGroupId.of(tec.getGroupName()),
-          FailureCounts::incrementFailure);
-      failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementFailure);
-    }
+  private void captureFailure(ResourceGroupId group, String compactorAddress, KeyExtent extent) {
+    failingQueues.compute(group, FailureCounts::incrementFailure);
+    failingCompactors.compute(compactorAddress, FailureCounts::incrementFailure);
     failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
-  }
-
-  protected void startQueueRunningSummaryLogging() {
-    CoordinatorSummaryLogger summaryLogger =
-        new CoordinatorSummaryLogger(ctx, this.jobQueues, this.RUNNING_CACHE, compactorCounts);
-
-    ScheduledFuture<?> future = ctx.getScheduledExecutor()
-        .scheduleWithFixedDelay(summaryLogger::logSummary, 0, 1, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
   protected void startFailureSummaryLogging() {
@@ -908,13 +740,9 @@ public class CompactionCoordinator
     printStats("Compactor", failingCompactors, true);
   }
 
-  private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {
-    var tec = RUNNING_CACHE.get(ecid);
-    if (tec != null) {
-      failingQueues.compute(ResourceGroupId.of(tec.getGroupName()),
-          FailureCounts::incrementSuccess);
-      failingCompactors.compute(tec.getCompactor(), FailureCounts::incrementSuccess);
-    }
+  private void captureSuccess(ResourceGroupId groupId, String compactorAddress, KeyExtent extent) {
+    failingQueues.compute(groupId, FailureCounts::incrementSuccess);
+    failingCompactors.compute(compactorAddress, FailureCounts::incrementSuccess);
     failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
 
@@ -1024,76 +852,6 @@ public class CompactionCoordinator
         }
       });
     }
-
-    compactions.values().forEach(ecids -> ecids.forEach(this::recordCompletion));
-  }
-
-  /**
-   * Compactor calls to update the status of the assigned compaction
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @param externalCompactionId compaction id
-   * @param update compaction status update
-   * @param timestamp timestamp of the message
-   * @throws ThriftSecurityException when permission error
-   */
-  @Override
-  public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}", externalCompactionId,
-        timestamp, update);
-    final TExternalCompaction tec =
-        RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    if (null != tec) {
-      tec.putToUpdates(timestamp, update);
-      switch (update.state) {
-        case STARTED:
-          LONG_RUNNING_COMPACTIONS_BY_RG
-              .computeIfAbsent(tec.getGroupName(), k -> new TimeOrderedRunningCompactionSet())
-              .add(tec);
-          break;
-        case CANCELLED:
-        case FAILED:
-        case SUCCEEDED:
-          var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(tec.getGroupName());
-          if (compactionSet != null) {
-            compactionSet.remove(tec);
-          }
-          break;
-        case ASSIGNED:
-        case IN_PROGRESS:
-        default:
-          // do nothing
-          break;
-
-      }
-    }
-  }
-
-  @Override
-  public void recordCompletion(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    if (security.canPerformSystemActions(credentials)) {
-      recordCompletion(ExternalCompactionId.of(externalCompactionId));
-    }
-  }
-
-  public void recordCompletion(ExternalCompactionId ecid) {
-    var tec = RUNNING_CACHE.remove(ecid);
-    if (tec != null) {
-      completed.put(ecid, tec);
-      var compactionSet = LONG_RUNNING_COMPACTIONS_BY_RG.get(tec.getGroupName());
-      if (compactionSet != null) {
-        compactionSet.remove(tec);
-      }
-    }
   }
 
   protected Set<ExternalCompactionId> readExternalCompactionIds() {
@@ -1105,124 +863,9 @@ public class CompactionCoordinator
     }
   }
 
-  /**
-   * Return information about running compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionMap getRunningCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    final TExternalCompactionMap result = new TExternalCompactionMap();
-    RUNNING_CACHE.forEach((ecid, tec) -> {
-      result.putToCompactions(ecid.canonical(), tec);
-    });
-    return result;
-  }
-
-  /**
-   * Return top 50 longest running compactions for each resource group
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of group name to list of up to 50 compactions in sorted order, oldest compaction
-   *         first.
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public Map<String,TExternalCompactionList> getLongRunningCompactions(TInfo tinfo,
-      TCredentials credentials) throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-
-    final Map<String,TExternalCompactionList> result = new HashMap<>();
-
-    for (Entry<String,TimeOrderedRunningCompactionSet> e : LONG_RUNNING_COMPACTIONS_BY_RG
-        .entrySet()) {
-      final TExternalCompactionList compactions = new TExternalCompactionList();
-      Iterator<TExternalCompaction> iter = e.getValue().iterator();
-      while (iter.hasNext()) {
-        TExternalCompaction tec = iter.next();
-        compactions.addToCompactions(tec);
-      }
-      result.put(e.getKey(), compactions);
-    }
-    return result;
-  }
-
-  /**
-   * Return information about recently completed compactions
-   *
-   * @param tinfo trace info
-   * @param credentials tcredentials object
-   * @return map of ECID to TExternalCompaction objects
-   * @throws ThriftSecurityException permission error
-   */
-  @Override
-  public TExternalCompactionMap getCompletedCompactions(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
-    // do not expect users to call this directly, expect other tservers to call this method
-    if (!security.canPerformSystemActions(credentials)) {
-      throw new AccumuloSecurityException(credentials.getPrincipal(),
-          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-    }
-    final TExternalCompactionMap result = new TExternalCompactionMap();
-    completed.asMap().forEach((ecid, tec) -> {
-      result.putToCompactions(ecid.canonical(), tec);
-    });
-    return result;
-  }
-
-  @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
-    var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
-    var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
-    try {
-      NamespaceId nsId = this.ctx.getNamespaceId(extent.tableId());
-      if (!security.canCompact(credentials, extent.tableId(), nsId)) {
-        throw new AccumuloSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED).asThriftException();
-      }
-    } catch (TableNotFoundException e) {
-      throw new ThriftTableOperationException(extent.tableId().canonical(), null,
-          TableOperation.COMPACT_CANCEL, TableOperationExceptionType.NOTFOUND, e.getMessage());
-    }
-
-    cancelCompactionOnCompactor(runningCompaction.getCompactor(), externalCompactionId);
-  }
-
   /* Method exists to be called from test */
   public CompactionJobQueues getJobQueues() {
     return jobQueues;
-  }
-
-  /* Method exists to be overridden in test to hide static method */
-  protected List<TExternalCompaction> getCompactionsRunningOnCompactors() {
-    return ExternalCompactionUtil.getCompactionsRunningOnCompactors(this.ctx);
-  }
-
-  /* Method exists to be overridden in test to hide static method */
-  protected Set<ServerId> getRunningCompactors() {
-    return ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR);
-  }
-
-  /* Method exists to be overridden in test to hide static method */
-  protected void cancelCompactionOnCompactor(String address, String externalCompactionId) {
-    HostAndPort hostPort = HostAndPort.fromString(address);
-    ExternalCompactionUtil.cancelCompaction(this.ctx, hostPort, externalCompactionId);
   }
 
   private void deleteEmpty(ZooReaderWriter zoorw, String path)
@@ -1274,44 +917,7 @@ public class CompactionCoordinator
     }
   }
 
-  private Set<ResourceGroupId> getCompactionServicesConfigurationGroups()
-      throws ReflectiveOperationException, IllegalArgumentException, SecurityException {
-
-    Set<ResourceGroupId> groups = new HashSet<>();
-    AccumuloConfiguration config = ctx.getConfiguration();
-    CompactionServicesConfig servicesConfig = new CompactionServicesConfig(config);
-
-    for (var entry : servicesConfig.getPlanners().entrySet()) {
-      String serviceId = entry.getKey();
-      String plannerClassName = entry.getValue();
-
-      Class<? extends CompactionPlanner> plannerClass =
-          Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
-      CompactionPlanner planner = plannerClass.getDeclaredConstructor().newInstance();
-
-      var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
-          servicesConfig.getPlannerPrefix(serviceId), servicesConfig.getOptions().get(serviceId),
-          new ServiceEnvironmentImpl(ctx));
-
-      planner.init(initParams);
-
-      groups.addAll(initParams.getRequestedGroups());
-    }
-    return groups;
-  }
-
-  public void cleanUpInternalState() {
-
-    // This method does the following:
-    //
-    // 1. Removes entries from RUNNING_CACHE and LONG_RUNNING_COMPACTIONS_BY_RG that are not really
-    // running
-    // 2. Cancels running compactions for groups that are not in the current configuration
-    // 3. Remove groups not in configuration from TIME_COMPACTOR_LAST_CHECKED
-    // 4. Log groups with no compactors
-    // 5. Log compactors with no groups
-    // 6. Log groups with compactors and queued jos that have not checked in
-
+  public void resizeThreadPools() {
     var config = ctx.getConfiguration();
     ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
         Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT);
@@ -1319,103 +925,5 @@ public class CompactionCoordinator
         Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
     ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
         Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
-
-    // grab a snapshot of the ids in the set before reading the metadata table. This is done to
-    // avoid removing things that are added while reading the metadata.
-    final Set<ExternalCompactionId> idsSnapshot = Set.copyOf(Sets.union(RUNNING_CACHE.keySet(),
-        LONG_RUNNING_COMPACTIONS_BY_RG.values().stream()
-            .flatMap(TimeOrderedRunningCompactionSet::stream)
-            .map(rc -> rc.getJob().getExternalCompactionId()).map(ExternalCompactionId::of)
-            .collect(Collectors.toSet())));
-
-    // grab the ids that are listed as running in the metadata table. It important that this is done
-    // after getting the snapshot.
-    final Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
-    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
-    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
-
-    final Set<ExternalCompactionId> idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
-
-    // remove ids that are in the running set but not in the metadata table
-    idsToRemove.forEach(this::recordCompletion);
-    if (idsToRemove.size() > 0) {
-      LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
-    }
-
-    // Get the set of groups being referenced in the current configuration
-    Set<ResourceGroupId> groupsInConfiguration = null;
-    try {
-      groupsInConfiguration = getCompactionServicesConfigurationGroups();
-    } catch (RuntimeException | ReflectiveOperationException e) {
-      LOG.error(
-          "Error getting groups from the compaction services configuration. Unable to clean up internal state.",
-          e);
-      return;
-    }
-
-    // Compaction jobs are created in the TabletGroupWatcher and added to the Coordinator
-    // via the addJobs method which adds the job to the CompactionJobQueues object.
-    final Set<ResourceGroupId> groupsWithJobs = jobQueues.getQueueIds();
-
-    final Set<ResourceGroupId> jobGroupsNotInConfiguration =
-        Sets.difference(groupsWithJobs, groupsInConfiguration);
-
-    if (jobGroupsNotInConfiguration != null && !jobGroupsNotInConfiguration.isEmpty()) {
-      RUNNING_CACHE.values().forEach(tec -> {
-        if (jobGroupsNotInConfiguration.contains(ResourceGroupId.of(tec.getGroupName()))) {
-          LOG.warn(
-              "External compaction {} running in group {} on compactor {},"
-                  + " but group not found in current configuration. Failing compaction...",
-              tec.getJob().getExternalCompactionId(), tec.getGroupName(), tec.getCompactor());
-          cancelCompactionOnCompactor(tec.getCompactor(), tec.getJob().getExternalCompactionId());
-        }
-      });
-
-      final Set<ResourceGroupId> trackedGroups = Set.copyOf(TIME_COMPACTOR_LAST_CHECKED.keySet());
-      TIME_COMPACTOR_LAST_CHECKED.keySet().retainAll(groupsInConfiguration);
-      LOG.debug("No longer tracking compactor check-in times for groups: {}",
-          Sets.difference(trackedGroups, TIME_COMPACTOR_LAST_CHECKED.keySet()));
-    }
-
-    final Set<ServerId> runningCompactors = getRunningCompactors();
-
-    final Set<ResourceGroupId> runningCompactorGroups = new HashSet<>();
-    runningCompactors.forEach(
-        c -> runningCompactorGroups.add(ResourceGroupId.of(c.getResourceGroup().canonical())));
-
-    final Set<ResourceGroupId> groupsWithNoCompactors =
-        Sets.difference(groupsInConfiguration, runningCompactorGroups);
-    if (groupsWithNoCompactors != null && !groupsWithNoCompactors.isEmpty()) {
-      for (ResourceGroupId group : groupsWithNoCompactors) {
-        long queuedJobCount = jobQueues.getQueuedJobs(group);
-        if (queuedJobCount > 0) {
-          LOG.warn("Compactor group {} has {} queued compactions but no running compactors", group,
-              queuedJobCount);
-        }
-      }
-    }
-
-    final Set<ResourceGroupId> compactorsWithNoGroups =
-        Sets.difference(runningCompactorGroups, groupsInConfiguration);
-    if (compactorsWithNoGroups != null && !compactorsWithNoGroups.isEmpty()) {
-      LOG.warn(
-          "The following groups have running compactors, but are not in the current configuration: {}",
-          compactorsWithNoGroups);
-    }
-
-    final long now = System.currentTimeMillis();
-    final long warningTime = getMissingCompactorWarningTime();
-    Map<String,Set<HostAndPort>> idleCompactors = getIdleCompactors(runningCompactors);
-    for (ResourceGroupId groupName : groupsInConfiguration) {
-      long lastCheckTime =
-          TIME_COMPACTOR_LAST_CHECKED.getOrDefault(groupName, coordinatorStartTime);
-      if ((now - lastCheckTime) > warningTime && jobQueues.getQueuedJobs(groupName) > 0
-          && idleCompactors.containsKey(groupName.canonical())) {
-        LOG.warn(
-            "The group {} has queued jobs and {} idle compactors, however none have checked in "
-                + "with coordinator for {}ms",
-            groupName, idleCompactors.get(groupName.canonical()).size(), warningTime);
-      }
-    }
   }
 }

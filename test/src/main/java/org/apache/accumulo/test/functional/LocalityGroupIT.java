@@ -108,6 +108,8 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
       createAndSetLocalityGroups(accumuloClient, tableName);
       verifyLocalityGroupSet(accumuloClient, tableName);
       verifyLocalityGroupsInRFile(accumuloClient, tableName);
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
@@ -141,6 +143,8 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
       ntc.setLocalityGroups(groups);
       accumuloClient.tableOperations().create(tableName, ntc);
       verifyLocalityGroupsInRFile(accumuloClient, tableName);
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 

@@ -140,11 +140,14 @@ public class UpgradeIT extends AccumuloClusterHarness {
     // Validate the exception from the servers
     System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
         "file://" + getCluster().getAccumuloPropertiesPath());
-
-    IllegalStateException ise =
-        assertThrows(IllegalStateException.class, () -> new ServerThatWontStart(new String[0]));
-    assertTrue(ise.getMessage()
-        .startsWith("Instance has been prepared for upgrade to a minor or major version"));
+    try {
+      IllegalStateException ise =
+          assertThrows(IllegalStateException.class, () -> new ServerThatWontStart(new String[0]));
+      assertTrue(ise.getMessage()
+          .startsWith("Instance has been prepared for upgrade to a minor or major version"));
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
+    }
 
   }
 

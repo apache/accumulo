@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -299,6 +300,7 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
         writer.addMutation(m);
       }
 
+      // Ensures duplicate scan iterator priorities fail
       try (var scanner = c.createScanner(tableName)) {
         assertEquals("base:xa", scanner.iterator().next().getValue().toString());
         scanner.addScanIterator(AppendingIterator.configure(70, "m"));
@@ -307,6 +309,16 @@ public class ScanIteratorIT extends AccumuloClusterHarness {
         // their name in that case
         scanner.addScanIterator(AppendingIterator.configure(50, "b"));
         scanner.addScanIterator(AppendingIterator.configure(100, "c"));
+        assertThrows(IllegalStateException.class,
+            () -> scanner.iterator().next().getValue().toString());
+      }
+
+      try (var scanner = c.createScanner(tableName)) {
+        assertEquals("base:xa", scanner.iterator().next().getValue().toString());
+        scanner.addScanIterator(AppendingIterator.configure(70, "m"));
+        assertEquals("base:xma", scanner.iterator().next().getValue().toString());
+        scanner.addScanIterator(AppendingIterator.configure(49, "b"));
+        scanner.addScanIterator(AppendingIterator.configure(101, "c"));
         assertEquals("base:bxmac", scanner.iterator().next().getValue().toString());
         // There are no compaction iterators, so this should not change value
         c.tableOperations().compact(tableName, new CompactionConfig().setWait(true));

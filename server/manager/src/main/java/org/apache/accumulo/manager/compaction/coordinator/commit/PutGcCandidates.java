@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.compaction.coordinator.commit;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 
@@ -41,7 +40,6 @@ public class PutGcCandidates extends AbstractFateOperation {
     env.getContext().getAmple().putGcCandidates(commitData.getTableId(), commitData.getJobFiles());
 
     if (refreshLocation == null) {
-      env.recordCompactionCompletion(ExternalCompactionId.of(commitData.ecid));
       return null;
     }
 
