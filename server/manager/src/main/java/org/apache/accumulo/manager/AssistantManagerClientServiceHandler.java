@@ -156,7 +156,7 @@ public class AssistantManagerClientServiceHandler implements AssistantManagerCli
           final LiveTServerSet.TServerConnection server =
               manager.tserverSet.getConnection(instance);
           if (server != null) {
-            server.flush(manager.primaryManagerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
+            server.flush(manager.managerLock, tableId, ByteBufferUtil.toBytes(startRowBB),
                 ByteBufferUtil.toBytes(endRowBB));
           }
         } catch (TException ex) {
