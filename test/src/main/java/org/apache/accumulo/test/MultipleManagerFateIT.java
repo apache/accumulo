@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Set;
 import java.util.TreeSet;
@@ -58,6 +58,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.miniclusterImpl.ProcessReference;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FastFate;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -82,7 +83,7 @@ import com.google.common.net.HostAndPort;
  * </ul>
  *
  */
-public class MultipleManagerIT extends ConfigurableMacBase {
+public class MultipleManagerFateIT extends ConfigurableMacBase {
 
   // A manager that will quickly clean up fate reservations held by dead managers
   public static class FastFateCleanupManager extends Manager {
@@ -117,7 +118,6 @@ public class MultipleManagerIT extends ConfigurableMacBase {
   @Test
   public void testFate() throws Exception {
 
-    List<Process> managerWorkers = new ArrayList<>();
     var executor = Executors.newCachedThreadPool();
 
     // Start a lot of background threads that should cause fate operations to run.
@@ -125,9 +125,14 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       // Create a table in order to wait for the single manager to become the primary manager
       client.tableOperations().create("waitTable");
 
+      // Store primary manager ref
+      var managerRefs = getCluster().getProcesses().get(ServerType.MANAGER);
+      assertEquals(1, managerRefs.size());
+      final var primaryManagerRef = managerRefs.iterator().next();
+
       // start more manager processes, should be assigned fate work
-      managerWorkers.add(exec(FastFateCleanupManager.class));
-      managerWorkers.add(exec(FastFateCleanupManager.class));
+      getCluster().getConfig().getClusterServerConfiguration().setNumManagers(3);
+      getCluster().getClusterControl().start(ServerType.MANAGER);
 
       AtomicBoolean stop = new AtomicBoolean(false);
 
@@ -197,14 +202,25 @@ public class MultipleManagerIT extends ConfigurableMacBase {
       waitToSeeManagers(ctx, 3, store, false);
 
       // Start two new manager processes and wait until 5 managers are seen running fate operations
-      managerWorkers.add(exec(FastFateCleanupManager.class));
-      managerWorkers.add(exec(FastFateCleanupManager.class));
+      getCluster().getConfig().getClusterServerConfiguration().setNumManagers(5);
+      getCluster().getClusterControl().start(ServerType.MANAGER);
       waitToSeeManagers(ctx, 5, store, false);
 
       // Kill two assistant manager processes. Any fate operations that were running should resume
       // elsewhere. Should see three manager running operations after that.
-      managerWorkers.get(2).destroy();
-      managerWorkers.get(3).destroy();
+      managerRefs = getCluster().getProcesses().get(ServerType.MANAGER);
+      assertEquals(5, managerRefs.size());
+      Iterator<ProcessReference> iter = managerRefs.iterator();
+      int killed = 0;
+      while (iter.hasNext() && killed < 2) {
+        var candidate = iter.next();
+        if (candidate.equals(primaryManagerRef)) {
+          continue;
+        }
+        getCluster().getClusterControl().killProcess(ServerType.MANAGER, candidate);
+        killed++;
+      }
+
       log.debug("Killed 2 managers");
       waitToSeeManagers(ctx, 3, store, true);
 
@@ -230,7 +246,6 @@ public class MultipleManagerIT extends ConfigurableMacBase {
 
     executor.shutdown();
 
-    managerWorkers.forEach(Process::destroy);
   }
 
   private static void waitToSeeManagers(ClientContext context, int expectedManagers,

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util.compaction;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTIONS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTOR_RUNNING_COMPACTION_IDS_POOL;
 
@@ -33,22 +34,27 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.rpc.RpcFuture;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -62,44 +68,7 @@ import com.google.common.net.HostAndPort;
 
 public class ExternalCompactionUtil {
 
-  private static class RunningCompactionFuture {
-    private final ResourceGroupId group;
-    private final HostAndPort compactor;
-    private final Future<TExternalCompactionJob> future;
-
-    public RunningCompactionFuture(ServiceLockPath slp, Future<TExternalCompactionJob> future) {
-      this.group = slp.getResourceGroup();
-      this.compactor = HostAndPort.fromString(slp.getServer());
-      this.future = future;
-    }
-
-    public ResourceGroupId getGroup() {
-      return group;
-    }
-
-    public HostAndPort getCompactor() {
-      return compactor;
-    }
-
-    public Future<TExternalCompactionJob> getFuture() {
-      return future;
-    }
-  }
-
   private static final Logger LOG = LoggerFactory.getLogger(ExternalCompactionUtil.class);
-
-  /**
-   * Utility for returning the address of a service in the form host:port
-   *
-   * @param address HostAndPort of service
-   * @return host and port
-   */
-  public static String getHostPortString(HostAndPort address) {
-    if (address == null) {
-      return null;
-    }
-    return address.toString();
-  }
 
   /**
    *
@@ -178,20 +147,22 @@ public class ExternalCompactionUtil {
    * @param context context
    * @return external compaction job or null if none running
    */
-  public static TExternalCompactionJob getRunningCompaction(HostAndPort compactorAddr,
-      ClientContext context) {
+  public static TExternalCompaction getRunningCompaction(HostAndPort compactorAddr,
+      ClientContext context) throws TException {
 
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      TExternalCompactionJob job =
+      TExternalCompaction current =
           client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
-      if (job.getExternalCompactionId() != null) {
-        LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
-        return job;
+      if (current.getJob() != null && current.getJob().getExternalCompactionId() != null) {
+        LOG.debug("Compactor {} is running {}", compactorAddr,
+            current.getJob().getExternalCompactionId());
+        return current;
       }
     } catch (TException e) {
       LOG.debug("Failed to contact compactor {}", compactorAddr, e);
+      throw e;
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -216,39 +187,79 @@ public class ExternalCompactionUtil {
   }
 
   /**
-   * This method returns information from the Compactor about the job that is currently running. The
-   * RunningCompactions are not fully populated. This method is used from the CompactionCoordinator
-   * on a restart to re-populate the set of running compactions on the compactors.
+   * This method returns information from the Compactors about the job that is currently running.
+   * This method will use a thread pool with 16 threads to query the Compactors.
    *
    * @param context server context
-   * @return list of compactor and external compaction jobs
+   * @param consumer object that will accept TExternalCompaction objects
    */
-  public static List<RunningCompaction> getCompactionsRunningOnCompactors(ClientContext context) {
-    final List<RunningCompactionFuture> rcFutures = new ArrayList<>();
+  public static void getCompactionsRunningOnCompactors(ClientContext context,
+      Consumer<TExternalCompaction> consumer) throws InterruptedException {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
+    try {
+      getCompactionsRunningOnCompactors(context, executor, consumer);
+    } finally {
+      executor.shutdownNow();
+    }
+  }
 
-    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
-        .forEach(slp -> {
-          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-          rcFutures.add(new RunningCompactionFuture(slp,
-              executor.submit(() -> getRunningCompaction(hp, context))));
-        });
-    executor.shutdown();
+  /**
+   * This method returns information from the Compactors about the job that is currently running.
+   *
+   * @param context server context
+   * @param executor thread pool executor to use for querying Compactors
+   * @param consumer object that will accept TExternalCompaction objects
+   * @return list of compactor addresses where RPC failed
+   */
+  public static List<ServerId> getCompactionsRunningOnCompactors(ClientContext context,
+      ExecutorService executor, Consumer<TExternalCompaction> consumer)
+      throws InterruptedException {
 
-    final List<RunningCompaction> results = new ArrayList<>();
-    rcFutures.forEach(rcf -> {
-      try {
-        TExternalCompactionJob job = rcf.getFuture().get();
-        if (null != job && null != job.getExternalCompactionId()) {
-          var compactorAddress = getHostPortString(rcf.getCompactor());
-          results.add(new RunningCompaction(job, compactorAddress, rcf.getGroup()));
+    final List<RpcFuture<TExternalCompaction>> rcFutures = new ArrayList<>();
+    final List<ServerId> failures = new ArrayList<>();
+
+    try {
+      Set<ServerId> compactors = context.instanceOperations().getServers(ServerId.Type.COMPACTOR);
+      compactors.forEach(s -> {
+        final HostAndPort address = HostAndPort.fromParts(s.getHost(), s.getPort());
+        Future<TExternalCompaction> future =
+            executor.submit(() -> getRunningCompaction(address, context));
+        rcFutures.add(new RpcFuture<TExternalCompaction>(future, s));
+      });
+
+      while (!rcFutures.isEmpty()) {
+        var futureIter = rcFutures.iterator();
+        while (futureIter.hasNext()) {
+          var future = futureIter.next();
+          if (future.isDone()) {
+            try {
+              TExternalCompaction tec = future.get();
+              if (tec != null && tec.getJob() != null
+                  && tec.getJob().getExternalCompactionId() != null) {
+                consumer.accept(tec);
+              }
+            } catch (ExecutionException e) {
+              LOG.error("Error getting compaction from compactor: " + future.getServer(), e);
+              failures.add(future.getServer());
+            } finally {
+              futureIter.remove();
+            }
+          }
         }
-      } catch (InterruptedException | ExecutionException e) {
-        throw new IllegalStateException(e);
+        Thread.sleep(100);
       }
-    });
-    return results;
+      return failures;
+    } catch (InterruptedException e) {
+      // If this thread is interrupted, cancel all remaining tasks
+      var futureIter = rcFutures.iterator();
+      while (futureIter.hasNext()) {
+        var future = futureIter.next();
+        future.cancel(true);
+      }
+      rcFutures.clear();
+      throw e;
+    }
   }
 
   public static Collection<ExternalCompactionId>
@@ -303,6 +314,30 @@ public class ExternalCompactionUtil {
       LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);
     } finally {
       ThriftUtil.returnClient(client, context);
+    }
+  }
+
+  public static Optional<HostAndPort> findCompactorRunningCompaction(ClientContext context,
+      ExternalCompactionId ecid) {
+    for (var level : Ample.DataLevel.values()) {
+      var compactor = findCompactorRunningCompaction(context, level, ecid);
+      if (compactor.isPresent()) {
+        return compactor;
+      }
+    }
+
+    return Optional.empty();
+  }
+
+  private static Optional<HostAndPort> findCompactorRunningCompaction(ClientContext context,
+      Ample.DataLevel level, ExternalCompactionId ecid) {
+    try (var tablets = context.getAmple().readTablets().forLevel(level).fetch(ECOMP).build()) {
+      Optional<Map.Entry<ExternalCompactionId,CompactionMetadata>> ecomp =
+          tablets.stream().flatMap(tm -> tm.getExternalCompactions().entrySet().stream())
+              .filter(e -> e.getKey().equals(ecid)).findFirst();
+      return ecomp.map(entry -> HostAndPort.fromString(entry.getValue().getCompactorId()));
+    } catch (Exception e) {
+      throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
     }
   }
 }

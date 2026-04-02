@@ -57,6 +57,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
@@ -106,7 +107,6 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -608,11 +608,6 @@ public class Manager extends AbstractServer
     return compactionCoordinator;
   }
 
-  @Override
-  public void recordCompactionCompletion(ExternalCompactionId ecid) {
-    getCompactionCoordinator().recordCompletion(ecid);
-  }
-
   public void hostOndemand(List<KeyExtent> extents) {
     extents.forEach(e -> Preconditions.checkArgument(DataLevel.of(e.tableId()) == DataLevel.USER));
 
@@ -998,7 +993,7 @@ public class Manager extends AbstractServer
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
-            Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
+            Property.MANAGER_CLIENTPORT, processor, "Manager", Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
       });
     } catch (UnknownHostException e) {
@@ -1018,6 +1013,14 @@ public class Manager extends AbstractServer
     fateWorker.setLock(managerLock);
 
     setupAssistantMetrics(fateWorker.getMetricsProducers());
+
+    // wait a configurable amount of time for multiple manager processes to start, then
+    // try to get the primary manager lock.
+    try {
+      blockForManagers();
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+    }
 
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
@@ -1375,6 +1378,18 @@ public class Manager extends AbstractServer
     }
   }
 
+  private void blockForTservers() throws InterruptedException {
+    blockForServers(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT,
+        Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, () -> tserverSet.size(), "tserver");
+  }
+
+  private void blockForManagers() throws InterruptedException {
+    blockForServers(Property.MANAGER_STARTUP_MANAGER_AVAIL_MIN_COUNT,
+        Property.MANAGER_STARTUP_MANAGER_AVAIL_MAX_WAIT, () -> getContext().getServerPaths()
+            .getAssistantManagers(AddressSelector.all(), true).size(),
+        "manager");
+  }
+
   /**
    * Allows property configuration to block manager start-up waiting for a minimum number of
    * tservers to register in zookeeper. It also accepts a maximum time to wait - if the time
@@ -1390,19 +1405,19 @@ public class Manager extends AbstractServer
    *
    * @throws InterruptedException if interrupted while blocking, propagated for caller to handle.
    */
-  private void blockForTservers() throws InterruptedException {
+  private void blockForServers(Property minServerCountProperty, Property minServerWaitProperty,
+      Supplier<Integer> numServers, String serverType) throws InterruptedException {
     Timer waitTimer = Timer.startNew();
 
-    long minTserverCount =
-        getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT);
+    long minServerCount = getConfiguration().getCount(minServerCountProperty);
 
-    if (minTserverCount <= 0) {
-      log.info("tserver availability check disabled, continuing with-{} servers. To enable, set {}",
-          tserverSet.size(), Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey());
+    if (minServerCount <= 0) {
+      log.info("{} availability check disabled, continuing with-{} servers. To enable, set {}",
+          serverType, numServers.get(), minServerCountProperty.getKey());
       return;
     }
-    long userWait = MILLISECONDS.toSeconds(
-        getConfiguration().getTimeInMillis(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT));
+    long userWait =
+        MILLISECONDS.toSeconds(getConfiguration().getTimeInMillis(minServerWaitProperty));
 
     // Setting retry values for defined wait timeouts
     long retries = 10;
@@ -1412,8 +1427,8 @@ public class Manager extends AbstractServer
     long waitIncrement = 0;
 
     if (userWait <= 0) {
-      log.info("tserver availability check set to block indefinitely, To change, set {} > 0.",
-          Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT.getKey());
+      log.info("{} availability check set to block indefinitely, To change, set {} > 0.",
+          serverType, minServerWaitProperty.getKey());
       userWait = Long.MAX_VALUE;
 
       // If indefinitely blocking, change retry values to support incremental backoff and logging.
@@ -1423,42 +1438,42 @@ public class Manager extends AbstractServer
       waitIncrement = 5;
     }
 
-    Retry tserverRetry = Retry.builder().maxRetries(retries)
+    Retry serverRetry = Retry.builder().maxRetries(retries)
         .retryAfter(Duration.ofSeconds(initialWait)).incrementBy(Duration.ofSeconds(waitIncrement))
         .maxWait(Duration.ofSeconds(maxWaitPeriod)).backOffFactor(1)
         .logInterval(Duration.ofSeconds(30)).createRetry();
 
-    log.info("Checking for tserver availability - need to reach {} servers. Have {}",
-        minTserverCount, tserverSet.size());
+    log.info("Checking for {} availability - need to reach {} servers. Have {}", serverType,
+        minServerCount, numServers.get());
 
-    boolean needTservers = tserverSet.size() < minTserverCount;
+    boolean needServers = numServers.get() < minServerCount;
 
-    while (needTservers && tserverRetry.canRetry()) {
+    while (needServers && serverRetry.canRetry()) {
 
-      tserverRetry.waitForNextAttempt(log, "block until minimum tservers reached");
+      serverRetry.waitForNextAttempt(log, "block until minimum " + serverType + " reached");
 
-      needTservers = tserverSet.size() < minTserverCount;
+      needServers = numServers.get() < minServerCount;
 
       // suppress last message once threshold reached.
-      if (needTservers) {
-        tserverRetry.logRetry(log, String.format(
-            "Blocking for tserver availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
-            minTserverCount, tserverSet.size(), waitTimer.elapsed(SECONDS)));
+      if (needServers) {
+        serverRetry.logRetry(log, String.format(
+            "Blocking for %s availability - need to reach %s servers. Have %s Time spent blocking %s seconds.",
+            serverType, minServerCount, numServers.get(), waitTimer.elapsed(SECONDS)));
       }
-      tserverRetry.useRetry();
+      serverRetry.useRetry();
     }
 
-    if (tserverSet.size() < minTserverCount) {
+    if (numServers.get() < minServerCount) {
       log.warn(
-          "tserver availability check time expired - continuing. Requested {}, have {} tservers on line. "
+          "{} availability check time expired - continuing. Requested {}, have {} tservers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount, waitTimer.elapsed(SECONDS));
+          serverType, numServers.get(), minServerCount, waitTimer.elapsed(SECONDS));
 
     } else {
       log.info(
-          "tserver availability check completed. Requested {}, have {} tservers on line. "
+          "{} availability check completed. Requested {}, have {} tservers on line. "
               + " Time waiting {} sec",
-          tserverSet.size(), minTserverCount, waitTimer.elapsed(SECONDS));
+          serverType, numServers.get(), minServerCount, waitTimer.elapsed(SECONDS));
     }
   }
 

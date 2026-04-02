@@ -24,6 +24,7 @@ import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -46,6 +47,7 @@ import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -62,9 +64,13 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
+import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
 import org.apache.accumulo.core.summary.SummarizerFactory;
 import org.apache.accumulo.core.summary.SummaryCollection;
 import org.apache.accumulo.core.summary.SummaryReader;
+import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
@@ -344,5 +350,34 @@ public class CompactionPluginUtils {
     dispatcher.init(initParameters);
 
     return dispatcher;
+  }
+
+  /**
+   * Inspect configuration and determines what resource groups are configured for compaction.
+   */
+  public static Set<String> getConfiguredCompactionResourceGroups(ServerContext ctx)
+      throws ReflectiveOperationException {
+
+    Set<String> groups = new HashSet<>();
+    AccumuloConfiguration config = ctx.getConfiguration();
+    CompactionServicesConfig servicesConfig = new CompactionServicesConfig(config);
+
+    for (var entry : servicesConfig.getPlanners().entrySet()) {
+      String serviceId = entry.getKey();
+      String plannerClassName = entry.getValue();
+
+      Class<? extends CompactionPlanner> plannerClass =
+          Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
+      CompactionPlanner planner = plannerClass.getDeclaredConstructor().newInstance();
+
+      var initParams = new CompactionPlannerInitParams(CompactionServiceId.of(serviceId),
+          servicesConfig.getPlannerPrefix(serviceId), servicesConfig.getOptions().get(serviceId),
+          new ServiceEnvironmentImpl(ctx));
+
+      planner.init(initParams);
+
+      initParams.getRequestedGroups().stream().map(AbstractId::canonical).forEach(groups::add);
+    }
+    return groups;
   }
 }

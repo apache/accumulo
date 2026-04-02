@@ -26,13 +26,13 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.thrift.TException;
@@ -61,7 +61,7 @@ public class MemoryConsumingCompactor extends Compactor {
   }
 
   @Override
-  public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
+  public TExternalCompaction getRunningCompaction(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     // Use the getRunningCompaction Thrift RPC to consume the memory
     LOG.warn("getRunningCompaction called, consuming memory");
@@ -76,7 +76,7 @@ public class MemoryConsumingCompactor extends Compactor {
     } catch (IOException e) {
       throw new TException("Error consuming memory", e);
     }
-    return new TExternalCompactionJob();
+    return new TExternalCompaction();
   }
 
   public static void main(String[] args) throws Exception {

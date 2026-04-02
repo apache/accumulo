@@ -166,7 +166,7 @@ under the License.
     <surefire.groups />
     <surefire.reuseForks>true</surefire.reuseForks>
     <!-- dependency and plugin versions managed with properties -->
-    <version.accumulo-access>1.0.0-SNAPSHOT</version.accumulo-access>
+    <version.accumulo-access>1.0.0-beta2</version.accumulo-access>
     <version.auto-service>1.1.1</version.auto-service>
     <version.bouncycastle>1.80</version.bouncycastle>
     <version.curator>5.8.0</version.curator>
@@ -1087,8 +1087,6 @@ under the License.
                   <ignores>
                     <!-- ignore our own SNAPSHOT versions during development -->
                     <ignore>org.apache.accumulo:*:${project.version}</ignore>
-                    <!-- ignore apache-access, because we haven't had another beta release yet -->
-                    <ignore>org.apache.accumulo:accumulo-access-core:1.0.0-SNAPSHOT</ignore>
                   </ignores>
                 </banDynamicVersions>
                 <bannedDependencies>

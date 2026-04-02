@@ -49,9 +49,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -66,7 +63,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -84,7 +80,6 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.accumulo.server.util.bulkCommand.ListBulk;
-import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.ee10.servlet.ResourceServlet;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
@@ -148,8 +143,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private ManagerMonitorInfo mmi;
   private GCStatus gcStatus;
   private volatile Optional<HostAndPort> coordinatorHost = Optional.empty();
-  private final String coordinatorMissingMsg =
-      "Error getting the compaction coordinator client. Check that the Manager is running.";
 
   private EmbeddedWebServer server;
   private int livePort = 0;
@@ -562,13 +555,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final Supplier<Map<HostAndPort,CompactionStats>> compactionsSupplier =
       Suppliers.memoizeWithExpiration(this::fetchCompactions, expirationTimeMinutes, MINUTES);
 
-  private final Supplier<ExternalCompactorSnapshot> compactorInfoSupplier =
-      Suppliers.memoizeWithExpiration(this::fetchCompactorsInfo, expirationTimeMinutes, MINUTES);
-
-  private final Supplier<ExternalCompactionsSnapshot> externalCompactionsSupplier =
-      Suppliers.memoizeWithExpiration(this::computeExternalCompactionsSnapshot,
-          expirationTimeMinutes, MINUTES);
-
   private final Supplier<BulkImport> bulkImportSupplier =
       Suppliers.memoizeWithExpiration(this::computeBulkImports, expirationTimeMinutes, MINUTES);
 
@@ -595,27 +581,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     return compactionsSupplier.get();
   }
 
-  /**
-   * @return compaction coordinator host from the latest external compaction fetch.
-   */
-  public HostAndPort getCompactionCoordinatorHost() {
-    return compactorInfoSupplier.get().coordinatorHost;
-  }
-
-  /**
-   * @return compactors from the latest external compaction fetch.
-   */
-  public Set<ServerId> getCompactorServers() {
-    return compactorInfoSupplier.get().compactors;
-  }
-
-  /**
-   * @return timestamp in millis when external compactor info was last fetched.
-   */
-  public long getCompactorInfoFetchedTimeMillis() {
-    return compactorInfoSupplier.get().fetchedTimeMillis;
-  }
-
   private BulkImport computeBulkImports() {
     BulkImport bulkImport = new BulkImport();
     ListBulk.list(getContext(), bulkStatus -> {
@@ -628,20 +593,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
 
   public BulkImport getBulkImports() {
     return bulkImportSupplier.get();
-  }
-
-  /**
-   * @return running external compactions keyed by ECID.
-   */
-  public Map<String,TExternalCompaction> getRunningCompactionsMap() {
-    return externalCompactionsSupplier.get().ecRunningMap;
-  }
-
-  /**
-   * @return running external compaction for the provided ECID, or null when not found.
-   */
-  public TExternalCompaction getRunningCompaction(ExternalCompactionId ecid) {
-    return getRunningCompactionsMap().get(ecid.canonical());
   }
 
   private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {
@@ -688,58 +639,6 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       }
     }
     return Collections.unmodifiableMap(allCompactions);
-  }
-
-  private ExternalCompactorSnapshot fetchCompactorsInfo() {
-    var compactionCoordinatorHost =
-        coordinatorHost.orElseThrow(() -> new IllegalStateException(coordinatorMissingMsg));
-    Set<ServerId> compactors =
-        getContext().instanceOperations().getServers(ServerId.Type.COMPACTOR);
-    log.debug("Found compactors: {}", compactors);
-    return new ExternalCompactorSnapshot(compactionCoordinatorHost, compactors,
-        System.currentTimeMillis());
-  }
-
-  private record ExternalCompactorSnapshot(HostAndPort coordinatorHost, Set<ServerId> compactors,
-      long fetchedTimeMillis) {
-    private ExternalCompactorSnapshot(HostAndPort coordinatorHost, Set<ServerId> compactors,
-        long fetchedTimeMillis) {
-      this.coordinatorHost = coordinatorHost;
-      this.compactors = Set.copyOf(compactors);
-      this.fetchedTimeMillis = fetchedTimeMillis;
-    }
-  }
-
-  private record ExternalCompactionsSnapshot(Map<String,TExternalCompaction> ecRunningMap) {
-    private ExternalCompactionsSnapshot(Optional<Map<String,TExternalCompaction>> ecRunningMap) {
-      this(ecRunningMap.map(Collections::unmodifiableMap).orElse(Collections.emptyMap()));
-    }
-  }
-
-  private ExternalCompactionsSnapshot computeExternalCompactionsSnapshot() {
-    if (coordinatorHost.isEmpty()) {
-      throw new IllegalStateException(coordinatorMissingMsg);
-    }
-    var ccHost = coordinatorHost.orElseThrow();
-    log.info("User initiated fetch of running External Compactions from {}", ccHost);
-    try {
-      CompactionCoordinatorService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
-      TExternalCompactionMap running;
-      try {
-        running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
-        return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
-      } catch (Exception e) {
-        throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);
-      } finally {
-        if (client != null) {
-          ThriftUtil.returnClient(client, getContext());
-        }
-      }
-    } catch (TTransportException e) {
-      log.error("Unable to get Compaction coordinator at {}", ccHost);
-      throw new IllegalStateException(coordinatorMissingMsg, e);
-    }
   }
 
   /**

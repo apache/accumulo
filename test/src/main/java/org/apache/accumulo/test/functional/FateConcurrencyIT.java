@@ -35,6 +35,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -508,7 +509,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   @Test
   public void multipleCompactions() throws InterruptedException, IOException {
 
-    int tableCount = 4;
+    final int tableCount = 4;
 
     // Start 4 Compactors for the default group
     MiniAccumuloClusterImpl mini = (MiniAccumuloClusterImpl) getCluster();
@@ -524,8 +525,12 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     assertEquals(tableCount,
         tables.stream().map(SlowOps::getTableName).filter(this::findFate).count());
 
-    Wait.waitFor(() -> tableCount
-        == ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client).size());
+    Wait.waitFor(() -> {
+      AtomicInteger compactionCount = new AtomicInteger(0);
+      ExternalCompactionUtil.getCompactionsRunningOnCompactors((ClientContext) client,
+          (t) -> compactionCount.incrementAndGet());
+      return tableCount == compactionCount.get();
+    });
 
     tables.forEach(t -> {
       try {
