@@ -46,7 +46,6 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -54,6 +53,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -118,6 +119,7 @@ import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.fate.FateManager;
+import org.apache.accumulo.manager.fate.FateNotifier;
 import org.apache.accumulo.manager.fate.FateWorker;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
@@ -129,6 +131,7 @@ import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.PrimaryManagerThriftService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
@@ -215,10 +218,6 @@ public class Manager extends AbstractServer
 
   private ManagerState state = ManagerState.INITIAL;
 
-  // fateReadyLatch and fateRefs go together; when this latch is ready, then the fate references
-  // should already have been set; ConcurrentHashMap will guarantee that all threads will see
-  // the initialized fate references after the latch is ready
-  private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
   private final AtomicReference<Map<FateInstanceType,FateClient<FateEnv>>> fateClients =
       new AtomicReference<>();
   private volatile FateManager fateManager;
@@ -307,28 +306,7 @@ public class Manager extends AbstractServer
     return getManagerState() != ManagerState.STOP;
   }
 
-  private void waitForFate() {
-    try {
-      // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
-      if (!fateReadyLatch.await(30, SECONDS)) {
-        String msgPrefix = "Unexpected use of fate in thread " + Thread.currentThread().getName()
-            + " at time " + System.currentTimeMillis();
-        // include stack trace so we know where it's coming from, in case we need to troubleshoot it
-        log.warn("{} blocked until fate starts", msgPrefix,
-            new IllegalStateException("Attempted fate action before manager finished starting up; "
-                + "if this doesn't make progress, please report it as a bug to the developers"));
-        int minutes = 0;
-        while (!fateReadyLatch.await(5, MINUTES)) {
-          minutes += 5;
-          log.warn("{} still blocked after {} minutes; this is getting weird", msgPrefix, minutes);
-        }
-        log.debug("{} no longer blocked", msgPrefix);
-      }
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Thread was interrupted; cannot proceed");
-    }
-  }
+  private final Lock fateSetupLock = new ReentrantLock();
 
   /**
    * Retrieve the FateClient object, blocking until it is ready. This could cause problems if Fate
@@ -341,7 +319,23 @@ public class Manager extends AbstractServer
    * @return the FateClient object, only after the fate components are running and ready
    */
   public FateClient<FateEnv> fateClient(FateInstanceType type) {
-    waitForFate();
+    if (fateClients.get() == null) {
+      // only want one thread trying to setup fate, lots of threads could call this before its setup
+      fateSetupLock.lock();
+      try {
+        // check to see if another thread setup fate while we were waiting on the lock
+        if (fateClients.get() == null) {
+          // wait for upgrade to be complete
+          while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {
+            log.info("Attempted use of fate before upgrade complete, waiting for upgrade");
+            UtilWaitThread.sleep(5000);
+          }
+          setupFate(getContext());
+        }
+      } finally {
+        fateSetupLock.unlock();
+      }
+    }
     var client = requireNonNull(fateClients.get(), "fateClients is not set yet").get(type);
     return requireNonNull(client, () -> "fate client type " + type + " is not present");
   }
@@ -921,7 +915,6 @@ public class Manager extends AbstractServer
     watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
     metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
     // ensure fate is completely setup
-    Preconditions.checkState(fateReadyLatch.getCount() == 0);
     metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
     metricsInfo.addMetricsProducers(new UserFateMetrics(getContext(),
@@ -1165,7 +1158,7 @@ public class Manager extends AbstractServer
 
     fateManager = new FateManager(getContext());
     fateManager.start();
-    fateClient(FateInstanceType.USER).setSeedingConsumer(fateManager::notifySeeded);
+    startFateMaintenance();
 
     setupPrimaryMetrics();
 
@@ -1303,29 +1296,51 @@ public class Manager extends AbstractServer
 
   private void setupFate(ServerContext context) {
     try {
+
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      var metaStore = new MetaFateStore<FateEnv>(context.getZooSession(),
-          primaryManagerLock.getLockID(), isLockHeld);
+      var metaStore =
+          new MetaFateStore<FateEnv>(context.getZooSession(), managerLock.getLockID(), isLockHeld);
       var metaFateClient = new FateClient<>(metaStore, TraceRepo::toLogString);
       var userStore = new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(),
           managerLock.getLockID(), isLockHeld);
       var userFateClient = new FateClient<>(userStore, TraceRepo::toLogString);
 
-      var metaCleaner = new FateCleaner<>(metaStore, Duration.ofHours(8), this::getSteadyTime);
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(metaCleaner::ageOff, 10, 4 * 60, MINUTES));
-      var userCleaner = new FateCleaner<>(userStore, Duration.ofHours(8), this::getSteadyTime);
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(userCleaner::ageOff, 10, 4 * 60, MINUTES));
+      // wire up notifying the correct manager when a fate operation is seeded
+      FateNotifier fateNotifier = new FateNotifier(context);
+      fateNotifier.start();
+      metaFateClient.setSeedingConsumer(fateNotifier::notifySeeded);
+      userFateClient.setSeedingConsumer(fateNotifier::notifySeeded);
 
       if (!fateClients.compareAndSet(null,
           Map.of(FateInstanceType.META, metaFateClient, FateInstanceType.USER, userFateClient))) {
         throw new IllegalStateException(
             "Unexpected previous fateClient reference map already initialized");
       }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Exception setting up Fate clients", e);
+    }
+  }
 
-      fateReadyLatch.countDown();
+  /**
+   * Run fate maintenance task that only run in the primary manager.
+   */
+  private void startFateMaintenance() {
+    try {
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(getContext().getZooCache(), lock);
+
+      var metaStore = new MetaFateStore<FateEnv>(getContext().getZooSession(),
+          managerLock.getLockID(), isLockHeld);
+      var userStore = new UserFateStore<FateEnv>(getContext(), SystemTables.FATE.tableName(),
+          managerLock.getLockID(), isLockHeld);
+
+      var metaCleaner = new FateCleaner<>(metaStore, Duration.ofHours(8), this::getSteadyTime);
+      ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
+          .scheduleWithFixedDelay(metaCleaner::ageOff, 10, 4 * 60, MINUTES));
+      var userCleaner = new FateCleaner<>(userStore, Duration.ofHours(8), this::getSteadyTime);
+      ThreadPools.watchCriticalScheduledTask(getContext().getScheduledExecutor()
+          .scheduleWithFixedDelay(userCleaner::ageOff, 10, 4 * 60, MINUTES));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }

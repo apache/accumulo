@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
@@ -45,16 +44,14 @@ import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.manager.FateLocations;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeRangeMap;
 import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -80,17 +77,10 @@ public class FateManager {
 
   private final AtomicBoolean stop = new AtomicBoolean(false);
 
-  record FateHostPartition(HostAndPort hostPort, FatePartition partition) {
-  }
-
-  private final AtomicReference<RangeMap<FateId,FateHostPartition>> stableAssignments =
-      new AtomicReference<>(TreeRangeMap.create());
-
-  private final Map<HostAndPort,Set<FatePartition>> pendingNotifications = new HashMap<>();
-
   private void manageAssistants() {
     log.debug("Started Fate Manager");
     long stableCount = 0;
+    long unstableCount = 0;
     outer: while (!stop.get()) {
       try {
         long sleepTime = Math.min(stableCount * 100, 5_000);
@@ -113,18 +103,18 @@ public class FateManager {
             computeDesiredAssignments(currentAssignments, desiredParititions);
 
         if (desired.equals(currentAssignments)) {
-          RangeMap<FateId,FateHostPartition> rangeMap = TreeRangeMap.create();
-          currentAssignments.forEach((hostAndPort, partitions) -> {
-            partitions.forEach(partition -> {
-              rangeMap.put(Range.closed(partition.start(), partition.end()),
-                  new FateHostPartition(hostAndPort, partition));
-            });
-          });
-          stableAssignments.set(rangeMap);
+          if (stableCount == 0) {
+            FateLocations.storeLocations(context, currentAssignments);
+          }
           stableCount++;
+          unstableCount = 0;
+          continue;
         } else {
-          stableAssignments.set(TreeRangeMap.create());
+          if (unstableCount == 0) {
+            FateLocations.storeLocations(context, Map.of());
+          }
           stableCount = 0;
+          unstableCount++;
         }
 
         // are there any workers with extra partitions? If so need to unload those first.
@@ -175,18 +165,13 @@ public class FateManager {
   }
 
   private Thread assignmentThread = null;
-  private Thread ntfyThread = null;
 
   public synchronized void start() {
     Preconditions.checkState(assignmentThread == null);
-    Preconditions.checkState(ntfyThread == null);
     Preconditions.checkState(!stop.get());
 
     assignmentThread = Threads.createCriticalThread("Fate Manager", this::manageAssistants);
     assignmentThread.start();
-
-    ntfyThread = Threads.createCriticalThread("Fate Notify", new NotifyTask());
-    ntfyThread.start();
   }
 
   @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
@@ -202,9 +187,6 @@ public class FateManager {
     try {
       if (assignmentThread != null) {
         assignmentThread.join();
-      }
-      if (ntfyThread != null) {
-        ntfyThread.join();
       }
     } catch (InterruptedException e) {
       throw new IllegalStateException(e);
@@ -232,8 +214,6 @@ public class FateManager {
       }
     }
 
-    stableAssignments.set(TreeRangeMap.create());
-
     if (!timer.isExpired()) {
       FateStore<FateEnv> store = switch (fateType) {
         case USER -> new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
@@ -256,58 +236,6 @@ public class FateManager {
           Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
         } catch (InterruptedException e) {
           throw new IllegalStateException(e);
-        }
-      }
-    }
-  }
-
-  /**
-   * Makes a best effort to notify this fate operation was seeded.
-   */
-  public void notifySeeded(FateId fateId) {
-    var hostPartition = stableAssignments.get().get(fateId);
-    if (hostPartition != null) {
-      synchronized (pendingNotifications) {
-        pendingNotifications.computeIfAbsent(hostPartition.hostPort(), k -> new HashSet<>())
-            .add(hostPartition.partition());
-        pendingNotifications.notify();
-      }
-    }
-  }
-
-  private class NotifyTask implements Runnable {
-
-    @Override
-    public void run() {
-      while (!stop.get()) {
-        try {
-          Map<HostAndPort,Set<FatePartition>> copy;
-          synchronized (pendingNotifications) {
-            if (pendingNotifications.isEmpty()) {
-              pendingNotifications.wait(100);
-            }
-            copy = Map.copyOf(pendingNotifications);
-            pendingNotifications.clear();
-          }
-
-          for (var entry : copy.entrySet()) {
-            HostAndPort address = entry.getKey();
-            Set<FatePartition> partitions = entry.getValue();
-            FateWorkerService.Client client =
-                ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
-            try {
-              log.trace("Notifying about seeding {} {}", address, partitions);
-              client.seeded(TraceUtil.traceInfo(), context.rpcCreds(),
-                  partitions.stream().map(FatePartition::toThrift).toList());
-            } finally {
-              ThriftUtil.returnClient(client, context);
-            }
-          }
-
-        } catch (InterruptedException e) {
-          throw new IllegalStateException(e);
-        } catch (TException e) {
-          log.warn("Failed to send notification that fate was seeded", e);
         }
       }
     }
