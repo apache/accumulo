@@ -20,8 +20,11 @@ package org.apache.accumulo.manager.fate;
 
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -31,9 +34,11 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
@@ -49,6 +54,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,8 +67,7 @@ public class FateWorker implements FateWorkerService.Iface {
   private final AuditedSecurityOperation security;
   private final LiveTServerSet liveTserverSet;
   private final FateFactory fateFactory;
-  private Fate<FateEnv> fate;
-  private FateWorkerEnv fateWorkerEnv;
+  private final Map<FateInstanceType,Fate<FateEnv>> fates = new ConcurrentHashMap<>();
 
   public interface FateFactory {
     Fate<FateEnv> create(FateEnv env, FateStore<FateEnv> store, ServerContext context);
@@ -71,17 +76,23 @@ public class FateWorker implements FateWorkerService.Iface {
   public FateWorker(ServerContext ctx, LiveTServerSet liveTServerSet, FateFactory fateFactory) {
     this.context = ctx;
     this.security = ctx.getSecurityOperation();
-    this.fate = null;
     this.liveTserverSet = liveTServerSet;
     this.fateFactory = fateFactory;
   }
 
   public synchronized void setLock(ServiceLock lock) {
-    fateWorkerEnv = new FateWorkerEnv(context, lock, liveTserverSet);
+    FateWorkerEnv fateWorkerEnv = new FateWorkerEnv(context, lock, liveTserverSet);
     Predicate<ZooUtil.LockID> isLockHeld = l -> ServiceLock.isLockHeld(context.getZooCache(), l);
+    try {
+      MetaFateStore<FateEnv> metaStore =
+          new MetaFateStore<>(context.getZooSession(), lock.getLockID(), isLockHeld);
+      this.fates.put(FateInstanceType.META, fateFactory.create(fateWorkerEnv, metaStore, context));
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
     UserFateStore<FateEnv> store =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lock.getLockID(), isLockHeld);
-    this.fate = fateFactory.create(fateWorkerEnv, store, context);
+    this.fates.put(FateInstanceType.USER, fateFactory.create(fateWorkerEnv, store, context));
   }
 
   private Long expectedUpdateId = null;
@@ -105,12 +116,8 @@ public class FateWorker implements FateWorkerService.Iface {
       // id
       expectedUpdateId = updateId;
 
-      if (fate == null) {
-        return new TFatePartitions(updateId, List.of());
-      } else {
-        return new TFatePartitions(updateId,
-            fate.getPartitions().stream().map(FatePartition::toThrift).toList());
-      }
+      return new TFatePartitions(updateId, fates.values().stream()
+          .flatMap(fate -> fate.getPartitions().stream()).map(FatePartition::toThrift).toList());
     }
   }
 
@@ -137,16 +144,22 @@ public class FateWorker implements FateWorkerService.Iface {
     synchronized (this) {
       // The primary manager should not assign any fate partitions until after upgrade is complete.
       Preconditions.checkState(isUpgradeComplete());
-      if (fate != null && expectedUpdateId != null && updateId == expectedUpdateId) {
+
+      if (expectedUpdateId != null && updateId == expectedUpdateId) {
         // Set to null which makes it so that an update id can only be used once.
         expectedUpdateId = null;
-        var desiredSet = desired.stream().map(FatePartition::from).collect(Collectors.toSet());
-        var oldPartitions = fate.setPartitions(desiredSet);
-        log.info("Changed partitions from {} to {}", oldPartitions, desiredSet);
+        for (var fateType : FateInstanceType.values()) {
+          var fate = fates.get(fateType);
+          var desiredSet = desired.stream().map(FatePartition::from)
+              .filter(fp -> fp.getType() == fateType).collect(Collectors.toSet());
+          var oldPartitions = fate.setPartitions(desiredSet);
+          log.info("Changed partitions for {} from {} to {}", fateType, oldPartitions, desiredSet);
+        }
+
         return true;
       } else {
-        log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{} fate==null:{}",
-            desired, expectedUpdateId, updateId, fate == null);
+        log.debug("Did not change partitions to {} expectedUpdateId:{} updateId:{} fates:{}",
+            desired, expectedUpdateId, updateId, fates.keySet());
         return false;
       }
     }
@@ -161,28 +174,24 @@ public class FateWorker implements FateWorkerService.Iface {
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
 
-    Fate<FateEnv> localFate;
-    synchronized (this) {
-      localFate = fate;
-    }
+    Map<FateInstanceType,Set<FatePartition>> partitions =
+        tpartitions.stream().map(FatePartition::from)
+            .collect(Collectors.groupingBy(FatePartition::getType, Collectors.toSet()));
 
-    if (localFate != null) {
-      localFate.seeded(tpartitions.stream().map(FatePartition::from).collect(Collectors.toSet()));
-    }
-  }
-
-  public synchronized void stop() {
-    fate.shutdown(1, TimeUnit.MINUTES);
-    fate.close();
-    fateWorkerEnv.stop();
-    fate = null;
-    fateWorkerEnv = null;
+    partitions.forEach((fateType, typePartitions) -> {
+      var fate = fates.get(fateType);
+      if (fate != null) {
+        fate.seeded(typePartitions);
+      }
+    });
   }
 
   public synchronized MetricsProducer[] getMetricsProducers() {
-    Preconditions.checkState(fate != null, "Not started yet");
-    return new MetricsProducer[] {
-        new FateExecutorMetricsProducer(context, fate.getFateExecutors(), context.getConfiguration()
-            .getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL))};
+    Preconditions.checkState(!fates.isEmpty(), "Not started yet");
+    return Arrays.stream(FateInstanceType.values()).map(fates::get)
+        .map(fate -> new FateExecutorMetricsProducer(context, fate.getFateExecutors(),
+            context.getConfiguration()
+                .getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)))
+        .toArray(MetricsProducer[]::new);
   }
 }

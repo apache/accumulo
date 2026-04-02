@@ -32,7 +32,9 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -44,6 +46,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -103,7 +106,8 @@ public class FateManager {
         }
         Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
         currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
-        Set<FatePartition> desiredParititions = getDesiredPartitions(currentAssignments.size());
+        Map<FateInstanceType,Set<FatePartition>> desiredParititions =
+            getDesiredPartitions(currentAssignments.size());
 
         Map<HostAndPort,Set<FatePartition>> desired =
             computeDesiredAssignments(currentAssignments, desiredParititions);
@@ -188,7 +192,7 @@ public class FateManager {
   @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
       justification = "Sleep is okay. Can hold the lock as long as needed, as we are shutting down."
           + " Don't need or want other operations to run.")
-  public synchronized void stop(Duration timeout) {
+  public synchronized void stop(FateInstanceType fateType, Duration timeout) {
     if (!stop.compareAndSet(false, true)) {
       return;
     }
@@ -219,7 +223,9 @@ public class FateManager {
       var currentPartitions = entry.getValue();
       if (!currentPartitions.partitions.isEmpty()) {
         try {
-          setPartitions(hostPort, currentPartitions.updateId(), Set.of());
+          var copy = new HashSet<>(currentPartitions.partitions);
+          copy.removeIf(fp -> fp.getType() == fateType);
+          setPartitions(hostPort, currentPartitions.updateId(), copy);
         } catch (TException e) {
           log.warn("Failed to unassign fate partitions {}", hostPort, e);
         }
@@ -229,8 +235,16 @@ public class FateManager {
     stableAssignments.set(TreeRangeMap.create());
 
     if (!timer.isExpired()) {
-      var store = new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
-
+      FateStore<FateEnv> store = switch (fateType) {
+        case USER -> new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
+        case META -> {
+          try {
+            yield new MetaFateStore<>(context.getZooSession(), null, null);
+          } catch (KeeperException | InterruptedException e) {
+            throw new IllegalStateException(e);
+          }
+        }
+      };
       var reserved = store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
       while (!reserved.isEmpty() && !timer.isExpired()) {
         if (log.isTraceEnabled()) {
@@ -333,28 +347,41 @@ public class FateManager {
    */
   private Map<HostAndPort,Set<FatePartition>> computeDesiredAssignments(
       Map<HostAndPort,Set<FatePartition>> currentAssignments,
-      Set<FatePartition> desiredParititions) {
+      Map<FateInstanceType,Set<FatePartition>> desiredParititions) {
 
-    Preconditions.checkArgument(currentAssignments.size() == desiredParititions.size());
     Map<HostAndPort,Set<FatePartition>> desiredAssignments = new HashMap<>();
 
-    var copy = new HashSet<>(desiredParititions);
-
-    currentAssignments.forEach((hp, partitions) -> {
-      if (!partitions.isEmpty()) {
-        var firstPart = partitions.iterator().next();
-        if (copy.contains(firstPart)) {
-          desiredAssignments.put(hp, Set.of(firstPart));
-          copy.remove(firstPart);
-        }
-      }
+    currentAssignments.keySet().forEach(hp -> {
+      desiredAssignments.put(hp, new HashSet<>());
     });
 
-    var iter = copy.iterator();
-    currentAssignments.forEach((hp, partitions) -> {
-      if (!desiredAssignments.containsKey(hp)) {
-        desiredAssignments.put(hp, Set.of(iter.next()));
-      }
+    desiredParititions.forEach((fateType, desiredForType) -> {
+      // This code can not handle more than one partition per host
+      Preconditions.checkState(desiredForType.size() <= currentAssignments.size());
+
+      var added = new HashSet<FatePartition>();
+
+      currentAssignments.forEach((hp, partitions) -> {
+        var hostAssignments = desiredAssignments.get(hp);
+        partitions.forEach(partition -> {
+          if (desiredForType.contains(partition)
+              && hostAssignments.stream().noneMatch(fp -> fp.getType() == fateType)
+              && !added.contains(partition)) {
+            hostAssignments.add(partition);
+            Preconditions.checkState(added.add(partition));
+          }
+        });
+      });
+
+      var iter = Sets.difference(desiredForType, added).iterator();
+      currentAssignments.forEach((hp, partitions) -> {
+        var hostAssignments = desiredAssignments.get(hp);
+        if (iter.hasNext() && hostAssignments.stream().noneMatch(fp -> fp.getType() == fateType)) {
+          hostAssignments.add(iter.next());
+        }
+      });
+
+      Preconditions.checkState(!iter.hasNext());
     });
 
     if (log.isTraceEnabled()) {
@@ -363,7 +390,6 @@ public class FateManager {
         log.trace(" desired {} {} {}", hp, parts.size(), parts);
       });
     }
-
     return desiredAssignments;
   }
 
@@ -371,15 +397,23 @@ public class FateManager {
    * Computes a single partition for each worker such that the partition cover all possible UUIDs
    * and evenly divide the UUIDs.
    */
-  private Set<FatePartition> getDesiredPartitions(int numWorkers) {
+  private Map<FateInstanceType,Set<FatePartition>> getDesiredPartitions(int numWorkers) {
     Preconditions.checkArgument(numWorkers >= 0);
 
     if (numWorkers == 0) {
-      return Set.of();
+      return Map.of(FateInstanceType.META, Set.of(), FateInstanceType.USER, Set.of());
     }
 
     // create a single partition per worker that equally divides the space
-    HashSet<FatePartition> desired = new HashSet<>();
+    Map<FateInstanceType,Set<FatePartition>> desired = new HashMap<>();
+
+    // meta fate will never see much activity, so give it a single partition.
+    desired.put(FateInstanceType.META,
+        Set.of(new FatePartition(FateId.from(FateInstanceType.META, new UUID(0, 0)),
+            FateId.from(FateInstanceType.META, new UUID(-1, -1)))));
+
+    Set<FatePartition> desiredUser = new HashSet<>();
+
     // All the shifting is because java does not have unsigned integers. Want to evenly partition
     // [0,2^64) into numWorker ranges, but can not directly do that. Work w/ 60 bit unsigned
     // integers to partition the space and then shift over by 4. Used 60 bits instead of 63 so it
@@ -392,7 +426,7 @@ public class FateManager {
       UUID startUuid = new UUID(start, 0);
       UUID endUuid = new UUID(end, 0);
 
-      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
+      desiredUser.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
           FateId.from(FateInstanceType.USER, endUuid)));
     }
 
@@ -400,8 +434,10 @@ public class FateManager {
     UUID startUuid = new UUID(start, 0);
     // last partition has a special end uuid that is all f nibbles.
     UUID endUuid = new UUID(-1, -1);
-    desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
+    desiredUser.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
         FateId.from(FateInstanceType.USER, endUuid)));
+
+    desired.put(FateInstanceType.USER, desiredUser);
 
     return desired;
   }
