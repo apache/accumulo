@@ -19,6 +19,9 @@
 package org.apache.accumulo.compactor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.compactor.Compactor.CoordinatorLocationType.ANY;
+import static org.apache.accumulo.compactor.Compactor.CoordinatorLocationType.GROUP;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
@@ -139,6 +142,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.hash.Hashing;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
@@ -488,7 +492,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       String message) throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          Client coordinatorClient = getCoordinatorClient(ANY);
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 job.getExternalCompactionId(), job.extent, message, why,
@@ -512,7 +516,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
-          Client coordinatorClient = getCoordinatorClient();
+          // Any coordinator can process a completed compactions request, so spread the load there
+          // is no need to limit to the coordinator queuing compactions for this compactors group.
+          // Also its possible the compaction group has been deconfigured and is no longer in
+          // zookeeper, however we can still record the completion by going to any coordinator.
+          Client coordinatorClient = getCoordinatorClient(ANY);
           try {
             coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 job.getExternalCompactionId(), job.extent, stats, getResourceGroup().canonical(),
@@ -542,7 +550,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
           Client coordinatorClient = null;
           try {
-            coordinatorClient = getCoordinatorClient();
+            coordinatorClient = getCoordinatorClient(GROUP);
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
@@ -559,18 +567,45 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     return nextJobThriftCall.run();
   }
 
+  public enum CoordinatorLocationType {
+    GROUP, ANY
+  };
+
   /**
    * Get the client to the CompactionCoordinator
    *
    * @return compaction coordinator client
    * @throws TTransportException when unable to get client
    */
-  protected CompactionCoordinatorService.Client getCoordinatorClient() throws TTransportException {
-    var coordinatorHost = getContext().getCoordinatorLocations(true).get(getResourceGroup());
-    if (coordinatorHost == null) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
-    LOG.trace("CompactionCoordinator address is: {}", coordinatorHost);
+  protected CompactionCoordinatorService.Client
+      getCoordinatorClient(CoordinatorLocationType locationType) throws TTransportException {
+
+    var coordinatorHost = switch (locationType) {
+      case GROUP -> {
+        var allCoordinatorLocations = getContext().getCoordinatorLocations(true).locations();
+        var host = allCoordinatorLocations.get(getResourceGroup());
+        if (host == null) {
+          throw new TTransportException("Did not find group " + getResourceGroup()
+              + " in coordinators " + allCoordinatorLocations);
+        }
+        yield host;
+      }
+      case ANY -> {
+        var hosts = getContext().getCoordinatorLocations(true).sortedUniqueHost();
+        if (hosts.isEmpty()) {
+          throw new TTransportException("There are no coordinators in zookeeper.");
+        }
+        int hashedClientAddr = Math
+            .abs(Hashing.murmur3_128().hashString(getAdvertiseAddress().toString(), UTF_8).asInt());
+        // Hashing compactors to coordinators will spread them evenly across coordinators, however
+        // each coordinator will only have connections for #compactors/#coordinators. If compactors
+        // randomly choose a coordinator, then each coordinator would have a lot more connections.
+        // Hashing also send the same compactor to the same coordinator.
+        yield hosts.get(hashedClientAddr % hosts.size());
+      }
+    };
+
+    LOG.trace("CompactionCoordinator address is: {} {}", locationType, coordinatorHost);
     return ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost, getContext());
   }
 

@@ -45,7 +45,7 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
 
-    cfg.getClusterServerConfiguration().addCompactorResourceGroup("little", 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("little", 2);
     cfg.getClusterServerConfiguration().addCompactorResourceGroup("big", 1);
 
     cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",

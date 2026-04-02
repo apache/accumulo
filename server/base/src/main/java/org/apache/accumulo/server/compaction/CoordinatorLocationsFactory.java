@@ -21,7 +21,9 @@ package org.apache.accumulo.server.compaction;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
@@ -38,17 +40,21 @@ import com.google.common.reflect.TypeToken;
  * Reads and writes a map of coordinators to zookeeper. The map contains compactor resource group to
  * manager address mappings.
  */
-public class CoordinatorLocations {
+public class CoordinatorLocationsFactory {
   private final ServerContext context;
 
   private long lastUpdateCount;
-  private Map<ResourceGroupId,HostAndPort> lastLocations;
+  private CoordinatorLocations lastLocations;
 
-  public CoordinatorLocations(ServerContext context) {
+  public CoordinatorLocationsFactory(ServerContext context) {
     this.context = context;
   }
 
-  public synchronized Map<ResourceGroupId,HostAndPort> getLocations(boolean useCache) {
+  public record CoordinatorLocations(Map<ResourceGroupId,HostAndPort> locations,
+      List<HostAndPort> sortedUniqueHost) {
+  }
+
+  public synchronized CoordinatorLocations getLocations(boolean useCache) {
     var zooCache = context.getZooCache();
     // TODO how frequently does updateCount change? TODO could have an update counter per path
     if (lastLocations == null || lastUpdateCount != zooCache.getUpdateCount() || !useCache) {
@@ -62,7 +68,8 @@ public class CoordinatorLocations {
       Map<ResourceGroupId,HostAndPort> locations = new HashMap<>();
       stringMap
           .forEach((rg, hp) -> locations.put(ResourceGroupId.of(rg), HostAndPort.fromString(hp)));
-      lastLocations = Map.copyOf(locations);
+      lastLocations = new CoordinatorLocations(Map.copyOf(locations), locations.values().stream()
+          .distinct().sorted(Comparator.comparing(HostAndPort::toString)).toList());
     }
     return lastLocations;
   }

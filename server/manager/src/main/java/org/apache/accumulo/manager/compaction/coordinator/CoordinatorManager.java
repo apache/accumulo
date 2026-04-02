@@ -48,7 +48,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.compaction.CoordinatorLocations;
+import org.apache.accumulo.server.compaction.CoordinatorLocationsFactory;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -123,10 +123,10 @@ public class CoordinatorManager {
       rgs.forEach(rg -> transformed.put(rg, hp));
     });
 
-    var assignmentsInZk = context.getCoordinatorLocations(true);
+    var assignmentsInZk = context.getCoordinatorLocations(true).locations();
     if (!transformed.equals(assignmentsInZk)) {
-      CoordinatorLocations.setLocations(context.getZooSession().asReaderWriter(), transformed,
-          NodeExistsPolicy.OVERWRITE);
+      CoordinatorLocationsFactory.setLocations(context.getZooSession().asReaderWriter(),
+          transformed, NodeExistsPolicy.OVERWRITE);
       log.debug("Set new coordinator locations {}", desired);
 
     }
