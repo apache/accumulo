@@ -604,7 +604,6 @@ public class CompactionCoordinator
   public Set<String> getResourceGroups(TInfo tinfo, TCredentials credentials, long updateId)
       throws ThriftSecurityException, TException {
     if (!security.canPerformSystemActions(credentials)) {
-      // TODO does not seem like the correct exception, also this code snippet was copied.
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
@@ -621,7 +620,6 @@ public class CompactionCoordinator
   public void setResourceGroups(TInfo tinfo, TCredentials credentials, long updateId,
       Set<String> groups) throws ThriftSecurityException, TException {
     if (!security.canPerformSystemActions(credentials)) {
-      // TODO does not seem like the correct exception, also this code snippet was copied.
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
