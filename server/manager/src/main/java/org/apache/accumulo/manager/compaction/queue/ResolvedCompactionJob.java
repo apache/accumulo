@@ -22,6 +22,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -181,6 +182,14 @@ public class ResolvedCompactionJob implements CompactionJob {
     return jobFiles;
   }
 
+  public List<InputFile> getThriftFiles() {
+    return jobFiles.entrySet().stream().map(e -> {
+      StoredTabletFile file = e.getKey();
+      DataFileValue dfv = e.getValue();
+      return new InputFile(file.getMetadata(), dfv.getSize(), dfv.getNumEntries(), dfv.getTime());
+    }).toList();
+  }
+
   public Set<CompactableFile> getCompactionFiles() {
     return jobFiles.entrySet().stream().map(e -> new CompactableFileImpl(e.getKey(), e.getValue()))
         .collect(Collectors.toSet());
@@ -233,16 +242,9 @@ public class ResolvedCompactionJob implements CompactionJob {
   }
 
   public TResolvedCompactionJob toThrift() {
-    // TODO consolidate code to do this conversion
-    var files = jobFiles.entrySet().stream().map(e -> {
-      StoredTabletFile file = e.getKey();
-      DataFileValue dfv = e.getValue();
-      return new InputFile(file.getMetadata(), dfv.getSize(), dfv.getNumEntries(), dfv.getTime());
-    }).toList();
-
     return new TResolvedCompactionJob(selectedFateId == null ? null : selectedFateId.canonical(),
-        files, kind.name(), compactingAll, extent.toThrift(), priority, group.canonical(),
-        tabletDir, overlapsSelectedFiles);
+        getThriftFiles(), kind.name(), compactingAll, extent.toThrift(), priority,
+        group.canonical(), tabletDir, overlapsSelectedFiles);
   }
 
   public static ResolvedCompactionJob fromThrift(TResolvedCompactionJob trj) {

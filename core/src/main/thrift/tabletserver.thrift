@@ -103,7 +103,7 @@ struct InputFile {
   3:i64 entries
   4:i64 timestamp
 }
-//TODO this should move outside of the tablet server file, tabletserver no longer has anything to with compactions
+
 struct TExternalCompactionJob {
   1:string externalCompactionId
   2:data.TKeyExtent extent
@@ -232,7 +232,7 @@ service TabletServerClientService {
   ) throws (
     1:NoSuchScanIDException nssi
   )
-  
+
   list<data.TKeyExtent> refreshTablets(
     1:client.TInfo tinfo
     2:security.TCredentials credentials

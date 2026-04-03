@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
@@ -83,12 +82,10 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -96,7 +93,6 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -525,11 +521,7 @@ public class CompactionCoordinator
     IteratorConfig iteratorSettings = SystemIteratorUtil
         .toIteratorConfig(compactionConfig.map(CompactionConfig::getIterators).orElse(List.of()));
 
-    var files = rcJob.getJobFilesMap().entrySet().stream().map(e -> {
-      StoredTabletFile file = e.getKey();
-      DataFileValue dfv = e.getValue();
-      return new InputFile(file.getMetadata(), dfv.getSize(), dfv.getNumEntries(), dfv.getTime());
-    }).collect(toList());
+    var files = rcJob.getThriftFiles();
 
     // The fateId here corresponds to the Fate transaction that is driving a user initiated
     // compaction. A system initiated compaction has no Fate transaction driving it so its ok to set
