@@ -56,7 +56,6 @@ public class CoordinatorLocationsFactory {
 
   public synchronized CoordinatorLocations getLocations(boolean useCache) {
     var zooCache = context.getZooCache();
-    // TODO how frequently does updateCount change? TODO could have an update counter per path
     if (lastLocations == null || lastUpdateCount != zooCache.getUpdateCount() || !useCache) {
       lastUpdateCount = zooCache.getUpdateCount();
       if (!useCache) {

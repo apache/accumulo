@@ -56,8 +56,6 @@ public class ComprehensiveMultiManagerIT extends ComprehensiveITBase {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
     }
 
-    // TODO could add a compaction RG to comprehensive IT
-    // TODO could wait for coordinators?
     // Wait for 3 managers to have a fate partition assigned to them
     var srvCtx = getCluster().getServerContext();
     Wait.waitFor(() -> {

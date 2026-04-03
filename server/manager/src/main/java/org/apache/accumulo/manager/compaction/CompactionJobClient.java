@@ -74,18 +74,21 @@ public class CompactionJobClient implements AutoCloseable {
 
     var uniqueHosts = new HashSet<>(coordinatorLocations.values());
     for (var hostPort : uniqueHosts) {
+      CompactionCoordinatorService.Client client = null;
       try {
-        var client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hostPort, context);
+        client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hostPort, context);
         if (fullScan) {
           client.beginFullJobScan(TraceUtil.traceInfo(), context.rpcCreds(), dataLevel.name());
         }
+      } catch (TException | RuntimeException e) {
+        log.warn("Failed to connect to coordinator {}", hostPort, e);
+        ThriftUtil.returnClient(client, context);
+        client = null;
+      }
 
+      if (client != null) {
         coordinatorConnections.put(hostPort,
             new CoordinatorConnection(client, new ArrayList<>(BUFFER_SIZE), hostPort));
-      } catch (TException e) {
-        // TODO only log
-        // TODO need to return client or add it
-        throw new RuntimeException(e);
       }
     }
   }

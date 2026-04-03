@@ -1236,6 +1236,8 @@ public class Manager extends AbstractServer
       UtilWaitThread.sleep(100);
     }
 
+    coordinatorManager.stop();
+
     log.debug("Shutting down fate.");
     fateManager.stop(FateInstanceType.USER, Duration.ZERO);
     fateManager.stop(FateInstanceType.META, Duration.ZERO);

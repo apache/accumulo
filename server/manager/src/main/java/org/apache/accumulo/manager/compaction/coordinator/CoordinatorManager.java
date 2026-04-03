@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -67,6 +68,8 @@ public class CoordinatorManager {
 
   private final ServerContext context;
 
+  private final AtomicBoolean stopped = new AtomicBoolean(false);
+
   public CoordinatorManager(ServerContext context,
       Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
     this.context = context;
@@ -82,7 +85,7 @@ public class CoordinatorManager {
     final long initialSleepTime = 10;
     final long maxSleepTime = 5000;
     long sleepTime = initialSleepTime;
-    while (true) {
+    while (!stopped.get()) {
       try {
         long updateId = RANDOM.get().nextLong();
         var current = getCurrentAssignments(updateId);
@@ -177,6 +180,7 @@ public class CoordinatorManager {
 
   public synchronized void start() {
     Preconditions.checkState(assignmentThread == null);
+    Preconditions.checkState(!stopped.get());
 
     startCompactorZKCleaner(context.getScheduledExecutor());
 
@@ -190,6 +194,15 @@ public class CoordinatorManager {
       }
     });
     assignmentThread.start();
+  }
+
+  public synchronized void stop() {
+    stopped.set(true);
+    try {
+      assignmentThread.join();
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
   }
 
   protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {
@@ -240,6 +253,4 @@ public class CoordinatorManager {
       throw new IllegalStateException(e);
     }
   }
-
-  // TODO stop()
 }
