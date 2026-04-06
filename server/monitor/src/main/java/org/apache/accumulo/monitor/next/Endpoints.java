@@ -43,16 +43,15 @@ import jakarta.ws.rs.core.MediaType;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
-import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
+import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
 import org.apache.accumulo.monitor.next.views.ServersView;
@@ -408,10 +407,10 @@ public class Endpoints {
   @GET
   @Path("deployment")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a map of resource group to server type to process summary."
-      + " The process summary contains the number of configured, responding, and not responding servers")
-  public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentOverview();
+  @Description("Returns a UI-ready deployment overview grouped by resource group. Each process row"
+      + " contains the total and responding server counts.")
+  public DeploymentOverview getDeploymentOverview() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentView();
   }
 
   @GET

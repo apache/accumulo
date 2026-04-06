@@ -25,7 +25,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.monitor.Monitor;
-import org.apache.accumulo.server.util.bulkCommand.ListBulk;
 
 /**
  * The BulkImportResource is responsible for obtaining the information of the bulk import, and
@@ -47,12 +46,6 @@ public class BulkImportResource {
    */
   @GET
   public BulkImport getTables() {
-    BulkImport bulkImport = new BulkImport();
-    ListBulk.list(monitor.getContext(), bulkStatus -> {
-      bulkImport.addBulkImport(new BulkImportInformation(bulkStatus.sourceDir(),
-          bulkStatus.lastUpdate().toEpochMilli(), bulkStatus.state()));
-    });
-
-    return bulkImport;
+    return monitor.getBulkImports();
   }
 }

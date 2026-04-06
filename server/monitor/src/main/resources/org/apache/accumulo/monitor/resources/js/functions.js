@@ -753,3 +753,18 @@ function getTable(name) {
 function getCompactionsSummary() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
 }
+
+/**
+ * Returns true if the input is a valid regular expression, false otherwise.
+ *
+ * @param {string} input Potential regex string
+ * @returns {boolean} Whether the input is a valid regex
+ */
+function isValidRegex(input) {
+  try {
+    new RegExp(input);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
