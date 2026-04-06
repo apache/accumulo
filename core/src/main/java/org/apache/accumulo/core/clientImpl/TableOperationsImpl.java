@@ -1398,13 +1398,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
           if ((expectedState == TableState.ONLINE
               && (availability == TabletAvailability.HOSTED
-                  || (availability == TabletAvailability.ONDEMAND) && tablet.getHostingRequested())
+                  || availability == TabletAvailability.ONDEMAND && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
               || (expectedState == TableState.OFFLINE
                   && (loc != null || opid != null || !externalCompactions.isEmpty()))) {
             if (continueRow == null) {
               continueRow = tablet.getExtent().toMetaRow();
             }
+            log.trace(
+                "Waiting on tablet {} exectedState:{} availability:{} hostingRequested:{} loc:{} opid:{} compactions:{}",
+                tablet.getExtent(), expectedState, availability, tablet.getHostingRequested(), loc,
+                opid, externalCompactions.keySet());
             waitFor++;
             lastRow = tablet.getExtent().toMetaRow();
 
