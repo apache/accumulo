@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.compaction.coordinator;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
+import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -172,10 +174,13 @@ public class DeadCompactionDetector {
     if (!removedCompactions.isEmpty()) {
       var runningSet = Objects.requireNonNull(running);
       removedCompactions.removeIf(rc -> runningSet.contains(rc.id()));
+      Set<Path> tmpFilesToDelete = new HashSet<>();
       removedCompactions.forEach(rc -> {
-        log.trace("attempting to delete tmp files for removed compaction {}", rc);
-        FindCompactionTmpFiles.deleteTmpFiles(context, rc.table(), rc.dir(), Set.of(rc.id()));
+        log.trace("attempting to find tmp files for removed compaction {}", rc);
+        FindCompactionTmpFiles.findTmpFiles(context, rc.table(), rc.dir(), Set.of(rc.id()),
+            tmpFilesToDelete::add);
       });
+      FindCompactionTmpFiles.deleteTempFiles(context, tmpFilesToDelete);
       context.getAmple().removedCompactions().delete(removedCompactions);
     }
 
