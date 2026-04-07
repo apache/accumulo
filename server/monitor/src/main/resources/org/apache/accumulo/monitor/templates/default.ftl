@@ -44,6 +44,7 @@
     <link rel="shortcut icon" type="image/jng" href="resources/images/favicon.png" />
     <script src="resources/js/global.js"></script>
     <script src="resources/js/functions.js"></script>
+    <script src="resources/js/columns.js"></script>
     <link rel="stylesheet" type="text/css" href="resources/css/screen.css" media="screen" />
 
     <script>

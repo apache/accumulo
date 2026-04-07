@@ -29,12 +29,10 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.SystemInformation;
-import org.apache.accumulo.monitor.next.views.MetricColumnMappings.ColumnInformation;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 
 import com.github.benmanes.caffeine.cache.Cache;
@@ -61,23 +59,16 @@ public class ServersView {
       long missingMetricServerCount, String level, String message) {
   }
 
+  public static final String TYPE_COL_NAME = "Server Type";
+  public static final String RG_COL_NAME = "Resource Group";
+  public static final String ADDR_COL_NAME = "Server Address";
+  public static final String TIME_COL_NAME = "Last Contact";
+
   private static final String LEVEL_OK = "OK";
   private static final String LEVEL_WARN = "WARN";
-  private static final String TYPE_COL_NAME = "Server Type";
-  private static final ColumnInformation TYPE_COL_MAPPING =
-      new ColumnInformation(TYPE_COL_NAME, "Type of server", "");
-  private static final String RG_COL_NAME = "Resource Group";
-  private static final ColumnInformation RG_COL_MAPPING =
-      new ColumnInformation(RG_COL_NAME, "Resource Group", "");
-  private static final String ADDR_COL_NAME = "Server Address";
-  private static final ColumnInformation ADDR_COL_MAPPING =
-      new ColumnInformation(ADDR_COL_NAME, "Server address", "");
-  private static final String TIME_COL_NAME = "Last Contact";
-  private static final ColumnInformation TIME_COL_MAPPING = new ColumnInformation(TIME_COL_NAME,
-      "Server last contact time", MetricColumnMappings.TIMESTAMP_UI_CLASS);
 
   public final List<Map<String,Object>> data = new ArrayList<>();
-  public final Set<ColumnInformation> columns = new TreeSet<>();
+  public final Set<String> columns = new TreeSet<>();
   public final Status status;
   public final long timestamp;
 
@@ -86,29 +77,26 @@ public class ServersView {
 
     AtomicInteger serversMissingMetrics = new AtomicInteger(0);
     servers.forEach(sid -> {
-      Map<String,Object> convertedMetrics = new TreeMap<>();
+      Map<String,Object> metrics = new TreeMap<>();
 
-      convertedMetrics.put(TYPE_COL_NAME, sid.getType().name());
-      convertedMetrics.put(RG_COL_NAME, sid.getResourceGroup().canonical());
-      convertedMetrics.put(ADDR_COL_NAME, sid.toHostPortString());
-
-      columns.add(TYPE_COL_MAPPING);
-      columns.add(RG_COL_MAPPING);
-      columns.add(ADDR_COL_MAPPING);
+      columns.add(TYPE_COL_NAME);
+      metrics.put(TYPE_COL_NAME, sid.getType().name());
+      columns.add(RG_COL_NAME);
+      metrics.put(RG_COL_NAME, sid.getResourceGroup().canonical());
+      columns.add(ADDR_COL_NAME);
+      metrics.put(ADDR_COL_NAME, sid.toHostPortString());
 
       MetricResponse mr = allMetrics.getIfPresent(sid);
       if (mr != null) {
-        convertedMetrics.put(TIME_COL_NAME, mr.getTimestamp());
-        columns.add(TIME_COL_MAPPING);
+        columns.add(TIME_COL_NAME);
+        metrics.put(TIME_COL_NAME, mr.getTimestamp());
 
         Map<String,Number> serverMetrics = metricValuesByName(mr);
         for (Entry<String,Number> e : serverMetrics.entrySet()) {
-          Metric m = Metric.fromName(e.getKey());
-          ColumnInformation colInfo = MetricColumnMappings.getColumnInformation(m);
-          convertedMetrics.put(colInfo.name(), e.getValue());
-          columns.add(colInfo);
+          columns.add(e.getKey());
+          metrics.put(e.getKey(), e.getValue());
         }
-        data.add(convertedMetrics);
+        data.add(metrics);
       } else {
         serversMissingMetrics.incrementAndGet();
       }

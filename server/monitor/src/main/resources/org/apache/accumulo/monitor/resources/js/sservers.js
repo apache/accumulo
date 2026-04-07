@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    getSserversView, renderActivityState, renderMemoryState
+    getSserversView, COLUMN_MAP: false
 */
 "use strict";
 
@@ -46,6 +46,7 @@ function getStoredRows() {
   if (!Array.isArray(view.data)) {
     return [];
   }
+  console.log('table data: ' + JSON.stringify(view.data));
   return view.data;
 }
 
@@ -58,10 +59,19 @@ function getDataTableCols() {
   var dataTableColumns = [];
   var storedColumns = getStoredColumns();
   $.each(storedColumns, function (index, col) {
-    dataTableColumns.push({
-      data: col.name
-    });
+    if (COLUMN_MAP.has(col)) {
+      var mapping = COLUMN_MAP.get(col);
+      dataTableColumns.push({
+        data: col,
+        render: mapping.render
+      });
+    } else {
+      dataTableColumns.push({
+        data: col
+      });
+    }
   });
+  console.log('table columns: ' + JSON.stringify(dataTableColumns));
   return dataTableColumns;
 }
 
@@ -80,12 +90,21 @@ function refreshScanServersTable() {
 
   var storedColumns = getStoredColumns();
   $.each(storedColumns, function (index, col) {
-    //console.log('Adding column: ' + JSON.stringify(col));
-    var th = $(document.createElement("th"));
-    th.addClass(col.uiClass);
-    th.text(col.name);
-    th.attr("title", col.description);
-    theadRow.append(th);
+    console.log('Adding table header row for column: ' + JSON.stringify(col));
+    if (COLUMN_MAP.has(col)) {
+      var mapping = COLUMN_MAP.get(col);
+      var th = $(document.createElement("th"));
+      th.addClass(mapping.classes);
+      th.text(mapping.header);
+      th.attr("title", mapping.description);
+      th.attr("data-data", col);
+      theadRow.append(th);
+    } else {
+      var th = $(document.createElement("th"));
+      th.text(col);
+      th.attr("title", "Unmapped column");
+      theadRow.append(th);
+    }
   });
   thead.append(theadRow);
   sserversHtmlTable.append(thead);
@@ -174,6 +193,40 @@ function createDataTable() {
             data = timeDuration(data);
           }
           return data;
+        }
+      },
+      {
+        "targets": "idle-state",
+        "render": function renderActivityState(data, type) {
+          if (type !== 'display') {
+            return data;
+          }
+          if (data === null || data === undefined) {
+            return '&mdash;';
+          }
+          if (Number(data) === 1) {
+            return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
+              '<span class="visually-hidden">Idle</span>';
+          }
+          return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
+            '<span class="visually-hidden">Active</span>';
+        }
+      },
+      {
+        "targets": "memory-state",
+        "render": function renderMemoryState(data, type) {
+          if (type !== 'display') {
+            return data;
+          }
+          if (data === null || data === undefined) {
+            return '&mdash;';
+          }
+          if (Number(data) === 1) {
+            return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
+              '<span class="visually-hidden">Low memory detected</span>';
+          }
+          return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
+            '<span class="visually-hidden">Memory normal</span>';
         }
       }
     ],
