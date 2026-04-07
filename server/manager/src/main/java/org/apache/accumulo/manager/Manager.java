@@ -169,6 +169,7 @@ import com.google.common.util.concurrent.Uninterruptibles;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -181,6 +182,9 @@ public class Manager extends AbstractServer
     implements LiveTServerSet.Listener, PrimaryManagerThriftService {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
+
+  // visible for testing
+  public static final String PRIMARY_TAG_KEY = "manager.primary";
 
   // When in safe mode totalAssignedOrHosted() is called every 10s
   // which logs 3 messages about assigned tablets, 1 message
@@ -901,14 +905,19 @@ public class Manager extends AbstractServer
   // This is called after getting the assistant manager lock
   private void setupAssistantMetrics(MetricsProducer... producers) {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    metricsInfo.addMetricsProducers(producers);
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+    List<Tag> tags = new ArrayList<>();
+    tags.addAll(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
+    // Add the primary tag
+    tags.add(Tag.of(PRIMARY_TAG_KEY, "false"));
+    metricsInfo.init(tags);
+    metricsInfo.addMetricsProducers(producers);
   }
 
   // This is called after getting the primary manager lock
   private void setupPrimaryMetrics() {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    metricsInfo.reinit(List.of(Tag.of(PRIMARY_TAG_KEY, "true")));
     metricsInfo.addMetricsProducers(balanceManager.getMetrics());
     // ensure all tablet group watchers are setup
     Preconditions.checkState(watchers.size() == DataLevel.values().length);

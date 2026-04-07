@@ -100,6 +100,30 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   private static final int numFateThreadsPool3 = 15;
   private static final String allOpsFateExecutorName = "pool1";
 
+  // meter names sorted and formatting disabled to make it easier to diff changes
+  // @formatter:off
+  public static final Set<Metric> unexpectedMetrics = Set.of(
+          SCAN_YIELDS,
+          COMPACTOR_MAJC_CANCELLED,
+          COMPACTOR_MAJC_FAILED,
+          COMPACTOR_MAJC_FAILURES_CONSECUTIVE,
+          COMPACTOR_MAJC_FAILURES_TERMINATION
+  );
+
+  // add sserver as flaky until scan server included in mini tests.
+  public static final Set<Metric> flakyMetrics = Set.of(
+          COMPACTOR_MAJC_STUCK,
+          FATE_TYPE_IN_PROGRESS,
+          MANAGER_BALANCER_MIGRATIONS_NEEDED,
+          SCAN_BUSY_TIMEOUT_COUNT,
+          SCAN_RESERVATION_CONFLICT_COUNTER,
+          SCAN_RESERVATION_TOTAL_TIMER,
+          SCAN_RESERVATION_WRITEOUT_TIMER,
+          SCAN_TABLET_METADATA_CACHE,
+          SERVER_IDLE
+  );
+  // @formatter:on
+
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
@@ -146,30 +170,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Test
   public void confirmMetricsPublished() throws Exception {
-
-    // meter names sorted and formatting disabled to make it easier to diff changes
-    // @formatter:off
-    Set<Metric> unexpectedMetrics = Set.of(
-            SCAN_YIELDS,
-            COMPACTOR_MAJC_CANCELLED,
-            COMPACTOR_MAJC_FAILED,
-            COMPACTOR_MAJC_FAILURES_CONSECUTIVE,
-            COMPACTOR_MAJC_FAILURES_TERMINATION
-    );
-
-    // add sserver as flaky until scan server included in mini tests.
-    Set<Metric> flakyMetrics = Set.of(
-            COMPACTOR_MAJC_STUCK,
-            FATE_TYPE_IN_PROGRESS,
-            MANAGER_BALANCER_MIGRATIONS_NEEDED,
-            SCAN_BUSY_TIMEOUT_COUNT,
-            SCAN_RESERVATION_CONFLICT_COUNTER,
-            SCAN_RESERVATION_TOTAL_TIMER,
-            SCAN_RESERVATION_WRITEOUT_TIMER,
-            SCAN_TABLET_METADATA_CACHE,
-            SERVER_IDLE
-    );
-    // @formatter:on
 
     Set<Metric> expectedMetrics = new HashSet<>(Arrays.asList(Metric.values()));
     expectedMetrics.removeAll(flakyMetrics); // might not see these
@@ -465,7 +465,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     }
   }
 
-  static void doWorkToGenerateMetrics(AccumuloClient client, Class<?> testClass) throws Exception {
+  public static void doWorkToGenerateMetrics(AccumuloClient client, Class<?> testClass)
+      throws Exception {
     String tableName = testClass.getSimpleName();
     client.tableOperations().create(tableName);
     BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
