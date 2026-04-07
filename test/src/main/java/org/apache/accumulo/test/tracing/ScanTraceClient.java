@@ -45,6 +45,7 @@ public class ScanTraceClient {
     String endRow;
     String family;
     String qualifier;
+    String untracedIntermediateScans;
 
     Options() {}
 
@@ -75,6 +76,12 @@ public class ScanTraceClient {
       }
     }
 
+    int getUntracedIntermediateScans() {
+      if (untracedIntermediateScans == null) {
+        return 0;
+      }
+      return Integer.parseInt(untracedIntermediateScans);
+    }
   }
 
   public static class Results {
@@ -104,8 +111,7 @@ public class ScanTraceClient {
 
     Tracer tracer = GlobalOpenTelemetry.get().getTracer(ScanTraceClient.class.getName());
     try (var client = Accumulo.newClient().from(clientPropsPath).build()) {
-      long scanCount = 0;
-      long scanSize = 0;
+
       long batchScancount = 0;
       long batchScanSize = 0;
 
@@ -120,6 +126,19 @@ public class ScanTraceClient {
         span.end();
       }
       var traceId1 = span.getSpanContext().getTraceId();
+
+      // These scans are done to ensure cacne is populated. Caffeine can evict things that were only
+      // used once.
+      for (int i = 0; i < opts.getUntracedIntermediateScans(); i++) {
+        try (var scanner = client.createScanner(table)) {
+          opts.conigureScanner(scanner);
+          scanner.setBatchSize(10_000);
+          var ignored = scanner.stream().count();
+        }
+      }
+
+      long scanCount = 0;
+      long scanSize = 0;
 
       // start a second trace
       span = tracer.spanBuilder("seq-scan").startSpan();

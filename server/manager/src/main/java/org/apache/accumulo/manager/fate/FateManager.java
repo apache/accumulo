@@ -26,13 +26,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FatePartition;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -43,15 +44,14 @@ import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.manager.FateLocations;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeMap;
 import com.google.common.collect.Sets;
-import com.google.common.collect.TreeRangeMap;
 import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -77,121 +77,107 @@ public class FateManager {
 
   private final AtomicBoolean stop = new AtomicBoolean(false);
 
-  record FateHostPartition(HostAndPort hostPort, FatePartition partition) {
-  }
-
-  private final AtomicReference<RangeMap<FateId,FateHostPartition>> stableAssignments =
-      new AtomicReference<>(TreeRangeMap.create());
-
-  private final Map<HostAndPort,Set<FatePartition>> pendingNotifications = new HashMap<>();
-
-  private void manageAssistants() throws TException, InterruptedException {
+  private void manageAssistants() {
     log.debug("Started Fate Manager");
     long stableCount = 0;
+    long unstableCount = 0;
     outer: while (!stop.get()) {
-
-      long sleepTime = Math.min(stableCount * 100, 5_000);
-      Thread.sleep(sleepTime);
-
-      // This map will contain all current workers even if their partitions are empty
-      Map<HostAndPort,CurrentPartitions> currentPartitions;
       try {
-        currentPartitions = getCurrentAssignments(context);
-      } catch (TException e) {
-        log.warn("Failed to get current partitions ", e);
-        continue;
-      }
-      Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
-      currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
-      Set<FatePartition> desiredParititions = getDesiredPartitions(currentAssignments.size());
+        long sleepTime = Math.min(stableCount * 100, 5_000);
+        Thread.sleep(sleepTime);
 
-      Map<HostAndPort,Set<FatePartition>> desired =
-          computeDesiredAssignments(currentAssignments, desiredParititions);
+        // This map will contain all current workers even if their partitions are empty
+        Map<HostAndPort,CurrentPartitions> currentPartitions;
+        try {
+          currentPartitions = getCurrentAssignments(context);
+        } catch (TException e) {
+          log.warn("Failed to get current partitions ", e);
+          continue;
+        }
+        Map<HostAndPort,Set<FatePartition>> currentAssignments = new HashMap<>();
+        currentPartitions.forEach((k, v) -> currentAssignments.put(k, v.partitions()));
+        Map<FateInstanceType,Set<FatePartition>> desiredParititions =
+            getDesiredPartitions(currentAssignments.size());
 
-      if (desired.equals(currentAssignments)) {
-        RangeMap<FateId,FateHostPartition> rangeMap = TreeRangeMap.create();
-        currentAssignments.forEach((hostAndPort, partitions) -> {
-          partitions.forEach(partition -> {
-            rangeMap.put(Range.closed(partition.start(), partition.end()),
-                new FateHostPartition(hostAndPort, partition));
-          });
-        });
-        stableAssignments.set(rangeMap);
-        stableCount++;
-      } else {
-        stableAssignments.set(TreeRangeMap.create());
-        stableCount = 0;
-      }
+        Map<HostAndPort,Set<FatePartition>> desired =
+            computeDesiredAssignments(currentAssignments, desiredParititions);
 
-      // are there any workers with extra partitions? If so need to unload those first.
-      int unloads = 0;
-      for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
-        HostAndPort worker = entry.getKey();
-        Set<FatePartition> partitions = entry.getValue();
-        var curr = currentAssignments.getOrDefault(worker, Set.of());
-        if (!Sets.difference(curr, partitions).isEmpty()) {
-          // This worker has extra partitions that are not desired
-          var intersection = Sets.intersection(curr, partitions);
-          if (!setPartitions(worker, currentPartitions.get(worker).updateId(), intersection)) {
-            log.debug("Failed to set partitions for {} to {}", worker, intersection);
-            // could not set, so start completely over
-            continue outer;
-          } else {
-            log.debug("Set partitions for {} to {} from {}", worker, intersection, curr);
-            unloads++;
+        if (desired.equals(currentAssignments)) {
+          if (stableCount == 0) {
+            FateLocations.storeLocations(context, currentAssignments);
+          }
+          stableCount++;
+          unstableCount = 0;
+          continue;
+        } else {
+          if (unstableCount == 0) {
+            FateLocations.storeLocations(context, Map.of());
+          }
+          stableCount = 0;
+          unstableCount++;
+        }
+
+        // are there any workers with extra partitions? If so need to unload those first.
+        int unloads = 0;
+        for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+          HostAndPort worker = entry.getKey();
+          Set<FatePartition> partitions = entry.getValue();
+          var curr = currentAssignments.getOrDefault(worker, Set.of());
+          if (!Sets.difference(curr, partitions).isEmpty()) {
+            // This worker has extra partitions that are not desired
+            var intersection = Sets.intersection(curr, partitions);
+            if (!setPartitions(worker, currentPartitions.get(worker).updateId(), intersection)) {
+              log.debug("Failed to set partitions for {} to {}", worker, intersection);
+              // could not set, so start completely over
+              continue outer;
+            } else {
+              log.debug("Set partitions for {} to {} from {}", worker, intersection, curr);
+              unloads++;
+            }
           }
         }
-      }
 
-      if (unloads > 0) {
-        // some tablets were unloaded, so start over and get new update ids and the current
-        // partitions
-        continue outer;
-      }
+        if (unloads > 0) {
+          // some tablets were unloaded, so start over and get new update ids and the current
+          // partitions
+          continue outer;
+        }
 
-      // Load all partitions on all workers..
-      for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
-        HostAndPort worker = entry.getKey();
-        Set<FatePartition> partitions = entry.getValue();
-        var curr = currentAssignments.getOrDefault(worker, Set.of());
-        if (!curr.equals(partitions)) {
-          if (!setPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
-            log.debug("Failed to set partitions for {} to {}", worker, partitions);
-            // could not set, so start completely over
-            continue outer;
-          } else {
-            log.debug("Set partitions for {} to {} from {}", worker, partitions, curr);
+        // Load all partitions on all workers..
+        for (Map.Entry<HostAndPort,Set<FatePartition>> entry : desired.entrySet()) {
+          HostAndPort worker = entry.getKey();
+          Set<FatePartition> partitions = entry.getValue();
+          var curr = currentAssignments.getOrDefault(worker, Set.of());
+          if (!curr.equals(partitions)) {
+            if (!setPartitions(worker, currentPartitions.get(worker).updateId(), partitions)) {
+              log.debug("Failed to set partitions for {} to {}", worker, partitions);
+              // could not set, so start completely over
+              continue outer;
+            } else {
+              log.debug("Set partitions for {} to {} from {}", worker, partitions, curr);
+            }
           }
         }
+      } catch (Exception e) {
+        log.warn("Failed to assign fate partitions to managers, will retry later", e);
       }
     }
   }
 
   private Thread assignmentThread = null;
-  private Thread ntfyThread = null;
 
   public synchronized void start() {
     Preconditions.checkState(assignmentThread == null);
-    Preconditions.checkState(ntfyThread == null);
     Preconditions.checkState(!stop.get());
 
-    assignmentThread = Threads.createCriticalThread("Fate Manager", () -> {
-      try {
-        manageAssistants();
-      } catch (Exception e) {
-        throw new IllegalStateException(e);
-      }
-    });
+    assignmentThread = Threads.createCriticalThread("Fate Manager", this::manageAssistants);
     assignmentThread.start();
-
-    ntfyThread = Threads.createCriticalThread("Fate Notify", new NotifyTask());
-    ntfyThread.start();
   }
 
   @SuppressFBWarnings(value = "SWL_SLEEP_WITH_LOCK_HELD",
       justification = "Sleep is okay. Can hold the lock as long as needed, as we are shutting down."
           + " Don't need or want other operations to run.")
-  public synchronized void stop(Duration timeout) {
+  public synchronized void stop(FateInstanceType fateType, Duration timeout) {
     if (!stop.compareAndSet(false, true)) {
       return;
     }
@@ -201,9 +187,6 @@ public class FateManager {
     try {
       if (assignmentThread != null) {
         assignmentThread.join();
-      }
-      if (ntfyThread != null) {
-        ntfyThread.join();
       }
     } catch (InterruptedException e) {
       throw new IllegalStateException(e);
@@ -222,18 +205,26 @@ public class FateManager {
       var currentPartitions = entry.getValue();
       if (!currentPartitions.partitions.isEmpty()) {
         try {
-          setPartitions(hostPort, currentPartitions.updateId(), Set.of());
+          var copy = new HashSet<>(currentPartitions.partitions);
+          copy.removeIf(fp -> fp.getType() == fateType);
+          setPartitions(hostPort, currentPartitions.updateId(), copy);
         } catch (TException e) {
           log.warn("Failed to unassign fate partitions {}", hostPort, e);
         }
       }
     }
 
-    stableAssignments.set(TreeRangeMap.create());
-
     if (!timer.isExpired()) {
-      var store = new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
-
+      FateStore<FateEnv> store = switch (fateType) {
+        case USER -> new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
+        case META -> {
+          try {
+            yield new MetaFateStore<>(context.getZooSession(), null, null);
+          } catch (KeeperException | InterruptedException e) {
+            throw new IllegalStateException(e);
+          }
+        }
+      };
       var reserved = store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
       while (!reserved.isEmpty() && !timer.isExpired()) {
         if (log.isTraceEnabled()) {
@@ -245,58 +236,6 @@ public class FateManager {
           Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
         } catch (InterruptedException e) {
           throw new IllegalStateException(e);
-        }
-      }
-    }
-  }
-
-  /**
-   * Makes a best effort to notify this fate operation was seeded.
-   */
-  public void notifySeeded(FateId fateId) {
-    var hostPartition = stableAssignments.get().get(fateId);
-    if (hostPartition != null) {
-      synchronized (pendingNotifications) {
-        pendingNotifications.computeIfAbsent(hostPartition.hostPort(), k -> new HashSet<>())
-            .add(hostPartition.partition());
-        pendingNotifications.notify();
-      }
-    }
-  }
-
-  private class NotifyTask implements Runnable {
-
-    @Override
-    public void run() {
-      while (!stop.get()) {
-        try {
-          Map<HostAndPort,Set<FatePartition>> copy;
-          synchronized (pendingNotifications) {
-            if (pendingNotifications.isEmpty()) {
-              pendingNotifications.wait(100);
-            }
-            copy = Map.copyOf(pendingNotifications);
-            pendingNotifications.clear();
-          }
-
-          for (var entry : copy.entrySet()) {
-            HostAndPort address = entry.getKey();
-            Set<FatePartition> partitions = entry.getValue();
-            FateWorkerService.Client client =
-                ThriftUtil.getClient(ThriftClientTypes.FATE_WORKER, address, context);
-            try {
-              log.trace("Notifying about seeding {} {}", address, partitions);
-              client.seeded(TraceUtil.traceInfo(), context.rpcCreds(),
-                  partitions.stream().map(FatePartition::toThrift).toList());
-            } finally {
-              ThriftUtil.returnClient(client, context);
-            }
-          }
-
-        } catch (InterruptedException e) {
-          throw new IllegalStateException(e);
-        } catch (TException e) {
-          log.warn("Failed to send notification that fate was seeded", e);
         }
       }
     }
@@ -322,6 +261,9 @@ public class FateManager {
       log.trace("Setting partitions {} {} {}", address, updateId, desired);
       return client.setPartitions(TraceUtil.traceInfo(), context.rpcCreds(), updateId,
           desired.stream().map(FatePartition::toThrift).toList());
+    } catch (TException e) {
+      log.warn("Failed to set partition on {}", address, e);
+      return false;
     } finally {
       ThriftUtil.returnClient(client, context);
     }
@@ -333,28 +275,41 @@ public class FateManager {
    */
   private Map<HostAndPort,Set<FatePartition>> computeDesiredAssignments(
       Map<HostAndPort,Set<FatePartition>> currentAssignments,
-      Set<FatePartition> desiredParititions) {
+      Map<FateInstanceType,Set<FatePartition>> desiredParititions) {
 
-    Preconditions.checkArgument(currentAssignments.size() == desiredParititions.size());
     Map<HostAndPort,Set<FatePartition>> desiredAssignments = new HashMap<>();
 
-    var copy = new HashSet<>(desiredParititions);
-
-    currentAssignments.forEach((hp, partitions) -> {
-      if (!partitions.isEmpty()) {
-        var firstPart = partitions.iterator().next();
-        if (copy.contains(firstPart)) {
-          desiredAssignments.put(hp, Set.of(firstPart));
-          copy.remove(firstPart);
-        }
-      }
+    currentAssignments.keySet().forEach(hp -> {
+      desiredAssignments.put(hp, new HashSet<>());
     });
 
-    var iter = copy.iterator();
-    currentAssignments.forEach((hp, partitions) -> {
-      if (!desiredAssignments.containsKey(hp)) {
-        desiredAssignments.put(hp, Set.of(iter.next()));
-      }
+    desiredParititions.forEach((fateType, desiredForType) -> {
+      // This code can not handle more than one partition per host
+      Preconditions.checkState(desiredForType.size() <= currentAssignments.size());
+
+      var added = new HashSet<FatePartition>();
+
+      currentAssignments.forEach((hp, partitions) -> {
+        var hostAssignments = desiredAssignments.get(hp);
+        partitions.forEach(partition -> {
+          if (desiredForType.contains(partition)
+              && hostAssignments.stream().noneMatch(fp -> fp.getType() == fateType)
+              && !added.contains(partition)) {
+            hostAssignments.add(partition);
+            Preconditions.checkState(added.add(partition));
+          }
+        });
+      });
+
+      var iter = Sets.difference(desiredForType, added).iterator();
+      currentAssignments.forEach((hp, partitions) -> {
+        var hostAssignments = desiredAssignments.get(hp);
+        if (iter.hasNext() && hostAssignments.stream().noneMatch(fp -> fp.getType() == fateType)) {
+          hostAssignments.add(iter.next());
+        }
+      });
+
+      Preconditions.checkState(!iter.hasNext());
     });
 
     if (log.isTraceEnabled()) {
@@ -363,7 +318,6 @@ public class FateManager {
         log.trace(" desired {} {} {}", hp, parts.size(), parts);
       });
     }
-
     return desiredAssignments;
   }
 
@@ -371,15 +325,23 @@ public class FateManager {
    * Computes a single partition for each worker such that the partition cover all possible UUIDs
    * and evenly divide the UUIDs.
    */
-  private Set<FatePartition> getDesiredPartitions(int numWorkers) {
+  private Map<FateInstanceType,Set<FatePartition>> getDesiredPartitions(int numWorkers) {
     Preconditions.checkArgument(numWorkers >= 0);
 
     if (numWorkers == 0) {
-      return Set.of();
+      return Map.of(FateInstanceType.META, Set.of(), FateInstanceType.USER, Set.of());
     }
 
     // create a single partition per worker that equally divides the space
-    HashSet<FatePartition> desired = new HashSet<>();
+    Map<FateInstanceType,Set<FatePartition>> desired = new HashMap<>();
+
+    // meta fate will never see much activity, so give it a single partition.
+    desired.put(FateInstanceType.META,
+        Set.of(new FatePartition(FateId.from(FateInstanceType.META, new UUID(0, 0)),
+            FateId.from(FateInstanceType.META, new UUID(-1, -1)))));
+
+    Set<FatePartition> desiredUser = new HashSet<>();
+
     // All the shifting is because java does not have unsigned integers. Want to evenly partition
     // [0,2^64) into numWorker ranges, but can not directly do that. Work w/ 60 bit unsigned
     // integers to partition the space and then shift over by 4. Used 60 bits instead of 63 so it
@@ -392,7 +354,7 @@ public class FateManager {
       UUID startUuid = new UUID(start, 0);
       UUID endUuid = new UUID(end, 0);
 
-      desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
+      desiredUser.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
           FateId.from(FateInstanceType.USER, endUuid)));
     }
 
@@ -400,8 +362,10 @@ public class FateManager {
     UUID startUuid = new UUID(start, 0);
     // last partition has a special end uuid that is all f nibbles.
     UUID endUuid = new UUID(-1, -1);
-    desired.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
+    desiredUser.add(new FatePartition(FateId.from(FateInstanceType.USER, startUuid),
         FateId.from(FateInstanceType.USER, endUuid)));
+
+    desired.put(FateInstanceType.USER, desiredUser);
 
     return desired;
   }

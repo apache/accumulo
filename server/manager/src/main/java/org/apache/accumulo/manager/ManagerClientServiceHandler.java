@@ -33,7 +33,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -62,6 +64,7 @@ import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -85,7 +88,7 @@ import org.apache.accumulo.core.securityImpl.thrift.TDelegationToken;
 import org.apache.accumulo.core.securityImpl.thrift.TDelegationTokenConfig;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.manager.tableOps.FateEnv;
-import org.apache.accumulo.manager.tserverOps.ShutdownTServer;
+import org.apache.accumulo.manager.tserverOps.BeginTserverShutdown;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -336,16 +339,16 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
-    FateId fateId = fate.startTransaction();
 
-    String msg = "Shutdown tserver " + tabletServer;
+    var repo = new TraceRepo<>(
+        new BeginTserverShutdown(doomed, manager.tserverSet.getResourceGroup(doomed), force));
 
-    fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, fateId,
-        new TraceRepo<>(
-            new ShutdownTServer(doomed, manager.tserverSet.getResourceGroup(doomed), force)),
-        false, msg);
-    fate.waitForCompletion(fateId);
-    fate.delete(fateId);
+    CompletableFuture<Optional<FateId>> future;
+    try (var seeder = fate.beginSeeding()) {
+      future = seeder.attemptToSeedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER,
+          FateKey.forShutdown(doomed), repo, true);
+    }
+    future.join().ifPresent(fate::waitForCompletion);
 
     log.debug("FATE op shutting down " + tabletServer + " finished");
   }
@@ -360,17 +363,15 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
     var tserver = new TServerInstance(tabletServer);
-    if (manager.shutdownTServer(tserver)) {
-      // If there is an exception seeding the fate tx this should cause the RPC to fail which should
-      // cause the tserver to halt. Because of that not making an attempt to handle failure here.
-      FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
-      var tid = fate.startTransaction();
-      String msg = "Shutdown tserver " + tabletServer;
+    // If there is an exception seeding the fate tx this should cause the RPC to fail which should
+    // cause the tserver to halt. Because of that not making an attempt to handle failure here.
+    FateClient<FateEnv> fate = manager.fateClient(FateInstanceType.META);
 
-      fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
-          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.of(resourceGroup), false)),
-          true, msg);
-    }
+    var repo = new TraceRepo<>(
+        new BeginTserverShutdown(tserver, ResourceGroupId.of(resourceGroup), false));
+    // only seed a new transaction if nothing is running for this tserver
+    fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, FateKey.forShutdown(tserver), repo,
+        true);
   }
 
   @Override

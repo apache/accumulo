@@ -19,7 +19,6 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -102,9 +101,13 @@ public class MultipleManagerStartupWaitIT extends ConfigurableMacBase {
     Set<String> managerHosts = new HashSet<>();
     managers.forEach(m -> managerHosts.add(m.getServer()));
 
+    // There is a time period where the primary manager has the lock but has not yet set the address
+    // on the lock, when the address is not set an empty set would be returned. So this waits for
+    // the address to be set.
+    Wait.waitFor(() -> !getCluster().getServerContext().instanceOperations()
+        .getServers(ServerId.Type.MANAGER).isEmpty());
     Set<ServerId> primary =
         getCluster().getServerContext().instanceOperations().getServers(ServerId.Type.MANAGER);
-    assertNotNull(primary);
     assertEquals(1, primary.size());
     assertTrue(managerHosts.contains(primary.iterator().next().toHostPortString()));
     assertNull(startError.get());

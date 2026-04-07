@@ -60,4 +60,8 @@ public record FatePartition(FateId start, FateId end) {
     }
 
   }
+
+  public FateInstanceType getType() {
+    return start.getType();
+  }
 }
