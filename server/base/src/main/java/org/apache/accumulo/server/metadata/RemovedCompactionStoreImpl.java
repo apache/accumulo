@@ -58,8 +58,8 @@ public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore 
 
   @Override
   public Stream<Ample.RemovedCompaction> list() {
-    return Stream.concat(createStream(SystemTables.ROOT.tableName()),
-        createStream(SystemTables.METADATA.tableName()));
+    return Stream.concat(createStream(Ample.DataLevel.METADATA.metaTable()),
+        createStream(Ample.DataLevel.USER.metaTable()));
   }
 
   private void write(Collection<Ample.RemovedCompaction> removedCompactions,
