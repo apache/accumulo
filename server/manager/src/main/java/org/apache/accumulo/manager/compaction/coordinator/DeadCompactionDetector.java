@@ -151,7 +151,7 @@ public class DeadCompactionDetector {
       });
     }
 
-    // Get the list of compaction entires that were removed from the metadata table by a split or
+    // Get the list of compaction entries that were removed from the metadata table by a split or
     // merge operation. Must get this data before getting the running set of compactions.
     List<Ample.RemovedCompaction> removedCompactions;
     try (Stream<Ample.RemovedCompaction> listing = context.getAmple().removedCompactions().list()) {
