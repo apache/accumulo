@@ -138,7 +138,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0, 60_000);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty(), 60_000);
     }
   }
 
@@ -200,7 +200,7 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty());
     }
   }
 

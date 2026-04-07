@@ -153,7 +153,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
       // Verify that the tmp file are cleaned up
       Wait.waitFor(() -> FindCompactionTmpFiles
-          .findTempFiles(getCluster().getServerContext(), tid.canonical()).size() == 0);
+          .findTempFiles(getCluster().getServerContext(), tid.canonical()).isEmpty());
 
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled

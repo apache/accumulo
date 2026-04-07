@@ -828,12 +828,14 @@ public class CompactionCoordinator
     // death that the dead compaction will be detected in the future and the files removed then.
     try (var tablets = ctx.getAmple().readTablets()
         .forTablets(compactions.keySet(), Optional.empty()).fetch(ColumnType.DIR).build()) {
+      Set<Path> tmpFilesToDelete = new HashSet<>();
       for (TabletMetadata tm : tablets) {
         var extent = tm.getExtent();
         var ecidsForTablet = compactions.get(extent);
-        FindCompactionTmpFiles.deleteTmpFiles(ctx, extent.tableId(), tm.getDirName(),
-            ecidsForTablet);
+        FindCompactionTmpFiles.findTmpFiles(ctx, extent.tableId(), tm.getDirName(), ecidsForTablet,
+            tmpFilesToDelete::add);
       }
+      FindCompactionTmpFiles.deleteTempFiles(ctx, tmpFilesToDelete);
     }
 
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
