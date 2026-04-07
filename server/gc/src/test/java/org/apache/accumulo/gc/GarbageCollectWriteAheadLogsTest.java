@@ -198,6 +198,43 @@ public class GarbageCollectWriteAheadLogsTest {
   }
 
   @Test
+  public void keepEmptyMarkerForNonLiveServer() throws Exception {
+    // server2 is not live and has no WALs; its znode must not be deleted (race condition guard)
+    Map<TServerInstance,List<UUID>> emptyMarkers =
+        Collections.singletonMap(server2, Collections.emptyList());
+    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
+    ServerContext context = EasyMock.createMock(ServerContext.class);
+    VolumeManager fs = EasyMock.createMock(VolumeManager.class);
+    WalStateManager marker = EasyMock.createMock(WalStateManager.class);
+    LiveTServerSet tserverSet = EasyMock.createMock(LiveTServerSet.class);
+
+    GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
+
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
+    tserverSet.scanServers();
+    EasyMock.expectLastCall();
+    EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
+
+    EasyMock.expect(marker.getAllMarkers()).andReturn(emptyMarkers).once();
+    // forget() must NOT be called for a non-live server with an empty WAL set
+    EasyMock.replay(conf, context, fs, marker, tserverSet);
+    var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
+      @Override
+      protected Map<UUID,Path> getSortedWALogs() {
+        return Collections.emptyMap();
+      }
+
+      @Override
+      Stream<TabletMetadata> createStore(Set<TServerInstance> liveTservers) {
+        return tabletOnServer1List;
+      }
+    };
+    gc.collect(status);
+    EasyMock.verify(conf, context, fs, marker, tserverSet);
+  }
+
+  @Test
   public void ignoreReferenceLogOnDeadServer() throws Exception {
     AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);

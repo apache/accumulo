@@ -229,9 +229,9 @@ public class GarbageCollectWriteAheadLogs {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    // remove parent znode for dead tablet servers
+    // remove parent znode for dead tablet servers that had WALs
     for (Entry<TServerInstance,Set<UUID>> entry : candidates.entrySet()) {
-      if (!liveServers.contains(entry.getKey())) {
+      if (!liveServers.contains(entry.getKey()) && !entry.getValue().isEmpty()) {
         log.info("Removing znode for " + entry.getKey());
         try {
           walMarker.forget(entry.getKey());
