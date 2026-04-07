@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TDequeuedCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -248,10 +250,13 @@ public class CompactionCoordinatorTest {
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(new TInfo(), rpcCreds,
-        GROUP_ID.toString(), "localhost:10241", eci.toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    TExternalCompactionJob createdJob = nextJob.getJob();
+    TDequeuedCompactionJob unreservedJob =
+        coordinator.getCompactionJob(new TInfo(), rpcCreds, GROUP_ID.toString());
+    assertEquals(3, unreservedJob.getCompactorCount());
+    assertNotNull(unreservedJob.getJob());
+    TNextCompactionJob reservedJob = coordinator.reserveCompactionJob(new TInfo(), rpcCreds,
+        unreservedJob.getJob(), "localhost:10241", eci.toString());
+    TExternalCompactionJob createdJob = reservedJob.getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
     assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
 
@@ -263,9 +268,9 @@ public class CompactionCoordinatorTest {
   @Test
   public void testGetCompactionJobNoJobs() throws Exception {
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(TraceUtil.traceInfo(), rpcCreds,
-        GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    assertNull(nextJob.getJob().getExternalCompactionId());
+    TDequeuedCompactionJob unreservedJob =
+        coordinator.getCompactionJob(TraceUtil.traceInfo(), rpcCreds, GROUP_ID.toString());
+    assertEquals(3, unreservedJob.getCompactorCount());
+    assertNull(unreservedJob.getJob());
   }
 }

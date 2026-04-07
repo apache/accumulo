@@ -70,6 +70,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.C
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
+import org.apache.accumulo.core.compaction.thrift.TDequeuedCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
@@ -548,15 +549,35 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     RetryableThriftCall<TNextCompactionJob> nextJobThriftCall =
         new RetryableThriftCall<>(startingWaitTime, maxWaitTime, 0, () -> {
+
           Client coordinatorClient = null;
+          TDequeuedCompactionJob unreservedJob;
           try {
+            // Must go to the coordinator that is hosting the queue for the compactor group. All
+            // compactors in the group will go to this single coordinator for this, but the RPC to
+            // pull from the queue is quick in memory operation.
             coordinatorClient = getCoordinatorClient(GROUP);
+            unreservedJob = coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
+                getContext().rpcCreds(), this.getResourceGroup().canonical());
+          } finally {
+            ThriftUtil.returnClient(coordinatorClient, getContext());
+          }
+
+          if (unreservedJob.getJob() == null) {
+            return new TNextCompactionJob(new TExternalCompactionJob(),
+                unreservedJob.getCompactorCount());
+          }
+
+          try {
+            // Go to any coordinator to reserve the job, this spreads the metadata operations to
+            // reserve a compaction across all coordinators regardless of compactor group.
+            coordinatorClient = getCoordinatorClient(ANY);
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
-            LOG.trace("Attempting to get next job, eci = {}", eci);
+            LOG.trace("Attempting to reserve next job, eci = {}", eci);
             currentCompactionId.set(eci);
-            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup().canonical(),
-                getAdvertiseAddress().toString(), eci.toString());
+            return coordinatorClient.reserveCompactionJob(TraceUtil.traceInfo(),
+                getContext().rpcCreds(), unreservedJob.getJob(), getAdvertiseAddress().toString(),
+                eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;

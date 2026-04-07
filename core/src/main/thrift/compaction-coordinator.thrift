@@ -78,6 +78,13 @@ struct TResolvedCompactionJob {
   9:bool overlapsSelectedFiles
 }
 
+struct TDequeuedCompactionJob {
+  1:TResolvedCompactionJob job
+  // The total number of compactors servicing the queue this job was requested for
+  2:i32 compactorCount
+
+}
+
 exception UnknownCompactionIdException {}
 
 service CompactionCoordinatorService {
@@ -98,12 +105,23 @@ service CompactionCoordinatorService {
   )
 
   /*
-   * Called by Compactor to get the next compaction job
+   * Called by Compactor to get the next compaction job off the queue
    */
-  TNextCompactionJob getCompactionJob(
+  TDequeuedCompactionJob getCompactionJob(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string groupName
+  )throws(
+    1:client.ThriftSecurityException sec
+  )
+
+  /*
+   * Called by a compactor to reserve a job returned by getCompactionJob()
+   */
+  TNextCompactionJob reserveCompactionJob(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:TResolvedCompactionJob job
     4:string compactor
     5:string externalCompactionId
   )throws(

@@ -63,6 +63,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TDequeuedCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
 import org.apache.accumulo.core.conf.Property;
@@ -307,64 +308,65 @@ public class CompactionCoordinator
    * Return the next compaction job from the queue to a Compactor
    *
    * @param groupName group
-   * @param compactorAddress compactor address
    * @throws ThriftSecurityException when permission error
    * @return compaction job
    */
   @Override
-  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
-
+  public TDequeuedCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
+      String groupName) throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     ResourceGroupId groupId = ResourceGroupId.of(groupName);
-    LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
+    ResolvedCompactionJob rcJob = (ResolvedCompactionJob) jobQueues.poll(groupId);
+    return new TDequeuedCompactionJob(rcJob == null ? null : rcJob.toThrift(),
+        compactorCounts.get(groupId));
+  }
+
+  @Override
+  public TNextCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
+      TResolvedCompactionJob job, String compactorAddress, String externalCompactionId)
+      throws ThriftSecurityException, TException {
+
+    // do not expect users to call this directly, expect compactors to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    ResourceGroupId groupId = ResourceGroupId.of(job.group);
+    LOG.trace("reserveCompactionJob called for group {} by compactor {}", groupId,
+        compactorAddress);
 
     TExternalCompactionJob result = null;
 
-    ResolvedCompactionJob rcJob = (ResolvedCompactionJob) jobQueues.poll(groupId);
+    ResolvedCompactionJob rcJob = ResolvedCompactionJob.fromThrift(job);
 
-    while (rcJob != null) {
+    Optional<CompactionConfig> compactionConfig = getCompactionConfig(rcJob);
 
-      Optional<CompactionConfig> compactionConfig = getCompactionConfig(rcJob);
+    // this method may reread the metadata, do not use the metadata in rcJob for anything after
+    // this method
+    CompactionMetadata ecm = null;
 
-      // this method may reread the metadata, do not use the metadata in rcJob for anything after
-      // this method
-      CompactionMetadata ecm = null;
+    var kind = rcJob.getKind();
 
-      var kind = rcJob.getKind();
-
-      // Only reserve user compactions when the config is present. When compactions are canceled the
-      // config is deleted.
-      var cid = ExternalCompactionId.from(externalCompactionId);
-      if (kind == CompactionKind.SYSTEM
-          || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-        ecm = reserveCompaction(rcJob, compactorAddress, cid);
-      }
-
-      if (ecm != null) {
-        result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
-        TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
-            rcJob, ecm.getCompactTmpName());
-        break;
-      } else {
-        LOG.debug(
-            "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
-            rcJob.getExtent(), groupName);
-        rcJob = (ResolvedCompactionJob) jobQueues.poll(ResourceGroupId.of(groupName));
-      }
+    // Only reserve user compactions when the config is present. When compactions are canceled the
+    // config is deleted.
+    var cid = ExternalCompactionId.from(externalCompactionId);
+    if (kind == CompactionKind.SYSTEM
+        || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
+      ecm = reserveCompaction(rcJob, compactorAddress, cid);
     }
 
-    if (rcJob == null) {
-      LOG.trace("No jobs found in group {} ", groupName);
+    if (ecm != null) {
+      result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
+      TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
+          rcJob, ecm.getCompactTmpName());
     }
 
     if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
+      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupId,
           compactorAddress);
       result = new TExternalCompactionJob();
     }

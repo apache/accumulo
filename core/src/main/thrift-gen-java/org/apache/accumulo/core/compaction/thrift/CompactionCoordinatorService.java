@@ -31,7 +31,9 @@ public class CompactionCoordinatorService {
 
     public void compactionCompleted(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats, java.lang.String groupName, java.lang.String compactor) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
-    public TNextCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+    public TDequeuedCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
+
+    public TNextCompactionJob reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TResolvedCompactionJob job, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
     public void compactionFailed(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String exceptionClassName, TCompactionState failureState, java.lang.String groupName, java.lang.String compactor) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
@@ -51,7 +53,9 @@ public class CompactionCoordinatorService {
 
     public void compactionCompleted(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.accumulo.core.tabletserver.thrift.TCompactionStats stats, java.lang.String groupName, java.lang.String compactor, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler) throws org.apache.thrift.TException;
+    public void getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, org.apache.thrift.async.AsyncMethodCallback<TDequeuedCompactionJob> resultHandler) throws org.apache.thrift.TException;
+
+    public void reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TResolvedCompactionJob job, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler) throws org.apache.thrift.TException;
 
     public void compactionFailed(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String externalCompactionId, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, java.lang.String exceptionClassName, TCompactionState failureState, java.lang.String groupName, java.lang.String compactor, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -120,24 +124,22 @@ public class CompactionCoordinatorService {
     }
 
     @Override
-    public TNextCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public TDequeuedCompactionJob getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
-      send_getCompactionJob(tinfo, credentials, groupName, compactor, externalCompactionId);
+      send_getCompactionJob(tinfo, credentials, groupName);
       return recv_getCompactionJob();
     }
 
-    public void send_getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.thrift.TException
+    public void send_getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName) throws org.apache.thrift.TException
     {
       getCompactionJob_args args = new getCompactionJob_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setGroupName(groupName);
-      args.setCompactor(compactor);
-      args.setExternalCompactionId(externalCompactionId);
       sendBase("getCompactionJob", args);
     }
 
-    public TNextCompactionJob recv_getCompactionJob() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    public TDequeuedCompactionJob recv_getCompactionJob() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
     {
       getCompactionJob_result result = new getCompactionJob_result();
       receiveBase(result, "getCompactionJob");
@@ -148,6 +150,37 @@ public class CompactionCoordinatorService {
         throw result.sec;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getCompactionJob failed: unknown result");
+    }
+
+    @Override
+    public TNextCompactionJob reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TResolvedCompactionJob job, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      send_reserveCompactionJob(tinfo, credentials, job, compactor, externalCompactionId);
+      return recv_reserveCompactionJob();
+    }
+
+    public void send_reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TResolvedCompactionJob job, java.lang.String compactor, java.lang.String externalCompactionId) throws org.apache.thrift.TException
+    {
+      reserveCompactionJob_args args = new reserveCompactionJob_args();
+      args.setTinfo(tinfo);
+      args.setCredentials(credentials);
+      args.setJob(job);
+      args.setCompactor(compactor);
+      args.setExternalCompactionId(externalCompactionId);
+      sendBase("reserveCompactionJob", args);
+    }
+
+    public TNextCompactionJob recv_reserveCompactionJob() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException
+    {
+      reserveCompactionJob_result result = new reserveCompactionJob_result();
+      receiveBase(result, "reserveCompactionJob");
+      if (result.isSetSuccess()) {
+        return result.success;
+      }
+      if (result.sec != null) {
+        throw result.sec;
+      }
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "reserveCompactionJob failed: unknown result");
     }
 
     @Override
@@ -378,26 +411,22 @@ public class CompactionCoordinatorService {
     }
 
     @Override
-    public void getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler) throws org.apache.thrift.TException {
+    public void getCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, org.apache.thrift.async.AsyncMethodCallback<TDequeuedCompactionJob> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      getCompactionJob_call method_call = new getCompactionJob_call(tinfo, credentials, groupName, compactor, externalCompactionId, resultHandler, this, ___protocolFactory, ___transport);
+      getCompactionJob_call method_call = new getCompactionJob_call(tinfo, credentials, groupName, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class getCompactionJob_call extends org.apache.thrift.async.TAsyncMethodCall<TNextCompactionJob> {
+    public static class getCompactionJob_call extends org.apache.thrift.async.TAsyncMethodCall<TDequeuedCompactionJob> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String groupName;
-      private java.lang.String compactor;
-      private java.lang.String externalCompactionId;
-      public getCompactionJob_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public getCompactionJob_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String groupName, org.apache.thrift.async.AsyncMethodCallback<TDequeuedCompactionJob> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.groupName = groupName;
-        this.compactor = compactor;
-        this.externalCompactionId = externalCompactionId;
       }
 
       @Override
@@ -407,6 +436,51 @@ public class CompactionCoordinatorService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setGroupName(groupName);
+        args.write(prot);
+        prot.writeMessageEnd();
+      }
+
+      @Override
+      public TDequeuedCompactionJob getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException {
+        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
+          throw new java.lang.IllegalStateException("Method call not finished!");
+        }
+        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
+        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
+        return (new Client(prot)).recv_getCompactionJob();
+      }
+    }
+
+    @Override
+    public void reserveCompactionJob(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TResolvedCompactionJob job, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler) throws org.apache.thrift.TException {
+      checkReady();
+      reserveCompactionJob_call method_call = new reserveCompactionJob_call(tinfo, credentials, job, compactor, externalCompactionId, resultHandler, this, ___protocolFactory, ___transport);
+      this.___currentMethod = method_call;
+      ___manager.call(method_call);
+    }
+
+    public static class reserveCompactionJob_call extends org.apache.thrift.async.TAsyncMethodCall<TNextCompactionJob> {
+      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
+      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
+      private TResolvedCompactionJob job;
+      private java.lang.String compactor;
+      private java.lang.String externalCompactionId;
+      public reserveCompactionJob_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, TResolvedCompactionJob job, java.lang.String compactor, java.lang.String externalCompactionId, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+        super(client, protocolFactory, transport, resultHandler, false);
+        this.tinfo = tinfo;
+        this.credentials = credentials;
+        this.job = job;
+        this.compactor = compactor;
+        this.externalCompactionId = externalCompactionId;
+      }
+
+      @Override
+      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("reserveCompactionJob", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        reserveCompactionJob_args args = new reserveCompactionJob_args();
+        args.setTinfo(tinfo);
+        args.setCredentials(credentials);
+        args.setJob(job);
         args.setCompactor(compactor);
         args.setExternalCompactionId(externalCompactionId);
         args.write(prot);
@@ -420,7 +494,7 @@ public class CompactionCoordinatorService {
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return (new Client(prot)).recv_getCompactionJob();
+        return (new Client(prot)).recv_reserveCompactionJob();
       }
     }
 
@@ -707,6 +781,7 @@ public class CompactionCoordinatorService {
     private static <I extends Iface> java.util.Map<java.lang.String,  org.apache.thrift.ProcessFunction<I, ? extends org.apache.thrift.TBase>> getProcessMap(java.util.Map<java.lang.String, org.apache.thrift.ProcessFunction<I, ? extends  org.apache.thrift.TBase>> processMap) {
       processMap.put("compactionCompleted", new compactionCompleted());
       processMap.put("getCompactionJob", new getCompactionJob());
+      processMap.put("reserveCompactionJob", new reserveCompactionJob());
       processMap.put("compactionFailed", new compactionFailed());
       processMap.put("beginFullJobScan", new beginFullJobScan());
       processMap.put("addJobs", new addJobs());
@@ -772,7 +847,39 @@ public class CompactionCoordinatorService {
       public getCompactionJob_result getResult(I iface, getCompactionJob_args args) throws org.apache.thrift.TException {
         getCompactionJob_result result = new getCompactionJob_result();
         try {
-          result.success = iface.getCompactionJob(args.tinfo, args.credentials, args.groupName, args.compactor, args.externalCompactionId);
+          result.success = iface.getCompactionJob(args.tinfo, args.credentials, args.groupName);
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+          result.sec = sec;
+        }
+        return result;
+      }
+    }
+
+    public static class reserveCompactionJob<I extends Iface> extends org.apache.thrift.ProcessFunction<I, reserveCompactionJob_args> {
+      public reserveCompactionJob() {
+        super("reserveCompactionJob");
+      }
+
+      @Override
+      public reserveCompactionJob_args getEmptyArgsInstance() {
+        return new reserveCompactionJob_args();
+      }
+
+      @Override
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      protected boolean rethrowUnhandledExceptions() {
+        return false;
+      }
+
+      @Override
+      public reserveCompactionJob_result getResult(I iface, reserveCompactionJob_args args) throws org.apache.thrift.TException {
+        reserveCompactionJob_result result = new reserveCompactionJob_result();
+        try {
+          result.success = iface.reserveCompactionJob(args.tinfo, args.credentials, args.job, args.compactor, args.externalCompactionId);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         }
@@ -982,6 +1089,7 @@ public class CompactionCoordinatorService {
     private static <I extends AsyncIface> java.util.Map<java.lang.String,  org.apache.thrift.AsyncProcessFunction<I, ? extends  org.apache.thrift.TBase,?>> getProcessMap(java.util.Map<java.lang.String,  org.apache.thrift.AsyncProcessFunction<I, ? extends  org.apache.thrift.TBase, ?>> processMap) {
       processMap.put("compactionCompleted", new compactionCompleted());
       processMap.put("getCompactionJob", new getCompactionJob());
+      processMap.put("reserveCompactionJob", new reserveCompactionJob());
       processMap.put("compactionFailed", new compactionFailed());
       processMap.put("beginFullJobScan", new beginFullJobScan());
       processMap.put("addJobs", new addJobs());
@@ -1061,7 +1169,7 @@ public class CompactionCoordinatorService {
       }
     }
 
-    public static class getCompactionJob<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getCompactionJob_args, TNextCompactionJob> {
+    public static class getCompactionJob<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, getCompactionJob_args, TDequeuedCompactionJob> {
       public getCompactionJob() {
         super("getCompactionJob");
       }
@@ -1072,11 +1180,11 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<TDequeuedCompactionJob> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<TDequeuedCompactionJob>() { 
           @Override
-          public void onComplete(TNextCompactionJob o) {
+          public void onComplete(TDequeuedCompactionJob o) {
             getCompactionJob_result result = new getCompactionJob_result();
             result.success = o;
             try {
@@ -1127,8 +1235,79 @@ public class CompactionCoordinatorService {
       }
 
       @Override
-      public void start(I iface, getCompactionJob_args args, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler) throws org.apache.thrift.TException {
-        iface.getCompactionJob(args.tinfo, args.credentials, args.groupName, args.compactor, args.externalCompactionId,resultHandler);
+      public void start(I iface, getCompactionJob_args args, org.apache.thrift.async.AsyncMethodCallback<TDequeuedCompactionJob> resultHandler) throws org.apache.thrift.TException {
+        iface.getCompactionJob(args.tinfo, args.credentials, args.groupName,resultHandler);
+      }
+    }
+
+    public static class reserveCompactionJob<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, reserveCompactionJob_args, TNextCompactionJob> {
+      public reserveCompactionJob() {
+        super("reserveCompactionJob");
+      }
+
+      @Override
+      public reserveCompactionJob_args getEmptyArgsInstance() {
+        return new reserveCompactionJob_args();
+      }
+
+      @Override
+      public org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+        final org.apache.thrift.AsyncProcessFunction fcall = this;
+        return new org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob>() { 
+          @Override
+          public void onComplete(TNextCompactionJob o) {
+            reserveCompactionJob_result result = new reserveCompactionJob_result();
+            result.success = o;
+            try {
+              fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
+            } catch (org.apache.thrift.transport.TTransportException e) {
+              _LOGGER.error("TTransportException writing to internal frame buffer", e);
+              fb.close();
+            } catch (java.lang.Exception e) {
+              _LOGGER.error("Exception writing to internal frame buffer", e);
+              onError(e);
+            }
+          }
+          @Override
+          public void onError(java.lang.Exception e) {
+            byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
+            org.apache.thrift.TSerializable msg;
+            reserveCompactionJob_result result = new reserveCompactionJob_result();
+            if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
+              result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
+              result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+              _LOGGER.error("TTransportException inside handler", e);
+              fb.close();
+              return;
+            } else if (e instanceof org.apache.thrift.TApplicationException) {
+              _LOGGER.error("TApplicationException inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = (org.apache.thrift.TApplicationException)e;
+            } else {
+              _LOGGER.error("Exception inside handler", e);
+              msgType = org.apache.thrift.protocol.TMessageType.EXCEPTION;
+              msg = new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.INTERNAL_ERROR, e.getMessage());
+            }
+            try {
+              fcall.sendResponse(fb,msg,msgType,seqid);
+            } catch (java.lang.Exception ex) {
+              _LOGGER.error("Exception writing to internal frame buffer", ex);
+              fb.close();
+            }
+          }
+        };
+      }
+
+      @Override
+      protected boolean isOneway() {
+        return false;
+      }
+
+      @Override
+      public void start(I iface, reserveCompactionJob_args args, org.apache.thrift.async.AsyncMethodCallback<TNextCompactionJob> resultHandler) throws org.apache.thrift.TException {
+        iface.reserveCompactionJob(args.tinfo, args.credentials, args.job, args.compactor, args.externalCompactionId,resultHandler);
       }
     }
 
@@ -2941,8 +3120,6 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField GROUP_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("groupName", org.apache.thrift.protocol.TType.STRING, (short)3);
-    private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)4);
-    private static final org.apache.thrift.protocol.TField EXTERNAL_COMPACTION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("externalCompactionId", org.apache.thrift.protocol.TType.STRING, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionJob_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionJob_argsTupleSchemeFactory();
@@ -2950,16 +3127,12 @@ public class CompactionCoordinatorService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String groupName; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
-      GROUP_NAME((short)3, "groupName"),
-      COMPACTOR((short)4, "compactor"),
-      EXTERNAL_COMPACTION_ID((short)5, "externalCompactionId");
+      GROUP_NAME((short)3, "groupName");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -2981,10 +3154,6 @@ public class CompactionCoordinatorService {
             return CREDENTIALS;
           case 3: // GROUP_NAME
             return GROUP_NAME;
-          case 4: // COMPACTOR
-            return COMPACTOR;
-          case 5: // EXTERNAL_COMPACTION_ID
-            return EXTERNAL_COMPACTION_ID;
           default:
             return null;
         }
@@ -3037,10 +3206,6 @@ public class CompactionCoordinatorService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.GROUP_NAME, new org.apache.thrift.meta_data.FieldMetaData("groupName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.COMPACTOR, new org.apache.thrift.meta_data.FieldMetaData("compactor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.EXTERNAL_COMPACTION_ID, new org.apache.thrift.meta_data.FieldMetaData("externalCompactionId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getCompactionJob_args.class, metaDataMap);
     }
@@ -3051,16 +3216,12 @@ public class CompactionCoordinatorService {
     public getCompactionJob_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      java.lang.String groupName,
-      java.lang.String compactor,
-      java.lang.String externalCompactionId)
+      java.lang.String groupName)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.groupName = groupName;
-      this.compactor = compactor;
-      this.externalCompactionId = externalCompactionId;
     }
 
     /**
@@ -3076,12 +3237,6 @@ public class CompactionCoordinatorService {
       if (other.isSetGroupName()) {
         this.groupName = other.groupName;
       }
-      if (other.isSetCompactor()) {
-        this.compactor = other.compactor;
-      }
-      if (other.isSetExternalCompactionId()) {
-        this.externalCompactionId = other.externalCompactionId;
-      }
     }
 
     @Override
@@ -3094,8 +3249,6 @@ public class CompactionCoordinatorService {
       this.tinfo = null;
       this.credentials = null;
       this.groupName = null;
-      this.compactor = null;
-      this.externalCompactionId = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -3173,56 +3326,6 @@ public class CompactionCoordinatorService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public java.lang.String getCompactor() {
-      return this.compactor;
-    }
-
-    public getCompactionJob_args setCompactor(@org.apache.thrift.annotation.Nullable java.lang.String compactor) {
-      this.compactor = compactor;
-      return this;
-    }
-
-    public void unsetCompactor() {
-      this.compactor = null;
-    }
-
-    /** Returns true if field compactor is set (has been assigned a value) and false otherwise */
-    public boolean isSetCompactor() {
-      return this.compactor != null;
-    }
-
-    public void setCompactorIsSet(boolean value) {
-      if (!value) {
-        this.compactor = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.lang.String getExternalCompactionId() {
-      return this.externalCompactionId;
-    }
-
-    public getCompactionJob_args setExternalCompactionId(@org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId) {
-      this.externalCompactionId = externalCompactionId;
-      return this;
-    }
-
-    public void unsetExternalCompactionId() {
-      this.externalCompactionId = null;
-    }
-
-    /** Returns true if field externalCompactionId is set (has been assigned a value) and false otherwise */
-    public boolean isSetExternalCompactionId() {
-      return this.externalCompactionId != null;
-    }
-
-    public void setExternalCompactionIdIsSet(boolean value) {
-      if (!value) {
-        this.externalCompactionId = null;
-      }
-    }
-
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -3250,22 +3353,6 @@ public class CompactionCoordinatorService {
         }
         break;
 
-      case COMPACTOR:
-        if (value == null) {
-          unsetCompactor();
-        } else {
-          setCompactor((java.lang.String)value);
-        }
-        break;
-
-      case EXTERNAL_COMPACTION_ID:
-        if (value == null) {
-          unsetExternalCompactionId();
-        } else {
-          setExternalCompactionId((java.lang.String)value);
-        }
-        break;
-
       }
     }
 
@@ -3281,12 +3368,6 @@ public class CompactionCoordinatorService {
 
       case GROUP_NAME:
         return getGroupName();
-
-      case COMPACTOR:
-        return getCompactor();
-
-      case EXTERNAL_COMPACTION_ID:
-        return getExternalCompactionId();
 
       }
       throw new java.lang.IllegalStateException();
@@ -3306,10 +3387,6 @@ public class CompactionCoordinatorService {
         return isSetCredentials();
       case GROUP_NAME:
         return isSetGroupName();
-      case COMPACTOR:
-        return isSetCompactor();
-      case EXTERNAL_COMPACTION_ID:
-        return isSetExternalCompactionId();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -3354,24 +3431,6 @@ public class CompactionCoordinatorService {
           return false;
       }
 
-      boolean this_present_compactor = true && this.isSetCompactor();
-      boolean that_present_compactor = true && that.isSetCompactor();
-      if (this_present_compactor || that_present_compactor) {
-        if (!(this_present_compactor && that_present_compactor))
-          return false;
-        if (!this.compactor.equals(that.compactor))
-          return false;
-      }
-
-      boolean this_present_externalCompactionId = true && this.isSetExternalCompactionId();
-      boolean that_present_externalCompactionId = true && that.isSetExternalCompactionId();
-      if (this_present_externalCompactionId || that_present_externalCompactionId) {
-        if (!(this_present_externalCompactionId && that_present_externalCompactionId))
-          return false;
-        if (!this.externalCompactionId.equals(that.externalCompactionId))
-          return false;
-      }
-
       return true;
     }
 
@@ -3390,14 +3449,6 @@ public class CompactionCoordinatorService {
       hashCode = hashCode * 8191 + ((isSetGroupName()) ? 131071 : 524287);
       if (isSetGroupName())
         hashCode = hashCode * 8191 + groupName.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetCompactor()) ? 131071 : 524287);
-      if (isSetCompactor())
-        hashCode = hashCode * 8191 + compactor.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetExternalCompactionId()) ? 131071 : 524287);
-      if (isSetExternalCompactionId())
-        hashCode = hashCode * 8191 + externalCompactionId.hashCode();
 
       return hashCode;
     }
@@ -3436,26 +3487,6 @@ public class CompactionCoordinatorService {
       }
       if (isSetGroupName()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.groupName, other.groupName);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetCompactor(), other.isSetCompactor());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCompactor()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.compactor, other.compactor);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetExternalCompactionId(), other.isSetExternalCompactionId());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetExternalCompactionId()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.externalCompactionId, other.externalCompactionId);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -3505,22 +3536,6 @@ public class CompactionCoordinatorService {
         sb.append("null");
       } else {
         sb.append(this.groupName);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("compactor:");
-      if (this.compactor == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.compactor);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("externalCompactionId:");
-      if (this.externalCompactionId == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.externalCompactionId);
       }
       first = false;
       sb.append(")");
@@ -3600,22 +3615,6 @@ public class CompactionCoordinatorService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 4: // COMPACTOR
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.compactor = iprot.readString();
-                struct.setCompactorIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 5: // EXTERNAL_COMPACTION_ID
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.externalCompactionId = iprot.readString();
-                struct.setExternalCompactionIdIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -3647,16 +3646,6 @@ public class CompactionCoordinatorService {
           oprot.writeString(struct.groupName);
           oprot.writeFieldEnd();
         }
-        if (struct.compactor != null) {
-          oprot.writeFieldBegin(COMPACTOR_FIELD_DESC);
-          oprot.writeString(struct.compactor);
-          oprot.writeFieldEnd();
-        }
-        if (struct.externalCompactionId != null) {
-          oprot.writeFieldBegin(EXTERNAL_COMPACTION_ID_FIELD_DESC);
-          oprot.writeString(struct.externalCompactionId);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -3685,13 +3674,7 @@ public class CompactionCoordinatorService {
         if (struct.isSetGroupName()) {
           optionals.set(2);
         }
-        if (struct.isSetCompactor()) {
-          optionals.set(3);
-        }
-        if (struct.isSetExternalCompactionId()) {
-          optionals.set(4);
-        }
-        oprot.writeBitSet(optionals, 5);
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -3701,18 +3684,12 @@ public class CompactionCoordinatorService {
         if (struct.isSetGroupName()) {
           oprot.writeString(struct.groupName);
         }
-        if (struct.isSetCompactor()) {
-          oprot.writeString(struct.compactor);
-        }
-        if (struct.isSetExternalCompactionId()) {
-          oprot.writeString(struct.externalCompactionId);
-        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionJob_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(5);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -3726,14 +3703,6 @@ public class CompactionCoordinatorService {
         if (incoming.get(2)) {
           struct.groupName = iprot.readString();
           struct.setGroupNameIsSet(true);
-        }
-        if (incoming.get(3)) {
-          struct.compactor = iprot.readString();
-          struct.setCompactorIsSet(true);
-        }
-        if (incoming.get(4)) {
-          struct.externalCompactionId = iprot.readString();
-          struct.setExternalCompactionIdIsSet(true);
         }
       }
     }
@@ -3753,7 +3722,7 @@ public class CompactionCoordinatorService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getCompactionJob_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getCompactionJob_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable TNextCompactionJob success; // required
+    public @org.apache.thrift.annotation.Nullable TDequeuedCompactionJob success; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
@@ -3826,7 +3795,7 @@ public class CompactionCoordinatorService {
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TNextCompactionJob.class)));
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TDequeuedCompactionJob.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
@@ -3837,7 +3806,7 @@ public class CompactionCoordinatorService {
     }
 
     public getCompactionJob_result(
-      TNextCompactionJob success,
+      TDequeuedCompactionJob success,
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
     {
       this();
@@ -3850,7 +3819,7 @@ public class CompactionCoordinatorService {
      */
     public getCompactionJob_result(getCompactionJob_result other) {
       if (other.isSetSuccess()) {
-        this.success = new TNextCompactionJob(other.success);
+        this.success = new TDequeuedCompactionJob(other.success);
       }
       if (other.isSetSec()) {
         this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
@@ -3869,11 +3838,11 @@ public class CompactionCoordinatorService {
     }
 
     @org.apache.thrift.annotation.Nullable
-    public TNextCompactionJob getSuccess() {
+    public TDequeuedCompactionJob getSuccess() {
       return this.success;
     }
 
-    public getCompactionJob_result setSuccess(@org.apache.thrift.annotation.Nullable TNextCompactionJob success) {
+    public getCompactionJob_result setSuccess(@org.apache.thrift.annotation.Nullable TDequeuedCompactionJob success) {
       this.success = success;
       return this;
     }
@@ -3925,7 +3894,7 @@ public class CompactionCoordinatorService {
         if (value == null) {
           unsetSuccess();
         } else {
-          setSuccess((TNextCompactionJob)value);
+          setSuccess((TDequeuedCompactionJob)value);
         }
         break;
 
@@ -4135,7 +4104,7 @@ public class CompactionCoordinatorService {
           switch (schemeField.id) {
             case 0: // SUCCESS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.success = new TNextCompactionJob();
+                struct.success = new TDequeuedCompactionJob();
                 struct.success.read(iprot);
                 struct.setSuccessIsSet(true);
               } else { 
@@ -4213,6 +4182,1310 @@ public class CompactionCoordinatorService {
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getCompactionJob_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(2);
+        if (incoming.get(0)) {
+          struct.success = new TDequeuedCompactionJob();
+          struct.success.read(iprot);
+          struct.setSuccessIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+          struct.sec.read(iprot);
+          struct.setSecIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
+  public static class reserveCompactionJob_args implements org.apache.thrift.TBase<reserveCompactionJob_args, reserveCompactionJob_args._Fields>, java.io.Serializable, Cloneable, Comparable<reserveCompactionJob_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("reserveCompactionJob_args");
+
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField JOB_FIELD_DESC = new org.apache.thrift.protocol.TField("job", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)4);
+    private static final org.apache.thrift.protocol.TField EXTERNAL_COMPACTION_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("externalCompactionId", org.apache.thrift.protocol.TType.STRING, (short)5);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new reserveCompactionJob_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new reserveCompactionJob_argsTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
+    public @org.apache.thrift.annotation.Nullable TResolvedCompactionJob job; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      TINFO((short)1, "tinfo"),
+      CREDENTIALS((short)2, "credentials"),
+      JOB((short)3, "job"),
+      COMPACTOR((short)4, "compactor"),
+      EXTERNAL_COMPACTION_ID((short)5, "externalCompactionId");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 1: // TINFO
+            return TINFO;
+          case 2: // CREDENTIALS
+            return CREDENTIALS;
+          case 3: // JOB
+            return JOB;
+          case 4: // COMPACTOR
+            return COMPACTOR;
+          case 5: // EXTERNAL_COMPACTION_ID
+            return EXTERNAL_COMPACTION_ID;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      @Override
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      @Override
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
+      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
+      tmpMap.put(_Fields.JOB, new org.apache.thrift.meta_data.FieldMetaData("job", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TResolvedCompactionJob.class)));
+      tmpMap.put(_Fields.COMPACTOR, new org.apache.thrift.meta_data.FieldMetaData("compactor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.EXTERNAL_COMPACTION_ID, new org.apache.thrift.meta_data.FieldMetaData("externalCompactionId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(reserveCompactionJob_args.class, metaDataMap);
+    }
+
+    public reserveCompactionJob_args() {
+    }
+
+    public reserveCompactionJob_args(
+      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
+      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
+      TResolvedCompactionJob job,
+      java.lang.String compactor,
+      java.lang.String externalCompactionId)
+    {
+      this();
+      this.tinfo = tinfo;
+      this.credentials = credentials;
+      this.job = job;
+      this.compactor = compactor;
+      this.externalCompactionId = externalCompactionId;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public reserveCompactionJob_args(reserveCompactionJob_args other) {
+      if (other.isSetTinfo()) {
+        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
+      }
+      if (other.isSetCredentials()) {
+        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
+      }
+      if (other.isSetJob()) {
+        this.job = new TResolvedCompactionJob(other.job);
+      }
+      if (other.isSetCompactor()) {
+        this.compactor = other.compactor;
+      }
+      if (other.isSetExternalCompactionId()) {
+        this.externalCompactionId = other.externalCompactionId;
+      }
+    }
+
+    @Override
+    public reserveCompactionJob_args deepCopy() {
+      return new reserveCompactionJob_args(this);
+    }
+
+    @Override
+    public void clear() {
+      this.tinfo = null;
+      this.credentials = null;
+      this.job = null;
+      this.compactor = null;
+      this.externalCompactionId = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
+      return this.tinfo;
+    }
+
+    public reserveCompactionJob_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+      this.tinfo = tinfo;
+      return this;
+    }
+
+    public void unsetTinfo() {
+      this.tinfo = null;
+    }
+
+    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
+    public boolean isSetTinfo() {
+      return this.tinfo != null;
+    }
+
+    public void setTinfoIsSet(boolean value) {
+      if (!value) {
+        this.tinfo = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
+      return this.credentials;
+    }
+
+    public reserveCompactionJob_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
+      this.credentials = credentials;
+      return this;
+    }
+
+    public void unsetCredentials() {
+      this.credentials = null;
+    }
+
+    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
+    public boolean isSetCredentials() {
+      return this.credentials != null;
+    }
+
+    public void setCredentialsIsSet(boolean value) {
+      if (!value) {
+        this.credentials = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public TResolvedCompactionJob getJob() {
+      return this.job;
+    }
+
+    public reserveCompactionJob_args setJob(@org.apache.thrift.annotation.Nullable TResolvedCompactionJob job) {
+      this.job = job;
+      return this;
+    }
+
+    public void unsetJob() {
+      this.job = null;
+    }
+
+    /** Returns true if field job is set (has been assigned a value) and false otherwise */
+    public boolean isSetJob() {
+      return this.job != null;
+    }
+
+    public void setJobIsSet(boolean value) {
+      if (!value) {
+        this.job = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.String getCompactor() {
+      return this.compactor;
+    }
+
+    public reserveCompactionJob_args setCompactor(@org.apache.thrift.annotation.Nullable java.lang.String compactor) {
+      this.compactor = compactor;
+      return this;
+    }
+
+    public void unsetCompactor() {
+      this.compactor = null;
+    }
+
+    /** Returns true if field compactor is set (has been assigned a value) and false otherwise */
+    public boolean isSetCompactor() {
+      return this.compactor != null;
+    }
+
+    public void setCompactorIsSet(boolean value) {
+      if (!value) {
+        this.compactor = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.String getExternalCompactionId() {
+      return this.externalCompactionId;
+    }
+
+    public reserveCompactionJob_args setExternalCompactionId(@org.apache.thrift.annotation.Nullable java.lang.String externalCompactionId) {
+      this.externalCompactionId = externalCompactionId;
+      return this;
+    }
+
+    public void unsetExternalCompactionId() {
+      this.externalCompactionId = null;
+    }
+
+    /** Returns true if field externalCompactionId is set (has been assigned a value) and false otherwise */
+    public boolean isSetExternalCompactionId() {
+      return this.externalCompactionId != null;
+    }
+
+    public void setExternalCompactionIdIsSet(boolean value) {
+      if (!value) {
+        this.externalCompactionId = null;
+      }
+    }
+
+    @Override
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case TINFO:
+        if (value == null) {
+          unsetTinfo();
+        } else {
+          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
+        }
+        break;
+
+      case CREDENTIALS:
+        if (value == null) {
+          unsetCredentials();
+        } else {
+          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
+        }
+        break;
+
+      case JOB:
+        if (value == null) {
+          unsetJob();
+        } else {
+          setJob((TResolvedCompactionJob)value);
+        }
+        break;
+
+      case COMPACTOR:
+        if (value == null) {
+          unsetCompactor();
+        } else {
+          setCompactor((java.lang.String)value);
+        }
+        break;
+
+      case EXTERNAL_COMPACTION_ID:
+        if (value == null) {
+          unsetExternalCompactionId();
+        } else {
+          setExternalCompactionId((java.lang.String)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case TINFO:
+        return getTinfo();
+
+      case CREDENTIALS:
+        return getCredentials();
+
+      case JOB:
+        return getJob();
+
+      case COMPACTOR:
+        return getCompactor();
+
+      case EXTERNAL_COMPACTION_ID:
+        return getExternalCompactionId();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case TINFO:
+        return isSetTinfo();
+      case CREDENTIALS:
+        return isSetCredentials();
+      case JOB:
+        return isSetJob();
+      case COMPACTOR:
+        return isSetCompactor();
+      case EXTERNAL_COMPACTION_ID:
+        return isSetExternalCompactionId();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof reserveCompactionJob_args)
+        return this.equals((reserveCompactionJob_args)that);
+      return false;
+    }
+
+    public boolean equals(reserveCompactionJob_args that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_tinfo = true && this.isSetTinfo();
+      boolean that_present_tinfo = true && that.isSetTinfo();
+      if (this_present_tinfo || that_present_tinfo) {
+        if (!(this_present_tinfo && that_present_tinfo))
+          return false;
+        if (!this.tinfo.equals(that.tinfo))
+          return false;
+      }
+
+      boolean this_present_credentials = true && this.isSetCredentials();
+      boolean that_present_credentials = true && that.isSetCredentials();
+      if (this_present_credentials || that_present_credentials) {
+        if (!(this_present_credentials && that_present_credentials))
+          return false;
+        if (!this.credentials.equals(that.credentials))
+          return false;
+      }
+
+      boolean this_present_job = true && this.isSetJob();
+      boolean that_present_job = true && that.isSetJob();
+      if (this_present_job || that_present_job) {
+        if (!(this_present_job && that_present_job))
+          return false;
+        if (!this.job.equals(that.job))
+          return false;
+      }
+
+      boolean this_present_compactor = true && this.isSetCompactor();
+      boolean that_present_compactor = true && that.isSetCompactor();
+      if (this_present_compactor || that_present_compactor) {
+        if (!(this_present_compactor && that_present_compactor))
+          return false;
+        if (!this.compactor.equals(that.compactor))
+          return false;
+      }
+
+      boolean this_present_externalCompactionId = true && this.isSetExternalCompactionId();
+      boolean that_present_externalCompactionId = true && that.isSetExternalCompactionId();
+      if (this_present_externalCompactionId || that_present_externalCompactionId) {
+        if (!(this_present_externalCompactionId && that_present_externalCompactionId))
+          return false;
+        if (!this.externalCompactionId.equals(that.externalCompactionId))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
+      if (isSetTinfo())
+        hashCode = hashCode * 8191 + tinfo.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
+      if (isSetCredentials())
+        hashCode = hashCode * 8191 + credentials.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetJob()) ? 131071 : 524287);
+      if (isSetJob())
+        hashCode = hashCode * 8191 + job.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetCompactor()) ? 131071 : 524287);
+      if (isSetCompactor())
+        hashCode = hashCode * 8191 + compactor.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetExternalCompactionId()) ? 131071 : 524287);
+      if (isSetExternalCompactionId())
+        hashCode = hashCode * 8191 + externalCompactionId.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(reserveCompactionJob_args other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetTinfo()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCredentials()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetJob(), other.isSetJob());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetJob()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.job, other.job);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetCompactor(), other.isSetCompactor());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetCompactor()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.compactor, other.compactor);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetExternalCompactionId(), other.isSetExternalCompactionId());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetExternalCompactionId()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.externalCompactionId, other.externalCompactionId);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    @Override
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    @Override
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+    }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("reserveCompactionJob_args(");
+      boolean first = true;
+
+      sb.append("tinfo:");
+      if (this.tinfo == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.tinfo);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("credentials:");
+      if (this.credentials == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.credentials);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("job:");
+      if (this.job == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.job);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("compactor:");
+      if (this.compactor == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.compactor);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("externalCompactionId:");
+      if (this.externalCompactionId == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.externalCompactionId);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (tinfo != null) {
+        tinfo.validate();
+      }
+      if (credentials != null) {
+        credentials.validate();
+      }
+      if (job != null) {
+        job.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class reserveCompactionJob_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public reserveCompactionJob_argsStandardScheme getScheme() {
+        return new reserveCompactionJob_argsStandardScheme();
+      }
+    }
+
+    private static class reserveCompactionJob_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<reserveCompactionJob_args> {
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol iprot, reserveCompactionJob_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 1: // TINFO
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
+                struct.tinfo.read(iprot);
+                struct.setTinfoIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 2: // CREDENTIALS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+                struct.credentials.read(iprot);
+                struct.setCredentialsIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 3: // JOB
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.job = new TResolvedCompactionJob();
+                struct.job.read(iprot);
+                struct.setJobIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 4: // COMPACTOR
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.compactor = iprot.readString();
+                struct.setCompactorIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 5: // EXTERNAL_COMPACTION_ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.externalCompactionId = iprot.readString();
+                struct.setExternalCompactionIdIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol oprot, reserveCompactionJob_args struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.tinfo != null) {
+          oprot.writeFieldBegin(TINFO_FIELD_DESC);
+          struct.tinfo.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.credentials != null) {
+          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
+          struct.credentials.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.job != null) {
+          oprot.writeFieldBegin(JOB_FIELD_DESC);
+          struct.job.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.compactor != null) {
+          oprot.writeFieldBegin(COMPACTOR_FIELD_DESC);
+          oprot.writeString(struct.compactor);
+          oprot.writeFieldEnd();
+        }
+        if (struct.externalCompactionId != null) {
+          oprot.writeFieldBegin(EXTERNAL_COMPACTION_ID_FIELD_DESC);
+          oprot.writeString(struct.externalCompactionId);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class reserveCompactionJob_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public reserveCompactionJob_argsTupleScheme getScheme() {
+        return new reserveCompactionJob_argsTupleScheme();
+      }
+    }
+
+    private static class reserveCompactionJob_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<reserveCompactionJob_args> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, reserveCompactionJob_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetTinfo()) {
+          optionals.set(0);
+        }
+        if (struct.isSetCredentials()) {
+          optionals.set(1);
+        }
+        if (struct.isSetJob()) {
+          optionals.set(2);
+        }
+        if (struct.isSetCompactor()) {
+          optionals.set(3);
+        }
+        if (struct.isSetExternalCompactionId()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
+        if (struct.isSetTinfo()) {
+          struct.tinfo.write(oprot);
+        }
+        if (struct.isSetCredentials()) {
+          struct.credentials.write(oprot);
+        }
+        if (struct.isSetJob()) {
+          struct.job.write(oprot);
+        }
+        if (struct.isSetCompactor()) {
+          oprot.writeString(struct.compactor);
+        }
+        if (struct.isSetExternalCompactionId()) {
+          oprot.writeString(struct.externalCompactionId);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, reserveCompactionJob_args struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet incoming = iprot.readBitSet(5);
+        if (incoming.get(0)) {
+          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
+          struct.tinfo.read(iprot);
+          struct.setTinfoIsSet(true);
+        }
+        if (incoming.get(1)) {
+          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
+          struct.credentials.read(iprot);
+          struct.setCredentialsIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.job = new TResolvedCompactionJob();
+          struct.job.read(iprot);
+          struct.setJobIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.compactor = iprot.readString();
+          struct.setCompactorIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.externalCompactionId = iprot.readString();
+          struct.setExternalCompactionIdIsSet(true);
+        }
+      }
+    }
+
+    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
+      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
+    }
+  }
+
+  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
+  public static class reserveCompactionJob_result implements org.apache.thrift.TBase<reserveCompactionJob_result, reserveCompactionJob_result._Fields>, java.io.Serializable, Cloneable, Comparable<reserveCompactionJob_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("reserveCompactionJob_result");
+
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
+    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new reserveCompactionJob_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new reserveCompactionJob_resultTupleSchemeFactory();
+
+    public @org.apache.thrift.annotation.Nullable TNextCompactionJob success; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
+
+    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
+    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
+      SUCCESS((short)0, "success"),
+      SEC((short)1, "sec");
+
+      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
+
+      static {
+        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
+          byName.put(field.getFieldName(), field);
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByThriftId(int fieldId) {
+        switch(fieldId) {
+          case 0: // SUCCESS
+            return SUCCESS;
+          case 1: // SEC
+            return SEC;
+          default:
+            return null;
+        }
+      }
+
+      /**
+       * Find the _Fields constant that matches fieldId, throwing an exception
+       * if it is not found.
+       */
+      public static _Fields findByThriftIdOrThrow(int fieldId) {
+        _Fields fields = findByThriftId(fieldId);
+        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
+        return fields;
+      }
+
+      /**
+       * Find the _Fields constant that matches name, or null if its not found.
+       */
+      @org.apache.thrift.annotation.Nullable
+      public static _Fields findByName(java.lang.String name) {
+        return byName.get(name);
+      }
+
+      private final short _thriftId;
+      private final java.lang.String _fieldName;
+
+      _Fields(short thriftId, java.lang.String fieldName) {
+        _thriftId = thriftId;
+        _fieldName = fieldName;
+      }
+
+      @Override
+      public short getThriftFieldId() {
+        return _thriftId;
+      }
+
+      @Override
+      public java.lang.String getFieldName() {
+        return _fieldName;
+      }
+    }
+
+    // isset id assignments
+    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
+    static {
+      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TNextCompactionJob.class)));
+      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
+      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(reserveCompactionJob_result.class, metaDataMap);
+    }
+
+    public reserveCompactionJob_result() {
+    }
+
+    public reserveCompactionJob_result(
+      TNextCompactionJob success,
+      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec)
+    {
+      this();
+      this.success = success;
+      this.sec = sec;
+    }
+
+    /**
+     * Performs a deep copy on <i>other</i>.
+     */
+    public reserveCompactionJob_result(reserveCompactionJob_result other) {
+      if (other.isSetSuccess()) {
+        this.success = new TNextCompactionJob(other.success);
+      }
+      if (other.isSetSec()) {
+        this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
+      }
+    }
+
+    @Override
+    public reserveCompactionJob_result deepCopy() {
+      return new reserveCompactionJob_result(this);
+    }
+
+    @Override
+    public void clear() {
+      this.success = null;
+      this.sec = null;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public TNextCompactionJob getSuccess() {
+      return this.success;
+    }
+
+    public reserveCompactionJob_result setSuccess(@org.apache.thrift.annotation.Nullable TNextCompactionJob success) {
+      this.success = success;
+      return this;
+    }
+
+    public void unsetSuccess() {
+      this.success = null;
+    }
+
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return this.success != null;
+    }
+
+    public void setSuccessIsSet(boolean value) {
+      if (!value) {
+        this.success = null;
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException getSec() {
+      return this.sec;
+    }
+
+    public reserveCompactionJob_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
+      this.sec = sec;
+      return this;
+    }
+
+    public void unsetSec() {
+      this.sec = null;
+    }
+
+    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
+    public boolean isSetSec() {
+      return this.sec != null;
+    }
+
+    public void setSecIsSet(boolean value) {
+      if (!value) {
+        this.sec = null;
+      }
+    }
+
+    @Override
+    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
+      switch (field) {
+      case SUCCESS:
+        if (value == null) {
+          unsetSuccess();
+        } else {
+          setSuccess((TNextCompactionJob)value);
+        }
+        break;
+
+      case SEC:
+        if (value == null) {
+          unsetSec();
+        } else {
+          setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
+        }
+        break;
+
+      }
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public java.lang.Object getFieldValue(_Fields field) {
+      switch (field) {
+      case SUCCESS:
+        return getSuccess();
+
+      case SEC:
+        return getSec();
+
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
+    @Override
+    public boolean isSet(_Fields field) {
+      if (field == null) {
+        throw new java.lang.IllegalArgumentException();
+      }
+
+      switch (field) {
+      case SUCCESS:
+        return isSetSuccess();
+      case SEC:
+        return isSetSec();
+      }
+      throw new java.lang.IllegalStateException();
+    }
+
+    @Override
+    public boolean equals(java.lang.Object that) {
+      if (that instanceof reserveCompactionJob_result)
+        return this.equals((reserveCompactionJob_result)that);
+      return false;
+    }
+
+    public boolean equals(reserveCompactionJob_result that) {
+      if (that == null)
+        return false;
+      if (this == that)
+        return true;
+
+      boolean this_present_success = true && this.isSetSuccess();
+      boolean that_present_success = true && that.isSetSuccess();
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
+          return false;
+        if (!this.success.equals(that.success))
+          return false;
+      }
+
+      boolean this_present_sec = true && this.isSetSec();
+      boolean that_present_sec = true && that.isSetSec();
+      if (this_present_sec || that_present_sec) {
+        if (!(this_present_sec && that_present_sec))
+          return false;
+        if (!this.sec.equals(that.sec))
+          return false;
+      }
+
+      return true;
+    }
+
+    @Override
+    public int hashCode() {
+      int hashCode = 1;
+
+      hashCode = hashCode * 8191 + ((isSetSuccess()) ? 131071 : 524287);
+      if (isSetSuccess())
+        hashCode = hashCode * 8191 + success.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
+      if (isSetSec())
+        hashCode = hashCode * 8191 + sec.hashCode();
+
+      return hashCode;
+    }
+
+    @Override
+    public int compareTo(reserveCompactionJob_result other) {
+      if (!getClass().equals(other.getClass())) {
+        return getClass().getName().compareTo(other.getClass().getName());
+      }
+
+      int lastComparison = 0;
+
+      lastComparison = java.lang.Boolean.compare(isSetSuccess(), other.isSetSuccess());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetSec()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      return 0;
+    }
+
+    @org.apache.thrift.annotation.Nullable
+    @Override
+    public _Fields fieldForId(int fieldId) {
+      return _Fields.findByThriftId(fieldId);
+    }
+
+    @Override
+    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
+      scheme(iprot).read(iprot, this);
+    }
+
+    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
+      scheme(oprot).write(oprot, this);
+      }
+
+    @Override
+    public java.lang.String toString() {
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("reserveCompactionJob_result(");
+      boolean first = true;
+
+      sb.append("success:");
+      if (this.success == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.success);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("sec:");
+      if (this.sec == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.sec);
+      }
+      first = false;
+      sb.append(")");
+      return sb.toString();
+    }
+
+    public void validate() throws org.apache.thrift.TException {
+      // check for required fields
+      // check for sub-struct validity
+      if (success != null) {
+        success.validate();
+      }
+    }
+
+    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
+      try {
+        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
+      try {
+        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
+      } catch (org.apache.thrift.TException te) {
+        throw new java.io.IOException(te);
+      }
+    }
+
+    private static class reserveCompactionJob_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public reserveCompactionJob_resultStandardScheme getScheme() {
+        return new reserveCompactionJob_resultStandardScheme();
+      }
+    }
+
+    private static class reserveCompactionJob_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<reserveCompactionJob_result> {
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol iprot, reserveCompactionJob_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TField schemeField;
+        iprot.readStructBegin();
+        while (true)
+        {
+          schemeField = iprot.readFieldBegin();
+          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
+            break;
+          }
+          switch (schemeField.id) {
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.success = new TNextCompactionJob();
+                struct.success.read(iprot);
+                struct.setSuccessIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            case 1: // SEC
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
+                struct.sec.read(iprot);
+                struct.setSecIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
+            default:
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+          }
+          iprot.readFieldEnd();
+        }
+        iprot.readStructEnd();
+
+        // check for required fields of primitive type, which can't be checked in the validate method
+        struct.validate();
+      }
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol oprot, reserveCompactionJob_result struct) throws org.apache.thrift.TException {
+        struct.validate();
+
+        oprot.writeStructBegin(STRUCT_DESC);
+        if (struct.success != null) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          struct.success.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.sec != null) {
+          oprot.writeFieldBegin(SEC_FIELD_DESC);
+          struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        oprot.writeFieldStop();
+        oprot.writeStructEnd();
+      }
+
+    }
+
+    private static class reserveCompactionJob_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+      @Override
+      public reserveCompactionJob_resultTupleScheme getScheme() {
+        return new reserveCompactionJob_resultTupleScheme();
+      }
+    }
+
+    private static class reserveCompactionJob_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<reserveCompactionJob_result> {
+
+      @Override
+      public void write(org.apache.thrift.protocol.TProtocol prot, reserveCompactionJob_result struct) throws org.apache.thrift.TException {
+        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
+        java.util.BitSet optionals = new java.util.BitSet();
+        if (struct.isSetSuccess()) {
+          optionals.set(0);
+        }
+        if (struct.isSetSec()) {
+          optionals.set(1);
+        }
+        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetSuccess()) {
+          struct.success.write(oprot);
+        }
+        if (struct.isSetSec()) {
+          struct.sec.write(oprot);
+        }
+      }
+
+      @Override
+      public void read(org.apache.thrift.protocol.TProtocol prot, reserveCompactionJob_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
