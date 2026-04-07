@@ -74,9 +74,12 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.InformationFetcher;
+import org.apache.accumulo.monitor.rest.bulkImports.BulkImport;
+import org.apache.accumulo.monitor.rest.bulkImports.BulkImportInformation;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk;
 import org.apache.zookeeper.KeeperException;
 import org.eclipse.jetty.ee10.servlet.ResourceServlet;
 import org.eclipse.jetty.ee10.servlet.ServletHolder;
@@ -552,6 +555,9 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final Supplier<Map<HostAndPort,CompactionStats>> compactionsSupplier =
       Suppliers.memoizeWithExpiration(this::fetchCompactions, expirationTimeMinutes, MINUTES);
 
+  private final Supplier<BulkImport> bulkImportSupplier =
+      Suppliers.memoizeWithExpiration(this::computeBulkImports, expirationTimeMinutes, MINUTES);
+
   /**
    * @return active tablet server scans. Values are cached and refresh after
    *         {@link #expirationTimeMinutes}.
@@ -573,6 +579,20 @@ public class Monitor extends AbstractServer implements Connection.Listener {
    */
   public Map<HostAndPort,CompactionStats> getCompactions() {
     return compactionsSupplier.get();
+  }
+
+  private BulkImport computeBulkImports() {
+    BulkImport bulkImport = new BulkImport();
+    ListBulk.list(getContext(), bulkStatus -> {
+      bulkImport.addBulkImport(
+          new BulkImportInformation(bulkStatus.sourceDir(), bulkStatus.lastUpdate().toEpochMilli(),
+              bulkStatus.state(), bulkStatus.tableId(), bulkStatus.fateId()));
+    });
+    return bulkImport;
+  }
+
+  public BulkImport getBulkImports() {
+    return bulkImportSupplier.get();
   }
 
   private Map<HostAndPort,ScanStats> fetchScans(Collection<ServerId> servers) {

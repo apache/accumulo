@@ -21,7 +21,6 @@ package org.apache.accumulo.manager.compaction.queue;
 import static com.google.common.base.Preconditions.checkState;
 
 import java.time.Duration;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,7 +30,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -129,8 +127,6 @@ public class CompactionJobPriorityQueue {
   private final AtomicLong maxSize;
   private final AtomicLong rejectedJobs;
   private final AtomicLong dequeuedJobs;
-  private final ArrayDeque<CompletableFuture<CompactionJob>> futures;
-  private long futuresAdded = 0;
   private final Map<KeyExtent,Timer> jobAges;
   private final Supplier<CompactionJobPriorityQueueStats> jobQueueStats;
   private final AtomicReference<Optional<io.micrometer.core.instrument.Timer>> jobQueueTimer;
@@ -159,7 +155,6 @@ public class CompactionJobPriorityQueue {
     this.groupId = groupId;
     this.rejectedJobs = new AtomicLong(0);
     this.dequeuedJobs = new AtomicLong(0);
-    this.futures = new ArrayDeque<>();
     this.jobAges = new ConcurrentHashMap<>();
     this.jobQueueStats = Suppliers.memoizeWithExpiration(
         () -> new CompactionJobPriorityQueueStats(jobAges), 5, TimeUnit.SECONDS);
@@ -198,25 +193,7 @@ public class CompactionJobPriorityQueue {
     HashSet<CjpqKey> newEntries = new HashSet<>(jobs.size());
 
     int jobsAdded = 0;
-    outer: for (CompactionJob job : jobs) {
-      var future = futures.poll();
-      while (future != null) {
-        // its expected that if futures are present then the queue is empty, if this is not true
-        // then there is a bug
-        Preconditions.checkState(jobQueue.isEmpty());
-        // Queue should be empty so jobAges should be empty
-        Preconditions.checkState(jobAges.isEmpty());
-        if (future.complete(job)) {
-          // successfully completed a future with this job, so do not need to queue the job
-          jobsAdded++;
-          // Record a time of 0 as job as we were able to complete immediately and there
-          // were no jobs waiting
-          jobQueueTimer.get().ifPresent(jqt -> jqt.record(Duration.ZERO));
-          continue outer;
-        } // else the future was canceled or timed out so could not complete it
-        future = futures.poll();
-      }
-
+    for (CompactionJob job : jobs) {
       CjpqKey cjqpKey = addJobToQueue(extent, job);
       if (cjqpKey != null) {
         checkState(newEntries.add(cjqpKey));
@@ -287,36 +264,6 @@ public class CompactionJobPriorityQueue {
       }
     }
     return first == null ? null : first.getValue().job;
-  }
-
-  public synchronized CompletableFuture<CompactionJob> getAsync() {
-    var job = poll();
-    if (job != null) {
-      return CompletableFuture.completedFuture(job);
-    }
-
-    // There is currently nothing in the queue, so create an uncompleted future and queue it up to
-    // be completed when something does arrive.
-    CompletableFuture<CompactionJob> future = new CompletableFuture<>();
-    futures.add(future);
-    futuresAdded++;
-    // Handle the case where nothing is ever being added to this queue and futures are constantly
-    // being obtained and cancelled. If nothing is done these canceled futures would just keep
-    // building up in memory. The following code periodically checks to see if there are canceled
-    // futures to remove.
-    if (futuresAdded % FUTURE_CHECK_THRESHOLD == 0
-        && futures.size() >= 2 * FUTURE_CHECK_THRESHOLD) {
-      futures.removeIf(CompletableFuture::isDone);
-      // It is not expected that the future we just created would be done, if it were it would have
-      // been removed.
-      Preconditions.checkState(!future.isDone());
-    }
-    return future;
-  }
-
-  @VisibleForTesting
-  synchronized int futuresSize() {
-    return futures.size();
   }
 
   // exists for tests

@@ -1038,6 +1038,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
       }
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
 
     // Clear the location of the servers in ZooCache.

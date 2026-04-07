@@ -680,7 +680,7 @@ public class CompactionCoordinator
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    if (failureState != TCompactionState.CANCELLED || failureState != TCompactionState.FAILED) {
+    if (failureState != TCompactionState.CANCELLED && failureState != TCompactionState.FAILED) {
       LOG.error("Unexpected failure state sent to compactionFailed: {}. This is likely a bug.",
           failureState);
     }

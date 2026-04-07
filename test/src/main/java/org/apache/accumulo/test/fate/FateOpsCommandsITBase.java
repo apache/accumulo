@@ -584,9 +584,12 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
       assertTrue(result
           .contains("transaction " + fateId1.canonical() + " was cancelled or already completed"));
+      var expected = Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW");
+      // The fate operation may temporarily be in the FAILED_IN_PROGRESS state, wait for this to
+      // pass
+      Wait.waitFor(() -> expected.equals(getFateIdsFromSummary()));
       fateIdsFromSummary = getFateIdsFromSummary();
-      assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
-          fateIdsFromSummary);
+      assertEquals(expected, fateIdsFromSummary);
     } finally {
       fate.shutdown(1, TimeUnit.MINUTES);
     }
