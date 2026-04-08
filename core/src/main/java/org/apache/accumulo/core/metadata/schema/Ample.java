@@ -671,23 +671,23 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  record RemovedCompaction(ExternalCompactionId id, TableId table, String dir) {
-  };
+  record OrphanedCompaction(ExternalCompactionId id, TableId table, String dir) {
+  }
 
   /**
    * Tracks compactions that were removed from the metadata table but may still be running on
    * compactors. The tmp files associated with these compactions can eventually be removed when the
    * compaction is no longer running.
    */
-  interface RemovedCompactionStore {
-    Stream<RemovedCompaction> list();
+  interface OrphanedCompactionStore {
+    Stream<OrphanedCompaction> list();
 
-    void add(Collection<RemovedCompaction> removedCompactions);
+    void add(Collection<OrphanedCompaction> orphanedCompactions);
 
-    void delete(Collection<RemovedCompaction> removedCompactions);
+    void delete(Collection<OrphanedCompaction> orphanedCompactions);
   }
 
-  default RemovedCompactionStore removedCompactions() {
+  default OrphanedCompactionStore orphanedCompactions() {
     throw new UnsupportedOperationException();
   }
 }
