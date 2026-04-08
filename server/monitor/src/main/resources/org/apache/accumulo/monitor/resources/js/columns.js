@@ -21,9 +21,9 @@
 
 const COLUMN_MAP = new Map([
   ["Last Contact", {"header":"Last Contact","description":"Last Contact Time","classes":"duration"}],
-  ["Resource Group", {"header":"Resource Group","description":"Resource Group Name","classes":""}],
+  ["Resource Group", {"header":"Resource Group","description":"Resource Group Name","classes":"resource-group"}],
   ["Server Address", {"header":"Server Address","description":"Server Address","classes":"firstcell"}],
-  ["Server Type", {"header":"Server Type","description":"Server Process Type","classes":""}],
+  ["Server Type", {"header":"Server Type","description":"Server Process Type","classes":"server-type"}],
   ["accumulo.balancer.migrations.needed", {"header":"Balancer Migrations Needed","description":"The number of migrations that need to complete before the system is balanced.","classes":"big-num"}],
   ["accumulo.blockcache.data.evictioncount", {"header":"Data Block Cache Eviction Count","description":"Data block cache eviction count.","classes":"big-num"}],
   ["accumulo.blockcache.data.hitcount", {"header":"Data Block Cache Hit Count","description":"Data block cache hit count.","classes":"big-num"}],

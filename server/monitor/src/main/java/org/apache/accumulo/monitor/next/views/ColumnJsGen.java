@@ -79,10 +79,12 @@ public class ColumnJsGen {
 
     // Add non-metric columns
     output.put(ADDR_COL_NAME, new ColumnInformation(ADDR_COL_NAME, "Server Address", "firstcell"));
-    output.put(RG_COL_NAME, new ColumnInformation(RG_COL_NAME, "Resource Group Name", ""));
+    output.put(RG_COL_NAME,
+        new ColumnInformation(RG_COL_NAME, "Resource Group Name", "resource-group"));
     output.put(TIME_COL_NAME,
         new ColumnInformation(TIME_COL_NAME, "Last Contact Time", "duration"));
-    output.put(TYPE_COL_NAME, new ColumnInformation(TYPE_COL_NAME, "Server Process Type", ""));
+    output.put(TYPE_COL_NAME,
+        new ColumnInformation(TYPE_COL_NAME, "Server Process Type", "server-type"));
 
     final Set<String> keys = output.keySet();
     final int numKeys = keys.size();

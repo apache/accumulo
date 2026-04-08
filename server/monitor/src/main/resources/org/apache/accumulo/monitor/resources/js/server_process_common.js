@@ -23,7 +23,7 @@
 */
 "use strict";
 
-var sserversTable;
+var dataTableRef;
 
 function getStoredView(storageKey) {
   if (!sessionStorage[storageKey]) {
@@ -70,8 +70,8 @@ function getDataTableCols(storageKey) {
 function refreshTable(table, storageKey) {
 
   // Destroy the DataTable and clear the HTML table
-  if (sserversTable != null) {
-    sserversTable.destroy();
+  if (dataTableRef != null) {
+    dataTableRef.destroy();
     $(table).empty();
   }
 
@@ -102,7 +102,7 @@ function refreshTable(table, storageKey) {
 
   // Create the DataTable
   createDataTable(table, storageKey);
-  ajaxReloadTable(sserversTable);
+  ajaxReloadTable(dataTableRef);
 }
 
 function refreshBanner(banner, bannerMsg, status) {
@@ -141,14 +141,14 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
 }
 
 function createDataTable(table, storageKey) {
-  sserversTable = $(table).DataTable({
+  dataTableRef = $(table).DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
         data: getStoredRows(storageKey)
       });
     },
-    "stateSave": true,
+    "stateSave": false, // if set to true, then visible: false doesn't work
     "columnDefs": [{
         "targets": "big-num",
         "render": function (data, type) {
@@ -181,6 +181,10 @@ function createDataTable(table, storageKey) {
           }
           return data;
         }
+      },
+      {
+        "targets": "server-type",
+        "visible": false
       },
       {
         "targets": "idle-state",
