@@ -323,6 +323,8 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               new ZooZap().execute(new String[] {"-managers"});
             } catch (Exception e) {
               log.error("Error zapping Manager zookeeper lock", e);
+            } finally {
+              System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
             }
           } finally {
             managerProcesses.clear();

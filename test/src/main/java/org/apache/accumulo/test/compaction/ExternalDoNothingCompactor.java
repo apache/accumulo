@@ -28,6 +28,8 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ServerOpts;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -114,6 +116,9 @@ public class ExternalDoNothingCompactor extends Compactor {
 
       @Override
       public void initialize() throws RetriesExceededException {
+        TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
+            "Compaction started", -1, -1, -1, getCompactionAge().toNanos());
+        updateCompactionState(job, update);
         // This isn't used, just need to create and return something
         ref.set(new FileCompactor(getContext(), KeyExtent.fromThrift(job.getExtent()), null, null,
             false, null, null, null, null, null));

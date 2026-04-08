@@ -84,7 +84,6 @@ import com.google.common.net.HostAndPort;
  *
  */
 public class MultipleManagerFateIT extends ConfigurableMacBase {
-
   // A manager that will quickly clean up fate reservations held by dead managers
   public static class FastFateCleanupManager extends Manager {
     protected FastFateCleanupManager(ServerOpts opts, String[] args) throws IOException {
@@ -111,6 +110,10 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(8);
     // Set this lower so that locks timeout faster
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "5s");
+    // This test could kill a manager after its written a compaction to the metadata table, but
+    // before it returns it to the compactor via RPC which creates a dead compaction. Need to speed
+    // up the dead compaction detection to handle this or else the test will hang.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
     cfg.setServerClass(ServerType.MANAGER, r -> FastFateCleanupManager.class);
     super.configure(cfg, hadoopCoreSite);
   }
@@ -230,6 +233,8 @@ public class MultipleManagerFateIT extends ConfigurableMacBase {
       ServiceLock.deleteLock(ctx.getZooSession().asReaderWriter(), primaryManager);
       log.debug("Deleted lock of primary manager");
       waitToSeeManagers(ctx, 2, store, true);
+
+      getCluster().getProcesses();
 
       stop.set(true);
       // Wait for the background operations to complete and ensure that none had errors. Managers
