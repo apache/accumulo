@@ -561,18 +561,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
-        ServiceLockPath m = context.getServerPaths().getManager(true);
-        if (m != null) {
-          Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
-          String location = null;
-          if (sld.isPresent()) {
-            location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-            if (location != null && addressSelector.getPredicate().test(location)) {
-              HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
-            }
-          }
-        }
+        context.getServerPaths().getAssistantManagers(AddressSelector.all(), true)
+            .forEach(s -> results.add(createServerId(type, s)));
         break;
       case MONITOR:
         ServiceLockPath mon = context.getServerPaths().getMonitor(true);
