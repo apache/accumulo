@@ -38,8 +38,7 @@ import org.apache.accumulo.core.util.LazySingletons;
  */
 public class ColumnJsGen {
 
-  public static record ColumnInformation(String header, String description, String classes,
-      String render) {
+  public static record ColumnInformation(String header, String description, String classes) {
   };
 
   private static void printHeader(PrintStream out) {
@@ -75,16 +74,15 @@ public class ColumnJsGen {
     Map<String,ColumnInformation> output = new TreeMap<>();
     for (Metric m : Metric.values()) {
       output.put(m.getName(), new ColumnInformation(m.getColumnHeader(), m.getColumnDescription(),
-          m.getColumnClasses(), m.getColumnRenderAs()));
+          m.getColumnClasses()));
     }
 
     // Add non-metric columns
-    output.put(ADDR_COL_NAME,
-        new ColumnInformation(ADDR_COL_NAME, "Server Address", "firstcell", ""));
-    output.put(RG_COL_NAME, new ColumnInformation(RG_COL_NAME, "Resource Group Name", "", ""));
+    output.put(ADDR_COL_NAME, new ColumnInformation(ADDR_COL_NAME, "Server Address", "firstcell"));
+    output.put(RG_COL_NAME, new ColumnInformation(RG_COL_NAME, "Resource Group Name", ""));
     output.put(TIME_COL_NAME,
-        new ColumnInformation(TIME_COL_NAME, "Last Contact Time", "duration", ""));
-    output.put(TYPE_COL_NAME, new ColumnInformation(TYPE_COL_NAME, "Server Process Type", "", ""));
+        new ColumnInformation(TIME_COL_NAME, "Last Contact Time", "duration"));
+    output.put(TYPE_COL_NAME, new ColumnInformation(TYPE_COL_NAME, "Server Process Type", ""));
 
     final Set<String> keys = output.keySet();
     final int numKeys = keys.size();
