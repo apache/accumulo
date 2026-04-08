@@ -904,6 +904,8 @@ public class Manager extends AbstractServer
   private void setupAssistantMetrics(MetricsProducer... producers) {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(producers);
+    // TODO should tests compaction metrics from multiple managers
+    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
   }
@@ -915,7 +917,6 @@ public class Manager extends AbstractServer
     // ensure all tablet group watchers are setup
     Preconditions.checkState(watchers.size() == DataLevel.values().length);
     watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
-    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
     // ensure fate is completely setup
     metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
