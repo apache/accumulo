@@ -158,30 +158,31 @@ public class DeadCompactionDetector {
 
     // Get the list of compaction entries that were removed from the metadata table by a split or
     // merge operation. Must get this data before getting the running set of compactions.
-    List<Ample.RemovedCompaction> removedCompactions;
-    try (Stream<Ample.RemovedCompaction> listing = context.getAmple().removedCompactions().list()) {
-      removedCompactions = listing.collect(Collectors.toCollection(ArrayList::new));
+    List<Ample.OrphanedCompaction> orphanedCompactions;
+    try (Stream<Ample.OrphanedCompaction> listing =
+        context.getAmple().orphanedCompactions().list()) {
+      orphanedCompactions = listing.collect(Collectors.toCollection(ArrayList::new));
     }
 
     // Must get the set of running compactions after reading compaction ids from the metadata table
     Set<ExternalCompactionId> running = null;
-    if (!removedCompactions.isEmpty() || !tabletCompactions.isEmpty()) {
+    if (!orphanedCompactions.isEmpty() || !tabletCompactions.isEmpty()) {
       running = ExternalCompactionUtil.getCompactionIdsRunningOnCompactors(context);
     }
 
     // Delete any tmp files related to compaction metadata entries that were removed by split or
     // merge and are no longer running.
-    if (!removedCompactions.isEmpty()) {
+    if (!orphanedCompactions.isEmpty()) {
       var runningSet = Objects.requireNonNull(running);
-      removedCompactions.removeIf(rc -> runningSet.contains(rc.id()));
+      orphanedCompactions.removeIf(rc -> runningSet.contains(rc.id()));
       Set<Path> tmpFilesToDelete = new HashSet<>();
-      removedCompactions.forEach(rc -> {
+      orphanedCompactions.forEach(rc -> {
         log.trace("attempting to find tmp files for removed compaction {}", rc);
         FindCompactionTmpFiles.findTmpFiles(context, rc.table(), rc.dir(), Set.of(rc.id()),
             tmpFilesToDelete::add);
       });
       FindCompactionTmpFiles.deleteTempFiles(context, tmpFilesToDelete);
-      context.getAmple().removedCompactions().delete(removedCompactions);
+      context.getAmple().orphanedCompactions().delete(orphanedCompactions);
     }
 
     if (tabletCompactions.isEmpty()) {

@@ -282,8 +282,8 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public RemovedCompactionStore removedCompactions() {
-    return new RemovedCompactionStoreImpl(getContext());
+  public OrphanedCompactionStore orphanedCompactions() {
+    return new OrphanedCompactionStoreImpl(getContext());
   }
 
   @VisibleForTesting

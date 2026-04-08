@@ -253,24 +253,24 @@ public class UpdateTabletsTest {
     EasyMock.expect(fateEnv.getFileRangeCache()).andReturn(fileRangeCache).atLeastOnce();
     EasyMock.expect(fateEnv.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
         .atLeastOnce();
-    Set<Ample.RemovedCompaction> removedCompactionSet = new HashSet<>();
-    Ample.RemovedCompactionStore rcs = new Ample.RemovedCompactionStore() {
+    Set<Ample.OrphanedCompaction> orphanedCompactionSet = new HashSet<>();
+    Ample.OrphanedCompactionStore ocs = new Ample.OrphanedCompactionStore() {
       @Override
-      public Stream<Ample.RemovedCompaction> list() {
+      public Stream<Ample.OrphanedCompaction> list() {
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public void add(Collection<Ample.RemovedCompaction> removedCompactions) {
-        removedCompactionSet.addAll(removedCompactions);
+      public void add(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        orphanedCompactionSet.addAll(removedCompactions);
       }
 
       @Override
-      public void delete(Collection<Ample.RemovedCompaction> removedCompactions) {
+      public void delete(Collection<Ample.OrphanedCompaction> removedCompactions) {
         throw new UnsupportedOperationException();
       }
     };
-    EasyMock.expect(ample.removedCompactions()).andReturn(rcs).atLeastOnce();
+    EasyMock.expect(ample.orphanedCompactions()).andReturn(ocs).atLeastOnce();
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
@@ -431,9 +431,9 @@ public class UpdateTabletsTest {
     EasyMock.verify(fateEnv, context, ample, tabletMeta, fileRangeCache, tabletsMutator,
         tablet1Mutator, tablet2Mutator, tablet3Mutator, cr, compactions);
 
-    assertEquals(Set.of(new Ample.RemovedCompaction(cid1, tableId, "td1"),
-        new Ample.RemovedCompaction(cid2, tableId, "td1"),
-        new Ample.RemovedCompaction(cid3, tableId, "td1")), removedCompactionSet);
+    assertEquals(Set.of(new Ample.OrphanedCompaction(cid1, tableId, "td1"),
+        new Ample.OrphanedCompaction(cid2, tableId, "td1"),
+        new Ample.OrphanedCompaction(cid3, tableId, "td1")), orphanedCompactionSet);
   }
 
   @Test

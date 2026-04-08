@@ -30,44 +30,44 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.RemovedCompactionSection;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.OrphanedCompactionSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 
 import com.google.common.base.Preconditions;
 
-public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore {
+public class OrphanedCompactionStoreImpl implements Ample.OrphanedCompactionStore {
   private final ServerContext context;
 
-  public RemovedCompactionStoreImpl(ServerContext context) {
+  public OrphanedCompactionStoreImpl(ServerContext context) {
     this.context = context;
   }
 
-  private Stream<Ample.RemovedCompaction> createStream(String tableName) {
+  private Stream<Ample.OrphanedCompaction> createStream(String tableName) {
     Scanner scanner = null;
     try {
       scanner = context.createScanner(tableName, Authorizations.EMPTY);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(e);
     }
-    scanner.setRange(RemovedCompactionSection.getRange());
+    scanner.setRange(OrphanedCompactionSection.getRange());
     return scanner.stream().map(e -> e.getKey().getRowData().toString())
-        .map(RemovedCompactionSection::decodeRow).onClose(scanner::close);
+        .map(OrphanedCompactionSection::decodeRow).onClose(scanner::close);
   }
 
   @Override
-  public Stream<Ample.RemovedCompaction> list() {
+  public Stream<Ample.OrphanedCompaction> list() {
     return Stream.concat(createStream(Ample.DataLevel.METADATA.metaTable()),
         createStream(Ample.DataLevel.USER.metaTable()));
   }
 
-  private void write(Collection<Ample.RemovedCompaction> removedCompactions,
-      Function<Ample.RemovedCompaction,Mutation> converter) {
-    if (removedCompactions.isEmpty()) {
+  private void write(Collection<Ample.OrphanedCompaction> orphanedCompactions,
+      Function<Ample.OrphanedCompaction,Mutation> converter) {
+    if (orphanedCompactions.isEmpty()) {
       return;
     }
 
-    Map<Ample.DataLevel,List<Ample.RemovedCompaction>> byLevel = removedCompactions.stream()
+    Map<Ample.DataLevel,List<Ample.OrphanedCompaction>> byLevel = orphanedCompactions.stream()
         .collect(Collectors.groupingBy(rc -> Ample.DataLevel.of(rc.table())));
     // Do not expect the root to split or merge so it should never have this data
     Preconditions.checkArgument(!byLevel.containsKey(Ample.DataLevel.ROOT));
@@ -83,9 +83,9 @@ public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore 
   }
 
   @Override
-  public void add(Collection<Ample.RemovedCompaction> removedCompactions) {
-    write(removedCompactions, rc -> {
-      Mutation m = new Mutation(RemovedCompactionSection.encodeRow(rc));
+  public void add(Collection<Ample.OrphanedCompaction> orphanedCompactions) {
+    write(orphanedCompactions, oc -> {
+      Mutation m = new Mutation(OrphanedCompactionSection.encodeRow(oc));
       m.put("", "", "");
       return m;
     });
@@ -93,9 +93,9 @@ public class RemovedCompactionStoreImpl implements Ample.RemovedCompactionStore 
   }
 
   @Override
-  public void delete(Collection<Ample.RemovedCompaction> removedCompactions) {
-    write(removedCompactions, rc -> {
-      Mutation m = new Mutation(RemovedCompactionSection.encodeRow(rc));
+  public void delete(Collection<Ample.OrphanedCompaction> orphanedCompactions) {
+    write(orphanedCompactions, oc -> {
+      Mutation m = new Mutation(OrphanedCompactionSection.encodeRow(oc));
       m.putDelete("", "");
       return m;
     });

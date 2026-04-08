@@ -211,7 +211,7 @@ public class MergeTabletsTest {
 
     EasyMock.replay(lastTabletMeta, compactions);
 
-    Set<Ample.RemovedCompaction> removedCompactions = new HashSet<>();
+    Set<Ample.OrphanedCompaction> orphanedCompactions = new HashSet<>();
 
     testMerge(List.of(tablet1, tablet2, lastTabletMeta), tableId, null, null, tabletMutator -> {
       EasyMock.expect(tabletMutator.putTime(MetadataTime.parse("L30"))).andReturn(tabletMutator)
@@ -251,13 +251,13 @@ public class MergeTabletsTest {
           .andReturn(tabletMutator).once();
       EasyMock.expect(tabletMutator.deleteMigration()).andReturn(tabletMutator);
 
-    }, removedCompactions::add);
+    }, orphanedCompactions::add);
 
     EasyMock.verify(lastTabletMeta, compactions);
 
-    assertEquals(Set.of(new Ample.RemovedCompaction(cid1, tableId, "td3"),
-        new Ample.RemovedCompaction(cid2, tableId, "td3"),
-        new Ample.RemovedCompaction(cid3, tableId, "td3")), removedCompactions);
+    assertEquals(Set.of(new Ample.OrphanedCompaction(cid1, tableId, "td3"),
+        new Ample.OrphanedCompaction(cid2, tableId, "td3"),
+        new Ample.OrphanedCompaction(cid3, tableId, "td3")), orphanedCompactions);
   }
 
   @Test
@@ -437,7 +437,7 @@ public class MergeTabletsTest {
 
   private static void testMerge(List<TabletMetadata> inputTablets, TableId tableId, String start,
       String end, Consumer<ConditionalTabletMutatorImpl> expectationsSetter,
-      Consumer<Ample.RemovedCompaction> removedCompactionConsumer) throws Exception {
+      Consumer<Ample.OrphanedCompaction> orphanedCompactionConsumer) throws Exception {
     MergeInfo mergeInfo =
         new MergeInfo(tableId, NamespaceId.of("1"), start == null ? null : start.getBytes(UTF_8),
             end == null ? null : end.getBytes(UTF_8), MergeInfo.Operation.MERGE);
@@ -452,24 +452,23 @@ public class MergeTabletsTest {
         EasyMock.mock(ConditionalTabletsMutatorImpl.class);
     ConditionalTabletMutatorImpl tabletMutator = EasyMock.mock(ConditionalTabletMutatorImpl.class);
 
-    Ample.RemovedCompactionStore removedCompactionStore = new Ample.RemovedCompactionStore() {
+    Ample.OrphanedCompactionStore orphanedCompactionStore = new Ample.OrphanedCompactionStore() {
       @Override
-      public Stream<Ample.RemovedCompaction> list() {
+      public Stream<Ample.OrphanedCompaction> list() {
         throw new UnsupportedOperationException();
       }
 
       @Override
-      public void add(Collection<Ample.RemovedCompaction> removedCompactions) {
-        System.out.println("removedCompactions : " + removedCompactions);
-        removedCompactions.forEach(removedCompactionConsumer);
+      public void add(Collection<Ample.OrphanedCompaction> removedCompactions) {
+        removedCompactions.forEach(orphanedCompactionConsumer);
       }
 
       @Override
-      public void delete(Collection<Ample.RemovedCompaction> removedCompactions) {
+      public void delete(Collection<Ample.OrphanedCompaction> removedCompactions) {
         throw new UnsupportedOperationException();
       }
     };
-    EasyMock.expect(ample.removedCompactions()).andReturn(removedCompactionStore);
+    EasyMock.expect(ample.orphanedCompactions()).andReturn(orphanedCompactionStore);
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
