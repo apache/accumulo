@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.next.views;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.apache.accumulo.monitor.next.views.ServersView.ADDR_COL_NAME;
 import static org.apache.accumulo.monitor.next.views.ServersView.RG_COL_NAME;
 import static org.apache.accumulo.monitor.next.views.ServersView.TIME_COL_NAME;
@@ -31,7 +32,6 @@ import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.metrics.Metric;
-import org.apache.accumulo.core.util.LazySingletons;
 
 /**
  * This class generates a map of metric name to column information for the Monitor
@@ -91,8 +91,8 @@ public class ColumnJsGen {
     int counter = 0;
     for (String key : keys) {
       counter++;
-      out.println("  [\"%s\", %s]%s".formatted(key,
-          LazySingletons.GSON.get().toJson(output.get(key)), counter == numKeys ? "" : ","));
+      out.println("  [\"%s\", %s]%s".formatted(key, GSON.get().toJson(output.get(key)),
+          counter == numKeys ? "" : ","));
 
     }
   }
