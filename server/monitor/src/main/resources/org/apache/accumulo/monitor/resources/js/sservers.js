@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    getSserversView, COLUMN_MAP: false
+    getSserversView, renderActivityState, renderMemoryState, COLUMN_MAP
 */
 "use strict";
 
@@ -60,10 +60,12 @@ function getDataTableCols() {
   var storedColumns = getStoredColumns();
   $.each(storedColumns, function (index, col) {
     if (COLUMN_MAP.has(col)) {
+      var colName = col.replaceAll(".", "\\.");
       var mapping = COLUMN_MAP.get(col);
       dataTableColumns.push({
-        data: col,
-        render: mapping.render
+        data: colName
+        //		,
+        //        render: mapping.render
       });
     } else {
       dataTableColumns.push({
@@ -97,7 +99,6 @@ function refreshScanServersTable() {
       th.addClass(mapping.classes);
       th.text(mapping.header);
       th.attr("title", mapping.description);
-      th.attr("data-data", col);
       theadRow.append(th);
     } else {
       var th = $(document.createElement("th"));
@@ -197,37 +198,11 @@ function createDataTable() {
       },
       {
         "targets": "idle-state",
-        "render": function renderActivityState(data, type) {
-          if (type !== 'display') {
-            return data;
-          }
-          if (data === null || data === undefined) {
-            return '&mdash;';
-          }
-          if (Number(data) === 1) {
-            return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
-              '<span class="visually-hidden">Idle</span>';
-          }
-          return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
-            '<span class="visually-hidden">Active</span>';
-        }
+        "render": renderActivityState
       },
       {
         "targets": "memory-state",
-        "render": function renderMemoryState(data, type) {
-          if (type !== 'display') {
-            return data;
-          }
-          if (data === null || data === undefined) {
-            return '&mdash;';
-          }
-          if (Number(data) === 1) {
-            return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
-              '<span class="visually-hidden">Low memory detected</span>';
-          }
-          return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
-            '<span class="visually-hidden">Memory normal</span>';
-        }
+        "render": renderMemoryState
       }
     ],
     "columns": getDataTableCols()

@@ -27,10 +27,10 @@ public enum Metric {
   // General Server Metrics
   SERVER_IDLE("accumulo.server.idle", MetricType.GAUGE,
       "Indicates if the server is idle or not. The value will be 1 when idle and 0 when not idle.",
-      MetricDocSection.GENERAL_SERVER, "Server Idle", null, "big-num idle-state", ""),
+      MetricDocSection.GENERAL_SERVER, "Server Idle", null, "idle-state", null),
   LOW_MEMORY("accumulo.detected.low.memory", MetricType.GAUGE,
       "Reports 1 when process memory usage is above the threshold, reports 0 when memory is okay.",
-      MetricDocSection.GENERAL_SERVER, "Low Memory", null, "big-num memory-state", ""),
+      MetricDocSection.GENERAL_SERVER, "Low Memory", null, "memory-state", null),
   THRIFT_IDLE("accumulo.thrift.idle", MetricType.DISTRIBUTION_SUMMARY,
       "Time waiting to execute an RPC request.", MetricDocSection.GENERAL_SERVER,
       "Thrift Idle Time", null, "big-num", null),
