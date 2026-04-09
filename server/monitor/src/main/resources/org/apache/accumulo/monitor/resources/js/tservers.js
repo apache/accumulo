@@ -18,7 +18,7 @@
  */
 /* JSLint global definitions */
 /*global
-    $, sessionStorage, getTServers, getRecoveryList, bigNumberForQuantity, timeDuration,
+    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
     ajaxReloadTable
 */
 "use strict";
@@ -70,11 +70,47 @@ function refreshTServersTable() {
 }
 
 /**
+ * Show a page banner that matches the tablet server status shown in the navbar.
+ */
+function refreshTServersBanner(statusData) {
+  if (statusData.managerStatus === 'ERROR') {
+    $('#tserversManagerBanner').show();
+    $('#tserversWarnBanner').hide();
+    $('#tserversErrorBanner').hide();
+    $('#tservers_wrapper').hide();
+    $('#recovery-caption').hide();
+  } else {
+    $('#tserversManagerBanner').hide();
+    $('#tservers_wrapper').show();
+    if (statusData.tServerStatus === 'ERROR') {
+      $('#tserversWarnBanner').hide();
+      $('#tserversErrorBanner').show();
+    } else if (statusData.tServerStatus === 'WARN') {
+      $('#tserversWarnBanner').show();
+      $('#tserversErrorBanner').hide();
+    } else {
+      $('#tserversWarnBanner').hide();
+      $('#tserversErrorBanner').hide();
+    }
+  }
+}
+
+/**
  * Makes the REST calls, generates the tables with the new information
  */
 function refreshTServers() {
-  getTServers().then(function () {
-    refreshTServersTable();
+  getStatus().then(function () {
+    var statusData = JSON.parse(sessionStorage.status);
+    var managerStatus = statusData.managerStatus;
+    refreshTServersBanner(statusData);
+
+    if (managerStatus === 'ERROR') {
+      return;
+    }
+
+    getTServers().then(function () {
+      refreshTServersTable();
+    });
   });
 }
 

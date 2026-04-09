@@ -242,22 +242,35 @@ public class WebViews {
   }
 
   /**
-   * Returns the compactions template
+   * Returns the active compactions template.
    *
-   * @return Scans model
+   * @return Active compactions model
    */
   @GET
   @Path("ec")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getExternalCompactions() {
-    var ccHost = monitor.getCoordinatorHost();
-
+  public Map<String,Object> getActiveCompactions() {
     Map<String,Object> model = getModel();
-    model.put("title", "External Compactions");
+    model.put("title", "Active Compactions");
     model.put("template", "ec.ftl");
-
-    model.put("coordinatorRunning", ccHost.isPresent());
     model.put("js", "ec.js");
+
+    return model;
+  }
+
+  /**
+   * Returns the compactors template
+   *
+   * @return Compactors model
+   */
+  @GET
+  @Path("compactors")
+  @Template(name = "/default.ftl")
+  public Map<String,Object> getCompactors() {
+    Map<String,Object> model = getModel();
+    model.put("title", "Compactors");
+    model.put("template", "compactors.ftl");
+    model.put("js", "compactors.js");
 
     return model;
   }

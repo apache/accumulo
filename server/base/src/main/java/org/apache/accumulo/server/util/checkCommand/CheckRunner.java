@@ -35,10 +35,9 @@ public interface CheckRunner {
    * @param opts server util opts. Only applicable for the checks on the root and metadata tables
    * @param fixFiles remove dangling file pointers. Only applicable for the checks on the system and
    *        user files
-   * @return the {@link org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus}
-   *         resulting from running the check
+   * @return true if check passes, else false
    */
-  CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles) throws Exception;
+  boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles) throws Exception;
 
   /**
    *
@@ -53,8 +52,9 @@ public interface CheckRunner {
     log.trace("-".repeat(running.length()));
   }
 
-  default void printCompleted(CheckStatus status) {
-    String completed = "Check " + getCheck() + " completed with status " + status;
+  default void printCompleted(boolean status) {
+    String completed = "Check " + getCheck() + " completed with status "
+        + (status ? CheckStatus.OK : CheckStatus.FAILED);
     log.trace("-".repeat(completed.length()));
     log.trace(completed);
     log.trace("-".repeat(completed.length()));

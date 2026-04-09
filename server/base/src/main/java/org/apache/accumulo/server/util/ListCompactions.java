@@ -21,19 +21,15 @@ package org.apache.accumulo.server.util;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
-import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ListCompactions.RunningCommandOpts;
@@ -64,17 +60,17 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
     private int numFiles = 0;
     private double progress = 0.0;
 
-    public RunningCompactionSummary(RunningCompaction runningCompaction,
-        RunningCompactionInfo runningCompactionInfo) {
+    public RunningCompactionSummary(TExternalCompaction runningCompaction, boolean addDetail) {
       super();
       ecid = runningCompaction.getJob().getExternalCompactionId();
-      addr = runningCompaction.getCompactorAddress();
+      addr = runningCompaction.getCompactor();
       kind = runningCompaction.getJob().kind;
-      groupName = runningCompaction.getGroup();
+      groupName = ResourceGroupId.of(runningCompaction.getGroupName());
       KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().extent);
       ke = extent.obscured();
       tableId = extent.tableId().canonical();
-      if (runningCompactionInfo != null) {
+      if (addDetail) {
+        RunningCompactionInfo runningCompactionInfo = new RunningCompactionInfo(runningCompaction);
         status = runningCompactionInfo.status;
         lastUpdate = runningCompactionInfo.lastUpdate;
         duration = runningCompactionInfo.duration;
@@ -191,26 +187,15 @@ public class ListCompactions extends ServerKeywordExecutable<RunningCommandOpts>
       coordinatorClient = ExternalCompactionUtil.getCoordinatorClient(context);
 
       // Fetch running compactions as a list and convert to a map
-      TExternalCompactionMap running =
-          coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-
       List<RunningCompactionSummary> results = new ArrayList<>();
+      ExternalCompactionUtil.getCompactionsRunningOnCompactors(context,
+          tec -> results.add(new RunningCompactionSummary(tec, details)));
 
-      if (running == null || running.getCompactions() == null
-          || running.getCompactions().isEmpty()) {
+      if (results.isEmpty()) {
         System.out.println("No running compactions found.");
         return results;
       }
 
-      for (Map.Entry<String,TExternalCompaction> entry : running.getCompactions().entrySet()) {
-        TExternalCompaction ec = entry.getValue();
-        if (ec == null) {
-          continue;
-        }
-        var summary = new RunningCompactionSummary(new RunningCompaction(ec),
-            details ? new RunningCompactionInfo(ec) : null);
-        results.add(summary);
-      }
       return results;
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions.", e);

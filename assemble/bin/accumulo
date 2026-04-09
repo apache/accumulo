@@ -34,6 +34,9 @@ function main() {
   export conf="${ACCUMULO_CONF_DIR:-${basedir}/conf}"
   export lib="${basedir}/lib"
   export cmd="$1"
+  if [[ $cmd == "proc" ]]; then
+    cmd="$2"
+  fi
 
   if [[ -z $conf || ! -d $conf ]]; then
     echo "$conf is not a valid directory.  Please make sure it exists"

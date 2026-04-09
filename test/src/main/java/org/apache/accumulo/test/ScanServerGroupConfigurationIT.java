@@ -45,58 +45,59 @@ import org.junit.jupiter.api.Test;
 
 public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
-  // @formatter:off
-  public static final String clientConfiguration =
-     "["+
-     " {"+
-     "   \"isDefault\": true,"+
-     "   \"maxBusyTimeout\": \"5m\","+
-     "   \"busyTimeoutMultiplier\": 8,"+
-     "   \"scanTypeActivations\": [],"+
-     "   \"timeToWaitForScanServers\":\"0s\","+
-     "   \"attemptPlans\": ["+
-     "     {"+
-     "       \"servers\": \"3\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"one\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"13\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"two\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"100%\","+
-     "       \"busyTimeout\": \"33ms\""+
-     "     }"+
-     "   ]"+
-     "  },"+
-     " {"+
-     "   \"isDefault\": false,"+
-     "   \"maxBusyTimeout\": \"5m\","+
-     "   \"busyTimeoutMultiplier\": 8,"+
-     "   \"group\": \"GROUP1\","+
-     "   \"scanTypeActivations\": [\"use_group1\"],"+
-     "   \"timeToWaitForScanServers\":\"0s\","+
-     "   \"attemptPlans\": ["+
-     "     {"+
-     "       \"servers\": \"3\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"one\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"13\","+
-     "       \"busyTimeout\": \"33ms\","+
-     "       \"salt\": \"two\""+
-     "     },"+
-     "     {"+
-     "       \"servers\": \"100%\","+
-     "       \"busyTimeout\": \"33ms\""+
-     "     }"+
-     "   ]"+
-     "  }"+
-     "]";
-  // @formatter:on
+  public static final String clientConfiguration = """
+      [
+          {
+              "isDefault": true,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "scanTypeActivations": [],
+              "timeToWaitForScanServers": "0s",
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          },
+          {
+              "isDefault": false,
+              "maxBusyTimeout": "5m",
+              "busyTimeoutMultiplier": 8,
+              "group": "GROUP1",
+              "scanTypeActivations": [
+                  "use_group1"
+              ],
+              "timeToWaitForScanServers": "120s",
+              "attemptPlans": [
+                  {
+                      "servers": "3",
+                      "busyTimeout": "33ms",
+                      "salt": "one"
+                  },
+                  {
+                      "servers": "13",
+                      "busyTimeout": "33ms",
+                      "salt": "two"
+                  },
+                  {
+                      "servers": "100%",
+                      "busyTimeout": "33ms"
+                  }
+              ]
+          }
+      ]
+      """;
 
   private static class Config implements MiniClusterConfigurationCallback {
     @Override
@@ -177,6 +178,10 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
                 AddressSelector.all(), true)
             .size() == 1);
 
+        // ConfigurableScanServerSelector will only look for new scan servers
+        // after 5 seconds since it looked the last time to reduce the load
+        // on ZooKeeper.
+        Thread.sleep(5_000);
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(ingestedEntryCount + additionalIngest1, scanner.stream().count(),
             "The scan server scanner should have seen all ingested and flushed entries");

@@ -32,6 +32,7 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField UPDATES_FIELD_DESC = new org.apache.thrift.protocol.TField("updates", org.apache.thrift.protocol.TType.MAP, (short)3);
   private static final org.apache.thrift.protocol.TField JOB_FIELD_DESC = new org.apache.thrift.protocol.TField("job", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+  private static final org.apache.thrift.protocol.TField START_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("startTime", org.apache.thrift.protocol.TType.I64, (short)5);
 
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TExternalCompactionTupleSchemeFactory();
@@ -40,13 +41,15 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates; // required
   public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job; // required
+  public long startTime; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
     GROUP_NAME((short)1, "groupName"),
     COMPACTOR((short)2, "compactor"),
     UPDATES((short)3, "updates"),
-    JOB((short)4, "job");
+    JOB((short)4, "job"),
+    START_TIME((short)5, "startTime");
 
     private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -70,6 +73,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
           return UPDATES;
         case 4: // JOB
           return JOB;
+        case 5: // START_TIME
+          return START_TIME;
         default:
           return null;
       }
@@ -113,6 +118,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   }
 
   // isset id assignments
+  private static final int __STARTTIME_ISSET_ID = 0;
+  private byte __isset_bitfield = 0;
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
@@ -126,6 +133,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
             new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TCompactionStatusUpdate.class))));
     tmpMap.put(_Fields.JOB, new org.apache.thrift.meta_data.FieldMetaData("job", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob.class)));
+    tmpMap.put(_Fields.START_TIME, new org.apache.thrift.meta_data.FieldMetaData("startTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
     org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(TExternalCompaction.class, metaDataMap);
   }
@@ -137,19 +146,23 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     java.lang.String groupName,
     java.lang.String compactor,
     java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates,
-    org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job)
+    org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job,
+    long startTime)
   {
     this();
     this.groupName = groupName;
     this.compactor = compactor;
     this.updates = updates;
     this.job = job;
+    this.startTime = startTime;
+    setStartTimeIsSet(true);
   }
 
   /**
    * Performs a deep copy on <i>other</i>.
    */
   public TExternalCompaction(TExternalCompaction other) {
+    __isset_bitfield = other.__isset_bitfield;
     if (other.isSetGroupName()) {
       this.groupName = other.groupName;
     }
@@ -174,6 +187,7 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     if (other.isSetJob()) {
       this.job = new org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob(other.job);
     }
+    this.startTime = other.startTime;
   }
 
   @Override
@@ -187,6 +201,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     this.compactor = null;
     this.updates = null;
     this.job = null;
+    setStartTimeIsSet(false);
+    this.startTime = 0;
   }
 
   @org.apache.thrift.annotation.Nullable
@@ -300,6 +316,29 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     }
   }
 
+  public long getStartTime() {
+    return this.startTime;
+  }
+
+  public TExternalCompaction setStartTime(long startTime) {
+    this.startTime = startTime;
+    setStartTimeIsSet(true);
+    return this;
+  }
+
+  public void unsetStartTime() {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __STARTTIME_ISSET_ID);
+  }
+
+  /** Returns true if field startTime is set (has been assigned a value) and false otherwise */
+  public boolean isSetStartTime() {
+    return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __STARTTIME_ISSET_ID);
+  }
+
+  public void setStartTimeIsSet(boolean value) {
+    __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __STARTTIME_ISSET_ID, value);
+  }
+
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
@@ -335,6 +374,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       }
       break;
 
+    case START_TIME:
+      if (value == null) {
+        unsetStartTime();
+      } else {
+        setStartTime((java.lang.Long)value);
+      }
+      break;
+
     }
   }
 
@@ -353,6 +400,9 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
 
     case JOB:
       return getJob();
+
+    case START_TIME:
+      return getStartTime();
 
     }
     throw new java.lang.IllegalStateException();
@@ -374,6 +424,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       return isSetUpdates();
     case JOB:
       return isSetJob();
+    case START_TIME:
+      return isSetStartTime();
     }
     throw new java.lang.IllegalStateException();
   }
@@ -427,6 +479,15 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         return false;
     }
 
+    boolean this_present_startTime = true;
+    boolean that_present_startTime = true;
+    if (this_present_startTime || that_present_startTime) {
+      if (!(this_present_startTime && that_present_startTime))
+        return false;
+      if (this.startTime != that.startTime)
+        return false;
+    }
+
     return true;
   }
 
@@ -449,6 +510,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     hashCode = hashCode * 8191 + ((isSetJob()) ? 131071 : 524287);
     if (isSetJob())
       hashCode = hashCode * 8191 + job.hashCode();
+
+    hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(startTime);
 
     return hashCode;
   }
@@ -497,6 +560,16 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     }
     if (isSetJob()) {
       lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.job, other.job);
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+    }
+    lastComparison = java.lang.Boolean.compare(isSetStartTime(), other.isSetStartTime());
+    if (lastComparison != 0) {
+      return lastComparison;
+    }
+    if (isSetStartTime()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.startTime, other.startTime);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -556,6 +629,10 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       sb.append(this.job);
     }
     first = false;
+    if (!first) sb.append(", ");
+    sb.append("startTime:");
+    sb.append(this.startTime);
+    first = false;
     sb.append(")");
     return sb.toString();
   }
@@ -578,6 +655,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
 
   private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
     try {
+      // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+      __isset_bitfield = 0;
       read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
     } catch (org.apache.thrift.TException te) {
       throw new java.io.IOException(te);
@@ -650,6 +729,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
             break;
+          case 5: // START_TIME
+            if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+              struct.startTime = iprot.readI64();
+              struct.setStartTimeIsSet(true);
+            } else { 
+              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+            }
+            break;
           default:
             org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
         }
@@ -694,6 +781,9 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         struct.job.write(oprot);
         oprot.writeFieldEnd();
       }
+      oprot.writeFieldBegin(START_TIME_FIELD_DESC);
+      oprot.writeI64(struct.startTime);
+      oprot.writeFieldEnd();
       oprot.writeFieldStop();
       oprot.writeStructEnd();
     }
@@ -725,7 +815,10 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       if (struct.isSetJob()) {
         optionals.set(3);
       }
-      oprot.writeBitSet(optionals, 4);
+      if (struct.isSetStartTime()) {
+        optionals.set(4);
+      }
+      oprot.writeBitSet(optionals, 5);
       if (struct.isSetGroupName()) {
         oprot.writeString(struct.groupName);
       }
@@ -745,12 +838,15 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       if (struct.isSetJob()) {
         struct.job.write(oprot);
       }
+      if (struct.isSetStartTime()) {
+        oprot.writeI64(struct.startTime);
+      }
     }
 
     @Override
     public void read(org.apache.thrift.protocol.TProtocol prot, TExternalCompaction struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-      java.util.BitSet incoming = iprot.readBitSet(4);
+      java.util.BitSet incoming = iprot.readBitSet(5);
       if (incoming.get(0)) {
         struct.groupName = iprot.readString();
         struct.setGroupNameIsSet(true);
@@ -779,6 +875,10 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         struct.job = new org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob();
         struct.job.read(iprot);
         struct.setJobIsSet(true);
+      }
+      if (incoming.get(4)) {
+        struct.startTime = iprot.readI64();
+        struct.setStartTimeIsSet(true);
       }
     }
   }

@@ -23,40 +23,7 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div id="ecDiv" style="display: none;">
-        <div class="row">
-          <div class="col-xs-12">
-            <table id="coordinatorTable" class="table caption-top table-bordered table-striped table-condensed">
-              <caption><span class="table-caption">Compaction&nbsp;Coordinator</span></caption>
-              <thead>
-                <tr>
-                  <th class="firstcell" title="The hostname the compactor coordinator is running on.">Server&nbsp;</th>
-                  <th title="Number of queues configured">Queues</th>
-                  <th title="Number of compactors running">Compactors</th>
-                  <th class="duration">Last&nbsp;Contact</th>
-                </tr>
-              </thead>
-            </table>
-          </div>
-        </div>
-        <br />
-        <div class="row">
-          <div class="col-xs-12">
-            <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
-              <caption><span class="table-caption">Compactors</span>&nbsp;&nbsp;
-                <a href="javascript:refreshCompactors();"><span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span></a>
-              </caption>
-              <thead>
-                <tr>
-                  <th class="firstcell" title="The hostname the compactor is running on.">Server</th>
-                  <th title="The name of the group this compactor is assigned.">Group</th>
-                  <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
-                </tr>
-              </thead>
-            </table>
-          </div>
-        </div>
-        <br />
+      <div id="runningDiv" style="display: none;">
         <div class="row">
           <div class="col-xs-12">
             <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
@@ -64,7 +31,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <div>
                     <span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
-                    <a href="javascript:refreshRunning();">
+                    <a href="javascript:refreshRunningCompactions();">
                       <span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span>
                     </a>
                   </div>
@@ -138,6 +105,6 @@
           </div>
         </div>
       </div>
-    <div id="ccBanner" style="display: none;">
-      <div class="alert alert-danger" role="alert">Compaction Coordinator Not Running</div>
+    <div id="managerBanner" style="display: none;">
+      <div class="alert alert-danger" role="alert">Manager Not Running</div>
     </div>

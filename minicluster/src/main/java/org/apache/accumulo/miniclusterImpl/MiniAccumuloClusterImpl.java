@@ -112,7 +112,6 @@ import org.apache.accumulo.server.util.PortUtils;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.start.Main;
 import org.apache.accumulo.start.spi.KeywordExecutable;
-import org.apache.accumulo.start.util.MiniDFSUtil;
 import org.apache.commons.io.IOUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeys;
@@ -227,7 +226,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       conf.set(DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY, "1");
       conf.set("dfs.support.append", "true");
       conf.set("dfs.datanode.synconclose", "true");
-      conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
       String oldTestBuildData =
           System.setProperty("test.build.data", dfs.toAbsolutePath().toString());
@@ -502,12 +500,15 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void writeConfigProperties(java.nio.file.Path file, Map<String,String> settings)
       throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(file);
+    Properties props = new Properties();
 
     for (Entry<String,String> entry : settings.entrySet()) {
-      fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
+      props.setProperty(entry.getKey(), entry.getValue());
     }
-    fileWriter.close();
+
+    try (BufferedWriter fileWriter = Files.newBufferedWriter(file)) {
+      props.store(fileWriter, null);
+    }
   }
 
   private Configuration loadExistingHadoopConfiguration() {
@@ -826,8 +827,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private void verifyUp(ClientContext context, InstanceId instanceId)
       throws InterruptedException, IOException {
 
-    requireNonNull(getClusterControl().managerProcess, "Error starting Manager - no process");
-    waitForProcessStart(getClusterControl().managerProcess, "Manager");
+    int mgrExpectedCount = 0;
+    for (Process tsp : getClusterControl().managerProcesses) {
+      mgrExpectedCount++;
+      requireNonNull(tsp, "Error starting Manager " + mgrExpectedCount + " - no process");
+      waitForProcessStart(tsp, "Manager" + mgrExpectedCount);
+    }
 
     requireNonNull(getClusterControl().gcProcess, "Error starting GC - no process");
     waitForProcessStart(getClusterControl().gcProcess, "GC");
@@ -915,7 +920,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return Stream.of(procs).map(ProcessReference::new).collect(toList());
   }
 
-  @SuppressWarnings("removal")
   public Map<ServerType,Collection<ProcessReference>> getProcesses() {
     Map<ServerType,Collection<ProcessReference>> result = new HashMap<>();
     MiniAccumuloClusterControl control = getClusterControl();
@@ -932,9 +936,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           }
           break;
         case MANAGER:
-          if (control.managerProcess != null) {
-            result.put(type, references(control.managerProcess));
-          }
+          result.put(type, references(control.managerProcesses.stream().collect(Collectors.toList())
+              .toArray(new Process[0])));
           break;
         case MONITOR:
           if (control.monitor != null) {
@@ -1027,12 +1030,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
+      System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
+          "file://" + getAccumuloPropertiesPath());
       new ZooZap()
-          .execute(new String[] {"-manager", "-tservers", "-compactors", "-sservers", "--gc"});
+          .execute(new String[] {"-managers", "-tservers", "-compactors", "-sservers", "--gc"});
     } catch (Exception e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
       }
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
 
     // Clear the location of the servers in ZooCache.

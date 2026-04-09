@@ -241,7 +241,8 @@ public class SystemCheck extends ServerKeywordExecutable<CheckCommandOpts> {
         checkStatus.put(check, CheckStatus.SKIPPED_DEPENDENCY_FAILED);
       } else {
         if (givenChecks.contains(check)) {
-          checkStatus.put(check, cmd.getCheckRunner(check).runCheck(context, cmd, cmd.fixFiles));
+          checkStatus.put(check, cmd.getCheckRunner(check).runCheck(context, cmd, cmd.fixFiles)
+              ? CheckStatus.OK : CheckStatus.FAILED);
         } else {
           checkStatus.put(check, CheckStatus.FILTERED_OUT);
         }

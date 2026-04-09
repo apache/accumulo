@@ -62,7 +62,6 @@ import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.CancelCompaction;
-import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindOfflineTablets;
@@ -103,7 +102,6 @@ import org.apache.accumulo.test.TestMultiTableIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.cli.TestCommandGroup;
-import org.apache.accumulo.test.performance.scan.CollectTabletStats;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.ScanServerExecutable;
 import org.apache.accumulo.tserver.TServerExecutable;
@@ -190,8 +188,6 @@ public class KeywordStartIT {
         CheckAccumuloProperties.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "check-compaction-config",
         CheckCompactionConfig.class));
-    expectSet.add(
-        new CommandInfo(CommandGroups.INSTANCE, "check-metadata", CheckForMetadataProblems.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "compactor", CompactorExecutable.class));
     expectSet.add(new CommandInfo(CommandGroups.FILE, "create-empty", CreateEmpty.class));
     expectSet.add(new CommandInfo(CommandGroups.CLIENT, "create-token", CreateToken.class));
@@ -244,8 +240,6 @@ public class KeywordStartIT {
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-all", StopAll.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-manager", StopManager.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "stop-servers", StopServers.class));
-    expectSet
-        .add(new CommandInfo(TestCommandGroup.INSTANCE, "tablet-stats", CollectTabletStats.class));
     expectSet.add(new CommandInfo(CommandGroups.PROCESS, "tserver", TServerExecutable.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "upgrade", UpgradeUtil.class));
     expectSet.add(new CommandInfo(TestCommandGroup.INSTANCE, "verify-ingest", VerifyIngest.class));
@@ -308,7 +302,6 @@ public class KeywordStartIT {
 
     HashSet<Class<?>> expectSet = new HashSet<>();
     expectSet.add(SystemCheck.class);
-    expectSet.add(CheckForMetadataProblems.class);
     expectSet.add(Compactor.class);
     expectSet.add(CreateEmpty.class);
     expectSet.add(DumpConfig.class);
@@ -324,6 +317,9 @@ public class KeywordStartIT {
     expectSet.add(StopServers.class);
     expectSet.add(ScanServer.class);
     expectSet.add(TabletServer.class);
+    expectSet.add(TestIngest.class);
+    expectSet.add(TestRandomDeletes.class);
+    expectSet.add(VerifyIngest.class);
 
     // check that classes in the expected set contain a main
     // not all have them; these do because they always have, and we don't want to break things

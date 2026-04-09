@@ -60,23 +60,17 @@ public class VolumeManagerIT extends ConfigurableMacBase {
       config.setProperty("general.custom.volume.preferred.default", vol1);
       config.setProperty("general.custom.volume.preferred.logger", vol2);
 
-      // Need to escape the colons in the custom property volume because it's part of the key. It's
-      // being written out to a file and read in using the Properties object.
-      String vol1FileOutput = vol1.replaceAll(":", "\\\\:");
-      String vol2FileOutput = vol2.replaceAll(":", "\\\\:");
-      config.setProperty(
-          Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1FileOutput + ".dfs.blocksize",
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1 + ".dfs.blocksize",
           "10485760");
-      config.setProperty(
-          Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2FileOutput + ".dfs.blocksize",
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2 + ".dfs.blocksize",
           "51200000");
-      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1
           + ".dfs.client.use.datanode.hostname", "true");
-      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2
           + ".dfs.client.use.datanode.hostname", "false");
-      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol1
           + ".dfs.client.hedged.read.threadpool.size", "0");
-      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2FileOutput
+      config.setProperty(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + vol2
           + ".dfs.client.hedged.read.threadpool.size", "1");
     });
   }

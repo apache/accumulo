@@ -27,7 +27,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
@@ -62,8 +61,6 @@ public class RefreshTablet extends AbstractFateOperation {
     } finally {
       executorService.shutdownNow();
     }
-
-    env.recordCompactionCompletion(ExternalCompactionId.of(compactionId));
 
     return null;
   }

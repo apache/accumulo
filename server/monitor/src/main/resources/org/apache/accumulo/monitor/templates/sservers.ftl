@@ -45,8 +45,8 @@
               <th title="Count of scans where a busy timeout happened." class="big-num">Busy Timeouts</th>
               <th title="Count of scan reservation conflicts." class="big-num">Reservation Conflicts</th>
               <th title="Number of scan threads with no associated client session." class="big-num">Zombie Threads</th>
-              <th title="Server idle flag (1=true, 0=false)." class="big-num">Idle</th>
-              <th title="Low memory detected flag (1=true, 0=false)." class="big-num">Low Mem</th>
+              <th title="The current activity state of the scan server." class="big-num">Activity State</th>
+              <th title="The current memory state of the scan server." class="big-num">Memory State</th>
               <th title="Count of scans paused due to low memory." class="big-num">Paused Mem</th>
               <th title="Count of scans returned early due to low memory." class="big-num">Early Mem</th>
             </tr>

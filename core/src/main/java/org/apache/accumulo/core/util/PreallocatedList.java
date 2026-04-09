@@ -16,35 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.monitor.rest.bulkImports;
+package org.apache.accumulo.core.util;
 
-import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
+import java.util.Arrays;
+import java.util.List;
 
-/**
- * Stores tserver bulk import information
- *
- * @since 2.0.0
- */
-public class TabletServerBulkImportInformation {
-
-  // Variable names become JSON key
-  public String server;
-  public int importSize;
-  public long oldestAge;
-
-  public TabletServerBulkImportInformation() {}
-
-  /**
-   * Creates a new tserver bulk import object
-   *
-   * @param server server name
-   * @param importSize import size
-   * @param oldestAge tserver bulk import age
-   */
-  public TabletServerBulkImportInformation(TabletServerStatus server, int importSize,
-      long oldestAge) {
-    this.server = server.getName();
-    this.importSize = importSize;
-    this.oldestAge = oldestAge;
+public class PreallocatedList {
+  @SuppressWarnings("unchecked")
+  public static <T> List<T> create(int size) {
+    return Arrays.asList((T[]) new Object[size]);
   }
 }

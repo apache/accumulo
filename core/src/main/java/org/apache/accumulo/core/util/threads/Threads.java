@@ -90,4 +90,19 @@ public class Threads {
 
     return createNonCriticalThread(name, priority, wrapped);
   }
+
+  // only Java 19 and later have the thread ID in the toString; this can be removed when the
+  // required Java version is at least 19
+  public static String toString(Thread t) {
+    StringBuilder sb = new StringBuilder("Thread[#");
+    sb.append(t.getId()).append(",").append(t.getName()).append(",").append(t.getPriority())
+        .append(",");
+    ThreadGroup group = t.getThreadGroup();
+    if (group != null) {
+      sb.append(group.getName());
+    }
+    sb.append("]");
+    return sb.toString();
+  }
+
 }

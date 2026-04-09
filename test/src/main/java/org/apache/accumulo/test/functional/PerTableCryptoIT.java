@@ -211,6 +211,8 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
           }
         }
       }
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
@@ -258,6 +260,7 @@ public class PerTableCryptoIT extends AccumuloClusterHarness {
       assertTrue(stdout.contains(AESCryptoService.class.getName()));
     } finally {
       System.setOut(oldOut);
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 }

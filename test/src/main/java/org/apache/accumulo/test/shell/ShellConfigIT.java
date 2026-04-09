@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.test.VolumeChooserIT.PERTABLE_CHOOSER_PROP;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -30,8 +29,6 @@ import java.time.Duration;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
-import org.apache.accumulo.core.client.security.tokens.KerberosToken;
-import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -97,17 +94,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
 
     assertNotNull(clientPropsFile);
 
-    MockShell ts = null;
-    if (token instanceof PasswordToken) {
-      String passwd = new String(((PasswordToken) token).getPassword(), UTF_8);
-      ts = new MockShell(getAdminPrincipal(), passwd, getCluster().getInstanceName(),
-          getCluster().getZooKeepers(), clientPropsFile);
-    } else if (token instanceof KerberosToken) {
-      ts = new MockShell(getAdminPrincipal(), null, getCluster().getInstanceName(),
-          getCluster().getZooKeepers(), clientPropsFile);
-    } else {
-      fail("Unknown token type");
-    }
+    MockShell ts = new MockShell(clientPropsFile);
 
     assertTrue(Property.TABLE_CRYPTO_PREFIX.isExperimental());
     assertTrue(Property.TABLE_CRYPTO_SENSITIVE_PREFIX.isExperimental());

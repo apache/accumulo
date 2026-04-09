@@ -32,7 +32,6 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.FindOfflineTablets;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.hadoop.io.Text;
 
 public class RootMetadataCheckRunner implements MetadataCheckRunner {
@@ -54,35 +53,34 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
   }
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
+    boolean status = true;
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
     if (FindOfflineTablets.findOffline(context, SystemTables.ROOT.tableName(), false, true,
         log::trace, log::warn) != 0) {
-      status = CheckStatus.FAILED;
+      status &= false;
     } else {
       log.trace("All good... No offline tablets found");
     }
 
     log.trace("********** Looking for missing columns **********");
-    status = checkRequiredColumns(context, status);
+    status &= checkRequiredColumns(context);
 
     log.trace("********** Looking for invalid columns **********");
     final String json =
         new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
-    status = checkColumns(context, rtm.getKeyValues().iterator(), status);
+    status &= checkColumns(context, rtm.getKeyValues().iterator());
 
     printCompleted(status);
     return status;
   }
 
   @Override
-  public CheckStatus checkRequiredColumns(ServerContext context, CheckStatus status)
-      throws Exception {
+  public boolean checkRequiredColumns(ServerContext context) throws Exception {
     final String json =
         new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
@@ -102,20 +100,20 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     });
 
     if (rowsSeen.size() != 1) {
-      status = CheckStatus.FAILED;
       log.warn("Did not see one tablet for the root table!");
+      return false;
     } else {
       if (!requiredColFQs.isEmpty() || !requiredColFams.isEmpty()) {
         log.warn("Tablet {} is missing required columns: col FQs: {}, col fams: {} in the {}\n",
             rowsSeen.stream().findFirst().orElseThrow(), requiredColFQs, requiredColFams,
             scanning());
-        status = CheckStatus.FAILED;
+        return false;
       } else {
         log.trace("...The {} contains all required columns for the root tablet\n", scanning());
       }
     }
 
-    return status;
+    return true;
   }
 
   @Override

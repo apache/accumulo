@@ -23,7 +23,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -75,7 +75,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       justification = "path provided by test; url provided by test")
   private Map<?,?> getStats() throws Exception {
     String uri = getCluster().getMiniDfs().getHttpUri(0);
-    URL url = new URL(uri + "/jmx");
+    var url = new URI(uri + "/jmx").toURL();
     log.debug("Fetching web page " + url);
     String jsonString = FunctionalTestUtils.readWebPage(url).body();
     Map<?,?> jsonObject = GSON.get().fromJson(jsonString, Map.class);

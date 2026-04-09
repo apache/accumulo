@@ -19,17 +19,17 @@
 package org.apache.accumulo.server;
 
 /**
- * This interface allows service implementations which support running multiple instances
- * concurrently with only one active instance to report whether or not they are the active service.
+ * This interface allows manager processes which support running multiple instances concurrently
+ * with only one active instance to report whether it is the primary manager.
  */
-public interface HighlyAvailableService {
+public interface PrimaryManagerThriftService {
 
   /**
    * Is this service instance currently the active instance for the Accumulo cluster.
    *
    * @return True if the service is the active service, false otherwise.
    */
-  boolean isActiveService();
+  boolean isPrimaryManager();
 
   /**
    * Is this service instance currently in the process of upgrading.

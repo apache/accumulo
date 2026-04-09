@@ -197,15 +197,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Fetching list of tables...", Thread.currentThread().getId());
+      log.trace("Fetching list of tables...");
       timer = Timer.startNew();
     }
 
     var tableNames = new TreeSet<>(context.createQualifiedTableNameToIdMap().keySet());
 
     if (timer != null) {
-      log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
-          tableNames.size(), String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
+      log.trace("Fetched {} table names in {}", tableNames.size(),
+          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
     return tableNames;
@@ -222,7 +222,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Timer timer = null;
 
     if (log.isTraceEnabled()) {
-      log.trace("tid={} Checking if table {} exists...", Thread.currentThread().getId(), tableName);
+      log.trace("Checking if table {} exists...", tableName);
       timer = Timer.startNew();
     }
 
@@ -235,7 +235,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     if (timer != null) {
-      log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
+      log.trace("Checked existence of {} in {}", exists,
           String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
     }
 
@@ -1399,13 +1399,17 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
           if ((expectedState == TableState.ONLINE
               && (availability == TabletAvailability.HOSTED
-                  || (availability == TabletAvailability.ONDEMAND) && tablet.getHostingRequested())
+                  || availability == TabletAvailability.ONDEMAND && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
               || (expectedState == TableState.OFFLINE
                   && (loc != null || opid != null || !externalCompactions.isEmpty()))) {
             if (continueRow == null) {
               continueRow = tablet.getExtent().toMetaRow();
             }
+            log.trace(
+                "Waiting on tablet {} exectedState:{} availability:{} hostingRequested:{} loc:{} opid:{} compactions:{}",
+                tablet.getExtent(), expectedState, availability, tablet.getHostingRequested(), loc,
+                opid, externalCompactions.keySet());
             waitFor++;
             lastRow = tablet.getExtent().toMetaRow();
 

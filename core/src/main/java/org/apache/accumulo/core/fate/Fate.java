@@ -30,6 +30,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
@@ -51,6 +52,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonParser;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -76,6 +79,7 @@ public class Fate<T> extends FateClient<T> {
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   // Visible for FlakyFate test object
   protected final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  private Set<FatePartition> currentPartitions = Set.of();
 
   public enum TxInfo {
     FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -211,8 +215,10 @@ public class Fate<T> extends FateClient<T> {
               fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
             log.debug("[{}] Adding FateExecutor for {} with {} threads", store.type(), fateOps,
                 poolSize);
-            fateExecutors.add(
-                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName));
+            var fateExecutor =
+                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName);
+            fateExecutors.add(fateExecutor);
+            fateExecutor.setPartitions(currentPartitions);
           }
         }
       }
@@ -236,7 +242,11 @@ public class Fate<T> extends FateClient<T> {
     @Override
     public void run() {
       if (keepRunning.get()) {
-        store.deleteDeadReservations();
+        Set<FatePartition> partitions;
+        synchronized (fateExecutors) {
+          partitions = currentPartitions;
+        }
+        store.deleteDeadReservations(partitions);
       }
     }
   }
@@ -372,6 +382,17 @@ public class Fate<T> extends FateClient<T> {
     return needMoreThreadsWarnCount;
   }
 
+  public void seeded(Set<FatePartition> partitions) {
+    synchronized (fateExecutors) {
+      if (Sets.intersection(currentPartitions, partitions).isEmpty()) {
+        return;
+      }
+    }
+
+    log.trace("Notified of seeding for {}", partitions);
+    store.seeded();
+  }
+
   /**
    * Initiates shutdown of background threads that run fate operations and cleanup fate data and
    * optionally waits on them. Leaves the fate object in a state where it can still update and read
@@ -433,6 +454,27 @@ public class Fate<T> extends FateClient<T> {
   public void close() {
     shutdown(0, SECONDS);
     store.close();
+  }
+
+  public Set<FatePartition> getPartitions() {
+    synchronized (fateExecutors) {
+      return currentPartitions;
+    }
+  }
+
+  public Set<FatePartition> setPartitions(Set<FatePartition> partitions) {
+    Objects.requireNonNull(partitions);
+    Preconditions.checkArgument(
+        partitions.stream().allMatch(
+            fp -> fp.start().getType() == store.type() && fp.end().getType() == store.type()),
+        "type mismatch type:%s partitions:%s", store.type(), partitions);
+
+    synchronized (fateExecutors) {
+      var old = currentPartitions;
+      currentPartitions = Set.copyOf(partitions);
+      fateExecutors.forEach(fe -> fe.setPartitions(currentPartitions));
+      return old;
+    }
   }
 
   private boolean anyFateExecutorIsAlive() {

@@ -22,7 +22,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.net.URL;
+import java.net.URI;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
@@ -143,7 +143,7 @@ public class MonitorSslIT extends ConfigurableMacBase {
         }
       }
     }
-    URL url = new URL(monitorLocation);
+    var url = new URI(monitorLocation).toURL();
     log.debug("Fetching web page {}", url);
     String result = FunctionalTestUtils.readWebPage(url).body();
     assertTrue(result.length() > 100);

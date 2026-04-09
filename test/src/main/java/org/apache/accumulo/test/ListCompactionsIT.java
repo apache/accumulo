@@ -31,14 +31,11 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -52,7 +49,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -100,16 +96,13 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
       writeData(client, tableName);
       compact(client, tableName, 2, GROUP7, false);
 
-      Optional<HostAndPort> coordinatorHost =
-          ExternalCompactionUtil.findCompactionCoordinator(getCluster().getServerContext());
-
       // wait for the compaction to start
-      TExternalCompactionMap expected = ExternalCompactionTestUtils
-          .getRunningCompactions(getCluster().getServerContext(), coordinatorHost);
-      while (expected == null || expected.getCompactionsSize() == 0) {
+      var expected =
+          ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
+      while (expected.isEmpty()) {
         Thread.sleep(1000);
-        expected = ExternalCompactionTestUtils
-            .getRunningCompactions(getCluster().getServerContext(), coordinatorHost);
+        expected =
+            ExternalCompactionTestUtils.getRunningCompactions(getCluster().getServerContext());
       }
 
       final List<RunningCompactionSummary> running =
@@ -117,8 +110,8 @@ public class ListCompactionsIT extends SharedMiniClusterBase {
       final Map<String,RunningCompactionSummary> compactionsByEcid = new HashMap<>();
       running.forEach(rcs -> compactionsByEcid.put(rcs.getEcid(), rcs));
 
-      assertEquals(expected.getCompactionsSize(), compactionsByEcid.size());
-      expected.getCompactions().values().forEach(tec -> {
+      assertEquals(expected.size(), compactionsByEcid.size());
+      expected.values().forEach(tec -> {
         RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());

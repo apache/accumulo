@@ -108,7 +108,7 @@ public class SystemConfigurationTest {
   public void testFromFixed() {
     var sysPropKey = SystemPropKey.of();
 
-    assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("9800-9899", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
     assertEquals("19", sysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
@@ -132,7 +132,7 @@ public class SystemConfigurationTest {
 
     sysConfig.zkChangeEvent(sysPropKey);
 
-    assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("9800-9899", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
     assertEquals("19", sysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertEquals("false", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
@@ -169,7 +169,7 @@ public class SystemConfigurationTest {
     sysConfig.zkChangeEvent(sysPropKey);
     sysConfig.zkChangeEvent(defaultRGPropKey);
 
-    assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("9800-9899", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
     assertEquals("19", sysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
@@ -186,7 +186,7 @@ public class SystemConfigurationTest {
     ResourceGroupConfiguration rgConfig =
         new ResourceGroupConfiguration(context, testRGPropKey, testSysConfig);
 
-    assertEquals("9997", rgConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("9800-9899", rgConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", rgConfig.get(GC_PORT)); // fixed sys config
     assertEquals("19", rgConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertEquals("false", rgConfig.get(TABLE_BLOOM_ENABLED)); // sys config

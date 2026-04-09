@@ -32,34 +32,28 @@ import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
-import org.apache.accumulo.monitor.next.SystemInformation.ProcessSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
+import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
-import org.apache.accumulo.monitor.next.ec.RunningCompactionDetails;
-import org.apache.accumulo.monitor.next.ec.RunningCompactionsSummary;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 
 import io.micrometer.core.instrument.Meter.Id;
@@ -105,7 +99,9 @@ public class Endpoints {
      * dependency convergence issues as we were using newer version of some of the same
      * dependencies.
      */
-    final String basePath = request.getRequestURL().toString();
+    final String requestPath = request.getRequestURL().toString();
+    int idx = requestPath.indexOf("/endpoints");
+    final String basePath = requestPath.substring(0, idx);
     final Map<String,String> documentation = new TreeMap<>();
 
     for (Method m : Endpoints.class.getMethods()) {
@@ -329,31 +325,30 @@ public class Endpoints {
   }
 
   @GET
-  @Path("compactions/detail")
+  @Path("compactions/running")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a map of Compactor resource group to the 50 oldest running compactions")
-  public Map<String,List<TExternalCompaction>> getCompactions() {
-    Map<String,List<TExternalCompaction>> all =
-        monitor.getInformationFetcher().getSummaryForEndpoint().getCompactions();
-    if (all == null) {
-      return Map.of();
-    }
-    return all;
+  @Description("Returns all long running major compactions")
+  public List<RunningCompactionInfo> getCompactions() {
+    Map<String,TimeOrderedRunningCompactionSet> longRunning =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getTopRunningCompactions();
+    return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
+        .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
+        .collect(Collectors.toList());
   }
 
   @GET
-  @Path("compactions/detail/{" + GROUP_PARAM_KEY + "}")
+  @Path("compactions/running/{" + GROUP_PARAM_KEY + "}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of the 50 oldest running compactions in the supplied resource group")
-  public List<TExternalCompaction>
+  @Description("Returns all long running major compactions for the resource group")
+  public List<RunningCompactionInfo>
       getCompactions(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
     validateResourceGroup(resourceGroup);
-    List<TExternalCompaction> compactions =
-        monitor.getInformationFetcher().getSummaryForEndpoint().getCompactions(resourceGroup);
-    if (compactions == null) {
+    TimeOrderedRunningCompactionSet longRunning = monitor.getInformationFetcher()
+        .getSummaryForEndpoint().getTopRunningCompactions().get(resourceGroup);
+    if (longRunning == null) {
       return List.of();
     }
-    return compactions;
+    return longRunning.stream().collect(Collectors.toList());
   }
 
   @GET
@@ -361,8 +356,9 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns External Compaction coordinator summary")
   public CoordinatorSummary getExternalCompactionCoordinator() {
-    return new CoordinatorSummary(monitor.getCompactionCoordinatorHost(),
-        monitor.getCompactorServers(), monitor.getCompactorInfoFetchedTimeMillis());
+    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return CoordinatorSummary.fromHost(summary.getCoordinatorHost(), summary.getCompactorServers(),
+        summary.getTimestamp());
   }
 
   @GET
@@ -370,33 +366,8 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns External Compactor process details")
   public CompactorsSummary getExternalCompactors() {
-    return new CompactorsSummary(monitor.getCompactorServers(),
-        monitor.getCompactorInfoFetchedTimeMillis());
-  }
-
-  @GET
-  @Path("ec/running")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns running External Compactions")
-  public RunningCompactionsSummary getExternalCompactions() {
-    return new RunningCompactionsSummary(monitor.getRunningCompactionsMap());
-  }
-
-  @GET
-  @Path("ec/details")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns details for a running External Compaction by ECID")
-  public RunningCompactionDetails
-      getExternalCompactionDetails(@QueryParam("ecid") @NotNull String ecid) {
-    if (ecid.isBlank()) {
-      throw new BadRequestException("Missing required query parameter: ecid");
-    }
-    final var externalCompactionId = ExternalCompactionId.from(ecid);
-    var runningCompaction = monitor.getRunningCompaction(externalCompactionId);
-    if (runningCompaction == null) {
-      throw new IllegalStateException("Failed to find details for ECID: " + externalCompactionId);
-    }
-    return new RunningCompactionDetails(runningCompaction);
+    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return new CompactorsSummary(summary.getCompactorServers(), summary.getTimestamp());
   }
 
   @GET
@@ -436,10 +407,10 @@ public class Endpoints {
   @GET
   @Path("deployment")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a map of resource group to server type to process summary."
-      + " The process summary contains the number of configured, responding, and not responding servers")
-  public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentOverview();
+  @Description("Returns a UI-ready deployment overview grouped by resource group. Each process row"
+      + " contains the total and responding server counts.")
+  public DeploymentOverview getDeploymentOverview() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getDeploymentView();
   }
 
   @GET

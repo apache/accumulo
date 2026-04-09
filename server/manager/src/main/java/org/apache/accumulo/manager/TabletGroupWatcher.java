@@ -23,6 +23,12 @@ import static java.lang.Math.min;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_META_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_ROOT_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_USER_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -42,6 +48,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Stream;
@@ -72,13 +80,14 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Fu
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.EventCoordinator.Event;
 import org.apache.accumulo.manager.EventCoordinator.EventScope;
-import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
@@ -110,6 +119,9 @@ import com.google.common.collect.ImmutableSortedSet;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+
 abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
   private static final Logger LOG = LoggerFactory.getLogger(TabletGroupWatcher.class);
@@ -122,20 +134,72 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   final TableStats stats = new TableStats();
   private SortedSet<TServerInstance> lastScanServers = Collections.emptySortedSet();
   private final EventHandler eventHandler;
-  private final ManagerMetrics metrics;
+  private final TabletGroupWatcherMetrics metrics;
   private final WalStateManager walStateManager;
   private volatile Set<TServerInstance> filteredServersToShutdown = Set.of();
 
-  TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher,
-      ManagerMetrics metrics) {
+  private static class TabletGroupWatcherMetrics implements MetricsProducer {
+    private final AtomicLong errorsGauge = new AtomicLong(0);
+    private final AtomicInteger compactionConfigurationError = new AtomicInteger(0);
+    private final Ample.DataLevel level;
+
+    private TabletGroupWatcherMetrics(Ample.DataLevel level) {
+      this.level = level;
+    }
+
+    public void incrementTabletGroupWatcherError() {
+      errorsGauge.incrementAndGet();
+    }
+
+    public void setCompactionServiceConfigurationError() {
+      this.compactionConfigurationError.set(1);
+    }
+
+    public void clearCompactionServiceConfigurationError() {
+      this.compactionConfigurationError.set(0);
+    }
+
+    @Override
+    public void registerMetrics(MeterRegistry registry) {
+
+      Metric errorMetric;
+      Metric svcCfgErrorMetric;
+      switch (level) {
+        case USER -> {
+          errorMetric = MANAGER_USER_TGW_ERRORS;
+          svcCfgErrorMetric = COMPACTION_USER_SVC_ERRORS;
+        }
+        case METADATA -> {
+          errorMetric = MANAGER_META_TGW_ERRORS;
+          svcCfgErrorMetric = COMPACTION_META_SVC_ERRORS;
+        }
+        case ROOT -> {
+          errorMetric = MANAGER_ROOT_TGW_ERRORS;
+          svcCfgErrorMetric = COMPACTION_ROOT_SVC_ERRORS;
+        }
+        default -> throw new IllegalStateException("Unknown level " + level);
+      }
+      Gauge.builder(errorMetric.getName(), errorsGauge, AtomicLong::get)
+          .description(errorMetric.getDescription()).register(registry);
+      Gauge.builder(svcCfgErrorMetric.getName(), compactionConfigurationError, AtomicInteger::get)
+          .description(svcCfgErrorMetric.getDescription()).register(registry);
+
+    }
+  }
+
+  TabletGroupWatcher(Manager manager, TabletStateStore store, TabletGroupWatcher dependentWatcher) {
     super("Watching " + store.name());
     this.manager = manager;
     this.store = store;
     this.dependentWatcher = dependentWatcher;
-    this.metrics = metrics;
+    this.metrics = new TabletGroupWatcherMetrics(store.getLevel());
     this.walStateManager = new WalStateManager(manager.getContext());
     this.eventHandler = new EventHandler();
     manager.getEventCoordinator().addListener(store.getLevel(), eventHandler);
+  }
+
+  public MetricsProducer getMetrics() {
+    return metrics;
   }
 
   /** Should this {@code TabletGroupWatcher} suspend tablets? */
@@ -487,7 +551,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         LOG.warn(
             "Error on TabletServer trying to get Tablet management information for metadata tablet. Error message: {}",
             mtiError);
-        this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
+        this.metrics.incrementTabletGroupWatcherError();
         tableMgmtStats.tabletsWithErrors++;
         continue;
       }
@@ -689,7 +753,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               if (client != null) {
                 TABLET_UNLOAD_LOGGER.trace("[{}] Requesting TabletServer {} unload {} {}",
                     store.name(), location.getServerInstance(), tm.getExtent(), goal.howUnload());
-                client.unloadTablet(manager.managerLock, tm.getExtent(), goal.howUnload(),
+                client.unloadTablet(manager.primaryManagerLock, tm.getExtent(), goal.howUnload(),
                     manager.getSteadyTime().getMillis());
                 tableMgmtStats.totalUnloaded++;
                 unloaded++;
@@ -1065,7 +1129,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
         if (client != null) {
-          client.assignTablet(manager.managerLock, a.tablet);
+          client.assignTablet(manager.primaryManagerLock, a.tablet);
           manager.assignedTablet(a.tablet);
         } else {
           Manager.log.warn("Could not connect to server {} for assignment of {}", a.server,

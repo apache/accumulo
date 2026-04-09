@@ -28,9 +28,10 @@ import com.google.common.net.HostAndPort;
 public record CoordinatorSummary(long lastContact, String server, long numQueues,
     int numCompactors) {
 
-  public CoordinatorSummary(HostAndPort coordinatorHost, Set<ServerId> compactors,
-      long fetchedTimeMillis) {
-    this(System.currentTimeMillis() - fetchedTimeMillis, coordinatorHost.toString(),
+  public static CoordinatorSummary fromHost(HostAndPort coordinatorHost, Set<ServerId> compactors,
+      long snapshotTimeMillis) {
+    return new CoordinatorSummary(System.currentTimeMillis() - snapshotTimeMillis,
+        coordinatorHost == null ? null : coordinatorHost.toString(),
         compactors.stream().map(ServerId::getResourceGroup).distinct().count(), compactors.size());
   }
 }

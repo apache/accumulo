@@ -19,7 +19,7 @@
 /* JSLint global definitions */
 /*global
     $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    getSserversView
+    getSserversView, renderActivityState, renderMemoryState
 */
 "use strict";
 
@@ -170,10 +170,12 @@ $(function () {
         "data": "zombieThreads"
       },
       {
-        "data": "serverIdle"
+        "data": "serverIdle",
+        "render": renderActivityState
       },
       {
-        "data": "lowMemoryDetected"
+        "data": "lowMemoryDetected",
+        "render": renderMemoryState
       },
       {
         "data": "scansPausedForMemory"

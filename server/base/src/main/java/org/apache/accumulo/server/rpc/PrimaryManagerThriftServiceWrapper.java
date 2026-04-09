@@ -28,23 +28,21 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
-import org.apache.accumulo.server.HighlyAvailableService;
+import org.apache.accumulo.server.PrimaryManagerThriftService;
 import org.apache.thrift.ProcessFunction;
 import org.apache.thrift.TBaseProcessor;
 
 /**
  * A class to wrap invocations to the Thrift handler to prevent these invocations from succeeding
- * when the Accumulo service that this Thrift service is for has not yet obtained its ZooKeeper
- * lock.
+ * when the manager that this Thrift service is for has not yet obtained the primary manager lock.
  *
  * <p>
  * Its expected that all methods in the wrapped thrift service declare they throw
  * {@link org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException}. The methods
  * should declare they throw in the thrift IDL.
  *
- * @since 2.0
  */
-public class HighlyAvailableServiceWrapper {
+public class PrimaryManagerThriftServiceWrapper {
 
   /**
    * Returns all thrift methods on a processor along w/ an indication if they are oneway or not.
@@ -100,10 +98,10 @@ public class HighlyAvailableServiceWrapper {
   }
 
   // Not for public use.
-  private HighlyAvailableServiceWrapper() {}
+  private PrimaryManagerThriftServiceWrapper() {}
 
   public static <I> I service(Class<I> iface, Function<I,TBaseProcessor<I>> processorFactory,
-      final I handler, HighlyAvailableService service) {
+      final I handler, PrimaryManagerThriftService service) {
     var processor = processorFactory.apply(handler);
     var thriftMethods = getThriftMethods(processor);
     validateHAServerExceptions(iface, thriftMethods);
@@ -112,7 +110,7 @@ public class HighlyAvailableServiceWrapper {
         .map(Map.Entry::getKey).collect(Collectors.toSet());
 
     InvocationHandler proxyHandler =
-        new HighlyAvailableServiceInvocationHandler<>(handler, service, onewayMethods);
+        new PrimaryManagerThriftInvocationHandler<>(handler, service, onewayMethods);
     @SuppressWarnings("unchecked")
     I proxiedInstance = (I) Proxy.newProxyInstance(handler.getClass().getClassLoader(),
         new Class<?>[] {iface}, proxyHandler);

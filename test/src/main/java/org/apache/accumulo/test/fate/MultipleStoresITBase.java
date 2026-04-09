@@ -43,6 +43,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
@@ -103,9 +104,9 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
       assertTrue(store1.tryReserve(fakeFateId).isEmpty());
       assertTrue(store2.tryReserve(fakeFateId).isEmpty());
       // Both stores should return the same reserved transactions
-      activeReservations = store1.getActiveReservations();
+      activeReservations = store1.getActiveReservations(Set.of(FatePartition.all(store1.type())));
       assertEquals(allIds, activeReservations.keySet());
-      activeReservations = store2.getActiveReservations();
+      activeReservations = store2.getActiveReservations(Set.of(FatePartition.all(store2.type())));
       assertEquals(allIds, activeReservations.keySet());
 
       // Test setting/getting the TStatus and unreserving the transactions
@@ -120,8 +121,8 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
         assertThrows(IllegalStateException.class,
             () -> reservation.setStatus(ReadOnlyFateStore.TStatus.NEW));
       }
-      assertTrue(store1.getActiveReservations().isEmpty());
-      assertTrue(store2.getActiveReservations().isEmpty());
+      assertTrue(store1.getActiveReservations(Set.of(FatePartition.all(store1.type()))).isEmpty());
+      assertTrue(store2.getActiveReservations(Set.of(FatePartition.all(store2.type()))).isEmpty());
     }
   }
 
@@ -254,8 +255,10 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
       Fate<SleepingTestEnv> fate1 = new Fate<>(testEnv1, store1, true, Object::toString,
           DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+      fate1.setPartitions(Set.of(FatePartition.all(store1.type())));
       Fate<SleepingTestEnv> fate2 = new Fate<>(testEnv2, store2, false, Object::toString,
           DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+      fate2.setPartitions(Set.of(FatePartition.all(store2.type())));
 
       try {
         for (int i = 0; i < numFateIds; i++) {
@@ -320,8 +323,10 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
       try {
         fate1 = new FastFate<>(testEnv1, store1, true, Object::toString, config);
+        fate1.setPartitions(Set.of(FatePartition.all(store1.type())));
         // Ensure nothing is reserved yet
-        assertTrue(store1.getActiveReservations().isEmpty());
+        assertTrue(
+            store1.getActiveReservations(Set.of(FatePartition.all(store1.type()))).isEmpty());
 
         // Create transactions
         for (int i = 0; i < numFateIds; i++) {
@@ -337,7 +342,7 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
         // Each fate worker will be hung up working (IN_PROGRESS) on a single transaction
 
         // Verify store1 has the transactions reserved and that they were reserved with lock1
-        reservations = store1.getActiveReservations();
+        reservations = store1.getActiveReservations(Set.of(FatePartition.all(store1.type())));
         assertEquals(allIds, reservations.keySet());
         reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
 
@@ -345,7 +350,7 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
           // Verify store2 can see the reserved transactions even though they were reserved using
           // store1
-          reservations = store2.getActiveReservations();
+          reservations = store2.getActiveReservations(Set.of(FatePartition.all(store2.type())));
           assertEquals(allIds, reservations.keySet());
           reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
 
@@ -361,6 +366,7 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
           // fate1.
           fate2 = new Fate<>(testEnv2, store2, false, Object::toString, config,
               new ScheduledThreadPoolExecutor(2));
+          fate2.setPartitions(Set.of(FatePartition.all(store2.type())));
 
           // Wait for the "dead" reservations to be deleted and picked up again (reserved using
           // fate2/store2/lock2 now).
@@ -370,7 +376,7 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
           // the workers for fate1 are hung up
           Wait.waitFor(() -> {
             Map<FateId,FateStore.FateReservation> store2Reservations =
-                store2.getActiveReservations();
+                store2.getActiveReservations(Set.of(FatePartition.all(store2.type())));
             boolean allReservedWithLock2 = store2Reservations.values().stream()
                 .allMatch(entry -> entry.getLockID().equals(lock2));
             return store2Reservations.keySet().equals(allIds) && allReservedWithLock2;

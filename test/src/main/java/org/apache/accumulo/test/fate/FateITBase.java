@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
+import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
 import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -47,10 +48,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
@@ -559,9 +561,11 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
   }
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
-    return new Fate<>(new TestEnv(), store, false, r -> r + "",
+    var fate = new Fate<>(new TestEnv(), store, false, r -> r + "",
         FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
         new ScheduledThreadPoolExecutor(2));
+    fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    return fate;
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);
@@ -574,63 +578,191 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
 
   protected void testShutdownDoesNotFailTx(FateStore<TestEnv> store, ServerContext sctx)
       throws Exception {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-
     Fate<TestEnv> fate = initializeFate(store);
 
-    // Wait for the transaction runner to be scheduled.
-    UtilWaitThread.sleep(3000);
+    try {
+      // Wait for the transaction runner to be scheduled.
+      UtilWaitThread.sleep(3000);
 
-    callStarted = new CountDownLatch(1);
-    finishCall = new CountDownLatch(1);
+      callStarted = new CountDownLatch(1);
+      finishCall = new CountDownLatch(1);
 
-    FateId txid = fate.startTransaction();
-    assertEquals(TStatus.NEW, getTxStatus(sctx, txid));
+      FateId txid = fate.startTransaction();
+      assertEquals(TStatus.NEW, getTxStatus(sctx, txid));
 
-    fate.seedTransaction(TEST_FATE_OP, txid, new TestRepo("testShutdownDoesNotFailTx"), true,
-        "Test Op");
+      fate.seedTransaction(TEST_FATE_OP, txid, new TestRepo("testShutdownDoesNotFailTx"), true,
+          "Test Op");
 
-    // The Fate operation could be in a SUBMITTED state if the
-    // Fate transaction runner thread has not picked it up yet.
-    // If the thread has picked it up, then it will be in an
-    // IN_PROGRESS state, but will be waiting on the finishCall
-    // latch to be called to continue.
-    assertTrue(TStatus.SUBMITTED == getTxStatus(sctx, txid)
-        || TStatus.IN_PROGRESS == getTxStatus(sctx, txid));
+      // The Fate operation could be in a SUBMITTED state if the
+      // Fate transaction runner thread has not picked it up yet.
+      // If the thread has picked it up, then it will be in an
+      // IN_PROGRESS state, but will be waiting on the finishCall
+      // latch to be called to continue.
+      assertTrue(TStatus.SUBMITTED == getTxStatus(sctx, txid)
+          || TStatus.IN_PROGRESS == getTxStatus(sctx, txid));
 
-    // wait for call() to be called
-    callStarted.await();
-    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+      // wait for call() to be called
+      callStarted.await();
+      assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
 
-    // shutdown fate
-    fate.shutdown(0, SECONDS);
+      // shutdown fate
+      fate.shutdown(0, SECONDS);
 
-    // tell the op to exit the method
-    Wait.waitFor(() -> interruptedException.get() != null);
-    interruptedException.set(null);
+      // tell the op to exit the method
+      Wait.waitFor(() -> interruptedException.get() != null);
+      interruptedException.set(null);
 
-    // restart fate
-    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
-    fate = initializeFate(store);
-    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+      // restart fate
+      assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+      fate = initializeFate(store);
+      assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
 
-    // Restarting the transaction runners will retry the in-progress
-    // transaction. Reset the CountDownLatch's to confirm.
-    callStarted = new CountDownLatch(1);
-    finishCall = new CountDownLatch(1);
+      // Restarting the transaction runners will retry the in-progress
+      // transaction. Reset the CountDownLatch's to confirm.
+      callStarted = new CountDownLatch(1);
+      finishCall = new CountDownLatch(1);
 
-    callStarted.await();
-    assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
-    finishCall.countDown();
+      callStarted.await();
+      assertEquals(IN_PROGRESS, getTxStatus(sctx, txid));
+      finishCall.countDown();
 
-    // This should complete normally, cleaning up the tx and deleting it from ZK
-    TStatus status = getTxStatus(sctx, txid);
-    while (status != TStatus.UNKNOWN) {
-      Thread.sleep(100);
-      status = getTxStatus(sctx, txid);
+      // This should complete normally, cleaning up the tx and deleting it from ZK
+      TStatus status = getTxStatus(sctx, txid);
+      while (status != TStatus.UNKNOWN) {
+        Thread.sleep(100);
+        status = getTxStatus(sctx, txid);
+      }
+      assertNull(interruptedException.get());
+    } finally {
+      fate.shutdown(10, TimeUnit.MINUTES);
     }
-    assertNull(interruptedException.get());
+
+  }
+
+  public static class DoNothingRepo implements Repo<TestEnv> {
+    private static final long serialVersionUID = 1L;
+
+    @Override
+    public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
+      return null;
+    }
+
+    @Override
+    public void undo(FateId fateId, TestEnv environment) throws Exception {
+
+    }
+
+    @Override
+    public String getReturn() {
+      return "";
+    }
+
+    @Override
+    public long isReady(FateId fateId, TestEnv environment) throws Exception {
+      return 0;
+    }
+
+    @Override
+    public String getName() {
+      return "none";
+    }
+  }
+
+  @Test
+  @Timeout(60)
+  public void testPartitions() throws Exception {
+    executeTest(this::testPartitions);
+  }
+
+  protected void testPartitions(FateStore<TestEnv> store, ServerContext sctx) {
+    // This test ensures that fate only processes fateids that fall within its assigned partitions
+    // of fateids.
+    Fate<TestEnv> fate = initializeFate(store);
+    try {
+      fate.setPartitions(Set.of());
+
+      Set<FateId> fateIds = new HashSet<>();
+
+      for (int i = 0; i < 100; i++) {
+        var txid = fate.startTransaction();
+        fateIds.add(txid);
+
+        fate.seedTransaction(TEST_FATE_OP, txid, new DoNothingRepo(), false, "no goal");
+      }
+
+      for (var fateId : fateIds) {
+        assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+      }
+
+      // start processing all uuids that start with 1 or 5, but no other ids
+      fate.setPartitions(Set.of(newPartition(store.type(), "1"), newPartition(store.type(), "5")));
+
+      Wait.waitFor(() -> fateIds.stream().filter(
+          fateId -> fateId.getTxUUIDStr().startsWith("1") || fateId.getTxUUIDStr().startsWith("5"))
+          .map(fateId -> getTxStatus(sctx, fateId)).allMatch(status -> status == SUCCESSFUL));
+
+      for (var fateId : fateIds) {
+        var uuid = fateId.getTxUUIDStr();
+        if (uuid.startsWith("1") || uuid.startsWith("5")) {
+          assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+        } else {
+          assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+        }
+      }
+
+      // start processing uuids that start with e
+      fate.setPartitions(Set.of(newPartition(store.type(), "e")));
+      Wait.waitFor(() -> fateIds.stream().filter(fateId -> fateId.getTxUUIDStr().startsWith("e"))
+          .map(fateId -> getTxStatus(sctx, fateId)).allMatch(status -> status == SUCCESSFUL));
+
+      for (var fateId : fateIds) {
+        var uuid = fateId.getTxUUIDStr();
+        if (uuid.startsWith("1") || uuid.startsWith("5") || uuid.startsWith("e")) {
+          assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+        } else {
+          assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+        }
+      }
+
+      // add new ids to ensure that uuid prefixes 1 and 5 are no longer processed
+      Set<FateId> fateIds2 = new HashSet<>();
+
+      for (int i = 0; i < 100; i++) {
+        var txid = fate.startTransaction();
+        fateIds2.add(txid);
+        fate.seedTransaction(TEST_FATE_OP, txid, new DoNothingRepo(), false, "no goal");
+      }
+      Wait.waitFor(() -> fateIds2.stream().filter(fateId -> fateId.getTxUUIDStr().startsWith("e"))
+          .map(fateId -> getTxStatus(sctx, fateId)).allMatch(status -> status == SUCCESSFUL));
+      for (var fateId : fateIds2) {
+        var uuid = fateId.getTxUUIDStr();
+        if (uuid.startsWith("e")) {
+          assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+        } else {
+          assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+        }
+      }
+
+      // nothing should have changed with the first set of ids
+      for (var fateId : fateIds) {
+        var uuid = fateId.getTxUUIDStr();
+        if (uuid.startsWith("1") || uuid.startsWith("5") || uuid.startsWith("e")) {
+          assertEquals(SUCCESSFUL, getTxStatus(sctx, fateId));
+        } else {
+          assertEquals(SUBMITTED, getTxStatus(sctx, fateId));
+        }
+      }
+    } finally {
+      fate.shutdown(10, TimeUnit.MINUTES);
+    }
+  }
+
+  private FatePartition newPartition(FateInstanceType type, String firstNibble) {
+    // these suffixes have all uuid chars except for the first nibble/4-bits
+    String zeroSuffix = "0000000-0000-0000-0000-000000000000";
+    String ffSuffix = "fffffff-ffff-ffff-ffff-ffffffffffff";
+    return new FatePartition(FateId.from(type, firstNibble + zeroSuffix),
+        FateId.from(type, firstNibble + ffSuffix));
   }
 
   private static void inCall() throws InterruptedException {

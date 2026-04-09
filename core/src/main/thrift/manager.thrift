@@ -161,6 +161,11 @@ struct TTabletMergeability {
   2:i64 delay
 }
 
+struct TEvent {
+  1:string level
+  2:data.TKeyExtent extent
+}
+
 service FateService {
 
   // register a fate operation by reserving an opid
@@ -519,4 +524,49 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
+
+  void processEvents(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:list<TEvent> events
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+
+}
+
+struct TFatePartitions {
+  1:i64 updateId
+  2:list<TFatePartition> partitions
+}
+
+struct TFatePartition {
+  1:string start
+  2:string stop
+}
+
+service FateWorkerService {
+
+  TFatePartitions getPartitions(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
+  )
+
+  bool setPartitions(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials,
+    3:i64 updateId,
+    4:list<TFatePartition> desired
+   ) throws (
+     1:client.ThriftSecurityException sec
+   )
+
+  void seeded(
+    1:client.TInfo tinfo,
+    2:security.TCredentials credentials,
+    3:list<TFatePartition> tpartitions
+   )
 }

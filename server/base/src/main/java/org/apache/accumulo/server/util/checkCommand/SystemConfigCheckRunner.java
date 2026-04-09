@@ -34,7 +34,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.collect.Sets;
@@ -43,29 +42,28 @@ public class SystemConfigCheckRunner implements CheckRunner {
   private static final Check check = Check.SYSTEM_CONFIG;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
     printRunning();
 
     log.trace("********** Checking validity of some ZooKeeper nodes **********");
-    status = checkZkNodes(context, status);
+    boolean status = checkZkNodes(context);
 
     printCompleted(status);
     return status;
   }
 
-  private static CheckStatus checkZkNodes(ServerContext context, CheckStatus status)
-      throws Exception {
-    status = checkZKLocks(context, status);
-    status = checkZKTableNodes(context, status);
-    status = checkZKWALsMetadata(context, status);
+  private static boolean checkZkNodes(ServerContext context) throws Exception {
+    boolean status = true;
+    status &= checkZKLocks(context);
+    status &= checkZKTableNodes(context);
+    status &= checkZKWALsMetadata(context);
 
     return status;
   }
 
-  private static CheckStatus checkZKLocks(ServerContext context, CheckStatus status)
-      throws Exception {
+  private static boolean checkZKLocks(ServerContext context) throws Exception {
+    boolean status = true;
     final ServerId.Type[] serverTypes = ServerId.Type.values();
 
     log.trace("Checking ZooKeeper locks for Accumulo server processes...");
@@ -78,14 +76,12 @@ public class SystemConfigCheckRunner implements CheckRunner {
       var servers = context.instanceOperations().getServers(serverType);
 
       switch (serverType) {
-        case MANAGER:
-          // essential process
         case GARBAGE_COLLECTOR:
           // essential process
           if (servers.size() != 1) {
             log.warn("Expected 1 server to be found for {} but found {}", serverType,
                 servers.size());
-            status = CheckStatus.FAILED;
+            status &= false;
           } else {
             // no exception and 1 server found
             log.trace("Verified ZooKeeper lock for {}", servers);
@@ -97,19 +93,21 @@ public class SystemConfigCheckRunner implements CheckRunner {
             log.debug("No {} appears to be running. This may or may not be expected", serverType);
           } else if (servers.size() > 1) {
             log.warn("More than 1 {} was found running. This is not expected", serverType);
-            status = CheckStatus.FAILED;
+            status &= false;
           } else {
             // no exception and 1 server found
             log.trace("Verified ZooKeeper lock for {}", servers);
           }
           break;
+        case MANAGER:
+          // essential process(es)
         case TABLET_SERVER:
           // essential process(es)
         case COMPACTOR:
           // essential process(es)
           if (servers.isEmpty()) {
             log.warn("No {} appear to be running. This is not expected.", serverType);
-            status = CheckStatus.FAILED;
+            status &= false;
           } else {
             // no exception and >= 1 server found
             log.trace("Verified ZooKeeper lock(s) for {} servers", servers.size());
@@ -132,8 +130,8 @@ public class SystemConfigCheckRunner implements CheckRunner {
     return status;
   }
 
-  private static CheckStatus checkZKTableNodes(ServerContext context, CheckStatus status)
-      throws Exception {
+  private static boolean checkZKTableNodes(ServerContext context) throws Exception {
+    boolean status = true;
     log.trace("Checking ZooKeeper table nodes...");
 
     final var zrw = context.getZooSession().asReaderWriter();
@@ -148,22 +146,22 @@ public class SystemConfigCheckRunner implements CheckRunner {
       log.warn(
           "Missing essential Accumulo table. One or more of {} are missing from the tables found {}",
           systemTableNameToId, tableNameToId);
-      status = CheckStatus.FAILED;
+      status &= false;
     }
     for (var nameToId : tableNameToId.entrySet()) {
       var tablePath = Constants.ZTABLES + "/" + nameToId.getValue();
       // expect the table path to exist and some data to exist
       if (!zrw.exists(tablePath) || zrw.getChildren(tablePath).isEmpty()) {
         log.warn("Failed to find table ({}) info at expected path {}", nameToId, tablePath);
-        status = CheckStatus.FAILED;
+        status &= false;
       }
     }
 
     return status;
   }
 
-  private static CheckStatus checkZKWALsMetadata(ServerContext context, CheckStatus status)
-      throws Exception {
+  private static boolean checkZKWALsMetadata(ServerContext context) throws Exception {
+    boolean status = true;
     final var zrw = context.getZooSession().asReaderWriter();
 
     log.trace("Checking that WAL metadata in ZooKeeper is valid...");
@@ -190,7 +188,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
       if (!actualMissing.isEmpty()) {
         log.warn("WAL metadata for tserver {} references a WAL that does not exist : {}",
             instanceAndMissingWals.getKey(), actualMissing);
-        status = CheckStatus.FAILED;
+        status = false;
       }
     }
 

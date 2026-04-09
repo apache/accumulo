@@ -37,7 +37,6 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -49,13 +48,11 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -67,15 +64,12 @@ import org.apache.accumulo.test.metrics.TestStatsDSink;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.thrift.TException;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * Tests that external compactions report progress from start to finish. To prevent flaky test
@@ -327,13 +321,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    */
   private void checkRunning() throws TException {
     ServerContext ctx = getCluster().getServerContext();
-    Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
-    if (coordinatorHost.isEmpty()) {
-      throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
-    }
 
-    TExternalCompactionMap ecList = getRunningCompactions(ctx, coordinatorHost);
-    Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
+    Map<String,TExternalCompaction> ecMap = getRunningCompactions(ctx);
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
         // returns null if it's a new mapping

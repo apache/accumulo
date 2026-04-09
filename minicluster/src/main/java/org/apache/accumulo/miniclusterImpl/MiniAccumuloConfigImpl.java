@@ -177,7 +177,6 @@ public class MiniAccumuloConfigImpl {
       // enable metrics reporting - by default will appear in standard log files.
       mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
 
-      mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
@@ -190,8 +189,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-
-      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
@@ -760,7 +757,7 @@ public class MiniAccumuloConfigImpl {
 
     this.existingInstance = Boolean.TRUE;
 
-    System.setProperty("accumulo.properties", "accumulo.properties");
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY, "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
     var siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
 

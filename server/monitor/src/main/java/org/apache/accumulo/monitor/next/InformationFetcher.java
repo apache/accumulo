@@ -24,7 +24,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -42,8 +41,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -53,9 +50,10 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.thrift.transport.TTransportException;
+import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
@@ -135,7 +133,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
       } catch (Exception e) {
         LOG.warn("Error trying to get metrics from server: {}", server, e);
-        summary.processError(server);
+        summary.processMetricsError(server);
       }
     }
 
@@ -169,52 +167,26 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class CompactionListFetcher implements Runnable {
-
-    private final String coordinatorMissingMsg =
-        "Error getting the compaction coordinator client. Check that the Manager is running.";
+  private class RunningCompactionFetcher implements Runnable {
 
     private final SystemInformation summary;
+    private final ThreadPoolExecutor executor;
 
-    public CompactionListFetcher(SystemInformation summary) {
+    public RunningCompactionFetcher(SystemInformation summary, ThreadPoolExecutor executor) {
       this.summary = summary;
-    }
-
-    // Copied from Monitor
-    private Map<String,TExternalCompactionList> getLongRunningCompactions() {
-      Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
-      if (managers.isEmpty()) {
-        throw new IllegalStateException(coordinatorMissingMsg);
-      }
-      ServerId manager = managers.iterator().next();
-      HostAndPort hp = HostAndPort.fromParts(manager.getHost(), manager.getPort());
-      try {
-        CompactionCoordinatorService.Client client =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
-        try {
-          return client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
-        } catch (Exception e) {
-          throw new IllegalStateException("Unable to get running compactions from " + hp, e);
-        } finally {
-          if (client != null) {
-            ThriftUtil.returnClient(client, ctx);
-          }
-        }
-      } catch (TTransportException e) {
-        LOG.error("Unable to get Compaction coordinator at {}", hp, e);
-        throw new IllegalStateException(coordinatorMissingMsg, e);
-      }
+      this.executor = executor;
     }
 
     @Override
     public void run() {
       try {
-        summary.processExternalCompactionList(getLongRunningCompactions());
+        List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+            executor, (t) -> summary.processExternalCompaction(t));
+        summary.getProblemHosts().addAll(failures);
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information.", e);
       }
     }
-
   }
 
   private final String poolName = "MonitorMetricsThreadPool";
@@ -307,6 +279,14 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       final List<Future<?>> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
+      Set<ServerId> managers = this.ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
+      HostAndPort coordinatorHost = null;
+      if (!managers.isEmpty()) {
+        ServerId manager = managers.iterator().next();
+        coordinatorHost = HostAndPort.fromParts(manager.getHost(), manager.getPort());
+      }
+      Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
+      summary.processExternalCompactionInventory(compactors, coordinatorHost);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {
@@ -318,13 +298,22 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       }
       ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
-      // Fetch external compaction information from the Manager
-      futures.add(this.pool.submit(new CompactionListFetcher(summary)));
+      // Fetch external compaction information from the Compactors
+      futures.add(this.pool.submit(new RunningCompactionFetcher(summary, pool)));
 
       // Fetch Tablet / Tablet information from the metadata table
       for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
         futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
       }
+
+      futures.add(this.pool.submit(() -> {
+        try {
+          var groups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx);
+          summary.addConfiguredCompactionGroups(groups);
+        } catch (ReflectiveOperationException e) {
+          throw new IllegalStateException(e);
+        }
+      }));
 
       long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);

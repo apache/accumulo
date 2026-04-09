@@ -28,8 +28,10 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TE
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.net.URL;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
@@ -170,7 +173,9 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
     });
     thread.start();
 
-    final String table1 = this.getUniqueNames(1)[0];
+    var uniqNames = getUniqueNames(2);
+    final String table1 = uniqNames[0];
+    final String clone = uniqNames[1];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Wait.waitFor(() -> ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
           (ClientContext) client) == 1);
@@ -200,9 +205,11 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
           cluster.getConfig().getAccumuloDir().toString(), "classpath"));
       assertTrue(fs.mkdirs(contextDir));
 
+      URL url =
+          this.getClass().getClassLoader().getResource("org/apache/accumulo/test/FooFilter.jar");
+      assertNotNull(url);
       // Copy the FooFilter.jar to the context dir
-      final org.apache.hadoop.fs.Path src = new org.apache.hadoop.fs.Path(
-          System.getProperty("java.io.tmpdir") + "/classes/org/apache/accumulo/test/FooFilter.jar");
+      final org.apache.hadoop.fs.Path src = new org.apache.hadoop.fs.Path(url.toURI());
       final org.apache.hadoop.fs.Path dst = new org.apache.hadoop.fs.Path(contextDir, "Test.jar");
       fs.copyFromLocalFile(src, dst);
       assertTrue(fs.exists(dst));
@@ -215,6 +222,10 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
           new IteratorSetting(101, "FooFilter", "org.apache.accumulo.test.FooFilter");
       client.tableOperations().attachIterator(table1, cfg, EnumSet.of(IteratorScope.majc));
 
+      // Clone the table to avoid problems w/ table properties not yet propagating to compactors
+      client.tableOperations().clone(table1, clone,
+          CloneConfiguration.builder().setFlush(true).build());
+
       // delete Test.jar, so that the classloader will fail
       assertTrue(fs.delete(dst, false));
 
@@ -224,28 +235,9 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       assertEquals(0, terminations.get());
       assertEquals(0, consecutive.get());
 
-      // Start a compaction. The missing jar should cause a failure
-      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
-      Wait.waitFor(
-          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
-              == null);
-      assertEquals(1, ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
-          (ClientContext) client));
-      Wait.waitFor(() -> failures.get() == 1);
-      Wait.waitFor(() -> consecutive.get() == 1);
-
-      Wait.waitFor(() -> failures.get() == 0);
-      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
-      Wait.waitFor(
-          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
-              == null);
-      assertEquals(1, ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
-          (ClientContext) client));
-      Wait.waitFor(() -> failures.get() == 1);
-      Wait.waitFor(() -> consecutive.get() == 2);
-
-      Wait.waitFor(() -> failures.get() == 0);
-      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
+      // Start a compaction. The missing jar should cause a failure. As compaction jobs fail this
+      // table operation will keep causing new ones to run.
+      client.tableOperations().compact(clone, new CompactionConfig().setWait(false));
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);

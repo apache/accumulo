@@ -47,6 +47,12 @@ public class FMetricSerializer extends JsonSerializer<FMetric> {
       gen.writeEndObject();
     }
     gen.writeEndArray();
+    serializeValueField(gen, fm);
+    gen.writeEndObject();
+
+  }
+
+  public static void serializeValueField(JsonGenerator gen, FMetric fm) throws IOException {
     // Write the number as the value (preserve negatives)
     if (fm.ivalue() != 0) {
       gen.writeNumberField("value", fm.ivalue());
@@ -57,8 +63,6 @@ public class FMetricSerializer extends JsonSerializer<FMetric> {
     } else {
       gen.writeNumberField("value", 0);
     }
-    gen.writeEndObject();
-
   }
 
 }

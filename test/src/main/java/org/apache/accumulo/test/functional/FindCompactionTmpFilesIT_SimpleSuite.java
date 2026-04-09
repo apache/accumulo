@@ -169,6 +169,8 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
       assertEquals(100, foundPaths.size());
       assertEquals(foundPaths, generatedPaths);
 
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 
@@ -217,6 +219,8 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(0, foundPaths.size());
 
+    } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
     }
   }
 }

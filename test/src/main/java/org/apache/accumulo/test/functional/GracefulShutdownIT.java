@@ -105,7 +105,6 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
       cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
       cfg.setProperty(Property.COMPACTOR_CANCEL_CHECK_INTERVAL, "5s");
-      cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
       cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + GROUP_NAME + ".planner",
           RatioBasedCompactionPlanner.class.getName());
       cfg.setProperty(
@@ -240,13 +239,9 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           client.instanceOperations().getServers(ServerId.Type.MANAGER);
       assertNotNull(newManagerLocations);
       assertEquals(1, newManagerLocations.size());
-      final HostAndPort newManagerAddress =
-          HostAndPort.fromString(newManagerLocations.iterator().next().toHostPortString());
-      assertEquals(0, ExternalCompactionTestUtils
-          .getRunningCompactions(ctx, Optional.of(newManagerAddress)).getCompactionsSize());
+      assertEquals(0, ExternalCompactionTestUtils.getRunningCompactions(ctx).size());
       client.tableOperations().compact(tableName, cc);
-      Wait.waitFor(() -> ExternalCompactionTestUtils
-          .getRunningCompactions(ctx, Optional.of(newManagerAddress)).getCompactionsSize() > 0);
+      Wait.waitFor(() -> !ExternalCompactionTestUtils.getRunningCompactions(ctx).isEmpty());
       StopServers.signalGracefulShutdown(ctx, compactorAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.COMPACTOR);
