@@ -21,10 +21,11 @@ package org.apache.accumulo.core.rpc.clients;
 import static com.google.common.base.Preconditions.checkArgument;
 
 import java.net.UnknownHostException;
-import java.util.Set;
+import java.util.Optional;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -37,14 +38,21 @@ public interface ManagerClient<C extends TServiceClient> {
   default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
     checkArgument(context != null, "context is null");
 
-    Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
+    // obtain the primary manager location
+    String managerLocation = null;
+    ServiceLockPaths.ServiceLockPath m = context.getServerPaths().getManager(true);
+    if (m != null) {
+      Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
+      if (sld.isPresent()) {
+        managerLocation = sld.orElseThrow().getAddressString(ServiceLockData.ThriftService.MANAGER);
+      }
+    }
 
-    if (managers == null || managers.isEmpty()) {
+    if (managerLocation == null) {
       log.debug("No managers...");
       return null;
     }
 
-    final String managerLocation = managers.iterator().next().toHostPortString();
     if (managerLocation.equals("0.0.0.0:0")) {
       // The Manager creates the lock with an initial address of 0.0.0.0:0, then
       // later updates the lock contents with the actual address after everything
