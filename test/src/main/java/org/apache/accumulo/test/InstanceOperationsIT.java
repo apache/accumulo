@@ -114,7 +114,7 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       cluster.getClusterControl().start(ServerType.MANAGER);
       Wait.waitFor(() -> iops.getServers(ServerId.Type.MANAGER).size() == 3);
       final Set<ServerId> managers3 = iops.getServers(ServerId.Type.MANAGER);
-      assertEquals(3, managers3.size()); // Assuming there is only one manager
+      assertEquals(3, managers3.size());
       managers3.forEach(expectedServerId -> {
         ServerId actualServerId =
             iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
