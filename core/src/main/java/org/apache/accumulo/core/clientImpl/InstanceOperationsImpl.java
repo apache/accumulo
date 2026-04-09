@@ -233,7 +233,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     if (managers == null || managers.isEmpty()) {
       return List.of();
     } else {
-      return List.of(managers.iterator().next().toHostPortString());
+      return managers.stream().map(ServerId::toHostPortString).toList();
     }
   }
 
@@ -561,7 +561,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
-        context.getServerPaths().getAssistantManagers(AddressSelector.all(), true)
+        context.getServerPaths().getAssistantManagers(addressSelector, true)
             .forEach(s -> results.add(createServerId(type, s)));
         break;
       case MONITOR:

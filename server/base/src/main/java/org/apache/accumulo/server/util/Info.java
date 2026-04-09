@@ -57,13 +57,9 @@ public class Info extends ServerKeywordExecutable<ServerOpts> {
   public void execute(JCommander cl, ServerOpts options) throws Exception {
     ServerContext context = getServerContext();
     Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
-    String manager = null;
-    if (managers != null && !managers.isEmpty()) {
-      manager = managers.iterator().next().getHost();
-    }
 
     System.out.println("monitor: " + MonitorUtil.getLocation(context));
-    System.out.println("managers: " + manager);
+    System.out.println("managers: " + managers);
     System.out.println("zookeepers: " + context.getZooKeepers());
   }
 }
