@@ -280,6 +280,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       final List<Future<?>> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
       Set<ServerId> managers = this.ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
+      // TODO this assumes a single coordinator
       HostAndPort coordinatorHost = null;
       if (!managers.isEmpty()) {
         ServerId manager = managers.iterator().next();
