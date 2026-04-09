@@ -16,6 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* JSLint global definitions */
+/*global
+    $, GC_SERVER_PROCESS_VIEW, getGcView, refreshServerInformation
+*/
+"use strict";
+
+const htmlBanner = '#gcStatusBanner'
+const htmlBannerMessage = '#gc-banner-message'
+const htmlTable = '#gc-servers'
+const visibleColumnFilter = (col) => col != "Server Type";
+
+function refresh() {
+  refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+}
+
+$(function () {
+  sessionStorage[GC_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+
+  refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+});
+
+
+
+
+
+
+
 "use strict";
 
 var gcTable;

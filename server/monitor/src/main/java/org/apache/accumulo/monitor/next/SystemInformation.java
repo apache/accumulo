@@ -796,24 +796,8 @@ public class SystemInformation {
     return this.timestamp.get();
   }
 
-  public ServersView getCompactorView() {
-    return this.serverMetricsView.get(ServerId.Type.COMPACTOR).get();
-  }
-
-  public ServersView getGcView() {
-    return this.serverMetricsView.get(ServerId.Type.GARBAGE_COLLECTOR).get();
-  }
-
-  public ServersView getManagerView() {
-    return this.serverMetricsView.get(ServerId.Type.MANAGER).get();
-  }
-
-  public ServersView getScanServerView() {
-    return this.serverMetricsView.get(ServerId.Type.SCAN_SERVER).get();
-  }
-
-  public ServersView getTabletServerView() {
-    return this.serverMetricsView.get(ServerId.Type.TABLET_SERVER).get();
+  public ServersView getServerProcessView(ServerId.Type type) {
+    return this.serverMetricsView.get(type).get();
   }
 
   public static Number getMetricValue(FMetric metric) {

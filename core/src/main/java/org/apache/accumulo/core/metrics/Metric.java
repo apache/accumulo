@@ -144,9 +144,9 @@ public enum Metric {
 
   // Garbage Collection Metrics
   GC_STARTED("accumulo.gc.started", MetricType.GAUGE, "Timestamp GC file collection cycle started.",
-      MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle Start Time", null, "big-num"),
+      MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle Start Time", null, "start-date"),
   GC_FINISHED("accumulo.gc.finished", MetricType.GAUGE, "Timestamp GC file collect cycle finished.",
-      MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle End Time", null, "big-num"),
+      MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle End Time", null, "end-ate"),
   GC_CANDIDATES("accumulo.gc.candidates", MetricType.GAUGE,
       "Number of files that are candidates for deletion.", MetricDocSection.GARBAGE_COLLECTION,
       "GC File Deletion Candidate Count", null, "big-num"),
@@ -158,10 +158,10 @@ public enum Metric {
       MetricDocSection.GARBAGE_COLLECTION, "GC File Candidate Deletion Errors", null, "big-num"),
   GC_WAL_STARTED("accumulo.gc.wal.started", MetricType.GAUGE,
       "Timestamp GC WAL collection cycle started.", MetricDocSection.GARBAGE_COLLECTION,
-      "GC WAL Cycle Start Time", null, "big-num"),
+      "GC WAL Cycle Start Time", null, "start-date"),
   GC_WAL_FINISHED("accumulo.gc.wal.finished", MetricType.GAUGE,
       "Timestamp GC WAL collect cycle finished.", MetricDocSection.GARBAGE_COLLECTION,
-      "GC WAL Cycle End Time", null, "big-num"),
+      "GC WAL Cycle End Time", null, "end-date"),
   GC_WAL_CANDIDATES("accumulo.gc.wal.candidates", MetricType.GAUGE,
       "Number of files that are candidates for deletion.", MetricDocSection.GARBAGE_COLLECTION,
       "GC WAL Deletion Candidate Count", null, "big-num"),
@@ -176,7 +176,7 @@ public enum Metric {
       "GC WAL Candidate Deletion Errors", null, "big-num"),
   GC_POST_OP_DURATION("accumulo.gc.post.op.duration", MetricType.GAUGE,
       "GC metadata table post operation duration in milliseconds.",
-      MetricDocSection.GARBAGE_COLLECTION, "GC Post Ops Duration", null, "big-num"),
+      MetricDocSection.GARBAGE_COLLECTION, "GC Post Ops Duration", null, "duration"),
   GC_RUN_CYCLE("accumulo.gc.run.cycle", MetricType.GAUGE,
       "Count of gc cycle runs. Value is reset on process start.",
       MetricDocSection.GARBAGE_COLLECTION, "GC Cycle Count", null, "big-num"),
@@ -373,10 +373,10 @@ public enum Metric {
       "Tablet Recoveries In Progress", null, "big-num"),
   RECOVERIES_LONGEST_RUNTIME("accumulo.recoveries.runtime.longest", MetricType.GAUGE,
       "The time (in milliseconds) of the longest running recovery.",
-      MetricDocSection.GENERAL_SERVER, "Tablet Recovery Longest Time", null, "big-num"),
+      MetricDocSection.GENERAL_SERVER, "Tablet Recovery Longest Time", null, "duration"),
   RECOVERIES_AVG_PROGRESS("accumulo.recoveries.avg.progress", MetricType.GAUGE,
       "The average percentage (0.0 - 99.9) of the in progress recoveries.",
-      MetricDocSection.GENERAL_SERVER, "Tablet Recovery Avg Percent Complete", null, "big-num");
+      MetricDocSection.GENERAL_SERVER, "Tablet Recovery Avg Percent Complete", null, "percent");
 
   private final String name;
   private final MetricType type;

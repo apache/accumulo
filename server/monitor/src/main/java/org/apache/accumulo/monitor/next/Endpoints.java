@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.MatrixParam;
 import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -62,12 +63,17 @@ import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
 @Path("/")
 public class Endpoints {
   /**
-   * A {@code String} constant representing supplied resource group in path parameter.
+   * A {@code String} constant representing the supplied resource group in path parameter.
    */
   private static final String GROUP_PARAM_KEY = "group";
 
   /**
-   * A {@code String} constant representing supplied tableId in path parameter.
+   * A {@code String} constant representing the supplied server type in path parameter.
+   */
+  private static final String SERVER_TYPE_KEY = "serverType";
+
+  /**
+   * A {@code String} constant representing the supplied tableId in path parameter.
    */
   private static final String TABLEID_PARAM_KEY = "tableId";
 
@@ -271,11 +277,11 @@ public class Endpoints {
   }
 
   @GET
-  @Path("sservers/view")
+  @Path("servers/view")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a UI-ready view model for the Scan Server status page")
-  public ServersView getScanServerPageView() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getScanServerView();
+  @Description("Returns a UI-ready view model for server processes. Add ';serverType=<ServerId.Type>' to URL")
+  public ServersView getServerProcessView(@MatrixParam(SERVER_TYPE_KEY) ServerId.Type serverType) {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(serverType);
   }
 
   @GET

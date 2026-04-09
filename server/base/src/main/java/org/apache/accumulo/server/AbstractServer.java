@@ -21,6 +21,9 @@ package org.apache.accumulo.server;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -95,6 +98,9 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
+
+  // Map of MetricSource name to list of excluded metrics for that type
+  private final Map<MetricSource,List<String>> excludedMetrics = new EnumMap<>(MetricSource.class);
 
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
@@ -177,6 +183,12 @@ public abstract class AbstractServer
       default:
         throw new IllegalArgumentException("Unhandled server type: " + serverType);
     }
+    excludedMetrics.put(MetricSource.COMPACTOR,
+        List.of("accumulo.compaction.minc.paused", "accumulo.recoveries.avg.progress",
+            "accumulo.recoveries.in.progress", "accumulo.recoveries.runtime.longest"));
+    excludedMetrics.put(MetricSource.SCAN_SERVER, List.of("accumulo.recoveries.avg.progress",
+        "accumulo.recoveries.in.progress", "accumulo.recoveries.runtime.longest"));
+    excludedMetrics.put(MetricSource.TABLET_SERVER, List.of("accumulo.compaction.majc.paused"));
   }
 
   /**
@@ -400,13 +412,16 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
+    final List<String> exclusions = excludedMetrics.get(metricSource);
     if (context.getMetricsInfo().isMetricsEnabled()) {
       Metrics.globalRegistry.getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")) {
-          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
-              response::writeDistributionSummary, response::writeLongTaskTimer,
-              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
-              response::writeMeter);
+          if (exclusions == null || !exclusions.contains(m.getId().getName())) {
+            m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+                response::writeDistributionSummary, response::writeLongTaskTimer,
+                response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+                response::writeMeter);
+          }
         }
       });
     }

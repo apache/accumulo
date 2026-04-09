@@ -18,69 +18,57 @@
  */
 /* JSLint global definitions */
 /*global
+    $, MANAGER_SERVER_PROCESS_VIEW, getManagersView, refreshServerInformation, getManagerGoalStateFromSession
+*/
+"use strict";
+
+const htmlBanner = '#managerStateBanner'
+const htmlBannerMessage = '#manager-banner-message'
+const htmlTable = '#managers'
+const visibleColumnFilter = (col) => col != "Server Type";
+
+function updateManagerGoalStateBanner() {
+  getManager().always(function () {
+    const goalState = getManagerGoalStateFromSession();
+    if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
+      $('#manager-banner-message').text('Manager goal state: ' + goalState);
+      $('#managerStateBanner').show();
+    } else {
+      $('#managerStateBanner').hide();
+    }
+  });
+}
+
+function refresh() {
+  updateManagerGoalStateBanner();
+  refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+}
+
+$(function () {
+  sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+
+  refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+});
+
+
+
+
+
+
+/* JSLint global definitions */
+/*global
     $, document, sessionStorage, getManager, bigNumberForQuantity,
     timeDuration, dateFormat, getStatus, ajaxReloadTable, getManagerGoalStateFromSession
 */
+/*
 "use strict";
 
 var managerStatusTable, recoveryListTable, managerStatus;
 
-function createManagerTable() {
-  // Generates the manager table
-  managerStatusTable = $('#managerStatusTable').DataTable({
-    "ajax": function (data, callback, settings) {
-      $.ajax({
-        url: contextPath + 'rest-v2/manager',
-        method: 'GET'
-      }).done(function (json) {
-        callback({
-          "data": [json]
-        });
-      }).fail(function (jqXHR, textStatus, errorThrown) {
-        // This is needed if the url is not yet available, but the manager is up. E.g., Short
-        // window where a 404 could occur, which would lead to DataTables error/alert w/out fail()
-        console.error("DataTables Ajax error :", errorThrown);
-        callback({
-          "data": []
-        });
-      });
-    },
-    "stateSave": true,
-    "searching": false,
-    "paging": false,
-    "info": false,
-    "columnDefs": [{
-        "targets": "timestamp",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = dateFormat(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "metrics",
-        "orderable": false,
-        "render": function () {
-          return "<a href=\"rest-v2/manager/metrics\">Metrics</a>";
-        }
-      }
-    ],
-    "columns": [{
-        "data": "host"
-      },
-      {
-        "data": "resourceGroup"
-      },
-      {
-        "data": "timestamp"
-      },
-      {
-        "data": "metrics"
-      }
-    ]
-  });
-}
 
 function refreshManagerBanners() {
   // If manager status is error
@@ -97,21 +85,11 @@ function refreshManagerBanners() {
   }
 }
 
-function updateManagerGoalStateBanner() {
-  getManager().always(function () {
-    const goalState = getManagerGoalStateFromSession();
-    if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
-      $('#manager-banner-message').text('Manager goal state: ' + goalState);
-      $('#managerStateBanner').show();
-    } else {
-      $('#managerStateBanner').hide();
-    }
-  });
-}
-
+*/
 /**
  * Populates tables with the new information
  */
+/*
 function refreshManagerTables() {
   getStatus().then(function () {
     managerStatus = JSON.parse(sessionStorage.status).managerStatus;
@@ -126,7 +104,7 @@ function refreshManagerTables() {
     ajaxReloadTable(recoveryListTable);
   });
 }
-
+*/
 /*
  * The tables.ftl refresh function will do this functionality.
  * If tables are removed from Manager, uncomment this function.
@@ -141,6 +119,7 @@ function refreshManagerTables() {
 /**
  * Creates initial tables
  */
+/*
 $(function () {
 
   getStatus().then(function () {
@@ -202,3 +181,4 @@ $(function () {
     refreshManagerTables();
   });
 });
+*/

@@ -18,27 +18,14 @@
     under the License.
 
 -->
-    <div class="row">
-       <div class="col-xs-12">
-          <h3>Manager Server Overview</h3>
-       </div>
-    </div>
     <div id="managerRunningBanner" style="display: none;">
         <div class="alert alert-danger" role="alert">Manager Server Not Running</div>
     </div>
     <div id="managerStateBanner" style="display: none;">
         <div id="manager-banner-message" class="alert alert-warning" role="alert"></div>
     </div>
-    <table id="managerStatusTable" class="table caption-top table-bordered table-striped table-condensed">
-        <caption><span class="table-caption">${title}</span><br /></caption>
-        <thead>
-            <tr>
-                <th class="host" title="The hostname:port of the manager server">Server</th>
-                <th class="resourceGroup" title="The resource group of the manager server">Resource&nbsp;Group</th>
-                <th class="timestamp" title="The last time data was retrieved from the manager server">Last&nbsp;Contact</th>
-                <th class="metrics" title="The metrics of the manager server">Metrics</th>
-            </tr>
-        </thead>
+    <table id="managers" class="table caption-top table-bordered table-striped table-condensed">
+        <caption><span class="table-caption">Managers</span><br /></caption>
         <tbody></tbody>
     </table>
     <br />
@@ -58,4 +45,3 @@
         <tbody></tbody>
     </table>
     <br />
-    <#include "${tablesTemplate}">

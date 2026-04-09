@@ -53,11 +53,11 @@ import com.github.benmanes.caffeine.cache.Cache;
 public class ServersView {
 
   /**
-   * all the data needed for the ScanServer status indicator(s)
+   * all the data needed for the Server status indicator(s)
    */
-  public record Status(boolean hasScanServers, boolean hasProblemScanServers,
-      boolean hasMissingMetrics, long scanServerCount, long problemScanServerCount,
-      long missingMetricServerCount, String level, String message) {
+  public record Status(boolean hasServers, boolean hasProblemServers, boolean hasMissingMetrics,
+      long serverCount, long problemServerCount, long missingMetricServerCount, String level,
+      String message) {
   }
 
   public static final String TYPE_COL_NAME = "Server Type";

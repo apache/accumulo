@@ -29,6 +29,12 @@ var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 const REST_V2_PREFIX = contextPath + 'rest-v2';
 const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
 
+const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
+const GC_SERVER_PROCESS_VIEW = 'gcView';
+const MANAGER_SERVER_PROCESS_VIEW = 'managerssView';
+const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
+const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
+
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
   $.extend(true, $.fn.dataTable.defaults, {
@@ -693,12 +699,45 @@ function getDeployment() {
 }
 
 /**
- * REST GET call for /sservers/view,
+ * REST GET call for /servers/view;serverType=COMPACTOR,
+ * stores it on a sessionStorage variable
+ */
+function getCompactorsView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=COMPACTOR', COMPACTOR_SERVER_PROCESS_VIEW);
+}
+
+/**
+ * REST GET call for /servers/view;serverType=GARBAGE_COLLECTOR,
+ * stores it on a sessionStorage variable
+ */
+function getGcView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=GARBAGE_COLLECTOR', GC_SERVER_PROCESS_VIEW);
+}
+
+/**
+ * REST GET call for /servers/view;serverType=MANAGER,
+ * stores it on a sessionStorage variable
+ */
+function getManagersView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=MANAGER', MANAGER_SERVER_PROCESS_VIEW);
+}
+
+/**
+ * REST GET call for /servers/view;serverType=SCAN_SERVER,
  * stores it on a sessionStorage variable
  */
 function getSserversView() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/view', 'sserversView');
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=SCAN_SERVER', SCAN_SERVER_PROCESS_VIEW);
 }
+
+/**
+ * REST GET call for /servers/view;serverType=TABLET_SERVER,
+ * stores it on a sessionStorage variable
+ */
+function getTserversView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=TABLET_SERVER', TABLET_SERVER_PROCESS_VIEW);
+}
+
 
 /**
  * REST GET call for /tservers/summary,

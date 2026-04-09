@@ -18,25 +18,25 @@
  */
 /* JSLint global definitions */
 /*global
-    $, getSserversView, refreshServerInformation
+    $, SCAN_SERVER_PROCESS_VIEW, getSserversView, refreshServerInformation
 */
 "use strict";
 
 const htmlBanner = '#sserversStatusBanner'
 const htmlBannerMessage = '#sservers-banner-message'
 const htmlTable = '#sservers'
-const SSERVERS_VIEW_SESSION_KEY = 'sserversView';
+const visibleColumnFilter = (col) => col != "Server Type";
 
 function refresh() {
-  refreshServerInformation(getSserversView, htmlTable, SSERVERS_VIEW_SESSION_KEY, htmlBanner, htmlBannerMessage);
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
 }
 
 $(function () {
-  sessionStorage[SSERVERS_VIEW_SESSION_KEY] = JSON.stringify({
+  sessionStorage[SCAN_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
     columns: [],
     status: null
   });
 
-  refreshServerInformation(getSserversView, htmlTable, SSERVERS_VIEW_SESSION_KEY, htmlBanner, htmlBannerMessage);
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
 });

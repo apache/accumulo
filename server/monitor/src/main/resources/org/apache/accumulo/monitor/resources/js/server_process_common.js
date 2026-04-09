@@ -23,8 +23,41 @@
 */
 "use strict";
 
+/**
+ * This file contains methods used to display tables on the Monitor's
+ * pages for server processes. The REST Endpoint /rest-v2/servers/view;serverType=<ServerId.Type>
+ * returns a data structure that has the following format:
+ * 
+ * {
+ *   "data": [
+ *   ],
+ *   "columns": [
+ *   ],
+ *   "status": {
+ *   },
+ *   timestamp: long
+ * }
+ * 
+ * The value for the 'columns' key is an array of strings, where each string is the name
+ * of a column. The value for the 'data' key is an array of objects. Each object represents
+ * a server and the fields in the object contain the fields specified in the 'columns'
+ * array and are in the same order.
+ * 
+ * The 'columns' array is used to dynamically create table header rows in the html and
+ * the 'data' object is directly consumed by the DataTable where each object in the 'data'
+ * is a row in the table and each field in the object is a column.
+ * 
+ * Modify the exclusion list in AbstractServer to remove columns from being returned from
+ * the AbstractServer.getMetrics RPC call. Be aware that other pages in the Monitor may
+ * use this information, not just the server process pages. To influence which columns
+ * are displayed on the server process pages use the column filter.
+ */
+
 var dataTableRef;
 
+/**
+ * This function returns the entire response from session storage
+ */
 function getStoredView(storageKey) {
   if (!sessionStorage[storageKey]) {
     return {};
@@ -32,6 +65,9 @@ function getStoredView(storageKey) {
   return JSON.parse(sessionStorage[storageKey]);
 }
 
+/**
+ * This function returns the 'columns' array from the entire response
+ */
 function getStoredColumns(storageKey) {
   var view = getStoredView(storageKey);
   if (!Array.isArray(view.columns)) {
@@ -40,6 +76,9 @@ function getStoredColumns(storageKey) {
   return view.columns;
 }
 
+/**
+ * This function returns the 'data' array from the entire response
+ */
 function getStoredRows(storageKey) {
   var view = getStoredView(storageKey);
   if (!Array.isArray(view.data)) {
@@ -49,25 +88,45 @@ function getStoredRows(storageKey) {
   return view.data;
 }
 
+/**
+ * This function returns the stats object from the entire response
+ */
 function getStoredStatus(storageKey) {
   var view = getStoredView(storageKey);
   return view.status || null;
 }
 
-function getDataTableCols(storageKey) {
+/**
+ * This function is called as part of the DataTable initialization.
+ * It retrieves the columns from the response and sets the columns
+ * visibility based on the supplied filter. Setting the visiblity
+ * to false will hide the column in the display even if the table
+ * header HTML column exists. This allows us to create the table
+ * header rows without supplying the filter.
+ */
+function getDataTableCols(storageKey, visibleColumnFilter) {
   var dataTableColumns = [];
   var storedColumns = getStoredColumns(storageKey);
+  var visibleColumns = storedColumns.filter(visibleColumnFilter);
   $.each(storedColumns, function (index, col) {
+    var v = visibleColumns.includes(col);
     var colName = col.replaceAll(".", "\\.");
     dataTableColumns.push({
-      data: colName
+      data: colName,
+      visible: v
     });
   });
   console.debug('table columns: ' + JSON.stringify(dataTableColumns));
   return dataTableColumns;
 }
 
-function refreshTable(table, storageKey) {
+/**
+ * This function refreshes the table. It destroys the DataTable
+ * and clears the HTML table. Then it recreates the table header
+ * HTML elements from the columns, redefines the DataTable,
+ * and executes an ajax method to load the data.
+ */
+function refreshTable(table, storageKey, visibleColumnFilter) {
 
   // Destroy the DataTable and clear the HTML table
   if (dataTableRef != null) {
@@ -101,16 +160,20 @@ function refreshTable(table, storageKey) {
   htmlTableElement.append(thead);
 
   // Create the DataTable
-  createDataTable(table, storageKey);
+  createDataTable(table, storageKey, visibleColumnFilter);
   ajaxReloadTable(dataTableRef);
 }
 
+/**
+ * This function shows a banner on the page if the
+ * status level is WARN in the Status object.
+ */
 function refreshBanner(banner, bannerMsg, status) {
   if (status && status.level === 'WARN') {
     $(bannerMsg)
       .removeClass('alert-danger')
       .addClass('alert-warning')
-      .text(status.message || 'WARN: scan-server status warning.');
+      .text(status.message || 'WARN: server status warning.');
     $(banner).show();
   } else {
     $(banner).hide();
@@ -121,13 +184,17 @@ function showBannerError(banner, bannerMsg) {
   $(bannerMsg)
     .removeClass('alert-warning')
     .addClass('alert-danger')
-    .text('ERROR: unable to retrieve scan-server status.');
+    .text('ERROR: unable to retrieve server status.');
   $(banner).show();
 }
 
-function refreshServerInformation(callback, table, storageKey, banner, bannerMsg) {
+/**
+ * This function refreshes the table and banner, showing an
+ * empty table and error banner if not successful
+ */
+function refreshServerInformation(callback, table, storageKey, banner, bannerMsg, visibleColumnFilter) {
   callback().then(function () {
-    refreshTable(table, storageKey);
+    refreshTable(table, storageKey, visibleColumnFilter);
     refreshBanner(banner, bannerMsg, getStoredStatus(storageKey));
   }).fail(function () {
     sessionStorage[storageKey] = JSON.stringify({
@@ -135,12 +202,18 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
       columns: [],
       status: null
     });
-    refreshTable(table, storageKey);
+    refreshTable(table, storageKey, visibleColumnFilter);
     showBannerError(banner, bannerMsg);
   });
 }
 
-function createDataTable(table, storageKey) {
+/**
+ * This function creates the DataTable using the 'data' and
+ * 'columns' from the response object. It also defines how
+ * certain columns should be rendered based on the columns
+ * css class.
+ */
+function createDataTable(table, storageKey, visibleColumnFilter) {
   dataTableRef = $(table).DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
@@ -174,6 +247,28 @@ function createDataTable(table, storageKey) {
         }
       },
       {
+        "targets": "start-date",
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            if (data === 0) data = 'Waiting';
+            else if (data > 0) data = dateFormat(data);
+            else data = 'Error';
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "end-date",
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            if (data === 0) data = '&mdash;';
+            else if (data > 0) data = dateFormat(data);
+            else data = 'Error';
+          }
+          return data;
+        }
+      },
+      {
         "targets": "duration",
         "render": function (data, type) {
           if (type === 'display') {
@@ -183,8 +278,13 @@ function createDataTable(table, storageKey) {
         }
       },
       {
-        "targets": "server-type",
-        "visible": false
+        "targets": "percent",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = Math.round(data * 100) + '%';
+          }
+          return data;
+        }
       },
       {
         "targets": "idle-state",
@@ -195,7 +295,7 @@ function createDataTable(table, storageKey) {
         "render": renderMemoryState
       }
     ],
-    "columns": getDataTableCols(storageKey)
+    "columns": getDataTableCols(storageKey, visibleColumnFilter)
   });
 
 }
