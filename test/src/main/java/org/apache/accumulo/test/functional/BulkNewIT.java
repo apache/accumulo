@@ -123,6 +123,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -154,7 +156,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
       cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
-
+      cfg.getClusterServerConfiguration().setNumDefaultCompactors(4);
       // use raw local file system
       conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
     }
@@ -993,15 +995,9 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
-  @Test
-  public void testConcurrentCompactions() throws Exception {
-    // run test with bulk imports happening in parallel
-    testConcurrentCompactions(true);
-    // run the test with bulk imports happening serially
-    testConcurrentCompactions(false);
-  }
-
-  private void testConcurrentCompactions(boolean parallelBulkImports) throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void testConcurrentCompactions(boolean parallelBulkImports) throws Exception {
     // Tests compactions running concurrently with bulk import to ensure that data is not bulk
     // imported twice. Doing a large number of bulk imports should naturally cause compactions to
     // happen. This test ensures that compactions running concurrently with bulk import does not
@@ -1087,6 +1083,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
         // expect to see 10 tablets
         assertEquals(10, rowCounts.size());
       }
+
+      // since this is a parameterized test it will use the same tableName, so delete for the next
+      // parameterized iteration
+      c.tableOperations().delete(tableName);
     }
   }
 
