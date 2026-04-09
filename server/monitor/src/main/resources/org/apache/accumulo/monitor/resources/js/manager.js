@@ -25,7 +25,16 @@
 const htmlBanner = '#managerStateBanner'
 const htmlBannerMessage = '#manager-banner-message'
 const htmlTable = '#managers'
-const visibleColumnFilter = (col) => col != "Server Type";
+const visibleColumnFilter = (col) => col != "Server Type" && !col.startsWith("accumulo.compaction.") &&
+  !col.startsWith("accumulo.fate.");
+
+const fateHtmlTable = '#managers_fate'
+const fateVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
+  col == "Server Address" || col.startsWith("accumulo.fate.");
+
+const compactionHtmlTable = '#managers_compactions'
+const compactionVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
+  col == "Server Address" || col.startsWith("accumulo.compaction.");
 
 function updateManagerGoalStateBanner() {
   getManager().always(function () {
@@ -42,6 +51,8 @@ function updateManagerGoalStateBanner() {
 function refresh() {
   updateManagerGoalStateBanner();
   refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getManagersView, fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fateVisibleColumnFilter);
+  refreshServerInformation(getManagersView, compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, compactionVisibleColumnFilter);
 }
 
 $(function () {
@@ -52,6 +63,8 @@ $(function () {
   });
 
   refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getManagersView, fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fateVisibleColumnFilter);
+  refreshServerInformation(getManagersView, compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, compactionVisibleColumnFilter);
 });
 
 

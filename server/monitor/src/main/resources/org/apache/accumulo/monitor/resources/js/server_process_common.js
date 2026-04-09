@@ -30,8 +30,18 @@
  * 
  * {
  *   "data": [
+ *     {
+ *       "colA", "valueA",
+ *       "colB", "valueB"
+ *     },
+ *      {
+ *       "colA", "valueA",
+ *       "colB", "valueB"
+ *      }
  *   ],
  *   "columns": [
+ *     "colA",
+ *     "colB"
  *   ],
  *   "status": {
  *   },
@@ -53,7 +63,7 @@
  * are displayed on the server process pages use the column filter.
  */
 
-var dataTableRef;
+var dataTableRefs = new Map();
 
 /**
  * This function returns the entire response from session storage
@@ -129,6 +139,7 @@ function getDataTableCols(storageKey, visibleColumnFilter) {
 function refreshTable(table, storageKey, visibleColumnFilter) {
 
   // Destroy the DataTable and clear the HTML table
+  var dataTableRef = dataTableRefs.get(table);
   if (dataTableRef != null) {
     dataTableRef.destroy();
     $(table).empty();
@@ -160,8 +171,9 @@ function refreshTable(table, storageKey, visibleColumnFilter) {
   htmlTableElement.append(thead);
 
   // Create the DataTable
-  createDataTable(table, storageKey, visibleColumnFilter);
+  dataTableRef = createDataTable(table, storageKey, visibleColumnFilter);
   ajaxReloadTable(dataTableRef);
+  dataTableRefs.set(table, dataTableRef);
 }
 
 /**
@@ -214,7 +226,7 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
  * css class.
  */
 function createDataTable(table, storageKey, visibleColumnFilter) {
-  dataTableRef = $(table).DataTable({
+  var dataTableRef = $(table).DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
       callback({
@@ -297,5 +309,5 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
     ],
     "columns": getDataTableCols(storageKey, visibleColumnFilter)
   });
-
+  return dataTableRef;
 }

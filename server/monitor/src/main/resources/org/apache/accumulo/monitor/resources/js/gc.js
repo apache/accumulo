@@ -24,11 +24,21 @@
 
 const htmlBanner = '#gcStatusBanner'
 const htmlBannerMessage = '#gc-banner-message'
-const htmlTable = '#gc-servers'
-const visibleColumnFilter = (col) => col != "Server Type";
+const htmlTable = '#gc-server'
+const visibleColumnFilter = (col) => col != "Server Type" && !col.startsWith("accumulo.gc.");
+
+const fileHtmlTable = '#gc-file'
+const fileVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
+  col == "Server Address" || (col.startsWith("accumulo.gc.") && !col.startsWith("accumulo.gc.wal."));
+
+const walHtmlTable = '#gc-wal'
+const walVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
+  col == "Server Address" || col.startsWith("accumulo.gc.wal.");
 
 function refresh() {
   refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getGcView, fileHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fileVisibleColumnFilter);
+  refreshServerInformation(getGcView, walHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, walVisibleColumnFilter);
 }
 
 $(function () {
@@ -39,6 +49,8 @@ $(function () {
   });
 
   refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getGcView, fileHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fileVisibleColumnFilter);
+  refreshServerInformation(getGcView, walHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, walVisibleColumnFilter);
 });
 
 

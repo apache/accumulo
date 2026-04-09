@@ -22,8 +22,21 @@
         <div id="gc-banner-message" class="alert" role="alert"></div>
       </div>
       <div>
-        <table id="gc-servers" class="table caption-top table-bordered table-striped table-condensed">
+        <table id="gc-server" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Garbage Collector</span><br /></caption>
           <tbody></tbody>
         </table>
       </div>
+      <div>
+        <table id="gc-file" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">File Collection</span><br /></caption>
+          <tbody></tbody>
+        </table>
+      </div>
+            <div>
+        <table id="gc-wal" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">Wal Collection</span><br /></caption>
+          <tbody></tbody>
+        </table>
+      </div>
+      
