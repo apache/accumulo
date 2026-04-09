@@ -143,6 +143,23 @@ public class ServersView {
       var metricStatistic = extractStatistic(metric);
       if (metricStatistic == null || metricStatistic.equals("value")
           || metricStatistic.equals("count")) {
+        // For metrics with the same name, but different tags, compute a sum
+        Number val = SystemInformation.getMetricValue(metric);
+        values.compute(metric.name(), (k, v) -> {
+          if (v == null) {
+            return val;
+          } else {
+            if (v instanceof Integer i) {
+              return i + val.intValue();
+            } else if (v instanceof Long l) {
+              return l + val.longValue();
+            } else if (v instanceof Double d) {
+              return d + val.doubleValue();
+            } else {
+              throw new RuntimeException("Unexpected value type: " + val.getClass());
+            }
+          }
+        });
         values.putIfAbsent(metric.name(), SystemInformation.getMetricValue(metric));
       }
     }
