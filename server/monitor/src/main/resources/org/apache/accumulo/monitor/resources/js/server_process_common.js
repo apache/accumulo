@@ -235,6 +235,10 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
     },
     "stateSave": true,
     "columnDefs": [{
+        targets: '_all',
+        defaultContent: 'N/A'
+      },
+      {
         "targets": "big-num",
         "render": function (data, type) {
           if (type === 'display') {
