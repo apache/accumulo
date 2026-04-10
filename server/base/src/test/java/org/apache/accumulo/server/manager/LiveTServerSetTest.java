@@ -32,10 +32,10 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
@@ -121,7 +121,7 @@ public class LiveTServerSetTest {
 
     var locks = new HashMap<ServiceLockPath,LockInfo>();
     locks.put(path2, new LockInfo(
-        new ServiceLockData(UUID.randomUUID(), hp1.toString(), ThriftService.TSERV, g1), 123456));
+        new ServiceLockData(UUID.randomUUID(), hp1.toString(), RpcService.TSERV, g1), 123456));
 
     var deletedSeen = new HashSet<TServerInstance>();
     var addedSeen = new HashSet<TServerInstance>();
@@ -140,7 +140,7 @@ public class LiveTServerSetTest {
     // change which tserver has the lock
     locks.clear();
     locks.put(path1, new LockInfo(new ServiceLockData(UUID.randomUUID(), hp1.toString(),
-        ThriftService.TSERV, ResourceGroupId.DEFAULT), 654321));
+        RpcService.TSERV, ResourceGroupId.DEFAULT), 654321));
 
     addedSeen.clear();
     tservers.scanServers();

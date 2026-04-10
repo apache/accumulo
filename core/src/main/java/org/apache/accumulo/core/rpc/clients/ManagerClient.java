@@ -26,6 +26,7 @@ import java.util.Optional;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.transport.TTransportException;
@@ -35,13 +36,13 @@ import com.google.common.net.HostAndPort;
 
 public interface ManagerClient<C extends TServiceClient> {
 
-  public static String getPrimaryManagerLocation(ClientContext context) {
+  static String getPrimaryManagerLocation(ClientContext context) {
     String managerLocation = null;
     ServiceLockPaths.ServiceLockPath m = context.getServerPaths().getManager(true);
     if (m != null) {
       Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
       if (sld.isPresent()) {
-        managerLocation = sld.orElseThrow().getAddressString(ServiceLockData.ThriftService.MANAGER);
+        managerLocation = sld.orElseThrow().getAddressString(RpcService.MANAGER);
       }
     }
     return managerLocation;
@@ -67,15 +68,15 @@ public interface ManagerClient<C extends TServiceClient> {
     }
     HostAndPort manager = HostAndPort.fromString(managerLocation);
     try {
-      // Manager requests can take a long time: don't ever time out
+      // Manager requests can take a long time so never time out
       return ThriftUtil.getClientNoTimeout(type, manager, context);
     } catch (TTransportException tte) {
       Throwable cause = tte.getCause();
-      if (cause != null && cause instanceof UnknownHostException) {
+      if (cause instanceof UnknownHostException) {
         // do not expect to recover from this
         throw new IllegalStateException(tte);
       }
-      log.debug("Failed to connect to manager=" + manager + ", will retry... ", tte);
+      log.debug("Failed to connect to manager= {}, will retry... ", manager, tte);
       return null;
     }
   }
