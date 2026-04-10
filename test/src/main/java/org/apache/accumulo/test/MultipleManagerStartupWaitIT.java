@@ -26,9 +26,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.rpc.clients.ManagerClient;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -104,12 +104,10 @@ public class MultipleManagerStartupWaitIT extends ConfigurableMacBase {
     // There is a time period where the primary manager has the lock but has not yet set the address
     // on the lock, when the address is not set an empty set would be returned. So this waits for
     // the address to be set.
-    Wait.waitFor(() -> !getCluster().getServerContext().instanceOperations()
-        .getServers(ServerId.Type.MANAGER).isEmpty());
-    Set<ServerId> primary =
-        getCluster().getServerContext().instanceOperations().getServers(ServerId.Type.MANAGER);
-    assertEquals(1, primary.size());
-    assertTrue(managerHosts.contains(primary.iterator().next().toHostPortString()));
+    Wait.waitFor(() -> ManagerClient.getPrimaryManagerLocation(cluster.getServerContext()) != null);
+    var primaryAddr = ManagerClient.getPrimaryManagerLocation(cluster.getServerContext());
+    assertTrue(managerHosts.contains(primaryAddr),
+        () -> "mangerHosts:" + managerHosts + " primaryAddr:" + primaryAddr);
     assertNull(startError.get());
     clusterThread.join();
   }
