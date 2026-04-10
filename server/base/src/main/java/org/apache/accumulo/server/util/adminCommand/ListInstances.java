@@ -35,8 +35,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.util.ServerKeywordExecutable;
 import org.apache.accumulo.server.util.adminCommand.ListInstances.Opts;
@@ -193,7 +193,7 @@ public class ListInstances extends ServerKeywordExecutable<Opts> {
       if (sld.isEmpty()) {
         return null;
       }
-      return sld.orElseThrow().getAddressString(ThriftService.MANAGER);
+      return sld.orElseThrow().getAddressString(RpcService.MANAGER);
     } catch (Exception e) {
       handleException(e, printErrors);
       return null;

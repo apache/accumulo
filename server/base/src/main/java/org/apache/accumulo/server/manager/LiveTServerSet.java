@@ -46,6 +46,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
@@ -306,9 +307,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
     } else {
       log.trace("Lock exists for server: {}, adding to current set", tserverPath);
       locklessServers.remove(tserverPath);
-      HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      ResourceGroupId resourceGroup =
-          sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
+      HostAndPort address = sld.orElseThrow().getAddress(RpcService.TSERV);
+      ResourceGroupId resourceGroup = sld.orElseThrow().getGroup(RpcService.TSERV);
       TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
 
       if (info == null) {

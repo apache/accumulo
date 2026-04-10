@@ -46,10 +46,10 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.easymock.EasyMock;
@@ -177,9 +177,9 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetGarbageCollector() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld = new ServiceLockData(uuid, HOSTNAME, ThriftService.GC, TEST_RESOURCE_GROUP);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld = new ServiceLockData(uuid, HOSTNAME, RpcService.GC, TEST_RESOURCE_GROUP);
 
     expect(zc.getChildren(ZGC_LOCK)).andReturn(List.of(svcLock1, svcLock2)).anyTimes();
     expect(zc.get(EasyMock.eq(ZGC_LOCK + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
@@ -219,9 +219,9 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetManager() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld = new ServiceLockData(uuid, HOSTNAME, ThriftService.MANAGER, TEST_RESOURCE_GROUP);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld = new ServiceLockData(uuid, HOSTNAME, RpcService.MANAGER, TEST_RESOURCE_GROUP);
 
     expect(zc.getChildren(ZMANAGER_LOCK)).andReturn(List.of(svcLock1, svcLock2)).anyTimes();
     expect(zc.get(EasyMock.eq(ZMANAGER_LOCK + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
@@ -261,9 +261,9 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetMonitor() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld = new ServiceLockData(uuid, HOSTNAME, ThriftService.NONE, TEST_RESOURCE_GROUP);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld = new ServiceLockData(uuid, HOSTNAME, RpcService.NONE, TEST_RESOURCE_GROUP);
 
     expect(zc.getChildren(ZMONITOR_LOCK)).andReturn(List.of(svcLock1, svcLock2)).anyTimes();
     expect(zc.get(EasyMock.eq(ZMONITOR_LOCK + "/" + svcLock1), EasyMock.isA(ZcStat.class)))
@@ -297,11 +297,10 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetCompactors() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld1 = new ServiceLockData(uuid, HOSTNAME, ThriftService.COMPACTOR, TEST_RESOURCE_GROUP);
-    var sld2 =
-        new ServiceLockData(uuid, HOSTNAME, ThriftService.COMPACTOR, ResourceGroupId.DEFAULT);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld1 = new ServiceLockData(uuid, HOSTNAME, RpcService.COMPACTOR, TEST_RESOURCE_GROUP);
+    var sld2 = new ServiceLockData(uuid, HOSTNAME, RpcService.COMPACTOR, ResourceGroupId.DEFAULT);
 
     expect(zc.getChildren(ZCOMPACTORS))
         .andReturn(List.of(TEST_RESOURCE_GROUP.canonical(), ResourceGroupId.DEFAULT.canonical()))
@@ -442,11 +441,10 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetScanServers() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld1 = new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, TEST_RESOURCE_GROUP);
-    var sld2 =
-        new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, ResourceGroupId.DEFAULT);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld1 = new ServiceLockData(uuid, HOSTNAME, RpcService.TABLET_SCAN, TEST_RESOURCE_GROUP);
+    var sld2 = new ServiceLockData(uuid, HOSTNAME, RpcService.TABLET_SCAN, ResourceGroupId.DEFAULT);
 
     expect(zc.getChildren(ZSSERVERS))
         .andReturn(List.of(TEST_RESOURCE_GROUP.canonical(), ResourceGroupId.DEFAULT.canonical()))
@@ -580,11 +578,10 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetTabletServers() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld1 = new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, TEST_RESOURCE_GROUP);
-    var sld2 =
-        new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, ResourceGroupId.DEFAULT);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld1 = new ServiceLockData(uuid, HOSTNAME, RpcService.TABLET_SCAN, TEST_RESOURCE_GROUP);
+    var sld2 = new ServiceLockData(uuid, HOSTNAME, RpcService.TABLET_SCAN, ResourceGroupId.DEFAULT);
 
     expect(zc.getChildren(ZTSERVERS))
         .andReturn(List.of(TEST_RESOURCE_GROUP.canonical(), ResourceGroupId.DEFAULT.canonical()))
@@ -718,11 +715,10 @@ public class ServiceLockPathsTest {
   @Test
   public void testGetDeadTabletServers() {
     UUID uuid = UUID.randomUUID();
-    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000001";
-    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid.toString() + "#0000000002";
-    var sld1 = new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, TEST_RESOURCE_GROUP);
-    var sld2 =
-        new ServiceLockData(uuid, HOSTNAME, ThriftService.TABLET_SCAN, ResourceGroupId.DEFAULT);
+    String svcLock1 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000001";
+    String svcLock2 = ServiceLock.ZLOCK_PREFIX + uuid + "#0000000002";
+    var sld1 = new ServiceLockData(uuid, HOSTNAME, RpcService.TABLET_SCAN, TEST_RESOURCE_GROUP);
+    var sld2 = new ServiceLockData(uuid, HOSTNAME, RpcService.TABLET_SCAN, ResourceGroupId.DEFAULT);
 
     expect(zc.getChildren(ZDEADTSERVERS))
         .andReturn(List.of(TEST_RESOURCE_GROUP.canonical(), ResourceGroupId.DEFAULT.canonical()))

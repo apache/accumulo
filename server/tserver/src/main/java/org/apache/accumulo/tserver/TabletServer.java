@@ -83,7 +83,6 @@ import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
@@ -96,6 +95,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
@@ -495,9 +495,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         ServiceDescriptors descriptors = new ServiceDescriptors();
-        for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
-            ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
-            ThriftService.TSERV}) {
+        for (RpcService svc : new RpcService[] {RpcService.CLIENT, RpcService.TABLET_INGEST,
+            RpcService.TABLET_MANAGEMENT, RpcService.TABLET_SCAN, RpcService.TSERV}) {
           descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
               getAdvertiseAddress().toString(), this.getResourceGroup()));
         }

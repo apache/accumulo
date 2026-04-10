@@ -48,11 +48,11 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -165,7 +165,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           getCluster().getServerContext().getServerPaths().getGarbageCollector(true);
       Optional<ServiceLockData> data = ServiceLock.getLockData(ctx.getZooSession(), gcLockPath);
       assertTrue(data.isPresent());
-      final HostAndPort gcAddress = data.orElseThrow().getAddress(ThriftService.GC);
+      final HostAndPort gcAddress = data.orElseThrow().getAddress(RpcService.GC);
       assertTrue(!control.getProcesses(ServerType.GARBAGE_COLLECTOR).isEmpty());
       // Don't call `new Admin().execute(new String[] {"signalShutdown", "-h ", host, "-p ",
       // Integer.toString(port)})`

@@ -40,11 +40,11 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
@@ -68,7 +68,7 @@ public interface TServerClient<C extends TServiceClient> {
 
   default Pair<String,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned,
-      ThriftService service) throws TTransportException {
+      RpcService service) throws TTransportException {
     checkArgument(context != null, "context is null");
 
     final String debugHost = System.getProperty(DEBUG_HOST, null);

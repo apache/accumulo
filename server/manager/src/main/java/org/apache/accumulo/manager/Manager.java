@@ -88,7 +88,6 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
@@ -109,6 +108,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
@@ -982,7 +982,7 @@ public class Manager extends AbstractServer
     }
 
     // block until we can obtain the ZK lock for the manager. Create the
-    // initial lock using ThriftService.NONE. This will allow the lock
+    // initial lock using RpcService.NONE. This will allow the lock
     // allocation to occur, but prevent any services from getting the
     // Manager address for the COORDINATOR, FATE, and MANAGER services.
     // The lock data is replaced below and the manager address is exposed
@@ -1201,10 +1201,10 @@ public class Manager extends AbstractServer
     // This advertises the address that clients can use to connect to the Manager
     // for the Coordinator, Fate, and Manager services. Do **not** do this until
     // after the upgrade process is finished and the dependent services are started.
-    UUID uuid = sld.getServerUUID(ThriftService.NONE);
+    UUID uuid = sld.getServerUUID(RpcService.NONE);
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
-        ThriftService.FATE_CLIENT}) {
+    for (RpcService svc : new RpcService[] {RpcService.MANAGER, RpcService.COORDINATOR,
+        RpcService.FATE_CLIENT}) {
       descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
           this.getResourceGroup()));
     }
@@ -1471,8 +1471,7 @@ public class Manager extends AbstractServer
         zoo.putPersistentData(zLockPath.toString(), new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
 
         ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-        for (ServiceLockData.ThriftService svc : new ServiceLockData.ThriftService[] {
-            ThriftService.FATE_WORKER}) {
+        for (RpcService svc : new RpcService[] {RpcService.FATE_WORKER}) {
           descriptors.addService(new ServiceLockData.ServiceDescriptor(serverLockUUID, svc,
               advertiseAddress.toString(), this.getResourceGroup()));
         }
@@ -1506,7 +1505,7 @@ public class Manager extends AbstractServer
     // and the address set to 0.0.0.0. When the lock is acquired (could be
     // waiting to due an HA-pair), then the Manager startup process begins
     // and the lock service descriptors are updated with the advertise address
-    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
+    descriptors.addService(new ServiceDescriptor(zooLockUUID, RpcService.NONE,
         ServerOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     primaryManagerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.ZooZap.ZapOpts;
 import org.apache.accumulo.start.spi.CommandGroup;
@@ -247,7 +248,7 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
       ServiceLockPath path, AddressSelector addressSelector) {
     Optional<ServiceLockData> sld = context.getZooCache().getLockData(path);
     return sld.filter(lockData -> {
-      for (var service : ServiceLockData.ThriftService.values()) {
+      for (var service : RpcService.values()) {
         var address = lockData.getAddress(service);
         if (address != null) {
           return addressSelector.getPredicate().test(address.toString());

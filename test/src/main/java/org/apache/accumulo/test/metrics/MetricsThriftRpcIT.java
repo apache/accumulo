@@ -36,13 +36,13 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -128,7 +128,7 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       assertNotNull(zgcPath, "Garbage Collector not found in ZooKeeper");
       Optional<ServiceLockData> sld = cc.getZooCache().getLockData(zgcPath);
       assertTrue(sld.isPresent(), "Garbage Collector ZooKeeper lock data not found");
-      String location = sld.orElseThrow().getAddressString(ThriftService.GC);
+      String location = sld.orElseThrow().getAddressString(RpcService.GC);
       HostAndPort hp = HostAndPort.fromString(location);
       metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS, hp, cc);
       try {

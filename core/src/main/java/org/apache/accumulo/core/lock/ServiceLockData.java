@@ -32,29 +32,12 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.util.AddressUtil;
 
 import com.google.common.net.HostAndPort;
 
 public class ServiceLockData implements Comparable<ServiceLockData> {
-
-  /**
-   * Thrift Service list
-   */
-  public static enum ThriftService {
-    CLIENT,
-    COORDINATOR,
-    COMPACTOR,
-    FATE_CLIENT,
-    FATE_WORKER,
-    GC,
-    MANAGER,
-    NONE,
-    TABLET_INGEST,
-    TABLET_MANAGEMENT,
-    TABLET_SCAN,
-    TSERV
-  }
 
   /**
    * An object that describes a process, the group assigned to that process, the Thrift service and
@@ -63,12 +46,11 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   public static class ServiceDescriptor {
 
     private final UUID uuid;
-    private final ThriftService service;
+    private final RpcService service;
     private final String address;
     private final ResourceGroupId group;
 
-    public ServiceDescriptor(UUID uuid, ThriftService service, String address,
-        ResourceGroupId group) {
+    public ServiceDescriptor(UUID uuid, RpcService service, String address, ResourceGroupId group) {
       this.uuid = requireNonNull(uuid);
       this.service = requireNonNull(service);
       this.address = requireNonNull(address);
@@ -79,7 +61,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       return uuid;
     }
 
-    public ThriftService getService() {
+    public RpcService getService() {
       return service;
     }
 
@@ -124,7 +106,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
   }
 
   /**
-   * A set of ServiceDescriptor's
+   * A set of ServiceDescriptors
    */
   public static class ServiceDescriptors {
     private final Set<ServiceDescriptor> descriptors;
@@ -146,34 +128,34 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
   }
 
-  private final EnumMap<ThriftService,ServiceDescriptor> services;
+  private final EnumMap<RpcService,ServiceDescriptor> services;
 
   public ServiceLockData(ServiceDescriptors sds) {
-    this.services = new EnumMap<>(ThriftService.class);
+    this.services = new EnumMap<>(RpcService.class);
     sds.getServices().forEach(sd -> this.services.put(sd.getService(), sd));
   }
 
-  public ServiceLockData(UUID uuid, String address, ThriftService service, ResourceGroupId group) {
+  public ServiceLockData(UUID uuid, String address, RpcService service, ResourceGroupId group) {
     this(new ServiceDescriptors(new HashSet<>(
         Collections.singleton(new ServiceDescriptor(uuid, service, address, group)))));
   }
 
-  public String getAddressString(ThriftService service) {
+  public String getAddressString(RpcService service) {
     ServiceDescriptor sd = services.get(service);
     return sd == null ? null : sd.getAddress();
   }
 
-  public HostAndPort getAddress(ThriftService service) {
+  public HostAndPort getAddress(RpcService service) {
     String s = getAddressString(service);
     return s == null ? null : AddressUtil.parseAddress(s);
   }
 
-  public ResourceGroupId getGroup(ThriftService service) {
+  public ResourceGroupId getGroup(RpcService service) {
     ServiceDescriptor sd = services.get(service);
     return sd == null ? null : sd.getGroup();
   }
 
-  public UUID getServerUUID(ThriftService service) {
+  public UUID getServerUUID(RpcService service) {
     ServiceDescriptor sd = services.get(service);
     return sd == null ? null : sd.getUUID();
   }
@@ -227,7 +209,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   private static class ServiceDescriptorGson {
     private UUID uuid;
-    private ThriftService service;
+    private RpcService service;
     private String address;
     private String group;
 
@@ -235,7 +217,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     @SuppressWarnings("unused")
     public ServiceDescriptorGson() {}
 
-    public ServiceDescriptorGson(UUID uuid, ThriftService service, String address, String group) {
+    public ServiceDescriptorGson(UUID uuid, RpcService service, String address, String group) {
       this.uuid = uuid;
       this.service = service;
       this.address = address;

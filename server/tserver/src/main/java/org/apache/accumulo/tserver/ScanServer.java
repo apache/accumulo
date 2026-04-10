@@ -79,7 +79,6 @@ import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
@@ -89,6 +88,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.ScanServerBusyException;
@@ -335,8 +335,7 @@ public class ScanServer extends AbstractServer
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         ServiceDescriptors descriptors = new ServiceDescriptors();
-        for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
-            ThriftService.TABLET_SCAN}) {
+        for (RpcService svc : new RpcService[] {RpcService.CLIENT, RpcService.TABLET_SCAN}) {
           descriptors.addService(new ServiceDescriptor(serverLockUUID, svc,
               getAdvertiseAddress().toString(), this.getResourceGroup()));
         }

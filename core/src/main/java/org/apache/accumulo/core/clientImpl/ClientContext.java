@@ -92,7 +92,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
@@ -104,6 +103,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Authorizations;
@@ -469,9 +469,9 @@ public class ClientContext implements AccumuloClient {
         Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), path, stat);
         if (sld.isPresent()) {
           final ServiceLockData data = sld.orElseThrow();
-          final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
-          final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
-          final ResourceGroupId group = data.getGroup(ThriftService.TABLET_SCAN);
+          final String addr = data.getAddressString(RpcService.TABLET_SCAN);
+          final UUID uuid = data.getServerUUID(RpcService.TABLET_SCAN);
+          final ResourceGroupId group = data.getGroup(RpcService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {

@@ -60,6 +60,7 @@ import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -287,8 +288,8 @@ public class Fate extends ServerKeywordExecutable<FateOpts> {
     ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
-        ServiceLockData.ThriftService.NONE, "fake_admin_util_host", ResourceGroupId.DEFAULT));
+    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid, RpcService.NONE,
+        "fake_admin_util_host", ResourceGroupId.DEFAULT));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));

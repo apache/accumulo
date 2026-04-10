@@ -88,7 +88,6 @@ import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
@@ -101,6 +100,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -387,8 +387,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         zoo.putPersistentData(path.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         ServiceDescriptors descriptors = new ServiceDescriptors();
-        for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
-            ThriftService.COMPACTOR}) {
+        for (RpcService svc : new RpcService[] {RpcService.CLIENT, RpcService.COMPACTOR}) {
           descriptors.addService(new ServiceDescriptor(compactorId, svc, clientAddress.toString(),
               this.getResourceGroup()));
         }

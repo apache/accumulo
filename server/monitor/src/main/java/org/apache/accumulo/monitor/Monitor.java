@@ -57,13 +57,13 @@ import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
@@ -326,7 +326,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
       List<String> locks = ServiceLock.validateAndSort(path, zk.getChildren(path.toString()));
       if (locks != null && !locks.isEmpty()) {
         address = ServiceLockData.parse(zk.getData(path + "/" + locks.get(0)))
-            .map(sld -> sld.getAddress(ThriftService.GC)).orElse(null);
+            .map(sld -> sld.getAddress(RpcService.GC)).orElse(null);
         if (address == null) {
           log.warn("Unable to contact the garbage collector (no address)");
           return null;
@@ -684,7 +684,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     while (true) {
       monitorLock.lock(monitorLockWatcher,
           new ServiceLockData(zooLockUUID,
-              monitorLocation.getHost() + ":" + monitorLocation.getPort(), ThriftService.NONE,
+              monitorLocation.getHost() + ":" + monitorLocation.getPort(), RpcService.NONE,
               this.getResourceGroup()));
 
       monitorLockWatcher.waitForChange();

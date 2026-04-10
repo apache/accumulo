@@ -56,12 +56,12 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
@@ -355,7 +355,7 @@ public class NullTserver {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
+      ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", RpcService.TSERV,
           ResourceGroupId.DEFAULT);
       miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
