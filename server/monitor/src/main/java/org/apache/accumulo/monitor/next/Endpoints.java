@@ -23,7 +23,9 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +48,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.rpc.clients.ManagerClient;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
@@ -55,6 +58,7 @@ import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
+import org.apache.accumulo.server.manager.FateLocations;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -166,6 +170,30 @@ public class Endpoints {
       return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
     }
     return List.of();
+  }
+
+  @GET
+  @Path("manager/responsibilities")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns each managers responsibilities")
+  public Map<String,List<String>> getManagerResponsibilities() {
+    var fateLocs = new FateLocations(monitor.getContext());
+    Map<String,List<String>> responsibilities = new HashMap<>();
+    fateLocs.getLocations().forEach((addr, partitions) -> {
+      partitions.forEach(partition -> {
+        responsibilities.computeIfAbsent(addr.toString(), a -> new ArrayList<>())
+            .add(partition.toString());
+      });
+    });
+
+    var primary = ManagerClient.getPrimaryManagerLocation(monitor.getContext());
+    if (primary != null) {
+      responsibilities.computeIfAbsent(primary, a -> new ArrayList<>())
+          .addAll(List.of("TABLET_MANAGEMENT", "BALANCING", "CLIENT_RPC", "TSERVER_MONITORING",
+              "CLUSTER_MAINTENANCE", "COMPACTION_COORDINATION"));
+    }
+
+    return responsibilities;
   }
 
   @GET
