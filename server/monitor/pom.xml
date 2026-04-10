@@ -234,7 +234,7 @@
                 <mainClass>org.apache.accumulo.monitor.next.views.ColumnJsGen</mainClass>
                 <classpathScope>compile</classpathScope>
                 <arguments>
-                  <argument>${project.basedir}/src/main/resources/org/apache/accumulo/monitor/resources/js/columns.js</argument>
+                  <argument>${project.build.directory}/classes/org/apache/accumulo/monitor/resources/js/columns.js</argument>
                 </arguments>
               </configuration>
             </execution>

@@ -146,7 +146,7 @@ public enum Metric {
   GC_STARTED("accumulo.gc.started", MetricType.GAUGE, "Timestamp GC file collection cycle started.",
       MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle Start Time", null, "start-date"),
   GC_FINISHED("accumulo.gc.finished", MetricType.GAUGE, "Timestamp GC file collect cycle finished.",
-      MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle End Time", null, "end-ate"),
+      MetricDocSection.GARBAGE_COLLECTION, "GC File Cycle End Time", null, "end-date"),
   GC_CANDIDATES("accumulo.gc.candidates", MetricType.GAUGE,
       "Number of files that are candidates for deletion.", MetricDocSection.GARBAGE_COLLECTION,
       "GC File Deletion Candidate Count", null, "big-num"),
