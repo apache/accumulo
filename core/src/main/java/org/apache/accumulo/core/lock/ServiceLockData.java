@@ -40,7 +40,7 @@ import com.google.common.net.HostAndPort;
 public class ServiceLockData implements Comparable<ServiceLockData> {
 
   /**
-   * An object that describes a process, the group assigned to that process, the Thrift service and
+   * An object that describes a process, the group assigned to that process, the Thrift rpc service and
    * the address to use to communicate with that service.
    */
   public static class ServiceDescriptor {

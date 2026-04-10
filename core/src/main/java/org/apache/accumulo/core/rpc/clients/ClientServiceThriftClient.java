@@ -36,8 +36,8 @@ public class ClientServiceThriftClient extends ThriftClientTypes<Client>
   private static final Logger LOG = LoggerFactory.getLogger(ClientServiceThriftClient.class);
   private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
-  ClientServiceThriftClient(String serviceName) {
-    super(serviceName, new Client.Factory());
+  ClientServiceThriftClient(RpcService service) {
+    super(service, new Client.Factory());
   }
 
   @Override

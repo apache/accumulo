@@ -45,7 +45,7 @@ import com.google.common.annotations.VisibleForTesting;
 public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClientTypes<C> {
 
   public ThriftProcessorTypes(ThriftClientTypes<C> type) {
-    super(type.getServiceName(), type.getClientFactory());
+    super(type.getService(), type.getClientFactory());
   }
 
   @VisibleForTesting

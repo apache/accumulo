@@ -41,8 +41,8 @@ public class TabletManagementClientServiceThriftClient extends ThriftClientTypes
       LoggerFactory.getLogger(TabletManagementClientServiceThriftClient.class);
   private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
-  public TabletManagementClientServiceThriftClient(String serviceName) {
-    super(serviceName, new Client.Factory());
+  public TabletManagementClientServiceThriftClient(RpcService service) {
+    super(service, new Client.Factory());
   }
 
   @Override

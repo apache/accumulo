@@ -33,6 +33,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -43,8 +44,8 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
 
   private static final Logger LOG = LoggerFactory.getLogger(ManagerThriftClient.class);
 
-  ManagerThriftClient(String serviceName) {
-    super(serviceName, new Client.Factory());
+  ManagerThriftClient(RpcService service) {
+    super(service, new Client.Factory());
   }
 
   @Override
