@@ -35,10 +35,7 @@ import com.google.common.net.HostAndPort;
 
 public interface ManagerClient<C extends TServiceClient> {
 
-  default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
-    checkArgument(context != null, "context is null");
-
-    // obtain the primary manager location
+  public static String getPrimaryManagerLocation(ClientContext context) {
     String managerLocation = null;
     ServiceLockPaths.ServiceLockPath m = context.getServerPaths().getManager(true);
     if (m != null) {
@@ -47,6 +44,14 @@ public interface ManagerClient<C extends TServiceClient> {
         managerLocation = sld.orElseThrow().getAddressString(ServiceLockData.ThriftService.MANAGER);
       }
     }
+    return managerLocation;
+  }
+
+  default C getManagerConnection(Logger log, ThriftClientTypes<C> type, ClientContext context) {
+    checkArgument(context != null, "context is null");
+
+    // obtain the primary manager location
+    String managerLocation = getPrimaryManagerLocation(context);
 
     if (managerLocation == null) {
       log.debug("No managers...");
