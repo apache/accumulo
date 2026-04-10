@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -30,6 +31,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
@@ -39,67 +42,92 @@ import com.google.common.base.Preconditions;
  */
 public class ErrorThrowingIterator extends WrappingIterator {
 
+  private static final Logger log = LoggerFactory.getLogger(ErrorThrowingIterator.class);
+
   public static final String TIMES = "error.throwing.iterator.times";
+  public static final String NAME = "error.throwing.iterator.name";
+  public static final String ROW = "error.throwing.iterator.row";
 
   private static final String MESSAGE = "Exception thrown from ErrorThrowingIterator";
   private static final RuntimeException ERROR = new RuntimeException(MESSAGE);
-  private static final AtomicInteger TIMES_THROWN = new AtomicInteger(0);
+  private static final Map<String,AtomicInteger> TIMES_THROWN = new ConcurrentHashMap<>();
 
   private int threshold = 0;
+  private String name;
+  private String row;
+
+  private static AtomicInteger getCounter(String name) {
+    return TIMES_THROWN.computeIfAbsent(name, n -> new AtomicInteger());
+  }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     threshold = Integer.parseInt(options.get(TIMES));
-    Preconditions.checkState(TIMES_THROWN.get() <= threshold,
+    name = options.getOrDefault(NAME, "");
+    row = options.getOrDefault(ROW, null);
+
+    Preconditions.checkState(getCounter(name).get() <= threshold,
         "This iterator does not"
             + " support reuse within the same VM. If using in an IT, then be sure to use"
             + " a different MAC instance between tests.");
   }
 
   private void incrementAndThrow(RuntimeException t) {
-    if (TIMES_THROWN.get() < threshold) {
-      TIMES_THROWN.incrementAndGet();
+    if (getCounter(name).get() < threshold) {
+      getCounter(name).incrementAndGet();
+      log.info("Throwing {}", t.getClass().getName());
       throw t;
     }
   }
 
   private void incrementAndThrowIOE() throws IOException {
-    if (TIMES_THROWN.get() < threshold) {
-      TIMES_THROWN.incrementAndGet();
+    if (getCounter(name).get() < threshold) {
+      getCounter(name).incrementAndGet();
+      log.info("Throwing IOException");
       throw new IOException(MESSAGE);
     }
   }
 
   @Override
   public Key getTopKey() {
-    incrementAndThrow(ERROR);
+    if (row == null) {
+      incrementAndThrow(ERROR);
+    }
     return super.getTopKey();
   }
 
   @Override
   public Value getTopValue() {
-    incrementAndThrow(ERROR);
+    if (row == null) {
+      incrementAndThrow(ERROR);
+    }
     return super.getTopValue();
   }
 
   @Override
   public boolean hasTop() {
-    incrementAndThrow(ERROR);
+    if (row == null) {
+      incrementAndThrow(ERROR);
+    }
     return super.hasTop();
   }
 
   @Override
   public void next() throws IOException {
-    incrementAndThrowIOE();
+    if (row == null || super.getTopKey().getRowData().toString().equals(row)) {
+      incrementAndThrowIOE();
+    }
     super.next();
   }
 
   @Override
   public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
       throws IOException {
-    incrementAndThrowIOE();
+    if (row == null) {
+      incrementAndThrowIOE();
+    }
     super.seek(range, columnFamilies, inclusive);
   }
 
