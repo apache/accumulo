@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -62,6 +63,10 @@ import org.apache.accumulo.server.manager.FateLocations;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
 
 @Path("/")
 public class Endpoints {
@@ -167,7 +172,7 @@ public class Endpoints {
   public List<FMetric> getManagerMetrics() {
     var managerMetrics = getManager().getMetrics();
     if (managerMetrics != null) {
-      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
+      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(toList());
     }
     return List.of();
   }
@@ -190,8 +195,14 @@ public class Endpoints {
     if (primary != null) {
       responsibilities.computeIfAbsent(primary, a -> new ArrayList<>())
           .addAll(List.of("TABLET_MANAGEMENT", "BALANCING", "CLIENT_RPC", "TSERVER_MONITORING",
-              "CLUSTER_MAINTENANCE", "COMPACTION_COORDINATION"));
+              "CLUSTER_MAINTENANCE"));
     }
+
+    monitor.getContext().getCoordinatorLocations(true).locations().entrySet().stream()
+        .collect(groupingBy(Entry::getValue, mapping(Entry::getKey, toList()))).forEach((addr, groups) -> {
+          responsibilities.computeIfAbsent(addr.toString(), a -> new ArrayList<>())
+              .add("COMPACTOR_GROUPS:" + groups);
+        });
 
     return responsibilities;
   }
@@ -361,7 +372,7 @@ public class Endpoints {
         monitor.getInformationFetcher().getSummaryForEndpoint().getTopRunningCompactions();
     return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
         .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
-        .collect(Collectors.toList());
+        .collect(toList());
   }
 
   @GET
@@ -376,7 +387,7 @@ public class Endpoints {
     if (longRunning == null) {
       return List.of();
     }
-    return longRunning.stream().collect(Collectors.toList());
+    return longRunning.stream().collect(toList());
   }
 
   @GET
