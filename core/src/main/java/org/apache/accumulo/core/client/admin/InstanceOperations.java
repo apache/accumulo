@@ -247,7 +247,6 @@ public interface InstanceOperations {
    * @return set of servers of the supplied type
    * @since 4.0.0
    */
-  // TODO this needs to change for multiple managers
   Set<ServerId> getServers(ServerId.Type type);
 
   /**
