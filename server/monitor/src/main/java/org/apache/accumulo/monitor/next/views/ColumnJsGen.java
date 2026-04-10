@@ -77,7 +77,8 @@ public class ColumnJsGen {
           m.getColumnClasses()));
     }
 
-    // Add non-metric columns
+    // Add non-metric columns that are part of the ServersView
+    // object that is returned from the Monitor endpoint
     output.put(ADDR_COL_NAME, new ColumnInformation(ADDR_COL_NAME, "Server Address", "firstcell"));
     output.put(RG_COL_NAME,
         new ColumnInformation(RG_COL_NAME, "Resource Group Name", "resource-group"));

@@ -281,7 +281,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a UI-ready view model for server processes. Add ';serverType=<ServerId.Type>' to URL")
   public ServersView getServerProcessView(@MatrixParam(SERVER_TYPE_KEY) ServerId.Type serverType) {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(serverType);
+    ServersView view =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(serverType);
+    if (view == null) {
+      throw new NotFoundException(
+          "ServersView object for server type " + serverType.name() + " not found");
+    }
+    return view;
   }
 
   @GET

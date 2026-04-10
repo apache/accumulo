@@ -405,22 +405,28 @@ function getManager() {
 }
 
 /**
- * Extracts the manager goal state from a metrics array.
+ * Gets the manager goal state from the cached manager response, if available.
  *
- * @param {array} metrics Metric list from rest-v2/manager or rest-v2/manager/metrics
  * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
  */
-function getManagerGoalStateFromMetrics(metrics) {
-  if (!Array.isArray(metrics)) {
-    console.error('Metrics is not an array:', metrics);
+function getManagerGoalStateFromSession() {
+  var mgrsView = getManagersView();
+  if (!mgrsView) {
+    console.debug('No manager data in session storage. Returning null.');
     return null;
   }
-  const metric = metrics.find(m => m?.name === MANAGER_GOAL_STATE_METRIC);
-  if (!metric || typeof metric.value !== 'number') {
-    console.debug('Manager goal state metric not found or invalid:', metric);
-    return null;
-  }
-  switch (metric.value) {
+  // There could be multiple managers that report different goal states.
+  // The goal state is stored in ZK, but it's eventually consistent.
+  // Use the lowest value seen as the current state for the Monitor
+  var goalState = 10;
+  var mgrs = mgrsView.data;
+  $.each(mgrs, function (index, mgr) {
+    var stateVal = mgr[MANAGER_GOAL_STATE_METRIC];
+    if (stateVal < goalState) {
+      goalState = stateVal;
+    }
+  });
+  switch (goalState) {
   case 0:
     return 'CLEAN_STOP';
   case 1:
@@ -428,25 +434,7 @@ function getManagerGoalStateFromMetrics(metrics) {
   case 2:
     return 'NORMAL';
   default:
-    return null;
-  }
-}
-
-/**
- * Gets the manager goal state from the cached manager response, if available.
- *
- * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
- */
-function getManagerGoalStateFromSession() {
-  if (!sessionStorage?.manager) {
-    console.debug('No manager data in session storage. Returning null.');
-    return null;
-  }
-  try {
-    const managerData = JSON.parse(sessionStorage.manager);
-    return getManagerGoalStateFromMetrics(managerData.metrics);
-  } catch (e) {
-    console.error('Failed to parse manager data from session storage', e);
+    console.debug('Manager goal state metric not found');
     return null;
   }
 }

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.monitor.next;
 
-import static com.google.common.base.Suppliers.memoizeWithExpiration;
+import static com.google.common.base.Suppliers.memoize;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -587,6 +587,7 @@ public class SystemInformation {
   public void processMetricsError(ServerId server) {
     problemHosts.add(server);
     metricProblemHosts.add(server);
+    allMetrics.invalidate(server);
   }
 
   public void addConfiguredCompactionGroups(Set<String> groups) {
@@ -655,8 +656,6 @@ public class SystemInformation {
 
     timestamp.set(System.currentTimeMillis());
 
-    final long monitorFetchTimeout =
-        ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
     for (final ServerId.Type type : ServerId.Type.values()) {
       long problemHostCount =
           problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
@@ -665,37 +664,27 @@ public class SystemInformation {
         case COMPACTOR:
           compactors.values().forEach(servers::addAll);
           serverMetricsView.put(type,
-              memoizeWithExpiration(
-                  () -> new ServersView(servers, problemHostCount, allMetrics, timestamp),
-                  Duration.ofMillis(monitorFetchTimeout)));
+              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
           break;
         case GARBAGE_COLLECTOR:
           servers.add(gc.get());
           serverMetricsView.put(type,
-              memoizeWithExpiration(
-                  () -> new ServersView(servers, problemHostCount, allMetrics, timestamp),
-                  Duration.ofMillis(monitorFetchTimeout)));
+              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
           break;
         case MANAGER:
           servers.add(manager.get());
           serverMetricsView.put(type,
-              memoizeWithExpiration(
-                  () -> new ServersView(servers, problemHostCount, allMetrics, timestamp),
-                  Duration.ofMillis(monitorFetchTimeout)));
+              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
           break;
         case SCAN_SERVER:
           sservers.values().forEach(servers::addAll);
           serverMetricsView.put(type,
-              memoizeWithExpiration(
-                  () -> new ServersView(servers, problemHostCount, allMetrics, timestamp),
-                  Duration.ofMillis(monitorFetchTimeout)));
+              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
           break;
         case TABLET_SERVER:
           tservers.values().forEach(servers::addAll);
           serverMetricsView.put(type,
-              memoizeWithExpiration(
-                  () -> new ServersView(servers, problemHostCount, allMetrics, timestamp),
-                  Duration.ofMillis(monitorFetchTimeout)));
+              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
           break;
         case MONITOR:
         default:
@@ -797,7 +786,11 @@ public class SystemInformation {
   }
 
   public ServersView getServerProcessView(ServerId.Type type) {
-    return this.serverMetricsView.get(type).get();
+    Supplier<ServersView> view = this.serverMetricsView.get(type);
+    if (view != null) {
+      return view.get();
+    }
+    return null;
   }
 
   public static Number getMetricValue(FMetric metric) {

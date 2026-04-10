@@ -99,7 +99,9 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  // Map of MetricSource name to list of excluded metrics for that type
+  // Map of MetricSource to list of excluded metrics for that type
+  // Metrics in the List will not be included in the response
+  // for the server type in the getMetrics call.
   private final Map<MetricSource,List<String>> excludedMetrics = new EnumMap<>(MetricSource.class);
 
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
@@ -412,8 +414,8 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
-    final List<String> exclusions = excludedMetrics.get(metricSource);
     if (context.getMetricsInfo().isMetricsEnabled()) {
+      final List<String> exclusions = excludedMetrics.get(metricSource);
       Metrics.globalRegistry.getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")) {
           if (exclusions == null || !exclusions.contains(m.getId().getName())) {

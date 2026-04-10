@@ -236,7 +236,7 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
     "stateSave": true,
     "columnDefs": [{
         targets: '_all',
-        defaultContent: 'N/A'
+        defaultContent: '-'
       },
       {
         "targets": "big-num",

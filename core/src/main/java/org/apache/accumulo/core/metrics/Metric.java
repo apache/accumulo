@@ -382,11 +382,11 @@ public enum Metric {
   private final MetricType type;
   private final String description;
   private final MetricDocSection section;
-  /* Header name used in HTML TH element in Monitor UI */
+  /* Name for HTML table header element in Monitor UI */
   private final String monitorColumnHeader;
-  /* HTML TH element classes */
+  /* CSS class for HTML table header element in Monitor UI */
   private final String monitorColumnClasses;
-  /* HTML TH element title displayed on hover */
+  /* Description for HTML table header element in Monitor UI, displayed on hover */
   private final String monitorColumnDescription;
 
   private static final Map<String,Metric> NAME_TO_ENUM_MAP = new HashMap<>();

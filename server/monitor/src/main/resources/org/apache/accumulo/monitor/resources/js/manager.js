@@ -22,6 +22,7 @@
 */
 "use strict";
 
+const runningBanner = '#managerRunningBanner'
 const htmlBanner = '#managerStateBanner'
 const htmlBannerMessage = '#manager-banner-message'
 const htmlTable = '#managers'
@@ -37,19 +38,38 @@ const compactionVisibleColumnFilter = (col) => col == "Last Contact" || col == "
   col == "Server Address" || col.startsWith("accumulo.compaction.");
 
 function updateManagerGoalStateBanner() {
-  getManager().always(function () {
+  getManagersView().always(function () {
     const goalState = getManagerGoalStateFromSession();
     if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
-      $('#manager-banner-message').text('Manager goal state: ' + goalState);
-      $('#managerStateBanner').show();
+      $(htmlBannerMessage).text('Manager goal state: ' + goalState);
+      $(htmlBanner).show();
     } else {
-      $('#managerStateBanner').hide();
+      $(htmlBanner).hide();
     }
   });
 }
 
-function refresh() {
+function refreshManagerBanners() {
+  var mgrsView = getManagersView();
+  if (mgrsView.data.length === 0) {
+    // show the manager error banner and hide manager table
+    $(runningBanner).show();
+    $(htmlTable).hide();
+    $(fateHtmlTable).hide();
+    $(htmlTable).hide();
+    $(compactionHtmlTable).hide();
+  } else {
+    // otherwise, hide the error banner and show manager table
+    $(runningBanner).hide();
+    $(fateHtmlTable).show();
+    $(htmlTable).show();
+    $(compactionHtmlTable).show();
+  }
   updateManagerGoalStateBanner();
+}
+
+function refresh() {
+  refreshManagerBanners();
   refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
   refreshServerInformation(getManagersView, fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fateVisibleColumnFilter);
   refreshServerInformation(getManagersView, compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, compactionVisibleColumnFilter);
@@ -65,12 +85,14 @@ $(function () {
   refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
   refreshServerInformation(getManagersView, fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fateVisibleColumnFilter);
   refreshServerInformation(getManagersView, compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, compactionVisibleColumnFilter);
+  refreshManagerBanners
 });
 
 
 
 
 
+// TODO: 6106 - left code commented for the recovery list table to be re-added
 
 /* JSLint global definitions */
 /*global
@@ -83,20 +105,6 @@ $(function () {
 var managerStatusTable, recoveryListTable, managerStatus;
 
 
-function refreshManagerBanners() {
-  // If manager status is error
-  if (managerStatus === 'ERROR') {
-    // show the manager error banner and hide manager table
-    $('#managerRunningBanner').show();
-    $('#managerStatusTable').hide();
-    $('#managerStateBanner').hide();
-  } else {
-    // otherwise, hide the error banner and show manager table
-    $('#managerRunningBanner').hide();
-    $('#managerStatusTable').show();
-    updateManagerGoalStateBanner();
-  }
-}
 
 */
 /**
