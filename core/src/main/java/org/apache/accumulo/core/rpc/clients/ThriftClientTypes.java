@@ -21,18 +21,15 @@ package org.apache.accumulo.core.rpc.clients;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
 import org.apache.accumulo.core.rpc.RpcService;
-import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
 import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.protocol.TProtocol;
 
-public abstract class ThriftClientTypes<C extends TServiceClient> {
+public class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ClientServiceThriftClient CLIENT =
       new ClientServiceThriftClient(RpcService.CLIENT);
@@ -67,25 +64,6 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ThriftClientTypes<FateWorkerService.Client> FATE_WORKER =
       new FateWorkerThriftClient(RpcService.FATE_WORKER);
-
-  /**
-   * execute method with supplied client returning object of type R
-   *
-   * @param <R> return type
-   * @param <C> client type
-   */
-  public interface Exec<R,C> {
-    R execute(C client) throws TException;
-  }
-
-  /**
-   * execute method with supplied client
-   *
-   * @param <C> client type
-   */
-  public interface ExecVoid<C> {
-    void execute(C client) throws TException;
-  }
 
   private final RpcService service;
   private final TServiceClientFactory<C> clientFactory;
@@ -124,16 +102,6 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
       }
       sleepUninterruptibly(250, MILLISECONDS);
     }
-  }
-
-  public <R> R execute(ClientContext context, Exec<R,C> exec)
-      throws AccumuloException, AccumuloSecurityException {
-    throw new UnsupportedOperationException("This method has not been implemented");
-  }
-
-  public void executeVoid(ClientContext context, ExecVoid<C> exec)
-      throws AccumuloException, AccumuloSecurityException {
-    throw new UnsupportedOperationException("This method has not been implemented");
   }
 
   @Override

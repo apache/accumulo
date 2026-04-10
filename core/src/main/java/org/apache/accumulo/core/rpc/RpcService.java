@@ -18,12 +18,12 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 
 /**
- * This is an enum containing all rpc service types used by Thrift.
- * These are used by {@link ThriftClientTypes} and {@link ServiceLockData}
+ * This is an enum containing all rpc service types used by Thrift. These are used by
+ * {@link ThriftClientTypes} and {@link ServiceLockData}
  */
 public enum RpcService {
   CLIENT,

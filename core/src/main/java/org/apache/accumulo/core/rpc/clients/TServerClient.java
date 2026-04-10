@@ -46,8 +46,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
-import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
@@ -61,7 +59,7 @@ import com.google.common.net.HostAndPort;
 
 public interface TServerClient<C extends TServiceClient> {
 
-  static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
+  String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
 
   Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
       throws TTransportException;
@@ -162,6 +160,31 @@ public interface TServerClient<C extends TServiceClient> {
     }
   }
 
+  /**
+   * execute method with supplied client returning object of type R
+   *
+   * @param <R> return type
+   * @param <C> client type
+   */
+  interface Exec<R,C> {
+    R execute(C client) throws TException;
+  }
+
+  /**
+   * execute method with supplied client
+   *
+   * @param <C> client type
+   */
+  interface ExecVoid<C> {
+    void execute(C client) throws TException;
+  }
+
+  <R> R execute(ClientContext context, Exec<R,C> exec)
+      throws AccumuloException, AccumuloSecurityException;
+
+  void executeVoid(ClientContext context, ExecVoid<C> exec)
+      throws AccumuloException, AccumuloSecurityException;
+
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)
       throws AccumuloException, AccumuloSecurityException {
     while (true) {
@@ -218,7 +241,7 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(server, tae);
       } catch (TTransportException tte) {
-        LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
+        LOG.debug("ClientService request failed {}, retrying ... ", server, tte);
         sleepUninterruptibly(100, MILLISECONDS);
       } catch (ThriftTableOperationException ttoe) {
         TableNotFoundException tnfe;

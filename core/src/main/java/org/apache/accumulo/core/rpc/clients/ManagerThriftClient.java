@@ -35,6 +35,8 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService.Client;
 import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.TServerClient.Exec;
+import org.apache.accumulo.core.rpc.clients.TServerClient.ExecVoid;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +92,6 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
     }
   }
 
-  @Override
   public <R> R execute(ClientContext context, Exec<R,Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
@@ -138,7 +139,6 @@ public class ManagerThriftClient extends ThriftClientTypes<Client>
     }
   }
 
-  @Override
   public void executeVoid(ClientContext context, ExecVoid<Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
