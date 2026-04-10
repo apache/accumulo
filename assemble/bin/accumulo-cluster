@@ -125,7 +125,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,managers,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
