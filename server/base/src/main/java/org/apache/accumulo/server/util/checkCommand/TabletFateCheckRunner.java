@@ -37,15 +37,14 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class TabletFateCheckRunner implements CheckRunner {
   private static final Check check = Check.BULK_FATE;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
+    boolean status = true;
     printRunning();
 
     log.trace("********** Checking for orphaned bulk-import loaded columns **********");
@@ -110,7 +109,7 @@ public class TabletFateCheckRunner implements CheckRunner {
                   "Tablet {} has loaded column for file {} referencing dead FATE op {} - "
                       + "investigate and clean up manually",
                   tablet.getExtent(), entry.getKey().getMetadataPath(), fateId);
-              status = CheckStatus.FAILED;
+              status = false;
             }
           }
 
@@ -121,7 +120,7 @@ public class TabletFateCheckRunner implements CheckRunner {
             if (!liveFateIds.contains(fateId) && initialMetadataIds.contains(fateId)) {
               log.warn("Tablet {} has selected column referencing dead FATE op {} - "
                   + "investigate and clean up manually", tablet.getExtent(), fateId);
-              status = CheckStatus.FAILED;
+              status = false;
             }
           }
         }
