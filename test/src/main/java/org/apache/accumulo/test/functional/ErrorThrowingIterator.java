@@ -69,7 +69,7 @@ public class ErrorThrowingIterator extends WrappingIterator {
     row = options.getOrDefault(ROW, null);
 
     Preconditions.checkState(getCounter(name).get() <= threshold,
-        "This iterator does not" + " support reuse within the same VM (name='" + name
+        "This iterator does not support reuse within the same VM (name='" + name
             + "'). If using in an IT, then be sure to use"
             + " a different MAC instance between tests or set a different name.");
   }
