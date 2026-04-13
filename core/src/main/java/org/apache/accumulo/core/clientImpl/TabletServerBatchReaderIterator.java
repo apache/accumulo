@@ -323,8 +323,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     try {
       if (scanServerSelectorDelay != null) {
-        // TODO scan server code path is retrying too frequently on failure
-        Thread.sleep(Math.max(failSleepTime, scanServerSelectorDelay.toMillis()));
+        Thread.sleep(scanServerSelectorDelay.toMillis());
       } else {
         Thread.sleep(failSleepTime);
       }
