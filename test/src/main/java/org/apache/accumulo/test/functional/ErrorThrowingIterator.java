@@ -69,22 +69,24 @@ public class ErrorThrowingIterator extends WrappingIterator {
     row = options.getOrDefault(ROW, null);
 
     Preconditions.checkState(getCounter(name).get() <= threshold,
-        "This iterator does not"
-            + " support reuse within the same VM. If using in an IT, then be sure to use"
-            + " a different MAC instance between tests.");
+        "This iterator does not" + " support reuse within the same VM (name='" + name
+            + "'). If using in an IT, then be sure to use"
+            + " a different MAC instance between tests or set a different name.");
   }
 
   private void incrementAndThrow(RuntimeException t) {
-    if (getCounter(name).get() < threshold) {
-      getCounter(name).incrementAndGet();
+    var counter = getCounter(name);
+    if (counter.get() < threshold) {
+      counter.incrementAndGet();
       log.info("Throwing {}", t.getClass().getName());
       throw t;
     }
   }
 
   private void incrementAndThrowIOE() throws IOException {
-    if (getCounter(name).get() < threshold) {
-      getCounter(name).incrementAndGet();
+    var counter = getCounter(name);
+    if (counter.get() < threshold) {
+      counter.incrementAndGet();
       log.info("Throwing IOException");
       throw new IOException(MESSAGE);
     }

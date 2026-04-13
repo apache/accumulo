@@ -96,9 +96,9 @@ public class TimeoutIT extends AccumuloClusterHarness {
       bs.setRanges(Collections.singletonList(new Range()));
 
       // should not timeout
+      bs.setTimeout(5, TimeUnit.SECONDS);
       bs.forEach((k, v) -> {});
 
-      bs.setTimeout(5, TimeUnit.SECONDS);
       IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
       iterSetting.addOption("sleepTime", 2000 + "");
       bs.addScanIterator(iterSetting);
@@ -124,9 +124,9 @@ public class TimeoutIT extends AccumuloClusterHarness {
       scanner.setRange(new Range());
 
       // should not timeout
+      scanner.setTimeout(5, TimeUnit.SECONDS);
       scanner.forEach((k, v) -> {});
 
-      scanner.setTimeout(5, TimeUnit.SECONDS);
       IteratorSetting iterSetting = new IteratorSetting(100, SlowIterator.class);
       iterSetting.addOption("sleepTime", 6000 + "");
       scanner.addScanIterator(iterSetting);
