@@ -234,6 +234,7 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
       });
     },
     "stateSave": true,
+    "colReorder": true,
     "columnDefs": [{
         targets: '_all',
         defaultContent: '-'
