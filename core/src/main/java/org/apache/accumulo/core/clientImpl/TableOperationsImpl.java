@@ -1351,7 +1351,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     return ret;
   }
 
-  @SuppressWarnings("deprecation")
   private void waitForTableStateTransition(TableId tableId, TableState expectedState)
       throws AccumuloException, TableNotFoundException {
     Text startRow = null;
@@ -1401,7 +1400,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               && (availability == TabletAvailability.HOSTED
                   || availability == TabletAvailability.ONDEMAND && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
-              || (expectedState == TableState.OFFLINE
+              || ((expectedState == TableState.OFFLINE || expectedState == TableState.LOCKED)
                   && (loc != null || opid != null || !externalCompactions.isEmpty()))) {
             if (continueRow == null) {
               continueRow = tablet.getExtent().toMetaRow();
@@ -1575,7 +1574,21 @@ public class TableOperationsImpl extends TableOperationsHelper {
   @Override
   public void unlock(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
-    changeTableState(tableName, wait, TableState.ONLINE);
+    EXISTING_TABLE_NAME.validate(tableName);
+
+    TableId tableId = context.getTableId(tableName);
+    List<ByteBuffer> args = List.of(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
+
+    try {
+      doTableFateOperation(tableName, TableNotFoundException.class, TFateOperation.TABLE_UNLOCK,
+          args, Collections.emptyMap());
+    } catch (TableExistsException e) {
+      throw new AssertionError(e);
+    }
+
+    if (wait) {
+      waitForTableStateTransition(tableId, TableState.ONLINE);
+    }
   }
 
   @Override
