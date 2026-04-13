@@ -171,8 +171,7 @@ public class ShellIT extends SharedMiniClusterBase {
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    shell.execute(
-        new String[] {"--config-file", config.toString(), "-u", "root", "-p", getRootPassword()});
+    shell.execute(new String[] {"--config-file", config.toString()});
   }
 
   @AfterEach
@@ -620,8 +619,8 @@ public class ShellIT extends SharedMiniClusterBase {
   @Test
   public void execFileTest() throws Exception {
     Shell.log.debug("Starting exec file test --------------------------");
-    shell.execute(new String[] {"--config-file", config.toString(), "-u", "root", "-p",
-        getRootPassword(), "-f", "src/main/resources/org/apache/accumulo/test/shellit.shellit"});
+    shell.execute(new String[] {"--config-file", config, "-f",
+        "src/main/resources/org/apache/accumulo/test/shellit.shellit"});
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
   }

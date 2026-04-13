@@ -441,6 +441,14 @@ public enum Property {
       "Time to wait between scanning tables to identify ranges of tablets that can be "
           + " auto-merged. Valid ranges will be have merge fate ops submitted.",
       "4.0.0"),
+  MANAGER_TABLE_DELETE_OPTIMIZATION("manager.table.delete.optimization", "true",
+      PropertyType.BOOLEAN,
+      "When deleting a table the Manager will remove related table directories from "
+          + " the storage volumes if there are no other references to the files in the "
+          + " metadata table. When deleting a lot of tables this optimization can be costly. "
+          + " Setting this value to false will skip this optimization and the table directory "
+          + " cleanup will occur in the Garbage Collector instead.",
+      "2.1.5"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,

@@ -53,6 +53,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
@@ -132,7 +133,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
       } catch (Exception e) {
         LOG.warn("Error trying to get metrics from server: {}", server, e);
-        summary.processError(server);
+        summary.processMetricsError(server);
       }
     }
 
@@ -304,6 +305,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
         futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
       }
+
+      futures.add(this.pool.submit(() -> {
+        try {
+          var groups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx);
+          summary.addConfiguredCompactionGroups(groups);
+        } catch (ReflectiveOperationException e) {
+          throw new IllegalStateException(e);
+        }
+      }));
 
       long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);

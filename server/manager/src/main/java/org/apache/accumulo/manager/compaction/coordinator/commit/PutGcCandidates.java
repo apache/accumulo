@@ -92,7 +92,6 @@ public class PutGcCandidates extends AbstractFateOperation {
     }
 
     if (refreshLocation == null) {
-      env.recordCompactionCompletion(ExternalCompactionId.of(commitData.ecid));
       return null;
     }
 

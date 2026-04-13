@@ -110,7 +110,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
         break;
       case ERROR:
       default:
-        throw new IllegalArgumentException("Invalid operation requested");
+        throw new IllegalArgumentException("Invalid operation requested " + opts.getCmdMode());
     }
   }
 

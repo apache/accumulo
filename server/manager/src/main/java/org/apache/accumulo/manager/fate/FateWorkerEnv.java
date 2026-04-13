@@ -28,18 +28,15 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
@@ -174,26 +171,6 @@ public class FateWorkerEnv implements FateEnv {
   @Override
   public EventPublisher getEventPublisher() {
     return eventHandler;
-  }
-
-  @Override
-  public void recordCompactionCompletion(ExternalCompactionId ecid) {
-    var coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(getContext());
-    if (coordinatorHost.isPresent()) {
-      CompactionCoordinatorService.Client client = null;
-      try {
-        client = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(),
-            getContext());
-        client.recordCompletion(TraceUtil.traceInfo(), getContext().rpcCreds(), ecid.canonical());
-        log.trace("Sent compaction completion {} {}", coordinatorHost, ecid);
-      } catch (TException te) {
-        log.trace("Failed to send compaction completion {} {}", coordinatorHost, ecid, te);
-      } finally {
-        ThriftUtil.returnClient(client, getContext());
-      }
-    } else {
-      log.trace("No coordinator found, dropping compaction completion for {}", ecid);
-    }
   }
 
   @Override

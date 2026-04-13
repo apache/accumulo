@@ -58,6 +58,7 @@ import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.sservers.ScanServerView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -272,34 +273,25 @@ public class SystemInformation {
   }
 
   public static class ProcessSummary {
-    private final AtomicLong configured = new AtomicLong(0);
-    private final AtomicLong responded = new AtomicLong();
-    private final Set<String> notResponded = ConcurrentHashMap.newKeySet();
+    private final Set<ServerId> responded = ConcurrentHashMap.newKeySet();
+    private final Set<ServerId> notResponded = ConcurrentHashMap.newKeySet();
 
-    public void addResponded() {
-      configured.incrementAndGet();
-      responded.incrementAndGet();
+    public void addResponded(ServerId server) {
+      notResponded.remove(server);
+      responded.add(server);
     }
 
     public void addNotResponded(ServerId server) {
-      configured.incrementAndGet();
-      notResponded.add(server.getHost() + ":" + server.getPort());
+      responded.remove(server);
+      notResponded.add(server);
     }
 
-    public long getConfigured() {
-      return this.configured.get();
+    public long getTotal() {
+      return this.responded.size() + this.notResponded.size();
     }
 
     public long getResponded() {
-      return this.responded.get();
-    }
-
-    public long getNotResponded() {
-      return this.notResponded.size();
-    }
-
-    public Set<String> getNotRespondedHosts() {
-      return this.notResponded;
+      return this.responded.size();
     }
 
   }
@@ -368,6 +360,7 @@ public class SystemInformation {
 
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
+  private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> manager = new AtomicReference<>();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
@@ -410,13 +403,17 @@ public class SystemInformation {
   private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
 
   // Deployment Overview
-  private final Map<ResourceGroupId,Map<String,ProcessSummary>> deployment =
+  private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
 
   private final Set<String> suggestions = new ConcurrentSkipListSet<>();
 
+  private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
+
   private long timestamp = 0;
-  private ScanServerView scanServerView;
+  private ScanServerView scanServerView = new ScanServerView(0L, List.of(),
+      new ScanServerView.Status(false, false, false, 0, 0, 0L, "OK", null));
+  private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
   private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
@@ -429,6 +426,7 @@ public class SystemInformation {
   public void clear() {
     resourceGroups.clear();
     problemHosts.clear();
+    metricProblemHosts.clear();
     compactors.clear();
     sservers.clear();
     tservers.clear();
@@ -448,7 +446,7 @@ public class SystemInformation {
     suggestions.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
-    scanServerView = null;
+    configuredCompactionResourceGroups.clear();
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -506,10 +504,11 @@ public class SystemInformation {
 
   public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
+    metricProblemHosts.remove(server);
     allMetrics.put(server, response);
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
-        .computeIfAbsent(server.getType().name(), t -> new ProcessSummary()).addResponded();
+        .computeIfAbsent(server.getType(), t -> new ProcessSummary()).addResponded(server);
     switch (response.serverType) {
       case COMPACTOR:
         compactors
@@ -580,13 +579,21 @@ public class SystemInformation {
     problemHosts.add(server);
   }
 
+  public void processMetricsError(ServerId server) {
+    problemHosts.add(server);
+    metricProblemHosts.add(server);
+  }
+
+  public void addConfiguredCompactionGroups(Set<String> groups) {
+    configuredCompactionResourceGroups.addAll(groups);
+  }
+
   public void finish() {
     // Update the deployment not-responded numbers based
-    // on the problem hosts.
-    problemHosts.forEach(serverId -> {
+    // on metric fetch failures for this refresh.
+    metricProblemHosts.forEach(serverId -> {
       deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
-          .computeIfAbsent(serverId.getType().name(), t -> new ProcessSummary())
-          .addNotResponded(serverId);
+          .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
     });
     for (SystemTables table : SystemTables.values()) {
       TableConfiguration tconf = this.ctx.getTableConfiguration(table.tableId());
@@ -600,6 +607,9 @@ public class SystemInformation {
     for (String rg : getResourceGroups()) {
       Set<ServerId> rgCompactors = getCompactorResourceGroupServers(rg);
       List<FMetric> metrics = queueMetrics.get(rg);
+      if (metrics == null || metrics.isEmpty()) {
+        continue;
+      }
       Optional<FMetric> queued = metrics.stream()
           .filter(fm -> fm.name().equals(Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName()))
           .findFirst();
@@ -613,6 +623,9 @@ public class SystemInformation {
             // Check for idle compactors.
             Map<Id,CumulativeDistributionSummary> rgMetrics =
                 getCompactorResourceGroupMetricSummary(rg);
+            if (rgMetrics == null || rgMetrics.isEmpty()) {
+              continue;
+            }
             Optional<Entry<Id,CumulativeDistributionSummary>> idleMetric = rgMetrics.entrySet()
                 .stream().filter(e -> e.getKey().getName().equals(Metric.SERVER_IDLE.getName()))
                 .findFirst();
@@ -627,12 +640,21 @@ public class SystemInformation {
         }
       }
     }
+
+    for (var compactorGroup : compactors.keySet()) {
+      if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
+        suggestions.add("Compactor group " + compactorGroup
+            + " has running compactors, but no configuration uses them.");
+      }
+    }
+
     Set<ServerId> scanServers = new HashSet<>();
     sservers.values().forEach(scanServers::addAll);
     int problemScanServerCount = (int) problemHosts.stream()
         .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
     var responses = allMetrics.getAllPresent(scanServers).values();
     timestamp = System.currentTimeMillis();
+    deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
     scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
         problemScanServerCount, timestamp);
   }
@@ -716,8 +738,8 @@ public class SystemInformation {
     return this.tablets.get(tableId);
   }
 
-  public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
-    return this.deployment;
+  public DeploymentOverview getDeploymentView() {
+    return this.deploymentOverview;
   }
 
   public Set<String> getSuggestions() {

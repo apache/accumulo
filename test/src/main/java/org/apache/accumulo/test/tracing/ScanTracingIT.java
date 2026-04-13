@@ -157,6 +157,12 @@ class ScanTracingIT extends ConfigurableMacBase {
       expectedColumns = 1;
     }
 
+    if (secondScanFitsInCache) {
+      // Do a bunch of scans before the second traced scan to make Caffeine keep the data. It can
+      // evict recently added data that is only used a few times.
+      options.untracedIntermediateScans = "" + 30;
+    }
+
     var results = run(options);
     System.out.println(results);
 
