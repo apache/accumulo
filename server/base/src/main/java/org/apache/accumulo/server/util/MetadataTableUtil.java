@@ -321,7 +321,7 @@ public class MetadataTableUtil {
       Ample ample = context.getAmple();
       ms.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
-      // insert deletes before deleting data from metadata... this makes the code fault tolerant
+      // insert deletes before deleting data from metadata... this makes the code fault-tolerant
       if (insertDeletes) {
 
         ms.fetchColumnFamily(DataFileColumnFamily.NAME);
