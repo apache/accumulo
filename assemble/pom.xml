@@ -25,6 +25,7 @@
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
     <version>4.0.0-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
   </parent>
   <artifactId>accumulo</artifactId>
   <packaging>pom</packaging>
@@ -154,6 +155,11 @@
     <dependency>
       <groupId>io.opentelemetry</groupId>
       <artifactId>opentelemetry-api</artifactId>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry</groupId>
+      <artifactId>opentelemetry-common</artifactId>
       <optional>true</optional>
     </dependency>
     <dependency>

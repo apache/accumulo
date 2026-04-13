@@ -796,7 +796,7 @@ public class CompactionIT extends CompactionITBase {
       });
       assertNotNull(interCompactionFile[0]);
       System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY,
-          getCluster().getAccumuloPropertiesPath());
+          "file://" + getCluster().getAccumuloPropertiesPath());
       String[] args = new String[1];
       args[0] = finalCompactionFile;
       PrintBCInfo bcInfo = new PrintBCInfo(args);
@@ -809,6 +809,7 @@ public class CompactionIT extends CompactionITBase {
       // The compression type used on the intermediate compaction file should be 'gz'
       assertEquals("gz", interCompressionType);
     } finally {
+      System.clearProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY);
       // Re-enable GC
       getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
     }

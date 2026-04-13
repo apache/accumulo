@@ -241,10 +241,10 @@ public class GarbageCollectionAlgorithm {
     return blipCount;
   }
 
-  @VisibleForTesting
   /**
    * Double check no tables were missed during GC
    */
+  @VisibleForTesting
   protected void ensureAllTablesChecked(Set<TableId> tableIdsBefore, Set<TableId> tableIdsSeen,
       Set<TableId> tableIdsAfter) {
 

@@ -62,8 +62,7 @@ public class MockShell {
   public LineReader reader;
   public Terminal terminal;
 
-  MockShell(String user, String rootPass, String instanceName, String zookeepers, File configFile)
-      throws Exception {
+  MockShell(File configFile) throws Exception {
     ClientInfo info = ClientInfo.from(configFile.toPath());
     // start the shell
     output = new TestOutputStream();
@@ -72,14 +71,7 @@ public class MockShell {
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     shell = new TestShell(reader);
     shell.setLogErrorsToConsole();
-    if (info.saslEnabled()) {
-      // Pull the kerberos principal out when we're using SASL
-      shell.execute(new String[] {"-u", user, "-z", instanceName, zookeepers, "--config-file",
-          configFile.getAbsolutePath()});
-    } else {
-      shell.execute(new String[] {"-u", user, "-p", rootPass, "-z", instanceName, zookeepers,
-          "--config-file", configFile.getAbsolutePath()});
-    }
+    shell.execute(new String[] {"--config-file", configFile.getAbsolutePath()});
     exec("quit", true);
     shell.start();
     shell.setExit(false);

@@ -21,15 +21,15 @@ package org.apache.accumulo.compactor;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
-import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.server.compaction.FileCompactor;
 
 public class CompactionJobHolder {
 
-  private TExternalCompactionJob job;
+  private TExternalCompaction currentCompaction;
   private Thread compactionThread;
   private AtomicReference<FileCompactor> compactor;
   private volatile boolean cancelled = false;
@@ -38,19 +38,19 @@ public class CompactionJobHolder {
   CompactionJobHolder() {}
 
   public synchronized void reset() {
-    job = null;
+    currentCompaction = null;
     compactionThread = null;
     compactor = null;
     cancelled = false;
     stats = null;
   }
 
-  public synchronized TExternalCompactionJob getJob() {
-    return job;
+  public synchronized TExternalCompaction getCurrentCompaction() {
+    return currentCompaction;
   }
 
   public TableId getTableId() {
-    var tKeyExtent = getJob().getExtent();
+    var tKeyExtent = getCurrentCompaction().getJob().getExtent();
     return KeyExtent.fromThrift(tKeyExtent).tableId();
   }
 
@@ -63,7 +63,7 @@ public class CompactionJobHolder {
   }
 
   public synchronized boolean cancel(String extCompId) {
-    if (isSet() && getJob().getExternalCompactionId().equals(extCompId)) {
+    if (isSet() && getCurrentCompaction().getJob().getExternalCompactionId().equals(extCompId)) {
       cancelled = true;
       if (compactor.get() != null) {
         compactor.get().interrupt();
@@ -79,15 +79,15 @@ public class CompactionJobHolder {
   }
 
   public synchronized boolean isSet() {
-    return (null != this.job);
+    return (null != this.currentCompaction);
   }
 
-  public synchronized void set(TExternalCompactionJob job, Thread compactionThread,
+  public synchronized void set(TExternalCompaction job, Thread compactionThread,
       AtomicReference<FileCompactor> compactor) {
-    Objects.requireNonNull(job, "CompactionJob is null");
+    Objects.requireNonNull(job, "Compaction Job is null");
     Objects.requireNonNull(compactionThread, "Compaction thread is null");
     Objects.requireNonNull(compactor, "Compactor object is null");
-    this.job = job;
+    this.currentCompaction = job;
     this.compactionThread = compactionThread;
     this.compactor = compactor;
   }

@@ -452,4 +452,9 @@ public class TestIngest extends ClientKeywordExecutable<Opts> {
     ClientContext cc = (ClientContext) c;
     ingest(c, FileSystem.get(cc.getHadoopConf()), params);
   }
+
+  // For execution from ITs
+  public static void main(String[] args) throws Exception {
+    new TestIngest().execute(args);
+  }
 }

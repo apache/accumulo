@@ -138,7 +138,8 @@ public class IteratorProperty {
       return null;
     }
 
-    String[] iterPropParts = property.split("\\.", -1);
+    // Iterator option keys may contain dots, so preserve everything after ".opt." as one token.
+    String[] iterPropParts = property.split("\\.", 6);
     check(iterPropParts.length == 4 || iterPropParts.length == 6, property, value);
     IteratorUtil.IteratorScope scope = IteratorUtil.IteratorScope.valueOf(iterPropParts[2]);
     String iterName = iterPropParts[3];

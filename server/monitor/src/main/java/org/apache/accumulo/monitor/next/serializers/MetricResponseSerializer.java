@@ -54,21 +54,12 @@ public class MetricResponseSerializer extends JsonSerializer<MetricResponse> {
           gen.writeEndObject();
         }
         gen.writeEndArray();
-        // Write the number as the value (preserve negatives)
-        if (fm.ivalue() != 0) {
-          gen.writeNumberField("value", fm.ivalue());
-        } else if (fm.lvalue() != 0L) {
-          gen.writeNumberField("value", fm.lvalue());
-        } else if (fm.dvalue() != 0.0d) {
-          gen.writeNumberField("value", fm.dvalue());
-        } else {
-          gen.writeNumberField("value", 0);
-        }
+        FMetricSerializer.serializeValueField(gen, fm);
         gen.writeEndObject();
       }
-      gen.writeEndArray();
-      gen.writeEndObject();
     }
+    gen.writeEndArray();
+    gen.writeEndObject();
   }
 
 }

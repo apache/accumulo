@@ -109,7 +109,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         .getTimeInMillis(Property.TSERV_SCAN_RESULTS_MAX_TIMEOUT);
   }
 
-  private NamespaceId getNamespaceId(TCredentials credentials, TableId tableId)
+  public NamespaceId getNamespaceId(TCredentials credentials, TableId tableId)
       throws ThriftSecurityException {
     try {
       return server.getContext().getNamespaceId(tableId);

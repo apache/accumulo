@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.access.Access;
 import org.apache.accumulo.access.AccessEvaluator;
@@ -98,11 +99,11 @@ public class BytesAccess {
     for (var auth : bytesAuths) {
       stringAuths.add(new String(auth, ISO_8859_1));
     }
-    return new BytesEvaluator(ACCESS.newEvaluator(ACCESS.newAuthorizations(stringAuths)));
+    return new BytesEvaluator(ACCESS.newEvaluator(stringAuths));
   }
 
   public static BytesEvaluator newEvaluator(AuthorizationContainer authContainer) {
-    AccessEvaluator.Authorizer authorizer = authString -> authContainer
+    Predicate<String> authorizer = authString -> authContainer
         .contains(new ArrayByteSequence(authString.getBytes(ISO_8859_1)));
     return new BytesEvaluator(ACCESS.newEvaluator(authorizer));
   }

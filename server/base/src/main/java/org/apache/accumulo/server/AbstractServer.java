@@ -288,6 +288,10 @@ public abstract class AbstractServer
     log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
+      System.err.println("Uncaught execption in AbstractServer.runServer");
+      thrown.printStackTrace();
+      System.err.flush();
+      log.error("Uncaught exception ", thrown);
       if (thrown instanceof Error) {
         throw (Error) thrown;
       }
@@ -347,17 +351,13 @@ public abstract class AbstractServer
    * advertise address based on the address to which the ThriftServer is bound
    *
    * @param supplier ThriftServer
-   * @param start true to start the server, else false
    * @throws UnknownHostException thrown from ThriftServer when binding to bad address
    */
-  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
-      throws UnknownHostException {
+  protected void updateThriftServer(ThriftServerSupplier supplier) throws UnknownHostException {
     thriftServer = supplier.get();
-    if (start) {
-      thriftServer.startThriftServer("Thrift Client Server");
-      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
-          thriftServer.address);
-    }
+    thriftServer.startThriftServer("Thrift Client Server");
+    log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+        thriftServer.address);
     updateAdvertiseAddress(thriftServer.address);
   }
 
@@ -449,8 +449,9 @@ public abstract class AbstractServer
                 Thread.sleep(interval);
               } catch (InterruptedException e) {
                 if (serverThread.isAlive()) {
-                  // throw an Error, which will cause this process to be terminated
-                  throw new Error("Sleep interrupted in ServiceLock verification thread");
+                  // this is marked as a critical thread, and will halt the process when it dies
+                  throw new IllegalStateException(
+                      "Sleep interrupted in ServiceLock verification thread", e);
                 }
               }
             }

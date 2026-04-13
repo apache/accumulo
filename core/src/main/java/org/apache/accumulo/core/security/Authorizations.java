@@ -47,11 +47,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class Authorizations implements Iterable<byte[]>, Serializable, AuthorizationContainer {
 
   private static final long serialVersionUID = 1L;
-  private static final Set<ByteSequence> EMPTY_AUTH_SET = Collections.emptySet();
-  private static final List<byte[]> EMPTY_AUTH_LIST = Collections.emptyList();
 
-  private final Set<ByteSequence> auths;
-  private final List<byte[]> authsList; // sorted order
+  private final HashSet<ByteSequence> auths; // type must be serializable
+  private final ArrayList<byte[]> authsList; // sorted order; type must be serializable
 
   /**
    * An empty set of authorizations.
@@ -107,21 +105,12 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     }
   }
 
-  private static Set<ByteSequence> createInternalSet(int size) {
-    if (size < 1) {
-      return EMPTY_AUTH_SET;
-    } else {
-      return new HashSet<>(size);
-    }
+  private static HashSet<ByteSequence> createInternalSet(int size) {
+    return new HashSet<>(size);
   }
 
-  private static List<byte[]> createInternalList(int size) {
-    if (size < 1) {
-      return EMPTY_AUTH_LIST;
-    } else {
-      return new ArrayList<>(size);
-    }
-
+  private static ArrayList<byte[]> createInternalList(int size) {
+    return new ArrayList<>(size);
   }
 
   /**
@@ -199,8 +188,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
         this.authsList = createInternalList(parts.length);
         setAuthorizations(parts);
       } else {
-        this.auths = EMPTY_AUTH_SET;
-        this.authsList = EMPTY_AUTH_LIST;
+        this.auths = createInternalSet(0);
+        this.authsList = createInternalList(0);
       }
     }
   }
@@ -211,8 +200,8 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
    * @see #Authorizations(String...)
    */
   public Authorizations() {
-    this.auths = EMPTY_AUTH_SET;
-    this.authsList = EMPTY_AUTH_LIST;
+    this.auths = createInternalSet(0);
+    this.authsList = createInternalList(0);
   }
 
   /**

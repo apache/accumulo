@@ -162,7 +162,12 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       EnumSet.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
 
   @Override
-  public void runnable(BooleanSupplier keepWaiting, Consumer<FateIdStatus> idConsumer) {
+  public void runnable(Set<FatePartition> partitions, BooleanSupplier keepWaiting,
+      Consumer<FateIdStatus> idConsumer) {
+
+    if (partitions.isEmpty()) {
+      return;
+    }
 
     AtomicLong seen = new AtomicLong(0);
 
@@ -170,8 +175,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       final long beforeCount = unreservedRunnableCount.getCount();
       final boolean beforeDeferredOverflow = deferredOverflow.get();
 
-      try (Stream<FateIdStatus> inProgress = getTransactions(IN_PROGRESS_SET);
-          Stream<FateIdStatus> other = getTransactions(OTHER_RUNNABLE_SET)) {
+      try (Stream<FateIdStatus> inProgress = getTransactions(partitions, IN_PROGRESS_SET);
+          Stream<FateIdStatus> other = getTransactions(partitions, OTHER_RUNNABLE_SET)) {
         // read the in progress transaction first and then everything else in order to process those
         // first
         var transactions = Stream.concat(inProgress, other);
@@ -200,6 +205,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
         if (beforeCount == unreservedRunnableCount.getCount()) {
           long waitTime = 5000;
           synchronized (deferred) {
+            deferred.keySet().removeIf(
+                fateId -> partitions.stream().noneMatch(partition -> partition.contains(fateId)));
             if (!deferred.isEmpty()) {
               waitTime = deferred.values().stream()
                   .mapToLong(countDownTimer -> countDownTimer.timeLeft(TimeUnit.MILLISECONDS)).min()
@@ -240,9 +247,11 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   @Override
-  public Map<FateId,FateReservation> getActiveReservations() {
-    return list().filter(entry -> entry.getFateReservation().isPresent()).collect(Collectors
-        .toMap(FateIdStatus::getFateId, entry -> entry.getFateReservation().orElseThrow()));
+  public Map<FateId,FateReservation> getActiveReservations(Set<FatePartition> partitions) {
+    try (var stream = getTransactions(partitions, EnumSet.allOf(TStatus.class))) {
+      return stream.filter(entry -> entry.getFateReservation().isPresent()).collect(Collectors
+          .toMap(FateIdStatus::getFateId, entry -> entry.getFateReservation().orElseThrow()));
+    }
   }
 
   protected boolean isRunnable(TStatus status) {
@@ -288,6 +297,9 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
   }
 
   protected abstract Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses);
+
+  protected abstract Stream<FateIdStatus> getTransactions(Set<FatePartition> partitions,
+      EnumSet<TStatus> statuses);
 
   protected abstract TStatus _getStatus(FateId fateId);
 
@@ -418,7 +430,8 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
     FateId newRandomId(FateInstanceType instanceType);
   }
 
-  protected void seededTx() {
+  @Override
+  public void seeded() {
     unreservedRunnableCount.increment();
   }
 

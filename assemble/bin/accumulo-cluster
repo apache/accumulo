@@ -36,7 +36,7 @@ $(cyan Options):
     $(green --local)                  Operates on matching local services only (no SSH)
 
   $(cyan 'Service type selection options (if none are used, all service types are selected)'):
-    $(green --manager)                Selects the manager service (oversees cluster operations)
+    $(green --managers)               Selects the manager services (oversees cluster operations)
     $(green --gc)                     Selects the gc service (cleans up unused files)
     $(green --monitor)                Selects the monitor web service (shows cluster information)
     $(green --tservers)[$(yellow '=group')]       Selects the tablet server services (read/write operations on tablets)
@@ -58,11 +58,11 @@ $(cyan Examples):
   $(purple 'accumulo-cluster start')                                             $(blue '# start all servers')
   $(purple 'accumulo-cluster start --dry-run')                                   $(blue '# print debug information and commands to be executed')
   $(purple 'accumulo-cluster start --local')                                     $(blue '# start all local services')
-  $(purple 'accumulo-cluster start --local --manager')                           $(blue '# start local manager services')
+  $(purple 'accumulo-cluster start --local --managers')                          $(blue '# start local manager services')
   $(purple 'accumulo-cluster start --tservers')                                  $(blue '# start all tservers')
   $(purple 'accumulo-cluster start --sservers=group1')                           $(blue '# start all group1 sservers')
   $(purple 'accumulo-cluster start --sservers="group1 group2"')                  $(blue '# start all group1 and group2 sservers')
-  $(purple 'accumulo-cluster start --local --manager --tservers')                $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster start --local --managers --tservers')               $(blue '# Start the local managers and local tservers')
   $(purple 'accumulo-cluster prune --compactors')                                $(blue '# prune all extra compactors across all groups')
   $(purple 'accumulo-cluster prune --compactors="group1"')                       $(blue '# prune extra compactors running in group1')
 
@@ -125,7 +125,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,managers,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
@@ -144,7 +144,7 @@ function parse_args() {
         ARG_LOCAL=1
         shift 1
         ;;
-      --manager)
+      --managers)
         ARG_ALL=0
         ARG_MANAGER=1
         shift 1
@@ -210,8 +210,6 @@ function parse_args() {
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
-  debug "ARG_CREATE_MISSING_RG=$ARG_CREATE_MISSING_RG"
-
 }
 
 function invalid_args() {
@@ -614,7 +612,7 @@ function control_services() {
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -manager -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" proc zoo-zap -verbose -managers -tservers -compactors -sservers --gc --monitor
   fi
 
   wait
@@ -647,7 +645,7 @@ function prune_group() {
   local lockTypeOpt
   case $service_type in
     manager)
-      lockTypeOpt="-manager"
+      lockTypeOpt="-managers"
       ;;
     compaction-coordinator)
       lockTypeOpt="-compaction-coordinators"
@@ -728,7 +726,8 @@ function prune() {
 
   local manager
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
-    prune_group "manager" "default" "1" "$MANAGER_HOSTS"
+    local expected=${MANAGERS_PER_HOST_default:-1}
+    prune_group "manager" "default" "$expected" "$MANAGER_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
@@ -826,7 +825,9 @@ function main() {
       fi
       cat <<EOF >"$conf"/cluster.yaml
 manager:
-  - localhost
+  servers_per_host: 1
+  hosts:
+    - localhost
 
 monitor:
   - localhost

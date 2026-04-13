@@ -18,7 +18,9 @@
 #
 
 manager:
-  - localhost
+  servers_per_host: 2
+  hosts:
+    - localhost1
 
 monitor:
   - localhost

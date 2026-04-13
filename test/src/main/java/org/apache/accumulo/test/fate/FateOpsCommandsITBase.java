@@ -59,6 +59,7 @@ import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FatePartition;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
@@ -583,9 +584,12 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
 
       assertTrue(result
           .contains("transaction " + fateId1.canonical() + " was cancelled or already completed"));
+      var expected = Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW");
+      // The fate operation may temporarily be in the FAILED_IN_PROGRESS state, wait for this to
+      // pass
+      Wait.waitFor(() -> expected.equals(getFateIdsFromSummary()));
       fateIdsFromSummary = getFateIdsFromSummary();
-      assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
-          fateIdsFromSummary);
+      assertEquals(expected, fateIdsFromSummary);
     } finally {
       fate.shutdown(1, TimeUnit.MINUTES);
     }
@@ -935,7 +939,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     // Using FastFate so the cleanup will run often. This ensures that the cleanup will run when
     // there are reservations present and that the cleanup will not unexpectedly delete these live
     // reservations
-    return new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
+    var fate =
+        new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
+    fate.setPartitions(Set.of(FatePartition.all(store.type())));
+    return fate;
   }
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {

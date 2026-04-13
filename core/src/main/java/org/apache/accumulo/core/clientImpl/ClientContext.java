@@ -32,11 +32,11 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.net.URL;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -112,6 +112,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -125,6 +126,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -1247,8 +1250,45 @@ public class ClientContext implements AccumuloClient {
     return mapping;
   }
 
+  @VisibleForTesting
+  public boolean isTabletLocationCachePresent(TableId tableId) {
+    return tabletLocationCache.get(DataLevel.of(tableId)).containsKey(tableId);
+  }
+
+  private volatile Duration clearFrequency = Duration.ofMinutes(10);
+
+  /**
+   * Sets how often checks for unused tables are done
+   */
+  @VisibleForTesting
+  public void setClearFrequency(Duration frequency) {
+    Preconditions.checkArgument(frequency != null && !frequency.isNegative() && !frequency.isZero(),
+        "frequency:%s", frequency);
+    clearFrequency = frequency;
+  }
+
+  private final Timer lastClearTimer = Timer.startNew();
+
   public ClientTabletCache getTabletLocationCache(TableId tableId) {
     ensureOpen();
+    if (lastClearTimer.hasElapsed(clearFrequency)) {
+      synchronized (lastClearTimer) {
+        if (lastClearTimer.hasElapsed(clearFrequency)) {
+          tabletLocationCache.get(DataLevel.USER).entrySet().removeIf(entry -> {
+            TableId tableIdToCheck = entry.getKey();
+            ClientTabletCache cache = entry.getValue();
+            var tableState = getTableState(tableIdToCheck);
+            if (tableState != TableState.ONLINE && tableState != TableState.OFFLINE) {
+              cache.invalidateCache();
+              return true;
+            }
+            return false;
+          });
+          lastClearTimer.restart();
+        }
+      }
+    }
+
     return tabletLocationCache.get(DataLevel.of(tableId)).computeIfAbsent(tableId,
         (TableId key) -> {
           var lockChecker = getTServerLockChecker();
@@ -1287,15 +1327,12 @@ public class ClientContext implements AccumuloClient {
   }
 
   private static Set<String> createPersistentWatcherPaths() {
-    Set<String> pathsToWatch = new HashSet<>();
-    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+    return Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
         Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK,
-        Constants.ZRESOURCEGROUPS)) {
-      pathsToWatch.add(path);
-    }
-    return pathsToWatch;
+        Constants.ZMANAGER_ASSISTANT_LOCK, Constants.ZRESOURCEGROUPS,
+        Constants.ZMANAGER_ASSIGNMENTS);
   }
 
 }

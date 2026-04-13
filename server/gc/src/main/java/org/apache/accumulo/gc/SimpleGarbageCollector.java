@@ -428,9 +428,9 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           processor, getContext().getInstanceID(), this.getClass().getSimpleName(), 2,
           ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
           getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
+          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
           addresses);
-    }, true);
+    });
   }
 
   /**

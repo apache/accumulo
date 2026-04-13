@@ -653,7 +653,7 @@ public class ServiceLockIT {
 
       // make sure still watching parent even though a lot of events occurred for the parent
       synchronized (zl) {
-        Field field = zl.getClass().getDeclaredField("watchingParent");
+        Field field = zl.getClass().getDeclaredField("watchingBasePath");
         field.setAccessible(true);
         assertTrue((Boolean) field.get(zl));
       }

@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
@@ -110,11 +111,19 @@ public class PropertyTest {
     HashSet<Integer> usedPorts = new HashSet<>();
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
-        int port = Integer.parseInt(prop.getDefaultValue());
-        assertTrue(Property.isValidProperty(prop.getKey(), Integer.toString(port)));
-        assertFalse(usedPorts.contains(port), "Port already in use: " + port);
-        usedPorts.add(port);
-        assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+        var defaultVal = prop.getDefaultValue();
+        assertTrue(Property.isValidProperty(prop.getKey(), defaultVal));
+        IntStream ports;
+        if (defaultVal.contains("-")) {
+          ports = PropertyType.PortRange.parse(defaultVal);
+        } else {
+          ports = IntStream.of(Integer.parseInt(defaultVal));
+        }
+        ports.forEach(port -> {
+          assertFalse(usedPorts.contains(port), "Port already in use: " + port);
+          usedPorts.add(port);
+          assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+        });
       }
     }
   }

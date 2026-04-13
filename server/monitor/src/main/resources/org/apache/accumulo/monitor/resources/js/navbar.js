@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/*global REST_V2_PREFIX */
+/*global getSserversView */
 "use strict";
 
 /**
@@ -108,16 +108,25 @@ function updateServerNotifications(statusData) {
         '. Could not properly set scan server status notification.');
     }
 
+    // setting compactor status notification
+    if (statusData.compactorStatus === STATUS.OK) {
+      updateElementStatus('compactorStatusNotification', STATUS.OK);
+    } else {
+      updateElementStatus('compactorStatusNotification', STATUS.ERROR);
+    }
+
     // Setting overall servers status notification
     if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
       statusData.tServerStatus === STATUS.OK &&
       statusData.gcStatus === STATUS.OK &&
-      statusData.sServerStatus === STATUS.OK) {
+      statusData.sServerStatus === STATUS.OK &&
+      statusData.compactorStatus === STATUS.OK) {
       updateElementStatus('statusNotification', STATUS.OK);
     } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
       statusData.tServerStatus === STATUS.ERROR ||
       statusData.gcStatus === STATUS.ERROR ||
-      statusData.sServerStatus === STATUS.ERROR) {
+      statusData.sServerStatus === STATUS.ERROR ||
+      statusData.compactorStatus === STATUS.ERROR) {
       updateElementStatus('statusNotification', STATUS.ERROR);
     } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
       statusData.tServerStatus === STATUS.WARN ||
@@ -135,30 +144,21 @@ function updateServerNotifications(statusData) {
 }
 
 /**
- * Updates the scan server notification based on REST v2 metrics status.
+ * Updates the scan server notification based on REST v2 status.
  */
 function refreshSserverStatus() {
-  return $.when(
-    $.getJSON(REST_V2_PREFIX + '/sservers/summary'),
-    $.getJSON(REST_V2_PREFIX + '/problems')
-  ).done(function (summaryResp, problemsResp) {
-    var summary = summaryResp && summaryResp[0] ? summaryResp[0] : {};
-    var problems = problemsResp && problemsResp[0] ? problemsResp[0] : [];
+  return getSserversView().done(function () {
+    var view = sessionStorage.sserversView ? JSON.parse(sessionStorage.sserversView) : null;
+    var status = view && view.status ? view.status : null;
+    if (!status) {
+      sessionStorage.sServerStatus = STATUS.ERROR;
+      updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+      return;
+    }
 
-    var hasSservers = summary && Object.keys(summary).length > 0;
-    var hasProblemSserver = problems.some(function (problem) {
-      return problem.type === 'SCAN_SERVER' || problem.serverType === 'SCAN_SERVER';
-    });
-
-    // 1) Display WARN when problem entries show any scan servers
-    if (hasProblemSserver) {
+    if (status.hasProblemScanServers === true) {
       sessionStorage.sServerStatus = STATUS.WARN;
       updateElementStatus('sserverStatusNotification', STATUS.WARN);
-      // 2) Display OK when there are no scan servers reported
-    } else if (!hasSservers) {
-      sessionStorage.sServerStatus = STATUS.OK;
-      updateElementStatus('sserverStatusNotification', STATUS.OK);
-      // 3) Display OK when scan servers exist and no problems
     } else {
       sessionStorage.sServerStatus = STATUS.OK;
       updateElementStatus('sserverStatusNotification', STATUS.OK);
@@ -167,6 +167,24 @@ function refreshSserverStatus() {
     // else, display ERROR when call fails
     sessionStorage.sServerStatus = STATUS.ERROR;
     updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+  });
+}
+
+/**
+ * Sets compactor menu status LED notification to OK if any compactors exist, else ERROR
+ */
+function refreshCompactorStatus() {
+  return $.getJSON(REST_V2_PREFIX + '/ec/compactors').done(function (data) {
+    if (Number(data?.numCompactors) > 0) {
+      sessionStorage.compactorStatus = STATUS.OK;
+      updateElementStatus('compactorStatusNotification', STATUS.OK);
+    } else {
+      sessionStorage.compactorStatus = STATUS.ERROR;
+      updateElementStatus('compactorStatusNotification', STATUS.ERROR);
+    }
+  }).fail(function () {
+    sessionStorage.compactorStatus = STATUS.ERROR;
+    updateElementStatus('compactorStatusNotification', STATUS.ERROR);
   });
 }
 
@@ -181,7 +199,7 @@ $(function () {
  * Makes the REST call for the server status, generates the sidebar with the new information
  */
 function refreshSidebar() {
-  $.when(getStatus(), refreshSserverStatus()).always(function () {
+  $.when(getStatus(), refreshSserverStatus(), refreshCompactorStatus()).always(function () {
     refreshSideBarNotifications();
   });
 }
@@ -203,6 +221,7 @@ function refreshSideBarNotifications() {
     return;
   }
   statusData.sServerStatus = sessionStorage.sServerStatus || STATUS.OK;
+  statusData.compactorStatus = sessionStorage.compactorStatus || STATUS.OK;
 
   updateServerNotifications(statusData);
 }

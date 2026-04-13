@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,7 +35,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 public class CompactionCommitData implements Serializable {
   private static final long serialVersionUID = 1L;
   final CompactionKind kind;
-  final Set<String> inputPaths;
+  final HashSet<String> inputPaths; // type must be serializable
   final String outputTmpPath;
   final String ecid;
   final TKeyExtent textent;
@@ -45,8 +46,8 @@ public class CompactionCommitData implements Serializable {
     this.ecid = ecid.canonical();
     this.textent = extent.toThrift();
     this.kind = ecm.getKind();
-    this.inputPaths =
-        ecm.getJobFiles().stream().map(StoredTabletFile::getMetadata).collect(Collectors.toSet());
+    this.inputPaths = ecm.getJobFiles().stream().map(StoredTabletFile::getMetadata)
+        .collect(Collectors.toCollection(HashSet::new));
     this.outputTmpPath = ecm.getCompactTmpName().getNormalizedPathStr();
     this.stats = stats;
   }

@@ -196,7 +196,7 @@ public class ZooSession implements AutoCloseable {
     log.debug("{} (re-)connecting to {} with timeout {}{}", reconnectName, connectString, timeout,
         instanceSecret == null ? "" : " with auth");
     final int TIME_BETWEEN_CONNECT_CHECKS_MS = 100;
-    int connectTimeWait = Math.min(10_000, timeout);
+    long connectTimeWait = Math.min(10_000, timeout);
     boolean tryAgain = true;
     long sleepTime = 100;
 

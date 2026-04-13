@@ -448,7 +448,7 @@ public final class ThriftScanner {
           delay = actions.getDelay();
           scanState.busyTimeout = Duration.ZERO;
           log.trace("For tablet {} scan server selector chose tablet_server: {}", loc.getExtent(),
-              addr);
+              addr.serverAddress);
         } else {
           log.trace(
               "For tablet {} scan server selector chose tablet_server, but the tablet is not currently hosted",
@@ -873,10 +873,11 @@ public final class ThriftScanner {
             + addr.getExtent().tableId());
 
         if (log.isTraceEnabled()) {
-          String msg = "Starting scan server=" + addr.serverAddress + " tablet=" + addr.getExtent()
-              + " range=" + scanState.range + " ssil=" + scanState.serverSideIteratorList + " ssio="
-              + scanState.serverSideIteratorOptions + " context=" + scanState.classLoaderContext;
-          log.trace("tid={} {}", Thread.currentThread().getId(), msg);
+          String msg = "Starting scan server=" + addr.serverAddress + " type=" + addr.serverType
+              + " tablet=" + addr.getExtent() + " range=" + scanState.range + " ssil="
+              + scanState.serverSideIteratorList + " ssio=" + scanState.serverSideIteratorOptions
+              + " context=" + scanState.classLoaderContext;
+          log.trace("{}", msg);
           timer = Timer.startNew();
         }
 
@@ -909,7 +910,7 @@ public final class ThriftScanner {
         Thread.currentThread().setName(msg);
 
         if (log.isTraceEnabled()) {
-          log.trace("tid={} {}", Thread.currentThread().getId(), msg);
+          log.trace("{}", msg);
           timer = Timer.startNew();
         }
 
@@ -922,8 +923,7 @@ public final class ThriftScanner {
 
       if (sr.more) {
         if (timer != null) {
-          log.trace("tid={} Finished scan in {} #results={} scanid={}",
-              Thread.currentThread().getId(),
+          log.trace("Finished scan in {} #results={} scanid={}",
               String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0), sr.results.size(),
               scanState.scanID);
         }
@@ -932,8 +932,7 @@ public final class ThriftScanner {
           scanState.finished = true;
 
           if (timer != null) {
-            log.trace("tid={} Completely finished scan in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Completely finished scan in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
@@ -944,16 +943,14 @@ public final class ThriftScanner {
           scanState.skipStartRow = true;
 
           if (timer != null) {
-            log.trace("tid={} Finished scanning tablet in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Finished scanning tablet in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }
         } else {
           scanState.finished = true;
           if (timer != null) {
-            log.trace("tid={} Completely finished in {} #results={}",
-                Thread.currentThread().getId(),
+            log.trace("Completely finished in {} #results={}",
                 String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0),
                 sr.results.size());
           }

@@ -50,7 +50,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
@@ -66,10 +65,10 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.TabletTime;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
@@ -83,7 +82,7 @@ import com.google.common.net.HostAndPort;
  * Make asynchronous load calls to each overlapping Tablet. This RepO does its work on the isReady
  * and will return a linear sleep value based on the largest number of Tablets on a TabletServer.
  */
-class LoadFiles extends AbstractFateOperation {
+class LoadFiles extends AbstractBulkFateOperation {
 
   // visible for testing
   interface TabletsMetadataFactory {
@@ -96,10 +95,8 @@ class LoadFiles extends AbstractFateOperation {
 
   private static final Logger log = LoggerFactory.getLogger(LoadFiles.class);
 
-  private final BulkInfo bulkInfo;
-
   public LoadFiles(BulkInfo bulkInfo) {
-    this.bulkInfo = bulkInfo;
+    super(bulkInfo);
   }
 
   @Override
@@ -112,7 +109,6 @@ class LoadFiles extends AbstractFateOperation {
     }
     VolumeManager fs = env.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
-    env.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
@@ -524,5 +520,10 @@ class LoadFiles extends AbstractFateOperation {
       ne2.initCause(e);
       throw ne2;
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.LOADING;
   }
 }

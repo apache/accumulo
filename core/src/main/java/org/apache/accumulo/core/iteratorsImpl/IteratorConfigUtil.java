@@ -297,8 +297,6 @@ public class IteratorConfigUtil {
   public static void checkIteratorConflicts(String logContext, IteratorSetting iterToCheck,
       EnumSet<IteratorScope> iterScopesToCheck,
       Map<IteratorScope,List<IteratorSetting>> existingIters) throws AccumuloException {
-    // The reason for the 'shouldThrow' var is to prevent newly added 2.x checks from breaking
-    // existing user code. Just log the problem and proceed. Major version > 2 will always throw
     for (var scope : iterScopesToCheck) {
       var existingItersForScope = existingIters.get(scope);
       if (existingItersForScope == null) {

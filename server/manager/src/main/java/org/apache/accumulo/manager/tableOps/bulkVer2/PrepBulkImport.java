@@ -51,12 +51,12 @@ import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
@@ -75,16 +75,14 @@ import com.google.common.annotations.VisibleForTesting;
  *
  * @since 2.0.0
  */
-public class PrepBulkImport extends AbstractFateOperation {
+public class PrepBulkImport extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
   private static final Logger log = LoggerFactory.getLogger(PrepBulkImport.class);
 
-  private final BulkInfo bulkInfo;
-
   public PrepBulkImport(BulkInfo info) {
-    this.bulkInfo = info;
+    super(info);
   }
 
   @Override
@@ -101,6 +99,11 @@ public class PrepBulkImport extends AbstractFateOperation {
     }
 
     return Utils.reserveHdfsDirectory(env.getContext(), bulkInfo.sourceDir, fateId);
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.PREPARING;
   }
 
   @VisibleForTesting
@@ -325,6 +328,5 @@ public class PrepBulkImport extends AbstractFateOperation {
     Utils.unreserveHdfsDirectory(environment.getContext(), bulkInfo.sourceDir, fateId);
     Utils.getReadLock(environment.getContext(), bulkInfo.tableId, fateId, LockRange.infinite())
         .unlock();
-    environment.removeBulkImportStatus(bulkInfo.sourceDir);
   }
 }

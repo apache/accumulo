@@ -46,29 +46,29 @@ Files (in lib/accumulo-monitor-*.jar):
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-## Bootstrap v5.3.2 (https://getbootstrap.com/)
+## Bootstrap v5.3.8 (https://getbootstrap.com/)
 
 Files (in lib/accumulo-monitor-*.jar):
 * org/apache/accumulo/monitor/resources/external/bootstrap/**/*
 
-    Copyright 2011-2023 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
+    Copyright 2011-2025 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
     Licensed under the MIT license (see above and https://github.com/twbs/bootstrap/blob/main/LICENSE)
 
-## Bootstrap Icons v1.11.1 (https://icons.getbootstrap.com/)
+## Bootstrap Icons v1.13.1 (https://icons.getbootstrap.com/)
 
 Files (in lib/accumulo-monitor-*.jar):
 * org/apache/accumulo/monitor/resources/external/bootstrap/css/bootstrap-icons.css
-* org/apache/accumulo/monitor/resources/external/bootstrap/fonts/*
+* org/apache/accumulo/monitor/resources/external/bootstrap/css/fonts/*
 
-    Copyright 2019-2023 The Bootstrap Authors
+    Copyright 2019-2024 The Bootstrap Authors
     Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
 
-## DataTables 1.13.6 (https://datatables.net)
+## DataTables 1.13.11 (https://datatables.net)
 
 Files (in lib/accumulo-monitor-*.jar):
 * org/apache/accumulo/monitor/resources/external/datatables/**/*
 
-    Copyright (c) 2008-2023 SpryMedia Ltd
+    Copyright (c) 2008-2024 SpryMedia Ltd
     Licensed under the MIT license (see above)
 
 **********

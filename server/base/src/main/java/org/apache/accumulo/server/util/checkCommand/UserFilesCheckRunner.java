@@ -23,15 +23,14 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles;
 import org.apache.accumulo.server.util.adminCommand.SystemCheck.Check;
-import org.apache.accumulo.server.util.adminCommand.SystemCheck.CheckStatus;
 
 public class UserFilesCheckRunner implements CheckRunner {
   private static final Check check = Check.USER_FILES;
 
   @Override
-  public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+  public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
       throws Exception {
-    CheckStatus status = CheckStatus.OK;
+    boolean status = true;
     printRunning();
 
     log.trace("********** Looking for missing user files **********");
@@ -41,7 +40,7 @@ public class UserFilesCheckRunner implements CheckRunner {
         log.trace("Checking table {} ({}) for missing files\n", tableName, tableId);
         if (RemoveEntriesForMissingFiles.checkTable(context, tableName, fixFiles, log::trace,
             log::warn) != 0) {
-          status = CheckStatus.FAILED;
+          status &= false;
         }
       }
     }

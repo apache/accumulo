@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.tableOps.split;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -96,7 +95,7 @@ public class AllocateDirsAndEnsureOnline extends AbstractFateOperation {
     } else {
       // Create the dir name here for the next step. If the next step fails it will always have the
       // same dir name each time it runs again making it idempotent.
-      List<String> dirs = new ArrayList<>();
+      var dirs = new ArrayList<String>();
 
       splitInfo.getSplits().keySet().forEach(split -> {
         String dirName = TabletNameGenerator.createTabletDirectoryName(env.getContext(), split);

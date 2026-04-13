@@ -20,8 +20,8 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.core.conf.Property.TABLE_FILE_MAX;
 import static org.apache.accumulo.core.conf.Property.TABLE_MAJC_RATIO;
-import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionRunning;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionsNoLongerRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
@@ -39,7 +39,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
@@ -173,9 +172,7 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
 
       client.tableOperations().delete(table1);
 
-      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
-          TCompactionState.CANCELLED);
-
+      confirmCompactionsNoLongerRunning(getCluster().getServerContext(), ecids);
     }
   }
 

@@ -22,9 +22,7 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.EventPublisher;
 import org.apache.accumulo.manager.split.FileRangeCache;
@@ -37,17 +35,11 @@ public interface FateEnv {
 
   EventPublisher getEventPublisher();
 
-  void recordCompactionCompletion(ExternalCompactionId ecid);
-
   Set<TServerInstance> onlineTabletServers();
 
   TableManager getTableManager();
 
   VolumeManager getVolumeManager();
-
-  void updateBulkImportStatus(String string, BulkImportState bulkImportState);
-
-  void removeBulkImportStatus(String sourceDir);
 
   ServiceLock getServiceLock();
 

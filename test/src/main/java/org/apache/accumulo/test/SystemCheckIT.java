@@ -771,14 +771,14 @@ public class SystemCheckIT extends ConfigurableMacBase {
     }
 
     @Override
-    public CheckStatus runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
+    public boolean runCheck(ServerContext context, ServerOpts opts, boolean fixFiles)
         throws Exception {
-      CheckStatus status = passes ? CheckStatus.OK : CheckStatus.FAILED;
 
       System.out.println("Running dummy check " + getCheck());
       // no work to perform in the dummy check runner
-      System.out.println("Dummy check " + getCheck() + " completed with status " + status);
-      return status;
+      System.out.println("Dummy check " + getCheck() + " completed with status "
+          + (passes ? CheckStatus.OK : CheckStatus.FAILED));
+      return passes;
     }
   }
 

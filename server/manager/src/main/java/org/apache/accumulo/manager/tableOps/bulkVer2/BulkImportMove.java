@@ -29,10 +29,9 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.BulkLogger;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
-import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
 import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -50,14 +49,12 @@ import org.apache.hadoop.fs.Path;
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
-class BulkImportMove extends AbstractFateOperation {
+class BulkImportMove extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
-  private final BulkInfo bulkInfo;
-
   public BulkImportMove(BulkInfo bulkInfo) {
-    this.bulkInfo = bulkInfo;
+    super(bulkInfo);
   }
 
   @Override
@@ -68,7 +65,6 @@ class BulkImportMove extends AbstractFateOperation {
     VolumeManager fs = env.getVolumeManager();
 
     try {
-      env.updateBulkImportStatus(sourceDir.toString(), BulkImportState.MOVING);
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
       moveFiles(fateId, sourceDir, bulkDir, env, fs, oldToNewNameMap);
@@ -103,5 +99,10 @@ class BulkImportMove extends AbstractFateOperation {
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
           ioe.getCause().getMessage());
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.MOVING;
   }
 }

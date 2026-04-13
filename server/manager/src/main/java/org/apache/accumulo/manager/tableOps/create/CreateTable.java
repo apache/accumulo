@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.manager.tableOps.create;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
@@ -54,7 +57,7 @@ public class CreateTable extends AbstractFateOperation {
     tableInfo.setTableName(tableName);
     tableInfo.setTimeType(timeType);
     tableInfo.setUser(user);
-    tableInfo.props = props;
+    tableInfo.props = new HashMap<>(requireNonNull(props));
     tableInfo.setNamespaceId(namespaceId);
     tableInfo.setSplitPath(splitPath);
     tableInfo.setInitialSplitSize(splitCount);

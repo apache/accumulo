@@ -131,7 +131,6 @@ import org.apache.accumulo.shell.commands.ImportDirectoryCommand;
 import org.apache.accumulo.shell.commands.ImportTableCommand;
 import org.apache.accumulo.shell.commands.InfoCommand;
 import org.apache.accumulo.shell.commands.InsertCommand;
-import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
 import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
@@ -384,7 +383,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
         new InsertCommand(), new MaxRowCommand(), new ScanCommand()};
     Command[] debuggingCommands =
         {new ClasspathCommand(), new ListScansCommand(), new ListCompactionsCommand(),
-            new TraceCommand(), new PingCommand(), new ListBulkCommand(), new ListTabletsCommand()};
+            new TraceCommand(), new PingCommand(), new ListTabletsCommand()};
     Command[] execCommands = {new ExecfileCommand(), new HistoryCommand(), new ExtensionCommand()};
     Command[] exitCommands = {new ByeCommand(), new ExitCommand(), new QuitCommand()};
     Command[] helpCommands =
