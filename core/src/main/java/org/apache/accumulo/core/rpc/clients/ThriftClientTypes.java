@@ -23,13 +23,13 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
+import org.apache.accumulo.core.rpc.AccumuloTMultiplexedProtocol;
 import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
-import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.protocol.TProtocol;
 
-public class ThriftClientTypes<C extends TServiceClient> {
+public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public static final ClientServiceThriftClient CLIENT =
       new ClientServiceThriftClient(RpcService.CLIENT);
@@ -87,7 +87,7 @@ public class ThriftClientTypes<C extends TServiceClient> {
 
   public C getClient(TProtocol prot) {
     // All server side TProcessors are multiplexed. Wrap this protocol.
-    return getClientFactory().getClient(new TMultiplexedProtocol(prot, getServiceName()));
+    return getClientFactory().getClient(new AccumuloTMultiplexedProtocol(prot, getService()));
   }
 
   public C getConnection(ClientContext context) {

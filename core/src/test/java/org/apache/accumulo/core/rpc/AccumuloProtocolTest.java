@@ -26,9 +26,13 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
+import org.apache.thrift.protocol.TMessage;
+import org.apache.thrift.protocol.TMessageType;
 import org.apache.thrift.transport.TMemoryBuffer;
+import org.apache.thrift.transport.TMemoryInputTransport;
 import org.junit.jupiter.api.Test;
 
 public class AccumuloProtocolTest {
@@ -180,5 +184,47 @@ public class AccumuloProtocolTest {
       assertTrue(e.getMessage().contains("Failed to read accumulo version from header"),
           "Expected incomplete header msg. Got: " + e.getMessage());
     }
+  }
+
+  /**
+   * Test that uses the new {@link AccumuloTMultiplexedProtocol}
+   */
+  @Test
+  public void testValidShortIdHeader() throws TException {
+
+    TMemoryBuffer transport = new TMemoryBuffer(512);
+
+    AccumuloProtocolFactory clientFactory =
+        AccumuloProtocolFactory.clientFactory(INSTANCE_ID, ThriftClientTypes.CLIENT);
+
+    AccumuloProtocolFactory.AccumuloProtocol protocol = clientFactory.getProtocol(transport);
+    protocol.writeI32(VALID_MAGIC_NUMBER);
+    protocol.writeByte(VALID_PROTOCOL_VERSION);
+    protocol.writeString(Constants.VERSION);
+    protocol.writeString(INSTANCE_ID.canonical());
+
+    AccumuloTMultiplexedProtocol wrappedProtocol =
+        new AccumuloTMultiplexedProtocol(protocol, RpcService.MANAGER);
+    wrappedProtocol.writeMessageBegin(new TMessage("TestCall", TMessageType.CALL, 1));
+    wrappedProtocol.writeMessageEnd();
+    wrappedProtocol.getTransport().flush();
+
+    TMemoryInputTransport serverTransport =
+        new TMemoryInputTransport(transport.getArray(), 0, transport.length());
+
+    AccumuloProtocolFactory serverFactory = AccumuloProtocolFactory.serverFactory(INSTANCE_ID);
+    AccumuloProtocolFactory.AccumuloProtocol server = serverFactory.getProtocol(serverTransport);
+
+    server.readAndValidateHeader();
+
+    TMessage msg = server.readMessageBegin();
+    byte receivedID = server.readByte();
+    server.readMessageEnd();
+
+    RpcService resolvedService = RpcService.fromShortId(receivedID);
+
+    assertEquals("TestCall", msg.name);
+    assertEquals(RpcService.MANAGER, resolvedService);
+    assertEquals((byte) 0x06, receivedID);
   }
 }

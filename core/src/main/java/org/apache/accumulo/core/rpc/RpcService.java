@@ -23,20 +23,43 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 
 /**
  * This is an enum containing all rpc service types used by Thrift. These are used by
- * {@link ThriftClientTypes} and {@link ServiceLockData}
+ * {@link ThriftClientTypes} and {@link ServiceLockData} These services also contain a 1-byte
+ * identifier to reduce RPC header size.
  */
 public enum RpcService {
-  CLIENT,
-  COORDINATOR,
-  COMPACTOR,
-  FATE_CLIENT,
-  FATE_WORKER,
-  GC,
-  MANAGER,
-  NONE,
-  TABLET_INGEST,
-  TABLET_MANAGEMENT,
-  TABLET_SCAN,
-  TSERV,
-  SERVER_PROCESS
+
+  CLIENT((byte) 0),
+  COORDINATOR((byte) 1),
+  COMPACTOR((byte) 2),
+  FATE_CLIENT((byte) 3),
+  FATE_WORKER((byte) 4),
+  GC((byte) 5),
+  MANAGER((byte) 6),
+  NONE((byte) 7),
+  TABLET_INGEST((byte) 8),
+  TABLET_MANAGEMENT((byte) 9),
+  TABLET_SCAN((byte) 10),
+  TSERV((byte) 11),
+  SERVER_PROCESS((byte) 12);
+
+  private final byte shortID;
+
+  private static final RpcService[] SERVICES = values();
+
+  RpcService(byte shortID) {
+    this.shortID = shortID;
+  }
+
+  public byte getShortId() {
+    return this.shortID;
+  }
+
+  public static RpcService fromShortId(byte id) {
+    for (RpcService service : SERVICES) {
+      if (service.shortID == id) {
+        return service;
+      }
+    }
+    throw new IllegalArgumentException("Unknown RPC shortId: " + id);
+  }
 }
