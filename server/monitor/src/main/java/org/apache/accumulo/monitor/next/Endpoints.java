@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.monitor.next;
 
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toList;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -63,10 +67,6 @@ import org.apache.accumulo.server.manager.FateLocations;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
-
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toList;
 
 @Path("/")
 public class Endpoints {
@@ -199,7 +199,8 @@ public class Endpoints {
     }
 
     monitor.getContext().getCoordinatorLocations(true).locations().entrySet().stream()
-        .collect(groupingBy(Entry::getValue, mapping(Entry::getKey, toList()))).forEach((addr, groups) -> {
+        .collect(groupingBy(Entry::getValue, mapping(Entry::getKey, toList())))
+        .forEach((addr, groups) -> {
           responsibilities.computeIfAbsent(addr.toString(), a -> new ArrayList<>())
               .add("COMPACTOR_GROUPS:" + groups);
         });
@@ -371,8 +372,7 @@ public class Endpoints {
     Map<String,TimeOrderedRunningCompactionSet> longRunning =
         monitor.getInformationFetcher().getSummaryForEndpoint().getTopRunningCompactions();
     return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
-        .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
-        .collect(toList());
+        .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR).collect(toList());
   }
 
   @GET
