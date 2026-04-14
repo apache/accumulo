@@ -27,18 +27,21 @@ import static org.apache.accumulo.monitor.next.views.ServersView.TYPE_COL_NAME;
 
 import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.Metric.MonitorCssClass;
 
 /**
  * This class generates a map of metric name to column information for the Monitor
  */
 public class ColumnJsGen {
 
-  public static record ColumnInformation(String header, String description, String classes) {
+  public record ColumnInformation(String header, String description, String classes) {
   };
 
   private static void printHeader(PrintStream out) {
@@ -73,8 +76,11 @@ public class ColumnJsGen {
     // Put in tree map to sort metrics by name in the output
     Map<String,ColumnInformation> output = new TreeMap<>();
     for (Metric m : Metric.values()) {
-      output.put(m.getName(), new ColumnInformation(m.getColumnHeader(), m.getColumnDescription(),
-          m.getColumnClasses()));
+      MonitorCssClass[] classes = m.getColumnClasses();
+      String css =
+          Arrays.stream(classes).map(c -> c.getCssClass()).collect(Collectors.joining(" "));
+      output.put(m.getName(),
+          new ColumnInformation(m.getColumnHeader(), m.getColumnDescription(), css));
     }
 
     // Add non-metric columns that are part of the ServersView

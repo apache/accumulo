@@ -59,8 +59,9 @@
  * 
  * Modify the exclusion list in AbstractServer to remove columns from being returned from
  * the AbstractServer.getMetrics RPC call. Be aware that other pages in the Monitor may
- * use this information, not just the server process pages. To influence which columns
- * are displayed on the server process pages use the column filter.
+ * use this information, not just the server process pages. The entrypoint for using
+ * the methods in this file is the refreshServerInformation method. To influence which columns
+ * are displayed on the server process pages use the column filter in that method.
  */
 
 var dataTableRefs = new Map();
@@ -203,6 +204,13 @@ function showBannerError(banner, bannerMsg) {
 /**
  * This function refreshes the table and banner, showing an
  * empty table and error banner if not successful
+ * 
+ * callback - the method to use to invoke the REST API call to get the data
+ * table - reference to HTML table object in which to create table header columns
+ * storageKey - the session storage key for the data returned from the REST API
+ * banner - reference to the HTML table that displays a banner
+ * bannerMsg - reference to the HTML object that is the banner
+ * visibleColumnFilter - filter to apply to columns to determine which are displayed
  */
 function refreshServerInformation(callback, table, storageKey, banner, bannerMsg, visibleColumnFilter) {
   callback().then(function () {

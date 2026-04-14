@@ -21,10 +21,8 @@ package org.apache.accumulo.server;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,6 +40,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
@@ -98,11 +97,7 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
-
-  // Map of MetricSource to list of excluded metrics for that type
-  // Metrics in the List will not be included in the response
-  // for the server type in the getMetrics call.
-  private final Map<MetricSource,List<String>> excludedMetrics = new EnumMap<>(MetricSource.class);
+  private final Set<String> monitorMetricExclusions;
 
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
@@ -185,12 +180,7 @@ public abstract class AbstractServer
       default:
         throw new IllegalArgumentException("Unhandled server type: " + serverType);
     }
-    excludedMetrics.put(MetricSource.COMPACTOR,
-        List.of("accumulo.compaction.minc.paused", "accumulo.recoveries.avg.progress",
-            "accumulo.recoveries.in.progress", "accumulo.recoveries.runtime.longest"));
-    excludedMetrics.put(MetricSource.SCAN_SERVER, List.of("accumulo.recoveries.avg.progress",
-        "accumulo.recoveries.in.progress", "accumulo.recoveries.runtime.longest"));
-    excludedMetrics.put(MetricSource.TABLET_SERVER, List.of("accumulo.compaction.majc.paused"));
+    monitorMetricExclusions = Metric.getMonitorExclusions(serverType);
   }
 
   /**
@@ -415,10 +405,9 @@ public abstract class AbstractServer
     response.setTimestamp(System.currentTimeMillis());
 
     if (context.getMetricsInfo().isMetricsEnabled()) {
-      final List<String> exclusions = excludedMetrics.get(metricSource);
       Metrics.globalRegistry.getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")) {
-          if (exclusions == null || !exclusions.contains(m.getId().getName())) {
+          if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
             m.match(response::writeMeter, response::writeMeter, response::writeTimer,
                 response::writeDistributionSummary, response::writeLongTaskTimer,
                 response::writeMeter, response::writeMeter, response::writeFunctionTimer,

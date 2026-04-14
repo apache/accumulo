@@ -27,7 +27,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
@@ -74,7 +73,7 @@ public class ServersView {
   public final long timestamp;
 
   public ServersView(final Set<ServerId> servers, final long problemServerCount,
-      final Cache<ServerId,MetricResponse> allMetrics, final AtomicLong timestamp) {
+      final Cache<ServerId,MetricResponse> allMetrics, final long timestamp) {
 
     AtomicInteger serversMissingMetrics = new AtomicInteger(0);
     servers.forEach(sid -> {
@@ -105,7 +104,7 @@ public class ServersView {
       }
     });
     status = buildStatus(servers.size(), problemServerCount, serversMissingMetrics.get());
-    this.timestamp = timestamp.get();
+    this.timestamp = timestamp;
   }
 
   private static Status buildStatus(int serverCount, long problemServerCount,

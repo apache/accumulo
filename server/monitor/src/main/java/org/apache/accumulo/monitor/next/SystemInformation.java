@@ -663,28 +663,28 @@ public class SystemInformation {
       switch (type) {
         case COMPACTOR:
           compactors.values().forEach(servers::addAll);
-          serverMetricsView.put(type,
-              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case GARBAGE_COLLECTOR:
           servers.add(gc.get());
-          serverMetricsView.put(type,
-              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case MANAGER:
           servers.add(manager.get());
-          serverMetricsView.put(type,
-              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case SCAN_SERVER:
           sservers.values().forEach(servers::addAll);
-          serverMetricsView.put(type,
-              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case TABLET_SERVER:
           tservers.values().forEach(servers::addAll);
-          serverMetricsView.put(type,
-              memoize(() -> new ServersView(servers, problemHostCount, allMetrics, timestamp)));
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case MONITOR:
         default:
