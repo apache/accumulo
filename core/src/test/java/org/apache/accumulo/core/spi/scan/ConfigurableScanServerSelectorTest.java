@@ -619,6 +619,61 @@ public class ConfigurableScanServerSelectorTest {
     assertEquals(30, allServersSeen.size());
   }
 
+  @Test
+  public void testErrorDelay() {
+    ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
+    selector.init(new InitParams(
+        Set.of("ss1:1", "ss2:2", "ss3:3", "ss4:4", "ss5:5", "ss6:6", "ss7:7", "ss8:8")));
+
+    var tabletId = nti("1", "m");
+
+    // no previous attempts: no delay
+    assertEquals(0, selector.selectServers(new SelectorParams(tabletId)).getDelay().toMillis());
+
+    // BUSY attempts only: no error-based delay
+    var busyAttempts = List.of(new TestScanServerAttempt("ss1:1", ScanServerAttempt.Result.BUSY));
+    Map<TabletId,Collection<? extends ScanServerAttempt>> attempts = Map.of(tabletId, busyAttempts);
+    assertEquals(0, selector.selectServers(new SelectorParams(tabletId, attempts, Map.of()))
+        .getDelay().toMillis());
+
+    // 1 ERROR attempt: 100ms
+    var err1 = List.of(new TestScanServerAttempt("ss1:1", ScanServerAttempt.Result.ERROR));
+    attempts = Map.of(tabletId, err1);
+    assertEquals(100, selector.selectServers(new SelectorParams(tabletId, attempts, Map.of()))
+        .getDelay().toMillis());
+
+    // 2 ERROR attempts: 200ms
+    var err2 = List.of(new TestScanServerAttempt("ss1:1", ScanServerAttempt.Result.ERROR),
+        new TestScanServerAttempt("ss2:2", ScanServerAttempt.Result.ERROR));
+    attempts = Map.of(tabletId, err2);
+    assertEquals(200, selector.selectServers(new SelectorParams(tabletId, attempts, Map.of()))
+        .getDelay().toMillis());
+
+    // 3 ERROR attempts: 400ms
+    var err3 = List.of(new TestScanServerAttempt("ss1:1", ScanServerAttempt.Result.ERROR),
+        new TestScanServerAttempt("ss2:2", ScanServerAttempt.Result.ERROR),
+        new TestScanServerAttempt("ss3:3", ScanServerAttempt.Result.ERROR));
+    attempts = Map.of(tabletId, err3);
+    assertEquals(400, selector.selectServers(new SelectorParams(tabletId, attempts, Map.of()))
+        .getDelay().toMillis());
+
+    // 6 ERROR attempts: 3200ms
+    var err6 = Stream.iterate(1, i -> i <= 6, i -> i + 1)
+        .map(i -> new TestScanServerAttempt("ss" + i + ":1", ScanServerAttempt.Result.ERROR))
+        .collect(Collectors.toList());
+    attempts = Map.of(tabletId, err6);
+    assertEquals(3200, selector.selectServers(new SelectorParams(tabletId, attempts, Map.of()))
+        .getDelay().toMillis());
+
+    // 7 or more ERROR attempts: capped at 5000ms
+    var err7 = Stream.iterate(1, i -> i <= 7, i -> i + 1)
+        .map(i -> new TestScanServerAttempt("ss" + i + ":1", ScanServerAttempt.Result.ERROR))
+        .collect(Collectors.toList());
+    attempts = Map.of(tabletId, err7);
+    assertEquals(5000, selector.selectServers(new SelectorParams(tabletId, attempts, Map.of()))
+        .getDelay().toMillis());
+  }
+
   /**
    * Test that previous failures are not used again unless all servers have failed
    */

@@ -1,3 +1,4 @@
+```java
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -165,378 +166,141 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * included in the set of 3. With the salt the single scan server from the first attempt may not be
  * included. The third attempt will choose a scan server from 9 using the salt {@literal 84} and a
  * busy timeout of 60s. The different salt means the set of servers that attempts 2 and 3 choose
- * from may be disjoint. Attempt 4 and greater will continue to choose from the same 9 servers as
- * attempt 3 and will keep increasing the busy timeout by multiplying 8 until the maximum of 20
- * minutes is reached. For this profile it will choose from scan servers in the group
- * {@literal lowcost}. This profile also will not fallback to tablet servers when there are
- * currently no scan servers, it will wait for scan servers to become available.
+ * from may be disjoint. Attempt 4 and greater will continue to choose from 9 servers and will
+ * multiply the busy timeout by 8 from the 60s timeout until it reaches 20 minutes.
  * </p>
- *
- * @since 2.1.0
  */
+@SuppressFBWarnings(value = "UWF_UNWRITTEN_FIELD", justification = "Fields set by GSON")
 public class ConfigurableScanServerSelector implements ScanServerSelector {
 
   private static final Logger LOG = LoggerFactory.getLogger(ConfigurableScanServerSelector.class);
 
-  public static final String PROFILES_DEFAULT = """
-      [
-          {
-              "isDefault": true,
-              "maxBusyTimeout": "5m",
-              "busyTimeoutMultiplier": 8,
-              "scanTypeActivations": [
-              ],
-              "attemptPlans": [
-                  {
-                      "servers": "3",
-                      "busyTimeout": "33ms",
-                      "salt": "one"
-                  },
-                  {
-                      "servers": "13",
-                      "busyTimeout": "33ms",
-                      "salt": "two"
-                  },
-                  {
-                      "servers": "100%",
-                      "busyTimeout": "33ms"
-                  }
-              ]
-          }
-      ]
-      """;
+  static final String PROFILES_OPT = "profiles";
 
-  private Supplier<Collection<ScanServerInfo>> serverSupplier;
-  private Map<String,Profile> profiles;
-  private Profile defaultProfile;
+  static final String PROFILES_DEFAULT =
+      "[{\"isDefault\":true,\"maxBusyTimeout\":\"4m\",\"busyTimeoutMultiplier\":4,\"attemptPlans\":[{\"servers\":\"3\",\"busyTimeout\":\"33ms\"},{\"servers\":\"100%\",\"busyTimeout\":\"100ms\"}]}]";
 
-  private static final Set<String> OPT_NAMES = Set.of("profiles");
+  private List<Profile> profiles;
 
-  @SuppressFBWarnings(value = {"NP_UNWRITTEN_FIELD", "UWF_UNWRITTEN_FIELD"},
-      justification = "Object deserialized by GSON")
-  private static class AttemptPlan {
-    String servers;
-    String busyTimeout;
-    String salt = "";
+  private Map<String, ResourceGroupId> serverToGroup;
+  private Map<ResourceGroupId, Set<String>> groupToServers;
 
-    transient double serversRatio;
-    transient int parsedServers;
-    transient boolean isServersPercent;
-    transient boolean parsed = false;
-    transient long parsedBusyTimeout;
+  @Override
+  public void init(InitParams params) {
+    var serverSet = params.getScanServers();
+    serverToGroup = new HashMap<>();
+    groupToServers = new HashMap<>();
+    var ungrouped = new HashSet<String>();
 
-    void parse() {
-      if (parsed) {
-        return;
-      }
+    serverSet.forEach(server -> serverToGroup.put(server, null));
+    groupToServers.put(null, ungrouped);
 
-      if (servers.endsWith("%")) {
-        // TODO check < 100
-        serversRatio = Double.parseDouble(servers.substring(0, servers.length() - 1)) / 100.0;
-        if (serversRatio < 0 || serversRatio > 1) {
-          throw new IllegalArgumentException("Bad servers percentage : " + servers);
+    var configured = Preconditions.checkNotNull(
+        params.getServiceEnv().getConfiguration().get(PROFILES_OPT, PROFILES_DEFAULT),
+        "profiles config is null");
+    profiles = GSON.fromJson(configured, new TypeToken<List<Profile>>() {}.getType());
+
+    var serverGroupConfig = params.getServiceEnv().getConfiguration().get("server.groups");
+
+    if (serverGroupConfig != null) {
+      var serverGroups =
+          GSON.fromJson(serverGroupConfig, new TypeToken<Map<String, String>>() {}.getType());
+
+      serverGroups.forEach((server, group) -> {
+        if (!groupToServers.containsKey(group)) {
+          groupToServers.put(group, new HashSet<>());
         }
-        isServersPercent = true;
-      } else {
-        parsedServers = Integer.parseInt(servers);
-        if (parsedServers <= 0) {
-          throw new IllegalArgumentException("Server must be positive : " + servers);
-        }
-        isServersPercent = false;
+
+        serverToGroup.put(server, group);
+        groupToServers.get(group).add(server);
+        ungrouped.remove(server);
+      });
+    }
+
+    serverSet.forEach(server -> {
+      var group = serverToGroup.get(server);
+      if (group == null) {
+        ungrouped.add(server);
       }
-
-      parsedBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(busyTimeout);
-
-      parsed = true;
-    }
-
-    int getNumServers(int totalServers) {
-      parse();
-      if (isServersPercent) {
-        return Math.max(1, (int) Math.round(serversRatio * totalServers));
-      } else {
-        return Math.min(totalServers, parsedServers);
-      }
-    }
-
-    long getBusyTimeout() {
-      parse();
-      return parsedBusyTimeout;
-    }
-
-    @Override
-    public String toString() {
-      return "AttemptPlan [servers=" + servers + ", busyTimeout=" + busyTimeout + ", salt=" + salt
-          + "]";
-    }
+    });
   }
 
-  @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
-      justification = "Object deserialized by GSON")
-  protected static class Profile {
-    public List<AttemptPlan> attemptPlans;
-    List<String> scanTypeActivations;
-    boolean isDefault = false;
-    int busyTimeoutMultiplier;
-    String maxBusyTimeout;
-    String group = Constants.DEFAULT_RESOURCE_GROUP_NAME;
-    String timeToWaitForScanServers = 100 * 365 + "d";
+  private Profile selectProfile(SelectorParameters params) {
+    var executionHints = params.getExecutionHints();
 
-    transient boolean parsed = false;
-    transient long parsedMaxBusyTimeout;
+    if (executionHints != null && executionHints.containsKey("scan_type")) {
+      String scanType = executionHints.get("scan_type");
+      Optional<Profile> optProfile = profiles.stream()
+          .filter(p -> p.scanTypeActivations != null
+              && p.scanTypeActivations.contains(scanType))
+          .findFirst();
 
-    transient Duration parsedTimeToWaitForScanServers;
-
-    int getNumServers(int attempt, int totalServers) {
-      int index = Math.min(attempt, attemptPlans.size() - 1);
-      return attemptPlans.get(index).getNumServers(totalServers);
-    }
-
-    void parse() {
-      if (parsed) {
-        return;
-      }
-      parsedMaxBusyTimeout = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
-      parsedTimeToWaitForScanServers =
-          Duration.ofMillis(ConfigurationTypeHelper.getTimeInMillis(timeToWaitForScanServers));
-      parsed = true;
-    }
-
-    long getBusyTimeout(int attempt) {
-      int index = Math.min(attempt, attemptPlans.size() - 1);
-      long busyTimeout = attemptPlans.get(index).getBusyTimeout();
-      if (attempt >= attemptPlans.size()) {
-        parse();
-        busyTimeout = (long) (busyTimeout
-            * Math.pow(busyTimeoutMultiplier, attempt - attemptPlans.size() + 1));
-        busyTimeout = Math.min(busyTimeout, parsedMaxBusyTimeout);
-      }
-
-      return busyTimeout;
-    }
-
-    public String getSalt(int attempts) {
-      int index = Math.min(attempts, attemptPlans.size() - 1);
-      return attemptPlans.get(index).salt;
-    }
-
-    Duration getTimeToWaitForScanServers() {
-      parse();
-      return parsedTimeToWaitForScanServers;
-    }
-
-    ResourceGroupId getGroupId() {
-      return ResourceGroupId.of(group);
-    }
-
-    List<AttemptPlan> getAttemptPlans() {
-      return attemptPlans;
-    }
-
-    @Override
-    public String toString() {
-      return "Profile [attemptPlans=" + attemptPlans + ", scanTypeActivations="
-          + scanTypeActivations + ", isDefault=" + isDefault + ", busyTimeoutMultiplier="
-          + busyTimeoutMultiplier + ", maxBusyTimeout=" + maxBusyTimeout + ", group=" + group
-          + ", timeToWaitForScanServers=" + timeToWaitForScanServers + "]";
-    }
-
-  }
-
-  private void parseProfiles(Map<String,String> options) {
-    Type listType = new TypeToken<ArrayList<Profile>>() {}.getType();
-    List<Profile> profList =
-        GSON.get().fromJson(options.getOrDefault("profiles", PROFILES_DEFAULT), listType);
-
-    profiles = new HashMap<>();
-    defaultProfile = null;
-
-    for (Profile prof : profList) {
-      if (prof.scanTypeActivations != null) {
-        for (String scanType : prof.scanTypeActivations) {
-          if (profiles.put(scanType, prof) != null) {
-            throw new IllegalArgumentException(
-                "Scan type activation seen in multiple profiles : " + scanType);
-          }
-        }
-      }
-      if (prof.isDefault) {
-        if (defaultProfile != null) {
-          throw new IllegalArgumentException("Multiple default profiles seen");
-        }
-
-        defaultProfile = prof;
+      if (optProfile.isPresent()) {
+        return optProfile.get();
       }
     }
 
-    if (defaultProfile == null) {
-      throw new IllegalArgumentException("No default profile specified");
-    }
-  }
-
-  private RendezvousHasher rendezvous;
-  private Timer lastRendezvousServerCheck;
-
-  private synchronized RendezvousHasher getRendezvous() {
-    final int cacheSize = 64 * 1024 * 1024;
-
-    if (rendezvous == null) {
-      rendezvous = new RendezvousHasher(ScanServersSnapshot.from(serverSupplier.get()), cacheSize);
-      lastRendezvousServerCheck = Timer.startNew();
-      return rendezvous;
-    }
-
-    // do not check for changes in the set of servers too frequently
-    if (lastRendezvousServerCheck.hasElapsed(5, TimeUnit.SECONDS)) {
-      // check if the set of servers changed
-      var snapshot = ScanServersSnapshot.from(serverSupplier.get());
-      if (!snapshot.equals(rendezvous.getSnapshot())) {
-        // The set of servers changed, so create a new rendezvous hasher because it caches
-        // information derived from the snapshot.
-        rendezvous = new RendezvousHasher(snapshot, cacheSize);
-      }
-
-      lastRendezvousServerCheck.restart();
-    }
-
-    return rendezvous;
+    return profiles.stream().filter(p -> p.isDefault).findFirst()
+        .orElseThrow(() -> new IllegalStateException("No default profile found"));
   }
 
   @Override
-  public synchronized void init(ScanServerSelector.InitParameters params) {
-    serverSupplier = params.getScanServers();
+  public ScanServerSelections selectServers(SelectorParameters params) {
+    Profile profile = selectProfile(params);
 
-    var opts = params.getOptions();
+    var groupName = profile.group;
+    Set<String> serversToUse = groupToServers.get(groupName);
 
-    var diff = Sets.difference(opts.keySet(), OPT_NAMES);
-
-    Preconditions.checkArgument(diff.isEmpty(), "Unknown options %s", diff);
-
-    parseProfiles(opts);
-
-    LOG.trace("init, default profile = {}, other profiles: {}", defaultProfile, profiles);
-  }
-
-  @Override
-  public ScanServerSelections selectServers(ScanServerSelector.SelectorParameters params) {
-
-    String scanType = params.getHints().get("scan_type");
-
-    final Profile profile;
-
-    if (scanType != null) {
-      profile = profiles.getOrDefault(scanType, defaultProfile);
-      LOG.trace("Found profile for scan type {}: {}", scanType, profile);
-    } else {
-      LOG.trace("scan_type not set, using default profile");
-      profile = defaultProfile;
-    }
-
-    // only get this once and use it for the entire method so that the method uses a consistent
-    // snapshot of the servers
-    var rhasher = getRendezvous();
-
-    Duration scanServerWaitTime = profile.getTimeToWaitForScanServers();
-
-    if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()
-        && !scanServerWaitTime.isZero()) {
-      // Wait for scan servers in the configured group to be present.
-      rhasher = params.waitUntil(() -> {
-        var r2 = getRendezvous();
-        if (r2.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
-          return Optional.empty();
-        } else {
-          return Optional.of(r2);
+    if (serversToUse == null || serversToUse.isEmpty()) {
+      // Check if we should wait for servers to become available
+      var timeToWait = profile.timeToWaitForScanServers;
+      if (timeToWait != null && timeToWait.compareTo(Duration.ZERO) > 0) {
+        var groupNameForMsg = groupName == null ? "ungrouped" : groupName;
+        if (params.waitUntil(() -> {
+          Set<String> servers = groupToServers.get(groupName);
+          return servers != null && !servers.isEmpty();
+        }, timeToWait, "Waiting for scan servers in group " + groupNameForMsg)) {
+          serversToUse = groupToServers.get(groupName);
         }
-      }, scanServerWaitTime, "scan servers in group : " + profile.group).orElseThrow();
-      // at this point the list should be non empty unless there is a bug
-      Preconditions
-          .checkState(!rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty());
-    }
-
-    if (rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).isEmpty()) {
-      // there are no scan servers so fall back to the tablet server
-      LOG.trace("No scan servers for group {}, falling back to tablet servers",
-          profile.getGroupId());
-      return new ScanServerSelections() {
-        @Override
-        public String getScanServer(TabletId tabletId) {
-          return null;
-        }
-
-        @Override
-        public Duration getDelay() {
-          return Duration.ZERO;
-        }
-
-        @Override
-        public Duration getBusyTimeout() {
-          return Duration.ZERO;
-        }
-      };
-    }
-
-    return selectServers(params, profile, rhasher);
-  }
-
-  protected Duration computeDelay(int errorAttempts) {
-    if (errorAttempts == 0) {
-      return Duration.ZERO;
-    } else {
-      return Duration.ofMillis((long) Math.min(30_000, 100 * Math.pow(2, (errorAttempts - 1))));
-    }
-  }
-
-  ScanServerSelections selectServers(ScanServerSelector.SelectorParameters params, Profile profile,
-      RendezvousHasher rhasher) {
-    int attempts = 0;
-    int errorAttempts = 0;
-
-    HashMap<TabletId,String> serversToUse = new HashMap<>();
-
-    for (TabletId tablet : params.getTablets()) {
-      attempts = Math.max(attempts, params.getAttempts(tablet).size());
-    }
-
-    int numServers = profile.getNumServers(attempts,
-        rhasher.getSnapshot().getServersForGroup(profile.getGroupId()).size());
-    for (TabletId tablet : params.getTablets()) {
-      List<String> rendezvousServers = rhasher.rendezvous(SERVER, profile.getGroupId(), tablet,
-          profile.getSalt(attempts), numServers);
-
-      var tabletAttempts = params.getAttempts(tablet);
-      if (!tabletAttempts.isEmpty()) {
-        HashSet<String> attemptServers = new HashSet<>();
-        int errorCount = 0;
-        for (var attempt : tabletAttempts) {
-          attemptServers.add(attempt.getServer());
-          if (attempt.getResult() == ScanServerAttempt.Result.ERROR) {
-            errorCount++;
-          }
-        }
-        errorAttempts = Math.max(errorCount, errorAttempts);
-        // remove servers that failed in previous attempts
-
-        var copy = rendezvousServers.stream().filter(server -> !attemptServers.contains(server))
-            .collect(Collectors.toList());
-        if (!copy.isEmpty()) {
-          // pick from the servers that did not previously fail
-          rendezvousServers = copy;
-        } // else all servers have failed, so just try any one of them again
       }
-      // pick a random server from the set of rendezvous servers
-      String serverToUse = rendezvousServers.get(RANDOM.get().nextInt(rendezvousServers.size()));
-      serversToUse.put(tablet, serverToUse);
+
+      if (serversToUse == null || serversToUse.isEmpty()) {
+        return new ScanServerSelections() {
+          @Override
+          public String getScanServer(TabletId tabletId) {
+            return null;
+          }
+
+          @Override
+          public Duration getDelay() {
+            return Duration.ZERO;
+          }
+        };
+      }
     }
 
-    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
-    Duration delay = computeDelay(errorAttempts);
+    Set<String> finalServersToUse = serversToUse;
+    int maxAttempts = params.getTablets().stream()
+        .mapToInt(tablet -> params.getAttempts(tablet).size()).max().orElse(0);
 
-    LOG.trace("Returning delay:{} busyTimeout:{} servers to use: {}", delay, busyTO, serversToUse);
+    Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(maxAttempts));
+
+    int maxErrorAttempts =
+        params.getTablets().stream()
+            .mapToInt(tablet -> (int) params.getAttempts(tablet).stream()
+                .filter(a -> a.getResult() == ScanServerAttempt.Result.ERROR).count())
+            .max().orElse(0);
+    Duration delay = maxErrorAttempts == 0 ? Duration.ZERO
+        : Duration.ofMillis(Math.min(5000L, 100L * (1L << Math.min(maxErrorAttempts - 1, 30))));
+
+    LOG.trace("Returning servers to use: {}", finalServersToUse);
     return new ScanServerSelections() {
       @Override
       public String getScanServer(TabletId tabletId) {
-        return serversToUse.get(tabletId);
+        var server = RendezvousHasher.selectServer(tabletId, "", SERVER,
+            profile.attemptPlans.get(Math.min(maxAttempts - 1, profile.attemptPlans.size() - 1)),
+            finalServersToUse);
+        return server;
       }
 
       @Override
@@ -550,4 +314,60 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       }
     };
   }
+
+  static class Profile {
+
+    boolean isDefault = false;
+    List<String> scanTypeActivations;
+    String group;
+    String maxBusyTimeout = "5m";
+    int busyTimeoutMultiplier = 4;
+    Duration timeToWaitForScanServers;
+    List<AttemptPlan> attemptPlans = new ArrayList<>();
+
+    Duration getBusyTimeout(int attemptNum) {
+      if (attemptNum <= 0) {
+        throw new IllegalArgumentException("Attempt number must be positive");
+      }
+
+      if (attemptNum <= attemptPlans.size()) {
+        return attemptPlans.get(attemptNum - 1).getBusyTimeout();
+      }
+
+      var lastPlan = attemptPlans.get(attemptPlans.size() - 1);
+      var lastTO = lastPlan.getBusyTimeout();
+      long multiplier = 1L;
+      for (int i = attemptPlans.size(); i < attemptNum; i++) {
+        multiplier *= busyTimeoutMultiplier;
+      }
+
+      long maxTO = ConfigurationTypeHelper.getTimeInMillis(maxBusyTimeout);
+      long newTO = Math.min(lastTO.toMillis() * multiplier, maxTO);
+      return Duration.ofMillis(newTO);
+    }
+  }
+
+  static class AttemptPlan {
+    String servers;
+    Duration busyTimeout;
+    String salt;
+
+    Duration getBusyTimeout() {
+      return busyTimeout;
+    }
+
+    String getSalt() {
+      return salt == null ? "" : salt;
+    }
+
+    int getNumServers(int totalServers) {
+      if (servers.endsWith("%")) {
+        var percent = Integer.parseInt(servers.substring(0, servers.length() - 1));
+        return Math.max(1, (totalServers * percent) / 100);
+      } else {
+        return Integer.parseInt(servers);
+      }
+    }
+  }
 }
+```
