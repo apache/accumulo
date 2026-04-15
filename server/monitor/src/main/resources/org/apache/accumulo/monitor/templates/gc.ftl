@@ -18,27 +18,25 @@
     under the License.
 
 -->
-      <div>
-        <h3>${title}</h3>
-      </div>
-      <div id="gcBanner">
-        <div class="alert alert-danger" role="alert">Collector is Unavailable</div>
+      <div id="gcStatusBanner">
+        <div id="gc-banner-message" class="alert" role="alert"></div>
       </div>
       <div>
-        <table id="gcActivity" class="table caption-top table-bordered table-striped table-condensed">
-          <caption><span class="table-caption">Garbage Collector Activities</span><br /></caption>
-          <thead>
-            <tr>
-              <th class="firstcell">Activity&nbsp;</th>
-              <th class="dateStarted">Started&nbsp;</th>
-              <th class="dateFinished">Finished&nbsp;</th>
-              <th class="big-num">Candidates&nbsp;</th>
-              <th class="big-num">Deleted&nbsp;</th>
-              <th class="big-num">In&nbsp;Use&nbsp;</th>
-              <th class="big-num">Errors&nbsp;</th>
-              <th class="duration">Duration&nbsp;</th>
-            </tr>
-          </thead>
+        <table id="gc-server" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">Garbage Collector</span><br /></caption>
           <tbody></tbody>
         </table>
       </div>
+      <div>
+        <table id="gc-file" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">File Collection</span><br /></caption>
+          <tbody></tbody>
+        </table>
+      </div>
+            <div>
+        <table id="gc-wal" class="table caption-top table-bordered table-striped table-condensed">
+          <caption><span class="table-caption">Wal Collection</span><br /></caption>
+          <tbody></tbody>
+        </table>
+      </div>
+      

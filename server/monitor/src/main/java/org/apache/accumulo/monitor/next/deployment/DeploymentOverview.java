@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor.next.deployment;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -40,9 +41,9 @@ public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown)
   }
 
   public static DeploymentOverview fromSummary(
-      Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment, long lastUpdate) {
+      Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment, AtomicLong lastUpdate) {
     if (deployment == null || deployment.isEmpty()) {
-      return new DeploymentOverview(lastUpdate, List.of());
+      return new DeploymentOverview(lastUpdate.get(), List.of());
     }
 
     var breakdown =
@@ -63,7 +64,7 @@ public record DeploymentOverview(long lastUpdate, List<DeploymentRow> breakdown)
               });
         }).toList();
 
-    return new DeploymentOverview(lastUpdate, breakdown);
+    return new DeploymentOverview(lastUpdate.get(), breakdown);
   }
 
   /**

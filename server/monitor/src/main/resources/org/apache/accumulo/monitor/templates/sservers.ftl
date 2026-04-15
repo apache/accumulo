@@ -18,11 +18,6 @@
     under the License.
 
 -->
-    <div class="row">
-      <div class="col-xs-12">
-        <h3>${title}</h3>
-      </div>
-    </div>
     <div id="sserversStatusBanner" style="display: none;">
       <div id="sservers-banner-message" class="alert" role="alert"></div>
     </div>
@@ -30,27 +25,8 @@
       <div class="col-xs-12">
         <table id="sservers" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Scan Servers</span><br />
-            <span class="table-subcaption">The following scan servers reported status and scan metrics when available.</span><br />
+            <span class="table-subcaption">The following Scan Servers reported status.</span><br />
           </caption>
-          <thead>
-            <tr>
-              <th class="firstcell">Server</th>
-              <th>Resource Group</th>
-              <th class="duration">Last Contact</th>
-              <th title="Number of files open for scans." class="big-num">Open Files</th>
-              <th title="Number of queries made during scans." class="big-num">Queries</th>
-              <th title="Count of scanned entries." class="big-num">Scanned Entries</th>
-              <th title="Query count." class="big-num">Query Results</th>
-              <th title="Query byte count." class="big-size">Query Result Bytes</th>
-              <th title="Count of scans where a busy timeout happened." class="big-num">Busy Timeouts</th>
-              <th title="Count of scan reservation conflicts." class="big-num">Reservation Conflicts</th>
-              <th title="Number of scan threads with no associated client session." class="big-num">Zombie Threads</th>
-              <th title="The current activity state of the scan server." class="big-num">Activity State</th>
-              <th title="The current memory state of the scan server." class="big-num">Memory State</th>
-              <th title="Count of scans paused due to low memory." class="big-num">Paused Mem</th>
-              <th title="Count of scans returned early due to low memory." class="big-num">Early Mem</th>
-            </tr>
-          </thead>
           <tbody></tbody>
         </table>
       </div>

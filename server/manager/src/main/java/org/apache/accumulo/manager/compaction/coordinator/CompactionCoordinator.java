@@ -838,6 +838,23 @@ public class CompactionCoordinator
       FindCompactionTmpFiles.deleteTempFiles(ctx, tmpFilesToDelete);
     }
 
+    // CompactionFailed is called from the Compactor when either a compaction fails or is cancelled
+    // and it's called from the DeadCompactionDetector. Remove compaction tmp files from the tablet
+    // directory that have a corresponding ecid in the name. Must delete any tmp files before
+    // removing compaction entry from metadata table. This ensures that in the event of process
+    // death that the dead compaction will be detected in the future and the files removed then.
+    try (var tablets = ctx.getAmple().readTablets()
+        .forTablets(compactions.keySet(), Optional.empty()).fetch(ColumnType.DIR).build()) {
+      Set<Path> tmpFilesToDelete = new HashSet<>();
+      for (TabletMetadata tm : tablets) {
+        var extent = tm.getExtent();
+        var ecidsForTablet = compactions.get(extent);
+        FindCompactionTmpFiles.findTmpFiles(ctx, extent.tableId(), tm.getDirName(), ecidsForTablet,
+            tmpFilesToDelete::add);
+      }
+      FindCompactionTmpFiles.deleteTempFiles(ctx, tmpFilesToDelete);
+    }
+
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       compactions.forEach((extent, ecids) -> {
         try {
