@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
+import org.apache.accumulo.core.clientImpl.ScanServerAttemptsImpl.BatchAttemptReporter;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -391,12 +392,12 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     private final List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
-    private final ScanServerAttemptReporter reporter;
+    private final BatchAttemptReporter reporter;
     private final Duration scanServerSelectorDelay;
 
     QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
         Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns,
-        long busyTimeout, ScanServerAttemptReporter reporter, Duration scanServerSelectorDelay) {
+        long busyTimeout, BatchAttemptReporter reporter, Duration scanServerSelectorDelay) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
       this.receiver = receiver;
@@ -427,6 +428,10 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
             options, authorizations, timeoutTracker, busyTimeout);
 
         if (!tsFailures.isEmpty()) {
+          // On scan servers routine failures that occur on tservers, like not serving tablet or a
+          // tablet closing, are not expected. So for scan server record any failures seen as an
+          // error.
+          reporter.report(tsFailures.keySet(), ScanServerAttempt.Result.ERROR);
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
             failures.putAll(tsFailures);
@@ -448,7 +453,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         if (e.getCause() instanceof ScanServerBusyException) {
           result = ScanServerAttempt.Result.BUSY;
         }
-        reporter.report(result);
+        reporter.report(tabletsRanges.keySet(), result);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
@@ -523,7 +528,6 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         }
       }
     }
-
   }
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
@@ -581,7 +585,8 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
       if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
         QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns,
-            ssd.getBusyTimeout(), ssd.reporters.getOrDefault(tsLocation, r -> {}), ssd.getDelay());
+            ssd.getBusyTimeout(), ssd.reporters.getOrDefault(tsLocation, (t, r) -> {}),
+            ssd.getDelay());
         queryTasks.add(queryTask);
       } else {
         HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
@@ -589,7 +594,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
           tabletSubset.put(entry.getKey(), entry.getValue());
           if (tabletSubset.size() >= maxTabletsPerRequest) {
             QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver,
-                columns, ssd.getBusyTimeout(), ssd.reporters.getOrDefault(tsLocation, r -> {}),
+                columns, ssd.getBusyTimeout(), ssd.reporters.getOrDefault(tsLocation, (t, r) -> {}),
                 ssd.getDelay());
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
@@ -598,7 +603,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
         if (!tabletSubset.isEmpty()) {
           QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns,
-              ssd.getBusyTimeout(), ssd.reporters.getOrDefault(tsLocation, r -> {}),
+              ssd.getBusyTimeout(), ssd.reporters.getOrDefault(tsLocation, (t, r) -> {}),
               ssd.getDelay());
           queryTasks.add(queryTask);
         }
@@ -617,7 +622,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
   private static class ScanServerData {
     final List<Range> failures;
     final ScanServerSelections actions;
-    final Map<String,ScanServerAttemptReporter> reporters;
+    final Map<String,BatchAttemptReporter> reporters;
 
     public ScanServerData(List<Range> failures) {
       this.failures = failures;
@@ -626,7 +631,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
     }
 
     public ScanServerData(ScanServerSelections actions,
-        Map<String,ScanServerAttemptReporter> reporters) {
+        Map<String,BatchAttemptReporter> reporters) {
       this.actions = actions;
       this.reporters = reporters;
       this.failures = List.of();
@@ -702,7 +707,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
 
     var actions = ecsm.selectServers(params);
 
-    Map<String,ScanServerAttemptReporter> reporters = new HashMap<>();
+    Map<String,BatchAttemptReporter> reporters = new HashMap<>();
 
     failures = new ArrayList<>();
 
@@ -731,7 +736,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         rangeMap.put(extent, extentRanges);
 
         var server = serverToUse;
-        reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server, tabletId));
+        reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server));
       } else {
         failures.addAll(extentToRangesMap.get(extent));
       }

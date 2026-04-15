@@ -42,4 +42,8 @@ class ScanServerAttemptImpl implements ScanServerAttempt {
     return result;
   }
 
+  @Override
+  public String toString() {
+    return "server:" + server + " result:" + result;
+  }
 }
