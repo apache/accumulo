@@ -959,7 +959,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           watcher.run();
 
           if (err.get() != null) {
-            // maybe the error occured because the table was deleted or something like that, so
+            // maybe the error occurred because the table was deleted or something like that, so
             // force a cancel check to possibly reduce noise in the logs
             checkIfCanceled();
           }

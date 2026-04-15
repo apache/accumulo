@@ -94,7 +94,7 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
     @Parameter(names = "--include-groups",
-        description = "Comma seperated list of resource groups to include")
+        description = "Comma separated list of resource groups to include")
     String includeGroups;
     @Parameter(names = "--exclude-host-ports",
         description = "File with lines of <host>:<port> to exclude from removal")
