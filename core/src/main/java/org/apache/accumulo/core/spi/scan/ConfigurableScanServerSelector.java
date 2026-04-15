@@ -532,6 +532,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     Duration busyTO = Duration.ofMillis(profile.getBusyTimeout(attempts));
     Duration delay = computeDelay(errorAttempts);
 
+    LOG.trace("Returning delay:{} busyTimeout:{} servers to use: {}", delay, busyTO, serversToUse);
     return new ScanServerSelections() {
       @Override
       public String getScanServer(TabletId tabletId) {
