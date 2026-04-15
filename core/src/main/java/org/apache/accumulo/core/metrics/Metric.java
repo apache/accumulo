@@ -524,7 +524,7 @@ public enum Metric {
    * Returns a set of Metric names that should not be sent to the Monitor from
    * {@code AbstractServer.getMetrics}
    *
-   * @param serverType
+   * @param serverType server type
    * @return set of metrics not to send to Monitor
    */
   public static Set<String> getMonitorExclusions(ServerId.Type serverType) {
