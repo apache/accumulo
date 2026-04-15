@@ -18,11 +18,14 @@
  */
 package org.apache.accumulo.monitor.next;
 
+import static com.google.common.base.Suppliers.memoize;
+
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -59,7 +63,7 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
-import org.apache.accumulo.monitor.next.sservers.ScanServerView;
+import org.apache.accumulo.monitor.next.views.ServersView;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -410,9 +414,9 @@ public class SystemInformation {
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
-  private long timestamp = 0;
-  private ScanServerView scanServerView = new ScanServerView(0L, List.of(),
-      new ScanServerView.Status(false, false, false, 0, 0, 0L, "OK", null));
+  private final AtomicLong timestamp = new AtomicLong(0);
+  private EnumMap<ServerId.Type,Supplier<ServersView>> serverMetricsView =
+      new EnumMap<>(ServerId.Type.class);
   private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
   private final int rgLongRunningCompactionSize;
 
@@ -447,6 +451,7 @@ public class SystemInformation {
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
     configuredCompactionResourceGroups.clear();
+    serverMetricsView.clear();
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -582,6 +587,7 @@ public class SystemInformation {
   public void processMetricsError(ServerId server) {
     problemHosts.add(server);
     metricProblemHosts.add(server);
+    allMetrics.invalidate(server);
   }
 
   public void addConfiguredCompactionGroups(Set<String> groups) {
@@ -648,15 +654,44 @@ public class SystemInformation {
       }
     }
 
-    Set<ServerId> scanServers = new HashSet<>();
-    sservers.values().forEach(scanServers::addAll);
-    int problemScanServerCount = (int) problemHosts.stream()
-        .filter(serverId -> serverId.getType() == ServerId.Type.SCAN_SERVER).count();
-    var responses = allMetrics.getAllPresent(scanServers).values();
-    timestamp = System.currentTimeMillis();
+    timestamp.set(System.currentTimeMillis());
+
+    for (final ServerId.Type type : ServerId.Type.values()) {
+      long problemHostCount =
+          problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
+      Set<ServerId> servers = new HashSet<>();
+      switch (type) {
+        case COMPACTOR:
+          compactors.values().forEach(servers::addAll);
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          break;
+        case GARBAGE_COLLECTOR:
+          servers.add(gc.get());
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          break;
+        case MANAGER:
+          servers.add(manager.get());
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          break;
+        case SCAN_SERVER:
+          sservers.values().forEach(servers::addAll);
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          break;
+        case TABLET_SERVER:
+          tservers.values().forEach(servers::addAll);
+          serverMetricsView.put(type, memoize(
+              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          break;
+        case MONITOR:
+        default:
+          break;
+      }
+    }
     deploymentOverview = DeploymentOverview.fromSummary(deployment, timestamp);
-    scanServerView = ScanServerView.fromMetrics(responses, scanServers.size(),
-        problemScanServerCount, timestamp);
   }
 
   public Set<String> getResourceGroups() {
@@ -747,11 +782,15 @@ public class SystemInformation {
   }
 
   public long getTimestamp() {
-    return this.timestamp;
+    return this.timestamp.get();
   }
 
-  public ScanServerView getScanServerView() {
-    return this.scanServerView;
+  public ServersView getServerProcessView(ServerId.Type type) {
+    Supplier<ServersView> view = this.serverMetricsView.get(type);
+    if (view != null) {
+      return view.get();
+    }
+    return null;
   }
 
   public static Number getMetricValue(FMetric metric) {

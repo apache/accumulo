@@ -55,6 +55,10 @@
       <artifactId>caffeine</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
     </dependency>
@@ -242,6 +246,26 @@
       </plugins>
     </pluginManagement>
     <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>metrics-javascript</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>prepare-package</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.monitor.next.views.ColumnJsGen</mainClass>
+              <classpathScope>compile</classpathScope>
+              <arguments>
+                <argument>${project.build.directory}/classes/org/apache/accumulo/monitor/resources/js/columns.js</argument>
+              </arguments>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-resources-plugin</artifactId>

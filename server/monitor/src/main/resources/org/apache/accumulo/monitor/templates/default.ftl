@@ -34,16 +34,21 @@
       <script src="resources/external/jquery/jquery-3.7.1.js"></script>
       <script src="resources/external/bootstrap/js/bootstrap.bundle.js"></script>
       <script src="resources/external/datatables/js/jquery.dataTables.js"></script>
+      <script src="resources/external/datatables/js/dataTables.colReorder.js"></script>
       <script src="resources/external/datatables/js/dataTables.bootstrap5.js"></script>
+      <script src="resources/external/datatables/js/colReorder.bootstrap5.js"></script>
       <link rel="stylesheet" href="resources/external/bootstrap/css/bootstrap.css" />
       <link rel="stylesheet" href="resources/external/bootstrap/css/bootstrap-icons.css" />
       <link rel="stylesheet" href="resources/external/datatables/css/dataTables.bootstrap5.css" />
+      <link rel="stylesheet" href="resources/external/datatables/css/colReorder.bootstrap5.css" />
     </#if>
 
     <!-- accumulo resources -->
     <link rel="shortcut icon" type="image/jng" href="resources/images/favicon.png" />
     <script src="resources/js/global.js"></script>
     <script src="resources/js/functions.js"></script>
+    <script src="resources/js/columns.js"></script>
+    <script src="resources/js/server_process_common.js"></script>
     <link rel="stylesheet" type="text/css" href="resources/css/screen.css" media="screen" />
 
     <script>

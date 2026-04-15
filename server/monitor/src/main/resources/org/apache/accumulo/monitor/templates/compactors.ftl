@@ -18,27 +18,15 @@
     under the License.
 
 -->
-      <div class="row">
-        <div class="col-xs-12">
-          <h3>${title}</h3>
-        </div>
-      </div>
       <div id="compactorsStatusBanner" style="display: none;">
         <div id="compactors-banner-message" class="alert" role="alert"></div>
       </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Compactors</span>&nbsp;&nbsp;
-              <a href="javascript:refreshCompactors();"><span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span></a>
+            <caption><span class="table-caption">Compactors</span><br />
+              <span class="table-subcaption">The following Compactors reported status.</span><br />
             </caption>
-            <thead>
-              <tr>
-                <th class="firstcell" title="The hostname the compactor is running on.">Server</th>
-                <th title="The name of the group this compactor is assigned.">Group</th>
-                <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
-              </tr>
-            </thead>
           </table>
         </div>
       </div>

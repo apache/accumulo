@@ -18,173 +18,25 @@
  */
 /* JSLint global definitions */
 /*global
-    $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    getSserversView, renderActivityState, renderMemoryState
+    $, SCAN_SERVER_PROCESS_VIEW, getSserversView, refreshServerInformation
 */
 "use strict";
 
-var sserversTable;
-var SSERVERS_VIEW_SESSION_KEY = 'sserversView';
-
-function getStoredView() {
-  if (!sessionStorage[SSERVERS_VIEW_SESSION_KEY]) {
-    return {};
-  }
-  return JSON.parse(sessionStorage[SSERVERS_VIEW_SESSION_KEY]);
-}
-
-function getStoredRows() {
-  var view = getStoredView();
-  if (!Array.isArray(view.servers)) {
-    return [];
-  }
-  return view.servers;
-}
-
-function getStoredStatus() {
-  var view = getStoredView();
-  return view.status || null;
-}
-
-function refreshScanServersTable() {
-  ajaxReloadTable(sserversTable);
-}
-
-function refreshSserversBanner(status) {
-  if (status && status.level === 'WARN') {
-    $('#sservers-banner-message')
-      .removeClass('alert-danger')
-      .addClass('alert-warning')
-      .text(status.message || 'WARN: scan-server status warning.');
-    $('#sserversStatusBanner').show();
-  } else {
-    $('#sserversStatusBanner').hide();
-  }
-}
-
-function showSserversBannerError() {
-  $('#sservers-banner-message')
-    .removeClass('alert-warning')
-    .addClass('alert-danger')
-    .text('ERROR: unable to retrieve scan-server status.');
-  $('#sserversStatusBanner').show();
-}
-
-function refreshScanServers() {
-  getSserversView().then(function () {
-    refreshScanServersTable();
-    refreshSserversBanner(getStoredStatus());
-  }).fail(function () {
-    sessionStorage[SSERVERS_VIEW_SESSION_KEY] = JSON.stringify({
-      servers: [],
-      status: null
-    });
-    refreshScanServersTable();
-    showSserversBannerError();
-  });
-}
+const htmlBanner = '#sserversStatusBanner'
+const htmlBannerMessage = '#sservers-banner-message'
+const htmlTable = '#sservers'
+const visibleColumnFilter = (col) => col != "Server Type";
 
 function refresh() {
-  refreshScanServers();
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
 }
 
 $(function () {
-  sessionStorage[SSERVERS_VIEW_SESSION_KEY] = JSON.stringify({
-    servers: [],
+  sessionStorage[SCAN_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
     status: null
   });
 
-  sserversTable = $('#sservers').DataTable({
-    "autoWidth": false,
-    "ajax": function (data, callback) {
-      callback({
-        data: getStoredRows()
-      });
-    },
-    "stateSave": true,
-    "columnDefs": [{
-        "targets": "big-num",
-        "render": function (data, type) {
-          if (type === 'display') {
-            if (data === null || data === undefined) {
-              return '&mdash;';
-            }
-            data = bigNumberForQuantity(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "big-size",
-        "render": function (data, type) {
-          if (type === 'display') {
-            if (data === null || data === undefined) {
-              return '&mdash;';
-            }
-            data = bigNumberForSize(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(data);
-          }
-          return data;
-        }
-      }
-    ],
-    "columns": [{
-        "data": "host"
-      },
-      {
-        "data": "resourceGroup"
-      },
-      {
-        "data": "lastContact"
-      },
-      {
-        "data": "openFiles"
-      },
-      {
-        "data": "queries"
-      },
-      {
-        "data": "scannedEntries"
-      },
-      {
-        "data": "queryResults"
-      },
-      {
-        "data": "queryResultBytes"
-      },
-      {
-        "data": "busyTimeouts"
-      },
-      {
-        "data": "reservationConflicts"
-      },
-      {
-        "data": "zombieThreads"
-      },
-      {
-        "data": "serverIdle",
-        "render": renderActivityState
-      },
-      {
-        "data": "lowMemoryDetected",
-        "render": renderMemoryState
-      },
-      {
-        "data": "scansPausedForMemory"
-      },
-      {
-        "data": "scansReturnedEarlyForMemory"
-      }
-    ]
-  });
-
-  refreshScanServers();
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
 });
