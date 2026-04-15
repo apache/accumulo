@@ -365,7 +365,7 @@ public class SystemInformation {
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
-  private final AtomicReference<ServerId> manager = new AtomicReference<>();
+  private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
   // index of resource group name to set of servers
@@ -431,6 +431,7 @@ public class SystemInformation {
     resourceGroups.clear();
     problemHosts.clear();
     metricProblemHosts.clear();
+    managers.clear();
     compactors.clear();
     sservers.clear();
     tservers.clear();
@@ -527,9 +528,7 @@ public class SystemInformation {
         }
         break;
       case MANAGER:
-        if (manager.get() == null || !manager.get().equals(server)) {
-          manager.set(server);
-        }
+        managers.add(server);
         createCompactionSummary(response);
         break;
       case SCAN_SERVER:
@@ -672,7 +671,7 @@ public class SystemInformation {
               () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case MANAGER:
-          servers.add(manager.get());
+          servers.addAll(managers);
           serverMetricsView.put(type, memoize(
               () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
@@ -702,8 +701,8 @@ public class SystemInformation {
     return this.problemHosts;
   }
 
-  public ServerId getManager() {
-    return this.manager.get();
+  public Set<ServerId> getManagers() {
+    return this.managers;
   }
 
   public ServerId getGarbageCollector() {

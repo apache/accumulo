@@ -373,7 +373,7 @@ function getJSONForTable(call, sessionDataVar) {
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
- * @param {boolean} shouldSanitize Whether to sanitize the call 
+ * @param {boolean} shouldSanitize Whether to sanitize the call
  */
 function doLoggedPostCall(call, callback, shouldSanitize) {
 
@@ -395,14 +395,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
 }
 
 ///// REST Calls /////////////
-
-/**
- * REST GET call for the manager information,
- * stores it on a sessionStorage variable
- */
-function getManager() {
-  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
-}
 
 /**
  * Gets the manager goal state from the cached manager response, if available.
