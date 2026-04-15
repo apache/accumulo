@@ -266,6 +266,16 @@ public class UpdateTablets extends AbstractFateOperation {
   private void updateExistingTablet(FateId fateId, ServerContext ctx, TabletMetadata tabletMetadata,
       TabletOperationId opid, NavigableMap<KeyExtent,TabletMergeability> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
+
+    // queue up the tmp files related to these compaction metadata entries to be eventually deleted
+    // once the compaction is no longer running
+    var removedCompactions = tabletMetadata.getExternalCompactions().keySet().stream()
+        .map(ecid -> new Ample.OrphanedCompaction(ecid, tabletMetadata.getExtent().tableId(),
+            tabletMetadata.getDirName()))
+        .toList();
+    removedCompactions.forEach(rc -> log.trace("{} adding removed compaction {}", fateId, rc));
+    ctx.getAmple().orphanedCompactions().add(removedCompactions);
+
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       var newExtent = newTablets.navigableKeySet().last();
 
