@@ -52,6 +52,7 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.clientImpl.ScanServerAttemptsImpl.BatchAttemptReporter;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -365,12 +366,12 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     private final List<Column> columns;
     private int semaphoreSize;
     private final long busyTimeout;
-    private final ScanServerAttemptReporter reporter;
+    private final BatchAttemptReporter reporter;
     private final Duration scanServerSelectorDelay;
 
     QueryTask(String tsLocation, Map<KeyExtent,List<Range>> tabletsRanges,
         Map<KeyExtent,List<Range>> failures, ResultReceiver receiver, List<Column> columns,
-        long busyTimeout, ScanServerAttemptReporter reporter, Duration scanServerSelectorDelay) {
+        long busyTimeout, BatchAttemptReporter reporter, Duration scanServerSelectorDelay) {
       this.tsLocation = tsLocation;
       this.tabletsRanges = tabletsRanges;
       this.receiver = receiver;
@@ -401,6 +402,10 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             options, authorizations, timeoutTracker, busyTimeout);
 
         if (!tsFailures.isEmpty()) {
+          // On scan servers routine failures that occur on tservers, like not serving tablet or a
+          // tablet closing, are not expected. So for scan server record any failures seen as an
+          // error.
+          reporter.report(tsFailures.keySet(), ScanServerAttempt.Result.ERROR);
           locator.invalidateCache(tsFailures.keySet());
           synchronized (failures) {
             failures.putAll(tsFailures);
@@ -422,7 +427,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         if (e.getCause() instanceof ScanServerBusyException) {
           result = ScanServerAttempt.Result.BUSY;
         }
-        reporter.report(result);
+        reporter.report(tabletsRanges.keySet(), result);
       } catch (AccumuloSecurityException e) {
         e.setTableInfo(getTableInfo());
         log.debug("AccumuloSecurityException thrown", e);
@@ -496,7 +501,6 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         }
       }
     }
-
   }
 
   private void doLookups(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
@@ -506,7 +510,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     long busyTimeout = 0;
     Duration scanServerSelectorDelay = null;
-    Map<String,ScanServerAttemptReporter> reporters = Map.of();
+    Map<String,BatchAttemptReporter> reporters = Map.of();
 
     if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
       var scanServerData = rebinToScanServers(binnedRanges, startTime);
@@ -564,7 +568,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       final Map<KeyExtent,List<Range>> tabletsRanges = binnedRanges.get(tsLocation);
       if (maxTabletsPerRequest == Integer.MAX_VALUE || tabletsRanges.size() == 1) {
         QueryTask queryTask = new QueryTask(tsLocation, tabletsRanges, failures, receiver, columns,
-            busyTimeout, reporters.getOrDefault(tsLocation, r -> {}), scanServerSelectorDelay);
+            busyTimeout, reporters.getOrDefault(tsLocation, (t, r) -> {}), scanServerSelectorDelay);
         queryTasks.add(queryTask);
       } else {
         HashMap<KeyExtent,List<Range>> tabletSubset = new HashMap<>();
@@ -573,15 +577,16 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           if (tabletSubset.size() >= maxTabletsPerRequest) {
             QueryTask queryTask =
                 new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, busyTimeout,
-                    reporters.getOrDefault(tsLocation, r -> {}), scanServerSelectorDelay);
+                    reporters.getOrDefault(tsLocation, (t, r) -> {}), scanServerSelectorDelay);
             queryTasks.add(queryTask);
             tabletSubset = new HashMap<>();
           }
         }
 
         if (!tabletSubset.isEmpty()) {
-          QueryTask queryTask = new QueryTask(tsLocation, tabletSubset, failures, receiver, columns,
-              busyTimeout, reporters.getOrDefault(tsLocation, r -> {}), scanServerSelectorDelay);
+          QueryTask queryTask =
+              new QueryTask(tsLocation, tabletSubset, failures, receiver, columns, busyTimeout,
+                  reporters.getOrDefault(tsLocation, (t, r) -> {}), scanServerSelectorDelay);
           queryTasks.add(queryTask);
         }
       }
@@ -599,7 +604,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   private static class ScanServerData {
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges;
     ScanServerSelections actions;
-    Map<String,ScanServerAttemptReporter> reporters;
+    Map<String,BatchAttemptReporter> reporters;
   }
 
   private ScanServerData rebinToScanServers(Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
@@ -652,7 +657,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     Map<String,Map<KeyExtent,List<Range>>> binnedRanges2 = new HashMap<>();
 
-    Map<String,ScanServerAttemptReporter> reporters = new HashMap<>();
+    Map<String,BatchAttemptReporter> reporters = new HashMap<>();
 
     for (TabletIdImpl tabletId : tabletIds) {
       KeyExtent extent = tabletId.toKeyExtent();
@@ -672,7 +677,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       rangeMap.put(extent, ranges);
 
       var server = serverToUse;
-      reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server, tabletId));
+      reporters.computeIfAbsent(serverToUse, k -> scanAttempts.createReporter(server));
     }
 
     ScanServerData ssd = new ScanServerData();
