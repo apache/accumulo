@@ -139,12 +139,15 @@ function getDataTableCols(storageKey, visibleColumnFilter) {
  */
 function refreshTable(table, storageKey, visibleColumnFilter) {
 
-  // Destroy the DataTable and clear the HTML table
+  // Destroy the DataTable
   var dataTableRef = dataTableRefs.get(table);
   if (dataTableRef != null) {
     dataTableRef.destroy();
-    $(table).empty();
   }
+
+  // Preserve table structure (e.g. the title) from the template but rebuild header and body content on refresh
+  $(table).find('thead').remove();
+  $(table).find('tbody').remove();
 
   // Create the HTML table columns
   var htmlTableElement = $(table);
@@ -170,6 +173,7 @@ function refreshTable(table, storageKey, visibleColumnFilter) {
   });
   thead.append(theadRow);
   htmlTableElement.append(thead);
+  htmlTableElement.append($(document.createElement('tbody')));
 
   // Create the DataTable
   dataTableRef = createDataTable(table, storageKey, visibleColumnFilter);

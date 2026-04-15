@@ -410,8 +410,8 @@ function getManager() {
  * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
  */
 function getManagerGoalStateFromSession() {
-  var mgrsView = getManagersView();
-  if (!mgrsView) {
+  var mgrs = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
+  if (!Array.isArray(mgrs) || mgrs.length === 0) {
     console.debug('No manager data in session storage. Returning null.');
     return null;
   }
@@ -419,7 +419,6 @@ function getManagerGoalStateFromSession() {
   // The goal state is stored in ZK, but it's eventually consistent.
   // Use the lowest value seen as the current state for the Monitor
   var goalState = 10;
-  var mgrs = mgrsView.data;
   $.each(mgrs, function (index, mgr) {
     var stateVal = mgr[MANAGER_GOAL_STATE_METRIC];
     if (stateVal < goalState) {

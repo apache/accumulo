@@ -18,13 +18,16 @@
  */
 /* JSLint global definitions */
 /*global
-    $, MANAGER_SERVER_PROCESS_VIEW, getManagersView, refreshServerInformation, getManagerGoalStateFromSession
+    $, sessionStorage, MANAGER_SERVER_PROCESS_VIEW, getManagersView, getStoredRows, getStoredStatus,
+    refreshTable, refreshBanner, showBannerError, getManagerGoalStateFromSession
 */
 "use strict";
 
 const runningBanner = '#managerRunningBanner'
-const htmlBanner = '#managerStateBanner'
+const htmlBanner = '#managerStatusBanner'
 const htmlBannerMessage = '#manager-banner-message'
+const managerStateBanner = '#managerStateBanner'
+const managerStateBannerMessage = '#manager-state-message'
 const htmlTable = '#managers'
 const visibleColumnFilter = (col) => col != "Server Type" && !col.startsWith("accumulo.compaction.") &&
   !col.startsWith("accumulo.fate.");
@@ -38,25 +41,25 @@ const compactionVisibleColumnFilter = (col) => col == "Last Contact" || col == "
   col == "Server Address" || col.startsWith("accumulo.compaction.");
 
 function updateManagerGoalStateBanner() {
-  getManagersView().always(function () {
-    const goalState = getManagerGoalStateFromSession();
-    if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
-      $(htmlBannerMessage).text('Manager goal state: ' + goalState);
-      $(htmlBanner).show();
-    } else {
-      $(htmlBanner).hide();
-    }
-  });
+  const goalState = getManagerGoalStateFromSession();
+  if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
+    $(managerStateBannerMessage)
+      .removeClass('alert-danger alert-warning')
+      .addClass(goalState === 'CLEAN_STOP' ? 'alert-danger' : 'alert-warning')
+      .text('Manager goal state: ' + goalState);
+    $(managerStateBanner).show();
+  } else {
+    $(managerStateBanner).hide();
+  }
 }
 
 function refreshManagerBanners() {
-  var mgrsView = getManagersView();
-  if (mgrsView.data.length === 0) {
+  var managerRows = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
+  if (!Array.isArray(managerRows) || managerRows.length === 0) {
     // show the manager error banner and hide manager table
     $(runningBanner).show();
     $(htmlTable).hide();
     $(fateHtmlTable).hide();
-    $(htmlTable).hide();
     $(compactionHtmlTable).hide();
   } else {
     // otherwise, hide the error banner and show manager table
@@ -69,10 +72,27 @@ function refreshManagerBanners() {
 }
 
 function refresh() {
-  refreshManagerBanners();
-  refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
-  refreshServerInformation(getManagersView, fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fateVisibleColumnFilter);
-  refreshServerInformation(getManagersView, compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, compactionVisibleColumnFilter);
+  getManagersView().then(function () {
+    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW, visibleColumnFilter);
+    refreshTable(fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, fateVisibleColumnFilter);
+    refreshTable(compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, compactionVisibleColumnFilter);
+    refreshManagerBanners();
+    refreshBanner(htmlBanner, htmlBannerMessage, getStoredStatus(MANAGER_SERVER_PROCESS_VIEW));
+  }).fail(function () {
+    sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
+      data: [],
+      columns: [],
+      status: null
+    });
+    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW, visibleColumnFilter);
+    refreshTable(fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, fateVisibleColumnFilter);
+    refreshTable(compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, compactionVisibleColumnFilter);
+    $(runningBanner).show();
+    $(htmlTable).hide();
+    $(fateHtmlTable).hide();
+    $(compactionHtmlTable).hide();
+    showBannerError(htmlBanner, htmlBannerMessage);
+  });
 }
 
 $(function () {
@@ -82,10 +102,7 @@ $(function () {
     status: null
   });
 
-  refreshServerInformation(getManagersView, htmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
-  refreshServerInformation(getManagersView, fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fateVisibleColumnFilter);
-  refreshServerInformation(getManagersView, compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, compactionVisibleColumnFilter);
-  refreshManagerBanners
+  refresh();
 });
 
 
