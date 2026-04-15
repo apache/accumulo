@@ -211,7 +211,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   // Protect against NPE and wait for initial data gathering
-  public SystemInformation getSummary() throws InterruptedException {
+  private SystemInformation getSummary() throws InterruptedException {
     while (summaryRef.get() == null) {
       Thread.sleep(100);
     }
@@ -254,7 +254,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   @Override
   public void run() {
 
-    long refreshTime = 0;
+    long lastRunTime = 0;
 
     while (true) {
 
@@ -263,7 +263,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       // If a connection has not been made in a while, stale data may be displayed.
       // Only refresh every 5s (old monitor logic).
       while (!newConnectionEvent.get() && connectionCount.get() == 0
-          && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
+          && NanoTime.millisElapsed(lastRunTime, NanoTime.now()) > 5000) {
         try {
           Thread.sleep(100);
         } catch (InterruptedException e) {
@@ -275,7 +275,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       // reset the connection event flag
       newConnectionEvent.compareAndExchange(true, false);
 
-      LOG.info("Fetching metrics from servers");
+      LOG.info("Fetching information from servers");
 
       final List<Future<?>> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
@@ -315,13 +315,18 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
       }));
 
-      long monitorFetchTimeout =
+      final long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
-      long allFuturesAdded = NanoTime.now();
+      final long allFuturesAdded = NanoTime.now();
       boolean tookToLong = false;
       while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
+          LOG.warn(
+              "Fetching information for Monitor has taken longer {}. Cancelling all"
+                  + " remaining tasks and monitor will display old information. Resolve issue"
+                  + " causing this or increase property {}.",
+              monitorFetchTimeout, Property.MONITOR_FETCH_TIMEOUT.getKey());
           tookToLong = true;
         }
 
@@ -344,26 +349,31 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
       }
 
-      summary.finish();
+      lastRunTime = NanoTime.now();
 
-      refreshTime = NanoTime.now();
-      LOG.info("Finished fetching metrics from servers");
-      LOG.info(
-          "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
-          allMetrics.estimatedSize(), summary.getManagers().size(),
-          summary.getGarbageCollector() != null,
-          summary.getCompactorAllMetricSummary().isEmpty() ? 0
-              : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getSServerAllMetricSummary().isEmpty() ? 0
-              : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary.getTServerAllMetricSummary()
-              .entrySet().iterator().next().getValue().count());
+      if (tookToLong) {
+        summary.clear();
+      } else {
+        summary.finish();
 
-      SystemInformation oldSummary = summaryRef.getAndSet(summary);
-      if (oldSummary != null) {
-        oldSummary.clear();
+        LOG.info("Finished fetching metrics from servers");
+        LOG.info(
+            "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+            allMetrics.estimatedSize(), summary.getManagers().size(),
+            summary.getGarbageCollector() != null,
+            summary.getCompactorAllMetricSummary().isEmpty() ? 0
+                : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
+                    .count(),
+            summary.getSServerAllMetricSummary().isEmpty() ? 0
+                : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
+                    .count(),
+            summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary
+                .getTServerAllMetricSummary().entrySet().iterator().next().getValue().count());
+
+        SystemInformation oldSummary = summaryRef.getAndSet(summary);
+        if (oldSummary != null) {
+          oldSummary.clear();
+        }
       }
     }
 

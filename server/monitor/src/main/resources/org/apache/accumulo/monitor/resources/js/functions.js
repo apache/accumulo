@@ -29,6 +29,12 @@ var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 const REST_V2_PREFIX = contextPath + 'rest-v2';
 const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
 
+const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
+const GC_SERVER_PROCESS_VIEW = 'gcView';
+const MANAGER_SERVER_PROCESS_VIEW = 'managerssView';
+const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
+const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
+
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
   $.extend(true, $.fn.dataTable.defaults, {
@@ -399,22 +405,27 @@ function getManager() {
 }
 
 /**
- * Extracts the manager goal state from a metrics array.
+ * Gets the manager goal state from the cached manager response, if available.
  *
- * @param {array} metrics Metric list from rest-v2/manager or rest-v2/manager/metrics
  * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
  */
-function getManagerGoalStateFromMetrics(metrics) {
-  if (!Array.isArray(metrics)) {
-    console.error('Metrics is not an array:', metrics);
+function getManagerGoalStateFromSession() {
+  var mgrs = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
+  if (!Array.isArray(mgrs) || mgrs.length === 0) {
+    console.debug('No manager data in session storage. Returning null.');
     return null;
   }
-  const metric = metrics.find(m => m?.name === MANAGER_GOAL_STATE_METRIC);
-  if (!metric || typeof metric.value !== 'number') {
-    console.debug('Manager goal state metric not found or invalid:', metric);
-    return null;
-  }
-  switch (metric.value) {
+  // There could be multiple managers that report different goal states.
+  // The goal state is stored in ZK, but it's eventually consistent.
+  // Use the lowest value seen as the current state for the Monitor
+  var goalState = 10;
+  $.each(mgrs, function (index, mgr) {
+    var stateVal = mgr[MANAGER_GOAL_STATE_METRIC];
+    if (stateVal < goalState) {
+      goalState = stateVal;
+    }
+  });
+  switch (goalState) {
   case 0:
     return 'CLEAN_STOP';
   case 1:
@@ -422,25 +433,7 @@ function getManagerGoalStateFromMetrics(metrics) {
   case 2:
     return 'NORMAL';
   default:
-    return null;
-  }
-}
-
-/**
- * Gets the manager goal state from the cached manager response, if available.
- *
- * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
- */
-function getManagerGoalStateFromSession() {
-  if (!sessionStorage?.manager) {
-    console.debug('No manager data in session storage. Returning null.');
-    return null;
-  }
-  try {
-    const managerData = JSON.parse(sessionStorage.manager);
-    return getManagerGoalStateFromMetrics(managerData.metrics);
-  } catch (e) {
-    console.error('Failed to parse manager data from session storage', e);
+    console.debug('Manager goal state metric not found');
     return null;
   }
 }
@@ -693,12 +686,45 @@ function getDeployment() {
 }
 
 /**
- * REST GET call for /sservers/view,
+ * REST GET call for /servers/view;serverType=COMPACTOR,
+ * stores it on a sessionStorage variable
+ */
+function getCompactorsView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=COMPACTOR', COMPACTOR_SERVER_PROCESS_VIEW);
+}
+
+/**
+ * REST GET call for /servers/view;serverType=GARBAGE_COLLECTOR,
+ * stores it on a sessionStorage variable
+ */
+function getGcView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=GARBAGE_COLLECTOR', GC_SERVER_PROCESS_VIEW);
+}
+
+/**
+ * REST GET call for /servers/view;serverType=MANAGER,
+ * stores it on a sessionStorage variable
+ */
+function getManagersView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=MANAGER', MANAGER_SERVER_PROCESS_VIEW);
+}
+
+/**
+ * REST GET call for /servers/view;serverType=SCAN_SERVER,
  * stores it on a sessionStorage variable
  */
 function getSserversView() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/view', 'sserversView');
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=SCAN_SERVER', SCAN_SERVER_PROCESS_VIEW);
 }
+
+/**
+ * REST GET call for /servers/view;serverType=TABLET_SERVER,
+ * stores it on a sessionStorage variable
+ */
+function getTserversView() {
+  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=TABLET_SERVER', TABLET_SERVER_PROCESS_VIEW);
+}
+
 
 /**
  * REST GET call for /tservers/summary,
