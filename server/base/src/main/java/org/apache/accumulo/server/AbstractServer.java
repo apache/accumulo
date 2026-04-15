@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
 import java.util.OptionalInt;
+import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
@@ -39,6 +40,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.MetricSource;
@@ -95,6 +97,7 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
   private final AtomicBoolean closed = new AtomicBoolean(false);
+  private final Set<String> monitorMetricExclusions;
 
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
@@ -177,6 +180,7 @@ public abstract class AbstractServer
       default:
         throw new IllegalArgumentException("Unhandled server type: " + serverType);
     }
+    monitorMetricExclusions = Metric.getMonitorExclusions(serverType);
   }
 
   /**
@@ -403,10 +407,12 @@ public abstract class AbstractServer
     if (context.getMetricsInfo().isMetricsEnabled()) {
       Metrics.globalRegistry.getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")) {
-          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
-              response::writeDistributionSummary, response::writeLongTaskTimer,
-              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
-              response::writeMeter);
+          if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
+            m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+                response::writeDistributionSummary, response::writeLongTaskTimer,
+                response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+                response::writeMeter);
+          }
         }
       });
     }

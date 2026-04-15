@@ -51,8 +51,8 @@ $(function () {
     "stateSave": true,
     "autoWidth": false,
     "columns": [{
-       "data": "tableId",
-       "width": "5%"
+        "data": "tableId",
+        "width": "5%"
       },
       {
         "data": "fateId",

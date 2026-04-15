@@ -16,114 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/* JSLint global definitions */
+/*global
+    $, GC_SERVER_PROCESS_VIEW, getGcView, refreshServerInformation
+*/
 "use strict";
 
-var gcTable;
-/**
- * Creates active compactions table
- */
-$(function () {
-  // Create a table for compactions list
-  gcTable = $('#gcActivity').DataTable({
-    "ajax": {
-      "url": contextPath + 'rest/gc',
-      "dataSrc": "stats"
-    },
-    "stateSave": true,
-    "dom": 't<"align-left"l>p',
-    "columnDefs": [{
-        "targets": "dateStarted",
-        "render": function (data, type, row) {
-          if (type === 'display') {
-            if (data === 0) data = 'Waiting';
-            else if (data > 0) data = dateFormat(data);
-            else data = 'Error';
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "dateFinished",
-        "render": function (data, type, row) {
-          if (type === 'display') {
-            if (data === 0) data = '&mdash;';
-            else if (data > 0) data = dateFormat(data);
-            else data = 'Error';
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "duration",
-        "render": function (data, type, row) {
-          if (type === 'display') {
-            if (data < 0) data = "Running";
-            else data = timeDuration(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "big-num",
-        "render": function (data, type, row) {
-          if (type === 'display') data = bigNumberForQuantity(data);
-          return data;
-        }
-      }
-    ],
-    "columns": [{
-        "data": "type"
-      },
-      {
-        "data": "started"
-      },
-      {
-        "data": "finished"
-      },
-      {
-        "data": "candidates"
-      },
-      {
-        "data": "deleted"
-      },
-      {
-        "data": "inUse"
-      },
-      {
-        "data": "errors"
-      },
-      {
-        "data": "duration"
-      },
-    ]
-  });
-  refreshGCTable();
-});
+const htmlBanner = '#gcStatusBanner'
+const htmlBannerMessage = '#gc-banner-message'
+const htmlTable = '#gc-server'
+const visibleColumnFilter = (col) => col != "Server Type" && !col.startsWith("accumulo.gc.");
 
-/**
- * Used to redraw the page
- */
+const fileHtmlTable = '#gc-file'
+const fileVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
+  col == "Server Address" || (col.startsWith("accumulo.gc.") && !col.startsWith("accumulo.gc.wal."));
+
+const walHtmlTable = '#gc-wal'
+const walVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
+  col == "Server Address" || col.startsWith("accumulo.gc.wal.");
+
 function refresh() {
-  refreshGCTable();
+  refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getGcView, fileHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fileVisibleColumnFilter);
+  refreshServerInformation(getGcView, walHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, walVisibleColumnFilter);
 }
 
-/**
- * Generates the garbage collector table
- */
-function refreshGCTable() {
-  var status = JSON.parse(sessionStorage.status).gcStatus;
+$(function () {
+  sessionStorage[GC_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
 
-  if (status === 'ERROR') {
-    $('#gcBanner').show();
-    $('#gcActivity').hide();
-  } else {
-    $('#gcBanner').hide();
-    $('#gcActivity').show();
-    if (gcTable) gcTable.ajax.reload(null, false); // user paging is not reset on reload
-  }
-
-}
-
-function showBanner() {
-
-}
+  refreshServerInformation(getGcView, htmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getGcView, fileHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, fileVisibleColumnFilter);
+  refreshServerInformation(getGcView, walHtmlTable, GC_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, walVisibleColumnFilter);
+});

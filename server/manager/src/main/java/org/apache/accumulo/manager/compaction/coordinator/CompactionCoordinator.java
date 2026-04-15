@@ -93,8 +93,6 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metadata.schema.filters.HasExternalCompactionsFilter;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
@@ -108,7 +106,6 @@ import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
@@ -122,8 +119,8 @@ import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -765,6 +762,23 @@ public class CompactionCoordinator
 
   void compactionFailedForLevel(Map<KeyExtent,Set<ExternalCompactionId>> compactions) {
 
+    // CompactionFailed is called from the Compactor when either a compaction fails or is cancelled
+    // and it's called from the DeadCompactionDetector. Remove compaction tmp files from the tablet
+    // directory that have a corresponding ecid in the name. Must delete any tmp files before
+    // removing compaction entry from metadata table. This ensures that in the event of process
+    // death that the dead compaction will be detected in the future and the files removed then.
+    try (var tablets = ctx.getAmple().readTablets()
+        .forTablets(compactions.keySet(), Optional.empty()).fetch(ColumnType.DIR).build()) {
+      Set<Path> tmpFilesToDelete = new HashSet<>();
+      for (TabletMetadata tm : tablets) {
+        var extent = tm.getExtent();
+        var ecidsForTablet = compactions.get(extent);
+        FindCompactionTmpFiles.findTmpFiles(ctx, extent.tableId(), tm.getDirName(), ecidsForTablet,
+            tmpFilesToDelete::add);
+      }
+      FindCompactionTmpFiles.deleteTempFiles(ctx, tmpFilesToDelete);
+    }
+
     try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
       compactions.forEach((extent, ecids) -> {
         try {
@@ -791,75 +805,15 @@ public class CompactionCoordinator
         }
       });
 
-      final List<ExternalCompactionId> ecidsForTablet = new ArrayList<>();
       tabletsMutator.process().forEach((extent, result) -> {
         if (result.getStatus() != Ample.ConditionalResult.Status.ACCEPTED) {
-
           // this should try again later when the dead compaction detector runs, lets log it in case
           // its a persistent problem
           if (LOG.isDebugEnabled()) {
             LOG.debug("Unable to remove failed compaction {} {}", extent, compactions.get(extent));
           }
-        } else {
-          // compactionFailed is called from the Compactor when either a compaction fails or
-          // is cancelled and it's called from the DeadCompactionDetector. This block is
-          // entered when the conditional mutator above successfully deletes an ecid from
-          // the tablet metadata. Remove compaction tmp files from the tablet directory
-          // that have a corresponding ecid in the name.
-
-          ecidsForTablet.clear();
-          ecidsForTablet.addAll(compactions.get(extent));
-
-          if (!ecidsForTablet.isEmpty()) {
-            final TabletMetadata tm = ctx.getAmple().readTablet(extent, ColumnType.DIR);
-            if (tm != null) {
-              final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
-              for (Volume vol : vols) {
-                try {
-                  final String volPath =
-                      vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
-                          + extent.tableId().canonical() + Path.SEPARATOR + tm.getDirName();
-                  final FileSystem fs = vol.getFileSystem();
-                  for (ExternalCompactionId ecid : ecidsForTablet) {
-                    final String fileSuffix = "_tmp_" + ecid.canonical();
-                    FileStatus[] files = null;
-                    try {
-                      files = fs.listStatus(new Path(volPath),
-                          (path) -> path.getName().endsWith(fileSuffix));
-                    } catch (FileNotFoundException e) {
-                      LOG.trace("Failed to list tablet dir {}", volPath, e);
-                    }
-                    if (files != null) {
-                      for (FileStatus file : files) {
-                        if (!fs.delete(file.getPath(), false)) {
-                          LOG.warn("Unable to delete ecid tmp file: {}: ", file.getPath());
-                        } else {
-                          LOG.debug("Deleted ecid tmp file: {}", file.getPath());
-                        }
-                      }
-                    }
-                  }
-                } catch (IOException e) {
-                  LOG.error("Exception deleting compaction tmp files for tablet: {}", extent, e);
-                }
-              }
-            } else {
-              // TabletMetadata does not exist for the extent. This could be due to a merge or
-              // split operation. Use the utility to find tmp files at the table level
-              deadCompactionDetector.addTableId(extent.tableId());
-            }
-          }
         }
       });
-    }
-  }
-
-  protected Set<ExternalCompactionId> readExternalCompactionIds() {
-    try (TabletsMetadata tabletsMetadata =
-        this.ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
-            .filter(new HasExternalCompactionsFilter()).fetch(ECOMP).build()) {
-      return tabletsMetadata.stream().flatMap(tm -> tm.getExternalCompactions().keySet().stream())
-          .collect(Collectors.toSet());
     }
   }
 
