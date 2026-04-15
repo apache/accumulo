@@ -222,8 +222,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
     context = super.getContext();
     final AccumuloConfiguration aconf = getConfiguration();
-    log.info("Version " + Constants.VERSION);
-    log.info("Instance " + getInstanceID());
+    log.info("Version {}", Constants.VERSION);
+    log.info("Instance {}", getInstanceID());
     this.sessionManager = new SessionManager(context);
     this.logSorter = new LogSorter(this);
     this.statsKeeper = new TabletStatsKeeper();
@@ -423,7 +423,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       }
       return HostAndPort.fromString(managers.iterator().next().toHostPortString());
     } catch (Exception e) {
-      log.warn("Failed to obtain manager host " + e);
+      log.warn("Failed to obtain manager host", e);
     }
 
     return null;
@@ -438,7 +438,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       // log.info("Listener API to manager has been opened");
       return ThriftUtil.getClient(ThriftClientTypes.MANAGER, address, getContext());
     } catch (Exception e) {
-      log.warn("Issue with managerConnection (" + address + ") " + e, e);
+      log.warn("Issue with managerConnection ({}) {}", address, e, e);
     }
     return null;
   }
@@ -735,7 +735,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       return new TServerInstance(getAdvertiseAddress().toString(), lockSessionId);
     } catch (Exception ex) {
-      log.warn("Unable to read session from tablet server lock" + ex);
+      log.warn("Unable to read session from tablet server lock", ex);
       return null;
     }
   }
@@ -890,15 +890,15 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
+      return logger.needsRecovery(tabletMetadata.getExtent(), logEntries);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
   }
 
-  public void recover(VolumeManager fs, KeyExtent extent, Collection<LogEntry> logEntries,
-      Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    logger.recover(getContext(), extent, logEntries, tabletFiles, mutationReceiver);
+  public void recover(KeyExtent extent, Collection<LogEntry> logEntries, Set<String> tabletFiles,
+      MutationReceiver mutationReceiver) throws IOException {
+    logger.recover(extent, logEntries, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {
@@ -1016,7 +1016,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       TServerInstance session = this.getTabletSession();
       for (DfsLogger candidate : eligible) {
-        log.info("Marking " + candidate.getPath() + " as unreferenced");
+        log.info("Marking {} as unreferenced", candidate.getPath());
         walMarker.walUnreferenced(session, candidate.getPath());
       }
       synchronized (closedLogs) {
@@ -1028,7 +1028,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public void addNewLogMarker(DfsLogger copy) throws WalMarkerException {
-    log.info("Writing log marker for " + copy.getPath());
+    log.info("Writing log marker for {}", copy.getPath());
     walMarker.addNewWalMarker(getTabletSession(), copy.getPath());
   }
 
@@ -1040,7 +1040,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         closedLogs.add(currentLog);
         clSize = closedLogs.size();
       }
-      log.info("Marking " + currentLog.getPath() + " as closed. Total closed logs " + clSize);
+      log.info("Marking {} as closed. Total closed logs {}", currentLog.getPath(), clSize);
       walMarker.closeWal(getTabletSession(), currentLog.getPath());
 
       // whenever a new log is added to the set of closed logs, go through all of the tablets and
@@ -1058,8 +1058,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
       }
     } else {
-      log.info(
-          "Marking " + currentLog.getPath() + " as unreferenced (skipping closed writes == 0)");
+      log.info("Marking {} as unreferenced (skipping closed writes == 0)", currentLog.getPath());
       walMarker.walUnreferenced(getTabletSession(), currentLog.getPath());
     }
   }
