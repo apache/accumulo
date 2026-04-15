@@ -71,7 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Meter.Id;
@@ -394,7 +393,6 @@ public class SystemInformation {
   // Compaction Information
   private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
   private volatile Set<ServerId> registeredCompactors = Set.of();
-  private volatile HostAndPort coordinatorHost;
 
   protected final Map<String,TimeOrderedRunningCompactionSet> longRunningCompactionsByRg =
       new ConcurrentHashMap<>();
@@ -442,7 +440,6 @@ public class SystemInformation {
     rgTServerMetrics.clear();
     queueMetrics.clear();
     registeredCompactors = Set.of();
-    coordinatorHost = null;
     longRunningCompactionsByRg.clear();
     tables.clear();
     tablets.clear();
@@ -560,13 +557,12 @@ public class SystemInformation {
         .add(new RunningCompactionInfo(tec));
   }
 
-  public void processExternalCompactionInventory(Set<ServerId> compactors, HostAndPort host) {
+  public void processExternalCompactionInventory(Set<ServerId> compactors) {
     if (compactors == null) {
       registeredCompactors = Set.of();
     } else {
       registeredCompactors = Set.copyOf(compactors);
     }
-    coordinatorHost = host;
   }
 
   public void processTabletInformation(TableId tableId, String tableName, TabletInformation info) {
@@ -755,10 +751,6 @@ public class SystemInformation {
 
   public Set<ServerId> getCompactorServers() {
     return registeredCompactors;
-  }
-
-  public HostAndPort getCoordinatorHost() {
-    return coordinatorHost;
   }
 
   public Map<String,TimeOrderedRunningCompactionSet> getTopRunningCompactions() {

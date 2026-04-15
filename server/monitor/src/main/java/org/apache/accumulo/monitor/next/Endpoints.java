@@ -54,7 +54,6 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
-import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
 import org.apache.accumulo.monitor.next.views.ServersView;
 
 import io.micrometer.core.instrument.Meter.Id;
@@ -361,16 +360,6 @@ public class Endpoints {
       return List.of();
     }
     return longRunning.stream().collect(Collectors.toList());
-  }
-
-  @GET
-  @Path("ec")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns External Compaction coordinator summary")
-  public CoordinatorSummary getExternalCompactionCoordinator() {
-    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return CoordinatorSummary.fromHost(summary.getCoordinatorHost(), summary.getCompactorServers(),
-        summary.getTimestamp());
   }
 
   @GET
