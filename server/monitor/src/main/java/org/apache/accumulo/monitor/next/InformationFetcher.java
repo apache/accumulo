@@ -358,8 +358,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
         LOG.info("Finished fetching metrics from servers");
         LOG.info(
-            "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
-            allMetrics.estimatedSize(), summary.getManager() != null,
+            "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+            allMetrics.estimatedSize(), summary.getManagers().size(),
             summary.getGarbageCollector() != null,
             summary.getCompactorAllMetricSummary().isEmpty() ? 0
                 : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()

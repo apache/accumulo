@@ -136,9 +136,8 @@ function updateServerNotifications(statusData) {
     }
   };
 
-  applyStatuses(getManagerGoalStateFromSession());
 
-  getManager().always(function () {
+  getManagersView().always(function () {
     applyStatuses(getManagerGoalStateFromSession());
   });
 }
