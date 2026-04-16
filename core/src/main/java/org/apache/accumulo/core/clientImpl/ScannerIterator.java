@@ -39,6 +39,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -150,11 +151,12 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
 
     List<KeyValue> batch;
 
+    Timer scanTimer = Timer.startNew();
     do {
       synchronized (scanState) {
         // this is synchronized so its mutually exclusive with closing
         Preconditions.checkState(!closed.get(), "Scanner was closed");
-        batch = ThriftScanner.scan(scanState.context, scanState, timeOut);
+        batch = ThriftScanner.scan(scanState.context, scanState, timeOut, scanTimer);
       }
     } while (batch != null && batch.isEmpty());
 
