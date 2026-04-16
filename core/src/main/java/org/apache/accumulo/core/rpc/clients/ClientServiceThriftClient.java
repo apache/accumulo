@@ -44,7 +44,7 @@ public class ClientServiceThriftClient extends ThriftClientTypes<Client>
   public Pair<String,Client> getThriftServerConnection(ClientContext context,
       boolean preferCachedConnections) throws TTransportException {
     return getThriftServerConnection(LOG, this, context, preferCachedConnections,
-        warnedAboutTServersBeingDown, RpcService.CLIENT);
+        warnedAboutTServersBeingDown, getService());
   }
 
   @Override

@@ -49,7 +49,7 @@ public class AccumuloTMultiplexedProtocol extends TProtocolDecorator {
   @Override
   public void writeMessageBegin(TMessage tMessage) throws TException {
     if (tMessage.type == TMessageType.CALL || tMessage.type == TMessageType.ONEWAY) {
-      super.writeMessageBegin(new TMessage(tMessage.name, tMessage.type, tMessage.seqid));
+      super.writeMessageBegin(tMessage);
       super.writeByte(this.rpcService.getShortId());
     } else {
       super.writeMessageBegin(tMessage);

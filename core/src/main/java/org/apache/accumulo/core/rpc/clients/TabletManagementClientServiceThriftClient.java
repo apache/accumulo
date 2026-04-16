@@ -49,7 +49,7 @@ public class TabletManagementClientServiceThriftClient extends ThriftClientTypes
   public Pair<String,Client> getThriftServerConnection(ClientContext context,
       boolean preferCachedConnections) throws TTransportException {
     return getThriftServerConnection(LOG, this, context, preferCachedConnections,
-        warnedAboutTServersBeingDown, RpcService.TABLET_MANAGEMENT);
+        warnedAboutTServersBeingDown, getService());
   }
 
   @Override

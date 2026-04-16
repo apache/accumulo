@@ -29,6 +29,8 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.protocol.TProtocolDecorator;
 import org.apache.thrift.protocol.TProtocolException;
 
+import com.google.common.base.Preconditions;
+
 /**
  * AccumuloTMultiplexedProcessor is a {@link TMultiplexedProcessor} variant that uses the
  * {@link AccumuloTMultiplexedProtocol} to register additional processors and then forward messages
@@ -40,7 +42,11 @@ public class AccumuloTMultiplexedProcessor extends TMultiplexedProcessor {
   private final TProcessor[] PROCESSORS = new TProcessor[RpcService.values().length];
 
   public void registerProcessor(RpcService service, TProcessor processor) {
-    PROCESSORS[Byte.toUnsignedInt(service.getShortId())] = Objects.requireNonNull(processor,
+    int serviceID = Byte.toUnsignedInt(service.getShortId());
+    // Ensure that TProcessors are only registered once.
+    Preconditions.checkState(PROCESSORS[serviceID] == null,
+        "processor already exists with id " + serviceID);
+    PROCESSORS[serviceID] = Objects.requireNonNull(processor,
         "processor must not be null for RPCService: " + service.name());
   }
 
