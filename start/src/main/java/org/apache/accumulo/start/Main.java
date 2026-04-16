@@ -24,6 +24,7 @@ import java.lang.reflect.Modifier;
 import java.util.Collections;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.TreeMap;
@@ -89,9 +90,21 @@ public class Main {
       if (ke != null) {
         execKeyword(ke, stripArgs(args, argOffset));
       } else {
-        String clazz = args[0];
+        final String keyword = args[0];
         argOffset = 1;
-        execMainClassName(clazz, stripArgs(args, argOffset));
+        ke = executables.entrySet().stream().filter(e -> e.getKey() != clientGroup)
+            .map(e -> e.getValue().get(keyword)).filter(Objects::nonNull).findFirst().orElse(null);
+
+        if (ke != null) {
+          log.warn(
+              "Command '{}' should be invoked as 'accumulo {} {}'. "
+                  + "Direct invocation without group key is deprecated.",
+              keyword, ke.commandGroup().key(), keyword);
+          execKeyword(ke, stripArgs(args, argOffset));
+        } else {
+          execMainClassName(keyword, stripArgs(args, argOffset));
+        }
+
       }
 
     }
