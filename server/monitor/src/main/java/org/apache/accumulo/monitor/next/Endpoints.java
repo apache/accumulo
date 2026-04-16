@@ -54,7 +54,6 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
-import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
 import org.apache.accumulo.monitor.next.views.ServersView;
 
 import io.micrometer.core.instrument.Meter.Id;
@@ -148,30 +147,6 @@ public class Endpoints {
   @Description("Returns the metric responses for all servers")
   public Collection<MetricResponse> getAll() {
     return monitor.getInformationFetcher().getAllMetrics().asMap().values();
-  }
-
-  @GET
-  @Path("manager")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metric response for the Manager")
-  public MetricResponse getManager() {
-    final ServerId s = monitor.getInformationFetcher().getSummaryForEndpoint().getManager();
-    if (s == null) {
-      throw new NotFoundException("Manager not found");
-    }
-    return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
-  }
-
-  @GET
-  @Path("manager/metrics")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metrics for the Manager")
-  public List<FMetric> getManagerMetrics() {
-    var managerMetrics = getManager().getMetrics();
-    if (managerMetrics != null) {
-      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
-    }
-    return List.of();
   }
 
   @GET
@@ -361,16 +336,6 @@ public class Endpoints {
       return List.of();
     }
     return longRunning.stream().collect(Collectors.toList());
-  }
-
-  @GET
-  @Path("ec")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns External Compaction coordinator summary")
-  public CoordinatorSummary getExternalCompactionCoordinator() {
-    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return CoordinatorSummary.fromHost(summary.getCoordinatorHost(), summary.getCompactorServers(),
-        summary.getTimestamp());
   }
 
   @GET

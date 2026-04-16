@@ -71,7 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Meter.Id;
@@ -365,7 +364,7 @@ public class SystemInformation {
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
-  private final AtomicReference<ServerId> manager = new AtomicReference<>();
+  private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
   // index of resource group name to set of servers
@@ -394,7 +393,6 @@ public class SystemInformation {
   // Compaction Information
   private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
   private volatile Set<ServerId> registeredCompactors = Set.of();
-  private volatile HostAndPort coordinatorHost;
 
   protected final Map<String,TimeOrderedRunningCompactionSet> longRunningCompactionsByRg =
       new ConcurrentHashMap<>();
@@ -431,6 +429,7 @@ public class SystemInformation {
     resourceGroups.clear();
     problemHosts.clear();
     metricProblemHosts.clear();
+    managers.clear();
     compactors.clear();
     sservers.clear();
     tservers.clear();
@@ -442,7 +441,6 @@ public class SystemInformation {
     rgTServerMetrics.clear();
     queueMetrics.clear();
     registeredCompactors = Set.of();
-    coordinatorHost = null;
     longRunningCompactionsByRg.clear();
     tables.clear();
     tablets.clear();
@@ -527,9 +525,7 @@ public class SystemInformation {
         }
         break;
       case MANAGER:
-        if (manager.get() == null || !manager.get().equals(server)) {
-          manager.set(server);
-        }
+        managers.add(server);
         createCompactionSummary(response);
         break;
       case SCAN_SERVER:
@@ -560,13 +556,12 @@ public class SystemInformation {
         .add(new RunningCompactionInfo(tec));
   }
 
-  public void processExternalCompactionInventory(Set<ServerId> compactors, HostAndPort host) {
+  public void processExternalCompactionInventory(Set<ServerId> compactors) {
     if (compactors == null) {
       registeredCompactors = Set.of();
     } else {
       registeredCompactors = Set.copyOf(compactors);
     }
-    coordinatorHost = host;
   }
 
   public void processTabletInformation(TableId tableId, String tableName, TabletInformation info) {
@@ -672,7 +667,7 @@ public class SystemInformation {
               () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
         case MANAGER:
-          servers.add(manager.get());
+          servers.addAll(managers);
           serverMetricsView.put(type, memoize(
               () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
           break;
@@ -702,8 +697,8 @@ public class SystemInformation {
     return this.problemHosts;
   }
 
-  public ServerId getManager() {
-    return this.manager.get();
+  public Set<ServerId> getManagers() {
+    return this.managers;
   }
 
   public ServerId getGarbageCollector() {
@@ -755,10 +750,6 @@ public class SystemInformation {
 
   public Set<ServerId> getCompactorServers() {
     return registeredCompactors;
-  }
-
-  public HostAndPort getCoordinatorHost() {
-    return coordinatorHost;
   }
 
   public Map<String,TimeOrderedRunningCompactionSet> getTopRunningCompactions() {
