@@ -19,7 +19,7 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toSet;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -31,9 +31,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -56,7 +54,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -66,8 +63,11 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TDequeuedCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
+import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -77,19 +77,16 @@ import org.apache.accumulo.core.fate.FateClient;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.RejectionHandler;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -97,7 +94,6 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 import org.apache.accumulo.core.tabletserver.thrift.IteratorConfig;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
@@ -110,10 +106,10 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CommitCompaction;
 import org.apache.accumulo.manager.compaction.coordinator.commit.CompactionCommitData;
 import org.apache.accumulo.manager.compaction.coordinator.commit.RenameCompactionFile;
-import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobQueues;
 import org.apache.accumulo.manager.compaction.queue.ResolvedCompactionJob;
 import org.apache.accumulo.manager.tableOps.FateEnv;
+import org.apache.accumulo.manager.upgrade.UpgradeCheck;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
@@ -122,7 +118,7 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
-import org.apache.zookeeper.KeeperException;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,6 +132,48 @@ import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
+/**
+ * This class is the focal point in a distributed system for coordinating compactions. It has the
+ * following functionality.
+ * <ul>
+ * <li>Maintains priority queues of compaction jos for some subset of the compactor groups</li>
+ * <li>Accepts assignments of compactor groups over RPC</li>
+ * <li>Handles RPC request to add compaction jobs to a queue. Only accepts the request if its
+ * assigned that compactor group.</li>
+ * <li>Handles RPC request to pull a compaction job of a queue.</li>
+ * <li>Handles RPC request to reserve a compaction job in the metadata table.</li>
+ * <li>Handles RPC request to complete a compaction job. This initiates a fate operation to commit
+ * the job.</li>
+ * <li>Handles RPC request to fail a compaction job which updates the metadata table.</li>
+ * </ul>
+ *
+ * <p>
+ * This class is part of a larger distributed system and overview of that larger system is given
+ * here. Other parts of the code point to this overview. The following are the pieces of the system
+ * and how they work together.
+ * </p>
+ *
+ * <ul>
+ * <li>An instance of this class runs in every manager process and accepts RPC request.</li>
+ * <li>{@link CoordinatorManager} runs in the primary manager. It examines Accumulo configuration
+ * and finds the set of compactor resource groups. It then evenly assigns those compactor resource
+ * groups to instances of this class running in different manager processes. After it has made
+ * assignments it uses {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to
+ * store those in zookeeper.</li>
+ * <li>{@link org.apache.accumulo.manager.TabletGroupWatcher}</li> analyzes tablets and generate
+ * compaction jobs for tablet that need to compact. When it finds a job is uses
+ * {@link org.apache.accumulo.manager.compaction.CompactionJobClient} to send them to an instance of
+ * this class. The {@link org.apache.accumulo.manager.compaction.CompactionJobClient} uses the
+ * {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to find remote
+ * coordinators to send jobs to.
+ * <li>Compactors processes use the
+ * {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to find the coordinator
+ * that has their queue. They make RPC request to that specific coordinator to pull jobs from their
+ * queue. Compactors use any coordinator to reserve, complete, and fail jobs in order to spread
+ * metadata and fate table load across all managers.</li>
+ * </ul>
+ *
+ */
 public class CompactionCoordinator
     implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
@@ -185,17 +223,16 @@ public class CompactionCoordinator
 
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
-  private final DeadCompactionDetector deadCompactionDetector;
 
   private final QueueMetrics queueMetrics;
   private final Manager manager;
 
   private final LoadingCache<ResourceGroupId,Integer> compactorCounts;
 
-  private volatile long coordinatorStartTime;
-
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
+
+  private final UpgradeCheck upgradeCheck;
 
   public CompactionCoordinator(Manager manager,
       Function<FateInstanceType,FateClient<FateEnv>> fateClients) {
@@ -229,9 +266,6 @@ public class CompactionCoordinator
     tabletDirCache = ctx.getCaches().createNewBuilder(CacheName.COMPACTION_DIR_CACHE, true)
         .maximumWeight(10485760L).weigher(weigher).build();
 
-    deadCompactionDetector =
-        new DeadCompactionDetector(this.ctx, this, ctx.getScheduledExecutor(), fateClients);
-
     var rootReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
         ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT, true);
 
@@ -246,7 +280,8 @@ public class CompactionCoordinator
 
     compactorCounts = ctx.getCaches().createNewBuilder(CacheName.COMPACTOR_COUNTS, false)
         .expireAfterWrite(2, TimeUnit.MINUTES).build(this::countCompactors);
-    // At this point the manager does not have its lock so no actions should be taken yet
+
+    upgradeCheck = new UpgradeCheck(ctx);
   }
 
   protected int countCompactors(ResourceGroupId groupName) {
@@ -275,18 +310,6 @@ public class CompactionCoordinator
     }
   }
 
-  protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future = schedExecutor
-        .scheduleWithFixedDelay(this::cleanUpEmptyCompactorPathInZK, 0, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
-  protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::resizeThreadPools, 0, 5, TimeUnit.MINUTES);
-    ThreadPools.watchNonCriticalScheduledTask(future);
-  }
-
   protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {
     ScheduledFuture<?> future =
         schedExecutor.scheduleWithFixedDelay(this::checkForConfigChanges, 0, 1, TimeUnit.MINUTES);
@@ -297,18 +320,22 @@ public class CompactionCoordinator
     long jobQueueMaxSize =
         ctx.getConfiguration().getAsBytes(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE);
     jobQueues.resetMaxSize(jobQueueMaxSize);
+
+    var config = ctx.getConfiguration();
+    ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT);
+    ThreadPools.resizePool(reservationPools.get(DataLevel.METADATA), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
+    ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
+        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
+
   }
 
   @Override
   public void run() {
-
-    this.coordinatorStartTime = System.currentTimeMillis();
     startConfigMonitor(ctx.getScheduledExecutor());
-    startCompactorZKCleaner(ctx.getScheduledExecutor());
 
-    startDeadCompactionDetector();
     startFailureSummaryLogging();
-    startInternalStateCleaner(ctx.getScheduledExecutor());
 
     try {
       shutdown.await();
@@ -319,72 +346,69 @@ public class CompactionCoordinator
     LOG.info("Shutting down");
   }
 
-  protected void startDeadCompactionDetector() {
-    deadCompactionDetector.start();
-  }
-
   /**
    * Return the next compaction job from the queue to a Compactor
    *
    * @param groupName group
-   * @param compactorAddress compactor address
    * @throws ThriftSecurityException when permission error
    * @return compaction job
    */
   @Override
-  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
-
+  public TDequeuedCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
+      String groupName) throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     ResourceGroupId groupId = ResourceGroupId.of(groupName);
-    LOG.trace("getCompactionJob called for group {} by compactor {}", groupId, compactorAddress);
+    ResolvedCompactionJob rcJob = (ResolvedCompactionJob) jobQueues.poll(groupId);
+    return new TDequeuedCompactionJob(rcJob == null ? null : rcJob.toThrift(),
+        compactorCounts.get(groupId));
+  }
+
+  @Override
+  public TNextCompactionJob reserveCompactionJob(TInfo tinfo, TCredentials credentials,
+      TResolvedCompactionJob job, String compactorAddress, String externalCompactionId)
+      throws ThriftSecurityException, TException {
+
+    // do not expect users to call this directly, expect compactors to call this method
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    ResourceGroupId groupId = ResourceGroupId.of(job.group);
+    LOG.trace("reserveCompactionJob called for group {} by compactor {}", groupId,
+        compactorAddress);
 
     TExternalCompactionJob result = null;
 
-    ResolvedCompactionJob rcJob = (ResolvedCompactionJob) jobQueues.poll(groupId);
+    ResolvedCompactionJob rcJob = ResolvedCompactionJob.fromThrift(job);
 
-    while (rcJob != null) {
+    Optional<CompactionConfig> compactionConfig = getCompactionConfig(rcJob);
 
-      Optional<CompactionConfig> compactionConfig = getCompactionConfig(rcJob);
+    // this method may reread the metadata, do not use the metadata in rcJob for anything after
+    // this method
+    CompactionMetadata ecm = null;
 
-      // this method may reread the metadata, do not use the metadata in rcJob for anything after
-      // this method
-      CompactionMetadata ecm = null;
+    var kind = rcJob.getKind();
 
-      var kind = rcJob.getKind();
-
-      // Only reserve user compactions when the config is present. When compactions are canceled the
-      // config is deleted.
-      var cid = ExternalCompactionId.from(externalCompactionId);
-      if (kind == CompactionKind.SYSTEM
-          || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
-        ecm = reserveCompaction(rcJob, compactorAddress, cid);
-      }
-
-      if (ecm != null) {
-        result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
-        TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
-            rcJob, ecm.getCompactTmpName());
-        break;
-      } else {
-        LOG.debug(
-            "Unable to reserve compaction job for {}, pulling another off the queue for group {}",
-            rcJob.getExtent(), groupName);
-        rcJob = (ResolvedCompactionJob) jobQueues.poll(ResourceGroupId.of(groupName));
-      }
+    // Only reserve user compactions when the config is present. When compactions are canceled the
+    // config is deleted.
+    var cid = ExternalCompactionId.from(externalCompactionId);
+    if (kind == CompactionKind.SYSTEM
+        || (kind == CompactionKind.USER && compactionConfig.isPresent())) {
+      ecm = reserveCompaction(rcJob, compactorAddress, cid);
     }
 
-    if (rcJob == null) {
-      LOG.trace("No jobs found in group {} ", groupName);
+    if (ecm != null) {
+      result = createThriftJob(externalCompactionId, ecm, rcJob, compactionConfig);
+      TabletLogger.compacting(rcJob.getExtent(), rcJob.getSelectedFateId(), cid, compactorAddress,
+          rcJob, ecm.getCompactTmpName());
     }
 
     if (result == null) {
-      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupName,
+      LOG.trace("No jobs found for group {}, returning empty job to compactor {}", groupId,
           compactorAddress);
       result = new TExternalCompactionJob();
     }
@@ -541,11 +565,7 @@ public class CompactionCoordinator
     IteratorConfig iteratorSettings = SystemIteratorUtil
         .toIteratorConfig(compactionConfig.map(CompactionConfig::getIterators).orElse(List.of()));
 
-    var files = rcJob.getJobFilesMap().entrySet().stream().map(e -> {
-      StoredTabletFile file = e.getKey();
-      DataFileValue dfv = e.getValue();
-      return new InputFile(file.getMetadata(), dfv.getSize(), dfv.getNumEntries(), dfv.getTime());
-    }).collect(toList());
+    var files = rcJob.getThriftFiles();
 
     // The fateId here corresponds to the Fate transaction that is driving a user initiated
     // compaction. A system initiated compaction has no Fate transaction driving it so its ok to set
@@ -567,13 +587,92 @@ public class CompactionCoordinator
     queueMetrics.registerMetrics(registry);
   }
 
-  public void addJobs(TabletMetadata tabletMetadata, Collection<CompactionJob> jobs) {
-    ArrayList<CompactionJob> resolvedJobs = new ArrayList<>(jobs.size());
-    for (var job : jobs) {
-      resolvedJobs.add(new ResolvedCompactionJob(job, tabletMetadata));
+  @Override
+  public void beginFullJobScan(TInfo tinfo, TCredentials credentials, String dataLevel)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    jobQueues.beginFullScan(DataLevel.valueOf(dataLevel));
+  }
+
+  @Override
+  public void addJobs(TInfo tinfo, TCredentials credentials, List<TResolvedCompactionJob> tjobs)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      LOG.warn("Thrift call attempted to add job and did not have proper access. {}",
+          credentials.getPrincipal());
+      return;
     }
 
-    jobQueues.add(tabletMetadata.getExtent(), resolvedJobs);
+    Map<KeyExtent,List<CompactionJob>> jobs = new HashMap<>();
+    for (var tjob : tjobs) {
+      var job = ResolvedCompactionJob.fromThrift(tjob);
+      LOG.trace("Adding compaction job {} {} {} {} {}", job.getGroup(), job.getPriority(),
+          job.getKind(), job.getExtent(), job.getJobFiles().size());
+      jobs.computeIfAbsent(job.getExtent(), e -> new ArrayList<>()).add(job);
+    }
+
+    // its important to add all jobs for an extent at once instead of one by one because the job
+    // queue deletes all existing jobs for an extent when adding an extent
+    jobs.forEach(jobQueues::add);
+  }
+
+  @Override
+  public void endFullJobScan(TInfo tinfo, TCredentials credentials, String dataLevel)
+      throws TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+    jobQueues.endFullScan(DataLevel.valueOf(dataLevel));
+  }
+
+  private static class UpdateId {
+    long updateId;
+    boolean set;
+  }
+
+  private final UpdateId expectedUpdateId = new UpdateId();
+
+  @Override
+  public Set<String> getResourceGroups(TInfo tinfo, TCredentials credentials, long updateId)
+      throws ThriftSecurityException, TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    synchronized (expectedUpdateId) {
+      // invalidate any outstanding updates and set a new one time use update id
+      expectedUpdateId.updateId = updateId;
+      expectedUpdateId.set = true;
+      return jobQueues.getAllowedGroups().stream().map(AbstractId::canonical).collect(toSet());
+    }
+  }
+
+  @Override
+  public void setResourceGroups(TInfo tinfo, TCredentials credentials, long updateId,
+      Set<String> groups) throws ThriftSecurityException, TException {
+    if (!security.canPerformSystemActions(credentials)) {
+      throw new AccumuloSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED).asThriftException();
+    }
+
+    // Do not expect this to be called before upgrade is complete
+    Preconditions.checkState(upgradeCheck.isUpgradeComplete());
+
+    // only allow an update id to be used once
+    synchronized (expectedUpdateId) {
+      if (expectedUpdateId.updateId == updateId && expectedUpdateId.set) {
+        jobQueues.setAllowedGroups(groups.stream().map(ResourceGroupId::of).collect(toSet()));
+        LOG.debug("Set allowed resource groups to {}", groups);
+        expectedUpdateId.set = false;
+      } else {
+        LOG.debug("Did not set resource groups because update id did not match");
+      }
+    }
   }
 
   public CompactionCoordinatorService.Iface getThriftService() {
@@ -653,7 +752,7 @@ public class CompactionCoordinator
       LOG.debug("Not committing compaction {} for {} because of table state {}", ecid, extent,
           tableState);
       // cleanup metadata table and files related to the compaction
-      compactionsFailed(Map.of(ecid, extent));
+      compactionsFailed(ctx, Map.of(ecid, extent));
       return;
     }
 
@@ -688,7 +787,7 @@ public class CompactionCoordinator
     if (failureState == TCompactionState.FAILED) {
       captureFailure(ResourceGroupId.of(groupName), compactorAddress, fromThriftExtent);
     }
-    compactionsFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    compactionsFailed(ctx, Map.of(ecid, KeyExtent.fromThrift(extent)));
   }
 
   private void captureFailure(ResourceGroupId group, String compactorAddress, KeyExtent extent) {
@@ -743,7 +842,8 @@ public class CompactionCoordinator
     failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
 
-  void compactionsFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
+  static void compactionsFailed(ServerContext ctx,
+      Map<ExternalCompactionId,KeyExtent> compactions) {
     // Need to process each level by itself because the conditional tablet mutator does not support
     // mutating multiple data levels at the same time. Also the conditional tablet mutator does not
     // support submitting multiple mutations for a single tablet, so need to group by extent.
@@ -757,10 +857,28 @@ public class CompactionCoordinator
     });
 
     groupedCompactions
-        .forEach((dataLevel, levelCompactions) -> compactionFailedForLevel(levelCompactions));
+        .forEach((dataLevel, levelCompactions) -> compactionFailedForLevel(ctx, levelCompactions));
   }
 
-  void compactionFailedForLevel(Map<KeyExtent,Set<ExternalCompactionId>> compactions) {
+  static void compactionFailedForLevel(ServerContext ctx,
+      Map<KeyExtent,Set<ExternalCompactionId>> compactions) {
+
+    // CompactionFailed is called from the Compactor when either a compaction fails or is cancelled
+    // and it's called from the DeadCompactionDetector. Remove compaction tmp files from the tablet
+    // directory that have a corresponding ecid in the name. Must delete any tmp files before
+    // removing compaction entry from metadata table. This ensures that in the event of process
+    // death that the dead compaction will be detected in the future and the files removed then.
+    try (var tablets = ctx.getAmple().readTablets()
+        .forTablets(compactions.keySet(), Optional.empty()).fetch(ColumnType.DIR).build()) {
+      Set<Path> tmpFilesToDelete = new HashSet<>();
+      for (TabletMetadata tm : tablets) {
+        var extent = tm.getExtent();
+        var ecidsForTablet = compactions.get(extent);
+        FindCompactionTmpFiles.findTmpFiles(ctx, extent.tableId(), tm.getDirName(), ecidsForTablet,
+            tmpFilesToDelete::add);
+      }
+      FindCompactionTmpFiles.deleteTempFiles(ctx, tmpFilesToDelete);
+    }
 
     // CompactionFailed is called from the Compactor when either a compaction fails or is cancelled
     // and it's called from the DeadCompactionDetector. Remove compaction tmp files from the tablet
@@ -820,64 +938,5 @@ public class CompactionCoordinator
   /* Method exists to be called from test */
   public CompactionJobQueues getJobQueues() {
     return jobQueues;
-  }
-
-  private void deleteEmpty(ZooReaderWriter zoorw, String path)
-      throws KeeperException, InterruptedException {
-    try {
-      LOG.debug("Deleting empty ZK node {}", path);
-      zoorw.delete(path);
-    } catch (KeeperException.NotEmptyException e) {
-      LOG.debug("Failed to delete {} its not empty, likely an expected race condition.", path);
-    }
-  }
-
-  private void cleanUpEmptyCompactorPathInZK() {
-
-    final var zoorw = this.ctx.getZooSession().asReaderWriter();
-
-    try {
-      var groups = zoorw.getChildren(Constants.ZCOMPACTORS);
-
-      for (String group : groups) {
-        final String qpath = Constants.ZCOMPACTORS + "/" + group;
-        final ResourceGroupId cgid = ResourceGroupId.of(group);
-        final var compactors = zoorw.getChildren(qpath);
-
-        if (compactors.isEmpty()) {
-          deleteEmpty(zoorw, qpath);
-          // Group has no compactors, we can clear its
-          // associated priority queue of jobs
-          CompactionJobPriorityQueue queue = getJobQueues().getQueue(cgid);
-          if (queue != null) {
-            queue.clearIfInactive(Duration.ofMinutes(10));
-          }
-        } else {
-          for (String compactor : compactors) {
-            String cpath = Constants.ZCOMPACTORS + "/" + group + "/" + compactor;
-            var lockNodes =
-                zoorw.getChildren(Constants.ZCOMPACTORS + "/" + group + "/" + compactor);
-            if (lockNodes.isEmpty()) {
-              deleteEmpty(zoorw, cpath);
-            }
-          }
-        }
-      }
-    } catch (KeeperException | RuntimeException e) {
-      LOG.warn("Failed to clean up compactors", e);
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
-    }
-  }
-
-  public void resizeThreadPools() {
-    var config = ctx.getConfiguration();
-    ThreadPools.resizePool(reservationPools.get(DataLevel.ROOT), config,
-        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT);
-    ThreadPools.resizePool(reservationPools.get(DataLevel.METADATA), config,
-        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_META);
-    ThreadPools.resizePool(reservationPools.get(DataLevel.USER), config,
-        Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_USER);
   }
 }

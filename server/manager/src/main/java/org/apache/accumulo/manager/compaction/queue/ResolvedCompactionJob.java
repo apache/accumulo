@@ -18,13 +18,17 @@
  */
 package org.apache.accumulo.manager.compaction.queue;
 
+import static java.util.stream.Collectors.toList;
+
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.compaction.thrift.TResolvedCompactionJob;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.RowRange;
@@ -36,6 +40,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.tabletserver.thrift.InputFile;
 
 /**
  * This class takes a compaction job and the tablet metadata from which is was generated and
@@ -60,6 +65,22 @@ public class ResolvedCompactionJob implements CompactionJob {
   private final ResourceGroupId group;
   private final String tabletDir;
   private final boolean overlapsSelectedFiles;
+
+  private ResolvedCompactionJob(TResolvedCompactionJob trj) {
+    selectedFateId = trj.selectedFateId == null ? null : FateId.from(trj.selectedFateId);
+    jobFiles = new HashMap<>();
+    for (var inputFile : trj.jobFiles) {
+      jobFiles.put(StoredTabletFile.of(inputFile.metadataFileEntry),
+          new DataFileValue(inputFile.size, inputFile.entries, inputFile.timestamp));
+    }
+    kind = CompactionKind.valueOf(trj.kind);
+    compactingAll = trj.compactingAll;
+    extent = KeyExtent.fromThrift(trj.extent);
+    priority = trj.priority;
+    group = ResourceGroupId.of(trj.group);
+    tabletDir = trj.tabletDir;
+    overlapsSelectedFiles = trj.overlapsSelectedFiles;
+  }
 
   private static long weigh(RowRange rowRange) {
     if (rowRange != null) {
@@ -161,6 +182,14 @@ public class ResolvedCompactionJob implements CompactionJob {
     return jobFiles;
   }
 
+  public List<InputFile> getThriftFiles() {
+    return jobFiles.entrySet().stream().map(e -> {
+      StoredTabletFile file = e.getKey();
+      DataFileValue dfv = e.getValue();
+      return new InputFile(file.getMetadata(), dfv.getSize(), dfv.getNumEntries(), dfv.getTime());
+    }).toList();
+  }
+
   public Set<CompactableFile> getCompactionFiles() {
     return jobFiles.entrySet().stream().map(e -> new CompactableFileImpl(e.getKey(), e.getValue()))
         .collect(Collectors.toSet());
@@ -210,5 +239,15 @@ public class ResolvedCompactionJob implements CompactionJob {
   @Override
   public int hashCode() {
     throw new UnsupportedOperationException();
+  }
+
+  public TResolvedCompactionJob toThrift() {
+    return new TResolvedCompactionJob(selectedFateId == null ? null : selectedFateId.canonical(),
+        getThriftFiles(), kind.name(), compactingAll, extent.toThrift(), priority,
+        group.canonical(), tabletDir, overlapsSelectedFiles);
+  }
+
+  public static ResolvedCompactionJob fromThrift(TResolvedCompactionJob trj) {
+    return new ResolvedCompactionJob(trj);
   }
 }

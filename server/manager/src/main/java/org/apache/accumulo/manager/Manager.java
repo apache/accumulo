@@ -65,7 +65,6 @@ import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -118,6 +117,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.compaction.coordinator.CoordinatorManager;
 import org.apache.accumulo.manager.fate.FateManager;
 import org.apache.accumulo.manager.fate.FateNotifier;
 import org.apache.accumulo.manager.fate.FateWorker;
@@ -221,6 +221,8 @@ public class Manager extends AbstractServer
   private final AtomicReference<Map<FateInstanceType,FateClient<FateEnv>>> fateClients =
       new AtomicReference<>();
   private volatile FateManager fateManager;
+
+  private volatile CoordinatorManager coordinatorManager;
 
   static class TServerStatus {
     // This is the set of tservers that an attempt to gather status from was made
@@ -902,6 +904,8 @@ public class Manager extends AbstractServer
   private void setupAssistantMetrics(MetricsProducer... producers) {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(producers);
+    // TODO should tests compaction metrics from multiple managers
+    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
   }
@@ -913,7 +917,6 @@ public class Manager extends AbstractServer
     // ensure all tablet group watchers are setup
     Preconditions.checkState(watchers.size() == DataLevel.values().length);
     watchers.forEach(watcher -> metricsInfo.addMetricsProducers(watcher.getMetrics()));
-    metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
     // ensure fate is completely setup
     metricsInfo.addMetricsProducers(new MetaFateMetrics(getContext(),
         getConfiguration().getTimeInMillis(Property.MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL)));
@@ -939,16 +942,13 @@ public class Manager extends AbstractServer
         PrimaryManagerThriftServiceWrapper.service(ManagerClientService.Iface.class,
             ManagerClientService.Processor::new, new ManagerClientServiceHandler(this), this);
     compactionCoordinator = new CompactionCoordinator(this, this::fateClient);
-    CompactionCoordinatorService.Iface wrappedCoordinator =
-        PrimaryManagerThriftServiceWrapper.service(CompactionCoordinatorService.Iface.class,
-            CompactionCoordinatorService.Processor::new, compactionCoordinator.getThriftService(),
-            this);
+    compactionCoordinator.start();
 
     // This is not wrapped w/ HighlyAvailableServiceWrapper because it can be run by any manager.
     FateWorker fateWorker = new FateWorker(context, tserverSet, this::createFateInstance);
 
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        wrappedCoordinator, managerClientHandler, fateWorker, getContext());
+        compactionCoordinator.getThriftService(), managerClientHandler, fateWorker, getContext());
     try {
       updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
@@ -1148,13 +1148,11 @@ public class Manager extends AbstractServer
     balanceManager.startBackGroundTask();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
-    // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
-    compactionCoordinator.start();
+    coordinatorManager = new CoordinatorManager(context, this::fateClient);
+    coordinatorManager.start();
 
     this.splitter = new Splitter(this);
     this.splitter.start();
-
-    setupFate(context);
 
     fateManager = new FateManager(getContext());
     fateManager.start();
@@ -1238,6 +1236,8 @@ public class Manager extends AbstractServer
     while (getThriftServer().isServing()) {
       UtilWaitThread.sleep(100);
     }
+
+    coordinatorManager.stop();
 
     log.debug("Shutting down fate.");
     fateManager.stop(FateInstanceType.USER, Duration.ZERO);

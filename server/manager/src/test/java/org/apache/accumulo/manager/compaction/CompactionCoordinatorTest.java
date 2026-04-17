@@ -25,6 +25,7 @@ import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.ArrayList;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
+import org.apache.accumulo.core.compaction.thrift.TDequeuedCompactionJob;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -112,19 +114,6 @@ public class CompactionCoordinatorTest {
 
     @Override
     protected void startFailureSummaryLogging() {}
-
-    @Override
-    protected void startDeadCompactionDetector() {}
-
-    @Override
-    protected void startCompactorZKCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
-
-    @Override
-    protected void startInternalStateCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-      // This is called from CompactionCoordinator.run(). Counting down
-      // the latch will exit the run method
-      this.shutdown.countDown();
-    }
 
     @Override
     protected void startConfigMonitor(ScheduledThreadPoolExecutor schedExecutor) {}
@@ -224,7 +213,6 @@ public class CompactionCoordinatorTest {
   public void testCoordinatorColdStart() throws Exception {
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
@@ -243,30 +231,36 @@ public class CompactionCoordinatorTest {
 
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
-    // Use coordinator.run() to populate the internal data structures. This is tested in a different
-    // test.
-    coordinator.run();
     coordinator.shutdown();
 
     assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
 
     // Add a job to the job queue
-    CompactionJob job =
-        new CompactionJobImpl((short) 1, GROUP_ID, Collections.emptyList(), CompactionKind.SYSTEM);
-    coordinator.addJobs(tm, Collections.singleton(job));
+    coordinator.getJobQueues().setAllowedGroups(Set.of(GROUP_ID));
+    CompactionJob job1 =
+        new CompactionJobImpl((short) 1, GROUP_ID, Set.of(), CompactionKind.SYSTEM);
+    CompactionJob job2 =
+        new CompactionJobImpl((short) 2, GROUP_ID, Set.of(), CompactionKind.SYSTEM);
+    // should add two jobs to the queue
+    coordinator.addJobs(new TInfo(), rpcCreds,
+        List.of(new ResolvedCompactionJob(job1, tm).toThrift(),
+            new ResolvedCompactionJob(job2, tm).toThrift()));
     CompactionJobPriorityQueue queue = coordinator.getJobQueues().getQueue(GROUP_ID);
-    assertEquals(1, queue.getQueuedJobs());
+    assertEquals(2, queue.getQueuedJobs());
 
     // Get the next job
     ExternalCompactionId eci = ExternalCompactionId.generate(UUID.randomUUID());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(new TInfo(), rpcCreds,
-        GROUP_ID.toString(), "localhost:10241", eci.toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    TExternalCompactionJob createdJob = nextJob.getJob();
+    TDequeuedCompactionJob unreservedJob =
+        coordinator.getCompactionJob(new TInfo(), rpcCreds, GROUP_ID.toString());
+    assertEquals(3, unreservedJob.getCompactorCount());
+    assertNotNull(unreservedJob.getJob());
+    TNextCompactionJob reservedJob = coordinator.reserveCompactionJob(new TInfo(), rpcCreds,
+        unreservedJob.getJob(), "localhost:10241", eci.toString());
+    TExternalCompactionJob createdJob = reservedJob.getJob();
     assertEquals(eci.toString(), createdJob.getExternalCompactionId());
     assertEquals(ke, KeyExtent.fromThrift(createdJob.getExtent()));
 
-    assertEquals(0, coordinator.getJobQueues().getQueuedJobCount());
+    assertEquals(1, coordinator.getJobQueues().getQueuedJobCount());
 
     verify(tm);
   }
@@ -274,9 +268,9 @@ public class CompactionCoordinatorTest {
   @Test
   public void testGetCompactionJobNoJobs() throws Exception {
     var coordinator = new TestCoordinator(manager, new ArrayList<>());
-    TNextCompactionJob nextJob = coordinator.getCompactionJob(TraceUtil.traceInfo(), rpcCreds,
-        GROUP_ID.toString(), "localhost:10240", UUID.randomUUID().toString());
-    assertEquals(3, nextJob.getCompactorCount());
-    assertNull(nextJob.getJob().getExternalCompactionId());
+    TDequeuedCompactionJob unreservedJob =
+        coordinator.getCompactionJob(TraceUtil.traceInfo(), rpcCreds, GROUP_ID.toString());
+    assertEquals(3, unreservedJob.getCompactorCount());
+    assertNull(unreservedJob.getJob());
   }
 }
