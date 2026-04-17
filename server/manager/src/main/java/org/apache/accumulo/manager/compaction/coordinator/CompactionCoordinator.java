@@ -160,12 +160,12 @@ import io.micrometer.core.instrument.MeterRegistry;
  * groups to instances of this class running in different manager processes. After it has made
  * assignments it uses {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to
  * store those in zookeeper.</li>
- * <li>{@link org.apache.accumulo.manager.TabletGroupWatcher}</li> analyzes tablets and generate
+ * <li>{@link org.apache.accumulo.manager.TabletGroupWatcher} analyzes tablets and generate
  * compaction jobs for tablet that need to compact. When it finds a job is uses
  * {@link org.apache.accumulo.manager.compaction.CompactionJobClient} to send them to an instance of
  * this class. The {@link org.apache.accumulo.manager.compaction.CompactionJobClient} uses the
  * {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to find remote
- * coordinators to send jobs to.
+ * coordinators to send jobs to.</li>
  * <li>Compactors processes use the
  * {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to find the coordinator
  * that has their queue. They make RPC request to that specific coordinator to pull jobs from their
