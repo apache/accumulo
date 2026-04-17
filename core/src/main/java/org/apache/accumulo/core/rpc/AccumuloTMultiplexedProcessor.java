@@ -38,8 +38,9 @@ import com.google.common.base.Preconditions;
  */
 public class AccumuloTMultiplexedProcessor extends TMultiplexedProcessor {
 
-  // Support enough slots as RPC service types.
-  private final TProcessor[] PROCESSORS = new TProcessor[RpcService.values().length];
+  // Just create an array with the full unsignedInt range (negative byte values are converted to
+  // 128-255)
+  private final TProcessor[] PROCESSORS = new TProcessor[256];
 
   public void registerProcessor(RpcService service, TProcessor processor) {
     int serviceID = Byte.toUnsignedInt(service.getShortId());
