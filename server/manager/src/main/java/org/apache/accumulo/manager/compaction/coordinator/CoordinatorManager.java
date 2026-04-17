@@ -59,8 +59,11 @@ import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
- * Handles assigning compactor resource groups to different manager processes. This is run by the
- * primary manager to distribute compaction coordination.
+ * Handles assigning compactor resource groups to different manager processes. Also runs periodic
+ * maintenance task like detecting dead compactions and cleaning empty compactor entries out of
+ * zookeeper. This is run by the primary manager to distribute compaction coordination.
+ *
+ * @see CompactionCoordinator for a general overview
  */
 public class CoordinatorManager {
 

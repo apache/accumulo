@@ -44,6 +44,9 @@ import com.google.common.net.HostAndPort;
 
 /**
  * Sends compaction jobs to remote compaction coordinators.
+ *
+ * @see org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator for a general
+ *      overview
  */
 public class CompactionJobClient implements AutoCloseable {
 

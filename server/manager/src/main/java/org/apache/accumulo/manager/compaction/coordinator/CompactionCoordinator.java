@@ -132,6 +132,48 @@ import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
+/**
+ * This class is the focal point in a distributed system for coordinating compactions. It has the
+ * following functionality.
+ * <ul>
+ * <li>Maintains priority queues of compaction jos for some subset of the compactor groups</li>
+ * <li>Accepts assignments of compactor groups over RPC</li>
+ * <li>Handles RPC request to add compaction jobs to a queue. Only accepts the request if its
+ * assigned that compactor group.</li>
+ * <li>Handles RPC request to pull a compaction job of a queue.</li>
+ * <li>Handles RPC request to reserve a compaction job in the metadata table.</li>
+ * <li>Handles RPC request to complete a compaction job. This initiates a fate operation to commit
+ * the job.</li>
+ * <li>Handles RPC request to fail a compaction job which updates the metadata table.</li>
+ * </ul>
+ *
+ * <p>
+ * This class is part of a larger distributed system and overview of that larger system is given
+ * here. Other parts of the code point to this overview. The following are the pieces of the system
+ * and how they work together.
+ * </p>
+ *
+ * <ul>
+ * <li>An instance of this class runs in every manager process and accepts RPC request.</li>
+ * <li>{@link CoordinatorManager} runs in the primary manager. It examines Accumulo configuration
+ * and finds the set of compactor resource groups. It then evenly assigns those compactor resource
+ * groups to instances of this class running in different manager processes. After it has made
+ * assignments it uses {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to
+ * store those in zookeeper.</li>
+ * <li>{@link org.apache.accumulo.manager.TabletGroupWatcher}</li> analyzes tablets and generate
+ * compaction jobs for tablet that need to compact. When it finds a job is uses
+ * {@link org.apache.accumulo.manager.compaction.CompactionJobClient} to send them to an instance of
+ * this class. The {@link org.apache.accumulo.manager.compaction.CompactionJobClient} uses the
+ * {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to find remote
+ * coordinators to send jobs to.
+ * <li>Compactors processes use the
+ * {@link org.apache.accumulo.server.compaction.CoordinatorLocationsFactory} to find the coordinator
+ * that has their queue. They make RPC request to that specific coordinator to pull jobs from their
+ * queue. Compactors use any coordinator to reserve, complete, and fail jobs in order to spread
+ * metadata and fate table load across all managers.</li>
+ * </ul>
+ *
+ */
 public class CompactionCoordinator
     implements CompactionCoordinatorService.Iface, Runnable, MetricsProducer {
 
