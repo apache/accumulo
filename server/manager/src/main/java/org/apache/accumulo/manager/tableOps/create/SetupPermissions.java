@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.create;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -38,9 +39,12 @@ class SetupPermissions extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(long tid, Manager env) throws Exception {
-    // give all table permissions to the creator
+    // give all table permissions to the creator if that creator is not the system user or has
+    // SYSTEM level permissions
     var security = env.getContext().getSecurityOperation();
-    if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())) {
+    if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())
+        && !security.hasSystemPermission(env.getContext().rpcCreds(), tableInfo.getUser(),
+            SystemPermission.SYSTEM)) {
       for (TablePermission permission : TablePermission.values()) {
         try {
           security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.getUser(),
