@@ -93,6 +93,9 @@ public class ExportConfigCommand extends ServerKeywordExecutable<ExportConfigCom
       Map<?,?> tmp = (Map<?,?>) map.get(PROPERTIES_KEY);
       var props = new TreeMap<String,String>();
       tmp.forEach((k, v) -> {
+        Preconditions.checkArgument(
+            v instanceof String || v instanceof Integer || v instanceof Boolean,
+            "Unsupported yaml type %s %s", v.getClass().getName(), v);
         props.put((String) k, v.toString());
       });
       return props;
