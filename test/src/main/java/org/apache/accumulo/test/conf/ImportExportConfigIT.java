@@ -73,12 +73,12 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           ---
           scope: RESOURCE_GROUP
           name: prod
-          properties: {
-            sserver.cache.data.size: 16G,
-            sserver.cache.index.size: 2G,
-            tserver.cache.data.size: 32G,
+          properties:
+            general.special.chars: "!@#$%^&*()_\\n+-=<,>.?/\\t:;\\"''{[}]\\\\~`|"
+            sserver.cache.data.size: 16G
+            sserver.cache.index.size: 2G
+            tserver.cache.data.size: 32G
             tserver.cache.index.size: 4G
-          }
           ---
           scope: RESOURCE_GROUP
           name: prod_large_compactors
@@ -334,6 +334,10 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
     prodProps.put(Property.TSERV_INDEXCACHE_SIZE.getKey(), "4G");
     prodProps.put(Property.SSERV_DATACACHE_SIZE.getKey(), "16G");
     prodProps.put(Property.SSERV_INDEXCACHE_SIZE.getKey(), "2G");
+    // Try setting special chars and ensure they make it through encoding to/from yaml
+    prodProps.put(Property.GENERAL_PREFIX + "special.chars",
+        "!@#$%^&*()_\n+-=<,>.?/\t:;\"''{[}]\\~`|");
+
     rgProps.put(ResourceGroupId.of("prod"), Map.copyOf(prodProps));
 
     var testProps = new HashMap<String,String>();
