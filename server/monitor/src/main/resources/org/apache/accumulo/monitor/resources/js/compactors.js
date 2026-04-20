@@ -25,18 +25,19 @@
 const htmlBanner = '#compactorsStatusBanner'
 const htmlBannerMessage = '#compactors-banner-message'
 const htmlTable = '#compactorsTable'
-const visibleColumnFilter = (col) => col != "Server Type";
 
 function refresh() {
-  refreshServerInformation(getCompactorsView, htmlTable, COMPACTOR_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getCompactorsView, htmlTable, COMPACTOR_SERVER_PROCESS_VIEW,
+    htmlBanner, htmlBannerMessage);
 }
 
 $(function () {
-  sessionStorage[SCAN_SERVER_PROCESS_VIEW] = JSON.stringify({
+  sessionStorage[COMPACTOR_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
     columns: [],
     status: null
   });
 
-  refreshServerInformation(getCompactorsView, htmlTable, COMPACTOR_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getCompactorsView, htmlTable, COMPACTOR_SERVER_PROCESS_VIEW,
+    htmlBanner, htmlBannerMessage);
 });

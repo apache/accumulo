@@ -25,10 +25,10 @@
 const htmlBanner = '#sserversStatusBanner'
 const htmlBannerMessage = '#sservers-banner-message'
 const htmlTable = '#sservers'
-const visibleColumnFilter = (col) => col != "Server Type";
 
 function refresh() {
-  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
 }
 
 $(function () {
@@ -38,5 +38,6 @@ $(function () {
     status: null
   });
 
-  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getSserversView, htmlTable, SCAN_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
 });
