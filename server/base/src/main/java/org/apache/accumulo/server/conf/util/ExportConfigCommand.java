@@ -178,7 +178,6 @@ public class ExportConfigCommand extends ServerKeywordExecutable<ExportConfigCom
     List<ScopedProperties> allProps = getAllProperties(context);
 
     DumperOptions dopts = new DumperOptions();
-    // dopts.setDefaultScalarStyle(DumperOptions.ScalarStyle.SINGLE_QUOTED);
     dopts.setPrettyFlow(true);
     var yaml = new Yaml(dopts);
 
