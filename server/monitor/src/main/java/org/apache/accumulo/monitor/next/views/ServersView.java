@@ -132,13 +132,7 @@ public class ServersView {
       return new ServerMetricRow(serverId, metricResponse, serverMetrics);
     }).toList();
 
-    Set<String> presentMetricNames = serverMetricRows.stream()
-        .flatMap(row -> row.metrics().keySet().stream()).collect(Collectors.toSet());
-
-    // Keep common columns and filter out metric columns that have no values
-    this.columns = requestedColumns.stream()
-        .filter(col -> isCommonColumn(col.key()) || presentMetricNames.contains(col.key()))
-        .toList();
+    this.columns = requestedColumns;
 
     serverMetricRows.forEach(serverMetricRow -> {
       Map<String,Object> row = new LinkedHashMap<>();
@@ -188,10 +182,6 @@ public class ServersView {
 
   private static boolean hasMetricData(MetricResponse mr) {
     return mr != null && mr.getMetrics() != null && !mr.getMetrics().isEmpty();
-  }
-
-  private static boolean isCommonColumn(String key) {
-    return COMMON_COLUMNS.stream().anyMatch(col -> col.key().equals(key));
   }
 
   /**
