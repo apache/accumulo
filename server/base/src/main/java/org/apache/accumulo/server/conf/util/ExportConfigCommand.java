@@ -93,7 +93,7 @@ public class ExportConfigCommand extends ServerKeywordExecutable<ExportConfigCom
       Map<?,?> tmp = (Map<?,?>) map.get(PROPERTIES_KEY);
       var props = new TreeMap<String,String>();
       tmp.forEach((k, v) -> {
-        props.put((String) k, (String) v);
+        props.put((String) k, v.toString());
       });
       return props;
     }
@@ -111,9 +111,23 @@ public class ExportConfigCommand extends ServerKeywordExecutable<ExportConfigCom
       map.put(SCOPE_KEY, scope.name());
       map.put(NAME_KEY, name);
       // use a treemap so the properties are sorted in yaml
-      map.put(PROPERTIES_KEY, new TreeMap<>(props));
+      TreeMap<String,Object> translatedProps = new TreeMap<>();
+      props.forEach((k, v) -> {
+        // Use some more specific types when possible this will make the yaml formatting nicer.
+        if (v.equalsIgnoreCase("true")) {
+          translatedProps.put(k, Boolean.TRUE);
+        } else if (v.equalsIgnoreCase("false")) {
+          translatedProps.put(k, Boolean.FALSE);
+        } else if (v.matches("-?[0-9]+")) {
+          translatedProps.put(k, Long.valueOf(v));
+        } else {
+          translatedProps.put(k, v);
+        }
+      });
+      map.put(PROPERTIES_KEY, translatedProps);
       return map;
     }
+
   }
 
   static PropStoreKey getKey(Scope scope, String id) {
@@ -164,6 +178,7 @@ public class ExportConfigCommand extends ServerKeywordExecutable<ExportConfigCom
     List<ScopedProperties> allProps = getAllProperties(context);
 
     DumperOptions dopts = new DumperOptions();
+    // dopts.setDefaultScalarStyle(DumperOptions.ScalarStyle.SINGLE_QUOTED);
     dopts.setPrettyFlow(true);
     var yaml = new Yaml(dopts);
 

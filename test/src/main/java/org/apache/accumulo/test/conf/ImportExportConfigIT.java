@@ -50,7 +50,6 @@ import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
 public class ImportExportConfigIT extends AccumuloClusterHarness {
-
   private static final String YAML1 =
       """
           scope: SYSTEM
@@ -83,7 +82,7 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           scope: RESOURCE_GROUP
           name: prod_large_compactors
           properties: {
-            compactor.failure.termination.threshold: '5',
+            compactor.failure.termination.threshold: 5,
             compactor.wait.time.job.max: 3m
           }
           ---
@@ -95,7 +94,7 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           scope: RESOURCE_GROUP
           name: prod_small_compactors
           properties: {
-            compactor.failure.termination.threshold: '10'
+            compactor.failure.termination.threshold: 10
           }
           ---
           scope: RESOURCE_GROUP
@@ -147,21 +146,21 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           scope: TABLE
           name: accumulo.fate
           properties: {
-            table.cache.block.enable: 'true',
-            table.cache.index.enable: 'true',
-            table.compaction.major.ratio: '1',
+            table.cache.block.enable: true,
+            table.cache.index.enable: true,
+            table.compaction.major.ratio: 1,
             table.durability: sync,
-            table.failures.ignore: 'false',
+            table.failures.ignore: false,
             table.file.compress.blocksize: 32K,
-            table.file.replication: '5',
+            table.file.replication: 5,
             table.group.txAdmin: txadmin,
             table.groups.enabled: txAdmin,
             table.iterator.majc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '1',
+            table.iterator.majc.vers.opt.maxVersions: 1,
             table.iterator.minc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '1',
+            table.iterator.minc.vers.opt.maxVersions: 1,
             table.iterator.scan.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '1',
+            table.iterator.scan.vers.opt.maxVersions: 1,
             table.security.scan.visibility.default: '',
             table.split.threshold: 256M
           }
@@ -169,23 +168,23 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           scope: TABLE
           name: accumulo.metadata
           properties: {
-            table.cache.block.enable: 'true',
-            table.cache.index.enable: 'true',
-            table.compaction.major.ratio: '1',
+            table.cache.block.enable: true,
+            table.cache.index.enable: true,
+            table.compaction.major.ratio: 1,
             table.constraint.1: org.apache.accumulo.server.constraints.MetadataConstraints,
             table.durability: sync,
-            table.failures.ignore: 'false',
+            table.failures.ignore: false,
             table.file.compress.blocksize: 32K,
-            table.file.replication: '5',
+            table.file.replication: 5,
             table.group.server: 'file,log,srv,future',
             table.group.tablet: '~tab,loc',
             table.groups.enabled: 'tablet,server',
             table.iterator.majc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '1',
+            table.iterator.majc.vers.opt.maxVersions: 1,
             table.iterator.minc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '1',
+            table.iterator.minc.vers.opt.maxVersions: 1,
             table.iterator.scan.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '1',
+            table.iterator.scan.vers.opt.maxVersions: 1,
             table.security.scan.visibility.default: '',
             table.split.threshold: 1234K
           }
@@ -193,23 +192,23 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           scope: TABLE
           name: accumulo.root
           properties: {
-            table.cache.block.enable: 'true',
-            table.cache.index.enable: 'true',
-            table.compaction.major.ratio: '1',
+            table.cache.block.enable: true,
+            table.cache.index.enable: true,
+            table.compaction.major.ratio: 1,
             table.constraint.1: org.apache.accumulo.server.constraints.MetadataConstraints,
             table.durability: sync,
-            table.failures.ignore: 'false',
+            table.failures.ignore: false,
             table.file.compress.blocksize: 32K,
-            table.file.replication: '5',
+            table.file.replication: 5,
             table.group.server: 'file,log,srv,future',
             table.group.tablet: '~tab,loc',
             table.groups.enabled: 'tablet,server',
             table.iterator.majc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '1',
+            table.iterator.majc.vers.opt.maxVersions: 1,
             table.iterator.minc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '1',
+            table.iterator.minc.vers.opt.maxVersions: 1,
             table.iterator.scan.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '1',
+            table.iterator.scan.vers.opt.maxVersions: 1,
             table.security.scan.visibility.default: '',
             table.split.threshold: 64M
           }
@@ -217,19 +216,19 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           scope: TABLE
           name: accumulo.scanref
           properties: {
-            table.cache.block.enable: 'true',
-            table.cache.index.enable: 'true',
-            table.compaction.major.ratio: '1',
+            table.cache.block.enable: true,
+            table.cache.index.enable: true,
+            table.compaction.major.ratio: 1,
             table.durability: sync,
-            table.failures.ignore: 'false',
+            table.failures.ignore: false,
             table.file.compress.blocksize: 32K,
-            table.file.replication: '5',
+            table.file.replication: 5,
             table.iterator.majc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '1',
+            table.iterator.majc.vers.opt.maxVersions: 1,
             table.iterator.minc.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '1',
+            table.iterator.minc.vers.opt.maxVersions: 1,
             table.iterator.scan.vers: '10,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '1',
+            table.iterator.scan.vers.opt.maxVersions: 1,
             table.security.scan.visibility.default: ''
           }
           ---
@@ -237,55 +236,55 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           name: production.customers
           properties: {
             table.constraint.1: org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint,
-            table.file.max: '7',
+            table.file.max: 7,
             table.iterator.majc.filter: '200,WorkingFilter.class',
-            table.iterator.majc.filter.opt.dropMissing: 'false',
+            table.iterator.majc.filter.opt.dropMissing: false,
             table.iterator.majc.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '1',
+            table.iterator.majc.vers.opt.maxVersions: 1,
             table.iterator.minc.filter: '200,WorkingFilter.class',
-            table.iterator.minc.filter.opt.dropMissing: 'false',
+            table.iterator.minc.filter.opt.dropMissing: false,
             table.iterator.minc.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '1',
+            table.iterator.minc.vers.opt.maxVersions: 1,
             table.iterator.scan.filter: '200,WorkingFilter.class',
-            table.iterator.scan.filter.opt.dropMissing: 'false',
+            table.iterator.scan.filter.opt.dropMissing: false,
             table.iterator.scan.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '1'
+            table.iterator.scan.vers.opt.maxVersions: 1
           }
           ---
           scope: TABLE
           name: production.payments
           properties: {
-            table.cache.block.enable: 'true',
+            table.cache.block.enable: true,
             table.constraint.1: org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint,
             table.file.compress.blocksize.index: 32K,
             table.iterator.majc.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '1',
+            table.iterator.majc.vers.opt.maxVersions: 1,
             table.iterator.minc.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '1',
+            table.iterator.minc.vers.opt.maxVersions: 1,
             table.iterator.scan.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '1'
+            table.iterator.scan.vers.opt.maxVersions: 1
           }
           ---
           scope: TABLE
           name: testing.customers
           properties: {
             table.iterator.majc.betaFilter: '200,ExperimentalFilter.class',
-            table.iterator.majc.betaFilter.opt.dropMissing: 'true',
+            table.iterator.majc.betaFilter.opt.dropMissing: true,
             table.iterator.minc.betaFilter: '200,ExperimentalFilter.class',
-            table.iterator.minc.betaFilter.opt.dropMissing: 'true',
+            table.iterator.minc.betaFilter.opt.dropMissing: true,
             table.iterator.scan.betaFilter: '200,ExperimentalFilter.class',
-            table.iterator.scan.betaFilter.opt.dropMissing: 'true'
+            table.iterator.scan.betaFilter.opt.dropMissing: true
           }
           ---
           scope: TABLE
           name: testing.payments
           properties: {
             table.iterator.majc.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.majc.vers.opt.maxVersions: '10',
+            table.iterator.majc.vers.opt.maxVersions: 10,
             table.iterator.minc.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.minc.vers.opt.maxVersions: '10',
+            table.iterator.minc.vers.opt.maxVersions: 10,
             table.iterator.scan.vers: '20,org.apache.accumulo.core.iterators.user.VersioningIterator',
-            table.iterator.scan.vers.opt.maxVersions: '10'
+            table.iterator.scan.vers.opt.maxVersions: 10
           }
           """;
 
