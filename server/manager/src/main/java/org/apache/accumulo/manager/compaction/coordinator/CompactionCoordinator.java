@@ -378,8 +378,8 @@ public class CompactionCoordinator
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     ResourceGroupId groupId = ResourceGroupId.of(job.group);
-    LOG.trace("reserveCompactionJob called for group {} by compactor {}", groupId,
-        compactorAddress);
+    LOG.trace("reserveCompactionJob called for group {} {} by compactor {}", groupId,
+        externalCompactionId, compactorAddress);
 
     TExternalCompactionJob result = null;
 
@@ -601,7 +601,8 @@ public class CompactionCoordinator
   public void addJobs(TInfo tinfo, TCredentials credentials, List<TResolvedCompactionJob> tjobs)
       throws TException {
     if (!security.canPerformSystemActions(credentials)) {
-      LOG.warn("Thrift call attempted to add job and did not have proper access. {}",
+      // This is a oneway method so exceptions do not make back to client, so only log an error.
+      LOG.error("Thrift call attempted to add job and did not have proper access. {}",
           credentials.getPrincipal());
       return;
     }
