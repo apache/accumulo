@@ -781,8 +781,8 @@ public class SystemInformation {
    */
   private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers,
       long problemHostCount) {
-    serverMetricsView.put(table, memoize(() -> new ServersView(Set.copyOf(servers),
-        problemHostCount, allMetrics, timestamp.get(), ServersView.columnsFor(table))));
+    serverMetricsView.put(table, memoize(() -> new ServersView(servers, problemHostCount,
+        allMetrics, timestamp.get(), ServersView.columnsFor(table))));
   }
 
   public ServersView getServerProcessView(ServersView.ServerTable table) {
