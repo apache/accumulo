@@ -53,6 +53,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
+import org.apache.accumulo.server.metrics.MetricsInfoImpl;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -67,7 +68,6 @@ import com.google.common.net.HostAndPort;
 import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
@@ -99,6 +99,7 @@ public abstract class AbstractServer
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final Set<String> monitorMetricExclusions;
 
+  @SuppressWarnings("deprecation")
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
@@ -106,7 +107,8 @@ public abstract class AbstractServer
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(siteConfig
+        .resolve(Property.RPC_PROCESS_BIND_ADDRESS, Property.GENERAL_PROCESS_BIND_ADDRESS));
     // If new bind parameter passed on command line or in file, then use it.
     if (newBindParameter != null
         && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
@@ -404,9 +406,12 @@ public abstract class AbstractServer
     response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
-    if (context.getMetricsInfo().isMetricsEnabled()) {
-      Metrics.globalRegistry.getMeters().forEach(m -> {
-        if (m.getId().getName().startsWith("accumulo.")) {
+    var registry = MetricsInfoImpl.MONITOR_REGISTRY.get();
+    if (registry != null) {
+      registry.getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")
+            || m.getId().getName().equals(Metric.EXECUTOR_COMPLETED.getName())
+            || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())) {
           if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
             m.match(response::writeMeter, response::writeMeter, response::writeTimer,
                 response::writeDistributionSummary, response::writeLongTaskTimer,

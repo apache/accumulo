@@ -177,12 +177,14 @@ public class LookupTask extends ScanTask<MultiScanResult> {
       addResult(multiScanResult);
     } catch (IterationInterruptedException iie) {
       if (!isCancelled()) {
+        server.getScanMetrics().incrementScanErrors();
         log.warn("Iteration interrupted, when scan not cancelled", iie);
         addResult(iie);
       }
     } catch (SampleNotPresentException e) {
       addResult(e);
     } catch (Exception e) {
+      server.getScanMetrics().incrementScanErrors();
       log.warn("exception while doing multi-scan ", e);
       addResult(e);
     } finally {
