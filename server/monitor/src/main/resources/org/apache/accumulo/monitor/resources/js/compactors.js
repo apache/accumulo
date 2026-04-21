@@ -16,10 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, COMPACTOR_SERVER_PROCESS_VIEW, getCompactorsView, refreshServerInformation
-*/
 "use strict";
 
 const htmlBanner = '#compactorsStatusBanner'

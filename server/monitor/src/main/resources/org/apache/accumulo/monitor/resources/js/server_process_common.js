@@ -16,11 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    renderActivityState, renderMemoryState, dateFormat
-*/
 "use strict";
 
 /**

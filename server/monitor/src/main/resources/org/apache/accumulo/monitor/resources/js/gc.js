@@ -16,11 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, GC_SERVER_PROCESS_VIEW, GC_FILE_SERVER_PROCESS_VIEW, GC_WAL_SERVER_PROCESS_VIEW,
-    getGcView, getGcFileView, getGcWalView, refreshServerInformation
-*/
 "use strict";
 
 const htmlBanner = '#gcStatusBanner'
