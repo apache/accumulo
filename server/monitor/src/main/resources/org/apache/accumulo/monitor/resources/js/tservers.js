@@ -16,11 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
-    ajaxReloadTable
-*/
 "use strict";
 
 const htmlBanner = '#tserversStatusBanner'
