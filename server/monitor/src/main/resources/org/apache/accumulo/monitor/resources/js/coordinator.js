@@ -25,18 +25,20 @@
 */
 "use strict";
 
-const coordinatorHtmlTable = '#coordinators'
-const queuesHtmlTable = '#coordinator_queues'
+const coordinatorHtmlTable = '#coordinators';
+const queuesHtmlTable = '#coordinator_queues';
+const runningTableHtmlTable = '#table_running';
+const runningQueueHtmlTable = '#queue_running';
 
 var tableRunning;
 var queueRunning;
 
 function refresh() {
-  $.when(getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
+  $.when(getRunningCompactionsByTable(), getRunningCompactionsByGroup(), getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     refreshTable(queuesHtmlTable, COORDINATOR_QUEUE_PROCESS_VIEW);
-    tableRunning.ajax.reload(null, false); // user paging is not reset on reload
-    queueRunning.ajax.reload(null, false); // user paging is not reset on reload
+    ajaxReloadTable(tableRunning);
+    ajaxReloadTable(queueRunning);
   }).fail(function () {
     sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
       data: [],
@@ -52,12 +54,12 @@ function refresh() {
     sessionStorage[RUNNING_COMPACTIONS_BY_GROUP] = JSON.stringify([]);
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     refreshTable(queuesHtmlTable, COORDINATOR_QUEUE_PROCESS_VIEW);
-    tableRunning.ajax.reload(null, false); // user paging is not reset on reload
-    queueRunning.ajax.reload(null, false); // user paging is not reset on reload
+    ajaxReloadTable(tableRunning);
+    ajaxReloadTable(queueRunning);
     $(coordinatorHtmlTable).hide();
     $(queuesHtmlTable).hide();
-    $('#table_running').hide();
-    $('#queue_running').hide();
+    $(runningTableHtmlTable).hide();
+    $(runningQueueHtmlTable).hide();
   });
 }
 
@@ -76,7 +78,7 @@ $(function () {
   sessionStorage[RUNNING_COMPACTIONS_BY_GROUP] = JSON.stringify([]);
 
   // Create a table for scans list
-  tableRunning = $('#table_running').DataTable({
+  tableRunning = $(runningTableHtmlTable).DataTable({
     "ajax": function (data, callback) {
       callback({
         data: getRunningCompactionsByTable()
@@ -97,7 +99,7 @@ $(function () {
     ]
   });
 
-  queueRunning = $('#queue_running').DataTable({
+  queueRunning = $(runningQueueHtmlTable).DataTable({
     "ajax": function (data, callback) {
       callback({
         data: getRunningCompactionsByGroup()

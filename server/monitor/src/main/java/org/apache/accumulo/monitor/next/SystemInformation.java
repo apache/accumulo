@@ -520,7 +520,6 @@ public class SystemInformation {
             FTag t = fm.tags(i);
             if (t.key().equals("queue.id")) {
               String queueName = t.value();
-              LOG.info("Processing metric {} for queue: {}", fm.name(), queueName);
               // For these MetricResponse objects we are going to put the queueId value
               // in the place of the resource group, we'll update the column information
               // for the resource group below.
