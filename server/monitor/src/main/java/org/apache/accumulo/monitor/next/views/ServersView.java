@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -36,8 +37,6 @@ import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
-
-import com.github.benmanes.caffeine.cache.Cache;
 
 /**
  * Generic Data Transfer Object (DTO) for a set of Accumulo server processes of the same type. The
@@ -81,6 +80,7 @@ public class ServersView {
    * directly as the frontend table parameter values.
    */
   public enum ServerTable {
+    COORDINATOR_QUEUES,
     COMPACTORS,
     GC_SUMMARY,
     GC_FILES,
@@ -99,14 +99,18 @@ public class ServersView {
   public static final String ADDR_COL_KEY = "serverAddress";
   public static final String TIME_COL_KEY = "lastContact";
 
+  public static final Column LAST_CONTACT_COLUMN = new Column(TIME_COL_KEY, "Last Contact",
+      "Time since the server last responded to the monitor", "duration");
+  public static final Column RG_COLUMN =
+      new Column(RG_COL_KEY, "Resource Group", "Resource Group", "");
+  public static final Column ADDR_COLUMN =
+      new Column(ADDR_COL_KEY, "Server Address", "Server address", "");
+
   /**
    * Common columns that are included in every ServersView table
    */
-  private static final List<Column> COMMON_COLUMNS = List.of(
-      new Column(TIME_COL_KEY, "Last Contact",
-          "Time since the server last responded to the monitor", "duration"),
-      new Column(RG_COL_KEY, "Resource Group", "Resource Group", ""),
-      new Column(ADDR_COL_KEY, "Server Address", "Server address", ""));
+  private static final List<Column> COMMON_COLUMNS =
+      List.of(LAST_CONTACT_COLUMN, RG_COLUMN, ADDR_COLUMN);
 
   public final List<Map<String,Object>> data = new ArrayList<>();
   public final List<Column> columns;
@@ -114,13 +118,13 @@ public class ServersView {
   public final long timestamp;
 
   public ServersView(final Set<ServerId> servers, final long problemServerCount,
-      final Cache<ServerId,MetricResponse> allMetrics, final long timestamp,
+      final Map<ServerId,MetricResponse> allMetrics, final long timestamp,
       final List<Column> requestedColumns) {
 
     AtomicInteger serversMissingMetrics = new AtomicInteger(0);
     // Grab the current metrics for each server
     List<ServerMetricRow> serverMetricRows = servers.stream().sorted().map(serverId -> {
-      MetricResponse metricResponse = allMetrics.getIfPresent(serverId);
+      MetricResponse metricResponse = allMetrics.get(serverId);
       boolean hasMetricData = hasMetricData(metricResponse);
       Map<String,Number> serverMetrics =
           hasMetricData ? metricValuesByName(metricResponse) : Map.of();
@@ -196,6 +200,7 @@ public class ServersView {
 
   private static List<Metric> metricsForTable(ServerTable table) {
     return switch (table) {
+      case COORDINATOR_QUEUES -> coordinatorQueueMetrics();
       case COMPACTORS -> compactorMetrics();
       case GC_SUMMARY -> gcSummaryMetrics();
       case GC_FILES -> gcFileMetrics();
@@ -212,59 +217,66 @@ public class ServersView {
    * The following helper methods are where the metrics included in each table are defined as well
    * as their order.
    */
+  private static List<Metric> coordinatorQueueMetrics() {
+    return metricList(m -> !m.getName().startsWith("accumulo.minc")
+        && !m.getName().startsWith("accumulo.compaction.minc"), MetricDocSection.COMPACTION);
+  }
+
   private static List<Metric> compactorMetrics() {
-    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.COMPACTION,
+    return metricList(null, MetricDocSection.GENERAL_SERVER, MetricDocSection.COMPACTION,
         MetricDocSection.COMPACTOR);
   }
 
   private static List<Metric> gcSummaryMetrics() {
-    return metricList(MetricDocSection.GENERAL_SERVER);
+    return metricList(null, MetricDocSection.GENERAL_SERVER);
   }
 
   private static List<Metric> gcFileMetrics() {
-    return Arrays.stream(Metric.values()).filter(metric -> {
-      String name = metric.getName();
-      return metric.getDocSection() == MetricDocSection.GARBAGE_COLLECTION
-          && !name.startsWith("accumulo.gc.wal.");
-    }).toList();
+    return metricList((m) -> !m.getName().startsWith("accumulo.gc.wal."),
+        MetricDocSection.GARBAGE_COLLECTION);
   }
 
   private static List<Metric> gcWalMetrics() {
-    return Arrays.stream(Metric.values())
-        .filter(metric -> metric.getName().startsWith("accumulo.gc.wal."))
+    return Arrays.stream(Metric.values()).filter(m -> m.getName().startsWith("accumulo.gc.wal."))
         .collect(Collectors.toList());
   }
 
   private static List<Metric> managerMetrics() {
-    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.MANAGER);
+    return metricList(null, MetricDocSection.GENERAL_SERVER, MetricDocSection.MANAGER);
   }
 
   private static List<Metric> managerFateMetrics() {
-    return metricList(MetricDocSection.FATE);
+    return metricList(null, MetricDocSection.FATE);
   }
 
   private static List<Metric> managerCompactionMetrics() {
-    return metricList(MetricDocSection.COMPACTION);
+    return metricList(m -> !m.getName().startsWith("accumulo.minc")
+        && !m.getName().startsWith("accumulo.compaction.minc"), MetricDocSection.COMPACTION);
   }
 
   private static List<Metric> scanServerMetrics() {
-    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.SCAN_SERVER,
+    return metricList(null, MetricDocSection.GENERAL_SERVER, MetricDocSection.SCAN_SERVER,
         MetricDocSection.SCAN, MetricDocSection.BLOCK_CACHE);
   }
 
   private static List<Metric> tabletServerMetrics() {
-    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.TABLET_SERVER,
+    return metricList(null, MetricDocSection.GENERAL_SERVER, MetricDocSection.TABLET_SERVER,
         MetricDocSection.SCAN, MetricDocSection.COMPACTION, MetricDocSection.BLOCK_CACHE);
   }
 
   /**
    * @return all the metrics for the given sections
    */
-  private static List<Metric> metricList(MetricDocSection... sections) {
-    Set<MetricDocSection> requestedSections = Set.of(sections);
-    return Arrays.stream(Metric.values())
-        .filter(metric -> requestedSections.contains(metric.getDocSection()))
-        .collect(Collectors.toList());
+  private static List<Metric> metricList(Predicate<Metric> filter, MetricDocSection... sections) {
+    Predicate<Metric> sectionPredicate = null;
+    if (sections == null) {
+      sectionPredicate = m -> false;
+    } else {
+      Set<MetricDocSection> requestedSections = Set.of(sections);
+      sectionPredicate = m -> requestedSections.contains(m.getDocSection());
+    }
+    return Arrays.stream(Metric.values()).filter(sectionPredicate)
+        .filter(filter == null ? m -> true : filter).collect(Collectors.toList());
   }
 
   /**
