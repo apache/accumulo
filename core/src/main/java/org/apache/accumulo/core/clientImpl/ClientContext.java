@@ -748,7 +748,7 @@ public class ClientContext implements AccumuloClient {
   // use cases overlap with requireTableExists, but this throws a runtime exception
   public TableId requireNotDeleted(TableId tableId) {
     if (!tableNodeExists(tableId)) {
-      throw new TableDeletedException(tableId.canonical());
+      throw new TableDeletedException(tableId);
     }
     return tableId;
   }

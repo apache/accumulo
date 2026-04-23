@@ -463,7 +463,7 @@ public final class TabletServerBatchReaderIterator implements Iterator<Entry<Key
         if (context.tableNodeExists(tableId)) {
           fatalException = e;
         } else {
-          fatalException = new TableDeletedException(tableId.canonical());
+          fatalException = new TableDeletedException(tableId);
         }
       } catch (SampleNotPresentException e) {
         fatalException = e;
