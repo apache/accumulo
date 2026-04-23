@@ -99,6 +99,7 @@ public abstract class AbstractServer
   private final AtomicBoolean closed = new AtomicBoolean(false);
   private final Set<String> monitorMetricExclusions;
 
+  @SuppressWarnings("deprecation")
   protected AbstractServer(ServerId.Type serverType, ServerOpts opts,
       BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) {
@@ -106,7 +107,8 @@ public abstract class AbstractServer
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(siteConfig
+        .resolve(Property.RPC_PROCESS_BIND_ADDRESS, Property.GENERAL_PROCESS_BIND_ADDRESS));
     // If new bind parameter passed on command line or in file, then use it.
     if (newBindParameter != null
         && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
