@@ -31,6 +31,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.metrics.MonitorMeterRegistry;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -136,7 +137,7 @@ public class MetricsInfoImpl implements MetricsInfo {
       for (String userTag : userTagList) {
         String[] tagParts = userTag.split("=");
         if (tagParts.length == 2) {
-          Tag tag = Tag.of(tagParts[0], tagParts[1]);
+          Tag tag = Tag.of(tagParts[0], MetricsUtil.formatString(tagParts[1]));
           tags.add(tag);
         } else {
           LOG.warn("Malformed user metric tag: {} in property {}", userTag,

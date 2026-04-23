@@ -101,6 +101,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -272,7 +273,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    final String rgName = getResourceGroup().canonical();
+    final String rgName = MetricsUtil.formatString(getResourceGroup().canonical());
     FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
         .description(COMPACTOR_ENTRIES_READ.getDescription())
         .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
