@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
@@ -353,7 +354,7 @@ public class SystemInformation {
 
   }
 
-  public record CompactionTableSummary(String tableId, long running) {
+  public record CompactionTableSummary(String tableId, String tableName, long running) {
   }
 
   public record CompactionGroupSummary(String groupId, long running) {
@@ -697,8 +698,16 @@ public class SystemInformation {
 
     timestamp.set(System.currentTimeMillis());
 
-    runningCompactionsPerTable.forEach(
-        (k, v) -> tableCompactions.add(new CompactionTableSummary(k.canonical(), v.sum())));
+    for (Entry<TableId,LongAdder> e : runningCompactionsPerTable.entrySet()) {
+      TableId tid = e.getKey();
+      try {
+        tableCompactions.add(new CompactionTableSummary(tid.canonical(),
+            ctx.getQualifiedTableName(tid), e.getValue().sum()));
+      } catch (TableNotFoundException e1) {
+        LOG.warn("Error converting table id {} to table name, caught TableNotFoundException", tid);
+      }
+    }
+
     runningCompactionsPerGroup
         .forEach((k, v) -> groupCompactions.add(new CompactionGroupSummary(k, v.sum())));
 

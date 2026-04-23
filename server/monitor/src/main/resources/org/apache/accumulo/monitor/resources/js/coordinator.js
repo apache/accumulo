@@ -94,11 +94,21 @@ $(function () {
     "stateSave": true,
     "colReorder": true,
     "columnDefs": [{
-      targets: '_all',
-      defaultContent: '-'
-    }],
+        targets: '_all',
+        defaultContent: '-'
+      },
+      {
+        "targets": 0,
+        "render": function (data, type, row) {
+          if (type === 'display') {
+            data = '<a href="tables/' + row.tableId + '">' + row.tableName + '</a>';
+          }
+          return data;
+        }
+      }
+    ],
     "columns": [{
-        "data": "tableId"
+        "data": "tableName"
       },
       {
         "data": "running"

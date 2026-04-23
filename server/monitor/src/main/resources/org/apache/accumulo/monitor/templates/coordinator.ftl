@@ -33,7 +33,7 @@
         <caption><span class="table-caption">Running Compactions By Table</span><br /></caption>
         <thead>
           <tr>
-            <th>Table ID</th>
+            <th>Table Name</th>
             <th>Running Compactions</th>
           </tr>
         </thead>
