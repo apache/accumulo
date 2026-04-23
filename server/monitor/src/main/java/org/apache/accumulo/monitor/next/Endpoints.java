@@ -24,6 +24,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,6 +48,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
@@ -56,6 +59,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningComp
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.views.ServersView;
+import org.apache.accumulo.monitor.next.views.ServersView.Status;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -80,6 +84,10 @@ public class Endpoints {
 
   @Inject
   private Monitor monitor;
+
+  public record MonitorStatus(String managerGoalState, Map<ServerId.Type,Status> componentStatuses,
+      long timestamp) {
+  }
 
   private void validateResourceGroup(String resourceGroup) {
     if (monitor.getInformationFetcher().getSummaryForEndpoint().getResourceGroups()
@@ -156,6 +164,45 @@ public class Endpoints {
       throw new NotFoundException("Garbage Collector not found");
     }
     return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
+  }
+
+  @GET
+  @Path("status")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns status of server components")
+  public MonitorStatus getStatus() {
+    SystemInformation summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return new MonitorStatus(getManagerGoalState(summary), getComponentStatuses(summary),
+        summary.getTimestamp());
+  }
+
+  private Map<ServerId.Type,Status> getComponentStatuses(SystemInformation summary) {
+    Map<ServerId.Type,Status> statuses = new EnumMap<>(ServerId.Type.class);
+    statuses.put(ServerId.Type.COMPACTOR, summary.getServerStatus(ServerId.Type.COMPACTOR));
+    statuses.put(ServerId.Type.GARBAGE_COLLECTOR,
+        summary.getServerStatus(ServerId.Type.GARBAGE_COLLECTOR));
+    statuses.put(ServerId.Type.MANAGER, summary.getServerStatus(ServerId.Type.MANAGER));
+    statuses.put(ServerId.Type.SCAN_SERVER, summary.getServerStatus(ServerId.Type.SCAN_SERVER));
+    statuses.put(ServerId.Type.TABLET_SERVER, summary.getServerStatus(ServerId.Type.TABLET_SERVER));
+    return statuses;
+  }
+
+  private String getManagerGoalState(SystemInformation summary) {
+    Integer goalState = summary.getManagers().stream()
+        .map(manager -> monitor.getInformationFetcher().getAllMetrics().getIfPresent(manager))
+        .map(response -> ServersView.metricValuesByName(response)
+            .get(Metric.MANAGER_GOAL_STATE.getName()))
+        .filter(value -> value != null && !value.isEmpty())
+        .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(v -> v != null)
+            .map(Number::intValue).min(Comparator.naturalOrder()).orElse(null))
+        .filter(value -> value != null).min(Comparator.naturalOrder()).orElse(null);
+
+    return switch (goalState == null ? -1 : goalState) {
+      case 0 -> "CLEAN_STOP";
+      case 1 -> "SAFE_MODE";
+      case 2 -> "NORMAL";
+      default -> null;
+    };
   }
 
   @GET

@@ -25,7 +25,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -53,7 +52,6 @@ import com.github.benmanes.caffeine.cache.Cache;
  * columns - contains an array of column definitions that can be used to create the table headers
  *           and Data Table columns
  * data    - an array of objects that can be used for the Data Table data definition
- * status  - overall status information, counts, warnings, etc.
  * </pre>
  *
  * Each server-process table is identified by {@link ServerTable}. The table-specific metric methods
@@ -98,6 +96,7 @@ public class ServersView {
   }
 
   private static final String LEVEL_OK = "OK";
+  private static final String LEVEL_ERROR = "ERROR";
   private static final String LEVEL_WARN = "WARN";
 
   public static final String RG_COL_KEY = "resourceGroup";
@@ -151,24 +150,17 @@ public class ServersView {
 
   public final List<Map<String,Object>> data = new ArrayList<>();
   public final List<Column> columns;
-  public final Status status;
   public final long timestamp;
 
-  public ServersView(final Set<ServerId> servers, final long problemServerCount,
-      final Cache<ServerId,MetricResponse> allMetrics, final long timestamp,
-      final List<ColumnFactory> requestedColumns) {
+  public ServersView(final Set<ServerId> servers, final Cache<ServerId,MetricResponse> allMetrics,
+      final long timestamp, final List<ColumnFactory> requestedColumns) {
 
-    AtomicInteger serversMissingMetrics = new AtomicInteger(0);
     // Grab the current metrics for each server
     List<ServerMetricRow> serverMetricRows = servers.stream().sorted().map(serverId -> {
       MetricResponse metricResponse = allMetrics.getIfPresent(serverId);
       boolean hasMetricData = hasMetricData(metricResponse);
       Map<String,List<FMetric>> serverMetrics =
           hasMetricData ? metricValuesByName(metricResponse) : Map.of();
-
-      if (!hasMetricData) {
-        serversMissingMetrics.incrementAndGet();
-      }
 
       return new ServerMetricRow(serverId, metricResponse, serverMetrics);
     }).toList();
@@ -183,15 +175,26 @@ public class ServersView {
       }
       data.add(row);
     });
-    status = buildStatus(servers.size(), problemServerCount, serversMissingMetrics.get());
     this.timestamp = timestamp;
   }
 
-  private static Status buildStatus(int serverCount, long problemServerCount,
+  public static Status buildStatus(int serverCount, long problemServerCount,
       int serversMissingMetrics) {
+    return buildStatus(serverCount, problemServerCount, serversMissingMetrics, false);
+  }
+
+  public static Status buildStatus(int serverCount, long problemServerCount,
+      int serversMissingMetrics, boolean errorWhenAllServersUnavailable) {
     final boolean hasServers = serverCount > 0;
     final boolean hasProblemServers = problemServerCount > 0;
     final boolean hasMissingMetrics = serversMissingMetrics > 0;
+    final boolean allServersUnavailable =
+        errorWhenAllServersUnavailable && hasServers && problemServerCount >= serverCount;
+
+    if (allServersUnavailable) {
+      return new Status(true, true, hasMissingMetrics, serverCount, problemServerCount,
+          serversMissingMetrics, LEVEL_ERROR, "ERROR: All servers are unavailable.");
+    }
 
     List<String> warnings = new ArrayList<>(2);
     if (hasProblemServers) {
@@ -211,7 +214,7 @@ public class ServersView {
         problemServerCount, serversMissingMetrics, LEVEL_WARN, message);
   }
 
-  private static boolean hasMetricData(MetricResponse mr) {
+  public static boolean hasMetricData(MetricResponse mr) {
     return mr != null && mr.getMetrics() != null && !mr.getMetrics().isEmpty();
   }
 

@@ -23,7 +23,6 @@ var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 const REST_V2_PREFIX = contextPath + 'rest-v2';
-const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
 
 const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
 const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
@@ -34,6 +33,7 @@ const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
 const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
 const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
 const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
+var STATUS_REQUEST = null;
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -397,40 +397,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
 ///// REST Calls /////////////
 
 /**
- * Gets the manager goal state from the cached manager response, if available.
- *
- * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
- */
-function getManagerGoalStateFromSession() {
-  var mgrs = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
-  if (!Array.isArray(mgrs) || mgrs.length === 0) {
-    console.debug('No manager data in session storage. Returning null.');
-    return null;
-  }
-  // There could be multiple managers that report different goal states.
-  // The goal state is stored in ZK, but it's eventually consistent.
-  // Use the lowest value seen as the current state for the Monitor
-  var goalState = 10;
-  $.each(mgrs, function (index, mgr) {
-    var stateVal = mgr[MANAGER_GOAL_STATE_METRIC];
-    if (stateVal < goalState) {
-      goalState = stateVal;
-    }
-  });
-  switch (goalState) {
-  case 0:
-    return 'CLEAN_STOP';
-  case 1:
-    return 'SAFE_MODE';
-  case 2:
-    return 'NORMAL';
-  default:
-    console.debug('Manager goal state metric not found');
-    return null;
-  }
-}
-
-/**
  * REST GET call for the namespaces, stores it on a global variable
  */
 function getNamespaces() {
@@ -531,13 +497,6 @@ function getTableServers(tableID) {
   return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
 }
 
-/**
- * REST GET call for the server status, stores it on a sessionStorage variable
- */
-function getStatus() {
-  return getJSONForTable(contextPath + 'rest/status', 'status');
-}
-
 /*
  * Jquery call to clear all data from cells of a table
  */
@@ -632,6 +591,46 @@ function getTableTablets(name) {
  */
 function getMetrics() {
   return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /status,
+ * stores it on a sessionStorage variable
+ */
+function getStatus() {
+  if (STATUS_REQUEST) {
+    return STATUS_REQUEST;
+  }
+  STATUS_REQUEST = getJSONForTable(REST_V2_PREFIX + '/status', 'status');
+  STATUS_REQUEST.always(function () {
+    STATUS_REQUEST = null;
+  });
+  return STATUS_REQUEST;
+}
+
+function getStoredStatusData() {
+  return sessionStorage.status ? JSON.parse(sessionStorage.status) : null;
+}
+
+function getComponentStatus(statusData, componentType) {
+  if (!statusData || !statusData.componentStatuses) {
+    return 'ERROR';
+  }
+
+  var status = statusData.componentStatuses[componentType];
+  if (!status || !status.hasServers) {
+    return 'ERROR';
+  }
+
+  if (status.level === 'ERROR') {
+    return 'ERROR';
+  }
+
+  if (status.level === 'WARN') {
+    return 'WARN';
+  }
+
+  return 'OK';
 }
 
 /**

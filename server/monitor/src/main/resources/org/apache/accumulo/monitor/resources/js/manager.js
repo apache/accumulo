@@ -28,7 +28,8 @@ const fateHtmlTable = '#managers_fate'
 const compactionHtmlTable = '#managers_compactions'
 
 function updateManagerGoalStateBanner() {
-  const goalState = getManagerGoalStateFromSession();
+  const status = sessionStorage.status ? JSON.parse(sessionStorage.status) : null;
+  const goalState = status ? status.managerGoalState : null;
   if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
     $(managerStateBannerMessage)
       .removeClass('alert-danger alert-warning')
@@ -59,7 +60,8 @@ function refreshManagerBanners() {
 }
 
 function refresh() {
-  $.when(getManagersView(), getManagersFateView(), getManagersCompactionView()).then(function () {
+  $.when(getManagersView(), getManagersFateView(), getManagersCompactionView(),
+    getStatus()).then(function () {
     refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
     refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
     refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
@@ -68,18 +70,15 @@ function refresh() {
   }).fail(function () {
     sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
       data: [],
-      columns: [],
-      status: null
+      columns: []
     });
     sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
       data: [],
-      columns: [],
-      status: null
+      columns: []
     });
     sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
       data: [],
-      columns: [],
-      status: null
+      columns: []
     });
     refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
     refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
@@ -96,18 +95,15 @@ function refresh() {
 $(function () {
   sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
   sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
   sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
   refresh();

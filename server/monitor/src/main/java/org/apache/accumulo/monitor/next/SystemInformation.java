@@ -64,6 +64,7 @@ import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ServersView;
+import org.apache.accumulo.monitor.next.views.ServersView.Status;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -652,34 +653,31 @@ public class SystemInformation {
     timestamp.set(System.currentTimeMillis());
 
     for (final ServerId.Type type : ServerId.Type.values()) {
-      long problemHostCount =
-          problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
       Set<ServerId> servers = new HashSet<>();
       switch (type) {
         case COMPACTOR:
           compactors.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers);
           break;
         case GARBAGE_COLLECTOR:
           servers.add(gc.get());
-          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers);
+          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers);
+          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers);
           break;
         case MANAGER:
           servers.addAll(managers);
-          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers,
-              problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers);
+          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers);
+          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers);
           break;
         case SCAN_SERVER:
           sservers.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers);
           break;
         case TABLET_SERVER:
           tservers.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers);
           break;
         case MONITOR:
         default:
@@ -699,6 +697,35 @@ public class SystemInformation {
 
   public Set<ServerId> getManagers() {
     return this.managers;
+  }
+
+  public Status getServerStatus(ServerId.Type type) {
+    Set<ServerId> servers = getServers(type);
+    long problemHostCount =
+        problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
+    int missingMetricCount = (int) servers.stream()
+        .filter(serverId -> !ServersView.hasMetricData(allMetrics.getIfPresent(serverId))).count();
+    return ServersView.buildStatus(servers.size(), problemHostCount, missingMetricCount,
+        type == ServerId.Type.TABLET_SERVER);
+  }
+
+  private Set<ServerId> getServers(ServerId.Type type) {
+    return switch (type) {
+      case COMPACTOR -> getAll(compactors);
+      case GARBAGE_COLLECTOR -> {
+        final var gcServer = gc.get();
+        yield gcServer == null ? Set.of() : Set.of(gcServer);
+      }
+      case MANAGER -> Set.copyOf(managers);
+      case SCAN_SERVER -> getAll(sservers);
+      case TABLET_SERVER -> getAll(tservers);
+      case MONITOR -> Set.of();
+    };
+  }
+
+  private static Set<ServerId> getAll(Map<String,Set<ServerId>> groupedServers) {
+    return groupedServers.values().stream().flatMap(Set::stream).collect(HashSet::new, Set::add,
+        Set::addAll);
   }
 
   public ServerId getGarbageCollector() {
@@ -779,10 +806,9 @@ public class SystemInformation {
   /**
    * Cache a ServersView for the given table and set of servers.
    */
-  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers,
-      long problemHostCount) {
-    serverMetricsView.put(table, memoize(() -> new ServersView(servers, problemHostCount,
-        allMetrics, timestamp.get(), ServersView.columnsFor(table))));
+  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers) {
+    serverMetricsView.put(table, memoize(() -> new ServersView(servers, allMetrics, timestamp.get(),
+        ServersView.columnsFor(table))));
   }
 
   public ServersView getServerProcessView(ServersView.ServerTable table) {

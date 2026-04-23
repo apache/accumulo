@@ -63,27 +63,29 @@ function refreshRecoveryList() {
  * Show a page banner that matches the tablet server status shown in the navbar.
  */
 function refreshTServersBanner() {
-  var statusData = JSON.parse(sessionStorage.status);
-  if (statusData.managerStatus === 'ERROR') {
-    $('#tserversManagerBanner').show();
-    $('#tserversWarnBanner').hide();
-    $('#tserversErrorBanner').hide();
-    $('#tservers_wrapper').hide();
-    $('#recovery-caption').hide();
-  } else {
-    $('#tserversManagerBanner').hide();
-    $('#tservers_wrapper').show();
-    if (statusData.tServerStatus === 'ERROR') {
+  getStatus().then(function () {
+    var statusData = getStoredStatusData();
+    if (getComponentStatus(statusData, 'MANAGER') === 'ERROR') {
+      $('#tserversManagerBanner').show();
       $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').show();
-    } else if (statusData.tServerStatus === 'WARN') {
-      $('#tserversWarnBanner').show();
       $('#tserversErrorBanner').hide();
+      $('#tservers_wrapper').hide();
+      $('#recovery-caption').hide();
     } else {
-      $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').hide();
+      $('#tserversManagerBanner').hide();
+      $('#tservers_wrapper').show();
+      if (getComponentStatus(statusData, 'TABLET_SERVER') === 'ERROR') {
+        $('#tserversWarnBanner').hide();
+        $('#tserversErrorBanner').show();
+      } else if (getComponentStatus(statusData, 'TABLET_SERVER') === 'WARN') {
+        $('#tserversWarnBanner').show();
+        $('#tserversErrorBanner').hide();
+      } else {
+        $('#tserversWarnBanner').hide();
+        $('#tserversErrorBanner').hide();
+      }
     }
-  }
+  });
 }
 
 
@@ -100,8 +102,7 @@ $(function () {
 
   sessionStorage[TABLET_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
-    columns: [],
-    status: null
+    columns: []
   });
 
   refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
