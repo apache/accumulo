@@ -16,18 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, getTServers, getRecoveryList, getStatus, bigNumberForQuantity, timeDuration,
-    ajaxReloadTable
-*/
 "use strict";
 
 const htmlBanner = '#tserversStatusBanner'
 const htmlBannerMessage = '#tservers-banner-message'
 const htmlTable = '#tservers'
-const visibleColumnFilter = (col) => col != "Server Type";
-
 var tserversTable;
 var recoveryList = [];
 
@@ -97,7 +90,8 @@ function refreshTServersBanner() {
 function refresh() {
   refreshRecoveryList();
   refreshTServersBanner();
-  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
 }
 
 $(function () {
@@ -110,5 +104,6 @@ $(function () {
     status: null
   });
 
-  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner, htmlBannerMessage, visibleColumnFilter);
+  refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
+    htmlBannerMessage);
 });

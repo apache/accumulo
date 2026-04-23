@@ -279,14 +279,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       final List<Future<?>> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
-      Set<ServerId> managers = this.ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
-      HostAndPort coordinatorHost = null;
-      if (!managers.isEmpty()) {
-        ServerId manager = managers.iterator().next();
-        coordinatorHost = HostAndPort.fromParts(manager.getHost(), manager.getPort());
-      }
       Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
-      summary.processExternalCompactionInventory(compactors, coordinatorHost);
+      summary.processExternalCompactionInventory(compactors);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {
@@ -358,8 +352,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
         LOG.info("Finished fetching metrics from servers");
         LOG.info(
-            "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
-            allMetrics.estimatedSize(), summary.getManager() != null,
+            "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+            allMetrics.estimatedSize(), summary.getManagers().size(),
             summary.getGarbageCollector() != null,
             summary.getCompactorAllMetricSummary().isEmpty() ? 0
                 : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()

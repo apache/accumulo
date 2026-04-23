@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 
 import jakarta.inject.Inject;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.MatrixParam;
 import jakarta.ws.rs.NotFoundException;
@@ -54,7 +55,6 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
-import org.apache.accumulo.monitor.next.ec.CoordinatorSummary;
 import org.apache.accumulo.monitor.next.views.ServersView;
 
 import io.micrometer.core.instrument.Meter.Id;
@@ -66,11 +66,6 @@ public class Endpoints {
    * A {@code String} constant representing the supplied resource group in path parameter.
    */
   private static final String GROUP_PARAM_KEY = "group";
-
-  /**
-   * A {@code String} constant representing the supplied server type in path parameter.
-   */
-  private static final String SERVER_TYPE_KEY = "serverType";
 
   /**
    * A {@code String} constant representing the supplied tableId in path parameter.
@@ -148,30 +143,6 @@ public class Endpoints {
   @Description("Returns the metric responses for all servers")
   public Collection<MetricResponse> getAll() {
     return monitor.getInformationFetcher().getAllMetrics().asMap().values();
-  }
-
-  @GET
-  @Path("manager")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metric response for the Manager")
-  public MetricResponse getManager() {
-    final ServerId s = monitor.getInformationFetcher().getSummaryForEndpoint().getManager();
-    if (s == null) {
-      throw new NotFoundException("Manager not found");
-    }
-    return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
-  }
-
-  @GET
-  @Path("manager/metrics")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns the metrics for the Manager")
-  public List<FMetric> getManagerMetrics() {
-    var managerMetrics = getManager().getMetrics();
-    if (managerMetrics != null) {
-      return managerMetrics.stream().map(FMetric::getRootAsFMetric).collect(Collectors.toList());
-    }
-    return List.of();
   }
 
   @GET
@@ -279,13 +250,15 @@ public class Endpoints {
   @GET
   @Path("servers/view")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a UI-ready view model for server processes. Add ';serverType=<ServerId.Type>' to URL")
-  public ServersView getServerProcessView(@MatrixParam(SERVER_TYPE_KEY) ServerId.Type serverType) {
+  @Description("Returns a UI-ready table model for server process pages. Add ';table=<ServersView.ServerTable>' to URL")
+  public ServersView getServerProcessView(@MatrixParam("table") ServersView.ServerTable table) {
+    if (table == null) {
+      throw new BadRequestException("A 'table' parameter is required");
+    }
     ServersView view =
-        monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(serverType);
+        monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(table);
     if (view == null) {
-      throw new NotFoundException(
-          "ServersView object for server type " + serverType.name() + " not found");
+      throw new NotFoundException("ServersView object for table " + table.name() + " not found");
     }
     return view;
   }
@@ -361,16 +334,6 @@ public class Endpoints {
       return List.of();
     }
     return longRunning.stream().collect(Collectors.toList());
-  }
-
-  @GET
-  @Path("ec")
-  @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns External Compaction coordinator summary")
-  public CoordinatorSummary getExternalCompactionCoordinator() {
-    var summary = monitor.getInformationFetcher().getSummaryForEndpoint();
-    return CoordinatorSummary.fromHost(summary.getCoordinatorHost(), summary.getCompactorServers(),
-        summary.getTimestamp());
   }
 
   @GET

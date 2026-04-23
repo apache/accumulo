@@ -71,7 +71,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Clock;
 import io.micrometer.core.instrument.Meter.Id;
@@ -365,7 +364,7 @@ public class SystemInformation {
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
-  private final AtomicReference<ServerId> manager = new AtomicReference<>();
+  private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
   // index of resource group name to set of servers
@@ -394,7 +393,6 @@ public class SystemInformation {
   // Compaction Information
   private final Map<String,List<FMetric>> queueMetrics = new ConcurrentHashMap<>();
   private volatile Set<ServerId> registeredCompactors = Set.of();
-  private volatile HostAndPort coordinatorHost;
 
   protected final Map<String,TimeOrderedRunningCompactionSet> longRunningCompactionsByRg =
       new ConcurrentHashMap<>();
@@ -415,8 +413,8 @@ public class SystemInformation {
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
   private final AtomicLong timestamp = new AtomicLong(0);
-  private EnumMap<ServerId.Type,Supplier<ServersView>> serverMetricsView =
-      new EnumMap<>(ServerId.Type.class);
+  private final EnumMap<ServersView.ServerTable,Supplier<ServersView>> serverMetricsView =
+      new EnumMap<>(ServersView.ServerTable.class);
   private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
   private final int rgLongRunningCompactionSize;
 
@@ -431,6 +429,7 @@ public class SystemInformation {
     resourceGroups.clear();
     problemHosts.clear();
     metricProblemHosts.clear();
+    managers.clear();
     compactors.clear();
     sservers.clear();
     tservers.clear();
@@ -442,7 +441,6 @@ public class SystemInformation {
     rgTServerMetrics.clear();
     queueMetrics.clear();
     registeredCompactors = Set.of();
-    coordinatorHost = null;
     longRunningCompactionsByRg.clear();
     tables.clear();
     tablets.clear();
@@ -527,9 +525,7 @@ public class SystemInformation {
         }
         break;
       case MANAGER:
-        if (manager.get() == null || !manager.get().equals(server)) {
-          manager.set(server);
-        }
+        managers.add(server);
         createCompactionSummary(response);
         break;
       case SCAN_SERVER:
@@ -560,13 +556,12 @@ public class SystemInformation {
         .add(new RunningCompactionInfo(tec));
   }
 
-  public void processExternalCompactionInventory(Set<ServerId> compactors, HostAndPort host) {
+  public void processExternalCompactionInventory(Set<ServerId> compactors) {
     if (compactors == null) {
       registeredCompactors = Set.of();
     } else {
       registeredCompactors = Set.copyOf(compactors);
     }
-    coordinatorHost = host;
   }
 
   public void processTabletInformation(TableId tableId, String tableName, TabletInformation info) {
@@ -663,28 +658,28 @@ public class SystemInformation {
       switch (type) {
         case COMPACTOR:
           compactors.values().forEach(servers::addAll);
-          serverMetricsView.put(type, memoize(
-              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers, problemHostCount);
           break;
         case GARBAGE_COLLECTOR:
           servers.add(gc.get());
-          serverMetricsView.put(type, memoize(
-              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers, problemHostCount);
           break;
         case MANAGER:
-          servers.add(manager.get());
-          serverMetricsView.put(type, memoize(
-              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          servers.addAll(managers);
+          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers,
+              problemHostCount);
           break;
         case SCAN_SERVER:
           sservers.values().forEach(servers::addAll);
-          serverMetricsView.put(type, memoize(
-              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers, problemHostCount);
           break;
         case TABLET_SERVER:
           tservers.values().forEach(servers::addAll);
-          serverMetricsView.put(type, memoize(
-              () -> new ServersView(servers, problemHostCount, allMetrics, timestamp.get())));
+          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers, problemHostCount);
           break;
         case MONITOR:
         default:
@@ -702,8 +697,8 @@ public class SystemInformation {
     return this.problemHosts;
   }
 
-  public ServerId getManager() {
-    return this.manager.get();
+  public Set<ServerId> getManagers() {
+    return this.managers;
   }
 
   public ServerId getGarbageCollector() {
@@ -757,10 +752,6 @@ public class SystemInformation {
     return registeredCompactors;
   }
 
-  public HostAndPort getCoordinatorHost() {
-    return coordinatorHost;
-  }
-
   public Map<String,TimeOrderedRunningCompactionSet> getTopRunningCompactions() {
     return this.longRunningCompactionsByRg;
   }
@@ -785,8 +776,17 @@ public class SystemInformation {
     return this.timestamp.get();
   }
 
-  public ServersView getServerProcessView(ServerId.Type type) {
-    Supplier<ServersView> view = this.serverMetricsView.get(type);
+  /**
+   * Cache a ServersView for the given table and set of servers.
+   */
+  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers,
+      long problemHostCount) {
+    serverMetricsView.put(table, memoize(() -> new ServersView(servers, problemHostCount,
+        allMetrics, timestamp.get(), ServersView.columnsFor(table))));
+  }
+
+  public ServersView getServerProcessView(ServersView.ServerTable table) {
+    Supplier<ServersView> view = this.serverMetricsView.get(table);
     if (view != null) {
       return view.get();
     }

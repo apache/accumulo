@@ -16,11 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, MANAGER_SERVER_PROCESS_VIEW, getManagersView, getStoredRows, getStoredStatus,
-    refreshTable, refreshBanner, showBannerError, getManagerGoalStateFromSession
-*/
 "use strict";
 
 const runningBanner = '#managerRunningBanner'
@@ -29,16 +24,8 @@ const htmlBannerMessage = '#manager-banner-message'
 const managerStateBanner = '#managerStateBanner'
 const managerStateBannerMessage = '#manager-state-message'
 const htmlTable = '#managers'
-const visibleColumnFilter = (col) => col != "Server Type" && !col.startsWith("accumulo.compaction.") &&
-  !col.startsWith("accumulo.fate.");
-
 const fateHtmlTable = '#managers_fate'
-const fateVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
-  col == "Server Address" || col.startsWith("accumulo.fate.");
-
 const compactionHtmlTable = '#managers_compactions'
-const compactionVisibleColumnFilter = (col) => col == "Last Contact" || col == "Resource Group" ||
-  col == "Server Address" || col.startsWith("accumulo.compaction.");
 
 function updateManagerGoalStateBanner() {
   const goalState = getManagerGoalStateFromSession();
@@ -72,10 +59,10 @@ function refreshManagerBanners() {
 }
 
 function refresh() {
-  getManagersView().then(function () {
-    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW, visibleColumnFilter);
-    refreshTable(fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, fateVisibleColumnFilter);
-    refreshTable(compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, compactionVisibleColumnFilter);
+  $.when(getManagersView(), getManagersFateView(), getManagersCompactionView()).then(function () {
+    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
+    refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
+    refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     refreshManagerBanners();
     refreshBanner(htmlBanner, htmlBannerMessage, getStoredStatus(MANAGER_SERVER_PROCESS_VIEW));
   }).fail(function () {
@@ -84,19 +71,40 @@ function refresh() {
       columns: [],
       status: null
     });
-    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW, visibleColumnFilter);
-    refreshTable(fateHtmlTable, MANAGER_SERVER_PROCESS_VIEW, fateVisibleColumnFilter);
-    refreshTable(compactionHtmlTable, MANAGER_SERVER_PROCESS_VIEW, compactionVisibleColumnFilter);
+    sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
+      data: [],
+      columns: [],
+      status: null
+    });
+    sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
+      data: [],
+      columns: [],
+      status: null
+    });
+    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
+    refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
+    refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     $(runningBanner).show();
     $(htmlTable).hide();
     $(fateHtmlTable).hide();
     $(compactionHtmlTable).hide();
+    $(managerStateBanner).hide();
     showBannerError(htmlBanner, htmlBannerMessage);
   });
 }
 
 $(function () {
   sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+  sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+  sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
     columns: [],
     status: null
@@ -111,11 +119,6 @@ $(function () {
 
 // TODO: 6106 - left code commented for the recovery list table to be re-added
 
-/* JSLint global definitions */
-/*global
-    $, document, sessionStorage, getManager, bigNumberForQuantity,
-    timeDuration, dateFormat, getStatus, ajaxReloadTable, getManagerGoalStateFromSession
-*/
 /*
 "use strict";
 

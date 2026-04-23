@@ -16,10 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar
-*/
 "use strict";
 
 // Suffixes for quantity
@@ -30,8 +26,12 @@ const REST_V2_PREFIX = contextPath + 'rest-v2';
 const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
 
 const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
-const GC_SERVER_PROCESS_VIEW = 'gcView';
+const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
+const GC_FILE_SERVER_PROCESS_VIEW = 'gcFileView';
+const GC_WAL_SERVER_PROCESS_VIEW = 'gcWalView';
 const MANAGER_SERVER_PROCESS_VIEW = 'managerssView';
+const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
+const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
 const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
 const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 
@@ -373,7 +373,7 @@ function getJSONForTable(call, sessionDataVar) {
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
- * @param {boolean} shouldSanitize Whether to sanitize the call 
+ * @param {boolean} shouldSanitize Whether to sanitize the call
  */
 function doLoggedPostCall(call, callback, shouldSanitize) {
 
@@ -395,14 +395,6 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
 }
 
 ///// REST Calls /////////////
-
-/**
- * REST GET call for the manager information,
- * stores it on a sessionStorage variable
- */
-function getManager() {
-  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
-}
 
 /**
  * Gets the manager goal state from the cached manager response, if available.
@@ -685,44 +677,45 @@ function getDeployment() {
   return getJSONForTable(REST_V2_PREFIX + '/deployment', 'deployment');
 }
 
-/**
- * REST GET call for /servers/view;serverType=COMPACTOR,
- * stores it on a sessionStorage variable
- */
+function getServerProcessView(table, storageKey) {
+  var url = REST_V2_PREFIX + '/servers/view;table=' + table;
+  return getJSONForTable(url, storageKey);
+}
+
 function getCompactorsView() {
-  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=COMPACTOR', COMPACTOR_SERVER_PROCESS_VIEW);
+  return getServerProcessView('COMPACTORS', COMPACTOR_SERVER_PROCESS_VIEW);
 }
 
-/**
- * REST GET call for /servers/view;serverType=GARBAGE_COLLECTOR,
- * stores it on a sessionStorage variable
- */
 function getGcView() {
-  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=GARBAGE_COLLECTOR', GC_SERVER_PROCESS_VIEW);
+  return getServerProcessView('GC_SUMMARY', GC_SERVER_PROCESS_VIEW);
 }
 
-/**
- * REST GET call for /servers/view;serverType=MANAGER,
- * stores it on a sessionStorage variable
- */
+function getGcFileView() {
+  return getServerProcessView('GC_FILES', GC_FILE_SERVER_PROCESS_VIEW);
+}
+
+function getGcWalView() {
+  return getServerProcessView('GC_WALS', GC_WAL_SERVER_PROCESS_VIEW);
+}
+
 function getManagersView() {
-  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=MANAGER', MANAGER_SERVER_PROCESS_VIEW);
+  return getServerProcessView('MANAGERS', MANAGER_SERVER_PROCESS_VIEW);
 }
 
-/**
- * REST GET call for /servers/view;serverType=SCAN_SERVER,
- * stores it on a sessionStorage variable
- */
+function getManagersFateView() {
+  return getServerProcessView('MANAGER_FATE', MANAGER_FATE_SERVER_PROCESS_VIEW);
+}
+
+function getManagersCompactionView() {
+  return getServerProcessView('MANAGER_COMPACTIONS', MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
+}
+
 function getSserversView() {
-  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=SCAN_SERVER', SCAN_SERVER_PROCESS_VIEW);
+  return getServerProcessView('SCAN_SERVERS', SCAN_SERVER_PROCESS_VIEW);
 }
 
-/**
- * REST GET call for /servers/view;serverType=TABLET_SERVER,
- * stores it on a sessionStorage variable
- */
 function getTserversView() {
-  return getJSONForTable(REST_V2_PREFIX + '/servers/view;serverType=TABLET_SERVER', TABLET_SERVER_PROCESS_VIEW);
+  return getServerProcessView('TABLET_SERVERS', TABLET_SERVER_PROCESS_VIEW);
 }
 
 

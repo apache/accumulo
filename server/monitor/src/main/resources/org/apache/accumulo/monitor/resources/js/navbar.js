@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/*global getSserversView */
 "use strict";
 
 /**
@@ -136,9 +135,8 @@ function updateServerNotifications(statusData) {
     }
   };
 
-  applyStatuses(getManagerGoalStateFromSession());
 
-  getManager().always(function () {
+  getManagersView().always(function () {
     applyStatuses(getManagerGoalStateFromSession());
   });
 }

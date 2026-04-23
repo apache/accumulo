@@ -16,52 +16,51 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, timeDuration, bigNumberForQuantity, bigNumberForSize, ajaxReloadTable,
-    renderActivityState, renderMemoryState, COLUMN_MAP
-*/
 "use strict";
 
 /**
  * This file contains methods used to display tables on the Monitor's
- * pages for server processes. The REST Endpoint /rest-v2/servers/view;serverType=<ServerId.Type>
+ * pages for server processes. The REST Endpoint /rest-v2/servers/view;table=<ServerTable>
  * returns a data structure that has the following format:
  * 
  * {
  *   "data": [
  *     {
- *       "colA", "valueA",
- *       "colB", "valueB"
+ *       "colA": "valueA",
+ *       "colB": "valueB"
  *     },
  *      {
- *       "colA", "valueA",
- *       "colB", "valueB"
+ *       "colA": "valueA",
+ *       "colB": "valueB"
  *      }
  *   ],
  *   "columns": [
- *     "colA",
- *     "colB"
+ *     {
+ *       "key": "colA",
+ *       "label": "Column A",
+ *       "description": "Description of Column A",
+ *       "uiClass": "big-num"
+ *     },
+ *     {
+ *       "key": "colB",
+ *       "label": "Column B",
+ *       "description": "Description of Column B",
+ *       "uiClass": ""
+ *     }
  *   ],
  *   "status": {
  *   },
  *   timestamp: long
  * }
  * 
- * The value for the 'columns' key is an array of strings, where each string is the name
- * of a column. The value for the 'data' key is an array of objects. Each object represents
- * a server and the fields in the object contain the fields specified in the 'columns'
- * array and are in the same order.
+ * The value for the 'columns' key is an array of column definitions. The value for the
+ * 'data' key is an array of row objects keyed by the column 'key' values.
  * 
  * The 'columns' array is used to dynamically create table header rows in the html and
  * the 'data' object is directly consumed by the DataTable where each object in the 'data'
  * is a row in the table and each field in the object is a column.
- * 
- * Modify the exclusion list in AbstractServer to remove columns from being returned from
- * the AbstractServer.getMetrics RPC call. Be aware that other pages in the Monitor may
- * use this information, not just the server process pages. The entrypoint for using
- * the methods in this file is the refreshServerInformation method. To influence which columns
- * are displayed on the server process pages use the column filter in that method.
+ *
+ * The entrypoint for using the methods in this file is the refreshServerInformation method.
  */
 
 var dataTableRefs = new Map();
@@ -95,7 +94,6 @@ function getStoredRows(storageKey) {
   if (!Array.isArray(view.data)) {
     return [];
   }
-  console.debug('table data: ' + JSON.stringify(view.data));
   return view.data;
 }
 
@@ -109,25 +107,20 @@ function getStoredStatus(storageKey) {
 
 /**
  * This function is called as part of the DataTable initialization.
- * It retrieves the columns from the response and sets the columns
- * visibility based on the supplied filter. Setting the visiblity
- * to false will hide the column in the display even if the table
- * header HTML column exists. This allows us to create the table
- * header rows without supplying the filter.
+ * It retrieves the exact columns from the cached response and creates
+ * the DataTables column definitions from them.
  */
-function getDataTableCols(storageKey, visibleColumnFilter) {
+function getDataTableCols(storageKey) {
   var dataTableColumns = [];
   var storedColumns = getStoredColumns(storageKey);
-  var visibleColumns = storedColumns.filter(visibleColumnFilter);
   $.each(storedColumns, function (index, col) {
-    var v = visibleColumns.includes(col);
-    var colName = col.replaceAll(".", "\\.");
+    var colName = col.key.replaceAll(".", "\\.");
     dataTableColumns.push({
       data: colName,
-      visible: v
+      title: col.label,
+      className: col.uiClass || ''
     });
   });
-  console.debug('table columns: ' + JSON.stringify(dataTableColumns));
   return dataTableColumns;
 }
 
@@ -137,7 +130,7 @@ function getDataTableCols(storageKey, visibleColumnFilter) {
  * HTML elements from the columns, redefines the DataTable,
  * and executes an ajax method to load the data.
  */
-function refreshTable(table, storageKey, visibleColumnFilter) {
+function refreshTable(table, storageKey) {
 
   // Destroy the DataTable
   var dataTableRef = dataTableRefs.get(table);
@@ -156,27 +149,18 @@ function refreshTable(table, storageKey, visibleColumnFilter) {
 
   var storedColumns = getStoredColumns(storageKey);
   $.each(storedColumns, function (index, col) {
-    console.debug('Adding table header row for column: ' + JSON.stringify(col));
-    if (COLUMN_MAP.has(col)) {
-      var mapping = COLUMN_MAP.get(col);
-      var th = $(document.createElement("th"));
-      th.addClass(mapping.classes);
-      th.text(mapping.header);
-      th.attr("title", mapping.description);
-      theadRow.append(th);
-    } else {
-      var th = $(document.createElement("th"));
-      th.text(col);
-      th.attr("title", "Unmapped column");
-      theadRow.append(th);
-    }
+    var th = $(document.createElement("th"));
+    th.addClass(col.uiClass || '');
+    th.text(col.label);
+    th.attr("title", col.description || col.label);
+    theadRow.append(th);
   });
   thead.append(theadRow);
   htmlTableElement.append(thead);
   htmlTableElement.append($(document.createElement('tbody')));
 
   // Create the DataTable
-  dataTableRef = createDataTable(table, storageKey, visibleColumnFilter);
+  dataTableRef = createDataTable(table, storageKey);
   ajaxReloadTable(dataTableRef);
   dataTableRefs.set(table, dataTableRef);
 }
@@ -214,11 +198,10 @@ function showBannerError(banner, bannerMsg) {
  * storageKey - the session storage key for the data returned from the REST API
  * banner - reference to the HTML table that displays a banner
  * bannerMsg - reference to the HTML object that is the banner
- * visibleColumnFilter - filter to apply to columns to determine which are displayed
  */
-function refreshServerInformation(callback, table, storageKey, banner, bannerMsg, visibleColumnFilter) {
+function refreshServerInformation(callback, table, storageKey, banner, bannerMsg) {
   callback().then(function () {
-    refreshTable(table, storageKey, visibleColumnFilter);
+    refreshTable(table, storageKey);
     refreshBanner(banner, bannerMsg, getStoredStatus(storageKey));
   }).fail(function () {
     sessionStorage[storageKey] = JSON.stringify({
@@ -226,7 +209,7 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
       columns: [],
       status: null
     });
-    refreshTable(table, storageKey, visibleColumnFilter);
+    refreshTable(table, storageKey);
     showBannerError(banner, bannerMsg);
   });
 }
@@ -237,7 +220,7 @@ function refreshServerInformation(callback, table, storageKey, banner, bannerMsg
  * certain columns should be rendered based on the columns
  * css class.
  */
-function createDataTable(table, storageKey, visibleColumnFilter) {
+function createDataTable(table, storageKey) {
   var dataTableRef = $(table).DataTable({
     "autoWidth": false,
     "ajax": function (data, callback) {
@@ -279,7 +262,8 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
         "targets": "start-date",
         "render": function (data, type, row) {
           if (type === 'display') {
-            if (data === 0) data = 'Waiting';
+            if (data === null || data === undefined) data = '&mdash;';
+            else if (data === 0) data = 'Waiting';
             else if (data > 0) data = dateFormat(data);
             else data = 'Error';
           }
@@ -290,7 +274,7 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
         "targets": "end-date",
         "render": function (data, type, row) {
           if (type === 'display') {
-            if (data === 0) data = '&mdash;';
+            if (data === null || data === undefined || data === 0) data = '&mdash;';
             else if (data > 0) data = dateFormat(data);
             else data = 'Error';
           }
@@ -301,6 +285,9 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
         "targets": "duration",
         "render": function (data, type) {
           if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
             data = timeDuration(data);
           }
           return data;
@@ -310,6 +297,9 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
         "targets": "percent",
         "render": function (data, type) {
           if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
             data = Math.round(data * 100) + '%';
           }
           return data;
@@ -324,7 +314,7 @@ function createDataTable(table, storageKey, visibleColumnFilter) {
         "render": renderMemoryState
       }
     ],
-    "columns": getDataTableCols(storageKey, visibleColumnFilter)
+    "columns": getDataTableCols(storageKey)
   });
   return dataTableRef;
 }

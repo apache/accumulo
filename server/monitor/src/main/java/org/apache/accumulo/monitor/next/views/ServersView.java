@@ -19,16 +19,18 @@
 package org.apache.accumulo.monitor.next.views;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.Metric.MetricDocSection;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -48,6 +50,11 @@ import com.github.benmanes.caffeine.cache.Cache;
  * data    - an array of objects that can be used for the Data Table data definition
  * status  - overall status information, counts, warnings, etc.
  * </pre>
+ *
+ * Each server-process table is identified by {@link ServerTable}. The table-specific metric methods
+ * define the metrics for each table, {@link #columnsFor(ServerTable)} converts those metrics to
+ * column definitions. The frontend uses the returned column definitions to build the table headers
+ * and DataTables column configuration.
  */
 public class ServersView {
 
@@ -59,52 +66,94 @@ public class ServersView {
       String message) {
   }
 
-  public static final String TYPE_COL_NAME = "Server Type";
-  public static final String RG_COL_NAME = "Resource Group";
-  public static final String ADDR_COL_NAME = "Server Address";
-  public static final String TIME_COL_NAME = "Last Contact";
+  /**
+   * Definition of a column to be rendered in the UI
+   */
+  public record Column(String key, String label, String description, String uiClass) {
+  }
+
+  private record ServerMetricRow(ServerId server, MetricResponse response,
+      Map<String,Number> metrics) {
+  }
+
+  /**
+   * Server-process table identifiers accepted by /rest-v2/servers/view. These enum names are used
+   * directly as the frontend table parameter values.
+   */
+  public enum ServerTable {
+    COMPACTORS,
+    GC_SUMMARY,
+    GC_FILES,
+    GC_WALS,
+    MANAGERS,
+    MANAGER_FATE,
+    MANAGER_COMPACTIONS,
+    SCAN_SERVERS,
+    TABLET_SERVERS
+  }
 
   private static final String LEVEL_OK = "OK";
   private static final String LEVEL_WARN = "WARN";
 
+  public static final String RG_COL_KEY = "resourceGroup";
+  public static final String ADDR_COL_KEY = "serverAddress";
+  public static final String TIME_COL_KEY = "lastContact";
+
+  /**
+   * Common columns that are included in every ServersView table
+   */
+  private static final List<Column> COMMON_COLUMNS = List.of(
+      new Column(TIME_COL_KEY, "Last Contact",
+          "Time since the server last responded to the monitor", "duration"),
+      new Column(RG_COL_KEY, "Resource Group", "Resource Group", ""),
+      new Column(ADDR_COL_KEY, "Server Address", "Server address", ""));
+
   public final List<Map<String,Object>> data = new ArrayList<>();
-  public final Set<String> columns = new TreeSet<>();
+  public final List<Column> columns;
   public final Status status;
   public final long timestamp;
 
   public ServersView(final Set<ServerId> servers, final long problemServerCount,
-      final Cache<ServerId,MetricResponse> allMetrics, final long timestamp) {
+      final Cache<ServerId,MetricResponse> allMetrics, final long timestamp,
+      final List<Column> requestedColumns) {
 
     AtomicInteger serversMissingMetrics = new AtomicInteger(0);
-    servers.forEach(sid -> {
-      Map<String,Object> metrics = new TreeMap<>();
+    // Grab the current metrics for each server
+    List<ServerMetricRow> serverMetricRows = servers.stream().sorted().map(serverId -> {
+      MetricResponse metricResponse = allMetrics.getIfPresent(serverId);
+      boolean hasMetricData = hasMetricData(metricResponse);
+      Map<String,Number> serverMetrics =
+          hasMetricData ? metricValuesByName(metricResponse) : Map.of();
 
-      columns.add(TYPE_COL_NAME);
-      metrics.put(TYPE_COL_NAME, sid.getType().name());
-      columns.add(RG_COL_NAME);
-      metrics.put(RG_COL_NAME, sid.getResourceGroup().canonical());
-      columns.add(ADDR_COL_NAME);
-      metrics.put(ADDR_COL_NAME, sid.toHostPortString());
-
-      MetricResponse mr = allMetrics.getIfPresent(sid);
-      if (mr != null) {
-        // Don't use the timestamp for the last contact duration,
-        // use the current time.
-        columns.add(TIME_COL_NAME);
-        metrics.put(TIME_COL_NAME, System.currentTimeMillis() - mr.getTimestamp());
-
-        Map<String,Number> serverMetrics = metricValuesByName(mr);
-        for (Entry<String,Number> e : serverMetrics.entrySet()) {
-          columns.add(e.getKey());
-          metrics.put(e.getKey(), e.getValue());
-        }
-        data.add(metrics);
-      } else {
+      if (!hasMetricData) {
         serversMissingMetrics.incrementAndGet();
       }
+
+      return new ServerMetricRow(serverId, metricResponse, serverMetrics);
+    }).toList();
+
+    this.columns = requestedColumns;
+
+    serverMetricRows.forEach(serverMetricRow -> {
+      Map<String,Object> row = new LinkedHashMap<>();
+      for (Column col : columns) {
+        row.put(col.key(), valueForColumn(col.key(), serverMetricRow.server(),
+            serverMetricRow.response(), serverMetricRow.metrics()));
+      }
+      data.add(row);
     });
     status = buildStatus(servers.size(), problemServerCount, serversMissingMetrics.get());
     this.timestamp = timestamp;
+  }
+
+  private static Object valueForColumn(String key, ServerId sid, MetricResponse mr,
+      Map<String,Number> serverMetrics) {
+    return switch (key) {
+      case TIME_COL_KEY -> mr == null ? null : System.currentTimeMillis() - mr.getTimestamp();
+      case RG_COL_KEY -> sid.getResourceGroup().canonical();
+      case ADDR_COL_KEY -> sid.toHostPortString();
+      default -> serverMetrics.get(key);
+    };
   }
 
   private static Status buildStatus(int serverCount, long problemServerCount,
@@ -131,6 +180,103 @@ public class ServersView {
         problemServerCount, serversMissingMetrics, LEVEL_WARN, message);
   }
 
+  private static boolean hasMetricData(MetricResponse mr) {
+    return mr != null && mr.getMetrics() != null && !mr.getMetrics().isEmpty();
+  }
+
+  /**
+   * Builds the final ordered columns for a table. First adds the common columns, then adds the
+   * table specific metrics.
+   */
+  public static List<Column> columnsFor(ServerTable table) {
+    List<Column> cols = new ArrayList<>(COMMON_COLUMNS);
+    cols.addAll(metricsForTable(table).stream().map(ServersView::metricColumn).toList());
+    return cols;
+  }
+
+  private static List<Metric> metricsForTable(ServerTable table) {
+    return switch (table) {
+      case COMPACTORS -> compactorMetrics();
+      case GC_SUMMARY -> gcSummaryMetrics();
+      case GC_FILES -> gcFileMetrics();
+      case GC_WALS -> gcWalMetrics();
+      case MANAGERS -> managerMetrics();
+      case MANAGER_FATE -> managerFateMetrics();
+      case MANAGER_COMPACTIONS -> managerCompactionMetrics();
+      case SCAN_SERVERS -> scanServerMetrics();
+      case TABLET_SERVERS -> tabletServerMetrics();
+    };
+  }
+
+  /**
+   * The following helper methods are where the metrics included in each table are defined as well
+   * as their order.
+   */
+  private static List<Metric> compactorMetrics() {
+    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.COMPACTION,
+        MetricDocSection.COMPACTOR);
+  }
+
+  private static List<Metric> gcSummaryMetrics() {
+    return metricList(MetricDocSection.GENERAL_SERVER);
+  }
+
+  private static List<Metric> gcFileMetrics() {
+    return Arrays.stream(Metric.values()).filter(metric -> {
+      String name = metric.getName();
+      return metric.getDocSection() == MetricDocSection.GARBAGE_COLLECTION
+          && !name.startsWith("accumulo.gc.wal.");
+    }).toList();
+  }
+
+  private static List<Metric> gcWalMetrics() {
+    return Arrays.stream(Metric.values())
+        .filter(metric -> metric.getName().startsWith("accumulo.gc.wal."))
+        .collect(Collectors.toList());
+  }
+
+  private static List<Metric> managerMetrics() {
+    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.MANAGER);
+  }
+
+  private static List<Metric> managerFateMetrics() {
+    return metricList(MetricDocSection.FATE);
+  }
+
+  private static List<Metric> managerCompactionMetrics() {
+    return metricList(MetricDocSection.COMPACTION);
+  }
+
+  private static List<Metric> scanServerMetrics() {
+    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.SCAN_SERVER,
+        MetricDocSection.SCAN, MetricDocSection.BLOCK_CACHE);
+  }
+
+  private static List<Metric> tabletServerMetrics() {
+    return metricList(MetricDocSection.GENERAL_SERVER, MetricDocSection.TABLET_SERVER,
+        MetricDocSection.SCAN, MetricDocSection.COMPACTION, MetricDocSection.BLOCK_CACHE);
+  }
+
+  /**
+   * @return all the metrics for the given sections
+   */
+  private static List<Metric> metricList(MetricDocSection... sections) {
+    Set<MetricDocSection> requestedSections = Set.of(sections);
+    return Arrays.stream(Metric.values())
+        .filter(metric -> requestedSections.contains(metric.getDocSection()))
+        .collect(Collectors.toList());
+  }
+
+  /**
+   * @return a Column definition converted from the given Metric
+   */
+  private static Column metricColumn(Metric metric) {
+    String classes = Arrays.stream(metric.getColumnClasses())
+        .map(Metric.MonitorCssClass::getCssClass).collect(Collectors.joining(" "));
+    return new Column(metric.getName(), metric.getColumnHeader(), metric.getColumnDescription(),
+        classes);
+  }
+
   public static Map<String,Number> metricValuesByName(MetricResponse response) {
     var values = new HashMap<String,Number>();
     if (response == null || response.getMetrics() == null || response.getMetrics().isEmpty()) {
@@ -147,19 +293,16 @@ public class ServersView {
         values.compute(metric.name(), (k, v) -> {
           if (v == null) {
             return val;
+          } else if (v instanceof Integer i) {
+            return i + val.intValue();
+          } else if (v instanceof Long l) {
+            return l + val.longValue();
+          } else if (v instanceof Double d) {
+            return d + val.doubleValue();
           } else {
-            if (v instanceof Integer i) {
-              return i + val.intValue();
-            } else if (v instanceof Long l) {
-              return l + val.longValue();
-            } else if (v instanceof Double d) {
-              return d + val.doubleValue();
-            } else {
-              throw new RuntimeException("Unexpected value type: " + val.getClass());
-            }
+            throw new RuntimeException("Unexpected value type: " + val.getClass());
           }
         });
-        values.putIfAbsent(metric.name(), SystemInformation.getMetricValue(metric));
       }
     }
     return values;
