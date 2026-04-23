@@ -31,6 +31,12 @@ public class TableDeletedException extends RuntimeException {
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
 
+  @Deprecated(since = "4.0.0")
+  public TableDeletedException(String tableId) {
+    super("Table ID " + tableId + " was deleted");
+    this.tableId = TableId.of(tableId);
+  }
+
   public TableDeletedException(TableId tableId) {
     super("Table ID " + tableId + " was deleted");
     this.tableId = tableId;
