@@ -22,7 +22,7 @@
  * This file contains methods used to display tables on the Monitor's
  * pages for server processes. The REST Endpoint /rest-v2/servers/view;table=<ServerTable>
  * returns a data structure that has the following format:
- * 
+ *
  * {
  *   "data": [
  *     {
@@ -52,10 +52,10 @@
  *   },
  *   timestamp: long
  * }
- * 
+ *
  * The value for the 'columns' key is an array of column definitions. The value for the
  * 'data' key is an array of row objects keyed by the column 'key' values.
- * 
+ *
  * The 'columns' array is used to dynamically create table header rows in the html and
  * the 'data' object is directly consumed by the DataTable where each object in the 'data'
  * is a row in the table and each field in the object is a column.
@@ -192,7 +192,7 @@ function showBannerError(banner, bannerMsg) {
 /**
  * This function refreshes the table and banner, showing an
  * empty table and error banner if not successful
- * 
+ *
  * callback - the method to use to invoke the REST API call to get the data
  * table - reference to HTML table object in which to create table header columns
  * storageKey - the session storage key for the data returned from the REST API
@@ -254,6 +254,30 @@ function createDataTable(table, storageKey) {
               return '&mdash;';
             }
             data = bigNumberForSize(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "rate-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
+            data = bigNumberForQuantity(data).toString()+"/s";
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "rate-size",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
+            data = bigNumberForSize(data).toString()+"/s";
           }
           return data;
         }
