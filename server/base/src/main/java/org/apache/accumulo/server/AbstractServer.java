@@ -111,7 +111,7 @@ public abstract class AbstractServer
         .resolve(Property.RPC_PROCESS_BIND_ADDRESS, Property.GENERAL_PROCESS_BIND_ADDRESS));
     // If new bind parameter passed on command line or in file, then use it.
     if (newBindParameter != null
-        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+        && !newBindParameter.isBlank()
       this.bindAddress = newBindParameter;
     } else {
       this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
