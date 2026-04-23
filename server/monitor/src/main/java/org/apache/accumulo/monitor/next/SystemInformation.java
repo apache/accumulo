@@ -504,6 +504,15 @@ public class SystemInformation {
 
   private ServersView createCompactionQueueSummary(final Set<ServerId> managers) {
 
+    final Column COMPACTION_QUEUE_COL =
+        new Column(ServersView.RG_COL_KEY, "Compaction Queue", "Compaction Queue", "");
+
+    List<Column> cols = ServersView.columnsFor(ServersView.ServerTable.COORDINATOR_QUEUES);
+    // Remove the column mapping for the resource group and replace it so that
+    // the column header reads "Compaction Queue" instead of "Resource Group"
+    int index = cols.indexOf(ServersView.RG_COLUMN);
+    cols.set(index, COMPACTION_QUEUE_COL);
+
     // Construct a Map of MetricResponses by Queue. This method will take
     // the provided MetricResponse and construct new ones that contain
     // only the metrics with the "queue.id" tag in addition to the common
@@ -537,18 +546,9 @@ public class SystemInformation {
 
     if (!qm.isEmpty()) {
       // Create a ServersView object from the MetricResponse for each queue
-      final Column COMPACTION_QUEUE_COL =
-          new Column(ServersView.RG_COL_KEY, "Compaction Queue", "Compaction Queue", "");
-
-      List<Column> cols = ServersView.columnsFor(ServersView.ServerTable.COORDINATOR_QUEUES);
-      // Remove the column mapping for the resource group and replace it so that
-      // the column header reads "Compaction Queue" instead of "Resource Group"
-      int index = cols.indexOf(ServersView.RG_COLUMN);
-      cols.set(index, COMPACTION_QUEUE_COL);
-
       return new ServersView(qm.keySet(), 0, qm, timestamp.get(), cols);
     }
-    return null;
+    return new ServersView(Set.of(), 0, Map.of(), timestamp.get(), cols);
   }
 
   public void processResponse(final ServerId server, final MetricResponse response) {

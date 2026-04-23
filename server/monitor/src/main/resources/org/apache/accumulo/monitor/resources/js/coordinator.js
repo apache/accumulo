@@ -33,6 +33,13 @@ const runningQueueHtmlTable = '#queue_running';
 var tableRunning;
 var queueRunning;
 
+function getStoredArray(storageKey) {
+  if (!sessionStorage[storageKey]) {
+    return [];
+  }
+  return JSON.parse(sessionStorage[storageKey]);
+}
+
 function refresh() {
   $.when(getRunningCompactionsByTable(), getRunningCompactionsByGroup(), getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
@@ -81,7 +88,7 @@ $(function () {
   tableRunning = $(runningTableHtmlTable).DataTable({
     "ajax": function (data, callback) {
       callback({
-        data: getRunningCompactionsByTable()
+        data: getStoredArray(RUNNING_COMPACTIONS_BY_TABLE)
       });
     },
     "stateSave": true,
@@ -102,7 +109,7 @@ $(function () {
   queueRunning = $(runningQueueHtmlTable).DataTable({
     "ajax": function (data, callback) {
       callback({
-        data: getRunningCompactionsByGroup()
+        data: getStoredArray(RUNNING_COMPACTIONS_BY_GROUP)
       });
     },
     "stateSave": true,
