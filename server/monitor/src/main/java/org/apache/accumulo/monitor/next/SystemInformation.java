@@ -67,6 +67,7 @@ import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ServersView;
 import org.apache.accumulo.monitor.next.views.ServersView.Column;
+import org.apache.accumulo.monitor.next.views.ServersView.ColumnFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -508,11 +509,36 @@ public class SystemInformation {
     final Column COMPACTION_QUEUE_COL =
         new Column(ServersView.RG_COL_KEY, "Compaction Queue", "Compaction Queue", "");
 
-    List<Column> cols = ServersView.columnsFor(ServersView.ServerTable.COORDINATOR_QUEUES);
+    List<ColumnFactory> cols = ServersView.columnsFor(ServersView.ServerTable.COORDINATOR_QUEUES);
+
     // Remove the column mapping for the resource group and replace it so that
     // the column header reads "Compaction Queue" instead of "Resource Group"
-    int index = cols.indexOf(ServersView.RG_COLUMN);
-    cols.set(index, COMPACTION_QUEUE_COL);
+    int rgIdx = -1;
+    for (int idx = 0; idx < cols.size(); idx++) {
+      if (cols.get(idx).getColumn().key().equals(ServersView.RG_COL_KEY)) {
+        rgIdx = idx;
+        break;
+      }
+    }
+
+    if (rgIdx == -1) {
+      LOG.warn("Did not find Resource Group column to replace column header");
+    } else {
+      cols.remove(rgIdx);
+      cols.set(rgIdx, new ColumnFactory() {
+
+        @Override
+        public Column getColumn() {
+          return COMPACTION_QUEUE_COL;
+        }
+
+        @Override
+        public Object getRowData(ServerId sid, MetricResponse mr,
+            Map<String,List<FMetric>> serverMetrics) {
+          return sid.getResourceGroup().canonical();
+        }
+      });
+    }
 
     // Construct a Map of MetricResponses by Queue. This method will take
     // the provided MetricResponse and construct new ones that contain
