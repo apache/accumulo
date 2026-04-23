@@ -603,7 +603,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
     var coordinatorHost = switch (locationType) {
       case GROUP -> {
-        var allCoordinatorLocations = getContext().getCoordinatorLocations(true).locations();
+        var allCoordinatorLocations = getContext().getCoordinatorLocations().locations();
         var host = allCoordinatorLocations.get(getResourceGroup());
         if (host == null) {
           throw new TTransportException("Did not find group " + getResourceGroup()
@@ -612,7 +612,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         yield host;
       }
       case ANY -> {
-        var hosts = getContext().getCoordinatorLocations(true).sortedUniqueHost();
+        var hosts = getContext().getCoordinatorLocations().sortedUniqueHost();
         if (hosts.isEmpty()) {
           throw new TTransportException("There are no coordinators in zookeeper.");
         }

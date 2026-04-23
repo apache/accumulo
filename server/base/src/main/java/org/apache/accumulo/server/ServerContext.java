@@ -532,13 +532,13 @@ public class ServerContext extends ClientContext {
     return sharedUserWriter;
   }
 
-  public CoordinatorLocations getCoordinatorLocations(boolean useCache) {
+  public CoordinatorLocations getCoordinatorLocations() {
     var cl = coordinatorLocationsRef.get();
     if (cl == null) {
       coordinatorLocationsRef.compareAndSet(null, new CoordinatorLocationsFactory(this));
       cl = coordinatorLocationsRef.get();
     }
-    return cl.getLocations(useCache);
+    return cl.getLocations();
   }
 
   @Override

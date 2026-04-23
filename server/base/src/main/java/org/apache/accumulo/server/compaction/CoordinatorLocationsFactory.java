@@ -54,13 +54,10 @@ public class CoordinatorLocationsFactory {
       List<HostAndPort> sortedUniqueHost) {
   }
 
-  public synchronized CoordinatorLocations getLocations(boolean useCache) {
+  public synchronized CoordinatorLocations getLocations() {
     var zooCache = context.getZooCache();
-    if (lastLocations == null || lastUpdateCount != zooCache.getUpdateCount() || !useCache) {
+    if (lastLocations == null || lastUpdateCount != zooCache.getUpdateCount()) {
       lastUpdateCount = zooCache.getUpdateCount();
-      if (!useCache) {
-        zooCache.clear(Constants.ZMANAGER_COORDINATOR);
-      }
       byte[] serializedMap = zooCache.get(Constants.ZMANAGER_COORDINATOR);
       var type = new TypeToken<Map<String,String>>() {}.getType();
       Map<String,String> stringMap = GSON.get().fromJson(new String(serializedMap, UTF_8), type);

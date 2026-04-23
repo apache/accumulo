@@ -129,7 +129,7 @@ public class CoordinatorManager {
       rgs.forEach(rg -> transformed.put(rg, hp));
     });
 
-    var assignmentsInZk = context.getCoordinatorLocations(true).locations();
+    var assignmentsInZk = context.getCoordinatorLocations().locations();
     if (!transformed.equals(assignmentsInZk)) {
       CoordinatorLocationsFactory.setLocations(context.getZooSession().asReaderWriter(),
           transformed, NodeExistsPolicy.OVERWRITE);

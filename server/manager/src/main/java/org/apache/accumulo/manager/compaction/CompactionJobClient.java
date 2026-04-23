@@ -71,7 +71,7 @@ public class CompactionJobClient implements AutoCloseable {
     this.dataLevel = dataLevel;
     this.fullScan = fullScan;
 
-    this.coordinatorLocations = context.getCoordinatorLocations(true).locations();
+    this.coordinatorLocations = context.getCoordinatorLocations().locations();
 
     log.trace("Using coordinator locations {}", coordinatorLocations);
 

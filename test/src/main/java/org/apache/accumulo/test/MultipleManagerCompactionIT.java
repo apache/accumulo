@@ -66,9 +66,9 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
 
       // wait for three coordinator locations to show up in zookeeper
       Wait.waitFor(
-          () -> getServerContext().getCoordinatorLocations(true).sortedUniqueHost().size() == 3);
+          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 3);
       assertEquals(getExpectedGroups(),
-          getServerContext().getCoordinatorLocations(true).locations().keySet());
+          getServerContext().getCoordinatorLocations().locations().keySet());
 
       String table1 = names[0];
       createTable(client, table1, "cs1");
@@ -94,9 +94,9 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
 
       // wait for five coordinator locations to show up in zookeeper
       Wait.waitFor(
-          () -> getServerContext().getCoordinatorLocations(true).sortedUniqueHost().size() == 5);
+          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 5);
       assertEquals(getExpectedGroups(),
-          getServerContext().getCoordinatorLocations(true).locations().keySet());
+          getServerContext().getCoordinatorLocations().locations().keySet());
 
       compact(client, table1, 3, GROUP1, true);
       verify(client, table1, 6);
@@ -112,10 +112,10 @@ public class MultipleManagerCompactionIT extends ConfigurableMacBase {
 
       // wait for three coordinator locations to show up in zookeeper
       Wait.waitFor(
-          () -> getServerContext().getCoordinatorLocations(true).sortedUniqueHost().size() == 2,
+          () -> getServerContext().getCoordinatorLocations().sortedUniqueHost().size() == 2,
           120_000);
       assertEquals(getExpectedGroups(),
-          getServerContext().getCoordinatorLocations(true).locations().keySet());
+          getServerContext().getCoordinatorLocations().locations().keySet());
 
       compact(client, table1, 5, GROUP1, true);
       verify(client, table1, 30);
