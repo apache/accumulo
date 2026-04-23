@@ -19,6 +19,8 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -32,6 +34,7 @@ import java.util.function.Supplier;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.DistributedLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockEntry;
@@ -102,8 +105,8 @@ public class DistributedReadWriteLockTest {
     data.read();
     QueueLock qlock = new MockQueueLock();
 
-    final ReadWriteLock locker =
-        new DistributedReadWriteLock(qlock, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
+    final ReadWriteLock locker = new DistributedReadWriteLock(qlock,
+        FateId.from(FateInstanceType.USER, UUID.randomUUID()), LockRange.infinite());
     final Lock readLock = locker.readLock();
     final Lock writeLock = locker.writeLock();
     readLock.lock();
@@ -146,10 +149,94 @@ public class DistributedReadWriteLockTest {
     }
   }
 
+  private DistributedLock recover(QueueLock queueLock, FateId fateId, LockRange expectedRange,
+      LockType expectedType) {
+    var dlock = DistributedReadWriteLock.recoverLock(queueLock, fateId);
+    assertEquals(expectedRange, dlock.getRange());
+    assertEquals(expectedType, dlock.getType());
+    return dlock;
+  }
+
+  @Test
+  public void testRanges() {
+    QueueLock qlock = new MockQueueLock();
+
+    FateId fateIdInfToC = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rInfToC = LockRange.of(null, "C");
+
+    FateId fateIdQtoInf = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rQtoInf = LockRange.of("Q", null);
+
+    FateId fateIdBtoX = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rBtoX = LockRange.of("B", "X");
+
+    FateId fateIdEtoM = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rEtoM = LockRange.of("E", "M");
+
+    FateId fateIdJtoL = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rJtoL = LockRange.of("J", "L");
+
+    FateId fateIdInf = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rInf = LockRange.infinite();
+
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdInfToC, rInfToC).writeLock().tryLock());
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdQtoInf, rQtoInf).writeLock().tryLock());
+    assertFalse(new DistributedReadWriteLock(qlock, fateIdBtoX, rBtoX).readLock().tryLock());
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdEtoM, rEtoM).readLock().tryLock());
+    assertFalse(new DistributedReadWriteLock(qlock, fateIdJtoL, rJtoL).writeLock().tryLock());
+    assertFalse(new DistributedReadWriteLock(qlock, fateIdInf, rInf).readLock().tryLock());
+
+    recover(qlock, fateIdInfToC, rInfToC, LockType.WRITE).unlock();
+    assertFalse(recover(qlock, fateIdBtoX, rBtoX, LockType.READ).tryLock());
+    assertFalse(recover(qlock, fateIdJtoL, rJtoL, LockType.WRITE).tryLock());
+    assertFalse(recover(qlock, fateIdInf, rInf, LockType.READ).tryLock());
+    recover(qlock, fateIdQtoInf, rQtoInf, LockType.WRITE).unlock();
+    assertFalse(recover(qlock, fateIdJtoL, rJtoL, LockType.WRITE).tryLock());
+    assertTrue(recover(qlock, fateIdBtoX, rBtoX, LockType.READ).tryLock());
+    assertFalse(recover(qlock, fateIdJtoL, rJtoL, LockType.WRITE).tryLock());
+    assertFalse(recover(qlock, fateIdInf, rInf, LockType.READ).tryLock());
+    recover(qlock, fateIdEtoM, rEtoM, LockType.READ).unlock();
+    assertFalse(recover(qlock, fateIdJtoL, rJtoL, LockType.WRITE).tryLock());
+    assertFalse(recover(qlock, fateIdInf, rInf, LockType.READ).tryLock());
+    recover(qlock, fateIdBtoX, rBtoX, LockType.READ).unlock();
+    assertTrue(recover(qlock, fateIdJtoL, rJtoL, LockType.WRITE).tryLock());
+    recover(qlock, fateIdJtoL, rJtoL, LockType.WRITE).unlock();
+    assertTrue(recover(qlock, fateIdInf, rInf, LockType.READ).tryLock());
+    recover(qlock, fateIdInf, rInf, LockType.READ).unlock();
+
+    assertTrue(qlock.getEntries((id, data) -> true).isEmpty());
+  }
+
+  @Test
+  public void testRangeBounds() {
+
+    QueueLock qlock = new MockQueueLock();
+
+    FateId fateIdInfToE = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rInfToE = LockRange.of(null, "E");
+
+    FateId fateIdEtoM = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rEtoM = LockRange.of("E", "M");
+
+    FateId fateIdMtoInf = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rMtoInf = LockRange.of("M", null);
+
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdInfToE, rInfToE).writeLock().tryLock());
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdEtoM, rEtoM).writeLock().tryLock());
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdMtoInf, rMtoInf).writeLock().tryLock());
+
+    recover(qlock, fateIdInfToE, rInfToE, LockType.WRITE).unlock();
+    recover(qlock, fateIdEtoM, rEtoM, LockType.WRITE).unlock();
+    recover(qlock, fateIdMtoInf, rMtoInf, LockType.WRITE).unlock();
+
+    assertTrue(qlock.getEntries((id, data) -> true).isEmpty());
+  }
+
   @Test
   public void testFateLockEntrySerDes() {
     var uuid = UUID.randomUUID();
-    var entry = FateLockEntry.from(LockType.READ, FateId.from(FateInstanceType.USER, uuid));
+    var entry = FateLockEntry.from(LockType.READ, FateId.from(FateInstanceType.USER, uuid),
+        LockRange.infinite());
     assertEquals(LockType.READ, entry.getLockType());
     assertEquals(FateId.from(FateInstanceType.USER, uuid), entry.getFateId());
 

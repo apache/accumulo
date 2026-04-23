@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZINSTANCES;
+import static org.apache.accumulo.core.Constants.ZRESOURCEGROUPS;
 import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_NAMESPACE;
@@ -37,16 +38,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
@@ -54,6 +57,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -73,7 +77,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void optionsAllDefault() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     assertTrue(opts.printAllProps());
     assertTrue(opts.printSysProps());
     assertTrue(opts.printNamespaceProps());
@@ -82,7 +86,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void onlySys() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"--system"});
 
     assertFalse(opts.printAllProps());
@@ -93,7 +97,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void onlyNamespaces() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"-ns", "ns1", "ns2"});
 
     assertFalse(opts.printAllProps());
@@ -106,7 +110,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void allLongOpts() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"--system", "--namespaces", "ns1", "ns2", "--tables", "tb1", "tbl2"});
 
@@ -123,7 +127,7 @@ public class ZooInfoViewerTest {
 
   @Test
   public void allOpts() {
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(), new String[] {"-t", "tb1", "tbl2"});
 
     assertFalse(opts.printAllProps());
@@ -155,7 +159,7 @@ public class ZooInfoViewerTest {
 
     class ZooInfoViewerTestClazz extends ZooInfoViewer {
       @Override
-      ServerContext getContext(ZooInfoViewer.Opts ots) {
+      public ServerContext getServerContext() {
         return context;
       }
     }
@@ -166,7 +170,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine().trim();
@@ -194,7 +198,7 @@ public class ZooInfoViewerTest {
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"--print-instances", "--outfile", testFileName});
 
@@ -204,7 +208,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine();
@@ -226,6 +230,7 @@ public class ZooInfoViewerTest {
     InstanceId iid = InstanceId.of(uuid);
     ZooSession zk = createMock(ZooSession.class);
     var context = MockServerContext.getWithMockZK(zk);
+
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     var instanceName = "test";
     expect(zk.getChildren(eq(ZROOT + ZINSTANCES), isNull())).andReturn(List.of(instanceName))
@@ -248,6 +253,21 @@ public class ZooInfoViewerTest {
           return sysPropBytes;
         }).once();
 
+    expect(zk.getChildren(eq(ZRESOURCEGROUPS), isNull()))
+        .andReturn(List.of(ResourceGroupId.DEFAULT.canonical())).anyTimes();
+    var rgPropBytes = propCodec
+        .toBytes(new VersionedProperties(123, Instant.now(), Map.of("s1", "sv1", "s2", "sv2")));
+    expect(zk.getData(eq(ResourceGroupPropKey.DEFAULT.getPath()), isA(PropStoreWatcher.class),
+        capture(sStat))).andAnswer(() -> {
+          Stat s = sStat.getValue();
+          s.setCtime(System.currentTimeMillis());
+          s.setMtime(System.currentTimeMillis());
+          s.setVersion(0); // default version
+          s.setDataLength(rgPropBytes.length);
+          sStat.setValue(s);
+          return rgPropBytes;
+        }).once();
+
     var mockNamespaceIdMap = Map.of(NamespaceId.of("a"), "a_name");
     expect(context.getNamespaceIdToNameMap()).andReturn(mockNamespaceIdMap);
 
@@ -266,8 +286,9 @@ public class ZooInfoViewerTest {
           return nsPropBytes;
         }).once();
 
-    var mockTableIdMap = Map.of(TableId.of("t"), "t_table");
-    expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
+    TreeMap<TableId,String> mockTableIdMap = new TreeMap<>();
+    mockTableIdMap.put(TableId.of("t"), "t_table");
+    expect(context.createTableIdToQualifiedNameMap()).andReturn(mockTableIdMap).once();
 
     var tProps = new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1"));
     var tPropBytes = propCodec.toBytes(tProps);
@@ -300,7 +321,7 @@ public class ZooInfoViewerTest {
 
     class ZooInfoViewerTestClazz extends ZooInfoViewer {
       @Override
-      ServerContext getContext(ZooInfoViewer.Opts ots) {
+      public ServerContext getServerContext() {
         return context;
       }
     }
@@ -311,7 +332,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     Map<String,String> props = new HashMap<>();
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       while (scanner.hasNext()) {
         String line = scanner.nextLine();
         if (line.contains("=")) {
@@ -334,17 +355,18 @@ public class ZooInfoViewerTest {
 
     var mockNamespaceIdMap = Map.of(NamespaceId.of("+accumulo"), "accumulo",
         NamespaceId.of("+default"), "", NamespaceId.of("a_nsid"), "a_namespace_name");
-    var mockTableIdMap = Map.of(TableId.of("t_tid"), "t_tablename");
+    var mockTableIdMap = new TreeMap<TableId,String>();
+    mockTableIdMap.put(TableId.of("t_tid"), "t_tablename");
     var context = MockServerContext.get();
     expect(context.getInstanceID()).andReturn(iid).once();
     expect(context.getNamespaceIdToNameMap()).andReturn(mockNamespaceIdMap);
-    expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
+    expect(context.createTableIdToQualifiedNameMap()).andReturn(mockTableIdMap).once();
 
     replay(context);
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
 
-    ZooInfoViewer.Opts opts = new ZooInfoViewer.Opts();
+    ZooInfoViewer.ViewerOpts opts = new ZooInfoViewer.ViewerOpts();
     opts.parseArgs(ZooInfoViewer.class.getName(),
         new String[] {"--print-id-map", "--outfile", testFileName});
 
@@ -355,7 +377,7 @@ public class ZooInfoViewerTest {
 
     String line;
     Map<String,String> ids = new HashMap<>();
-    try (Scanner in = new Scanner(new File(testFileName))) {
+    try (Scanner in = new Scanner(Path.of(testFileName))) {
       while (in.hasNext()) {
         line = in.nextLine().trim();
         if (line.contains("=>") && !line.contains("ID Mapping")) {

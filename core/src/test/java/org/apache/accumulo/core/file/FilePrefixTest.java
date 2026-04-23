@@ -18,6 +18,11 @@
  */
 package org.apache.accumulo.core.file;
 
+import static org.apache.accumulo.core.file.FilePrefix.BULK_IMPORT;
+import static org.apache.accumulo.core.file.FilePrefix.COMPACTION;
+import static org.apache.accumulo.core.file.FilePrefix.FLUSH;
+import static org.apache.accumulo.core.file.FilePrefix.FULL_COMPACTION;
+import static org.apache.accumulo.core.file.FilePrefix.MERGING_MINOR_COMPACTION;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -26,14 +31,48 @@ import org.junit.jupiter.api.Test;
 public class FilePrefixTest {
 
   @Test
-  public void testPrefixes() {
-    assertEquals(FilePrefix.BULK_IMPORT, FilePrefix.fromPrefix("I"));
-    assertEquals(FilePrefix.MINOR_COMPACTION, FilePrefix.fromPrefix("F"));
-    assertEquals(FilePrefix.MAJOR_COMPACTION, FilePrefix.fromPrefix("C"));
-    assertEquals(FilePrefix.MAJOR_COMPACTION_ALL_FILES, FilePrefix.fromPrefix("A"));
-    assertThrows(IllegalArgumentException.class, () -> {
-      FilePrefix.fromPrefix("B");
-    });
+  public void testCreateFileName() {
+    assertThrows(NullPointerException.class, () -> FLUSH.createFileName(null));
+    assertThrows(IllegalArgumentException.class, () -> FLUSH.createFileName(""));
+    assertThrows(IllegalStateException.class,
+        () -> MERGING_MINOR_COMPACTION.createFileName("file.rf"));
+    assertEquals("Afile.rf", FULL_COMPACTION.createFileName("file.rf"));
+    assertEquals("Cfile.rf", COMPACTION.createFileName("file.rf"));
+    assertEquals("Ffile.rf", FLUSH.createFileName("file.rf"));
+    assertEquals("Ifile.rf", BULK_IMPORT.createFileName("file.rf"));
+  }
+
+  @Test
+  public void testFromPrefix() {
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix('*'));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix('c'));
+    assertEquals(COMPACTION, FilePrefix.fromPrefix('C'));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix('a'));
+    assertEquals(FULL_COMPACTION, FilePrefix.fromPrefix('A'));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix('f'));
+    assertEquals(FLUSH, FilePrefix.fromPrefix('F'));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix('i'));
+    assertEquals(BULK_IMPORT, FilePrefix.fromPrefix('I'));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix('m'));
+    assertEquals(MERGING_MINOR_COMPACTION, FilePrefix.fromPrefix('M'));
+  }
+
+  @Test
+  public void fromFileName() {
+    assertThrows(NullPointerException.class, () -> FilePrefix.fromFileName(null));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName(""));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("*file.rf"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("cfile.rf"));
+    assertEquals(COMPACTION, FilePrefix.fromFileName("Cfile.rf"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("afile.rf"));
+    assertEquals(FULL_COMPACTION, FilePrefix.fromFileName("Afile.rf"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("ffile.rf"));
+    assertEquals(FLUSH, FilePrefix.fromFileName("Ffile.rf"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("ifile.rf"));
+    assertEquals(BULK_IMPORT, FilePrefix.fromFileName("Ifile.rf"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromFileName("mfile.rf"));
+    assertEquals(MERGING_MINOR_COMPACTION, FilePrefix.fromFileName("Mfile.rf"));
+
   }
 
 }

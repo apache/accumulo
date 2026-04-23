@@ -20,6 +20,7 @@ package org.apache.accumulo.test.ample.metadata;
 
 import java.time.Duration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -41,13 +42,13 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -175,7 +176,7 @@ public class TestAmple {
     public void createMetadataFromExisting(AccumuloClient client, TableId tableId,
         BiPredicate<Key,Value> includeColumn) throws Exception {
       try (Scanner scanner =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(TabletsSection.getRange(tableId));
         IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
         scanner.addScanIterator(iterSetting);
@@ -238,7 +239,8 @@ public class TestAmple {
     SiteConfiguration siteConfig;
     try {
       Map<String,String> propsMap = new HashMap<>();
-      context.getSiteConfiguration().getProperties(propsMap, x -> true);
+      // get only properties set in the site config but do not include defaults
+      context.getSiteConfiguration().getProperties(propsMap, x -> true, false);
       siteConfig = SiteConfiguration.empty().withOverrides(propsMap).build();
     } catch (Exception e) {
       throw new RuntimeException(e);
@@ -258,22 +260,54 @@ public class TestAmple {
       public void setServiceLock(ServiceLock lock) {
         context.setServiceLock(lock);
       }
+
+      private final java.util.function.Supplier<ConditionalWriter> sharedMetadataWriter =
+          Suppliers.memoize(() -> {
+            try {
+              return new ConditionalWriterDelegator(
+                  createConditionalWriter(ample.tables.get(Ample.DataLevel.METADATA)),
+                  ample.cwInterceptor.get());
+            } catch (TableNotFoundException e) {
+              throw new RuntimeException(e);
+            }
+          });
+
+      private final java.util.function.Supplier<ConditionalWriter> sharedUserWriter =
+          Suppliers.memoize(() -> {
+            try {
+              return new ConditionalWriterDelegator(
+                  createConditionalWriter(ample.tables.get(Ample.DataLevel.USER)),
+                  ample.cwInterceptor.get());
+            } catch (TableNotFoundException e) {
+              throw new RuntimeException(e);
+            }
+          });
+
+      @Override
+      public java.util.function.Supplier<ConditionalWriter> getSharedMetadataWriter() {
+        return sharedMetadataWriter;
+      }
+
+      @Override
+      public java.util.function.Supplier<ConditionalWriter> getSharedUserWriter() {
+        return sharedUserWriter;
+      }
     };
   }
 
   public static void createMetadataTable(ClientContext client, String table) throws Exception {
     final var metadataTableProps =
-        client.tableOperations().getTableProperties(AccumuloTable.METADATA.tableName());
+        client.tableOperations().getTableProperties(SystemTables.METADATA.tableName());
 
     TabletAvailability availability;
     try (var tabletStream = client.tableOperations()
-        .getTabletInformation(AccumuloTable.METADATA.tableName(), new Range())) {
+        .getTabletInformation(SystemTables.METADATA.tableName(), List.of(RowRange.all()))) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
 
     var newTableConf = new NewTableConfiguration().withInitialTabletAvailability(availability)
-        .withoutDefaultIterators().setProperties(metadataTableProps);
+        .withoutDefaults().setProperties(metadataTableProps);
     client.tableOperations().create(table, newTableConf);
   }
 }

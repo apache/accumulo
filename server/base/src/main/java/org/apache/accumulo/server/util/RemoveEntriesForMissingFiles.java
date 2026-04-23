@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
@@ -38,20 +39,25 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.RemoveEntriesForMissingFiles.RemoveMissingOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.fs.Path;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -59,9 +65,10 @@ import io.opentelemetry.context.Scope;
 /**
  * Remove file entries for data files that don't exist.
  */
-public class RemoveEntriesForMissingFiles {
+@AutoService(KeywordExecutable.class)
+public class RemoveEntriesForMissingFiles extends ServerKeywordExecutable<RemoveMissingOpts> {
 
-  static class Opts extends ServerUtilOpts {
+  static class RemoveMissingOpts extends ServerOpts {
     @Parameter(names = "--fix")
     boolean fix = false;
   }
@@ -143,7 +150,7 @@ public class RemoveEntriesForMissingFiles {
     BatchWriter writer = null;
 
     if (fix) {
-      writer = context.createBatchWriter(AccumuloTable.METADATA.tableName());
+      writer = context.createBatchWriter(SystemTables.METADATA.tableName());
     }
 
     for (Entry<Key,Value> entry : metadata) {
@@ -200,11 +207,11 @@ public class RemoveEntriesForMissingFiles {
 
   static int checkAllTables(ServerContext context, boolean fix, Consumer<String> printInfoMethod,
       Consumer<String> printProblemMethod) throws Exception {
-    int missing = checkTable(context, AccumuloTable.ROOT.tableName(), TabletsSection.getRange(),
-        fix, printInfoMethod, printProblemMethod);
+    int missing = checkTable(context, SystemTables.ROOT.tableName(), TabletsSection.getRange(), fix,
+        printInfoMethod, printProblemMethod);
 
     if (missing == 0) {
-      return checkTable(context, AccumuloTable.METADATA.tableName(), TabletsSection.getRange(), fix,
+      return checkTable(context, SystemTables.METADATA.tableName(), TabletsSection.getRange(), fix,
           printInfoMethod, printProblemMethod);
     } else {
       return missing;
@@ -213,25 +220,43 @@ public class RemoveEntriesForMissingFiles {
 
   public static int checkTable(ServerContext context, String tableName, boolean fix,
       Consumer<String> printInfoMethod, Consumer<String> printProblemMethod) throws Exception {
-    if (tableName.equals(AccumuloTable.ROOT.tableName())) {
+    if (tableName.equals(SystemTables.ROOT.tableName())) {
       throw new IllegalArgumentException("Can not check root table");
-    } else if (tableName.equals(AccumuloTable.METADATA.tableName())) {
-      return checkTable(context, AccumuloTable.ROOT.tableName(), TabletsSection.getRange(), fix,
+    } else if (tableName.equals(SystemTables.METADATA.tableName())) {
+      return checkTable(context, SystemTables.ROOT.tableName(), TabletsSection.getRange(), fix,
           printInfoMethod, printProblemMethod);
     } else {
       TableId tableId = context.getTableId(tableName);
       Range range = new KeyExtent(tableId, null, null).toMetaRange();
-      return checkTable(context, AccumuloTable.METADATA.tableName(), range, fix, printInfoMethod,
+      return checkTable(context, SystemTables.METADATA.tableName(), range, fix, printInfoMethod,
           printProblemMethod);
     }
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(RemoveEntriesForMissingFiles.class.getName(), args);
+  public RemoveEntriesForMissingFiles() {
+    super(new RemoveMissingOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "missing-files";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.INSTANCE;
+  }
+
+  @Override
+  public String description() {
+    return "Checks file references in metadata and user tables, optionally removes errant file references";
+  }
+
+  @Override
+  public void execute(JCommander cl, RemoveMissingOpts options) throws Exception {
     Span span = TraceUtil.startSpan(RemoveEntriesForMissingFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {
-      checkAllTables(opts.getServerContext(), opts.fix, System.out::println, System.out::println);
+      checkAllTables(getServerContext(), options.fix, System.out::println, System.out::println);
     } finally {
       span.end();
     }

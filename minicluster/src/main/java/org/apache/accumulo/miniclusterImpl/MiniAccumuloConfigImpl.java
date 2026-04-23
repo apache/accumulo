@@ -28,17 +28,20 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.accumulo.core.conf.Property;
@@ -58,6 +61,8 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed
  * to constructor(s) and all other configurations are optional.
@@ -69,31 +74,34 @@ public class MiniAccumuloConfigImpl {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
   static final String DEFAULT_ZOOKEEPER_HOST = "127.0.0.1";
+  private static final EnumMap<ServerType,Function<String,Class<?>>> DEFAULT_SERVER_CLASSES =
+      new EnumMap<>(Map.of(MANAGER, rg -> Manager.class, GARBAGE_COLLECTOR,
+          rg -> SimpleGarbageCollector.class, MONITOR, rg -> Monitor.class, ZOOKEEPER,
+          rg -> ZooKeeperServerMain.class, TABLET_SERVER, rg -> TabletServer.class, SCAN_SERVER,
+          rg -> ScanServer.class, COMPACTOR, rg -> Compactor.class));
 
-  private File dir = null;
+  private Path dir = null;
   private String rootPassword = null;
   private Map<String,String> hadoopConfOverrides = new HashMap<>();
   private Map<String,String> siteConfig = new HashMap<>();
-  private Map<String,String> configuredSiteConig = new HashMap<>();
+  private Map<String,String> configuredSiteConfig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
-  private final EnumMap<ServerType,Class<?>> serverTypeClasses =
-      new EnumMap<>(Map.of(MANAGER, Manager.class, GARBAGE_COLLECTOR, SimpleGarbageCollector.class,
-          MONITOR, Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
-          TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
+  private final Map<ServerType,Function<String,Class<?>>> rgServerClassOverrides = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
+  private final Set<String> jvmOptions = new HashSet<>();
 
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
 
-  private File libDir;
-  private File libExtDir;
-  private File confDir;
+  private Path libDir;
+  private Path libExtDir;
+  private Path confDir;
   private File hadoopConfDir = null;
-  private File zooKeeperDir;
-  private File accumuloDir;
-  private File logDir;
+  private Path zooKeeperDir;
+  private Path accumuloDir;
+  private Path logDir;
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
@@ -108,16 +116,13 @@ public class MiniAccumuloConfigImpl {
   private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
+  private int numMiniDFSDataNodes = 1;
 
   private boolean useCredentialProvider = false;
 
   private String[] classpathItems = null;
 
   private String[] nativePathItems = null;
-
-  // These are only used on top of existing instances
-  private Configuration hadoopConf;
-  private SiteConfiguration accumuloConf;
 
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
@@ -130,7 +135,7 @@ public class MiniAccumuloConfigImpl {
    * @param rootPassword The initial password for the Accumulo root user
    */
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
-    this.dir = dir;
+    this.dir = dir.toPath();
     this.rootPassword = rootPassword;
     this.serverConfiguration = new ClusterServerConfiguration();
   }
@@ -140,7 +145,6 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
-  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
@@ -156,24 +160,23 @@ public class MiniAccumuloConfigImpl {
     }
 
     if (!initialized) {
-      libDir = new File(dir, "lib");
-      libExtDir = new File(libDir, "ext");
-      confDir = new File(dir, "conf");
-      accumuloDir = new File(dir, "accumulo");
-      zooKeeperDir = new File(dir, "zookeeper");
-      logDir = new File(dir, "logs");
+      libDir = dir.resolve("lib");
+      libExtDir = libDir.resolve("ext");
+      confDir = dir.resolve("conf");
+      accumuloDir = dir.resolve("accumulo");
+      zooKeeperDir = dir.resolve("zookeeper");
+      logDir = dir.resolve("logs");
 
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
         existingInstance = false;
-        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.getAbsolutePath());
+        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.toAbsolutePath());
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
       }
 
       // enable metrics reporting - by default will appear in standard log files.
       mergeProp(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
 
-      mergeProp(Property.TSERV_PORTSEARCH.getKey(), "true");
       mergeProp(Property.TSERV_DATACACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_INDEXCACHE_SIZE.getKey(), "10M");
       mergeProp(Property.TSERV_SUMMARYCACHE_SIZE.getKey(), "10M");
@@ -186,8 +189,6 @@ public class MiniAccumuloConfigImpl {
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
-
-      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
 
       mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
           Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
@@ -229,9 +230,9 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    File keystoreFile = new File(getConfDir(), "credential-provider.jks");
-    String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
-    Configuration conf = getHadoopConfiguration();
+    Path keystoreFile = confDir.resolve("credential-provider.jks");
+    String keystoreUri = "jceks://file" + keystoreFile.toAbsolutePath();
+    Configuration conf = buildHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
 
     // Set the URI on the siteCfg
@@ -257,6 +258,22 @@ public class MiniAccumuloConfigImpl {
       // Only remove it from the siteCfg if we succeeded in adding it to the CredentialProvider
       entries.remove();
     }
+  }
+
+  Configuration buildHadoopConfiguration() {
+    Configuration conf = new Configuration(false);
+    if (hadoopConfDir != null) {
+      Path coreSite = hadoopConfDir.toPath().resolve("core-site.xml");
+      Path hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml");
+
+      try {
+        conf.addResource(coreSite.toUri().toURL());
+        conf.addResource(hdfsSite.toUri().toURL());
+      } catch (MalformedURLException e) {
+        throw new UncheckedIOException(e);
+      }
+    }
+    return conf;
   }
 
   /**
@@ -316,7 +333,7 @@ public class MiniAccumuloConfigImpl {
 
   private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<>(siteConfig);
-    this.configuredSiteConig = new HashMap<>(siteConfig);
+    this.configuredSiteConfig = new HashMap<>(siteConfig);
     return this;
   }
 
@@ -407,22 +424,23 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets the class that will be used to instantiate this server type.
+   * Sets a function that returns the class that will be used to instantiate this server type given
+   * a resource group.
    */
-  public MiniAccumuloConfigImpl setServerClass(ServerType type, Class<?> serverClass) {
-    serverTypeClasses.put(type, Objects.requireNonNull(serverClass));
+  public MiniAccumuloConfigImpl setServerClass(ServerType type, Function<String,Class<?>> func) {
+    rgServerClassOverrides.put(type, func);
     return this;
   }
 
   /**
    * @return the class to use to instantiate this server type.
    */
-  public Class<?> getServerClass(ServerType type) {
-    var clazz = serverTypeClasses.get(type);
-    if (clazz == null) {
-      throw new IllegalStateException("Server type " + type + " has no class");
+  public Class<?> getServerClass(ServerType type, String rg) {
+    Class<?> clazz = rgServerClassOverrides.getOrDefault(type, r -> null).apply(rg);
+    if (clazz != null) {
+      return clazz;
     }
-    return clazz;
+    return DEFAULT_SERVER_CLASSES.get(type).apply(rg);
   }
 
   /**
@@ -440,7 +458,7 @@ public class MiniAccumuloConfigImpl {
   }
 
   public Map<String,String> getConfiguredSiteConfig() {
-    return new HashMap<>(configuredSiteConig);
+    return new HashMap<>(configuredSiteConfig);
   }
 
   /**
@@ -478,27 +496,27 @@ public class MiniAccumuloConfigImpl {
   }
 
   File getLibDir() {
-    return libDir;
+    return libDir.toFile();
   }
 
   File getLibExtDir() {
-    return libExtDir;
+    return libExtDir.toFile();
   }
 
   public File getConfDir() {
-    return confDir;
+    return confDir.toFile();
   }
 
   File getZooKeeperDir() {
-    return zooKeeperDir;
+    return zooKeeperDir.toFile();
   }
 
   public File getAccumuloDir() {
-    return accumuloDir;
+    return accumuloDir.toFile();
   }
 
   public File getLogDir() {
-    return logDir;
+    return logDir.toFile();
   }
 
   /**
@@ -534,7 +552,7 @@ public class MiniAccumuloConfigImpl {
    * @return the base directory of the cluster configuration
    */
   public File getDir() {
-    return dir;
+    return dir.toFile();
   }
 
   /**
@@ -571,7 +589,7 @@ public class MiniAccumuloConfigImpl {
     return this;
   }
 
-  public boolean useMiniDFS() {
+  public boolean getUseMiniDFS() {
     return useMiniDFS;
   }
 
@@ -582,18 +600,28 @@ public class MiniAccumuloConfigImpl {
    * underlying miniDFS cannot be restarted.
    */
   public void useMiniDFS(boolean useMiniDFS) {
+    useMiniDFS(useMiniDFS, 1);
+  }
+
+  public void useMiniDFS(boolean useMiniDFS, int numDataNodes) {
+    Preconditions.checkArgument(numDataNodes > 0);
     this.useMiniDFS = useMiniDFS;
+    this.numMiniDFSDataNodes = numDataNodes;
+  }
+
+  public int getNumDataNodes() {
+    return numMiniDFSDataNodes;
   }
 
   public File getAccumuloPropsFile() {
-    return new File(getConfDir(), "accumulo.properties");
+    return getConfDir().toPath().resolve("accumulo.properties").toFile();
   }
 
   /**
    * @return location of accumulo-client.properties file for connecting to this mini cluster
    */
   public File getClientPropsFile() {
-    return new File(getConfDir(), "accumulo-client.properties");
+    return confDir.resolve("accumulo-client.properties").toFile();
   }
 
   /**
@@ -612,6 +640,16 @@ public class MiniAccumuloConfigImpl {
    */
   public Map<String,String> getSystemProperties() {
     return new HashMap<>(systemProperties);
+  }
+
+  /**
+   * Get the set of JVM options. Changes to this set will affect the Configuration
+   *
+   * @return set of options
+   * @since 2.1.5
+   */
+  public Set<String> getJvmOptions() {
+    return jvmOptions;
   }
 
   /**
@@ -719,24 +757,12 @@ public class MiniAccumuloConfigImpl {
 
     this.existingInstance = Boolean.TRUE;
 
-    System.setProperty("accumulo.properties", "accumulo.properties");
+    System.setProperty(SiteConfiguration.ACCUMULO_PROPERTIES_PROPERTY, "accumulo.properties");
     this.hadoopConfDir = hadoopConfDir;
-    hadoopConf = new Configuration(false);
-    accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    File coreSite = new File(hadoopConfDir, "core-site.xml");
-    File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
-
-    try {
-      hadoopConf.addResource(coreSite.toURI().toURL());
-      hadoopConf.addResource(hdfsSite.toURI().toURL());
-    } catch (MalformedURLException e1) {
-      throw e1;
-    }
+    var siteConfiguration = SiteConfiguration.fromFile(accumuloProps).build();
 
     Map<String,String> siteConfigMap = new HashMap<>();
-    for (Entry<String,String> e : accumuloConf) {
-      siteConfigMap.put(e.getKey(), e.getValue());
-    }
+    siteConfiguration.getProperties(siteConfigMap, key -> true, false);
     _setSiteConfig(siteConfigMap);
 
     return this;
@@ -757,25 +783,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.2
    */
   public File getHadoopConfDir() {
-    return this.hadoopConfDir;
-  }
-
-  /**
-   * @return accumulo Configuration being used
-   *
-   * @since 1.6.2
-   */
-  public AccumuloConfiguration getAccumuloConfiguration() {
-    return accumuloConf;
-  }
-
-  /**
-   * @return hadoop Configuration being used
-   *
-   * @since 1.6.2
-   */
-  public Configuration getHadoopConfiguration() {
-    return hadoopConf;
+    return hadoopConfDir;
   }
 
   /**

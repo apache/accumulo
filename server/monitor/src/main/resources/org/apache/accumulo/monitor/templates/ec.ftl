@@ -23,40 +23,7 @@
           <h3>${title}</h3>
         </div>
       </div>
-      <div id="ecDiv" style="display: none;">
-        <div class="row">
-          <div class="col-xs-12">
-            <table id="coordinatorTable" class="table caption-top table-bordered table-striped table-condensed">
-              <caption><span class="table-caption">Compaction&nbsp;Coordinator</span></caption>
-              <thead>
-                <tr>
-                  <th class="firstcell" title="The hostname the compactor coordinator is running on.">Server&nbsp;</th>
-                  <th title="Number of queues configured">Queues</th>
-                  <th title="Number of compactors running">Compactors</th>
-                  <th class="duration">Last&nbsp;Contact</th>
-                </tr>
-              </thead>
-            </table>
-          </div>
-        </div>
-        <br />
-        <div class="row">
-          <div class="col-xs-12">
-            <table id="compactorsTable" class="table caption-top table-bordered table-striped table-condensed">
-              <caption><span class="table-caption">Compactors</span>&nbsp;&nbsp;
-                <a href="javascript:refreshCompactors();"><span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span></a>
-              </caption>
-              <thead>
-                <tr>
-                  <th class="firstcell" title="The hostname the compactor is running on.">Server</th>
-                  <th title="The name of the group this compactor is assigned.">Group</th>
-                  <th class="duration" title="Last time data was fetched. Server fetches on refresh, at most every minute.">Last Contact</th>
-                </tr>
-              </thead>
-            </table>
-          </div>
-        </div>
-        <br />
+      <div id="runningDiv" style="display: none;">
         <div class="row">
           <div class="col-xs-12">
             <table id="runningTable" class="table caption-top table-bordered table-striped table-condensed">
@@ -64,7 +31,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <div>
                     <span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
-                    <a href="javascript:refreshRunning();">
+                    <a href="javascript:refreshRunningCompactions();">
                       <span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span>
                     </a>
                   </div>
@@ -96,6 +63,12 @@
                           <input type="text" id="tableid-filter" class="form-control" placeholder="Enter table ID regex">
                           <small id="tableid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
                         </div>
+                        <!-- ECID Filter -->
+                        <div class="mb-3">
+                          <label for="ecid-filter" class="form-label">ECID Filter</label>
+                          <input type="text" id="ecid-filter" class="form-control" placeholder="Enter ECID regex">
+                          <small id="ecid-feedback" class="form-text text-danger" style="display:none;">Invalid regex pattern</small>
+                        </div>
                         <!-- Duration Filter -->
                         <div class="mb-3">
                           <label for="duration-filter" class="form-label">Duration Filter</label>
@@ -119,6 +92,7 @@
                   <th title="The status returned by the last update.">Status</th>
                   <th title="The name of the queue this compactor is assigned.">Queue</th>
                   <th title="The ID of the table being compacted.">Table ID</th>
+                  <th title="The ID of the running external compaction.">ECID</th>
                   <th title="The number of files being compacted."># of Files</th>
                   <th title="The progress of the compaction." class="progBar">Progress</th>
                   <th class="duration" title="The time of the last update for the compaction">Last Update</th>
@@ -131,6 +105,6 @@
           </div>
         </div>
       </div>
-    <div id="ccBanner" style="display: none;">
-      <div class="alert alert-danger" role="alert">Compaction Coordinator Not Running</div>
+    <div id="managerBanner" style="display: none;">
+      <div class="alert alert-danger" role="alert">Manager Not Running</div>
     </div>

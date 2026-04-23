@@ -23,7 +23,7 @@ import java.io.OutputStream;
 /**
  * Class implementation that will encrypt a file.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public interface FileEncrypter {
   /**

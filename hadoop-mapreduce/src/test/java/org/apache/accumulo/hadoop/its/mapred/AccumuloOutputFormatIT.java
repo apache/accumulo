@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
@@ -59,8 +58,12 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class AccumuloOutputFormatIT extends ConfigurableMacBase {
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -192,7 +195,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

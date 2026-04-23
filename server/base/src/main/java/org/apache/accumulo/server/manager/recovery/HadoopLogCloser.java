@@ -52,8 +52,7 @@ public class HadoopLogCloser implements LogCloser {
       }
     }
 
-    if (ns instanceof DistributedFileSystem) {
-      DistributedFileSystem dfs = (DistributedFileSystem) ns;
+    if (ns instanceof DistributedFileSystem dfs) {
       try {
         if (!dfs.recoverLease(source)) {
           log.info("Waiting for file to be closed {}", source);

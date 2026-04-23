@@ -99,16 +99,16 @@ public class MinorCompactor extends FileCompactor {
             if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
               log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
                   + " Halting...", getExtent(), e);
-              Halt.halt("TabletServer lock does not exist", -1);
+              Halt.halt(1, "TabletServer lock does not exist", e);
             } else {
               throw e;
             }
           }
 
           return ret;
-        } catch (IOException | UnsatisfiedLinkError e) {
+        } catch (IOException | ReflectiveOperationException e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
-        } catch (RuntimeException | NoClassDefFoundError e) {
+        } catch (RuntimeException e) {
           // if this is coming from a user iterator, it is possible that the user could change the
           // iterator config and that the minor compaction would succeed
           // If the minor compaction stalls for too long during recovery, it can interfere with

@@ -36,9 +36,10 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -56,7 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -85,21 +86,22 @@ public class MetadataConstraints implements Constraint {
   // @formatter:off
   private static final Set<ColumnFQ> validColumnQuals =
       Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
-          Upgrade12to13.OLD_PREV_ROW_COLUMN,
+          Upgrade11to12.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
-          Upgrade12to13.SPLIT_RATIO_COLUMN,
+          Upgrade11to12.SPLIT_RATIO_COLUMN,
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.FLUSH_NONCE_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
+          ServerColumnFamily.MIGRATION_COLUMN,
           TabletColumnFamily.AVAILABILITY_COLUMN,
           TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
           SplitColumnFamily.UNSPLITTABLE_COLUMN,
           TabletColumnFamily.MERGEABILITY_COLUMN,
-          Upgrade12to13.COMPACT_COL);
+          Upgrade11to12.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;
@@ -263,47 +265,29 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-    switch (violationCode) {
-      case 1:
-        return "data file size must be a non-negative integer";
-      case 2:
-        return "Invalid column name given.";
-      case 3:
-        return "Prev end row is greater than or equal to end row.";
-      case 4:
-        return "Invalid metadata row format";
-      case 5:
-        return "Row can not be less than " + AccumuloTable.METADATA.tableId();
-      case 6:
-        return "Empty values are not allowed for any " + AccumuloTable.METADATA.tableName()
-            + " column";
-      case 7:
-        return "Lock not held in zookeeper by writer";
-      case 8:
-        return "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
-      case 3100:
-        return "Invalid data file metadata format";
-      case 3101:
-        return "Suspended timestamp is not valid";
-      case 3102:
-        return "Invalid directory column value";
-      case 4000:
-        return "Malformed operation id";
-      case 4001:
-        return "Malformed file selection value";
-      case 4002:
-        return "Invalid compacted column";
-      case 4003:
-        return "Invalid user compaction requested column";
-      case 4004:
-        return "Invalid unsplittable column";
-      case 4005:
-        return "Malformed availability value";
-      case 4006:
-        return "Malformed mergeability value";
-
-    }
-    return null;
+    return switch (violationCode) {
+      case 1 -> "data file size must be a non-negative integer";
+      case 2 -> "Invalid column name given.";
+      case 3 -> "Prev end row is greater than or equal to end row.";
+      case 4 -> "Invalid metadata row format";
+      case 5 -> "Row can not be less than " + SystemTables.METADATA.tableId();
+      case 6 ->
+        "Empty values are not allowed for any " + SystemTables.METADATA.tableName() + " column";
+      case 7 -> "Lock not held in zookeeper by writer";
+      case 8 -> "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
+      case 3100 -> "Invalid data file metadata format";
+      case 3101 -> "Suspended timestamp is not valid";
+      case 3102 -> "Invalid directory column value";
+      case 4000 -> "Malformed operation id";
+      case 4001 -> "Malformed file selection value";
+      case 4002 -> "Invalid compacted column";
+      case 4003 -> "Invalid user compaction requested column";
+      case 4004 -> "Invalid unsplittable column";
+      case 4005 -> "Malformed availability value";
+      case 4006 -> "Malformed mergeability value";
+      case 4007 -> "Malformed migration value";
+      default -> null;
+    };
   }
 
   private void validateColValLen(ArrayList<Short> violations, ColumnUpdate columnUpdate) {
@@ -351,7 +335,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than AccumuloTable.METADATA.tableId()
-    if (Arrays.compare(row, AccumuloTable.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
+    if (Arrays.compare(row, SystemTables.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
       addViolation(violations, 5);
     }
   }
@@ -440,6 +424,12 @@ public class MetadataConstraints implements Constraint {
           addViolation(violations, 4001);
         }
         break;
+      case ServerColumnFamily.MIGRATION_QUAL:
+        try {
+          new TServerInstance(new String(columnUpdate.getValue(), UTF_8));
+        } catch (Exception e) {
+          addViolation(violations, 4007);
+        }
     }
   }
 

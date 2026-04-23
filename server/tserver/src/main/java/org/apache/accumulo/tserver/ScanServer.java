@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,11 +45,14 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -57,6 +61,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -93,6 +98,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -103,7 +109,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -119,6 +124,7 @@ import org.apache.accumulo.tserver.session.SingleScanSession;
 import org.apache.accumulo.tserver.tablet.SnapshotTablet;
 import org.apache.accumulo.tserver.tablet.Tablet;
 import org.apache.accumulo.tserver.tablet.TabletBase;
+import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -131,7 +137,6 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -198,16 +203,17 @@ public class ScanServer extends AbstractServer
   private final ServerContext context;
   private final SessionManager sessionManager;
   private final TabletServerResourceManager resourceManager;
-  HostAndPort clientAddress;
 
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  public ScanServer(ConfigOpts opts, String[] args) {
-    super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
+  private final ConcurrentHashMap<TableId,Boolean> allowedTables = new ConcurrentHashMap<>();
+  private volatile String currentAllowedTableRegex;
 
+  public ScanServer(ServerOpts opts, String[] args) {
+    super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
     context = super.getContext();
     LOG.info("Version " + Constants.VERSION);
     LOG.info("Instance " + getContext().getInstanceID());
@@ -293,10 +299,9 @@ public class ScanServer extends AbstractServer
   /**
    * Start the thrift service to handle incoming client requests
    *
-   * @return address of this client service
    * @throws UnknownHostException host unknown
    */
-  protected ServerAddress startScanServerClientService() throws UnknownHostException {
+  protected void startScanServerClientService() throws UnknownHostException {
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
@@ -304,32 +309,22 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
-        Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
-
-    setHostname(sp.address);
-    LOG.info("address = {}", sp.address);
-    return sp;
-  }
-
-  public String getClientAddressString() {
-    if (clientAddress == null) {
-      return null;
-    }
-    return clientAddress.getHost() + ":" + clientAddress.getPort();
+    updateThriftServer(() -> {
+      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
+          Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
+          Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
+    });
   }
 
   /**
-   * Set up nodes and locks in ZooKeeper for this Compactor
+   * Set up nodes and locks in ZooKeeper for this ScanServer
    */
   private ServiceLock announceExistence() {
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
       final ServiceLockPath zLockPath =
-          context.getServerPaths().createScanServerPath(getResourceGroup(), clientAddress);
+          context.getServerPaths().createScanServerPath(getResourceGroup(), getAdvertiseAddress());
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
@@ -343,7 +338,7 @@ public class ScanServer extends AbstractServer
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_SCAN}) {
           descriptors.addService(new ServiceDescriptor(serverLockUUID, svc,
-              getClientAddressString(), this.getResourceGroup()));
+              getAdvertiseAddress().toString(), this.getResourceGroup()));
         }
 
         if (scanServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -374,11 +369,10 @@ public class ScanServer extends AbstractServer
     }
 
     SecurityUtil.serverLogin(getConfiguration());
+    updateAllowedTables(false);
 
-    ServerAddress address = null;
     try {
-      address = startScanServerClientService();
-      clientAddress = address.getAddress();
+      startScanServerClientService();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the scan server client service", e1);
     }
@@ -392,9 +386,6 @@ public class ScanServer extends AbstractServer
         resourceManager.getDataCache(), resourceManager.getSummaryCache());
 
     metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress, getResourceGroup()));
-    // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();
     this.getContext().setServiceLock(lock);
@@ -402,6 +393,7 @@ public class ScanServer extends AbstractServer
     int threadPoolSize = getConfiguration().getCount(Property.SSERV_WAL_SORT_MAX_CONCURRENT);
     if (threadPoolSize > 0) {
       final LogSorter logSorter = new LogSorter(this);
+      metricsInfo.addMetricsProducers(logSorter);
       try {
         // Attempt to process all existing log sorting work and start a background
         // thread to look for log sorting work in the future
@@ -415,67 +407,176 @@ public class ScanServer extends AbstractServer
           "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
 
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
+
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(1000);
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
+        updateAllowedTables(false);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(getContext().rpcCreds());
+      }
+    }
+
+    // Wait for scans to get to zero
+    while (!sessionManager.getActiveScans().isEmpty()) {
+      LOG.debug("Waiting on {} active scans to complete.", sessionManager.getActiveScans().size());
+      UtilWaitThread.sleep(1000);
+    }
+
+    LOG.debug("Stopping Thrift Servers");
+    getThriftServer().stop();
+
     try {
-      while (!isShutdownRequested()) {
-        if (Thread.currentThread().isInterrupted()) {
-          LOG.info("Server process thread has been interrupted, shutting down");
+      LOG.info("Removing server scan references");
+      this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
+          serverLockUUID);
+    } catch (Exception e) {
+      LOG.warn("Failed to remove scan server refs from metadata location", e);
+    }
+
+    try {
+      LOG.debug("Closing filesystems");
+      VolumeManager mgr = getContext().getVolumeManager();
+      if (null != mgr) {
+        mgr.close();
+      }
+    } catch (IOException e) {
+      LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+    }
+
+    if (tmCacheExecutor != null) {
+      LOG.debug("Shutting down TabletMetadataCache executor");
+      tmCacheExecutor.shutdownNow();
+    }
+  }
+
+  // Visible for testing
+  protected boolean isAllowed(TCredentials credentials, TableId tid)
+      throws ThriftSecurityException {
+    Boolean result = allowedTables.get(tid);
+    if (result == null) {
+
+      final Retry retry = Retry.builder().maxRetries(10).retryAfter(Duration.ofSeconds(1))
+          .incrementBy(Duration.ZERO).maxWait(Duration.ofSeconds(2)).backOffFactor(1.0)
+          .logInterval(Duration.ofSeconds(3)).createRetry();
+
+      while (result == null && retry.canRetry()) {
+        try {
+          retry.waitForNextAttempt(LOG,
+              "Allowed tables mapping does not contain an entry for table: " + tid
+                  + ", refreshing table...");
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          LOG.error("Interrupted while waiting for next retry", e);
           break;
         }
-        try {
-          Thread.sleep(1000);
-          updateIdleStatus(sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0);
-        } catch (InterruptedException e) {
-          LOG.info("Interrupt Exception received, shutting down");
-          gracefulShutdown(getContext().rpcCreds());
-        }
-      }
-    } finally {
-      // Wait for scans to got to zero
-      while (!sessionManager.getActiveScans().isEmpty()) {
-        LOG.debug("Waiting on {} active scans to complete.",
-            sessionManager.getActiveScans().size());
-        UtilWaitThread.sleep(1000);
+        // Clear the cache and try again, maybe there
+        // is a race condition in table creation and scan
+        updateAllowedTables(true);
+        // validate that the table exists, else throw
+        delegate.getNamespaceId(credentials, tid);
+        result = allowedTables.get(tid);
+        retry.useRetry();
       }
 
-      LOG.debug("Stopping Thrift Servers");
-      address.server.stop();
-
-      try {
-        LOG.info("Removing server scan references");
-        this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
-            serverLockUUID);
-      } catch (Exception e) {
-        LOG.warn("Failed to remove scan server refs from metadata location", e);
+      if (result == null) {
+        // Ran out of retries
+        throw new IllegalStateException(
+            "Unable to get allowed table mapping for table: " + tid + " within 10s");
       }
-
-      try {
-        LOG.debug("Closing filesystems");
-        VolumeManager mgr = getContext().getVolumeManager();
-        if (null != mgr) {
-          mgr.close();
-        }
-      } catch (IOException e) {
-        LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
-      }
-
-      if (tmCacheExecutor != null) {
-        LOG.debug("Shutting down TabletMetadataCache executor");
-        tmCacheExecutor.shutdownNow();
-      }
-
-      context.getLowMemoryDetector().logGCInfo(getConfiguration());
-      getShutdownComplete().set(true);
-      LOG.info("stop requested. exiting ... ");
-      try {
-        if (null != lock) {
-          lock.unlock();
-        }
-      } catch (Exception e) {
-        LOG.warn("Failed to release scan server lock", e);
-      }
-
     }
+    return result;
+  }
+
+  private synchronized void updateAllowedTables(boolean clearCache) {
+
+    LOG.trace("Updating allowed tables for ScanServer");
+    if (clearCache) {
+      context.clearTableListCache();
+    }
+
+    // Remove tables that no longer exist
+    allowedTables.keySet().forEach(tid -> {
+      if (!getContext().tableNodeExists(tid)) {
+        LOG.trace("Removing table {} from allowed table map as it no longer exists", tid);
+        allowedTables.remove(tid);
+      }
+    });
+
+    @SuppressWarnings("deprecation")
+    final String oldPropName = Property.SSERV_SCAN_ALLOWED_TABLES_DEPRECATED.getKey()
+        + this.getResourceGroup().canonical();
+    final String oldPropVal = getConfiguration().get(oldPropName);
+
+    final String propName = Property.SSERV_SCAN_ALLOWED_TABLES.getKey();
+    final String propVal = getConfiguration().get(propName);
+
+    String allowedTableRegex = null;
+    if (propVal != null && oldPropVal != null) {
+      LOG.warn(
+          "Property {} is deprecated, using value from replacement property {}. Remove old property from config.",
+          oldPropName, propName);
+      allowedTableRegex = propVal;
+    } else if (propVal == null && oldPropVal != null) {
+      LOG.warn("Property {} is deprecated, please use the newer replacement property {}",
+          oldPropName, propName);
+      allowedTableRegex = oldPropVal;
+    } else if (propVal != null && oldPropVal == null) {
+      allowedTableRegex = propVal;
+    }
+
+    if (allowedTableRegex == null) {
+      allowedTableRegex = Property.SSERV_SCAN_ALLOWED_TABLES.getDefaultValue();
+    }
+
+    if (currentAllowedTableRegex == null) {
+      LOG.trace("Property {} initial value: {}", propName, allowedTableRegex);
+    } else if (currentAllowedTableRegex.equals(allowedTableRegex)) {
+      // Property value has not changed, do nothing
+    } else {
+      LOG.info("Property {} has changed. Old value: {}, new value: {}", propName,
+          currentAllowedTableRegex, allowedTableRegex);
+    }
+
+    Pattern allowedTablePattern;
+    try {
+      allowedTablePattern = Pattern.compile(allowedTableRegex);
+      // Regex is valid, store it
+      currentAllowedTableRegex = allowedTableRegex;
+    } catch (PatternSyntaxException e) {
+      LOG.error(
+          "Property {} contains an invalid regular expression. Property value: {}. Disabling all tables.",
+          propName, allowedTableRegex);
+      allowedTablePattern = null;
+    }
+
+    Pattern p = allowedTablePattern;
+    context.createTableIdToQualifiedNameMap().entrySet().forEach(te -> {
+      String tname = te.getValue();
+      TableId tid = te.getKey();
+      LOG.info("Table Mapping: {} -> {}", tid, tname);
+      if (p == null) {
+        allowedTables.put(tid, Boolean.FALSE);
+      } else {
+        Matcher m = p.matcher(tname);
+        if (m.matches()) {
+          LOG.trace("Table {} can now be scanned via this ScanServer", tname);
+          allowedTables.put(tid, Boolean.TRUE);
+        } else {
+          LOG.trace("Table {} cannot be scanned via this ScanServer", tname);
+          allowedTables.put(tid, Boolean.FALSE);
+        }
+      }
+    });
   }
 
   @SuppressWarnings("unchecked")
@@ -642,7 +743,7 @@ public class ScanServer extends AbstractServer
       List<ScanServerRefTabletFile> refs = new ArrayList<>();
       Set<KeyExtent> tabletsToCheck = new HashSet<>();
 
-      String serverAddress = clientAddress.toString();
+      String serverAddress = getAdvertiseAddress().toString();
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
@@ -809,11 +910,9 @@ public class ScanServer extends AbstractServer
   }
 
   private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
-    if (session instanceof SingleScanSession) {
-      var sss = (SingleScanSession) session;
+    if (session instanceof SingleScanSession sss) {
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
-    } else if (session instanceof MultiScanSession) {
-      var mss = (MultiScanSession) session;
+    } else if (session instanceof MultiScanSession mss) {
       return mss.exents.stream().flatMap(e -> {
         var tablet = mss.getTabletResolver().getTablet(e);
         if (tablet == null) {
@@ -836,7 +935,7 @@ public class ScanServer extends AbstractServer
 
       List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>();
       List<StoredTabletFile> confirmed = new ArrayList<>();
-      String serverAddress = clientAddress.toString();
+      String serverAddress = getAdvertiseAddress().toString();
 
       reservationsWriteLock.lock();
       try {
@@ -947,11 +1046,6 @@ public class ScanServer extends AbstractServer
     };
   }
 
-  /* Exposed for testing */
-  protected boolean isSystemUser(TCredentials creds) {
-    return context.getSecurityOperation().isSystemUser(creds);
-  }
-
   @Override
   public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
       TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
@@ -968,9 +1062,10 @@ public class ScanServer extends AbstractServer
 
     KeyExtent extent = getKeyExtent(textent);
 
-    if (extent.isSystemTable() && !isSystemUser(credentials)) {
-      throw new TException(
-          "Only the system user can perform eventual consistency scans on the root and metadata tables");
+    if (!isAllowed(credentials, extent.tableId())) {
+      throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+          "Scan of table " + extent.tableId() + " disallowed by property: "
+              + Property.SSERV_SCAN_ALLOWED_TABLES.getKey());
     }
 
     try (ScanReservation reservation =
@@ -1041,9 +1136,10 @@ public class ScanServer extends AbstractServer
     for (Entry<TKeyExtent,List<TRange>> entry : tbatch.entrySet()) {
       KeyExtent extent = getKeyExtent(entry.getKey());
 
-      if (extent.isSystemTable() && !isSystemUser(credentials)) {
-        throw new TException(
-            "Only the system user can perform eventual consistency scans on the root and metadata tables");
+      if (!isAllowed(credentials, extent.tableId())) {
+        throw new TApplicationException(TApplicationException.INTERNAL_ERROR,
+            "Scan of table " + extent.tableId() + " disallowed by property: "
+                + Property.SSERV_SCAN_ALLOWED_TABLES.getKey());
       }
 
       batch.put(extent, entry.getValue());
@@ -1151,9 +1247,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
-      tserver.runServer();
-    }
+    AbstractServer.startServer(new ScanServer(new ServerOpts(), args), LOG);
   }
 
 }

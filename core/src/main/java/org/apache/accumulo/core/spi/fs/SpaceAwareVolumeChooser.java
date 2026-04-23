@@ -85,7 +85,7 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
     return choiceCache;
   }
 
-  private class WeightedRandomCollection {
+  private final class WeightedRandomCollection {
     private final NavigableMap<Double,String> map = new TreeMap<>();
     private double total = 0;
 

@@ -48,7 +48,7 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 
   // limit calls to update fate counters to guard against hammering zookeeper.
-  private static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
+  static final long DEFAULT_MIN_REFRESH_DELAY = TimeUnit.SECONDS.toMillis(5);
 
   private static final String OP_TYPE_TAG = "op.type";
 

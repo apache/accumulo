@@ -20,15 +20,16 @@ package org.apache.accumulo.minicluster;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,17 +39,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniAccumuloClusterStartStopTest extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterStartStopTest.class);
-  private File baseDir =
-      new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
+
+  @TempDir
+  private static Path tempDir;
+
   private MiniAccumuloCluster accumulo;
 
   @BeforeEach
   public void setupTestCluster() throws IOException {
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir = new File(baseDir, testName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-    accumulo = new MiniAccumuloCluster(testDir, "superSecret");
+    assertTrue(Files.isDirectory(tempDir));
+    final Path perTestCaseSubDir = tempDir.resolve(testName());
+    Files.deleteIfExists(perTestCaseSubDir);
+    Files.createDirectories(perTestCaseSubDir);
+    accumulo = new MiniAccumuloCluster(perTestCaseSubDir.toFile(), "superSecret");
   }
 
   @AfterEach

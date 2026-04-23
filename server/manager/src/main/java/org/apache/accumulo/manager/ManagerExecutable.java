@@ -18,26 +18,16 @@
  */
 package org.apache.accumulo.manager;
 
+import org.apache.accumulo.server.util.ServerProcessKeywordExecutable;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class ManagerExecutable implements KeywordExecutable {
+public class ManagerExecutable extends ServerProcessKeywordExecutable {
 
-  @Override
-  public String keyword() {
-    return "manager";
-  }
-
-  @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.PROCESS;
-  }
-
-  @Override
-  public String description() {
-    return "Starts Accumulo Manager";
+  public ManagerExecutable() {
+    super("manager", "Manager");
   }
 
   @Override

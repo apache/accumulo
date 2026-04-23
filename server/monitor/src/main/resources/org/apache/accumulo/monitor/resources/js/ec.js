@@ -18,11 +18,7 @@
  */
 "use strict";
 
-var coordinatorTable;
-var compactorsTable;
-var compactorsTableData;
 var runningTable;
-var runningTableData;
 
 /**
  * Creates active compactions table
@@ -35,50 +31,18 @@ $(function () {
   // display datatables errors in the console instead of in alerts
   $.fn.dataTable.ext.errMode = 'throw';
 
-  compactorsTable = $('#compactorsTable').DataTable({
-    "ajax": {
-      "url": '/rest/ec/compactors',
-      "dataSrc": "compactors"
-    },
-    "stateSave": true,
-    "dom": 't<"align-left"l>p',
-    "columnDefs": [{
-        "targets": "duration",
-        "render": function (data, type, row) {
-          if (type === 'display') data = timeDuration(data);
-          return data;
-        }
-      },
-      {
-        "targets": "date",
-        "render": function (data, type, row) {
-          if (type === 'display') data = dateFormat(data);
-          return data;
-        }
-      }
-    ],
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "groupName"
-      },
-      {
-        "data": "lastContact"
-      }
-    ]
-  });
-
   const hostnameColumnName = 'hostname';
   const queueNameColumnName = 'queueName';
   const tableIdColumnName = 'tableId';
+  const ecidColumnName = 'ecid';
   const durationColumnName = 'duration';
 
-  // Create a table for running compactors
+  // Create a table for long running compactions
   runningTable = $('#runningTable').DataTable({
+    "autoWidth": false,
     "ajax": {
-      "url": '/rest/ec/running',
-      "dataSrc": "running"
+      "url": contextPath + 'rest-v2/compactions/running',
+      "dataSrc": ""
     },
     "stateSave": true,
     "dom": 't<"align-left"l>p',
@@ -114,6 +78,10 @@ $(function () {
       {
         "data": "tableId",
         "name": tableIdColumnName
+      },
+      {
+        "data": "ecid",
+        "name": ecidColumnName
       },
       {
         "data": "numFiles"
@@ -179,6 +147,10 @@ $(function () {
     handleFilterKeyup.call(this, this.value, $('#tableid-feedback'), tableIdColumnName);
   });
 
+  $('#ecid-filter').on('keyup', function () {
+    handleFilterKeyup.call(this, this.value, $('#ecid-feedback'), ecidColumnName);
+  });
+
   $('#duration-filter').on('keyup', function () {
     runningTable.draw();
   });
@@ -191,6 +163,7 @@ $(function () {
     $('#hostname-filter').val('').trigger('keyup');
     $('#queue-filter').val('').trigger('keyup');
     $('#tableid-filter').val('').trigger('keyup');
+    $('#ecid-filter').val('').trigger('keyup');
     $('#duration-filter').val('').trigger('keyup');
 
     $(this).prop('disabled', false); // re-enable the clear
@@ -272,48 +245,6 @@ $(function () {
     return seconds;
   }
 
-  // Create a table for compaction coordinator
-  coordinatorTable = $('#coordinatorTable').DataTable({
-    "ajax": {
-      "url": '/rest/ec',
-      "dataSrc": function (data) {
-        // the data needs to be in an array to work with DataTables
-        var arr = [];
-        if (data === undefined) {
-          console.warn('the value of "data" is undefined');
-        } else {
-          arr = [data];
-        }
-
-        return arr;
-      }
-    },
-    "stateSave": true,
-    "searching": false,
-    "paging": false,
-    "info": false,
-    "columnDefs": [{
-      "targets": "duration",
-      "render": function (data, type, row) {
-        if (type === 'display') data = timeDuration(data);
-        return data;
-      }
-    }],
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "numQueues"
-      },
-      {
-        "data": "numCompactors"
-      },
-      {
-        "data": "lastContact"
-      }
-    ]
-  });
-
   // Array to track the ids of the details displayed rows
   var detailRows = [];
   $("#runningTable tbody").on('click', 'tr td.details-control', function () {
@@ -324,7 +255,6 @@ $(function () {
     if (row.child.isShown()) {
       tr.removeClass('details');
       row.child.hide();
-
       // Remove from the 'open' array
       detailRows.splice(idx, 1);
     } else {
@@ -333,20 +263,25 @@ $(function () {
       var idSuffix = ecid.substring(ecid.length - 5, ecid.length);
       tr.addClass('details');
       // put all the information into html for a single row
-      var htmlRow = "<table class='table table-bordered table-striped table-condensed' id='table" + idSuffix + "'>"
+      var htmlRow = "<table class='table table-bordered table-striped table-condensed' id='table" + idSuffix + "'>";
       htmlRow += "<thead><tr><th>#</th><th>Input Files</th><th>Size</th><th>Entries</th></tr></thead>";
       htmlRow += "<tbody></tbody></table>";
       htmlRow += "Output File: <span id='outputFile" + idSuffix + "'></span><br>";
-      htmlRow += ecid;
       row.child(htmlRow).show();
-      // show the row then populate the table
-      var ecDetails = getDetailsFromStorage(idSuffix);
-      if (ecDetails.length === 0) {
-        getRunningDetails(ecid, idSuffix);
-      } else {
-        console.log("Got cached details for " + idSuffix);
-        populateDetails(ecDetails, idSuffix);
-      }
+
+      var tableId = 'table' + idSuffix;
+      clearTableBody(tableId);
+      $.each(rci.inputFiles, function (key, value) {
+        var items = [];
+        items.push(createCenterCell(key, key));
+        items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
+        items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
+        items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
+        $('<tr/>', {
+          html: items.join('')
+        }).appendTo('#' + tableId + ' tbody');
+      });
+      $('#outputFile' + idSuffix).text(rci.outputFile);
 
       // Add to the 'open' array
       if (idx === -1) {
@@ -354,132 +289,48 @@ $(function () {
       }
     }
   });
-  refreshECTables();
+
+  refreshRunningCompactions();
 });
 
 /**
  * Used to redraw the page
  */
 function refresh() {
-  refreshECTables();
+  refreshRunningCompactions();
 }
 
 /**
- * Refreshes the compaction tables
+ * Refreshes the running compactions
  */
-function refreshECTables() {
-  refreshCoordinatorStatus().then(function (coordinatorStatus) {
-
+function refreshRunningCompactions() {
+  refreshManagerStatus().then(function (managerStatus) {
     // tables will not be shown, avoid reloading
-    if (coordinatorStatus === 'ERROR') {
+    if (managerStatus === 'ERROR') {
       return;
     }
 
     // user paging is not reset on reload
-    refreshCompactors();
-    refreshRunning();
-    ajaxReloadTable(coordinatorTable);
+    ajaxReloadTable(runningTable);
   });
 }
 
 /**
- * Updates session storage then checks if the coordinator is running. If it is,
- * show the tables and hide the 'coordinator not running' banner. Else, vise-versa.
- *
- * returns the coordinator status
+ * Updates session storage then checks if the manager is running. If it is,
+ * show the tables and hide the 'manager not running' banner. Else, vice-versa.
  */
-async function refreshCoordinatorStatus() {
+async function refreshManagerStatus() {
   return getStatus().then(function () {
-    var coordinatorStatus = JSON.parse(sessionStorage.status).coordinatorStatus;
-    if (coordinatorStatus === 'ERROR') {
+    var managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    if (managerStatus === 'ERROR') {
       // show banner and hide tables
-      $('#ccBanner').show();
-      $('#ecDiv').hide();
+      $('#managerBanner').show();
+      $('#runningDiv').hide();
     } else {
       // otherwise, hide banner and show tables
-      $('#ccBanner').hide();
-      $('#ecDiv').show();
+      $('#managerBanner').hide();
+      $('#runningDiv').show();
     }
-    return coordinatorStatus;
+    return managerStatus;
   });
-}
-
-function getRunningDetails(ecid, idSuffix) {
-  var ajaxUrl = '/rest/ec/details?ecid=' + ecid;
-  console.log("Ajax call to " + ajaxUrl);
-  $.getJSON(ajaxUrl, function (data) {
-    populateDetails(data, idSuffix);
-    var detailsJSON = JSON.parse(sessionStorage.ecDetailsJSON);
-    if (detailsJSON === undefined) {
-      detailsJSON = [];
-    } else if (detailsJSON.length >= 50) {
-      // drop the oldest 25 from the sessionStorage to limit size of the cache
-      var newDetailsJSON = [];
-      $.each(detailsJSON, function (num, val) {
-        if (num > 24) {
-          newDetailsJSON.push(val);
-        }
-      });
-      detailsJSON = newDetailsJSON;
-    }
-    detailsJSON.push({
-      key: idSuffix,
-      value: data
-    });
-    sessionStorage.ecDetailsJSON = JSON.stringify(detailsJSON);
-  });
-}
-
-function getDetailsFromStorage(idSuffix) {
-  var details = [];
-  var detailsJSON = JSON.parse(sessionStorage.ecDetailsJSON);
-  if (detailsJSON.length === 0) {
-    return details;
-  } else {
-    // details are stored as key value pairs in the JSON val
-    $.each(detailsJSON, function (num, val) {
-      if (val.key === idSuffix) {
-        details = val.value;
-      }
-    });
-    return details;
-  }
-}
-
-function populateDetails(data, idSuffix) {
-  var tableId = 'table' + idSuffix;
-  clearTableBody(tableId);
-  $.each(data.inputFiles, function (key, value) {
-    var items = [];
-    items.push(createCenterCell(key, key));
-    items.push(createCenterCell(value.metadataFileEntry, value.metadataFileEntry));
-    items.push(createCenterCell(value.size, bigNumberForSize(value.size)));
-    items.push(createCenterCell(value.entries, bigNumberForQuantity(value.entries)));
-    $('<tr/>', {
-      html: items.join('')
-    }).appendTo('#' + tableId + ' tbody');
-  });
-  $('#outputFile' + idSuffix).text(data.outputFile);
-}
-
-function refreshCompactors() {
-  console.log("Refresh compactors table.");
-  // user paging is not reset on reload
-  ajaxReloadTable(compactorsTable);
-}
-
-function refreshRunning() {
-  console.log("Refresh running compactions table.");
-  // user paging is not reset on reload
-  ajaxReloadTable(runningTable);
-}
-
-// Helper function to validate regex
-function isValidRegex(input) {
-  try {
-    new RegExp(input);
-    return true;
-  } catch (e) {
-    return false;
-  }
 }

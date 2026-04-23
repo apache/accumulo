@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE_ONDEMAND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
@@ -41,13 +42,15 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.spi.ondemand.LastAccessTimeOnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -100,7 +103,6 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
           Integer.toString(managerTabletGroupWatcherInterval));
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL,
           Integer.toString(inactiveOnDemandTabletUnloaderInterval));
-      cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "15");
 
       // Tell the server processes to use a StatsDMeterRegistry that will be configured
       // to push all metrics to the sink we started.
@@ -117,6 +119,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
   @AfterAll
   public static void after() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
     sink.close();
     metricConsumer.interrupt();
     metricConsumer.join();
@@ -141,13 +144,14 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration();
       ntc.withSplits(splits);
+      ntc.setProperties(Map.of(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15"));
       c.tableOperations().create(tableName, ntc);
       String tableId = c.tableOperations().tableIdMap().get(tableName);
 
       // There should be no tablets online
       List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(0, stats.size());
-      assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+      assertEquals(0, ((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
           .getTabletHostingRequestCount());
       assertEquals(0, ONDEMAND_ONLINE_COUNT);
 
@@ -158,13 +162,56 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be four tablets online
       stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(4, stats.size());
-      assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+      assertTrue(((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
           .getTabletHostingRequestCount() > 0);
       Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 4);
 
       // Waiting for tablets to be unloaded due to inactivity
       Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 0);
       Wait.waitFor(() -> ManagerAssignmentIT.getTabletStats(c, tableId).size() == 0);
+    }
+  }
+
+  /**
+   * Test the behavior of transitioning tablets from having a tablet availability of HOSTED to
+   * ONDEMAND. This transition should cause all tablets to unload because tablets are hosted but do
+   * not have a hosting requested column set.
+   */
+  @Test
+  public void testTransitionFromHostedToOndemand() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = super.getUniqueNames(1)[0];
+
+      var splits = new TreeSet<>(Set.of(new Text("f"), new Text("m"), new Text("t")));
+      var ntc = new NewTableConfiguration().withSplits(splits);
+      // set this really high because the manager should unassign tablets because of a lack of a
+      // hosting requested column
+      ntc.setProperties(
+          Map.of(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "1000000"));
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      c.tableOperations().create(tableName, ntc);
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+
+      // wait for all tablets in table to be hosted
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 4);
+
+      // transition all tablets to ondemand. Since no tablets have a hosting requested column set
+      // the manager should unassign all tablets.
+      c.tableOperations().setTabletAvailability(tableName, RowRange.all(),
+          TabletAvailability.ONDEMAND);
+
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 0);
+
+      // scan tablet.
+      try (var scanner = c.createScanner(tableName)) {
+        scanner.setRange(new Range("h"));
+        assertFalse(scanner.iterator().hasNext());
+      }
+
+      // ensure only one tablet is hosted now since we transitioned all tablets to ONDEMAND
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, TableId.of(tableId)) == 1);
+      Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 1);
     }
   }
 
@@ -214,7 +261,8 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
       SortedSet<Text> splits = new TreeSet<>(
           List.of(new Text("005"), new Text("013"), new Text("027"), new Text("075")));
-      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits)
+          .setProperties(Map.of(LastAccessTimeOnDemandTabletUnloader.INACTIVITY_THRESHOLD, "15")));
       try (var writer = c.createBatchWriter(tableName)) {
         IntStream.range(0, 100).mapToObj(i -> String.format("%03d", i)).forEach(row -> {
           Mutation m = new Mutation(row);

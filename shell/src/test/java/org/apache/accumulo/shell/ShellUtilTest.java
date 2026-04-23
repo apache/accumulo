@@ -22,13 +22,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.List;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -39,7 +39,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ShellUtilTest {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
@@ -49,22 +49,22 @@ public class ShellUtilTest {
 
   @Test
   public void testWithoutDecode() throws IOException {
-    File testFile = new File(tempDir, "testFileNoDecode.txt");
-    FileUtils.writeStringToFile(testFile, FILEDATA, UTF_8);
-    List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), false);
+    Path testFile = tempDir.resolve("testFileNoDecode.txt");
+    Files.writeString(testFile, FILEDATA, UTF_8);
+    List<Text> output = ShellUtil.scanFile(testFile.toAbsolutePath().toString(), false);
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);
   }
 
   @Test
   public void testWithDecode() throws IOException {
-    File testFile = new File(tempDir, "testFileWithDecode.txt");
-    FileUtils.writeStringToFile(testFile, B64_FILEDATA, UTF_8);
-    List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
+    Path testFile = tempDir.resolve("testFileWithDecode.txt");
+    Files.writeString(testFile, B64_FILEDATA, UTF_8);
+    List<Text> output = ShellUtil.scanFile(testFile.toAbsolutePath().toString(), true);
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);
   }
 
   @Test
   public void testWithMissingFile() {
-    assertThrows(FileNotFoundException.class, () -> ShellUtil.scanFile("missingFile.txt", false));
+    assertThrows(NoSuchFileException.class, () -> ShellUtil.scanFile("missingFile.txt", false));
   }
 }

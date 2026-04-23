@@ -29,6 +29,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.junit.jupiter.api.BeforeAll;
@@ -102,4 +106,40 @@ public class ColumnTest {
       assertEquals(c, new Column(tc));
     }
   }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    for (Column c : col) {
+      assertEquals(c.hashCode(), c.hashCode());
+    }
+
+    // Testing equality
+    Column[] colCopy = new Column[5];
+    colCopy[0] =
+        new Column("colfam".getBytes(UTF_8), "colq".getBytes(UTF_8), "colv".getBytes(UTF_8));
+    colCopy[1] =
+        new Column("colfam".getBytes(UTF_8), "colq".getBytes(UTF_8), "colv".getBytes(UTF_8));
+    colCopy[2] = new Column(new byte[0], new byte[0], new byte[0]);
+    colCopy[3] = new Column(null, null, null);
+    colCopy[4] = new Column("colfam".getBytes(UTF_8), "cq".getBytes(UTF_8), "cv".getBytes(UTF_8));
+
+    for (int i = 0; i < col.length; i++) {
+      assertEquals(col[i].hashCode(), colCopy[i].hashCode());
+    }
+
+    // Testing even distribution
+    List<Column> columns = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      columns.add(new Column(("colfam" + i).getBytes(UTF_8), ("colq" + i).getBytes(UTF_8),
+          ("colv" + i).getBytes(UTF_8)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Column c : columns) {
+      hashCodes.add(c.hashCode());
+    }
+    assertEquals(columns.size(), hashCodes.size(), 10);
+
+  }
+
 }

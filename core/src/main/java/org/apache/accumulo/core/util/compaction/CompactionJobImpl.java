@@ -23,9 +23,9 @@ import java.util.Objects;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 
 /**
  * An immutable object that describes what files to compact and where to compact them.
@@ -36,12 +36,12 @@ import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 public class CompactionJobImpl implements CompactionJob {
 
   private final short priority;
-  private final CompactorGroupId group;
+  private final ResourceGroupId group;
   private final Set<CompactableFile> files;
   private final CompactionKind kind;
 
-  public CompactionJobImpl(short priority, CompactorGroupId group,
-      Collection<CompactableFile> files, CompactionKind kind) {
+  public CompactionJobImpl(short priority, ResourceGroupId group, Collection<CompactableFile> files,
+      CompactionKind kind) {
     this.priority = priority;
     this.group = Objects.requireNonNull(group);
     this.files = Set.copyOf(files);
@@ -57,7 +57,7 @@ public class CompactionJobImpl implements CompactionJob {
    * @return The group to run the job.
    */
   @Override
-  public CompactorGroupId getGroup() {
+  public ResourceGroupId getGroup() {
     return group;
   }
 
@@ -84,8 +84,7 @@ public class CompactionJobImpl implements CompactionJob {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof CompactionJobImpl) {
-      CompactionJobImpl ocj = (CompactionJobImpl) o;
+    if (o instanceof CompactionJobImpl ocj) {
 
       return priority == ocj.priority && group.equals(ocj.group) && files.equals(ocj.files)
           && kind == ocj.kind;

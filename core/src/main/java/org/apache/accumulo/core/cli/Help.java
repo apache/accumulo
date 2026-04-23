@@ -27,7 +27,11 @@ public class Help {
   public boolean help = false;
 
   public void parseArgs(String programName, String[] args, Object... others) {
-    JCommander commander = new JCommander();
+    parseArgs(new JCommander(), programName, args, others);
+  }
+
+  protected void parseArgs(JCommander commander, String programName, String[] args,
+      Object... others) {
     commander.addObject(this);
     for (Object other : others) {
       commander.addObject(other);
@@ -39,11 +43,14 @@ public class Help {
       commander.usage();
       exitWithError(ex.getMessage(), 1);
     }
+    validateArgs();
     if (help) {
       commander.usage();
       exit(0);
     }
   }
+
+  public void validateArgs() {}
 
   public void exit(int status) {
     System.exit(status);

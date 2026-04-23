@@ -21,6 +21,7 @@ package org.apache.accumulo.server.conf;
 import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -28,22 +29,27 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.logging.ConditionalLogger.ConditionalLogAction;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.server.conf.CheckCompactionConfig.CheckOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
@@ -57,14 +63,18 @@ import com.google.auto.service.AutoService;
  * describing why the given properties are incorrect.
  */
 @AutoService(KeywordExecutable.class)
-public class CheckCompactionConfig implements KeywordExecutable {
+public class CheckCompactionConfig extends ClientKeywordExecutable<CheckOpts> {
 
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfig.class);
 
-  static class Opts extends Help {
+  static class CheckOpts extends ClientOpts {
     @Parameter(description = "<path> Local path to file containing compaction configuration",
         required = true)
     String filePath;
+  }
+
+  public CheckCompactionConfig() {
+    super(new CheckOpts());
   }
 
   @Override
@@ -77,45 +87,38 @@ public class CheckCompactionConfig implements KeywordExecutable {
     return "Verifies compaction config within a given file";
   }
 
-  public static void main(String[] args) throws Exception {
-    new CheckCompactionConfig().execute(args);
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.CONFIG;
   }
 
   @Override
-  public void execute(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(keyword(), args);
-
-    if (opts.filePath == null) {
-      throw new IllegalArgumentException("No properties file was given");
-    }
-
-    Path path = Path.of(opts.filePath);
-    if (!path.toFile().exists()) {
+  public void execute(JCommander cl, CheckOpts options) throws Exception {
+    Path path = Path.of(options.filePath);
+    if (Files.notExists(path)) {
       throw new FileNotFoundException("File at given path could not be found");
     }
 
     AccumuloConfiguration config = SiteConfiguration.fromFile(path.toFile()).build();
-    validate(config, Level.INFO);
+    validate(config, Logger::info);
   }
 
-  public static void validate(AccumuloConfiguration config, Level level)
+  public static void validate(AccumuloConfiguration config, ConditionalLogAction logAction)
       throws ReflectiveOperationException, SecurityException, IllegalArgumentException {
     var servicesConfig = new CompactionServicesConfig(config);
     ServiceEnvironment senv = createServiceEnvironment(config);
 
     Set<String> defaultService = Set.of(DEFAULT_COMPACTION_SERVICE_NAME);
     if (servicesConfig.getPlanners().keySet().equals(defaultService)) {
-      log.atLevel(level).log("Only the default compaction service was created - {}",
-          defaultService);
+      logAction.log(log, "Only the default compaction service was created - {}", defaultService);
       return;
     }
 
-    Map<CompactorGroupId,Set<String>> groupToServices = new HashMap<>();
+    Map<ResourceGroupId,Set<String>> groupToServices = new HashMap<>();
     for (var entry : servicesConfig.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
       String plannerClassName = entry.getValue();
-      log.atLevel(level).log("Service id: {}, planner class:{}", serviceId, plannerClassName);
+      logAction.log(log, "Service id: {}, planner class:{}", serviceId, plannerClassName);
 
       Class<? extends CompactionPlanner> plannerClass =
           Class.forName(plannerClassName).asSubclass(CompactionPlanner.class);
@@ -128,14 +131,14 @@ public class CheckCompactionConfig implements KeywordExecutable {
       planner.init(initParams);
 
       initParams.getRequestedGroups().forEach(groupId -> {
-        log.atLevel(level).log("Compaction service '{}' requested with compactor group '{}'",
-            serviceId, groupId);
+        logAction.log(log, "Compaction service '{}' requested with compactor group '{}'", serviceId,
+            groupId);
         groupToServices.computeIfAbsent(groupId, f -> new HashSet<>()).add(serviceId);
       });
     }
 
     boolean dupesFound = false;
-    for (Entry<CompactorGroupId,Set<String>> e : groupToServices.entrySet()) {
+    for (Entry<ResourceGroupId,Set<String>> e : groupToServices.entrySet()) {
       if (e.getValue().size() > 1) {
         log.warn("Compaction services " + e.getValue().toString()
             + " mapped to the same compactor group: " + e.getKey());
@@ -149,7 +152,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
               + " to undesired behavior. Please fix the configuration");
     }
 
-    log.atLevel(level).log("Properties file has passed all checks.");
+    logAction.log(log, "Properties file has passed all checks.");
 
   }
 

@@ -126,8 +126,8 @@ public class SplitUtilsTest {
     };
   }
 
-  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterator, int desiredSplits) {
-    return SplitUtils.findSplits(tabletIndexIterator, desiredSplits, sc -> true);
+  public static SortedSet<Text> findSplits(Iterable<Key> tabletIndexIterable, int desiredSplits) {
+    return SplitUtils.findSplits(tabletIndexIterable, desiredSplits, sc -> true);
   }
 
   @Test

@@ -42,7 +42,15 @@ public class LogFileValue implements Writable {
 
   private static final List<Mutation> empty = Collections.emptyList();
 
-  public List<Mutation> mutations = empty;
+  private List<Mutation> mutations = empty;
+
+  public List<Mutation> getMutations() {
+    return mutations;
+  }
+
+  public void setMutations(List<Mutation> mutations) {
+    this.mutations = mutations;
+  }
 
   @Override
   public void readFields(DataInput in) throws IOException {

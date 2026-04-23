@@ -19,14 +19,12 @@
 package org.apache.accumulo.server.zookeeper;
 
 import static java.lang.Math.toIntExact;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -280,13 +278,6 @@ public class DistributedWorkQueue {
         }, timerInitialDelay, timerPeriod, TimeUnit.MILLISECONDS));
   }
 
-  /**
-   * Adds work to the queue, automatically converting the String to bytes using UTF-8
-   */
-  public void addWork(String workId, String data) throws KeeperException, InterruptedException {
-    addWork(workId, data.getBytes(UTF_8));
-  }
-
   public void addWork(String workId, byte[] data) throws KeeperException, InterruptedException {
 
     if (workId.equalsIgnoreCase(LOCKS_NODE)) {
@@ -303,33 +294,4 @@ public class DistributedWorkQueue {
     return children;
   }
 
-  public void waitUntilDone(Set<String> workIDs) throws KeeperException, InterruptedException {
-
-    final Object condVar = new Object();
-
-    Watcher watcher = new Watcher() {
-      @Override
-      public void process(WatchedEvent event) {
-        switch (event.getType()) {
-          case NodeChildrenChanged:
-            synchronized (condVar) {
-              condVar.notify();
-            }
-            break;
-          default:
-            log.info("Got unexpected zookeeper event for path {}: {}", path, event);
-            break;
-        }
-      }
-    };
-
-    List<String> children = zoo.getChildren(path, watcher);
-
-    while (!Collections.disjoint(children, workIDs)) {
-      synchronized (condVar) {
-        condVar.wait(10000);
-      }
-      children = zoo.getChildren(path, watcher);
-    }
-  }
 }

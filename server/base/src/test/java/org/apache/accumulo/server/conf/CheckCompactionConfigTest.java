@@ -18,16 +18,15 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedWriter;
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.apache.accumulo.server.WithTestNames;
 import org.junit.jupiter.api.Test;
@@ -45,7 +44,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
   private final static Logger log = LoggerFactory.getLogger(CheckCompactionConfigTest.class);
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Test
   public void testValidInput1() throws Exception {
@@ -57,7 +56,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
     String filePath = writeToFileAndReturnPath(inputString);
 
-    CheckCompactionConfig.main(new String[] {filePath});
+    new CheckCompactionConfig().execute(new String[] {filePath});
   }
 
   @Test
@@ -74,7 +73,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
 
     String filePath = writeToFileAndReturnPath(inputString);
 
-    CheckCompactionConfig.main(new String[] {filePath});
+    new CheckCompactionConfig().execute(new String[] {filePath});
   }
 
   @Test
@@ -93,7 +92,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
         + "[{'group':'cs3_small','maxSize':'16M'},{'group':'cs3_large'}]").replaceAll("'", "\"");
 
     String filePath = writeToFileAndReturnPath(inputString);
-    CheckCompactionConfig.main(new String[] {filePath});
+    new CheckCompactionConfig().execute(new String[] {filePath});
   }
 
   @Test
@@ -109,7 +108,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(JsonParseException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertEquals(expectedErrorMsg, e.getMessage());
   }
 
@@ -124,7 +123,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
   }
 
@@ -140,7 +139,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     final String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
   }
 
@@ -156,7 +155,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     var e = assertThrows(IllegalArgumentException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
     assertTrue(e.getMessage().startsWith(expectedErrorMsg));
   }
 
@@ -164,19 +163,21 @@ public class CheckCompactionConfigTest extends WithTestNames {
   public void testBadPropsFilePath() {
     String[] args = {"/home/foo/bar/myProperties.properties"};
     String expectedErrorMsg = "File at given path could not be found";
-    var e = assertThrows(FileNotFoundException.class, () -> CheckCompactionConfig.main(args));
+    var e =
+        assertThrows(FileNotFoundException.class, () -> new CheckCompactionConfig().execute(args));
     assertEquals(expectedErrorMsg, e.getMessage());
   }
 
   private String writeToFileAndReturnPath(String inputString) throws IOException {
-    File file = new File(tempDir, testName() + ".properties");
-    assertTrue(file.isFile() || file.createNewFile());
-    try (FileWriter fileWriter = new FileWriter(file, UTF_8);
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+    Path file = tempDir.resolve(testName() + ".properties");
+    if (!Files.isRegularFile(file)) {
+      Files.createFile(file);
+    }
+    try (BufferedWriter bufferedWriter = Files.newBufferedWriter(file)) {
       bufferedWriter.write(inputString);
     }
-    log.info("Wrote to path: {}\nWith string:\n{}", file.getAbsolutePath(), inputString);
-    return file.getAbsolutePath();
+    log.info("Wrote to path: {}\nWith string:\n{}", file.toAbsolutePath(), inputString);
+    return file.toAbsolutePath().toString();
   }
 
   @Test
@@ -194,7 +195,7 @@ public class CheckCompactionConfigTest extends WithTestNames {
     String filePath = writeToFileAndReturnPath(inputString);
 
     assertThrows(IllegalStateException.class,
-        () -> CheckCompactionConfig.main(new String[] {filePath}));
+        () -> new CheckCompactionConfig().execute(new String[] {filePath}));
   }
 
 }

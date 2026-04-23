@@ -27,8 +27,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.thrift.TKey;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyValue;
@@ -377,5 +379,34 @@ public class KeyTest {
       }
     }
 
+  }
+
+  @Test
+  public void testHashCode() {
+    // Test consistency
+    Key key = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8),
+        "cv".getBytes(UTF_8), 0, false);
+    int hashCode1 = key.hashCode();
+    int hashCode2 = key.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    Key k1 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8),
+        "cv".getBytes(UTF_8), 0, false);
+    Key k2 = new Key("r1".getBytes(UTF_8), "cf".getBytes(UTF_8), "cq".getBytes(UTF_8),
+        "cv".getBytes(UTF_8), 0, false);
+    assertEquals(k1.hashCode(), k2.hashCode());
+
+    // Testing even distribution
+    List<Key> keys = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      keys.add(new Key(("r1" + i).getBytes(UTF_8), ("cf" + i).getBytes(UTF_8),
+          ("cq" + i).getBytes(UTF_8), ("cv" + i).getBytes(UTF_8), 0, false));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Key k : keys) {
+      hashCodes.add(k.hashCode());
+    }
+    assertEquals(keys.size(), hashCodes.size(), 10);
   }
 }

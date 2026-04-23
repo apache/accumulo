@@ -46,6 +46,7 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileSKVIterator;
@@ -81,10 +82,7 @@ public class MultiThreadedRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstRow().compareTo(lastKey.getRow()) > 0) {
-        throw new IllegalStateException(
-            "First key out of order " + reader.getFirstRow() + " " + lastKey);
-      }
+      assertTrue(reader.getFileRange().rowRange.contains(lastKey));
 
       indexIter.next();
 
@@ -99,9 +97,10 @@ public class MultiThreadedRFileTest {
 
       }
 
-      if (!reader.getLastRow().equals(lastKey.getRow())) {
+      if (!reader.getFileRange().rowRange.getEndKey()
+          .equals(lastKey.followingKey(PartialKey.ROW))) {
         throw new IllegalStateException(
-            "Last key out of order " + reader.getLastRow() + " " + lastKey);
+            "Last key out of order " + reader.getFileRange().rowRange + " " + lastKey);
       }
     }
   }
@@ -385,16 +384,12 @@ public class MultiThreadedRFileTest {
 
   private String pad(int val) {
     String valStr = String.valueOf(val);
-    switch (valStr.length()) {
-      case 1:
-        return "000" + valStr;
-      case 2:
-        return "00" + valStr;
-      case 3:
-        return "0" + valStr;
-      default:
-        return valStr;
-    }
+    return switch (valStr.length()) {
+      case 1 -> "000" + valStr;
+      case 2 -> "00" + valStr;
+      case 3 -> "0" + valStr;
+      default -> valStr;
+    };
   }
 
   private Value getValue(int index) {

@@ -18,22 +18,25 @@
  */
 package org.apache.accumulo.core.conf.cluster;
 
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
@@ -43,21 +46,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
 
-  private static final Pattern GROUP_NAME_PATTERN =
-      Pattern.compile("^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$");
-
-  public static void validateGroupNames(List<String> names) {
-    for (String name : names) {
-      if (!GROUP_NAME_PATTERN.matcher(name).matches()) {
-        throw new RuntimeException("Group name: " + name + " contains invalid characters");
-      }
-    }
-  }
-
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
   private static final String GC_KEY = "gc";
-  private static final String MANAGER_KEY = "manager";
+  private static final String MANAGER_PREFIX = "manager";
   private static final String MONITOR_KEY = "monitor";
   private static final String SSERVER_PREFIX = "sserver.";
   private static final String TSERVER_PREFIX = "tserver.";
@@ -65,22 +57,21 @@ public class ClusterConfigParser {
   private static final String HOSTS_SUFFIX = ".hosts";
   private static final String SERVERS_PER_HOST_SUFFIX = ".servers_per_host";
 
-  private static final String[] UNGROUPED_SECTIONS =
-      new String[] {MANAGER_KEY, MONITOR_KEY, GC_KEY};
+  private static final String[] UNGROUPED_SECTIONS = new String[] {MONITOR_KEY, GC_KEY};
 
-  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MANAGER_KEY, MONITOR_KEY, GC_KEY);
+  private static final Set<String> VALID_CONFIG_KEYS = Set.of(MONITOR_KEY, GC_KEY);
 
   private static final Set<String> VALID_CONFIG_PREFIXES =
-      Set.of(COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
+      Set.of(MANAGER_PREFIX, COMPACTOR_PREFIX, SSERVER_PREFIX, TSERVER_PREFIX);
 
   private static final Predicate<String> VALID_CONFIG_SECTIONS =
       section -> VALID_CONFIG_KEYS.contains(section)
           || VALID_CONFIG_PREFIXES.stream().anyMatch(section::startsWith);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
-  public static Map<String,String> parseConfiguration(String configFile) throws IOException {
+  public static Map<String,String> parseConfiguration(Path configFile) throws IOException {
     Map<String,String> results = new HashMap<>();
-    try (InputStream fis = Files.newInputStream(Paths.get(configFile), StandardOpenOption.READ)) {
+    try (InputStream fis = Files.newInputStream(configFile, StandardOpenOption.READ)) {
       Yaml y = new Yaml();
       Map<String,Object> config = y.load(fis);
       config.forEach((k, v) -> flatten("", k, v, results));
@@ -120,10 +111,10 @@ public class ClusterConfigParser {
     }
   }
 
-  private static List<String> parseGroup(Map<String,String> config, String prefix) {
+  private static TreeSet<ResourceGroupId> parseGroup(Map<String,String> config, String prefix) {
     Preconditions.checkArgument(prefix.equals(COMPACTOR_PREFIX) || prefix.equals(SSERVER_PREFIX)
         || prefix.equals(TSERVER_PREFIX));
-    List<String> groups = config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
+    return config.keySet().stream().filter(k -> k.startsWith(prefix)).map(k -> {
       int periods = StringUtils.countMatches(k, '.');
       if (periods == 1) {
         return k.substring(prefix.length());
@@ -139,9 +130,7 @@ public class ClusterConfigParser {
       } else {
         throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
       }
-    }).sorted().distinct().collect(Collectors.toList());
-    validateGroupNames(groups);
-    return groups;
+    }).map(ResourceGroupId::of).collect(Collectors.toCollection(TreeSet::new));
   }
 
   public static void outputShellVariables(Map<String,String> config, PrintStream out) {
@@ -155,23 +144,38 @@ public class ClusterConfigParser {
     for (String section : UNGROUPED_SECTIONS) {
       if (config.containsKey(section)) {
         out.printf(PROPERTY_FORMAT, section.toUpperCase() + "_HOSTS", config.get(section));
-      } else {
-        if (section.equals(MANAGER_KEY)) {
-          throw new IllegalStateException("Manager is required in the configuration");
-        }
-        System.err.println("WARN: " + section + " is missing");
       }
     }
 
-    List<String> compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
+    // Manager doesn't use resource groups so it's handled separately
+    var managerSection = config.keySet().stream().filter(k -> k.startsWith(MANAGER_PREFIX))
+        .collect(Collectors.toSet());
+    if (managerSection.isEmpty()) {
+      throw new IllegalStateException("Manager is required in the configuration");
+    }
+
+    for (String k : managerSection) {
+      if (k.equals(MANAGER_PREFIX + HOSTS_SUFFIX)) {
+        out.printf(PROPERTY_FORMAT, "MANAGER_HOSTS", config.get(k));
+      } else if (k.equals(MANAGER_PREFIX + SERVERS_PER_HOST_SUFFIX)) {
+        out.printf(PROPERTY_FORMAT, "MANAGERS_PER_HOST_" + DEFAULT_RESOURCE_GROUP_NAME,
+            config.getOrDefault(k, "1"));
+      } else {
+        throw new IllegalArgumentException("Unknown manager entry for: " + k + ". Only "
+            + MANAGER_PREFIX + HOSTS_SUFFIX + " or " + MANAGER_PREFIX + SERVERS_PER_HOST_SUFFIX
+            + " are allowed. Check the format of your cluster.yaml file.");
+      }
+    }
+
+    var compactorGroups = parseGroup(config, COMPACTOR_PREFIX);
     if (compactorGroups.isEmpty()) {
       throw new IllegalArgumentException(
           "No compactor groups found, at least one compactor group is required to compact the system tables.");
     }
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
-          compactorGroups.stream().collect(Collectors.joining(" ")));
-      for (String group : compactorGroups) {
+          String.join(" ", compactorGroups.stream().map(ResourceGroupId::canonical).toList()));
+      for (ResourceGroupId group : compactorGroups) {
         out.printf(PROPERTY_FORMAT, "COMPACTOR_HOSTS_" + group,
             config.get(COMPACTOR_PREFIX + group + HOSTS_SUFFIX));
         String numCompactors =
@@ -180,17 +184,17 @@ public class ClusterConfigParser {
       }
     }
 
-    List<String> sserverGroups = parseGroup(config, SSERVER_PREFIX);
+    var sserverGroups = parseGroup(config, SSERVER_PREFIX);
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
-          sserverGroups.stream().collect(Collectors.joining(" ")));
+          String.join(" ", sserverGroups.stream().map(ResourceGroupId::canonical).toList()));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVER_HOSTS_" + ssg,
           config.get(SSERVER_PREFIX + ssg + HOSTS_SUFFIX)));
       sserverGroups.forEach(ssg -> out.printf(PROPERTY_FORMAT, "SSERVERS_PER_HOST_" + ssg,
           config.getOrDefault(SSERVER_PREFIX + ssg + SERVERS_PER_HOST_SUFFIX, "1")));
     }
 
-    List<String> tserverGroups = parseGroup(config, TSERVER_PREFIX);
+    var tserverGroups = parseGroup(config, TSERVER_PREFIX);
     if (tserverGroups.isEmpty()) {
       throw new IllegalArgumentException(
           "No tserver groups found, at least one tserver group is required to host the system tables.");
@@ -198,7 +202,7 @@ public class ClusterConfigParser {
     AtomicBoolean foundTServer = new AtomicBoolean(false);
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
-          tserverGroups.stream().collect(Collectors.joining(" ")));
+          String.join(" ", tserverGroups.stream().map(ResourceGroupId::canonical).toList()));
       tserverGroups.forEach(tsg -> {
         String hosts = config.get(TSERVER_PREFIX + tsg + HOSTS_SUFFIX);
         foundTServer.compareAndSet(false, hosts != null && !hosts.isEmpty());
@@ -218,6 +222,7 @@ public class ClusterConfigParser {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "Path provided for output file is intentional")
   public static void main(String[] args) throws IOException {
+
     if (args == null || args.length < 1 || args.length > 2) {
       System.err.println("Usage: ClusterConfigParser <configFile> [<outputFile>]");
       System.exit(1);
@@ -226,12 +231,12 @@ public class ClusterConfigParser {
     try {
       if (args.length == 2) {
         // Write to a file instead of System.out if provided as an argument
-        try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+        try (OutputStream os = Files.newOutputStream(Path.of(args[1]));
             PrintStream out = new PrintStream(os)) {
-          outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
+          outputShellVariables(parseConfiguration(Path.of(args[0])), out);
         }
       } else {
-        outputShellVariables(parseConfiguration(args[0]), System.out);
+        outputShellVariables(parseConfiguration(Path.of(args[0])), System.out);
       }
     } catch (Exception e) {
       System.err.println("Processing error: " + e.getMessage());

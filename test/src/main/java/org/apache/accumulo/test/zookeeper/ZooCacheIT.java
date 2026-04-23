@@ -18,21 +18,29 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.zookeeper.WatchedEvent;
+import org.apache.zookeeper.Watcher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
@@ -75,6 +83,21 @@ public class ZooCacheIT {
 
   }
 
+  public abstract class ZkDisruptionRunnable implements Runnable {
+    final String root = Constants.ZROOT + UUID.randomUUID();
+    final String base = root + Constants.ZTSERVERS;
+    final String child;
+    final String fullPath;
+    final String data1 = "1234";
+    final String data2 = "4321";
+    final TestZooCache zooCache = new TestZooCache(zk, Set.of(base));
+
+    public ZkDisruptionRunnable(String child) {
+      this.child = child;
+      this.fullPath = base + "/" + child;
+    }
+  }
+
   private ZooKeeperTestingServer szk;
   private ZooSession zk;
   private ZooReaderWriter zrw;
@@ -82,12 +105,14 @@ public class ZooCacheIT {
   @TempDir
   private File tempDir;
 
+  private static final Duration SESSION_TIMEOUT = Duration.ofSeconds(10);
+
   @BeforeEach
   @SuppressFBWarnings(value = "ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD",
       justification = "setting ticker in test for eviction test")
   public void setup() throws Exception {
     szk = new ZooKeeperTestingServer(tempDir);
-    zk = szk.newClient();
+    zk = szk.newClient(SESSION_TIMEOUT);
     zrw = zk.asReaderWriter();
   }
 
@@ -226,6 +251,73 @@ public class ZooCacheIT {
       return zooCache.childrenCached(base + "/test1") == false
           && zooCache.childrenCached(base + "/test2") == false
           && zooCache.childrenCached(base + "/test3") == false;
+    });
+  }
+
+  private void testDisruptingZookeeper(ZkDisruptionRunnable zkDisruption) throws Exception {
+    zrw.mkdirs(zkDisruption.base);
+    zrw.putPersistentData(zkDisruption.fullPath, zkDisruption.data1.getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.FAIL);
+
+    assertArrayEquals(zkDisruption.data1.getBytes(UTF_8),
+        zkDisruption.zooCache.get(zkDisruption.fullPath));
+    assertEquals(List.of(zkDisruption.child), zkDisruption.zooCache.getChildren(zkDisruption.base));
+
+    long uc1 = zkDisruption.zooCache.getUpdateCount();
+
+    assertTrue(zkDisruption.zooCache.dataCached(zkDisruption.fullPath));
+    assertTrue(zkDisruption.zooCache.childrenCached(zkDisruption.base));
+
+    assertArrayEquals(zkDisruption.data1.getBytes(UTF_8),
+        zkDisruption.zooCache.get(zkDisruption.fullPath));
+    assertEquals(List.of(zkDisruption.child), zkDisruption.zooCache.getChildren(zkDisruption.base));
+
+    assertEquals(uc1, zkDisruption.zooCache.getUpdateCount());
+
+    // disrupt zookeeper in some way that should cause zoocache to be cleared
+    zkDisruption.run();
+
+    // clearing the cache should increment the update count
+    Wait.waitFor(() -> uc1 != zkDisruption.zooCache.getUpdateCount());
+    // The data and children previously cached should no longer be cached
+    assertFalse(zkDisruption.zooCache.dataCached(zkDisruption.fullPath));
+    assertFalse(zkDisruption.zooCache.childrenCached(zkDisruption.base));
+
+    assertArrayEquals(zkDisruption.data1.getBytes(UTF_8),
+        zkDisruption.zooCache.get(zkDisruption.fullPath));
+    assertEquals(List.of(zkDisruption.child), zkDisruption.zooCache.getChildren(zkDisruption.base));
+
+    // after the event, ensure that zoocache will still eventually see updates. May have
+    // reregistered watchers.
+    zrw.putPersistentData(zkDisruption.fullPath, zkDisruption.data2.getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.OVERWRITE);
+    Wait.waitFor(() -> Arrays.equals(zkDisruption.data2.getBytes(UTF_8),
+        zkDisruption.zooCache.get(zkDisruption.fullPath)));
+  }
+
+  @Test
+  public void testZookeeperRestart() throws Exception {
+    testDisruptingZookeeper(new ZkDisruptionRunnable("restart") {
+      @Override
+      public void run() {
+        try {
+          szk.restart();
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    });
+  }
+
+  @Test
+  public void testDisconnect() throws Exception {
+    testDisruptingZookeeper(new ZkDisruptionRunnable("disconnect") {
+      @Override
+      public void run() {
+        // Simulate a disconnect which should cause the cache to clear
+        this.zooCache.watcher.process(new WatchedEvent(Watcher.Event.EventType.None,
+            Watcher.Event.KeeperState.Disconnected, null));
+      }
     });
   }
 }

@@ -16,16 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, TIMER:true, NAMESPACES:true, refreshNavBar
-*/
 "use strict";
 
 // Suffixes for quantity
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
 var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
+const REST_V2_PREFIX = contextPath + 'rest-v2';
+const MANAGER_GOAL_STATE_METRIC = 'accumulo.manager.goal.state';
+
+const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
+const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
+const GC_FILE_SERVER_PROCESS_VIEW = 'gcFileView';
+const GC_WAL_SERVER_PROCESS_VIEW = 'gcWalView';
+const MANAGER_SERVER_PROCESS_VIEW = 'managerssView';
+const MANAGER_FATE_SERVER_PROCESS_VIEW = 'managersFateView';
+const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
+const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
+const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
+
+// Override Length Menu options for dataTables
+if ($.fn && $.fn.dataTable) {
+  $.extend(true, $.fn.dataTable.defaults, {
+    "lengthMenu": [
+      [10, 25, 50, 100, -1],
+      [10, 25, 50, 100, "All"]
+    ]
+  });
+}
 
 /**
  * Initializes Auto Refresh to false if it is not set,
@@ -151,6 +169,50 @@ function levelFormat(level) {
     return '<span class="label label-danger">' + level + '</span>';
   }
   return level;
+}
+
+/**
+ * Maps the given activity state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for idle and 0 for active
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderActivityState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-moon-stars-fill text-muted" title="Idle" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Idle</span>';
+  }
+  return '<i class="bi bi-activity text-primary" title="Active" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Active</span>';
+}
+
+/**
+ * Maps the given memory state to an icon.
+ *
+ * @param {number|null|undefined} data Raw value, 1 for low memory and 0 for normal memory
+ * @param {string} type DataTables render type
+ * @return {string|number|null|undefined} HTML for display cells, raw data otherwise
+ */
+function renderMemoryState(data, type) {
+  if (type !== 'display') {
+    return data;
+  }
+  if (data === null || data === undefined) {
+    return '&mdash;';
+  }
+  if (Number(data) === 1) {
+    return '<i class="bi bi-exclamation-triangle-fill text-warning" title="Low memory detected" aria-hidden="true"></i>' +
+      '<span class="visually-hidden">Low memory detected</span>';
+  }
+  return '<i class="bi bi-check-circle-fill text-success" title="Memory normal" aria-hidden="true"></i>' +
+    '<span class="visually-hidden">Memory normal</span>';
 }
 
 /**
@@ -311,7 +373,7 @@ function getJSONForTable(call, sessionDataVar) {
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
  * @param {string} callback POST callback to execute, if available
- * @param {boolean} shouldSanitize Whether to sanitize the call 
+ * @param {boolean} shouldSanitize Whether to sanitize the call
  */
 function doLoggedPostCall(call, callback, shouldSanitize) {
 
@@ -335,25 +397,51 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
 ///// REST Calls /////////////
 
 /**
- * REST GET call for the manager information,
- * stores it on a sessionStorage variable
+ * Gets the manager goal state from the cached manager response, if available.
+ *
+ * @return {string|null} Manager goal state (CLEAN_STOP, SAFE_MODE, NORMAL) or null
  */
-function getManager() {
-  return getJSONForTable('/rest/manager', 'manager');
+function getManagerGoalStateFromSession() {
+  var mgrs = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
+  if (!Array.isArray(mgrs) || mgrs.length === 0) {
+    console.debug('No manager data in session storage. Returning null.');
+    return null;
+  }
+  // There could be multiple managers that report different goal states.
+  // The goal state is stored in ZK, but it's eventually consistent.
+  // Use the lowest value seen as the current state for the Monitor
+  var goalState = 10;
+  $.each(mgrs, function (index, mgr) {
+    var stateVal = mgr[MANAGER_GOAL_STATE_METRIC];
+    if (stateVal < goalState) {
+      goalState = stateVal;
+    }
+  });
+  switch (goalState) {
+  case 0:
+    return 'CLEAN_STOP';
+  case 1:
+    return 'SAFE_MODE';
+  case 2:
+    return 'NORMAL';
+  default:
+    console.debug('Manager goal state metric not found');
+    return null;
+  }
 }
 
 /**
  * REST GET call for the namespaces, stores it on a global variable
  */
 function getNamespaces() {
-  return getJSONForTable('/rest/tables/namespaces', 'NAMESPACES');
+  return getJSONForTable(contextPath + 'rest/tables/namespaces', 'NAMESPACES');
 }
 
 /**
  * REST GET call for the tables, stores it on a sessionStorage variable
  */
 function getTables() {
-  return getJSONForTable('/rest/tables', 'tables');
+  return getJSONForTable(contextPath + 'rest/tables', 'tables');
 }
 
 /**
@@ -377,7 +465,7 @@ function getNamespaceTables(namespaces) {
   // Convert the list to a string for the REST call
   namespaceList = namespaces.toString();
 
-  return getJSONForTable('/rest/tables/namespaces/' + namespaceList, 'tables');
+  return getJSONForTable(contextPath + 'rest/tables/namespaces/' + namespaceList, 'tables');
 }
 
 /**
@@ -386,14 +474,14 @@ function getNamespaceTables(namespaces) {
  * @param {string} server Dead Server ID
  */
 function clearDeadServers(server) {
-  doLoggedPostCall('/rest/tservers?server=' + server, null, false);
+  doLoggedPostCall(contextPath + 'rest/tservers?server=' + server, null, false);
 }
 
 /**
  * REST GET call for the tservers, stores it on a sessionStorage variable
  */
 function getTServers() {
-  return getJSONForTable('/rest/tservers', 'tservers');
+  return getJSONForTable(contextPath + 'rest/tservers', 'tservers');
 }
 
 /**
@@ -402,35 +490,35 @@ function getTServers() {
  * @param {string} server Server ID
  */
 function getTServer(server) {
-  return getJSONForTable('/rest/tservers/' + server, 'server');
+  return getJSONForTable(contextPath + 'rest/tservers/' + server, 'server');
 }
 
 /**
  * REST GET call for the scans, stores it on a sessionStorage variable
  */
 function getScans() {
-  return getJSONForTable('/rest/scans', 'scans');
+  return getJSONForTable(contextPath + 'rest/scans', 'scans');
 }
 
 /**
  * REST GET call for the bulk imports, stores it on a sessionStorage variable
  */
 function getBulkImports() {
-  return getJSONForTable('/rest/bulkImports', 'bulkImports');
+  return getJSONForTable(contextPath + 'rest/bulkImports', 'bulkImports');
 }
 
 /**
  * REST GET call for the server stats, stores it on a sessionStorage variable
  */
 function getServerStats() {
-  return getJSONForTable('/rest/tservers/serverStats', 'serverStats');
+  return getJSONForTable(contextPath + 'rest/tservers/serverStats', 'serverStats');
 }
 
 /**
  * REST GET call for the recovery list, stores it on a sessionStorage variable
  */
 function getRecoveryList() {
-  return getJSONForTable('/rest/tservers/recovery', 'recoveryList');
+  return getJSONForTable(contextPath + 'rest/tservers/recovery', 'recoveryList');
 }
 
 /**
@@ -440,14 +528,14 @@ function getRecoveryList() {
  * @param {string} table Table ID
  */
 function getTableServers(tableID) {
-  return getJSONForTable('/rest/tables/' + tableID, 'tableServers');
+  return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
 }
 
 /**
  * REST GET call for the server status, stores it on a sessionStorage variable
  */
 function getStatus() {
-  return getJSONForTable('/rest/status', 'status');
+  return getJSONForTable(contextPath + 'rest/status', 'status');
 }
 
 /*
@@ -461,8 +549,6 @@ function clearAllTableCells(tableId) {
 }
 
 // NEW REST CALLS
-
-const REST_V2_PREFIX = '/rest-v2';
 
 /**
  * REST GET call for /problems,
@@ -530,14 +616,6 @@ function getCompactorsSummary(group) {
 }
 
 /**
- * REST GET call for /sservers/summary,
- * stores it on a sessionStorage variable
- */
-function getSserversSummary() {
-  return getJSONForTable(REST_V2_PREFIX + '/sservers/summary', 'sserversSummary');
-}
-
-/**
  * REST GET call for /tables/{name}/tablets,
  * stores it on a sessionStorage variable
  * @param {string} name Table name
@@ -599,16 +677,47 @@ function getDeployment() {
   return getJSONForTable(REST_V2_PREFIX + '/deployment', 'deployment');
 }
 
-/**
- * REST GET call for /sservers/summary/{group},
- * stores it on a sessionStorage variable
- * @param {string} group Group name
- */
-function getSserversSummaryGroup(group) {
-  const url = `${REST_V2_PREFIX}/sservers/summary/${group}`;
-  const sessionDataVar = `sserversSummary_${group}`;
-  return getJSONForTable(url, sessionDataVar);
+function getServerProcessView(table, storageKey) {
+  var url = REST_V2_PREFIX + '/servers/view;table=' + table;
+  return getJSONForTable(url, storageKey);
 }
+
+function getCompactorsView() {
+  return getServerProcessView('COMPACTORS', COMPACTOR_SERVER_PROCESS_VIEW);
+}
+
+function getGcView() {
+  return getServerProcessView('GC_SUMMARY', GC_SERVER_PROCESS_VIEW);
+}
+
+function getGcFileView() {
+  return getServerProcessView('GC_FILES', GC_FILE_SERVER_PROCESS_VIEW);
+}
+
+function getGcWalView() {
+  return getServerProcessView('GC_WALS', GC_WAL_SERVER_PROCESS_VIEW);
+}
+
+function getManagersView() {
+  return getServerProcessView('MANAGERS', MANAGER_SERVER_PROCESS_VIEW);
+}
+
+function getManagersFateView() {
+  return getServerProcessView('MANAGER_FATE', MANAGER_FATE_SERVER_PROCESS_VIEW);
+}
+
+function getManagersCompactionView() {
+  return getServerProcessView('MANAGER_COMPACTIONS', MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
+}
+
+function getSserversView() {
+  return getServerProcessView('SCAN_SERVERS', SCAN_SERVER_PROCESS_VIEW);
+}
+
+function getTserversView() {
+  return getServerProcessView('TABLET_SERVERS', TABLET_SERVER_PROCESS_VIEW);
+}
+
 
 /**
  * REST GET call for /tservers/summary,
@@ -638,14 +747,6 @@ function getSserversDetail(group) {
 }
 
 /**
- * REST GET call for /manager,
- * stores it on a sessionStorage variable
- */
-function getManager() {
-  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
-}
-
-/**
  * REST GET call for /compactors/summary,
  * stores it on a sessionStorage variable
  */
@@ -665,28 +766,24 @@ function getTable(name) {
 }
 
 /**
- * REST GET call for /compactions/detail/{num},
- * stores it on a sessionStorage variable
- * @param {number} num Detail number
- */
-function getCompactionsDetail(num) {
-  const url = `${REST_V2_PREFIX}/compactions/detail/${num}`;
-  const sessionDataVar = `compactionsDetail_${num}`;
-  return getJSONForTable(url, sessionDataVar);
-}
-
-/**
- * REST GET call for /compactions/detail,
- * stores it on a sessionStorage variable
- */
-function getCompactionsDetail() {
-  return getJSONForTable(REST_V2_PREFIX + '/compactions/detail', 'compactionsDetail');
-}
-
-/**
  * REST GET call for /compactions/summary,
  * stores it on a sessionStorage variable
  */
 function getCompactionsSummary() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
+}
+
+/**
+ * Returns true if the input is a valid regular expression, false otherwise.
+ *
+ * @param {string} input Potential regex string
+ * @returns {boolean} Whether the input is a valid regex
+ */
+function isValidRegex(input) {
+  try {
+    new RegExp(input);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }

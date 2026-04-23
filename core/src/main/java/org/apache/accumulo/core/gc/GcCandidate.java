@@ -48,8 +48,7 @@ public class GcCandidate implements Comparable<GcCandidate> {
     if (this == obj) {
       return true;
     }
-    if (obj instanceof GcCandidate) {
-      GcCandidate candidate = (GcCandidate) obj;
+    if (obj instanceof GcCandidate candidate) {
       return this.uid == candidate.getUid() && this.path.equals(candidate.getPath());
     }
     return false;

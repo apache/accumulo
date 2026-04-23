@@ -20,13 +20,29 @@ package org.apache.accumulo.core.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.TreeSet;
+import java.util.function.Supplier;
 
+import org.apache.accumulo.access.Access;
 import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
+import org.apache.accumulo.core.data.ArrayByteSequence;
+import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.io.WritableComparator;
+
+import com.google.common.base.Suppliers;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Validate the column visibility is a valid expression and set the visibility for a Mutation. See
@@ -60,14 +76,20 @@ import org.apache.hadoop.io.Text;
  * <p>
  * In addition to the base set of visibilities, any character can be used in the expression if it is
  * quoted. If the quoted term contains '&quot;' or '\', then escape the character with '\'. The
- * {@link AccessExpression#quote(String)} method can be used to properly quote and escape terms
- * automatically. The following is an example of a quoted term:
+ * {@link #quote(String)} method can be used to properly quote and escape terms automatically. The
+ * following is an example of a quoted term:
  *
  * <pre>
  * &quot;A#C&quot; &amp; B
  * </pre>
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnVisibility {
+
+  // This functionality is deprecated so its setup as a supplier so it is only computed if the
+  // deprecated functionality is called.
+  private final Supplier<Node> nodeSupplier;
   private final byte[] expression;
 
   /**
@@ -77,6 +99,390 @@ public class ColumnVisibility {
    */
   public byte[] getExpression() {
     return expression;
+  }
+
+  /**
+   * The node types in a parse tree for a visibility expression.
+   */
+  @Deprecated(since = "4.0.0")
+  public enum NodeType {
+    EMPTY, TERM, OR, AND,
+  }
+
+  /**
+   * All empty nodes are equal and represent the same value.
+   */
+  private static final Node EMPTY_NODE = new Node(NodeType.EMPTY, 0);
+
+  /**
+   * A node in the parse tree for a visibility expression.
+   */
+  @Deprecated(since = "4.0.0")
+  public static class Node {
+    /**
+     * An empty list of nodes.
+     */
+    public static final List<Node> EMPTY = Collections.emptyList();
+    final NodeType type;
+    final int start;
+    int end;
+    List<Node> children = EMPTY;
+
+    public Node(NodeType type, int start) {
+      this.type = type;
+      this.start = start;
+      this.end = start + 1;
+    }
+
+    public Node(int start, int end) {
+      this.type = NodeType.TERM;
+      this.start = start;
+      this.end = end;
+    }
+
+    public void add(Node child) {
+      if (children == EMPTY) {
+        children = new ArrayList<>();
+      }
+
+      children.add(child);
+    }
+
+    public NodeType getType() {
+      return type;
+    }
+
+    public List<Node> getChildren() {
+      return children;
+    }
+
+    public int getTermStart() {
+      return start;
+    }
+
+    public int getTermEnd() {
+      return end;
+    }
+
+    public ByteSequence getTerm(byte[] expression) {
+      if (type != NodeType.TERM) {
+        throw new IllegalStateException();
+      }
+
+      if (expression[start] == '"') {
+        // its a quoted term
+        int qStart = start + 1;
+        int qEnd = end - 1;
+
+        return new ArrayByteSequence(expression, qStart, qEnd - qStart);
+      }
+      return new ArrayByteSequence(expression, start, end - start);
+    }
+  }
+
+  /**
+   * A node comparator. Nodes sort according to node type, terms sort lexicographically. AND and OR
+   * nodes sort by number of children, or if the same by corresponding children.
+   */
+  @Deprecated(since = "4.0.0")
+  public static class NodeComparator implements Comparator<Node>, Serializable {
+
+    private static final long serialVersionUID = 1L;
+    final byte[] text;
+
+    /**
+     * Creates a new comparator.
+     *
+     * @param text expression string, encoded in UTF-8
+     */
+    public NodeComparator(byte[] text) {
+      this.text = text;
+    }
+
+    @Override
+    public int compare(Node a, Node b) {
+      int diff = a.type.ordinal() - b.type.ordinal();
+      if (diff != 0) {
+        return diff;
+      }
+      switch (a.type) {
+        case EMPTY:
+          return 0; // All empty nodes are the same
+        case TERM:
+          return WritableComparator.compareBytes(text, a.start, a.end - a.start, text, b.start,
+              b.end - b.start);
+        case OR:
+        case AND:
+          diff = a.children.size() - b.children.size();
+          if (diff != 0) {
+            return diff;
+          }
+          for (int i = 0; i < a.children.size(); i++) {
+            diff = compare(a.children.get(i), b.children.get(i));
+            if (diff != 0) {
+              return diff;
+            }
+          }
+      }
+      return 0;
+    }
+  }
+
+  /*
+   * Convenience method that delegates to normalize with a new NodeComparator constructed using the
+   * supplied expression.
+   */
+  @Deprecated(since = "4.0.0")
+  public static Node normalize(Node root, byte[] expression) {
+    return normalize(root, expression, new NodeComparator(expression));
+  }
+
+  // @formatter:off
+  /*
+   * Walks an expression's AST in order to:
+   *  1) roll up expressions with the same operant (`a&(b&c) becomes a&b&c`)
+   *  2) sort labels lexicographically (permutations of `a&b&c` are re-ordered to appear as `a&b&c`)
+   *  3) dedupes labels (`a&b&a` becomes `a&b`)
+   */
+  // @formatter:on
+  @Deprecated(since = "4.0.0")
+  public static Node normalize(Node root, byte[] expression, NodeComparator comparator) {
+    if (root.type != NodeType.TERM) {
+      TreeSet<Node> rolledUp = new TreeSet<>(comparator);
+      java.util.Iterator<Node> itr = root.children.iterator();
+      while (itr.hasNext()) {
+        Node c = normalize(itr.next(), expression, comparator);
+        if (c.type == root.type) {
+          rolledUp.addAll(c.children);
+          itr.remove();
+        }
+      }
+      rolledUp.addAll(root.children);
+      root.children.clear();
+      root.children.addAll(rolledUp);
+
+      // need to promote a child if it's an only child
+      if (root.children.size() == 1) {
+        return root.children.get(0);
+      }
+    }
+
+    return root;
+  }
+
+  /*
+   * Walks an expression's AST and appends a string representation to a supplied StringBuilder. This
+   * method adds parens where necessary.
+   */
+  @Deprecated(since = "4.0.0")
+  public static void stringify(Node root, byte[] expression, StringBuilder out) {
+    if (root.type == NodeType.TERM) {
+      out.append(new String(expression, root.start, root.end - root.start, UTF_8));
+    } else {
+      String sep = "";
+      for (Node c : root.children) {
+        out.append(sep);
+        boolean parens = (c.type != NodeType.TERM && root.type != c.type);
+        if (parens) {
+          out.append("(");
+        }
+        stringify(c, expression, out);
+        if (parens) {
+          out.append(")");
+        }
+        sep = root.type == NodeType.AND ? "&" : "|";
+      }
+    }
+  }
+
+  /**
+   * Generates a byte[] that represents a normalized, but logically equivalent, form of this
+   * evaluator's expression.
+   *
+   * @return normalized expression in byte[] form
+   */
+  @Deprecated(since = "4.0.0")
+  public byte[] flatten() {
+    Node normRoot = normalize(nodeSupplier.get(), expression);
+    StringBuilder builder = new StringBuilder(expression.length);
+    stringify(normRoot, expression, builder);
+    return builder.toString().getBytes(UTF_8);
+  }
+
+  @Deprecated
+  private static class ColumnVisibilityParser {
+    private int index = 0;
+    private int parens = 0;
+
+    public ColumnVisibilityParser() {}
+
+    Node parse(byte[] expression) {
+      if (expression.length > 0) {
+        Node node = parse_(expression);
+        if (node == null) {
+          throw new BadArgumentException("operator or missing parens",
+              new String(expression, UTF_8), index - 1);
+        }
+        if (parens != 0) {
+          throw new BadArgumentException("parenthesis mis-match", new String(expression, UTF_8),
+              index - 1);
+        }
+        return node;
+      }
+      return null;
+    }
+
+    Node processTerm(int start, int end, Node expr, byte[] expression) {
+      if (start != end) {
+        if (expr != null) {
+          throw new BadArgumentException("expression needs | or &", new String(expression, UTF_8),
+              start);
+        }
+        return new Node(start, end);
+      }
+      if (expr == null) {
+        throw new BadArgumentException("empty term", new String(expression, UTF_8), start);
+      }
+      return expr;
+    }
+
+    Node parse_(byte[] expression) {
+      Node result = null;
+      Node expr = null;
+      int wholeTermStart = index;
+      int subtermStart = index;
+      boolean subtermComplete = false;
+
+      while (index < expression.length) {
+        switch (expression[index++]) {
+          case '&':
+            expr = processTerm(subtermStart, index - 1, expr, expression);
+            if (result != null) {
+              if (!result.type.equals(NodeType.AND)) {
+                throw new BadArgumentException("cannot mix & and |", new String(expression, UTF_8),
+                    index - 1);
+              }
+            } else {
+              result = new Node(NodeType.AND, wholeTermStart);
+            }
+            result.add(expr);
+            expr = null;
+            subtermStart = index;
+            subtermComplete = false;
+            break;
+          case '|':
+            expr = processTerm(subtermStart, index - 1, expr, expression);
+            if (result != null) {
+              if (!result.type.equals(NodeType.OR)) {
+                throw new BadArgumentException("cannot mix | and &", new String(expression, UTF_8),
+                    index - 1);
+              }
+            } else {
+              result = new Node(NodeType.OR, wholeTermStart);
+            }
+            result.add(expr);
+            expr = null;
+            subtermStart = index;
+            subtermComplete = false;
+            break;
+          case '(':
+            parens++;
+            if (subtermStart != index - 1 || expr != null) {
+              throw new BadArgumentException("expression needs & or |",
+                  new String(expression, UTF_8), index - 1);
+            }
+            expr = parse_(expression);
+            subtermStart = index;
+            subtermComplete = false;
+            break;
+          case ')':
+            parens--;
+            Node child = processTerm(subtermStart, index - 1, expr, expression);
+            if (child == null && result == null) {
+              throw new BadArgumentException("empty expression not allowed",
+                  new String(expression, UTF_8), index);
+            }
+            if (result == null) {
+              return child;
+            }
+            if (result.type == child.type) {
+              for (Node c : child.children) {
+                result.add(c);
+              }
+            } else {
+              result.add(child);
+            }
+            result.end = index - 1;
+            return result;
+          case '"':
+            if (subtermStart != index - 1) {
+              throw new BadArgumentException("expression needs & or |",
+                  new String(expression, UTF_8), index - 1);
+            }
+
+            while (index < expression.length && expression[index] != '"') {
+              if (expression[index] == '\\') {
+                index++;
+                if (index == expression.length
+                    || (expression[index] != '\\' && expression[index] != '"')) {
+                  throw new BadArgumentException("invalid escaping within quotes",
+                      new String(expression, UTF_8), index - 1);
+                }
+              }
+              index++;
+            }
+
+            if (index == expression.length) {
+              throw new BadArgumentException("unclosed quote", new String(expression, UTF_8),
+                  subtermStart);
+            }
+
+            if (subtermStart + 1 == index) {
+              throw new BadArgumentException("empty term", new String(expression, UTF_8),
+                  subtermStart);
+            }
+
+            index++;
+
+            subtermComplete = true;
+
+            break;
+          default:
+            if (subtermComplete) {
+              throw new BadArgumentException("expression needs & or |",
+                  new String(expression, UTF_8), index - 1);
+            }
+
+            byte c = expression[index - 1];
+            if (!Authorizations.isValidAuthChar(c)) {
+              throw new BadArgumentException("bad character (" + c + ")",
+                  new String(expression, UTF_8), index - 1);
+            }
+        }
+      }
+      Node child = processTerm(subtermStart, index, expr, expression);
+      if (result != null) {
+        result.add(child);
+        result.end = index;
+      } else {
+        result = child;
+      }
+      if (result.type != NodeType.TERM) {
+        if (result.children.size() < 2) {
+          throw new BadArgumentException("missing term", new String(expression, UTF_8), index);
+        }
+      }
+      return result;
+    }
+  }
+
+  private Node createNodeTree(byte[] expression) {
+    if (expression != null && expression.length > 0) {
+      ColumnVisibilityParser p = new ColumnVisibilityParser();
+      return p.parse(expression);
+    } else {
+      return EMPTY_NODE;
+    }
   }
 
   private static final byte[] EMPTY_BYTES = new byte[0];
@@ -89,6 +495,7 @@ public class ColumnVisibility {
    */
   public ColumnVisibility() {
     expression = EMPTY_BYTES;
+    nodeSupplier = Suppliers.memoize(() -> createNodeTree(expression));
   }
 
   /**
@@ -120,12 +527,13 @@ public class ColumnVisibility {
   public ColumnVisibility(byte[] expression) {
     this.expression = expression;
     try {
-      AccessExpression.validate(this.expression);
+      BytesAccess.validate(this.expression);
     } catch (InvalidAccessExpressionException e) {
       // This is thrown for compatability with the exception this class used to throw when it parsed
       // exceptions itself.
       throw new BadArgumentException(e);
     }
+    nodeSupplier = Suppliers.memoize(() -> createNodeTree(this.expression));
   }
 
   /**
@@ -133,11 +541,12 @@ public class ColumnVisibility {
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ColumnVisibility(AccessExpression expression) {
     // AccessExpression is a validated immutable object, so no need to re validate
     this.expression = expression.getExpression().getBytes(UTF_8);
+    nodeSupplier = Suppliers.memoize(() -> createNodeTree(this.expression));
   }
 
   @Override
@@ -170,5 +579,54 @@ public class ColumnVisibility {
   @Override
   public int hashCode() {
     return Arrays.hashCode(expression);
+  }
+
+  /**
+   * Gets the parse tree for this column visibility.
+   *
+   * @return parse tree node
+   */
+  @Deprecated(since = "4.0.0")
+  public Node getParseTree() {
+    return nodeSupplier.get();
+  }
+
+  /**
+   * Properly quotes terms in a column visibility expression. If no quoting is needed, then nothing
+   * is done.
+   *
+   * <p>
+   * Examples of using quote :
+   *
+   * <pre>
+   * import static org.apache.accumulo.core.security.ColumnVisibility.quote;
+   *   .
+   *   .
+   *   .
+   * String s = quote(&quot;A#C&quot;) + &quot;&amp;&quot; + quote(&quot;FOO&quot;);
+   * ColumnVisibility cv = new ColumnVisibility(s);
+   * </pre>
+   *
+   * @param term term to quote
+   * @return quoted term (unquoted if unnecessary)
+   * @deprecated use {@link Access#quote(String)}
+   */
+  @Deprecated(since = "4.0.0")
+  public static String quote(String term) {
+    return BytesAccess.quote(term);
+  }
+
+  /**
+   * Properly quotes terms in a column visibility expression. If no quoting is needed, then nothing
+   * is done.
+   *
+   * @param term term to quote, encoded as UTF-8 bytes
+   * @return quoted term (unquoted if unnecessary), encoded as UTF-8 bytes
+   * @see #quote(String)
+   * @deprecated use {@link Access#quote(String)}
+   */
+  @Deprecated(since = "4.0.0")
+  public static byte[] quote(byte[] term) {
+    return BytesAccess.quote(term);
   }
 }

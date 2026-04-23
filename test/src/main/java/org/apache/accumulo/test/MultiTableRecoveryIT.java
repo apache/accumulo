@@ -38,7 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -132,7 +132,7 @@ public class MultiTableRecoveryIT extends ConfigurableMacBase {
           getCluster().start();
           // read the metadata table to know everything is back up
           try (Scanner scanner =
-              client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+              client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
             scanner.forEach((k, v) -> {});
           }
           i++;

@@ -24,7 +24,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -35,14 +34,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.core.Response;
+
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
@@ -50,9 +50,10 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.thrift.transport.TTransportException;
+import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
 import org.eclipse.jetty.util.NanoTime;
 import org.slf4j.Logger;
@@ -132,7 +133,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
       } catch (Exception e) {
         LOG.warn("Error trying to get metrics from server: {}", server, e);
-        summary.processError(server);
+        summary.processMetricsError(server);
       }
     }
 
@@ -152,9 +153,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        final String tableName = ctx.getTableName(tableId);
+        final String tableName = ctx.getQualifiedTableName(tableId);
         try (Stream<TabletInformation> tablets =
-            this.ctx.tableOperations().getTabletInformation(tableName, new Range())) {
+            this.ctx.tableOperations().getTabletInformation(tableName, List.of(RowRange.all()))) {
           tablets.forEach(t -> summary.processTabletInformation(tableId, tableName, t));
         }
       } catch (TableNotFoundException e) {
@@ -166,52 +167,26 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class CompactionListFetcher implements Runnable {
-
-    private final String coordinatorMissingMsg =
-        "Error getting the compaction coordinator client. Check that the Manager is running.";
+  private class RunningCompactionFetcher implements Runnable {
 
     private final SystemInformation summary;
+    private final ThreadPoolExecutor executor;
 
-    public CompactionListFetcher(SystemInformation summary) {
+    public RunningCompactionFetcher(SystemInformation summary, ThreadPoolExecutor executor) {
       this.summary = summary;
-    }
-
-    // Copied from Monitor
-    private Map<String,TExternalCompactionList> getLongRunningCompactions() {
-      Set<ServerId> managers = ctx.instanceOperations().getServers(ServerId.Type.MANAGER);
-      if (managers.isEmpty()) {
-        throw new IllegalStateException(coordinatorMissingMsg);
-      }
-      ServerId manager = managers.iterator().next();
-      HostAndPort hp = HostAndPort.fromParts(manager.getHost(), manager.getPort());
-      try {
-        CompactionCoordinatorService.Client client =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
-        try {
-          return client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
-        } catch (Exception e) {
-          throw new IllegalStateException("Unable to get running compactions from " + hp, e);
-        } finally {
-          if (client != null) {
-            ThriftUtil.returnClient(client, ctx);
-          }
-        }
-      } catch (TTransportException e) {
-        LOG.error("Unable to get Compaction coordinator at {}", hp, e);
-        throw new IllegalStateException(coordinatorMissingMsg, e);
-      }
+      this.executor = executor;
     }
 
     @Override
     public void run() {
       try {
-        summary.processExternalCompactionList(getLongRunningCompactions());
+        List<ServerId> failures = ExternalCompactionUtil.getCompactionsRunningOnCompactors(ctx,
+            executor, (t) -> summary.processExternalCompaction(t));
+        summary.getProblemHosts().addAll(failures);
       } catch (Exception e) {
         LOG.warn("Error gathering running compaction information.", e);
       }
     }
-
   }
 
   private final String poolName = "MonitorMetricsThreadPool";
@@ -236,11 +211,25 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   // Protect against NPE and wait for initial data gathering
-  public SystemInformation getSummary() {
+  private SystemInformation getSummary() throws InterruptedException {
     while (summaryRef.get() == null) {
-      Thread.onSpinWait();
+      Thread.sleep(100);
     }
     return summaryRef.get();
+  }
+
+  /**
+   * {@link #getSummary()} but throws a 503 (Service Unavailable) server error to the web client if
+   * an {@link InterruptedException} occurs.
+   */
+  public SystemInformation getSummaryForEndpoint() throws ServiceUnavailableException {
+    try {
+      return getSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   public Cache<ServerId,MetricResponse> getAllMetrics() {
@@ -253,14 +242,19 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     if (server == null) {
       return;
     }
-    LOG.info("{} has been evicted", server);
-    getSummary().processError(server);
+    try {
+      getSummary().processError(server);
+      LOG.info("{} has been evicted", server);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      LOG.warn("{} could not be evicted", server, e);
+    }
   }
 
   @Override
   public void run() {
 
-    long refreshTime = 0;
+    long lastRunTime = 0;
 
     while (true) {
 
@@ -269,16 +263,24 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       // If a connection has not been made in a while, stale data may be displayed.
       // Only refresh every 5s (old monitor logic).
       while (!newConnectionEvent.get() && connectionCount.get() == 0
-          && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
-        Thread.onSpinWait();
+          && NanoTime.millisElapsed(lastRunTime, NanoTime.now()) > 5000) {
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(
+              "Thread " + Thread.currentThread().getName() + " interrupted", e);
+        }
       }
       // reset the connection event flag
       newConnectionEvent.compareAndExchange(true, false);
 
-      LOG.info("Fetching metrics from servers");
+      LOG.info("Fetching information from servers");
 
       final List<Future<?>> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
+      Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
+      summary.processExternalCompactionInventory(compactors);
 
       for (ServerId.Type type : ServerId.Type.values()) {
         if (type == Type.MONITOR) {
@@ -290,21 +292,35 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       }
       ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
-      // Fetch external compaction information from the Manager
-      futures.add(this.pool.submit(new CompactionListFetcher(summary)));
+      // Fetch external compaction information from the Compactors
+      futures.add(this.pool.submit(new RunningCompactionFetcher(summary, pool)));
 
       // Fetch Tablet / Tablet information from the metadata table
-      for (TableId tableId : this.ctx.getTableNameToIdMap().values()) {
+      for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
         futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
       }
 
-      long monitorFetchTimeout =
+      futures.add(this.pool.submit(() -> {
+        try {
+          var groups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx);
+          summary.addConfiguredCompactionGroups(groups);
+        } catch (ReflectiveOperationException e) {
+          throw new IllegalStateException(e);
+        }
+      }));
+
+      final long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
-      long allFuturesAdded = NanoTime.now();
+      final long allFuturesAdded = NanoTime.now();
       boolean tookToLong = false;
       while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
+          LOG.warn(
+              "Fetching information for Monitor has taken longer {}. Cancelling all"
+                  + " remaining tasks and monitor will display old information. Resolve issue"
+                  + " causing this or increase property {}.",
+              monitorFetchTimeout, Property.MONITOR_FETCH_TIMEOUT.getKey());
           tookToLong = true;
         }
 
@@ -327,26 +343,31 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         }
       }
 
-      summary.finish();
+      lastRunTime = NanoTime.now();
 
-      refreshTime = NanoTime.now();
-      LOG.info("Finished fetching metrics from servers");
-      LOG.info(
-          "All: {}, Manager: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
-          allMetrics.estimatedSize(), summary.getManager() != null,
-          summary.getGarbageCollector() != null,
-          summary.getCompactorAllMetricSummary().isEmpty() ? 0
-              : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getSServerAllMetricSummary().isEmpty() ? 0
-              : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
-                  .count(),
-          summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary.getTServerAllMetricSummary()
-              .entrySet().iterator().next().getValue().count());
+      if (tookToLong) {
+        summary.clear();
+      } else {
+        summary.finish();
 
-      SystemInformation oldSummary = summaryRef.getAndSet(summary);
-      if (oldSummary != null) {
-        oldSummary.clear();
+        LOG.info("Finished fetching metrics from servers");
+        LOG.info(
+            "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+            allMetrics.estimatedSize(), summary.getManagers().size(),
+            summary.getGarbageCollector() != null,
+            summary.getCompactorAllMetricSummary().isEmpty() ? 0
+                : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
+                    .count(),
+            summary.getSServerAllMetricSummary().isEmpty() ? 0
+                : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
+                    .count(),
+            summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary
+                .getTServerAllMetricSummary().entrySet().iterator().next().getValue().count());
+
+        SystemInformation oldSummary = summaryRef.getAndSet(summary);
+        if (oldSummary != null) {
+          oldSummary.clear();
+        }
       }
     }
 

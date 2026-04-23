@@ -8,8 +8,8 @@ to the terms and conditions of the following licenses.
 
 ## Software from the European Commission project OneLab
 
-Files:
-* core/src/main/java/org/apache/accumulo/core/bloomfilter/*
+Files (in lib/accumulo-core-*.jar):
+* org/apache/accumulo/core/bloomfilter/*
 
     Copyright (c) 2005, European Commission project OneLab under contract 034819
     (http://www.one-lab.org)

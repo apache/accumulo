@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.monitor.rest.bulkImports;
 
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk;
 
 /**
  * Stores bulk import in a JSON object
@@ -28,11 +30,11 @@ import org.apache.accumulo.core.manager.thrift.BulkImportState;
 public class BulkImportInformation {
 
   // Variable names become JSON key
-  public String filename;
-  public long age;
-  public BulkImportState state;
-
-  public BulkImportInformation() {}
+  public final String filename;
+  public final long age;
+  public final ListBulk.BulkState state;
+  public final String tableId;
+  public final String fateId;
 
   /**
    * Creates new bulk import object
@@ -41,9 +43,12 @@ public class BulkImportInformation {
    * @param age age of the bulk import
    * @param state state of the bulk import
    */
-  public BulkImportInformation(String filename, long age, BulkImportState state) {
+  public BulkImportInformation(String filename, long age, ListBulk.BulkState state, TableId tableId,
+      FateId fateId) {
     this.filename = filename;
     this.age = age;
     this.state = state;
+    this.tableId = tableId.canonical();
+    this.fateId = fateId.canonical();
   }
 }

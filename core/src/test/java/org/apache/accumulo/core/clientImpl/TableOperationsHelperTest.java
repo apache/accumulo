@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
@@ -96,8 +97,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public Text getMaxRow(String tableName, Authorizations auths, Text startRow,
-        boolean startInclusive, Text endRow, boolean endInclusive) {
+    public Text getMaxRow(String tableName, Authorizations auths, RowRange range) {
       return null;
     }
 
@@ -212,7 +212,7 @@ public class TableOperationsHelperTest {
     public void online(String tableName, boolean wait) {}
 
     @Override
-    public void setTabletAvailability(String tableName, Range range,
+    public void setTabletAvailability(String tableName, RowRange rowRange,
         TabletAvailability tabletAvailability)
         throws AccumuloSecurityException, AccumuloException, TableNotFoundException {}
 
@@ -284,6 +284,12 @@ public class TableOperationsHelperTest {
     public List<SummarizerConfiguration> listSummarizers(String tableName) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public String getNamespace(String table) {
+      throw new UnsupportedOperationException();
+    }
+
   }
 
   protected TableOperationsHelper getHelper() {

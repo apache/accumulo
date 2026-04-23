@@ -64,15 +64,9 @@ function updateElementStatus(elementId, status) {
  * @param {JSON} statusData object containing the status info for the servers
  */
 function updateServerNotifications(statusData) {
-  getManager().then(function () {
-
-    // gather information about the manager
-    const managerData = JSON.parse(sessionStorage.manager);
-    const managerState = managerData.managerState;
-    const managerGoalState = managerData.managerGoalState;
-
-    const isSafeMode = managerState === 'SAFE_MODE' || managerGoalState === 'SAFE_MODE';
-    const isCleanStop = managerState === 'CLEAN_STOP' || managerGoalState === 'CLEAN_STOP';
+  const applyStatuses = function (managerGoalState) {
+    const isSafeMode = managerGoalState === 'SAFE_MODE';
+    const isCleanStop = managerGoalState === 'CLEAN_STOP';
 
     // setting manager status notification
     if (statusData.managerStatus === STATUS.ERROR || isCleanStop) {
@@ -101,21 +95,94 @@ function updateServerNotifications(statusData) {
       updateElementStatus('gcStatusNotification', STATUS.ERROR);
     }
 
+    // setting scan server status notification
+    if (statusData.sServerStatus === STATUS.ERROR) {
+      updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+    } else if (statusData.sServerStatus === STATUS.WARN) {
+      updateElementStatus('sserverStatusNotification', STATUS.WARN);
+    } else if (statusData.sServerStatus === STATUS.OK) {
+      updateElementStatus('sserverStatusNotification', STATUS.OK);
+    } else {
+      console.error('Unrecognized scan server state: ' + statusData.sServerStatus +
+        '. Could not properly set scan server status notification.');
+    }
+
+    // setting compactor status notification
+    if (statusData.compactorStatus === STATUS.OK) {
+      updateElementStatus('compactorStatusNotification', STATUS.OK);
+    } else {
+      updateElementStatus('compactorStatusNotification', STATUS.ERROR);
+    }
+
     // Setting overall servers status notification
     if ((statusData.managerStatus === STATUS.OK && !isSafeMode && !isCleanStop) &&
       statusData.tServerStatus === STATUS.OK &&
-      statusData.gcStatus === STATUS.OK) {
+      statusData.gcStatus === STATUS.OK &&
+      statusData.sServerStatus === STATUS.OK &&
+      statusData.compactorStatus === STATUS.OK) {
       updateElementStatus('statusNotification', STATUS.OK);
     } else if (statusData.managerStatus === STATUS.ERROR || isCleanStop ||
       statusData.tServerStatus === STATUS.ERROR ||
-      statusData.gcStatus === STATUS.ERROR) {
+      statusData.gcStatus === STATUS.ERROR ||
+      statusData.sServerStatus === STATUS.ERROR ||
+      statusData.compactorStatus === STATUS.ERROR) {
       updateElementStatus('statusNotification', STATUS.ERROR);
     } else if (statusData.managerStatus === STATUS.WARN || isSafeMode ||
       statusData.tServerStatus === STATUS.WARN ||
-      statusData.gcStatus === STATUS.WARN) {
+      statusData.gcStatus === STATUS.WARN ||
+      statusData.sServerStatus === STATUS.WARN) {
       updateElementStatus('statusNotification', STATUS.WARN);
     }
+  };
 
+
+  getManagersView().always(function () {
+    applyStatuses(getManagerGoalStateFromSession());
+  });
+}
+
+/**
+ * Updates the scan server notification based on REST v2 status.
+ */
+function refreshSserverStatus() {
+  return getSserversView().done(function () {
+    var view = sessionStorage.sserversView ? JSON.parse(sessionStorage.sserversView) : null;
+    var status = view && view.status ? view.status : null;
+    if (!status) {
+      sessionStorage.sServerStatus = STATUS.ERROR;
+      updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+      return;
+    }
+
+    if (status.hasProblemScanServers === true) {
+      sessionStorage.sServerStatus = STATUS.WARN;
+      updateElementStatus('sserverStatusNotification', STATUS.WARN);
+    } else {
+      sessionStorage.sServerStatus = STATUS.OK;
+      updateElementStatus('sserverStatusNotification', STATUS.OK);
+    }
+  }).fail(function () {
+    // else, display ERROR when call fails
+    sessionStorage.sServerStatus = STATUS.ERROR;
+    updateElementStatus('sserverStatusNotification', STATUS.ERROR);
+  });
+}
+
+/**
+ * Sets compactor menu status LED notification to OK if any compactors exist, else ERROR
+ */
+function refreshCompactorStatus() {
+  return $.getJSON(REST_V2_PREFIX + '/ec/compactors').done(function (data) {
+    if (Number(data?.numCompactors) > 0) {
+      sessionStorage.compactorStatus = STATUS.OK;
+      updateElementStatus('compactorStatusNotification', STATUS.OK);
+    } else {
+      sessionStorage.compactorStatus = STATUS.ERROR;
+      updateElementStatus('compactorStatusNotification', STATUS.ERROR);
+    }
+  }).fail(function () {
+    sessionStorage.compactorStatus = STATUS.ERROR;
+    updateElementStatus('compactorStatusNotification', STATUS.ERROR);
   });
 }
 
@@ -130,7 +197,7 @@ $(function () {
  * Makes the REST call for the server status, generates the sidebar with the new information
  */
 function refreshSidebar() {
-  getStatus().then(function () {
+  $.when(getStatus(), refreshSserverStatus(), refreshCompactorStatus()).always(function () {
     refreshSideBarNotifications();
   });
 }
@@ -140,7 +207,6 @@ function refreshSidebar() {
  */
 function refreshNavBar() {
   refreshSidebar();
-  updateSystemAlerts();
 }
 
 /**
@@ -149,6 +215,11 @@ function refreshNavBar() {
 function refreshSideBarNotifications() {
 
   const statusData = sessionStorage?.status ? JSON.parse(sessionStorage.status) : undefined;
+  if (!statusData) {
+    return;
+  }
+  statusData.sServerStatus = sessionStorage.sServerStatus || STATUS.OK;
+  statusData.compactorStatus = sessionStorage.compactorStatus || STATUS.OK;
 
   updateServerNotifications(statusData);
 }

@@ -46,8 +46,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
 
   @Override
@@ -94,7 +92,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
       }
       c.tableOperations().addSplits("test", splits);
       // Ensure all of the tablets are actually assigned
-      assertEquals(0, Iterables.size(c.createScanner("test", Authorizations.EMPTY)));
+      assertEquals(0, c.createScanner("test", Authorizations.EMPTY).stream().count());
       Thread.sleep(30_000);
       checkBalance(c);
     }

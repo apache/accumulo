@@ -26,14 +26,14 @@ import org.apache.accumulo.core.client.Accumulo;
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
  * {@link AccumuloOutputFormat#configure()}
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public interface OutputFormatBuilder {
 
   /**
    * Required params for client
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface ClientParams<T> {
     /**
@@ -58,7 +58,7 @@ public interface OutputFormatBuilder {
   /**
    * Builder options
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface OutputOptions<T> {
     /**

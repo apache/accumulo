@@ -48,13 +48,12 @@ class NamedThreadFactory implements ThreadFactory {
   @Override
   public Thread newThread(Runnable r) {
     String threadName = null;
-    if (r instanceof NamedRunnable) {
-      NamedRunnable nr = (NamedRunnable) r;
+    if (r instanceof NamedRunnable nr) {
       threadName = String.format(FORMAT, name, nr.getName(), threadNum.getAndIncrement());
     } else {
       threadName =
           String.format(FORMAT, name, r.getClass().getSimpleName(), threadNum.getAndIncrement());
     }
-    return Threads.createThread(threadName, priority, r, handler);
+    return Threads.createNonCriticalThread(threadName, priority, r, handler);
   }
 }

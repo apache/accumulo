@@ -36,8 +36,8 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.AbstractId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -63,12 +63,11 @@ public class TabletManagementParameters {
   private final Map<Ample.DataLevel,Boolean> parentUpgradeMap;
   private final Set<TableId> onlineTables;
   private final Set<TServerInstance> serversToShutdown;
-  private final Map<KeyExtent,TServerInstance> migrations;
 
   private final Ample.DataLevel level;
 
-  private final Supplier<Map<TServerInstance,String>> resourceGroups;
-  private final Map<String,Set<TServerInstance>> tserverGroups;
+  private final Supplier<Map<TServerInstance,ResourceGroupId>> resourceGroups;
+  private final Map<ResourceGroupId,Set<TServerInstance>> tserverGroups;
   private final Map<FateId,Map<String,String>> compactionHints;
   private final Set<TServerInstance> onlineTservers;
   private final boolean canSuspendTablets;
@@ -78,9 +77,9 @@ public class TabletManagementParameters {
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
-      Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
-      Ample.DataLevel level, Map<FateId,Map<String,String>> compactionHints,
-      boolean canSuspendTablets, Map<Path,Path> volumeReplacements, SteadyTime steadyTime) {
+      Set<TServerInstance> serversToShutdown, Ample.DataLevel level,
+      Map<FateId,Map<String,String>> compactionHints, boolean canSuspendTablets,
+      Map<Path,Path> volumeReplacements, SteadyTime steadyTime) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -88,14 +87,12 @@ public class TabletManagementParameters {
     // This is already immutable, so no need to copy
     this.onlineTservers = liveTServersSnapshot.getTservers();
     this.serversToShutdown = Set.copyOf(serversToShutdown);
-    // TODO could filter by level
-    this.migrations = Map.copyOf(migrations);
     this.level = level;
     // This is already immutable, so no need to copy
     this.tserverGroups = liveTServersSnapshot.getTserverGroups();
     this.compactionHints = makeImmutable(compactionHints);
     this.resourceGroups = Suppliers.memoize(() -> {
-      Map<TServerInstance,String> resourceGroups = new HashMap<>();
+      Map<TServerInstance,ResourceGroupId> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
           .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
@@ -113,17 +110,14 @@ public class TabletManagementParameters {
         jdata.onlineTservers.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
     this.serversToShutdown =
         jdata.serversToShutdown.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
-    this.migrations = jdata.migrations.entrySet().stream()
-        .collect(toUnmodifiableMap(entry -> KeyExtent.fromBase64(entry.getKey()),
-            entry -> new TServerInstance(entry.getValue())));
     this.level = jdata.level;
     this.compactionHints = makeImmutable(jdata.compactionHints.entrySet().stream()
         .collect(Collectors.toMap(entry -> FateId.from(entry.getKey()), Map.Entry::getValue)));
     this.tserverGroups = jdata.tserverGroups.entrySet().stream().collect(toUnmodifiableMap(
-        Map.Entry::getKey,
+        entry -> ResourceGroupId.of(entry.getKey()),
         entry -> entry.getValue().stream().map(TServerInstance::new).collect(toUnmodifiableSet())));
     this.resourceGroups = Suppliers.memoize(() -> {
-      Map<TServerInstance,String> resourceGroups = new HashMap<>();
+      Map<TServerInstance,ResourceGroupId> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
           .forEach(tserver -> resourceGroups.put(tserver, resourceGroup)));
       return Map.copyOf(resourceGroups);
@@ -158,19 +152,15 @@ public class TabletManagementParameters {
     return onlineTables.contains(tableId);
   }
 
-  public Map<KeyExtent,TServerInstance> getMigrations() {
-    return migrations;
-  }
-
   public Ample.DataLevel getLevel() {
     return level;
   }
 
-  public String getResourceGroup(TServerInstance tserver) {
+  public ResourceGroupId getResourceGroup(TServerInstance tserver) {
     return resourceGroups.get().get(tserver);
   }
 
-  public Map<String,Set<TServerInstance>> getGroupedTServers() {
+  public Map<ResourceGroupId,Set<TServerInstance>> getGroupedTServers() {
     return tserverGroups;
   }
 
@@ -208,7 +198,6 @@ public class TabletManagementParameters {
     Collection<String> onlineTables;
     Collection<String> onlineTservers;
     Collection<String> serversToShutdown;
-    Map<String,String> migrations;
 
     Ample.DataLevel level;
 
@@ -232,12 +221,9 @@ public class TabletManagementParameters {
           .collect(toList());
       serversToShutdown = params.serversToShutdown.stream().map(TServerInstance::getHostPortSession)
           .collect(toList());
-      migrations =
-          params.migrations.entrySet().stream().collect(toMap(entry -> entry.getKey().toBase64(),
-              entry -> entry.getValue().getHostPortSession()));
       level = params.level;
       tserverGroups = params.getGroupedTServers().entrySet().stream()
-          .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
+          .collect(toMap(entry -> entry.getKey().canonical(), entry -> entry.getValue().stream()
               .map(TServerInstance::getHostPortSession).collect(toSet())));
       compactionHints = params.compactionHints.entrySet().stream()
           .collect(Collectors.toMap(entry -> entry.getKey().canonical(), Map.Entry::getValue));

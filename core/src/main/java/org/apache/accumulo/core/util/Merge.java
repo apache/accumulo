@@ -26,28 +26,20 @@ import java.util.Iterator;
 import java.util.List;
 
 import org.apache.accumulo.core.cli.ClientOpts;
-import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
-
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.context.Scope;
 
 public class Merge {
 
@@ -96,40 +88,6 @@ public class Merge {
     Text end = null;
   }
 
-  public void start(String[] args) throws MergeException {
-    Opts opts = new Opts();
-    opts.parseArgs(Merge.class.getName(), args);
-    Span span = TraceUtil.startSpan(Merge.class, "start");
-    try (Scope scope = span.makeCurrent()) {
-
-      try (AccumuloClient client = Accumulo.newClient().from(opts.getClientProps()).build()) {
-
-        if (!client.tableOperations().exists(opts.tableName)) {
-          System.err.println("table " + opts.tableName + " does not exist");
-          return;
-        }
-        if (opts.goalSize == null || opts.goalSize < 1) {
-          AccumuloConfiguration tableConfig =
-              new ConfigurationCopy(client.tableOperations().getConfiguration(opts.tableName));
-          opts.goalSize = tableConfig.getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
-        }
-
-        message("Merging tablets in table %s to %d bytes", opts.tableName, opts.goalSize);
-        mergomatic(client, opts.tableName, opts.begin, opts.end, opts.goalSize, opts.force);
-      } catch (Exception ex) {
-        TraceUtil.setException(span, ex, true);
-        throw new MergeException(ex);
-      } finally {
-        span.end();
-      }
-    }
-  }
-
-  public static void main(String[] args) throws MergeException {
-    Merge merge = new Merge();
-    merge.start(args);
-  }
-
   public static class Size {
     public Size(KeyExtent extent, long size) {
       this.extent = extent;
@@ -143,7 +101,7 @@ public class Merge {
   public void mergomatic(AccumuloClient client, String table, Text start, Text end, long goalSize,
       boolean force) throws MergeException {
     try {
-      if (table.equals(AccumuloTable.METADATA.tableName())) {
+      if (table.equals(SystemTables.METADATA.tableName())) {
         throw new IllegalArgumentException("cannot merge tablets on the metadata table");
       }
       List<Size> sizes = new ArrayList<>();
@@ -239,9 +197,7 @@ public class Merge {
   protected void mergeSome(AccumuloClient client, String table, List<Size> sizes, int numToMerge)
       throws MergeException {
     merge(client, table, sizes, numToMerge);
-    for (int i = 0; i < numToMerge; i++) {
-      sizes.remove(0);
-    }
+    sizes.subList(0, numToMerge).clear();
   }
 
   protected void merge(AccumuloClient client, String table, List<Size> sizes, int numToMerge)

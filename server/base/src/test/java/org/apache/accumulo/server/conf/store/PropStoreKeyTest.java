@@ -20,6 +20,7 @@ package org.apache.accumulo.server.conf.store;
 
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
+import static org.apache.accumulo.core.Constants.ZRESOURCEGROUPS;
 import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.easymock.EasyMock.createMock;
@@ -31,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
@@ -94,6 +96,10 @@ public class PropStoreKeyTest {
     assertTrue(n1 instanceof NamespacePropKey);
     assertEquals(NamespaceId.of("n1"), ((NamespacePropKey) n1).getId());
 
+    var r1 = PropStoreKey.fromPath(ZRESOURCEGROUPS + "/r1" + ZCONFIG);
+    assertTrue(r1 instanceof ResourceGroupPropKey);
+    assertEquals(ResourceGroupId.of("r1"), ((ResourceGroupPropKey) r1).getId());
+
     var s1 = PropStoreKey.fromPath(ZCONFIG);
     assertFalse(s1 instanceof IdBasedPropStoreKey);
     assertTrue(s1 instanceof SystemPropKey);
@@ -118,6 +124,13 @@ public class PropStoreKeyTest {
     assertNull(PropStoreKey.fromPath(ZNAMESPACES + ZCONFIG));
     assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG));
     assertNull(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG + "/foo"));
+
+    assertTrue(
+        PropStoreKey.fromPath(ZRESOURCEGROUPS + "/a" + ZCONFIG) instanceof ResourceGroupPropKey);
+    assertNull(PropStoreKey.fromPath(ZRESOURCEGROUPS + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG));
+    assertNull(PropStoreKey.fromPath(ZRESOURCEGROUPS + "/a" + ZCONFIG + "/foo"));
+
   }
 
   @Test

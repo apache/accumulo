@@ -60,6 +60,22 @@ class ScanfileManager {
     }
   }
 
+  /**
+   * Removes any scan-in-use metadata entries that were left behind when a scan cleanup was
+   * interrupted. Intended to be called periodically to clear these orphaned scan refs once their
+   * in-memory reference count reaches zero.
+   */
+  public void removeBatchedScanRefs() {
+    Set<StoredTabletFile> snapshot;
+    Location currLoc;
+    synchronized (tablet) {
+      snapshot = new HashSet<>(filesToDeleteAfterScan);
+      filesToDeleteAfterScan.clear();
+      currLoc = Location.current(tablet.getTabletServer().getTabletSession());
+    }
+    removeFilesAfterScan(snapshot, currLoc);
+  }
+
   static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, Location currLocation) {
     try (var mutator = context.getAmple().conditionallyMutateTablets()) {
@@ -98,45 +114,27 @@ class ScanfileManager {
   }
 
   void returnFilesForScan(Long reservationId) {
+    synchronized (tablet) {
+      Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
-    final Set<StoredTabletFile> filesToDelete = new HashSet<>();
-
-    try {
-      synchronized (tablet) {
-        Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
-
-        if (absFilePaths == null) {
-          throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
-        }
-
-        boolean notify = false;
-        try {
-          for (StoredTabletFile path : absFilePaths) {
-            long refCount = fileScanReferenceCounts.decrement(path, 1);
-            if (refCount == 0) {
-              if (filesToDeleteAfterScan.remove(path)) {
-                filesToDelete.add(path);
-              }
-              notify = true;
-            } else if (refCount < 0) {
-              throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
-            }
-          }
-        } finally {
-          if (notify) {
-            tablet.notifyAll();
-          }
-        }
+      if (absFilePaths == null) {
+        throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
       }
-    } finally {
-      if (!filesToDelete.isEmpty()) {
-        // Remove scan files even if the loop above did not fully complete because once a
-        // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
-        // and would never be added back.
-        log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
 
-        var currLoc = Location.current(tablet.getTabletServer().getTabletSession());
-        removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), currLoc);
+      boolean notify = false;
+      try {
+        for (StoredTabletFile path : absFilePaths) {
+          long refCount = fileScanReferenceCounts.decrement(path, 1);
+          if (refCount == 0) {
+            notify = true;
+          } else if (refCount < 0) {
+            throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+          }
+        }
+      } finally {
+        if (notify) {
+          tablet.notifyAll();
+        }
       }
     }
   }
@@ -161,6 +159,20 @@ class ScanfileManager {
     if (!filesToDelete.isEmpty()) {
       log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
       removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(), location);
+    }
+  }
+
+  /**
+   * @return true if any file is no longer in use by a scan and can be removed, false otherwise.
+   */
+  boolean canScanRefsBeRemoved() {
+    synchronized (tablet) {
+      for (var path : filesToDeleteAfterScan) {
+        if (fileScanReferenceCounts.get(path) == 0) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 }

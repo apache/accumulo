@@ -29,65 +29,62 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
+import org.apache.accumulo.core.logging.BulkLogger;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.util.Retry;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CleanUpBulkImport extends ManagerRepo {
+public class CleanUpBulkImport extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
   private static final Logger log = LoggerFactory.getLogger(CleanUpBulkImport.class);
 
-  private final BulkInfo info;
-
   public CleanUpBulkImport(BulkInfo info) {
-    this.info = info;
+    super(info);
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    manager.updateBulkImportStatus(info.sourceDir, BulkImportState.CLEANUP);
-    log.debug("{} removing the bulkDir processing flag file in {}", fateId, info.bulkDir);
-    Ample ample = manager.getContext().getAmple();
-    Path bulkDir = new Path(info.bulkDir);
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
+    log.debug("{} removing the bulkDir processing flag file in {}", fateId, bulkInfo.bulkDir);
+    Ample ample = env.getContext().getAmple();
+    Path bulkDir = new Path(bulkInfo.bulkDir);
     ample.removeBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName());
-    ample.putGcFileAndDirCandidates(info.tableId,
-        Collections.singleton(ReferenceFile.forFile(info.tableId, bulkDir)));
+    ample.putGcFileAndDirCandidates(bulkInfo.tableId,
+        Collections.singleton(ReferenceFile.forFile(bulkInfo.tableId, bulkDir)));
 
-    Text firstSplit = info.firstSplit == null ? null : new Text(info.firstSplit);
-    Text lastSplit = info.lastSplit == null ? null : new Text(info.lastSplit);
+    Text firstSplit = bulkInfo.firstSplit == null ? null : new Text(bulkInfo.firstSplit);
+    Text lastSplit = bulkInfo.lastSplit == null ? null : new Text(bulkInfo.lastSplit);
 
     log.debug("{} removing the metadata table markers for loaded files in range {} {}", fateId,
         firstSplit, lastSplit);
-    removeBulkLoadEntries(ample, info.tableId, fateId, firstSplit, lastSplit);
+    removeBulkLoadEntries(ample, bulkInfo.tableId, fateId, firstSplit, lastSplit);
 
-    Utils.unreserveHdfsDirectory(manager, info.sourceDir, fateId);
-    Utils.getReadLock(manager, info.tableId, fateId).unlock();
+    Utils.unreserveHdfsDirectory(env.getContext(), bulkInfo.sourceDir, fateId);
+    Utils.getReadLock(env.getContext(), bulkInfo.tableId, fateId, LockRange.infinite()).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
     try {
-      manager.getVolumeManager().delete(renamingFile);
-      manager.getVolumeManager().delete(mappingFile);
+      env.getVolumeManager().delete(renamingFile);
+      env.getVolumeManager().delete(mappingFile);
     } catch (IOException ioe) {
       log.debug("{} Failed to delete renames and/or loadmap", fateId, ioe);
     }
 
     log.debug("completing bulkDir import transaction " + fateId);
-    manager.removeBulkImportStatus(info.sourceDir);
     return null;
   }
 
@@ -110,6 +107,7 @@ public class CleanUpBulkImport extends ManagerRepo {
             var tabletMutator =
                 tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
             tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
+                .peek(entry -> BulkLogger.deletingLoadEntry(tablet.getExtent(), entry))
                 .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
             tabletMutator.submit(tm -> false, () -> "remove bulk load entries " + fateId);
           }
@@ -141,5 +139,10 @@ public class CleanUpBulkImport extends ManagerRepo {
         }
       }
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.CLEANING;
   }
 }

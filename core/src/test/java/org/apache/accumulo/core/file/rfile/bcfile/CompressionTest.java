@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -49,7 +50,7 @@ import org.junit.jupiter.api.Timeout;
 
 public class CompressionTest {
 
-  HashMap<CompressionAlgorithm,Boolean> isSupported = new HashMap<>();
+  private final HashMap<String,CompressionAlgorithm> isSupported = new HashMap<>();
 
   @BeforeEach
   public void testSupport() throws ClassNotFoundException {
@@ -62,7 +63,7 @@ public class CompressionTest {
         (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
     assertNotNull(codec);
-    isSupported.put(new CompressionAlgorithm(gz, myConf), true);
+    isSupported.put(gz.getName(), new CompressionAlgorithm(gz, myConf));
 
     Lzo lzo = new Lzo();
     extClazz = lzo.getCodecClassNameProperty();
@@ -71,7 +72,7 @@ public class CompressionTest {
       codec = (CompressionCodec) ReflectionUtils.newInstance(Class.forName(clazz), myConf);
 
       assertNotNull(codec);
-      isSupported.put(new CompressionAlgorithm(lzo, myConf), true);
+      isSupported.put(lzo.getName(), new CompressionAlgorithm(lzo, myConf));
 
     } catch (ClassNotFoundException e) {
       // that is okay
@@ -85,7 +86,7 @@ public class CompressionTest {
 
       assertNotNull(codec);
 
-      isSupported.put(new CompressionAlgorithm(lz4, myConf), true);
+      isSupported.put(lz4.getName(), new CompressionAlgorithm(lz4, myConf));
 
     } catch (ClassNotFoundException e) {
       // that is okay
@@ -99,7 +100,7 @@ public class CompressionTest {
 
       assertNotNull(codec);
 
-      isSupported.put(new CompressionAlgorithm(bzip, myConf), true);
+      isSupported.put(bzip.getName(), new CompressionAlgorithm(bzip, myConf));
 
     } catch (ClassNotFoundException e) {
       // that is okay
@@ -113,7 +114,7 @@ public class CompressionTest {
 
       assertNotNull(codec);
 
-      isSupported.put(new CompressionAlgorithm(snappy, myConf), true);
+      isSupported.put(snappy.getName(), new CompressionAlgorithm(snappy, myConf));
 
     } catch (ClassNotFoundException e) {
       // that is okay
@@ -127,20 +128,21 @@ public class CompressionTest {
 
       assertNotNull(codec);
 
-      isSupported.put(new CompressionAlgorithm(zstd, myConf), true);
+      isSupported.put(zstd.getName(), new CompressionAlgorithm(zstd, myConf));
 
     } catch (ClassNotFoundException e) {
       // that is okay
     }
-
+    assertTrue(!isSupported.isEmpty(), "No supported codecs found");
   }
 
   @Test
   public void testSingle() {
 
+    boolean somethingGotTested = false;
     for (final String name : Compression.getSupportedAlgorithms()) {
       CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
-      if (isSupported.get(al) != null && isSupported.get(al)) {
+      if (isSupported.get(name) != null) {
 
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
@@ -148,16 +150,20 @@ public class CompressionTest {
         assertNotNull(al.getCodec(), al + " should have a non-null codec");
 
         assertNotNull(al.getCodec(), al + " should have a non-null codec");
+
+        somethingGotTested = true;
       }
     }
+    assertTrue(somethingGotTested, "No Hadoop codecs were tested");
   }
 
   @Test
   public void testSingleNoSideEffect() {
 
+    boolean somethingGotTested = false;
     for (final String name : Compression.getSupportedAlgorithms()) {
       CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
-      if (isSupported.get(al) != null && isSupported.get(al)) {
+      if (isSupported.get(name) != null) {
 
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
@@ -168,17 +174,20 @@ public class CompressionTest {
 
         assertNotEquals(System.identityHashCode(al.getCodec()), al.createNewCodec(88 * 1024),
             al + " should have created a new codec, but did not");
+        somethingGotTested = true;
       }
     }
+    assertTrue(somethingGotTested, "No Hadoop codecs were tested");
   }
 
   @Test
   @Timeout(60)
   public void testManyStartNotNull() throws InterruptedException, ExecutionException {
 
+    boolean somethingGotTested = false;
     for (final String name : Compression.getSupportedAlgorithms()) {
       CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
-      if (isSupported.get(al) != null && isSupported.get(al)) {
+      if (isSupported.get(name) != null) {
 
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
@@ -187,16 +196,23 @@ public class CompressionTest {
 
         assertNotNull(codec, al + " should not be null");
 
-        ExecutorService service = Executors.newFixedThreadPool(10);
+        final int numTasks = 32;
+        ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>();
+        ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < numTasks; i++) {
           results.add(service.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
             assertNotNull(al.getCodec(), al + " should not be null");
             return true;
           }));
         }
+        assertEquals(numTasks, results.size());
 
         service.shutdown();
 
@@ -210,9 +226,10 @@ public class CompressionTest {
           assertTrue(result.get(),
               al + " resulted in a failed call to getcodec within the thread pool");
         }
+        somethingGotTested = true;
       }
     }
-
+    assertTrue(somethingGotTested, "No Hadoop codecs were tested");
   }
 
   // don't start until we have created the codec
@@ -220,24 +237,32 @@ public class CompressionTest {
   @Timeout(60)
   public void testManyDontStartUntilThread() throws InterruptedException, ExecutionException {
 
+    boolean somethingGotTested = false;
     for (final String name : Compression.getSupportedAlgorithms()) {
       CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
-      if (isSupported.get(al) != null && isSupported.get(al)) {
+      if (isSupported.get(name) != null) {
 
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        ExecutorService service = Executors.newFixedThreadPool(10);
+        final int numTasks = 32;
+        ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>();
+        ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < numTasks; i++) {
 
           results.add(service.submit(() -> {
+            startLatch.countDown();
+            startLatch.await();
             assertNotNull(al.getCodec(), al + " should have a non-null codec");
             return true;
           }));
         }
+        assertEquals(numTasks, results.size());
 
         service.shutdown();
 
@@ -249,8 +274,10 @@ public class CompressionTest {
           assertTrue(result.get(),
               al + " resulted in a failed call to getcodec within the thread pool");
         }
+        somethingGotTested = true;
       }
     }
+    assertTrue(somethingGotTested, "No Hadoop codecs were tested");
 
   }
 
@@ -258,49 +285,51 @@ public class CompressionTest {
   @Timeout(60)
   public void testThereCanBeOnlyOne() throws InterruptedException, ExecutionException {
 
+    boolean somethingGotTested = false;
     for (final String name : Compression.getSupportedAlgorithms()) {
       CompressionAlgorithm al = Compression.getCompressionAlgorithmByName(name);
-      if (isSupported.get(al) != null && isSupported.get(al)) {
+      if (isSupported.get(name) != null) {
 
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        ExecutorService service = Executors.newFixedThreadPool(20);
+        final int numTasks = 32;
+        ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
-        ArrayList<Callable<Boolean>> list = new ArrayList<>();
+        ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>();
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
         // keep track of the system's identity hashcodes.
-        final HashSet<Integer> testSet = new HashSet<>();
 
-        for (int i = 0; i < 40; i++) {
+        for (int i = 0; i < numTasks; i++) {
           list.add(() -> {
+            startLatch.countDown();
+            startLatch.await();
             CompressionCodec codec = al.getCodec();
             assertNotNull(codec, al + " resulted in a non-null codec");
-            // add the identity hashcode to the set.
-            synchronized (testSet) {
-              testSet.add(System.identityHashCode(codec));
-            }
-            return true;
+            return System.identityHashCode(codec);
           });
         }
+        assertEquals(numTasks, list.size());
 
-        results.addAll(service.invokeAll(list));
-        // ensure that we
-        assertEquals(1, testSet.size(), al + " created too many codecs");
+        final HashSet<Integer> hashCodes = new HashSet<>();
+        for (Future<Integer> result : service.invokeAll(list)) {
+          hashCodes.add(result.get());
+        }
+        assertEquals(1, hashCodes.size(), al + " created too many codecs");
+
         service.shutdown();
 
         while (!service.awaitTermination(1, SECONDS)) {
           // wait
         }
-
-        for (Future<Boolean> result : results) {
-          assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread pool");
-        }
+        somethingGotTested = true;
       }
     }
+    assertTrue(somethingGotTested, "No Hadoop codecs were tested");
   }
 
   @Test

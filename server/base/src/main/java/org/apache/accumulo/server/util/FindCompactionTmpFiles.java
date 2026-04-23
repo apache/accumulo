@@ -18,11 +18,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -31,7 +33,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ServerOpts;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -40,22 +46,30 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.cli.ServerUtilOpts;
+import org.apache.accumulo.server.util.FindCompactionTmpFiles.FindOpts;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
+import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class FindCompactionTmpFiles {
+@AutoService(KeywordExecutable.class)
+public class FindCompactionTmpFiles extends ServerKeywordExecutable<FindOpts> {
 
   private static final Logger LOG = LoggerFactory.getLogger(FindCompactionTmpFiles.class);
 
-  static class Opts extends ServerUtilOpts {
+  static class FindOpts extends ServerOpts {
 
     @Parameter(names = "--tables", description = "comma separated list of table names")
     String tables;
@@ -120,6 +134,7 @@ public class FindCompactionTmpFiles {
         });
       }
     }
+
     LOG.trace("Final set of compaction tmp files after removing active compactions: {}", matches);
     return matches;
   }
@@ -130,68 +145,136 @@ public class FindCompactionTmpFiles {
     public int error = 0;
   }
 
-  public static DeleteStats deleteTempFiles(ServerContext context, Set<Path> filesToDelete)
-      throws InterruptedException {
+  public static void findTmpFiles(ServerContext ctx, TableId tableId, String dirName,
+      Set<ExternalCompactionId> ecidsForTablet, Consumer<Path> findConsumer) {
+    final Collection<Volume> vols = ctx.getVolumeManager().getVolumes();
+    for (Volume vol : vols) {
+      try {
+        final String volPath = vol.getBasePath() + Constants.HDFS_TABLES_DIR + Path.SEPARATOR
+            + tableId.canonical() + Path.SEPARATOR + dirName;
+        final FileSystem fs = vol.getFileSystem();
+        for (ExternalCompactionId ecid : ecidsForTablet) {
+          final String fileSuffix = "_tmp_" + ecid.canonical();
+          FileStatus[] files = null;
+          try {
+            files = fs.listStatus(new Path(volPath), (path) -> path.getName().endsWith(fileSuffix));
+          } catch (FileNotFoundException e) {
+            LOG.trace("Failed to list tablet dir {}", volPath, e);
+          }
+          if (files != null) {
+            for (FileStatus file : files) {
+              findConsumer.accept(file.getPath());
+            }
+          }
+        }
+      } catch (IOException e) {
+        LOG.error("Exception deleting compaction tmp files for table: {}", tableId, e);
+      }
+    }
+  }
 
-    final ExecutorService delSvc = Executors.newFixedThreadPool(8);
-    final List<Future<Boolean>> futures = new ArrayList<>(filesToDelete.size());
+  private static boolean deleteTmpFile(ServerContext context, Path p) throws IOException {
+    if (context.getVolumeManager().exists(p)) {
+      boolean result = context.getVolumeManager().delete(p);
+      if (result) {
+        LOG.debug("Removed old temp file {}", p);
+      } else {
+        LOG.error("Unable to remove old temp file {}, operation returned false with no exception",
+            p);
+      }
+      return result;
+    }
+    return true;
+  }
+
+  public static DeleteStats deleteTempFiles(ServerContext context, Set<Path> filesToDelete) {
+
+    final ExecutorService delSvc;
+    if (filesToDelete.size() < 4) {
+      // Do not bother creating a thread pool and threads for a few files.
+      delSvc = MoreExecutors.newDirectExecutorService();
+    } else {
+      delSvc = Executors.newFixedThreadPool(8);
+    }
+
     final DeleteStats stats = new DeleteStats();
 
+    // use a linked list to make removal from the middle of the list quick
+    final List<Future<Boolean>> futures = new LinkedList<>();
+
     filesToDelete.forEach(p -> {
-      futures.add(delSvc.submit(() -> {
-        if (context.getVolumeManager().exists(p)) {
-          return context.getVolumeManager().delete(p);
-        }
-        return true;
-      }));
+      futures.add(delSvc.submit(() -> deleteTmpFile(context, p)));
     });
     delSvc.shutdown();
 
-    int expectedResponses = filesToDelete.size();
-    while (expectedResponses > 0) {
-      Iterator<Future<Boolean>> iter = futures.iterator();
-      while (iter.hasNext()) {
-        Future<Boolean> future = iter.next();
-        if (future.isDone()) {
-          expectedResponses--;
-          iter.remove();
-          try {
-            if (future.get()) {
-              stats.success++;
-            } else {
-              stats.failure++;
+    try {
+      int expectedResponses = filesToDelete.size();
+      while (expectedResponses > 0) {
+        Iterator<Future<Boolean>> iter = futures.iterator();
+        while (iter.hasNext()) {
+          Future<Boolean> future = iter.next();
+          if (future.isDone()) {
+            expectedResponses--;
+            iter.remove();
+            try {
+              if (future.get()) {
+                stats.success++;
+              } else {
+                stats.failure++;
+              }
+            } catch (ExecutionException e) {
+              stats.error++;
+              LOG.error("Error deleting a compaction tmp file", e);
             }
-          } catch (ExecutionException e) {
-            stats.error++;
-            LOG.error("Error deleting a compaction tmp file", e);
           }
         }
+        if (expectedResponses > 0) {
+          LOG.debug("Waiting on {} background delete operations", expectedResponses);
+          UtilWaitThread.sleep(1_000);
+        }
       }
-      LOG.debug("Waiting on {} background delete operations", expectedResponses);
-      if (expectedResponses > 0) {
-        UtilWaitThread.sleep(3_000);
-      }
+      delSvc.awaitTermination(10, TimeUnit.MINUTES);
+      return stats;
+    } catch (InterruptedException e) {
+      throw new IllegalStateException(e);
     }
-    delSvc.awaitTermination(10, TimeUnit.MINUTES);
-    return stats;
   }
 
-  public static void main(String[] args) throws Exception {
-    Opts opts = new Opts();
-    opts.parseArgs(FindCompactionTmpFiles.class.getName(), args);
+  public FindCompactionTmpFiles() {
+    super(new FindOpts());
+  }
+
+  @Override
+  public String keyword() {
+    return "find-tmp-files";
+  }
+
+  @Override
+  public CommandGroup commandGroup() {
+    return CommandGroups.COMPACTION;
+  }
+
+  @Override
+  public String description() {
+    return "Finds and optionally deletes compaction tmp files.";
+  }
+
+  @Override
+  public void execute(JCommander cl, FindOpts opts) throws Exception {
     LOG.info("Looking for compaction tmp files over tables: {}, deleting: {}", opts.tables,
         opts.delete);
 
     Span span = TraceUtil.startSpan(FindCompactionTmpFiles.class, "main");
     try (Scope scope = span.makeCurrent()) {
 
-      ServerContext context = opts.getServerContext();
+      ServerContext context = getServerContext();
       String[] tables = opts.tables.split(",");
 
+      final var stringStringMap = context.tableOperations().tableIdMap();
       for (String table : tables) {
 
         table = table.trim();
-        String tableId = context.tableOperations().tableIdMap().get(table);
+        String tableId = stringStringMap.get(table);
         if (tableId == null || tableId.isEmpty()) {
           LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
           continue;
@@ -208,12 +291,9 @@ public class FindCompactionTmpFiles {
               "Deletion of compaction tmp files for table {} complete. Success:{}, Failure:{}, Error:{}",
               table, stats.success, stats.failure, stats.error);
         }
-
       }
-
     } finally {
       span.end();
     }
   }
-
 }

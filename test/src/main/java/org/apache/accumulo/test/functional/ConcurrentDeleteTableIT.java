@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -83,8 +84,10 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
         count++;
 
         final CountDownLatch cdl = new CountDownLatch(numDeleteOps);
+        assertTrue(numDeleteOps >= cdl.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(numDeleteOps);
 
         for (int i = 0; i < numDeleteOps; i++) {
           futures.add(es.submit(() -> {

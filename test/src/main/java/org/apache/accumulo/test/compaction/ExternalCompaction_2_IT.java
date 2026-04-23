@@ -20,7 +20,7 @@ package org.apache.accumulo.test.compaction;
 
 import org.junit.jupiter.api.BeforeAll;
 
-public class ExternalCompaction_2_IT extends ExternalCompaction2BaseIT {
+public class ExternalCompaction_2_IT extends ExternalCompaction2ITBase {
 
   @BeforeAll
   public static void beforeTests() throws Exception {

@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -44,7 +45,7 @@ public class FileOperationsTest {
     boolean caughtException = false;
     FileSKVWriter writer = null;
     String filename = "target/test.file." + RFile.EXTENSION;
-    File testFile = new File(filename);
+    File testFile = Path.of(filename).toFile();
     if (testFile.exists()) {
       FileUtils.forceDelete(testFile);
     }

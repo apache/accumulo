@@ -66,7 +66,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -76,7 +76,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.util.CheckForMetadataProblems;
+import org.apache.accumulo.server.util.checkCommand.MetadataCheckRunner;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -105,6 +105,9 @@ public class SplitIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setMemory(ServerType.TABLET_SERVER, 384, MemoryUnit.MEGABYTE);
+    // Splitting a tablet w/ a compaction can result in a dead compaction. Run the detector more
+    // frequently to clean them up as they could cause tests to hang.
+    cfg.setProperty(Property.COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL, "5s");
   }
 
   private String tservMaxMem;
@@ -248,7 +251,7 @@ public class SplitIT extends AccumuloClusterHarness {
         Thread.sleep(SECONDS.toMillis(15));
       }
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(table));
-      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+      try (Scanner s = c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         KeyExtent extent = new KeyExtent(id, null, null);
         s.setRange(extent.toMetaRange());
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
@@ -274,8 +277,7 @@ public class SplitIT extends AccumuloClusterHarness {
         assertTrue(count > 10, "Count should be greater than 10: " + count);
       }
 
-      assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
-          new String[] {"-c", cluster.getClientPropsPath()}));
+      MetadataCheckRunner.checkMetadataAndRootTableEntries(getCluster().getServerContext());
     }
   }
 

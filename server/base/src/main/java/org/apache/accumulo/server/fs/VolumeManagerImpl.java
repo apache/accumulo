@@ -49,7 +49,6 @@ import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
@@ -323,11 +322,9 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
-      FateId fateId) throws IOException {
+  public void bulkRename(Map<Path,Path> oldToNewPathMap, ExecutorService workerPool, FateId fateId)
+      throws IOException {
     List<Future<Void>> results = new ArrayList<>();
-    ExecutorService workerPool = ThreadPools.getServerThreadPools().getPoolBuilder(poolName)
-        .numCoreThreads(poolSize).build();
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {
@@ -351,14 +348,13 @@ public class VolumeManagerImpl implements VolumeManager {
       }
       return null;
     })));
-    workerPool.shutdown();
-    try {
-      while (!workerPool.awaitTermination(1000L, TimeUnit.MILLISECONDS)) {}
-      for (Future<Void> future : results) {
+
+    for (Future<Void> future : results) {
+      try {
         future.get();
+      } catch (InterruptedException | ExecutionException e) {
+        throw new IOException(e);
       }
-    } catch (InterruptedException | ExecutionException e) {
-      throw new IOException(e);
     }
   }
 
@@ -534,8 +530,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // for HDFS erasure coding. not checking hdfs config options
     // since that's already checked in ensureSyncIsEnabled()
     FileSystem fs = getFileSystemByPath(path);
-    if (fs instanceof DistributedFileSystem) {
-      DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    if (fs instanceof DistributedFileSystem dfs) {
       try {
         ErasureCodingPolicy currEC = dfs.getErasureCodingPolicy(path);
         if (currEC != null && !currEC.isReplicationPolicy()) {

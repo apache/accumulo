@@ -34,8 +34,8 @@ public class TabletMergeabilityUtilTest {
     var text = getRandomText();
     String json = TabletMergeabilityUtil.encode(text, TabletMergeability.never());
     var decoded = TabletMergeabilityUtil.decode(json);
-    assertEquals(text, decoded.getFirst());
-    assertEquals(TabletMergeability.never(), decoded.getSecond());
+    assertEquals(text, decoded.split());
+    assertEquals(TabletMergeability.never(), decoded.mergeability());
   }
 
   @Test
@@ -43,8 +43,8 @@ public class TabletMergeabilityUtilTest {
     var text = getRandomText();
     String json = TabletMergeabilityUtil.encode(text, TabletMergeability.always());
     var decoded = TabletMergeabilityUtil.decode(json);
-    assertEquals(text, decoded.getFirst());
-    assertEquals(TabletMergeability.always(), decoded.getSecond());
+    assertEquals(text, decoded.split());
+    assertEquals(TabletMergeability.always(), decoded.mergeability());
   }
 
   @Test
@@ -53,8 +53,8 @@ public class TabletMergeabilityUtilTest {
     var jsonBuffer =
         TabletMergeabilityUtil.encodeAsBuffer(text, TabletMergeability.after(Duration.ofDays(1)));
     var decoded = TabletMergeabilityUtil.decode(jsonBuffer);
-    assertEquals(text, decoded.getFirst());
-    assertEquals(TabletMergeability.after(Duration.ofDays(1)), decoded.getSecond());
+    assertEquals(text, decoded.split());
+    assertEquals(TabletMergeability.after(Duration.ofDays(1)), decoded.mergeability());
   }
 
   private Text getRandomText() {

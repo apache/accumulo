@@ -33,7 +33,7 @@ public final class LruBlockCacheConfiguration {
 
   public static final String PROPERTY_PREFIX = "lru";
 
-  /** Default Configuration Parameters */
+  /* Default Configuration Parameters */
 
   /** Backing Concurrent Map Configuration */
   public static final Float DEFAULT_LOAD_FACTOR = 0.75f;
@@ -195,12 +195,6 @@ public final class LruBlockCacheConfiguration {
     public Builder memoryFactor(float mf) {
       Preconditions.checkArgument(mf > 0);
       set(MEMORY_FACTOR_PROPERTY, mf);
-      return this;
-    }
-
-    public Builder mapLoadFactor(float mlf) {
-      Preconditions.checkArgument(mlf > 0);
-      set(MAP_LOAD_PROPERTY, mlf);
       return this;
     }
 

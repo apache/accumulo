@@ -25,6 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.hadoop.io.Text;
@@ -240,13 +245,17 @@ public class ConditionTest {
 
   @Test
   public void testHashCode() {
+    // Testing consistency
     ColumnVisibility cvis = new ColumnVisibility(VISIBILITY);
     c.setVisibility(cvis);
     c.setValue(VALUE);
     c.setTimestamp(1234L);
     c.setIterators(ITERATORS);
     int hc1 = c.hashCode();
+    int hc2 = c.hashCode();
+    assertEquals(hc1, hc2);
 
+    // Testing equality
     Condition c2 = new Condition(FAMILY, QUALIFIER);
     c2.setVisibility(cvis);
     c2.setValue(VALUE);
@@ -254,5 +263,22 @@ public class ConditionTest {
     c2.setIterators(ITERATORS);
     assertEquals(c, c2);
     assertEquals(hc1, c2.hashCode());
+
+    // Testing even distribution
+    List<Condition> conditions = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      Condition con = new Condition("colfam" + i, "colq" + i);
+      con.setVisibility(cvis);
+      con.setValue(VALUE + i);
+      con.setTimestamp(1234L);
+      con.setIterators(ITERATORS);
+      conditions.add(con);
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Condition c : conditions) {
+      hashCodes.add(c.hashCode());
+    }
+    assertEquals(conditions.size(), hashCodes.size(), 10);
+
   }
 }

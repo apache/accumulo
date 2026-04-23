@@ -55,7 +55,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat;
  * Hadoop configuration options that affect the behavior of the underlying files directly in the
  * Job's configuration may work, but are not directly supported at this time.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloFileOutputFormat extends FileOutputFormat<Key,Value> {
   private static final Class<AccumuloFileOutputFormat> CLASS = AccumuloFileOutputFormat.class;

@@ -21,7 +21,9 @@ package org.apache.accumulo.core.util;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
@@ -81,5 +83,74 @@ public class RowRangeUtil {
       return row.subSequence(0, row.length() - 1);
     }
     return row;
+  }
+
+  /**
+   * @throws IllegalArgumentException if the range was not created using row constructors.
+   */
+  public static Range requireRowRange(Range range) {
+    String errorMsg = "Range is not a row range";
+
+    if (!range.isInfiniteStartKey()) {
+      Preconditions.checkArgument(range.isStartKeyInclusive(),
+          "%s, start key must be inclusive. %s", errorMsg, range);
+      Preconditions.checkArgument(isOnlyRowSet(range.getStartKey()),
+          "%s, start key must only contain a row. %s", errorMsg, range);
+    }
+
+    if (!range.isInfiniteStopKey()) {
+      Preconditions.checkArgument(!range.isEndKeyInclusive(), "%s, end key must be exclusive. %s",
+          errorMsg, range);
+      Preconditions.checkArgument(isOnlyRowSet(range.getEndKey()),
+          "%s, end key must only contain a row. %s", errorMsg, range);
+    }
+
+    return range;
+  }
+
+  /**
+   * Converts a {@link Range} created using row constructors to a {@link RowRange}.
+   *
+   * @throws IllegalArgumentException if the range was not created using row constructors.
+   */
+  public static RowRange toRowRange(Range range) {
+    requireRowRange(range);
+
+    Text start;
+    boolean startInclusive;
+    Text end;
+    boolean endInclusive;
+
+    // This code reverses the transformations done by the Range row constructor. Like when that
+    // constructor adds a trailing zero to a row, this code strips it to recover the original row
+    // passed to the constructor.
+
+    if (range.isInfiniteStartKey()) {
+      start = null;
+      startInclusive = true;
+    } else {
+      if (isRowSuffixZeroByte(range.getStartKey())) {
+        start = new Text(stripZeroTail(range.getStartKey().getRowData()).toArray());
+        startInclusive = false;
+      } else {
+        start = range.getStartKey().getRow();
+        startInclusive = true;
+      }
+    }
+
+    if (range.isInfiniteStopKey()) {
+      end = null;
+      endInclusive = true;
+    } else {
+      if (isRowSuffixZeroByte(range.getEndKey())) {
+        end = new Text(stripZeroTail(range.getEndKey().getRowData()).toArray());
+        endInclusive = true;
+      } else {
+        end = range.getEndKey().getRow();
+        endInclusive = false;
+      }
+    }
+
+    return RowRange.range(start, startInclusive, end, endInclusive);
   }
 }

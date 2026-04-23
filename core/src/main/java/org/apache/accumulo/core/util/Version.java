@@ -18,13 +18,22 @@
  */
 package org.apache.accumulo.core.util;
 
+import org.apache.accumulo.core.cli.ClientKeywordExecutable;
+import org.apache.accumulo.core.cli.ClientOpts;
 import org.apache.accumulo.start.Main;
+import org.apache.accumulo.start.spi.CommandGroup;
+import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
+import com.beust.jcommander.JCommander;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class Version implements KeywordExecutable {
+public class Version extends ClientKeywordExecutable<ClientOpts> {
+
+  public Version() {
+    super(new ClientOpts());
+  }
 
   @Override
   public String keyword() {
@@ -32,8 +41,8 @@ public class Version implements KeywordExecutable {
   }
 
   @Override
-  public UsageGroup usageGroup() {
-    return UsageGroup.CORE;
+  public CommandGroup commandGroup() {
+    return CommandGroups.CLIENT;
   }
 
   @Override
@@ -42,7 +51,7 @@ public class Version implements KeywordExecutable {
   }
 
   @Override
-  public void execute(final String[] args) throws Exception {
+  public void execute(JCommander cl, ClientOpts options) throws Exception {
     Class<?> runTMP = Main.getClassLoader().loadClass("org.apache.accumulo.core.Constants");
     System.out.println(runTMP.getField("VERSION").get(null));
   }

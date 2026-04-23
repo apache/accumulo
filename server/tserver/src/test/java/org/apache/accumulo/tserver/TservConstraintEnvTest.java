@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,14 +33,16 @@ import java.util.List;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.junit.jupiter.api.Test;
 
 public class TservConstraintEnvTest {
 
   @Test
   public void testGetAuthorizationsContainer() {
-    SecurityOperation security = createMock(SecurityOperation.class);
+    ServerContext context = createMock(ServerContext.class);
+    AuditedSecurityOperation security = createMock(AuditedSecurityOperation.class);
     TCredentials goodCred = createMock(TCredentials.class);
     TCredentials badCred = createMock(TCredentials.class);
 
@@ -49,11 +52,11 @@ public class TservConstraintEnvTest {
 
     expect(security.authenticatedUserHasAuthorizations(goodCred, bbList)).andReturn(true);
     expect(security.authenticatedUserHasAuthorizations(badCred, bbList)).andReturn(false);
-    replay(security);
+    expect(context.getSecurityOperation()).andReturn(security).atLeastOnce();
+    replay(context, security, goodCred, badCred);
 
-    assertTrue(
-        new TservConstraintEnv(null, security, goodCred).getAuthorizationsContainer().contains(bs));
-    assertFalse(
-        new TservConstraintEnv(null, security, badCred).getAuthorizationsContainer().contains(bs));
+    assertTrue(new TservConstraintEnv(context, goodCred).getAuthorizationsContainer().contains(bs));
+    assertFalse(new TservConstraintEnv(context, badCred).getAuthorizationsContainer().contains(bs));
+    verify(context, security, goodCred, badCred);
   }
 }

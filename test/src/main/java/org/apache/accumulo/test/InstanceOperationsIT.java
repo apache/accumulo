@@ -28,15 +28,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -60,7 +61,7 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
    * Verify that we get the same servers from getServers() and getServer()
    */
   @Test
-  public void testGetServer() {
+  public void testGetServer() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final InstanceOperations iops = client.instanceOperations();
 
@@ -108,6 +109,20 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
         assertEquals(expectedServerId, actualServerId);
       });
 
+      var cluster = (MiniAccumuloClusterImpl) getCluster();
+      cluster.getConfig().getClusterServerConfiguration().setNumManagers(3);
+      cluster.getClusterControl().start(ServerType.MANAGER);
+      Wait.waitFor(() -> iops.getServers(ServerId.Type.MANAGER).size() == 3);
+      final Set<ServerId> managers3 = iops.getServers(ServerId.Type.MANAGER);
+      assertEquals(3, managers3.size());
+      managers3.forEach(expectedServerId -> {
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
+        assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
+        assertEquals(expectedServerId, actualServerId);
+      });
+
       // verify GC
       final Set<ServerId> gcs = iops.getServers(ServerId.Type.GARBAGE_COLLECTOR);
       assertEquals(1, gcs.size()); // Assuming there is only one garbage collector
@@ -128,7 +143,7 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
 
   @SuppressWarnings("deprecation")
   @Test
-  public void testGetServers() throws AccumuloException, AccumuloSecurityException {
+  public void testGetServers() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
 
@@ -146,6 +161,13 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
 
       assertEquals(1, iops.getServers(ServerId.Type.MANAGER).size());
       assertEquals(1, iops.getManagerLocations().size());
+      validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER));
+      var cluster = (MiniAccumuloClusterImpl) getCluster();
+      cluster.getConfig().getClusterServerConfiguration().setNumManagers(3);
+      cluster.getClusterControl().start(ServerType.MANAGER);
+      Wait.waitFor(() -> iops.getServers(ServerId.Type.MANAGER).size() == 3);
+      assertEquals(3, iops.getServers(ServerId.Type.MANAGER).size());
+      assertEquals(3, iops.getManagerLocations().size());
       validateAddresses(iops.getManagerLocations(), iops.getServers(ServerId.Type.MANAGER));
 
       assertEquals(1, iops.getServers(ServerId.Type.GARBAGE_COLLECTOR).size());
@@ -199,8 +221,8 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
         io.ping(sid);
       }
 
-      ServerId fake = new ServerId(ServerId.Type.COMPACTOR, Constants.DEFAULT_RESOURCE_GROUP_NAME,
-          "localhost", 1024);
+      ServerId fake =
+          new ServerId(ServerId.Type.COMPACTOR, ResourceGroupId.DEFAULT, "localhost", 1024);
       assertThrows(AccumuloException.class, () -> io.ping(fake));
     }
 

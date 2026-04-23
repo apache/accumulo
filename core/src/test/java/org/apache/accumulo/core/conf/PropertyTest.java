@@ -32,6 +32,7 @@ import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 import org.junit.jupiter.api.Test;
@@ -61,8 +62,21 @@ public class PropertyTest {
         assertNull(prop.getDefaultValue(),
             "PREFIX property " + prop.name() + " has unexpected non-null default value.");
       } else {
+        // default values shouldn't be null, but they can be an empty string
+        assertNotNull(prop.getDefaultValue());
+        // default values shouldn't start or end with whitespace
+        assertEquals(prop.getDefaultValue().strip(), prop.getDefaultValue(),
+            "Property " + prop.name() + " starts or ends with whitespace");
+        // default values shouldn't contain newline characters or tabs
+        assertFalse(prop.getDefaultValue().contains("\t"),
+            "Property " + prop.name() + " contains a tab character");
+        assertFalse(prop.getDefaultValue().contains("\n"),
+            "Property " + prop.name() + " contains a newline (\\n) character");
+        assertFalse(prop.getDefaultValue().contains("\r"),
+            "Property " + prop.name() + " contains a return (\\r) character");
+
         assertTrue(Property.isValidProperty(prop.getKey(), prop.getDefaultValue()),
-            "Property " + prop + " has invalid default value " + prop.getDefaultValue()
+            "Property " + prop.name() + " has invalid default value " + prop.getDefaultValue()
                 + " for type " + prop.getType());
       }
 
@@ -71,8 +85,8 @@ public class PropertyTest {
           "Description not set for " + prop);
 
       // make sure property description ends with a period
-      assertTrue(prop.getDescription().endsWith("."),
-          "Property: " + prop.getKey() + " description does not end with period.");
+      assertTrue(prop.getDescription().trim().endsWith("."), "Property: " + prop.getKey()
+          + " description does not end with period. Description = " + prop.getDescription());
 
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
@@ -97,11 +111,19 @@ public class PropertyTest {
     HashSet<Integer> usedPorts = new HashSet<>();
     for (Property prop : Property.values()) {
       if (prop.getType().equals(PropertyType.PORT)) {
-        int port = Integer.parseInt(prop.getDefaultValue());
-        assertTrue(Property.isValidProperty(prop.getKey(), Integer.toString(port)));
-        assertFalse(usedPorts.contains(port), "Port already in use: " + port);
-        usedPorts.add(port);
-        assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+        var defaultVal = prop.getDefaultValue();
+        assertTrue(Property.isValidProperty(prop.getKey(), defaultVal));
+        IntStream ports;
+        if (defaultVal.contains("-")) {
+          ports = PropertyType.PortRange.parse(defaultVal);
+        } else {
+          ports = IntStream.of(Integer.parseInt(defaultVal));
+        }
+        ports.forEach(port -> {
+          assertFalse(usedPorts.contains(port), "Port already in use: " + port);
+          usedPorts.add(port);
+          assertTrue(port > 1023 && port < 65536, "Port out of range of valid ports: " + port);
+        });
       }
     }
   }
@@ -135,11 +157,17 @@ public class PropertyTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testPropertyValidation() {
 
     for (Property property : Property.values()) {
+      if (property == Property.MANAGER_FATE_THREADPOOL_SIZE) {
+        // deprecated and unused property, no need to test
+        continue;
+      }
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
       LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
 
       switch (propertyType) {
@@ -244,7 +272,7 @@ public class PropertyTest {
 
   @Test
   public void testAnnotations() {
-    assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertFalse(Property.TABLE_SAMPLER.isExperimental());
 
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
@@ -294,7 +322,7 @@ public class PropertyTest {
 
   @Test
   public void testFixedPropertiesNonNull() {
-    Property.fixedProperties.forEach(p -> {
+    Property.FIXED_PROPERTIES.forEach(p -> {
       assertNotNull(p.getDefaultValue());
       assertFalse(p.getDefaultValue().isBlank());
     });

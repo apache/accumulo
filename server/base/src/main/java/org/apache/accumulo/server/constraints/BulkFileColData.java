@@ -27,8 +27,10 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
  * Data needed to validate a BulkFileColumn update
  */
 class BulkFileColData {
-  private boolean isSplitMutation, isLocationMutation;
-  private final Set<StoredTabletFile> dataFiles, loadedFiles;
+  private boolean isSplitMutation;
+  private boolean isLocationMutation;
+  private final Set<StoredTabletFile> dataFiles;
+  private final Set<StoredTabletFile> loadedFiles;
   private final Set<String> tidsSeen;
 
   BulkFileColData() {

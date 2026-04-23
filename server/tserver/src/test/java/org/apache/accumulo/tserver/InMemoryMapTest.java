@@ -23,8 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,7 +39,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -49,7 +49,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
@@ -57,8 +57,10 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.sample.impl.SamplerFactory;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -71,45 +73,24 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class InMemoryMapTest extends WithTestNames {
 
-  private static class SampleIE implements IteratorEnvironment {
-
-    private final SamplerConfiguration sampleConfig;
-
-    public SampleIE() {
-      this.sampleConfig = null;
-    }
-
-    public SampleIE(SamplerConfigurationImpl sampleConfig) {
-      this.sampleConfig = sampleConfig.toSamplerConfiguration();
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return sampleConfig != null;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return sampleConfig;
-    }
-  }
-
   public static ServerContext getServerContext() {
     Configuration hadoopConf = new Configuration();
     ServerContext context = EasyMock.createMock(ServerContext.class);
+    EasyMock.expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
     TableConfiguration tConf = EasyMock.createMock(TableConfiguration.class);
     EasyMock.expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance())
         .anyTimes();
     EasyMock.expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(tConf)
         .anyTimes();
     EasyMock.expect(tConf.getCryptoService()).andReturn(NoCryptoServiceFactory.NONE).anyTimes();
+    EasyMock.expect(tConf.get(Property.TABLE_SAMPLER)).andReturn("").anyTimes();
     EasyMock.expect(context.getHadoopConf()).andReturn(hadoopConf).anyTimes();
     EasyMock.replay(context, tConf);
     return context;
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
@@ -319,7 +300,9 @@ public class InMemoryMapTest extends WithTestNames {
 
     mutate(imm, "r1", "foo:cq5", 3, "bar5");
 
-    SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
+    SortedKeyValueIterator<Key,Value> dc =
+        ski1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+            .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
 
     ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
@@ -371,8 +354,9 @@ public class InMemoryMapTest extends WithTestNames {
       }
     }
 
-    SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(new SampleIE());
-
+    SortedKeyValueIterator<Key,Value> dc =
+        ski1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+            .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
     if (interleaving == 2) {
       imm.delete(0);
       if (interrupt) {
@@ -523,7 +507,9 @@ public class InMemoryMapTest extends WithTestNames {
     MemoryIterator iter1 = imm.skvIterator(null);
 
     seekLocalityGroups(iter1);
-    SortedKeyValueIterator<Key,Value> dc1 = iter1.deepCopy(new SampleIE());
+    SortedKeyValueIterator<Key,Value> dc1 =
+        iter1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+            .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
     seekLocalityGroups(dc1);
 
     assertEquals(10, imm.getNumEntries());
@@ -576,12 +562,27 @@ public class InMemoryMapTest extends WithTestNames {
 
       MemoryIterator iter1 = imm.skvIterator(sampleConfig);
       MemoryIterator iter2 = imm.skvIterator(null);
-      SortedKeyValueIterator<Key,Value> iter0dc1 = iter0.deepCopy(new SampleIE());
-      SortedKeyValueIterator<Key,Value> iter0dc2 = iter0.deepCopy(new SampleIE(sampleConfig));
-      SortedKeyValueIterator<Key,Value> iter1dc1 = iter1.deepCopy(new SampleIE());
-      SortedKeyValueIterator<Key,Value> iter1dc2 = iter1.deepCopy(new SampleIE(sampleConfig));
-      SortedKeyValueIterator<Key,Value> iter2dc1 = iter2.deepCopy(new SampleIE());
-      SortedKeyValueIterator<Key,Value> iter2dc2 = iter2.deepCopy(new SampleIE(sampleConfig));
+      SortedKeyValueIterator<Key,Value> iter0dc1 =
+          iter0.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
+      SortedKeyValueIterator<Key,Value> iter0dc2 =
+          iter0.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+      SortedKeyValueIterator<Key,Value> iter1dc1 =
+          iter1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
+      SortedKeyValueIterator<Key,Value> iter1dc2 =
+          iter1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+      SortedKeyValueIterator<Key,Value> iter2dc1 =
+          iter2.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
+      SortedKeyValueIterator<Key,Value> iter2dc2 =
+          iter2.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
 
       assertEquals(expectedNone, readAll(iter0));
       assertEquals(expectedNone, readAll(iter0dc1));
@@ -605,12 +606,27 @@ public class InMemoryMapTest extends WithTestNames {
       assertEquals(expectedSample, readAll(iter1dc2));
       assertEquals(expectedSample, readAll(iter2dc2));
 
-      SortedKeyValueIterator<Key,Value> iter0dc3 = iter0.deepCopy(new SampleIE());
-      SortedKeyValueIterator<Key,Value> iter0dc4 = iter0.deepCopy(new SampleIE(sampleConfig));
-      SortedKeyValueIterator<Key,Value> iter1dc3 = iter1.deepCopy(new SampleIE());
-      SortedKeyValueIterator<Key,Value> iter1dc4 = iter1.deepCopy(new SampleIE(sampleConfig));
-      SortedKeyValueIterator<Key,Value> iter2dc3 = iter2.deepCopy(new SampleIE());
-      SortedKeyValueIterator<Key,Value> iter2dc4 = iter2.deepCopy(new SampleIE(sampleConfig));
+      SortedKeyValueIterator<Key,Value> iter0dc3 =
+          iter0.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
+      SortedKeyValueIterator<Key,Value> iter0dc4 =
+          iter0.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+      SortedKeyValueIterator<Key,Value> iter1dc3 =
+          iter1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
+      SortedKeyValueIterator<Key,Value> iter1dc4 =
+          iter1.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+      SortedKeyValueIterator<Key,Value> iter2dc3 =
+          iter2.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).build());
+      SortedKeyValueIterator<Key,Value> iter2dc4 =
+          iter2.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+              .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
 
       assertEquals(expectedNone, readAll(iter0dc3));
       assertEquals(expectedNone, readAll(iter0dc4));
@@ -667,7 +683,9 @@ public class InMemoryMapTest extends WithTestNames {
     }
 
     if (deepCopy) {
-      iter = iter.deepCopy(new SampleIE(sampleConfig1));
+      iter = iter.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+          .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+          .withSamplerConfiguration(sampleConfig1.toSamplerConfiguration()).build());
     }
 
     if (delete && dcAfterDelete) {
@@ -693,7 +711,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
-  public void testDifferentSampleConfig() {
+  public void testDifferentSampleConfig() throws IOException {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
 
@@ -713,7 +731,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
-  public void testNoSampleConfig() {
+  public void testNoSampleConfig() throws IOException {
     InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r", "cf:cq", 5, "b");
@@ -768,7 +786,10 @@ public class InMemoryMapTest extends WithTestNames {
     iter.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(iter));
 
-    SortedKeyValueIterator<Key,Value> dc = iter.deepCopy(new SampleIE(sampleConfig2));
+    SortedKeyValueIterator<Key,
+        Value> dc = iter.deepCopy(new SystemIteratorEnvironmentImpl.Builder(getServerContext())
+            .withScope(IteratorScope.scan).withTableId(TableId.of("foo")).withSamplingEnabled()
+            .withSamplerConfiguration(sampleConfig2.toSamplerConfiguration()).build());
     dc.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(dc));
 
@@ -781,12 +802,14 @@ public class InMemoryMapTest extends WithTestNames {
         () -> finalIter.seek(new Range(), Set.of(), false));
   }
 
-  private String[] uniqueDirPaths(int numOfDirs) {
+  private String[] uniqueDirPaths(int numOfDirs) throws IOException {
     String[] newDirs = new String[numOfDirs];
     for (int i = 0; i < newDirs.length; i++) {
-      File newDir = new File(tempDir, testName() + i);
-      assertTrue(newDir.isDirectory() || newDir.mkdir(), "Failed to create directory: " + newDir);
-      newDirs[i] = newDir.getAbsolutePath();
+      Path newDir = tempDir.resolve(testName() + i);
+      if (!Files.isDirectory(newDir)) {
+        Files.createDirectories(newDir);
+      }
+      newDirs[i] = newDir.toAbsolutePath().toString();
     }
     return newDirs;
   }

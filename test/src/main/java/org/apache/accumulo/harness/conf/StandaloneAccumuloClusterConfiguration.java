@@ -122,7 +122,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
         String suffix = key.substring(ACCUMULO_STANDALONE_USER_KEY.length());
         String keytab = conf.get(ACCUMULO_STANDALONE_USER_KEYTABS_KEY + suffix);
         if (keytab != null) {
-          File keytabFile = new File(keytab);
+          File keytabFile = java.nio.file.Path.of(keytab).toFile();
           assertTrue(keytabFile.exists() && keytabFile.isFile(),
               "Keytab doesn't exist: " + keytabFile);
           clusterUsers.add(new ClusterUser(entry.getValue(), keytabFile));
@@ -166,7 +166,7 @@ public class StandaloneAccumuloClusterConfiguration extends AccumuloClusterPrope
     if (keytabPath == null || keytabPath.isEmpty()) {
       return null;
     }
-    File keytab = new File(keytabPath);
+    File keytab = java.nio.file.Path.of(keytabPath).toFile();
     if (!keytab.exists() || !keytab.isFile()) {
       throw new RuntimeException(keytabPath + " should be a regular file");
     }

@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -40,12 +41,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.TraceRepo;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation;
 import org.apache.accumulo.manager.tableOps.merge.TableRangeOp;
 import org.apache.commons.lang3.StringUtils;
@@ -76,7 +77,7 @@ public class FindMergeableRangeTask implements Runnable {
   @Override
   public void run() {
     var context = manager.getContext();
-    Map<TableId,String> tables = context.getTableIdToNameMap();
+    Map<TableId,String> tables = context.createTableIdToQualifiedNameMap();
 
     log.debug("Starting FindMergeableRangeTask");
 
@@ -129,7 +130,7 @@ public class FindMergeableRangeTask implements Runnable {
           submit(current, type, table, namespaceId);
         }
 
-      } catch (Exception e) {
+      } catch (TableNotFoundException | RuntimeException e) {
         log.error("Failed to generate system merges for {}", tableName, e);
       }
     }
@@ -157,7 +158,7 @@ public class FindMergeableRangeTask implements Runnable {
         tableId, startRowStr, endRowStr);
     var fateKey = FateKey.forMerge(new KeyExtent(tableId, range.endRow, range.startRow));
 
-    manager.fate(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateKey,
+    manager.fateClient(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateKey,
         new TraceRepo<>(
             new TableRangeOp(Operation.SYSTEM_MERGE, namespaceId, tableId, startRow, endRow)),
         true);
@@ -177,18 +178,12 @@ public class FindMergeableRangeTask implements Runnable {
         Optional.of(TABLET_MERGEABILITY);
 
     public Optional<UnmergeableReason> optional() {
-      switch (this) {
-        case NOT_CONTIGUOUS:
-          return NOT_CONTIGUOUS_OPT;
-        case MAX_FILE_COUNT:
-          return MAX_FILE_COUNT_OPT;
-        case MAX_TOTAL_SIZE:
-          return MAX_TOTAL_SIZE_OPT;
-        case TABLET_MERGEABILITY:
-          return TABLET_MERGEABILITY_OPT;
-        default:
-          throw new IllegalArgumentException("Unexpected enum type");
-      }
+      return switch (this) {
+        case NOT_CONTIGUOUS -> NOT_CONTIGUOUS_OPT;
+        case MAX_FILE_COUNT -> MAX_FILE_COUNT_OPT;
+        case MAX_TOTAL_SIZE -> MAX_TOTAL_SIZE_OPT;
+        case TABLET_MERGEABILITY -> TABLET_MERGEABILITY_OPT;
+      };
     }
   }
 

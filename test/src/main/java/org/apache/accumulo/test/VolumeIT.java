@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static java.util.stream.Collectors.toCollection;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +28,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
@@ -36,20 +37,19 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.init.Initialize;
-import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.adminCommand.StopAll;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -64,26 +64,13 @@ public class VolumeIT extends VolumeITBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       String tableName = getUniqueNames(1)[0];
       // create set of splits
-      SortedSet<Text> partitions = new TreeSet<>();
-      for (String s : "d,m,t".split(",")) {
-        partitions.add(new Text(s));
-      }
-      // create table with splits
-      NewTableConfiguration ntc = new NewTableConfiguration().withSplits(partitions);
-      client.tableOperations().create(tableName, ntc);
-      // scribble over the splits
-      VolumeChooserIT.writeDataToTable(client, tableName, VolumeChooserIT.alpha_rows);
-      // write the data to disk, read it back
-      client.tableOperations().flush(tableName, null, null, true);
-      try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
-        int i = 0;
-        for (Entry<Key,Value> entry : scanner) {
-          assertEquals(VolumeChooserIT.alpha_rows[i++], entry.getKey().getRow().toString());
-        }
-      }
+      TreeSet<Text> splits =
+          Stream.of("d", "m", "t").map(Text::new).collect(toCollection(TreeSet::new));
+      // create table with splits, write some data, and verify read
+      VolumeChooserIT.createAndVerifyTable(client, tableName, splits, true);
       // verify the new files are written to the different volumes
       try (Scanner scanner =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(new Range("1", "1<"));
         scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
         int fileCount = 0;
@@ -135,7 +122,7 @@ public class VolumeIT extends VolumeITBase {
 
     verifyVolumesUsed(c, tableName, false, v1, v2);
 
-    assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+    assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
     cluster.stop();
 
     return uuid;
@@ -186,7 +173,7 @@ public class VolumeIT extends VolumeITBase {
 
       verifyVolumesUsed(client, tableNames[0], false, v1, v2);
 
-      assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      assertEquals(0, cluster.exec(StopAll.class).getProcess().waitFor());
       cluster.stop();
 
       updateConfig(config -> config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v2.toString()));
@@ -198,7 +185,7 @@ public class VolumeIT extends VolumeITBase {
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
 
-      client.tableOperations().compact(AccumuloTable.ROOT.tableName(),
+      client.tableOperations().compact(SystemTables.ROOT.tableName(),
           new CompactionConfig().setWait(true));
 
       // check that root tablet is not on volume 1
@@ -214,8 +201,8 @@ public class VolumeIT extends VolumeITBase {
       client.tableOperations().clone(tableNames[0], tableNames[1], true, new HashMap<>(),
           new HashSet<>());
 
-      client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-      client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
       verifyVolumesUsed(client, tableNames[0], true, v2);
       verifyVolumesUsed(client, tableNames[1], true, v2);

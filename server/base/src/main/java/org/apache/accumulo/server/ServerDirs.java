@@ -163,7 +163,8 @@ public class ServerDirs {
             Property.INSTANCE_VOLUMES_REPLACEMENTS.getKey() + " contains malformed pair " + pair);
       }
 
-      Path p1, p2;
+      Path p1;
+      Path p2;
       try {
         // URI constructor handles hex escaping
         p1 = new Path(new URI(VolumeUtil.removeTrailingSlash(uris[0].trim())));

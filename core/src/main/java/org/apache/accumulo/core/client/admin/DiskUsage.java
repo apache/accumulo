@@ -44,11 +44,9 @@ public class DiskUsage {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof DiskUsage)) {
+    if (!(o instanceof DiskUsage diskUsage)) {
       return false;
     }
-
-    DiskUsage diskUsage = (DiskUsage) o;
 
     return Objects.equals(tables, diskUsage.tables) && Objects.equals(usage, diskUsage.usage);
   }

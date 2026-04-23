@@ -35,7 +35,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -206,7 +205,9 @@ public class BatchWriterIterator extends WrappingIterator {
   private void processNext() {
     assert hasTop();
     Key k = getTopKey();
-    Text row = k.getRow(), cf = k.getColumnFamily(), cq = k.getColumnQualifier();
+    Text row = k.getRow();
+    Text cf = k.getColumnFamily();
+    Text cq = k.getColumnQualifier();
     Value v = super.getTopValue();
     String failure = null;
     try {
@@ -218,7 +219,7 @@ public class BatchWriterIterator extends WrappingIterator {
         if (firstWrite) {
           batchWriter.flush();
           if (clearCacheAfterFirstWrite) {
-            ClientTabletCache.clearInstances((ClientContext) accumuloClient);
+            ((ClientContext) accumuloClient).clearTabletLocationCache();
           }
           if (splitAfterFirstWrite) {
             SortedSet<Text> splits = new TreeSet<>();

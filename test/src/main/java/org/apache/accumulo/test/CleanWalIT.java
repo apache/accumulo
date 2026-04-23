@@ -34,7 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -82,14 +82,14 @@ public class CleanWalIT extends AccumuloClusterHarness {
 
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
-      for (String table : new String[] {AccumuloTable.METADATA.tableName(),
-          AccumuloTable.ROOT.tableName()}) {
+      for (String table : new String[] {SystemTables.METADATA.tableName(),
+          SystemTables.ROOT.tableName()}) {
         client.tableOperations().flush(table, null, null, true);
       }
       log.debug("Checking entries for {}", tableName);
       assertEquals(1, count(tableName, client));
-      for (String table : new String[] {AccumuloTable.METADATA.tableName(),
-          AccumuloTable.ROOT.tableName()}) {
+      for (String table : new String[] {SystemTables.METADATA.tableName(),
+          SystemTables.ROOT.tableName()}) {
         log.debug("Checking logs for {}", table);
         assertEquals(0, countLogs(client), "Found logs for " + table);
       }
@@ -101,8 +101,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
       }
       assertEquals(0, count(tableName, client));
       client.tableOperations().flush(tableName, null, null, true);
-      client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-      client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       try {
         getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
         Thread.sleep(SECONDS.toMillis(3));
@@ -116,7 +116,7 @@ public class CleanWalIT extends AccumuloClusterHarness {
   private int countLogs(AccumuloClient client) throws TableNotFoundException {
     int count = 0;
     try (Scanner scanner =
-        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(LogColumnFamily.NAME);
       scanner.setRange(TabletsSection.getRange());
       for (Entry<Key,Value> entry : scanner) {

@@ -51,7 +51,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.split.SplitUtils;
-import org.apache.accumulo.test.fate.ManagerRepoIT;
+import org.apache.accumulo.test.fate.ManagerRepoIT_SimpleSuite;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -360,8 +360,8 @@ public class LargeSplitRowIT extends SharedMiniClusterBase {
 
   /**
    * Test the unsplittable column is cleaned up if a previously marked unsplittable tablet /* no
-   * longer needs to be split. The test {@link ManagerRepoIT#testFindSplitsDeleteUnsplittable()} is
-   * similar to this test.
+   * longer needs to be split. The test
+   * {@link ManagerRepoIT_SimpleSuite#testFindSplitsDeleteUnsplittable()} is similar to this test.
    */
   @Test
   @Timeout(60)

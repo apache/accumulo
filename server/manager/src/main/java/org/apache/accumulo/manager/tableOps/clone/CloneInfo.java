@@ -18,7 +18,11 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import static java.util.Objects.requireNonNull;
+
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,14 +33,68 @@ class CloneInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  TableId srcTableId;
-  String tableName;
-  TableId tableId;
-  NamespaceId namespaceId;
-  NamespaceId srcNamespaceId;
-  Map<String,String> propertiesToSet;
-  Set<String> propertiesToExclude;
-  boolean keepOffline;
+  private final TableId srcTableId;
+  private final String tableName;
+  private TableId tableId;
+  private final NamespaceId namespaceId;
+  private final NamespaceId srcNamespaceId;
+  private final HashMap<String,String> propertiesToSet; // type must be serializable
+  private final HashSet<String> propertiesToExclude; // type must be serializable
+  private final boolean keepOffline;
+  private final String user;
 
-  public String user;
+  public CloneInfo(NamespaceId srcNamespaceId, TableId srcTableId, NamespaceId dstNamespaceId,
+      String dstTableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
+      boolean keepOffline, String user) {
+    super();
+    this.srcNamespaceId = srcNamespaceId;
+    this.srcTableId = srcTableId;
+    this.tableName = dstTableName;
+    this.namespaceId = dstNamespaceId;
+    this.propertiesToSet = new HashMap<>(requireNonNull(propertiesToSet));
+    this.propertiesToExclude = new HashSet<>(requireNonNull(propertiesToExclude));
+    this.keepOffline = keepOffline;
+    this.user = user;
+  }
+
+  public TableId getSrcTableId() {
+    return srcTableId;
+  }
+
+  public String getTableName() {
+    return tableName;
+  }
+
+  public void setTableId(TableId dstTableId) {
+    this.tableId = dstTableId;
+  }
+
+  public TableId getTableId() {
+    return tableId;
+  }
+
+  public NamespaceId getNamespaceId() {
+    return namespaceId;
+  }
+
+  public NamespaceId getSrcNamespaceId() {
+    return srcNamespaceId;
+  }
+
+  public Map<String,String> getPropertiesToSet() {
+    return propertiesToSet;
+  }
+
+  public Set<String> getPropertiesToExclude() {
+    return propertiesToExclude;
+  }
+
+  public boolean isKeepOffline() {
+    return keepOffline;
+  }
+
+  public String getUser() {
+    return user;
+  }
+
 }

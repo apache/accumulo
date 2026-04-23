@@ -44,6 +44,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -80,6 +81,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -92,6 +94,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class SortedLogRecoveryTest extends WithTestNames {
 
+  private static final ScheduledThreadPoolExecutor EXECUTOR = new ScheduledThreadPoolExecutor(1);
   static final int bufferSize = 5;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static final Text cf = new Text("cf");
@@ -135,29 +138,34 @@ public class SortedLogRecoveryTest extends WithTestNames {
     }
   }
 
+  @AfterAll
+  public static void shutdown() {
+    EXECUTOR.shutdownNow();
+  }
+
   private static KeyValue createKeyValue(LogEvents type, long seq, int tid,
       Object fileExtentMutation) {
     KeyValue result = new KeyValue();
-    result.key.event = type;
-    result.key.seq = seq;
-    result.key.tabletId = tid;
+    result.key.setEvent(type);
+    result.key.setSeq(seq);
+    result.key.setTabletId(tid);
     switch (type) {
       case OPEN:
-        result.key.tserverSession = (String) fileExtentMutation;
+        result.key.setTserverSession((String) fileExtentMutation);
         break;
       case COMPACTION_FINISH:
         break;
       case COMPACTION_START:
-        result.key.filename = (String) fileExtentMutation;
+        result.key.setFilename((String) fileExtentMutation);
         break;
       case DEFINE_TABLET:
-        result.key.tablet = (KeyExtent) fileExtentMutation;
+        result.key.setTablet((KeyExtent) fileExtentMutation);
         break;
       case MUTATION:
-        result.value.mutations = List.of((Mutation) fileExtentMutation);
+        result.value.setMutations(List.of((Mutation) fileExtentMutation));
         break;
       case MANY_MUTATIONS:
-        result.value.mutations = Arrays.asList((Mutation[]) fileExtentMutation);
+        result.value.setMutations(Arrays.asList((Mutation[]) fileExtentMutation));
     }
     return result;
   }
@@ -186,13 +194,14 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toAbsolutePath().toString();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
       expect(server.getContext()).andReturn(context).anyTimes();
       expect(context.getVolumeManager()).andReturn(fs).anyTimes();
       expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+      expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
       replay(server, context);
       logSorter = new LogSorter(server);
 
@@ -1125,7 +1134,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toAbsolutePath().toString();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
@@ -1133,6 +1142,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
       expect(context.getCryptoFactory()).andReturn(cryptoFactory).anyTimes();
       expect(context.getVolumeManager()).andReturn(vm).anyTimes();
       expect(context.getConfiguration()).andReturn(testConfig).anyTimes();
+      expect(context.getScheduledExecutor()).andReturn(EXECUTOR).anyTimes();
       replay(server, context);
       LogSorter sorter = new LogSorter(server);
 

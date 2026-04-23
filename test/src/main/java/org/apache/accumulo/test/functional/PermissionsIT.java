@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
@@ -51,7 +53,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -76,6 +78,13 @@ public class PermissionsIT extends AccumuloClusterHarness {
     return Duration.ofSeconds(90);
   }
 
+  @Override
+  protected void setSystemTablePerms(AccumuloClient client, SecurityOperations sops)
+      throws AccumuloException, AccumuloSecurityException {
+    // overridden to do nothing. The parent class gives read permissions to the
+    // system tables for the ITs. We want to test the default behavior
+  }
+
   @BeforeEach
   public void limitToMini() throws Exception {
     assumeTrue(getClusterType() == ClusterType.MINI);
@@ -95,7 +104,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @Test
   public void systemPermissionsTest() throws Exception {
-    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
 
     // verify that the test is being run by root
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -149,7 +159,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private void testMissingSystemPermission(String tableNamePrefix, AccumuloClient root_client,
       ClusterUser rootUser, AccumuloClient test_user_client, ClusterUser testUser,
       SystemPermission perm) throws Exception {
-    String tableName, user, password = "password", namespace;
+    String tableName;
+    String user;
+    String password = "password";
+    String namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
 
@@ -459,7 +472,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private void testGrantedSystemPermission(String tableNamePrefix, AccumuloClient root_client,
       ClusterUser rootUser, AccumuloClient test_user_client, ClusterUser testUser,
       SystemPermission perm) throws Exception {
-    String tableName, user, password = "password", namespace;
+    String tableName;
+    String user;
+    String password = "password";
+    String namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
 
@@ -676,7 +692,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Test
   public void tablePermissionTest() throws Exception {
     // create the test user
-    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
 
     String principal = testUser.getPrincipal();
     AuthenticationToken token = testUser.getToken();
@@ -686,6 +703,42 @@ public class PermissionsIT extends AccumuloClusterHarness {
     }
     loginAs(rootUser);
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // check root user permissions on FATE and SCAN_REF tables
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.FATE.tableName());
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.SCAN_REF.tableName());
+      for (String tn : SystemTables.tableNames()) {
+        try (Scanner s = c.createScanner(tn)) {
+          if (SystemTables.ROOT.tableName().equals(tn)
+              || SystemTables.METADATA.tableName().equals(tn)) {
+            @SuppressWarnings("unused")
+            var unused = s.iterator().hasNext();
+          } else {
+            IllegalStateException ise =
+                assertThrows(IllegalStateException.class, () -> s.iterator().hasNext());
+            assertTrue(ise.getMessage().contains("Error PERMISSION_DENIED for user"),
+                "Permission denied error not thrown for root user scan of table: " + tn
+                    + ". Message = " + ise.getMessage());
+          }
+        }
+      }
+
+      // Give the root user the read permission and try again.
+      c.securityOperations().grantTablePermission(rootUser.getPrincipal(),
+          SystemTables.FATE.tableName(), TablePermission.READ);
+      c.securityOperations().grantTablePermission(rootUser.getPrincipal(),
+          SystemTables.SCAN_REF.tableName(), TablePermission.READ);
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.FATE.tableName(),
+          TablePermission.READ);
+      verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.SCAN_REF.tableName(),
+          TablePermission.READ);
+      for (String tn : SystemTables.tableNames()) {
+        try (Scanner s = c.createScanner(tn)) {
+          @SuppressWarnings("unused")
+          var unused = s.iterator().hasNext();
+        }
+      }
+
       c.securityOperations().createLocalUser(principal, passwordToken);
       loginAs(testUser);
       try (AccumuloClient test_user_client =
@@ -693,10 +746,33 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
         // check for read-only access to metadata table
         loginAs(rootUser);
-        verifyHasOnlyTheseTablePermissions(c, c.whoami(), AccumuloTable.METADATA.tableName(),
+        verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.METADATA.tableName(),
             TablePermission.READ, TablePermission.ALTER_TABLE);
-        String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 
+        // check test user permissions on FATE and SCAN_REF tables
+        loginAs(testUser);
+        verifyHasOnlyTheseTablePermissions(c, test_user_client.whoami(),
+            SystemTables.FATE.tableName());
+        verifyHasOnlyTheseTablePermissions(c, test_user_client.whoami(),
+            SystemTables.SCAN_REF.tableName());
+        for (String tn : SystemTables.tableNames()) {
+          try (Scanner s = test_user_client.createScanner(tn)) {
+            if (SystemTables.ROOT.tableName().equals(tn)
+                || SystemTables.METADATA.tableName().equals(tn)) {
+              @SuppressWarnings("unused")
+              var unused = s.iterator().hasNext();
+            } else {
+              IllegalStateException ise =
+                  assertThrows(IllegalStateException.class, () -> s.iterator().hasNext());
+              assertTrue(ise.getMessage().contains("Error PERMISSION_DENIED for user"),
+                  "Permission denied error not thrown for root user scan of table: " + tn
+                      + ". Message = " + ise.getMessage());
+            }
+          }
+        }
+
+        loginAs(rootUser);
+        String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
         // test each permission
         for (TablePermission perm : TablePermission.values()) {
           if (perm == TablePermission.ALTER_TABLE) {

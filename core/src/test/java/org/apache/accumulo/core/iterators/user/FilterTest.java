@@ -40,9 +40,9 @@ import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnQualifierFilter;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
@@ -230,19 +230,19 @@ public class FilterTest {
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(902, size(a));
 
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(102, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -271,19 +271,19 @@ public class FilterTest {
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(98, size(a));
 
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("a", "b"), 101L);
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(898, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("a", "b"));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
@@ -312,19 +312,19 @@ public class FilterTest {
 
     ColumnAgeOffFilter a = new ColumnAgeOffFilter();
     assertTrue(a.validateOptions(is.getOptions()));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(902, size(a));
 
     ColumnAgeOffFilter.addTTL(is, new IteratorSetting.Column("negate", "b"), 101L);
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);
     assertEquals(102, size(a));
 
     ColumnAgeOffFilter.removeTTL(is, new IteratorSetting.Column("negate", "b"));
-    a.init(new SortedMapIterator(tm), is.getOptions(), new DefaultIteratorEnvironment());
+    a.init(new SortedMapIterator(tm), is.getOptions(), ClientIteratorEnvironment.DEFAULT);
     a = (ColumnAgeOffFilter) a.deepCopy(null);
     a.overrideCurrentTime(ts);
     a.seek(new Range(), EMPTY_COL_FAMS, false);

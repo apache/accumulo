@@ -31,7 +31,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -151,18 +151,17 @@ public class AESCryptoService implements CryptoService {
       return DISABLED;
     }
     CryptoModule cm;
-    switch (environment.getScope()) {
-      case WAL:
+    return switch (environment.getScope()) {
+      case WAL -> {
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getEncrypter();
-
-      case TABLE:
+        yield cm.getEncrypter();
+      }
+      case TABLE -> {
         cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getEncrypter();
-
-      default:
-        throw new CryptoException("Unknown scope: " + environment.getScope());
-    }
+        yield cm.getEncrypter();
+      }
+      default -> throw new CryptoException("Unknown scope: " + environment.getScope());
+    };
   }
 
   @Override
@@ -177,17 +176,18 @@ public class AESCryptoService implements CryptoService {
     ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.orElseThrow());
     Key kek = loadDecryptionKek(parsed);
     Key fek = unwrapKey(parsed.getEncFek(), kek);
-    switch (parsed.getCryptoServiceVersion()) {
-      case AESCBCCryptoModule.VERSION:
+    return switch (parsed.getCryptoServiceVersion()) {
+      case AESCBCCryptoModule.VERSION -> {
         cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getDecrypter(fek);
-      case AESGCMCryptoModule.VERSION:
+        yield cm.getDecrypter(fek);
+      }
+      case AESGCMCryptoModule.VERSION -> {
         cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-        return cm.getDecrypter(fek);
-      default:
-        throw new CryptoException(
-            "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
-    }
+        yield cm.getDecrypter(fek);
+      }
+      default -> throw new CryptoException(
+          "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
+    };
   }
 
   private static boolean checkNoCrypto(byte[] params) {
@@ -288,12 +288,10 @@ public class AESCryptoService implements CryptoService {
       return this.decryptingKeys.get(keyTag);
     }
 
-    switch (params.keyManagerVersion) {
-      case URI:
-        ret = loadKekFromUri(params.kekId);
-        break;
-      default:
-        throw new CryptoException("Unable to load kek: " + params.kekId);
+    if (params.keyManagerVersion.equals(URI)) {
+      ret = loadKekFromUri(params.kekId);
+    } else {
+      throw new CryptoException("Unable to load kek: " + params.kekId);
     }
 
     this.decryptingKeys.put(keyTag, ret);
@@ -345,7 +343,7 @@ public class AESCryptoService implements CryptoService {
       return new AESGCMFileDecrypter(fek);
     }
 
-    public class AESGCMFileEncrypter implements FileEncrypter {
+    private final class AESGCMFileEncrypter implements FileEncrypter {
 
       private final byte[] firstInitVector;
       private final Key fek;
@@ -494,7 +492,7 @@ public class AESCryptoService implements CryptoService {
     }
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
-    public class AESCBCFileEncrypter implements FileEncrypter {
+    public final class AESCBCFileEncrypter implements FileEncrypter {
       private final Cipher cipher;
       private final Key fek;
       private final byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
@@ -607,7 +605,7 @@ public class AESCryptoService implements CryptoService {
   public static Key loadKekFromUri(String keyId) {
     try {
       final java.net.URI uri = new URI(keyId);
-      return new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
+      return new SecretKeySpec(Files.readAllBytes(Path.of(uri.getPath())), "AES");
     } catch (URISyntaxException | IOException | IllegalArgumentException e) {
       throw new CryptoException("Unable to load key encryption key.", e);
     }

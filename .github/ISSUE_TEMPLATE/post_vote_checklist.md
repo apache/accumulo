@@ -45,4 +45,6 @@ assignees: ''
   - [ ] Send to announce@apache.org and user@accumulo.apache.org (use plain text mode only; html email will be rejected)
 - GitHub wrap-up
   - [ ] Close this issue
+- Code
+  - [ ] Update the javadoc since versions list in the `pom.xml` file for the next development branch
 

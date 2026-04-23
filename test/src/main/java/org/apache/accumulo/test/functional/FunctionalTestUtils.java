@@ -31,10 +31,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
@@ -63,8 +61,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -85,7 +83,7 @@ public class FunctionalTestUtils {
 
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -93,28 +91,19 @@ public class FunctionalTestUtils {
     }
   }
 
-  public static List<String> getRFilePaths(AccumuloClient c, String tableName) throws Exception {
-    return getStoredTabletFiles(c, tableName).stream().map(StoredTabletFile::getMetadataPath)
-        .collect(Collectors.toList());
-  }
-
-  public static List<StoredTabletFile> getStoredTabletFiles(AccumuloClient c, String tableName)
-      throws Exception {
-    List<StoredTabletFile> files = new ArrayList<>();
-    try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
-      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-      scanner.setRange(TabletsSection.getRange(tableId));
-      scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
-      scanner.forEach(entry -> files.add(StoredTabletFile.of(entry.getKey().getColumnQualifier())));
+  public static Set<StoredTabletFile> getStoredTabletFiles(ServerContext context,
+      String tableName) {
+    TableId tableId = TableId.of(context.tableOperations().tableIdMap().get(tableName));
+    try (var tabletsMetadata = context.getAmple().readTablets().forTable(tableId).build()) {
+      return tabletsMetadata.stream().flatMap(tm -> tm.getFiles().stream())
+          .collect(Collectors.toSet());
     }
-    return files;
   }
 
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -231,9 +220,9 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
       var zk = context.getZooSession();
-      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
-      UserFateStore<String> readOnlyUFS =
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+      ReadOnlyFateStore<String> readOnlyUFS =
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
+      ReadOnlyFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
       Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
           Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
       var lockPath = context.getServerPaths().createTableLocksPath();

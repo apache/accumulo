@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.CountingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.junit.jupiter.api.Test;
@@ -41,9 +42,8 @@ public class FirstEntryInRowIteratorTest {
     SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
-    IteratorEnvironment env = new DefaultIteratorEnvironment();
 
-    feiri.init(counter, iteratorSetting.getOptions(), env);
+    feiri.init(counter, iteratorSetting.getOptions(), ClientIteratorEnvironment.DEFAULT);
 
     feiri.seek(range, Set.of(), false);
     while (feiri.hasTop()) {

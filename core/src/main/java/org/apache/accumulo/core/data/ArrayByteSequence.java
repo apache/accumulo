@@ -149,7 +149,7 @@ public class ArrayByteSequence extends ByteSequence implements Serializable {
   /**
    * Reset the backing array for this byte sequence object. This is useful for object re-use.
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public void reset(byte[] data, int offset, int length) {
     Objects.checkFromIndexSize(offset, length, data.length);

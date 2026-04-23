@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -46,9 +45,13 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   private static class MRTester extends Configured implements Tool {
     private static class TestMapper extends Mapper<Key,Value,Text,Mutation> {
@@ -119,7 +122,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

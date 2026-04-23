@@ -40,6 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -51,8 +52,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
 public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
@@ -93,7 +92,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
         1, null);
 
     Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
-        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
 
   }
 
@@ -204,7 +203,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
       // A new scan should read all 1100 entries
       try (Scanner scanner2 = client.createScanner(tableName, Authorizations.EMPTY)) {
         int totalEntriesExpected = firstBatchOfEntriesCount + secondBatchOfEntriesCount;
-        assertEquals(totalEntriesExpected, Iterables.size(scanner2));
+        assertEquals(totalEntriesExpected, scanner2.stream().count());
       }
     }
   }

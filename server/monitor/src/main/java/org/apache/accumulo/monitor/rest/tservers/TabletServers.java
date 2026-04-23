@@ -21,34 +21,24 @@ package org.apache.accumulo.monitor.rest.tservers;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.accumulo.monitor.rest.manager.ManagerInformation;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Generates a list of servers, bad servers, and dead servers
  *
  * @since 2.0.0
  */
+@SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
+    justification = "class used for serialization")
 public class TabletServers {
 
   // Variable names become JSON keys
   public List<TabletServerInformation> servers = new ArrayList<>();
-  public List<BadTabletServerInformation> badServers = new ArrayList<>();
-  public List<DeadServerInformation> deadServers = new ArrayList<>();
 
   public TabletServers() {}
 
   public TabletServers(int size) {
     servers = new ArrayList<>(size);
-  }
-
-  /**
-   * Adds bad and dead servers to the list
-   *
-   * @param info Manager information to get bad and dead server information
-   */
-  public void addBadTabletServer(ManagerInformation info) {
-    badServers = info.badTabletServers.badTabletServer;
-    deadServers = info.deadTabletServers.deadTabletServer;
   }
 
   /**

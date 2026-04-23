@@ -44,7 +44,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -59,6 +58,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -70,7 +70,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Cl
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
+import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
@@ -194,7 +194,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     if (LocalityGroupUtil.isLocalityGroupProperty(propChanged)) {
       try {
         LocalityGroupUtil.checkLocalityGroups(getSystemConfiguration());
-      } catch (LocalityGroupConfigurationError | RuntimeException e) {
+      } catch (LocalityGroupConfigurationException | RuntimeException e) {
         LoggerFactory.getLogger(this.getClass()).warn("Changing '" + propChanged
             + "' resulted in bad locality group config. This may be a transient situation since "
             + "the config spreads over multiple properties. Setting properties in a different "
@@ -208,7 +208,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Map<String,String> getSystemConfiguration()
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT));
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SYSTEM));
   }
 
   @Override
@@ -233,7 +233,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     if (managers == null || managers.isEmpty()) {
       return List.of();
     } else {
-      return List.of(managers.iterator().next().toHostPortString());
+      return managers.stream().map(ServerId::toHostPortString).toList();
     }
   }
 
@@ -241,7 +241,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true)
+    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -250,7 +250,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
+    context.getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -259,7 +259,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
     List<String> results = new ArrayList<>();
-    context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true)
+    context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -423,8 +424,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
         try {
           ret.addAll(future.get());
         } catch (InterruptedException | ExecutionException e) {
-          if (e.getCause() instanceof ThriftSecurityException) {
-            ThriftSecurityException tse = (ThriftSecurityException) e.getCause();
+          if (e.getCause() instanceof ThriftSecurityException tse) {
             throw new AccumuloSecurityException(tse.user, tse.code, e);
           }
           throw new AccumuloException(e);
@@ -441,7 +441,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public void ping(String server) throws AccumuloException {
     try (TTransport transport = createTransport(AddressUtil.parseAddress(server), context)) {
-      ClientService.Client client = createClient(ThriftClientTypes.CLIENT, transport);
+      ClientService.Client client =
+          createClient(ThriftClientTypes.CLIENT, transport, context.getInstanceID());
       client.ping(context.rpcCreds());
     } catch (TException e) {
       throw new AccumuloException(e);
@@ -477,12 +478,13 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port) {
+  public ServerId getServer(ServerId.Type type, ResourceGroupId resourceGroup, String host,
+      int port) {
     Objects.requireNonNull(type, "type parameter cannot be null");
     Objects.requireNonNull(host, "host parameter cannot be null");
 
-    final ResourceGroupPredicate rg =
-        resourceGroup == null ? rgt -> true : rgt -> rgt.equals(resourceGroup);
+    final ResourceGroupPredicate rg = resourceGroup == null ? ResourceGroupPredicate.ANY
+        : ResourceGroupPredicate.exact(resourceGroup);
     final AddressSelector hp = AddressSelector.exact(HostAndPort.fromParts(host, port));
 
     switch (type) {
@@ -529,11 +531,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public Set<ServerId> getServers(ServerId.Type type) {
-    return getServers(type, rg -> true, AddressSelector.all());
+    return getServers(type, ResourceGroupPredicate.ANY, AddressSelector.all());
   }
 
   @Override
-  public Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+  public Set<ServerId> getServers(ServerId.Type type,
+      Predicate<ResourceGroupId> resourceGroupPredicate,
       BiPredicate<String,Integer> hostPortPredicate) {
     Objects.requireNonNull(type, "Server type was null");
     Objects.requireNonNull(resourceGroupPredicate, "Resource group predicate was null");
@@ -547,8 +550,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return getServers(type, resourceGroupPredicate, addressPredicate);
   }
 
-  private Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
-      AddressSelector addressSelector) {
+  private Set<ServerId> getServers(ServerId.Type type,
+      Predicate<ResourceGroupId> resourceGroupPredicate, AddressSelector addressSelector) {
 
     final Set<ServerId> results = new HashSet<>();
 
@@ -558,19 +561,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
             .forEach(c -> results.add(createServerId(type, c)));
         break;
       case MANAGER:
-        ServiceLockPath m = context.getServerPaths().getManager(true);
-        if (m != null) {
-          Optional<ServiceLockData> sld = context.getZooCache().getLockData(m);
-          String location = null;
-          if (sld.isPresent()) {
-            location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-            if (addressSelector.getPredicate().test(location)) {
-              HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-                  hp.getPort()));
-            }
-          }
-        }
+        context.getServerPaths().getAssistantManagers(addressSelector, true)
+            .forEach(s -> results.add(createServerId(type, s)));
         break;
       case MONITOR:
         ServiceLockPath mon = context.getServerPaths().getMonitor(true);
@@ -579,10 +571,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.NONE);
-            if (addressSelector.getPredicate().test(location)) {
+            if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-                  hp.getPort()));
+              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
             }
           }
         }
@@ -594,10 +585,9 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.GC);
-            if (addressSelector.getPredicate().test(location)) {
+            if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-                  hp.getPort()));
+              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
             }
           }
         }
@@ -621,7 +611,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   private ServerId createServerId(ServerId.Type type, ServiceLockPath slp) {
     Objects.requireNonNull(type);
     Objects.requireNonNull(slp);
-    String resourceGroup = Objects.requireNonNull(slp.getResourceGroup());
+    ResourceGroupId resourceGroup = Objects.requireNonNull(slp.getResourceGroup());
     HostAndPort hp = HostAndPort.fromString(Objects.requireNonNull(slp.getServer()));
     String host = hp.getHost();
     int port = hp.getPort();

@@ -27,7 +27,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 /**
  * Object used by the TabletServer to determine which on-demand Tablets to unload for a Table
  *
- * @since 3.1.0
+ * @since 4.0.0
  */
 public interface OnDemandTabletUnloader {
 
@@ -35,13 +35,13 @@ public interface OnDemandTabletUnloader {
 
     /**
      * @return table id
-     * @since 3.1.0
+     * @since 4.0.0
      */
     String getTableId();
 
     /**
      * @return service environment
-     * @since 3.1.0
+     * @since 4.0.0
      */
     ServiceEnvironment getServiceEnvironment();
 
@@ -50,7 +50,7 @@ public interface OnDemandTabletUnloader {
      * accessed. Access times are in nanoseconds, from {@link System#nanoTime()}, and should be
      * handled accordingly.
      *
-     * @since 3.1.0
+     * @since 4.0.0
      */
     Map<TabletId,Long> getLastAccessTimes();
 
@@ -60,7 +60,7 @@ public interface OnDemandTabletUnloader {
      * call this method.
      *
      * @param tablets onDemand Tablets to unload
-     * @since 3.1.0
+     * @since 4.0.0
      */
     void setOnDemandTabletsToUnload(Set<TabletId> tablets);
 
@@ -73,7 +73,7 @@ public interface OnDemandTabletUnloader {
    * unloaded by the TabletServer
    *
    * @param params UnloaderParams object
-   * @since 3.1.0
+   * @since 4.0.0
    */
   void evaluate(UnloaderParams params);
 }

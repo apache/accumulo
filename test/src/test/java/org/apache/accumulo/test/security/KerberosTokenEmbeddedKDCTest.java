@@ -69,7 +69,7 @@ public class KerberosTokenEmbeddedKDCTest extends WithTestNames {
   @Test
   public void test() throws Exception {
     String user = testName();
-    File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
+    File userKeytab = kdc.getKeytabDir().resolve(user + ".keytab").toFile();
     if (userKeytab.exists() && !userKeytab.delete()) {
       log.warn("Unable to delete {}", userKeytab);
     }
@@ -93,7 +93,7 @@ public class KerberosTokenEmbeddedKDCTest extends WithTestNames {
   @Test
   public void testDestroy() throws Exception {
     String user = testName();
-    File userKeytab = new File(kdc.getKeytabDir(), user + ".keytab");
+    File userKeytab = kdc.getKeytabDir().resolve(user + ".keytab").toFile();
     if (userKeytab.exists() && !userKeytab.delete()) {
       log.warn("Unable to delete {}", userKeytab);
     }

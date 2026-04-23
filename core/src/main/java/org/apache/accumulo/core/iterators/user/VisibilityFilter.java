@@ -23,10 +23,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.util.Map;
 
-import org.apache.accumulo.access.AccessEvaluator;
-import org.apache.accumulo.access.AccessExpression;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -45,7 +44,7 @@ import org.slf4j.LoggerFactory;
  */
 public class VisibilityFilter extends Filter implements OptionDescriber {
 
-  private AccessEvaluator accessEvaluator;
+  private BytesAccess.BytesEvaluator accessEvaluator;
   protected Map<ByteSequence,Boolean> cache;
   private final ArrayByteSequence testVis = new ArrayByteSequence(new byte[0]);
 
@@ -68,9 +67,18 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       Authorizations authObj = auths == null || auths.isEmpty() ? new Authorizations()
           : new Authorizations(auths.getBytes(UTF_8));
 
-      this.accessEvaluator = AccessEvaluator.of(authObj.toAccessAuthorizations());
+      this.accessEvaluator = BytesAccess.newEvaluator(authObj);
     }
     this.cache = new LRUMap<>(1000);
+  }
+
+  @Override
+  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    VisibilityFilter result = (VisibilityFilter) super.deepCopy(env);
+    result.filterInvalid = this.filterInvalid;
+    result.accessEvaluator = this.accessEvaluator;
+    result.cache = this.cache;
+    return result;
   }
 
   @Override
@@ -87,7 +95,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
       }
       final ArrayByteSequence copy = new ArrayByteSequence(testVis);
       try {
-        AccessExpression.validate(copy.toArray());
+        BytesAccess.validate(copy.toArray());
         // cache a copy of testVis
         cache.put(copy, true);
         return true;
@@ -113,7 +121,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
         cache.put(copy, bb);
         return bb;
       } catch (InvalidAccessExpressionException e) {
-        log.error("Parse Error", e);
+        log.error("Parse Error with visibility of Key: {}", k, e);
         return false;
       }
     }

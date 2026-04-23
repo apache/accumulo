@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -48,26 +48,22 @@ public class ClientContextTest {
 
   // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
   // 'general.rpc.timeout'=>'timeout'}
-  private static File keystore;
+  private static String keystoreUri;
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeAll
-  public static void setUpBeforeAll() {
+  public static void setUpBeforeAll() throws Exception {
     URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
     assertNotNull(keystoreUrl, "Could not find " + keystoreName);
-    keystore = new File(keystoreUrl.getFile());
-  }
-
-  protected String getKeyStoreUrl(File absoluteFilePath) {
-    return "jceks://file" + absoluteFilePath.getAbsolutePath();
+    Path keystorePath = Path.of(keystoreUrl.toURI());
+    keystoreUri = "jceks://file" + keystorePath.toAbsolutePath();
   }
 
   @Test
   public void loadSensitivePropertyFromCredentialProvider() {
-    String absPath = getKeyStoreUrl(keystore);
     Properties props = new Properties();
-    props.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    props.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), keystoreUri);
     AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(props);
     assertEquals("mysecret", accClientConf.get(Property.INSTANCE_SECRET));
   }
@@ -82,9 +78,9 @@ public class ClientContextTest {
 
   @Test
   public void sensitivePropertiesIncludedInProperties() {
-    String absPath = getKeyStoreUrl(keystore);
     Properties clientProps = new Properties();
-    clientProps.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), absPath);
+    clientProps.setProperty(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(),
+        keystoreUri);
 
     AccumuloConfiguration accClientConf = ClientConfConverter.toAccumuloConf(clientProps);
     Map<String,String> props = new HashMap<>();

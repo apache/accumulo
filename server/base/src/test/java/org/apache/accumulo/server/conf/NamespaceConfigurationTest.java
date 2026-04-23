@@ -78,6 +78,8 @@ public class NamespaceConfigurationTest {
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
     propStore.registerAsListener(eq(nsPropStoreKey), anyObject());
     expectLastCall().anyTimes();
+    propStore.invalidate(nsPropStoreKey);
+    expectLastCall().anyTimes();
 
     replay(propStore, context);
 

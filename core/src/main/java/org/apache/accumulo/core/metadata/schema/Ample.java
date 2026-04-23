@@ -25,6 +25,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -36,10 +37,10 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -81,8 +82,8 @@ public interface Ample {
    */
   public enum DataLevel {
     ROOT(null, null),
-    METADATA(AccumuloTable.ROOT.tableName(), AccumuloTable.ROOT.tableId()),
-    USER(AccumuloTable.METADATA.tableName(), AccumuloTable.METADATA.tableId());
+    METADATA(SystemTables.ROOT.tableName(), SystemTables.ROOT.tableId()),
+    USER(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId());
 
     private final String table;
     private final TableId id;
@@ -113,9 +114,9 @@ public interface Ample {
     }
 
     public static DataLevel of(TableId tableId) {
-      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
+      if (tableId.equals(SystemTables.ROOT.tableId())) {
         return DataLevel.ROOT;
-      } else if (tableId.equals(AccumuloTable.METADATA.tableId())) {
+      } else if (tableId.equals(SystemTables.METADATA.tableId())) {
         return DataLevel.METADATA;
       } else {
         return DataLevel.USER;
@@ -135,10 +136,6 @@ public interface Ample {
      * Candidates that have no matching file references and can be removed from the system.
      */
     VALID,
-    /**
-     * Candidates that are malformed.
-     */
-    INVALID
   }
 
   /**
@@ -401,6 +398,10 @@ public interface Ample {
      * false.
      */
     T automaticallyPutServerLock(boolean b);
+
+    T putMigration(TServerInstance tserver);
+
+    T deleteMigration();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -500,6 +501,8 @@ public interface Ample {
      */
     ConditionalTabletMutator requireLocation(Location location);
 
+    ConditionalTabletMutator requireCurrentLocationNotEqualTo(TServerInstance tsi);
+
     /**
      * Requires the tablet to have the specified tablet availability before any changes are made.
      */
@@ -539,6 +542,11 @@ public interface Ample {
      * updated.
      */
     ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check);
+
+    /**
+     * Requires that a tablet be migrating to the given tserver
+     */
+    ConditionalTabletMutator requireMigration(TServerInstance tserver);
 
     /**
      * <p>
@@ -660,6 +668,26 @@ public interface Ample {
   }
 
   default ScanServerRefStore scanServerRefs() {
+    throw new UnsupportedOperationException();
+  }
+
+  record OrphanedCompaction(ExternalCompactionId id, TableId table, String dir) {
+  }
+
+  /**
+   * Tracks compactions that were removed from the metadata table but may still be running on
+   * compactors. The tmp files associated with these compactions can eventually be removed when the
+   * compaction is no longer running.
+   */
+  interface OrphanedCompactionStore {
+    Stream<OrphanedCompaction> list();
+
+    void add(Collection<OrphanedCompaction> orphanedCompactions);
+
+    void delete(Collection<OrphanedCompaction> orphanedCompactions);
+  }
+
+  default OrphanedCompactionStore orphanedCompactions() {
     throw new UnsupportedOperationException();
   }
 }

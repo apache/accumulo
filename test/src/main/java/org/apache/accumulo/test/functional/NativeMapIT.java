@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,10 +39,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.Pair;
@@ -73,9 +76,9 @@ public class NativeMapIT {
   }
 
   public static File nativeMapLocation() {
-    File projectDir = new File(System.getProperty("user.dir")).getParentFile();
-    return new File(projectDir, "server/native/target/accumulo-native-" + Constants.VERSION
-        + "/accumulo-native-" + Constants.VERSION);
+    File projectDir = Path.of(System.getProperty("user.dir")).toFile().getParentFile();
+    return projectDir.toPath().resolve("server/native/target/accumulo-native-" + Constants.VERSION
+        + "/accumulo-native-" + Constants.VERSION).toFile();
   }
 
   @BeforeAll
@@ -568,6 +571,7 @@ public class NativeMapIT {
     nm.put(newKey(3), newValue(3));
 
     SortedKeyValueIterator<Key,Value> iter = nm.skvIterator();
+    iter.seek(new Range(), Set.of(), false);
 
     // modify map after iter created
     nm.put(newKey(2), newValue(2));
@@ -593,4 +597,14 @@ public class NativeMapIT {
     nm.delete();
   }
 
+  @Test
+  public void testUnseeked() {
+    NativeMap nm = new NativeMap();
+
+    nm.put(newKey(0), newValue(0));
+
+    SortedKeyValueIterator<Key,Value> iter = nm.skvIterator();
+    // hasTop should throw an exception if seek was never called.
+    assertThrows(IllegalStateException.class, iter::hasTop);
+  }
 }

@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BULK_IMPORT_DIR_MOVE_POOL;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -28,17 +26,13 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.manager.thrift.BulkImportState;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.logging.BulkLogger;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.bulkCommand.ListBulk.BulkState;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Bulk import makes requests of tablet servers, and those requests can take a long time. Our
@@ -55,32 +49,25 @@ import org.slf4j.LoggerFactory;
  * about the request. To prevent problems like this, an Arbitrator is used. Before starting any new
  * request, the tablet server checks the Arbitrator to see if the request is still valid.
  */
-class BulkImportMove extends ManagerRepo {
+class BulkImportMove extends AbstractBulkFateOperation {
 
   private static final long serialVersionUID = 1L;
 
-  private static final Logger log = LoggerFactory.getLogger(BulkImportMove.class);
-
-  private final BulkInfo bulkInfo;
-
   public BulkImportMove(BulkInfo bulkInfo) {
-    this.bulkInfo = bulkInfo;
+    super(bulkInfo);
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
-    log.debug("{} sourceDir {}", fateId, sourceDir);
-
-    VolumeManager fs = manager.getVolumeManager();
+    VolumeManager fs = env.getVolumeManager();
 
     try {
-      manager.updateBulkImportStatus(sourceDir.toString(), BulkImportState.MOVING);
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
-      moveFiles(fateId, sourceDir, bulkDir, manager, fs, oldToNewNameMap);
+      moveFiles(fateId, sourceDir, bulkDir, env, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
@@ -93,12 +80,10 @@ class BulkImportMove extends ManagerRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(FateId fateId, Path sourceDir, Path bulkDir, Manager manager,
+  private void moveFiles(FateId fateId, Path sourceDir, Path bulkDir, FateEnv env,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
-    manager.getContext().getAmple().addBulkLoadInProgressFlag(
+    env.getContext().getAmple().addBulkLoadInProgressFlag(
         "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), fateId);
-    AccumuloConfiguration aConf = manager.getConfiguration();
-    int workerCount = aConf.getCount(Property.MANAGER_RENAME_THREADS);
     Map<Path,Path> oldToNewMap = new HashMap<>();
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
@@ -107,11 +92,17 @@ class BulkImportMove extends ManagerRepo {
       oldToNewMap.put(originalPath, newPath);
     }
     try {
-      fs.bulkRename(oldToNewMap, workerCount, BULK_IMPORT_DIR_MOVE_POOL.poolName, fateId);
+      fs.bulkRename(oldToNewMap, env.getRenamePool(), fateId);
+      oldToNewMap.forEach((oldPath, newPath) -> BulkLogger.renamed(fateId, oldPath, newPath));
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,
           ioe.getCause().getMessage());
     }
+  }
+
+  @Override
+  public BulkState getState() {
+    return BulkState.MOVING;
   }
 }

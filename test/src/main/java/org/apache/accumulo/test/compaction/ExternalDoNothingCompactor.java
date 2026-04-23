@@ -27,7 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.cli.ServerOpts;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,7 +48,7 @@ public class ExternalDoNothingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalDoNothingCompactor.class);
 
-  ExternalDoNothingCompactor(ConfigOpts opts, String[] args) {
+  ExternalDoNothingCompactor(ServerOpts opts, String[] args) {
     super(opts, args);
   }
 
@@ -84,10 +84,6 @@ public class ExternalDoNothingCompactor extends Compactor {
       public void run() {
         try {
           LOG.info("Starting up compaction runnable for job: {}", job);
-          TCompactionStatusUpdate update = new TCompactionStatusUpdate();
-          update.setState(TCompactionState.STARTED);
-          update.setMessage("Compaction started");
-          updateCompactionState(job, update);
 
           // Create tmp output file
           final TabletMetadata tm = getContext().getAmple()
@@ -120,6 +116,9 @@ public class ExternalDoNothingCompactor extends Compactor {
 
       @Override
       public void initialize() throws RetriesExceededException {
+        TCompactionStatusUpdate update = new TCompactionStatusUpdate(TCompactionState.STARTED,
+            "Compaction started", -1, -1, -1, getCompactionAge().toNanos());
+        updateCompactionState(job, update);
         // This isn't used, just need to create and return something
         ref.set(new FileCompactor(getContext(), KeyExtent.fromThrift(job.getExtent()), null, null,
             false, null, null, null, null, null));
@@ -130,7 +129,7 @@ public class ExternalDoNothingCompactor extends Compactor {
   }
 
   public static void main(String[] args) throws Exception {
-    try (var compactor = new ExternalDoNothingCompactor(new ConfigOpts(), args)) {
+    try (var compactor = new ExternalDoNothingCompactor(new ServerOpts(), args)) {
       compactor.runServer();
     }
   }

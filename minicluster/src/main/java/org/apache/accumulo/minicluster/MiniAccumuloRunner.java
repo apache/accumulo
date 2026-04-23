@@ -19,11 +19,11 @@
 package org.apache.accumulo.minicluster;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.ServerSocket;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -119,7 +119,7 @@ public class MiniAccumuloRunner {
       Properties prop = new Properties();
       InputStream is;
       try {
-        is = new FileInputStream(fileName);
+        is = Files.newInputStream(Path.of(fileName));
         try {
           prop.load(is);
         } finally {
@@ -167,7 +167,7 @@ public class MiniAccumuloRunner {
     final File miniDir;
 
     if (opts.prop.containsKey(DIRECTORY_PROP)) {
-      miniDir = new File(opts.prop.getProperty(DIRECTORY_PROP));
+      miniDir = Path.of(opts.prop.getProperty(DIRECTORY_PROP)).toFile();
     } else {
       miniDir = Files.createTempDirectory(System.currentTimeMillis() + "").toFile();
     }

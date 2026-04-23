@@ -18,7 +18,6 @@
     under the License.
 
 -->
-
 [![Apache Accumulo][logo]][accumulo]
 --
 [![Build Status][ti]][tl] [![Maven Central][mi]][ml] [![Javadoc][ji]][jl] [![Apache License][li]][ll]
@@ -103,8 +102,8 @@ more details on bouncycastle's cryptography features.
 [javadocs]: https://accumulo.apache.org/latest/apidocs
 [li]: https://img.shields.io/badge/license-ASL-blue.svg
 [ll]: https://www.apache.org/licenses/LICENSE-2.0
-[mi]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/badge.svg
-[ml]: https://maven-badges.herokuapp.com/maven-central/org.apache.accumulo/accumulo-core/
+[mi]: https://img.shields.io/maven-central/v/org.apache.accumulo/accumulo
+[ml]: https://central.sonatype.com/search?q=g%3Aorg.apache.accumulo
 [ji]: https://www.javadoc.io/badge/org.apache.accumulo/accumulo-core.svg
 [jl]: https://www.javadoc.io/doc/org.apache.accumulo/accumulo-core
 [ti]: https://github.com/apache/accumulo/workflows/QA/badge.svg

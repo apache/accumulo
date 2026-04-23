@@ -21,8 +21,9 @@ package org.apache.accumulo.test.util;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.PublicKey;
@@ -42,7 +43,7 @@ public class CertUtilsTest extends WithTestNames {
   private static final String RDN_STRING = "o=Apache Accumulo,cn=CertUtilsTest";
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   private CertUtils getUtils() {
     return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 4096, "SHA512WITHRSA");
@@ -52,13 +53,15 @@ public class CertUtilsTest extends WithTestNames {
   @Test
   public void createSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File tempSubDir = new File(tempDir, testName());
-    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
-    File keyStoreFile = new File(tempSubDir, "selfsigned.jks");
-    certUtils.createSelfSignedCert(keyStoreFile, "test", PASSWORD);
+    Path tempSubDir = tempDir.resolve(testName());
+    if (!Files.isDirectory(tempSubDir)) {
+      Files.createDirectories(tempSubDir);
+    }
+    Path keyStoreFile = tempSubDir.resolve("selfsigned.jks");
+    certUtils.createSelfSignedCert(keyStoreFile.toFile(), "test", PASSWORD);
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(keyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(keyStoreFile)) {
       keyStore.load(fis, PASSWORD_CHARS);
     }
     Certificate cert = CertUtils.findCert(keyStore);
@@ -69,16 +72,18 @@ public class CertUtilsTest extends WithTestNames {
   @Test
   public void createPublicSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File tempSubDir = new File(tempDir, testName());
-    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
-    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
-    certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File publicKeyStoreFile = new File(tempSubDir, "public.jks");
-    certUtils.createPublicCert(publicKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(),
+    Path tempSubDir = tempDir.resolve(testName());
+    if (!Files.isDirectory(tempSubDir)) {
+      Files.createDirectories(tempSubDir);
+    }
+    Path rootKeyStoreFile = tempSubDir.resolve("root.jks");
+    certUtils.createSelfSignedCert(rootKeyStoreFile.toFile(), "test", PASSWORD);
+    Path publicKeyStoreFile = tempSubDir.resolve("public.jks");
+    certUtils.createPublicCert(publicKeyStoreFile.toFile(), "test", rootKeyStoreFile.toString(),
         PASSWORD, "");
 
     KeyStore keyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(publicKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(publicKeyStoreFile)) {
       keyStore.load(fis, new char[0]);
     }
     var e = assertThrows(KeyStoreException.class,
@@ -93,22 +98,24 @@ public class CertUtilsTest extends WithTestNames {
   @Test
   public void createSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File tempSubDir = new File(tempDir, testName());
-    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
-    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
-    certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File signedKeyStoreFile = new File(tempSubDir, "signed.jks");
-    certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD,
-        rootKeyStoreFile.getAbsolutePath(), PASSWORD);
+    Path tempSubDir = tempDir.resolve(testName());
+    if (!Files.isDirectory(tempSubDir)) {
+      Files.createDirectories(tempSubDir);
+    }
+    Path rootKeyStoreFile = tempSubDir.resolve("root.jks");
+    certUtils.createSelfSignedCert(rootKeyStoreFile.toFile(), "test", PASSWORD);
+    Path signedKeyStoreFile = tempSubDir.resolve("signed.jks");
+    certUtils.createSignedCert(signedKeyStoreFile.toFile(), "test", PASSWORD,
+        rootKeyStoreFile.toString(), PASSWORD);
 
     KeyStore rootKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(rootKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(rootKeyStoreFile)) {
       rootKeyStore.load(fis, PASSWORD_CHARS);
     }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
 
     KeyStore signedKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(signedKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(signedKeyStoreFile)) {
       signedKeyStore.load(fis, PASSWORD_CHARS);
     }
 
@@ -125,26 +132,28 @@ public class CertUtilsTest extends WithTestNames {
     // this approximates the real life scenario. the client will only have the public key of each
     // cert (the root made by us as below, but the signed cert extracted by the SSL transport)
     CertUtils certUtils = getUtils();
-    File tempSubDir = new File(tempDir, testName());
-    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
-    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
-    certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File publicRootKeyStoreFile = new File(tempSubDir, "publicroot.jks");
-    certUtils.createPublicCert(publicRootKeyStoreFile, "test", rootKeyStoreFile.getAbsolutePath(),
+    Path tempSubDir = tempDir.resolve(testName());
+    if (!Files.isDirectory(tempSubDir)) {
+      Files.createDirectories(tempSubDir);
+    }
+    Path rootKeyStoreFile = tempSubDir.resolve("root.jks");
+    certUtils.createSelfSignedCert(rootKeyStoreFile.toFile(), "test", PASSWORD);
+    Path publicRootKeyStoreFile = tempSubDir.resolve("publicroot.jks");
+    certUtils.createPublicCert(publicRootKeyStoreFile.toFile(), "test", rootKeyStoreFile.toString(),
         PASSWORD, "");
-    File signedKeyStoreFile = new File(tempSubDir, "signed.jks");
-    certUtils.createSignedCert(signedKeyStoreFile, "test", PASSWORD,
-        rootKeyStoreFile.getAbsolutePath(), PASSWORD);
-    File publicSignedKeyStoreFile = new File(tempSubDir, "publicsigned.jks");
-    certUtils.createPublicCert(publicSignedKeyStoreFile, "test",
-        signedKeyStoreFile.getAbsolutePath(), PASSWORD, "");
+    Path signedKeyStoreFile = tempSubDir.resolve("signed.jks");
+    certUtils.createSignedCert(signedKeyStoreFile.toFile(), "test", PASSWORD,
+        rootKeyStoreFile.toString(), PASSWORD);
+    Path publicSignedKeyStoreFile = tempSubDir.resolve("publicsigned.jks");
+    certUtils.createPublicCert(publicSignedKeyStoreFile.toFile(), "test",
+        signedKeyStoreFile.toString(), PASSWORD, "");
 
     KeyStore rootKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(publicRootKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(publicRootKeyStoreFile)) {
       rootKeyStore.load(fis, new char[0]);
     }
     KeyStore signedKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(publicSignedKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(publicSignedKeyStoreFile)) {
       signedKeyStore.load(fis, new char[0]);
     }
     Certificate rootCert = CertUtils.findCert(rootKeyStore);
@@ -163,25 +172,27 @@ public class CertUtilsTest extends WithTestNames {
     // no reason the keypair we generate for the tservers need to be able to sign anything,
     // but this is a way to make sure the private and public keys created actually correspond.
     CertUtils certUtils = getUtils();
-    File tempSubDir = new File(tempDir, testName());
-    assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
-    File rootKeyStoreFile = new File(tempSubDir, "root.jks");
-    certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
-    File signedCaKeyStoreFile = new File(tempSubDir, "signedca.jks");
-    certUtils.createSignedCert(signedCaKeyStoreFile, "test", PASSWORD,
-        rootKeyStoreFile.getAbsolutePath(), PASSWORD);
-    File signedLeafKeyStoreFile = new File(tempSubDir, "signedleaf.jks");
-    certUtils.createSignedCert(signedLeafKeyStoreFile, "test", PASSWORD,
-        signedCaKeyStoreFile.getAbsolutePath(), PASSWORD);
+    Path tempSubDir = tempDir.resolve(testName());
+    if (!Files.isDirectory(tempSubDir)) {
+      Files.createDirectories(tempSubDir);
+    }
+    Path rootKeyStoreFile = tempSubDir.resolve("root.jks");
+    certUtils.createSelfSignedCert(rootKeyStoreFile.toFile(), "test", PASSWORD);
+    Path signedCaKeyStoreFile = tempSubDir.resolve("signedca.jks");
+    certUtils.createSignedCert(signedCaKeyStoreFile.toFile(), "test", PASSWORD,
+        rootKeyStoreFile.toString(), PASSWORD);
+    Path signedLeafKeyStoreFile = tempSubDir.resolve("signedleaf.jks");
+    certUtils.createSignedCert(signedLeafKeyStoreFile.toFile(), "test", PASSWORD,
+        signedCaKeyStoreFile.toString(), PASSWORD);
 
     KeyStore caKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(signedCaKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(signedCaKeyStoreFile)) {
       caKeyStore.load(fis, PASSWORD_CHARS);
     }
     Certificate caCert = CertUtils.findCert(caKeyStore);
 
     KeyStore leafKeyStore = KeyStore.getInstance(KEYSTORE_TYPE);
-    try (FileInputStream fis = new FileInputStream(signedLeafKeyStoreFile)) {
+    try (InputStream fis = Files.newInputStream(signedLeafKeyStoreFile)) {
       leafKeyStore.load(fis, PASSWORD_CHARS);
     }
     Certificate leafCert = CertUtils.findCert(leafKeyStore);

@@ -29,8 +29,8 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken.Properties;
 import org.junit.jupiter.api.BeforeAll;
@@ -50,10 +50,10 @@ public class CredentialProviderTokenTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "keystoreUrl location isn't provided by user input")
   @BeforeAll
-  public static void setup() {
+  public static void setup() throws Exception {
     URL keystoreUrl = CredentialProviderTokenTest.class.getResource("/passwords.jceks");
     assertNotNull(keystoreUrl);
-    keystorePath = "jceks://file/" + new File(keystoreUrl.getFile()).getAbsolutePath();
+    keystorePath = "jceks://file/" + Path.of(keystoreUrl.toURI()).toAbsolutePath();
   }
 
   @Test

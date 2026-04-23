@@ -16,66 +16,136 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, document, sessionStorage, getManager, bigNumberForQuantity,
-    timeDuration, dateFormat, getStatus, ajaxReloadTable
-*/
 "use strict";
 
-var managerStatusTable, recoveryListTable;
+const runningBanner = '#managerRunningBanner'
+const htmlBanner = '#managerStatusBanner'
+const htmlBannerMessage = '#manager-banner-message'
+const managerStateBanner = '#managerStateBanner'
+const managerStateBannerMessage = '#manager-state-message'
+const htmlTable = '#managers'
+const fateHtmlTable = '#managers_fate'
+const compactionHtmlTable = '#managers_compactions'
 
-function refreshManagerBanners() {
-  getStatus().then(function () {
-    const managerStatus = JSON.parse(sessionStorage.status).managerStatus;
-
-    // If manager status is error
-    if (managerStatus === 'ERROR') {
-      // show the manager error banner and hide table
-      $('#managerRunningBanner').show();
-      $('#managerStatus_wrapper').hide();
-    } else {
-      // otherwise, hide the error banner and show manager table
-      $('#managerRunningBanner').hide();
-      $('#managerStatus_wrapper').show();
-    }
-  });
-
-  getManager().then(function () {
-    const managerData = JSON.parse(sessionStorage.manager);
-    const managerState = managerData.managerState;
-    const managerGoalState = managerData.managerGoalState;
-
-    const isStateGoalSame = managerState === managerGoalState;
-
-    // if the manager state is normal and the goal state is the same as the current state,
-    // or of the manager is not running, hide the state banner and return early
-    if ((managerState === 'NORMAL' && isStateGoalSame) || managerState === null) {
-      $('#managerStateBanner').hide();
-      return;
-    }
-
-    // update the manager state banner message and show it
-    let bannerMessage = 'Manager state: ' + managerState;
-    if (!isStateGoalSame) {
-      // only show the goal state if it differs from the manager's current state
-      bannerMessage += '. Manager goal state: ' + managerGoalState;
-    }
-    $('#manager-banner-message').text(bannerMessage);
-    $('#managerStateBanner').show();
-  });
-
+function updateManagerGoalStateBanner() {
+  const goalState = getManagerGoalStateFromSession();
+  if (goalState === 'SAFE_MODE' || goalState === 'CLEAN_STOP') {
+    $(managerStateBannerMessage)
+      .removeClass('alert-danger alert-warning')
+      .addClass(goalState === 'CLEAN_STOP' ? 'alert-danger' : 'alert-warning')
+      .text('Manager goal state: ' + goalState);
+    $(managerStateBanner).show();
+  } else {
+    $(managerStateBanner).hide();
+  }
 }
 
+function refreshManagerBanners() {
+  var managerRows = getStoredRows(MANAGER_SERVER_PROCESS_VIEW);
+  if (!Array.isArray(managerRows) || managerRows.length === 0) {
+    // show the manager error banner and hide manager table
+    $(runningBanner).show();
+    $(htmlTable).hide();
+    $(fateHtmlTable).hide();
+    $(compactionHtmlTable).hide();
+  } else {
+    // otherwise, hide the error banner and show manager table
+    $(runningBanner).hide();
+    $(fateHtmlTable).show();
+    $(htmlTable).show();
+    $(compactionHtmlTable).show();
+  }
+  updateManagerGoalStateBanner();
+}
+
+function refresh() {
+  $.when(getManagersView(), getManagersFateView(), getManagersCompactionView()).then(function () {
+    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
+    refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
+    refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
+    refreshManagerBanners();
+    refreshBanner(htmlBanner, htmlBannerMessage, getStoredStatus(MANAGER_SERVER_PROCESS_VIEW));
+  }).fail(function () {
+    sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
+      data: [],
+      columns: [],
+      status: null
+    });
+    sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
+      data: [],
+      columns: [],
+      status: null
+    });
+    sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
+      data: [],
+      columns: [],
+      status: null
+    });
+    refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
+    refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
+    refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
+    $(runningBanner).show();
+    $(htmlTable).hide();
+    $(fateHtmlTable).hide();
+    $(compactionHtmlTable).hide();
+    $(managerStateBanner).hide();
+    showBannerError(htmlBanner, htmlBannerMessage);
+  });
+}
+
+$(function () {
+  sessionStorage[MANAGER_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+  sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+  sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
+    data: [],
+    columns: [],
+    status: null
+  });
+
+  refresh();
+});
+
+
+
+
+
+// TODO: 6106 - left code commented for the recovery list table to be re-added
+
+/*
+"use strict";
+
+var managerStatusTable, recoveryListTable, managerStatus;
+
+
+
+*/
 /**
  * Populates tables with the new information
  */
+/*
 function refreshManagerTables() {
-  ajaxReloadTable(managerStatusTable);
-  refreshManagerBanners();
-  ajaxReloadTable(recoveryListTable);
+  getStatus().then(function () {
+    managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    refreshManagerBanners();
+    if (managerStatusTable === undefined && managerStatus !== 'ERROR') {
+      // Can happen if the manager is dead on first loading the page, but later comes back online
+      // while using auto-refresh
+      createManagerTable();
+    } else if (managerStatus !== 'ERROR') {
+      ajaxReloadTable(managerStatusTable);
+    }
+    ajaxReloadTable(recoveryListTable);
+  });
 }
-
+*/
 /*
  * The tables.ftl refresh function will do this functionality.
  * If tables are removed from Manager, uncomment this function.
@@ -90,148 +160,66 @@ function refreshManagerTables() {
 /**
  * Creates initial tables
  */
+/*
 $(function () {
 
-  // Generates the manager table
-  managerStatusTable = $('#managerStatus').DataTable({
-    "ajax": {
-      "url": '/rest/manager',
-      "dataSrc": function (json) {
-        // the data needs to be in an array to work with DataTables
-        var arr = [json];
-        return arr;
-      }
-    },
-    "stateSave": true,
-    "searching": false,
-    "paging": false,
-    "info": false,
-    "columnDefs": [{
-        "targets": "big-num",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = bigNumberForQuantity(data);
+  getStatus().then(function () {
+    managerStatus = JSON.parse(sessionStorage.status).managerStatus;
+    if (managerStatus !== 'ERROR') {
+      createManagerTable();
+    }
+
+    // Generates the recovery table
+    recoveryListTable = $('#recoveryList').DataTable({
+      "ajax": {
+        "url": contextPath + 'rest/tservers/recovery',
+        "dataSrc": function (data) {
+          data = data.recoveryList;
+          if (data.length === 0) {
+            console.info('Recovery list is empty, hiding recovery table');
+            $('#recoveryList_wrapper').hide();
+          } else {
+            $('#recoveryList_wrapper').show();
           }
           return data;
         }
       },
-      {
-        "targets": "big-num-rounded",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = bigNumberForQuantity(Math.round(data));
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(parseInt(data, 10));
-          }
-          return data;
-        }
-      }
-    ],
-    "columns": [{
-        "data": "manager"
-      },
-      {
-        "data": "onlineTabletServers"
-      },
-      {
-        "data": "totalTabletServers"
-      },
-      {
-        "data": "lastGC",
-        "type": "html",
-        "render": function (data, type) {
-          if (type === 'display') {
-            if (data !== 'Waiting') {
-              data = dateFormat(parseInt(data, 10));
+      "columnDefs": [{
+          "targets": "duration",
+          "render": function (data, type) {
+            if (type === 'display') {
+              data = timeDuration(parseInt(data, 10));
             }
-            data = '<a href="/gc">' + data + '</a>';
+            return data;
           }
-          return data;
+        },
+        {
+          "targets": "percent",
+          "render": function (data, type) {
+            if (type === 'display') {
+              data = (data * 100).toFixed(2) + '%';
+            }
+            return data;
+          }
         }
-      },
-      {
-        "data": "tablets"
-      },
-      {
-        "data": "unassignedTablets"
-      },
-      {
-        "data": "numentries"
-      },
-      {
-        "data": "ingestrate"
-      },
-      {
-        "data": "entriesRead"
-      },
-      {
-        "data": "queryrate"
-      },
-      {
-        "data": "holdTime"
-      },
-      {
-        "data": "osload"
-      },
-    ]
-  });
+      ],
+      "stateSave": true,
+      "columns": [{
+          "data": "server"
+        },
+        {
+          "data": "log"
+        },
+        {
+          "data": "time"
+        },
+        {
+          "data": "progress"
+        }
+      ]
+    });
 
-  // Generates the recovery table
-  recoveryListTable = $('#recoveryList').DataTable({
-    "ajax": {
-      "url": '/rest/tservers/recovery',
-      "dataSrc": function (data) {
-        data = data.recoveryList;
-        if (data.length === 0) {
-          console.info('Recovery list is empty, hiding recovery table');
-          $('#recoveryList_wrapper').hide();
-        } else {
-          $('#recoveryList_wrapper').show();
-        }
-        return data;
-      }
-    },
-    "columnDefs": [{
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(parseInt(data, 10));
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "percent",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = (data * 100).toFixed(2) + '%';
-          }
-          return data;
-        }
-      }
-    ],
-    "stateSave": true,
-    "columns": [{
-        "data": "server"
-      },
-      {
-        "data": "log"
-      },
-      {
-        "data": "time"
-      },
-      {
-        "data": "progress"
-      }
-    ]
+    refreshManagerTables();
   });
-
-  refreshManagerTables();
 });
+*/

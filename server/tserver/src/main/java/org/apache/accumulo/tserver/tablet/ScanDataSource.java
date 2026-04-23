@@ -20,13 +20,16 @@ package org.apache.accumulo.tserver.tablet;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -35,19 +38,23 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
+import org.apache.accumulo.core.iteratorsImpl.system.HeapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.iteratorsImpl.system.MultiShuffledIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator.DataSource;
 import org.apache.accumulo.core.iteratorsImpl.system.StatsIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
+import org.apache.accumulo.core.trace.TraceAttributes;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -55,6 +62,10 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+
+import io.opentelemetry.api.trace.Span;
 
 class ScanDataSource implements DataSource {
 
@@ -66,7 +77,7 @@ class ScanDataSource implements DataSource {
   private SortedKeyValueIterator<Key,Value> iter;
   private long expectedDeletionCount;
   private List<MemoryIterator> memIters = null;
-  private long fileReservationId;
+  private long fileReservationId = -1;
   private final AtomicBoolean interruptFlag;
   private StatsIterator statsIterator;
 
@@ -74,6 +85,9 @@ class ScanDataSource implements DataSource {
   private final boolean loadIters;
   private final byte[] defaultLabels;
   private final long scanDataSourceId;
+
+  private final AtomicLong scanSeekCounter;
+  private final AtomicLong scanCounter;
 
   ScanDataSource(TabletBase tablet, ScanParameters scanParams, boolean loadIters,
       AtomicBoolean interruptFlag) {
@@ -84,6 +98,8 @@ class ScanDataSource implements DataSource {
     this.loadIters = loadIters;
     this.defaultLabels = tablet.getDefaultSecurityLabels();
     this.scanDataSourceId = nextSourceId.incrementAndGet();
+    this.scanSeekCounter = new AtomicLong();
+    this.scanCounter = new AtomicLong();
     log.trace("new scan data source, scanId {}, tablet: {}, params: {}, loadIterators: {}",
         this.scanDataSourceId, this.tablet, this.scanParams, this.loadIters);
   }
@@ -110,6 +126,9 @@ class ScanDataSource implements DataSource {
         } finally {
           expectedDeletionCount = tablet.getDataSourceDeletions();
           iter = null;
+          if (statsIterator != null) {
+            statsIterator.report(true);
+          }
         }
       }
     }
@@ -124,12 +143,17 @@ class ScanDataSource implements DataSource {
   @Override
   public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
     if (iter == null) {
-      iter = createIterator();
+      try {
+        iter = createIterator();
+      } catch (ReflectiveOperationException e) {
+        throw new IOException("Error creating iterator", e);
+      }
     }
     return iter;
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
+  private SortedKeyValueIterator<Key,Value> createIterator()
+      throws IOException, ReflectiveOperationException {
 
     Map<StoredTabletFile,DataFileValue> files;
 
@@ -168,10 +192,11 @@ class ScanDataSource implements DataSource {
       memIters = tablet.getMemIterators(samplerConfig);
       Pair<Long,Map<StoredTabletFile,DataFileValue>> reservation = tablet.reserveFilesForScan();
       fileReservationId = reservation.getFirst();
+      Preconditions.checkState(fileReservationId >= 0);
       files = reservation.getSecond();
     }
 
-    Collection<InterruptibleIterator> datafiles =
+    List<InterruptibleIterator> datafiles =
         fileManager.openFiles(files, scanParams.isIsolated(), samplerConfig);
 
     List.of(datafiles, memIters).forEach(c -> c.forEach(ii -> ii.setInterruptFlag(interruptFlag)));
@@ -182,14 +207,26 @@ class ScanDataSource implements DataSource {
     iters.addAll(datafiles);
     iters.addAll(memIters);
 
-    MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
+    HeapIterator multiIter;
+    if (tablet.getContext().getTableConfiguration(tablet.getExtent().tableId())
+        .getBoolean(Property.TABLE_SHUFFLE_SOURCES)) {
+      multiIter = new MultiShuffledIterator(iters, tablet.getExtent().toDataRange());
+    } else {
+      multiIter = new MultiIterator(iters, tablet.getExtent().toDataRange());
+    }
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
-        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
-        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
+    var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
+        .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)
+        .withTableId(tablet.getExtent().tableId())
+        .withAuthorizations(scanParams.getAuthorizations());
+    if (samplerConfig != null) {
+      builder.withSamplingEnabled();
+      builder.withSamplerConfiguration(samplerConfig.toSamplerConfiguration());
+    }
+    SystemIteratorEnvironment iterEnv = (SystemIteratorEnvironment) builder.build();
 
-    statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
-        tablet.getScanMetrics().getScannedCounter());
+    statsIterator = new StatsIterator(multiIter, scanSeekCounter, TabletServer.seekCount,
+        scanCounter, tablet.getScannedCounter(), tablet.getScanMetrics().getScannedCounter());
 
     SortedKeyValueIterator<Key,Value> visFilter =
         SystemIteratorUtil.setupSystemScanIterators(statsIterator, scanParams.getColumnSet(),
@@ -209,6 +246,31 @@ class ScanDataSource implements DataSource {
       } else {
         // Scan time iterator options were set, so need to merge those with pre-parsed table
         // iterator options.
+
+        // First ensure the set iterators do not conflict with the existing table iterators.
+        List<IteratorSetting> picIteratorSettings = null;
+        for (var scanParamIterInfo : scanParams.getSsiList()) {
+          // Quick check for a potential iterator conflict (does not consider iterator scope).
+          // This avoids the more expensive check method call most of the time.
+          if (pic.getUniqueNames().contains(scanParamIterInfo.getIterName())
+              || pic.getUniquePriorities().contains(scanParamIterInfo.getPriority())) {
+            if (picIteratorSettings == null) {
+              picIteratorSettings = new ArrayList<>(pic.getIterInfo().size());
+              for (var picIterInfo : pic.getIterInfo()) {
+                picIteratorSettings.add(
+                    getIteratorSetting(picIterInfo, pic.getOpts().get(picIterInfo.getIterName())));
+              }
+            }
+            try {
+              IteratorConfigUtil.checkIteratorConflicts(tablet.getExtent().toString(),
+                  getIteratorSetting(scanParamIterInfo,
+                      scanParams.getSsio().get(scanParamIterInfo.getIterName())),
+                  EnumSet.of(IteratorScope.scan), Map.of(IteratorScope.scan, picIteratorSettings));
+            } catch (AccumuloException e) {
+              throw new IllegalArgumentException(e);
+            }
+          }
+        }
         iterOpts = new HashMap<>(pic.getOpts().size() + scanParams.getSsio().size());
         iterInfos = new ArrayList<>(pic.getIterInfo().size() + scanParams.getSsiList().size());
         IteratorConfigUtil.mergeIteratorConfig(iterInfos, iterOpts, pic.getIterInfo(),
@@ -223,8 +285,7 @@ class ScanDataSource implements DataSource {
       } else {
         context = pic.getServiceEnv();
         if (context != null) {
-          log.trace("Loading iterators for scan with table context: {}",
-              scanParams.getClassLoaderContext());
+          log.trace("Loading iterators for scan with table context: {}", context);
         } else {
           log.trace("Loading iterators for scan");
         }
@@ -239,6 +300,18 @@ class ScanDataSource implements DataSource {
     }
   }
 
+  private IteratorSetting getIteratorSetting(IterInfo iterInfo, Map<String,String> iterOpts) {
+    IteratorSetting setting;
+    if (iterOpts != null) {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName(), iterOpts);
+    } else {
+      setting = new IteratorSetting(iterInfo.getPriority(), iterInfo.getIterName(),
+          iterInfo.getClassName());
+    }
+    return setting;
+  }
+
   private void returnIterators() {
     if (memIters != null) {
       log.trace("Returning mem iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
@@ -246,9 +319,11 @@ class ScanDataSource implements DataSource {
       tablet.returnMemIterators(memIters);
       memIters = null;
       try {
-        log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
-            scanDataSourceId, fileReservationId);
-        tablet.returnFilesForScan(fileReservationId);
+        if (fileReservationId >= 0) {
+          log.trace("Returning file iterators for {}, scanId:{}, fid:{}", tablet.getExtent(),
+              scanDataSourceId, fileReservationId);
+          tablet.returnFilesForScan(fileReservationId);
+        }
       } catch (Exception e) {
         log.warn("Error Returning file iterators for scan: {}, :{}", scanDataSourceId, e);
         // Continue bubbling the exception up for handling.
@@ -259,8 +334,16 @@ class ScanDataSource implements DataSource {
     }
   }
 
+  private boolean closed = false;
+
   @Override
   public void close(boolean sawErrors) {
+    if (closed) {
+      return;
+    }
+
+    closed = true;
+
     try {
       returnIterators();
     } finally {
@@ -277,9 +360,17 @@ class ScanDataSource implements DataSource {
       } finally {
         fileManager = null;
         if (statsIterator != null) {
-          statsIterator.report();
+          statsIterator.report(true);
         }
       }
+    }
+  }
+
+  public void setAttributes(Span span) {
+    if (statsIterator != null && span.isRecording()) {
+      statsIterator.report(true);
+      span.setAttribute(TraceAttributes.ENTRIES_READ_KEY, scanCounter.get());
+      span.setAttribute(TraceAttributes.SEEKS_KEY, scanSeekCounter.get());
     }
   }
 

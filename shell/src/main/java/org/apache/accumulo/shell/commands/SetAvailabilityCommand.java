@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.shell.Shell;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
@@ -38,7 +38,7 @@ public class SetAvailabilityCommand extends TableOperation {
   private Option optEndRowExclusive;
   private Option availabilityOpt;
 
-  private Range range;
+  private RowRange rowRange;
   private TabletAvailability tabletAvailability;
 
   @Override
@@ -54,10 +54,10 @@ public class SetAvailabilityCommand extends TableOperation {
   @Override
   protected void doTableOp(final Shell shellState, final String tableName)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException {
-    shellState.getAccumuloClient().tableOperations().setTabletAvailability(tableName, range,
+    shellState.getAccumuloClient().tableOperations().setTabletAvailability(tableName, rowRange,
         tabletAvailability);
     Shell.log.debug("Set tablet availability: {} on table: {}, range: {}", tabletAvailability,
-        tableName, range);
+        tableName, rowRange);
   }
 
   @Override
@@ -73,13 +73,14 @@ public class SetAvailabilityCommand extends TableOperation {
     }
 
     if (cl.hasOption(optRow.getOpt())) {
-      this.range = new Range(new Text(cl.getOptionValue(optRow.getOpt()).getBytes(Shell.CHARSET)));
+      this.rowRange =
+          RowRange.closed(new Text(cl.getOptionValue(optRow.getOpt()).getBytes(Shell.CHARSET)));
     } else {
       Text startRow = OptUtil.getStartRow(cl);
       Text endRow = OptUtil.getEndRow(cl);
       final boolean startInclusive = !cl.hasOption(optStartRowExclusive.getOpt());
       final boolean endInclusive = !cl.hasOption(optEndRowExclusive.getOpt());
-      this.range = new Range(startRow, startInclusive, endRow, endInclusive);
+      this.rowRange = RowRange.range(startRow, startInclusive, endRow, endInclusive);
     }
 
     this.tabletAvailability =

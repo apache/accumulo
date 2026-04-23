@@ -32,7 +32,9 @@ import org.apache.commons.cli.Options;
 
 public class ExtensionCommand extends Command {
 
-  protected Option enable, disable, list;
+  protected Option enable;
+  protected Option disable;
+  protected Option list;
 
   private ServiceLoader<ShellExtension> extensions = null;
 

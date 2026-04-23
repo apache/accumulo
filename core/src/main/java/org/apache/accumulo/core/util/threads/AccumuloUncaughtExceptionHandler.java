@@ -68,8 +68,9 @@ class AccumuloUncaughtExceptionHandler implements UncaughtExceptionHandler {
       try {
         e.printStackTrace();
         System.err.println("Error thrown in thread: " + t + ", halting VM.");
+        System.err.flush();
       } catch (Throwable e1) {
-        // If e == OutOfMemoryError, then it's probably that another Error might be
+        // If e == OutOfMemoryError, then it's probable that another Error might be
         // thrown when trying to print to System.err.
       } finally {
         Runtime.getRuntime().halt(-1);

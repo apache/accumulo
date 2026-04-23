@@ -43,7 +43,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.access.BytesAccess;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -97,7 +97,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private static final int MAX_SLEEP = 30000;
 
   private final Authorizations auths;
-  private final AccessEvaluator accessEvaluator;
+  private final BytesAccess.BytesEvaluator accessEvaluator;
   private final Map<Text,Boolean> cache = Collections.synchronizedMap(new LRUMap<>(1000));
   private final ClientContext context;
   private final ClientTabletCache locator;
@@ -375,7 +375,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     this.config = config;
     this.context = context;
     this.auths = config.getAuthorizations();
-    this.accessEvaluator = AccessEvaluator.of(config.getAuthorizations().toAccessAuthorizations());
+    this.accessEvaluator = BytesAccess.newEvaluator(config.getAuthorizations());
     this.threadPool = context.threadPools().createScheduledExecutorService(
         config.getMaxWriteThreads(), CONDITIONAL_WRITER_POOL.poolName);
     this.locator = new SyncingClientTabletCache(context, tableId);
@@ -624,7 +624,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
     } catch (TException e) {
-      locator.invalidateCache(context, location.toString());
+      locator.invalidateCache(mutations.getMutations().keySet());
       invalidateSession(location, cmidToCm, sessionId);
     } catch (Exception e) {
       queueException(location, cmidToCm, e);
@@ -686,10 +686,6 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
     while (true) {
       if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {
-        // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
-        // invalidation prevents future attempts to contact the
-        // tserver even its gone zombie and is still running w/o a lock
-        locator.invalidateCache(context, location.toString());
         log.trace("tablet server {} {} is dead, so no need to invalidate {}", location,
             sessionId.lockId, sessionId.sessionID);
         return;
@@ -705,7 +701,6 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(location.toString(), tae);
       } catch (TException e) {
-        locator.invalidateCache(context, location.toString());
         log.trace("Failed to invalidate {} at {} {}", sessionId.sessionID, location,
             e.getMessage());
       }
@@ -716,9 +711,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
       sleepUninterruptibly(sleepTime, MILLISECONDS);
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
-
     }
-
   }
 
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
@@ -735,16 +728,12 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   public static Status fromThrift(TCMStatus status) {
-    switch (status) {
-      case ACCEPTED:
-        return Status.ACCEPTED;
-      case REJECTED:
-        return Status.REJECTED;
-      case VIOLATED:
-        return Status.VIOLATED;
-      default:
-        throw new IllegalArgumentException(status.toString());
-    }
+    return switch (status) {
+      case ACCEPTED -> Status.ACCEPTED;
+      case REJECTED -> Status.REJECTED;
+      case VIOLATED -> Status.VIOLATED;
+      default -> throw new IllegalArgumentException(status.toString());
+    };
   }
 
   private void convertMutations(TabletServerMutations<QCMutation> mutations, Map<Long,CMK> cmidToCm,

@@ -39,13 +39,13 @@ import org.apache.accumulo.core.security.Authorizations;
  * Builder for all the information needed for the Map Reduce job. Fluent API used by
  * {@link AccumuloInputFormat#configure()}
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public interface InputFormatBuilder {
   /**
    * Required params for builder
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface ClientParams<T> {
 
@@ -71,7 +71,7 @@ public interface InputFormatBuilder {
   /**
    * Required params for builder
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface TableParams<T> {
     /**
@@ -91,7 +91,7 @@ public interface InputFormatBuilder {
   /**
    * Optional values to set using fluent API
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   interface InputFormatOptions<T> extends TableParams<T> {
     /**

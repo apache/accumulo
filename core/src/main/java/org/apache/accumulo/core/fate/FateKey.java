@@ -27,22 +27,29 @@ import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.DataInputBuffer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class FateKey {
 
   private final FateKeyType type;
   private final Optional<KeyExtent> keyExtent;
   private final Optional<ExternalCompactionId> compactionId;
+  private final Optional<TServerInstance> tServerInstance;
   private final byte[] serialized;
 
   private FateKey(FateKeyType type, KeyExtent keyExtent) {
     this.type = Objects.requireNonNull(type);
     this.keyExtent = Optional.of(keyExtent);
     this.compactionId = Optional.empty();
+    this.tServerInstance = Optional.empty();
     this.serialized = serialize(type, keyExtent);
   }
 
@@ -50,7 +57,16 @@ public class FateKey {
     this.type = Objects.requireNonNull(type);
     this.keyExtent = Optional.empty();
     this.compactionId = Optional.of(compactionId);
+    this.tServerInstance = Optional.empty();
     this.serialized = serialize(type, compactionId);
+  }
+
+  private FateKey(FateKeyType type, TServerInstance tServerInstance) {
+    this.type = Objects.requireNonNull(type);
+    this.keyExtent = Optional.empty();
+    this.compactionId = Optional.empty();
+    this.tServerInstance = Optional.of(tServerInstance);
+    this.serialized = serialize(type, tServerInstance);
   }
 
   private FateKey(byte[] serialized) {
@@ -59,6 +75,7 @@ public class FateKey {
       this.type = FateKeyType.valueOf(buffer.readUTF());
       this.keyExtent = deserializeKeyExtent(type, buffer);
       this.compactionId = deserializeCompactionId(type, buffer);
+      this.tServerInstance = deserializeTserverId(type, buffer);
       this.serialized = serialized;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
@@ -123,8 +140,12 @@ public class FateKey {
     return new FateKey(FateKeyType.MERGE, extent);
   }
 
+  public static FateKey forShutdown(TServerInstance tServerInstance) {
+    return new FateKey(FateKeyType.TSERVER_SHUTDOWN, tServerInstance);
+  }
+
   public enum FateKeyType {
-    SPLIT, COMPACTION_COMMIT, MERGE
+    SPLIT, COMPACTION_COMMIT, MERGE, TSERVER_SHUTDOWN
   }
 
   private static byte[] serialize(FateKeyType type, KeyExtent ke) {
@@ -151,30 +172,40 @@ public class FateKey {
     }
   }
 
+  private static byte[] serialize(FateKeyType type, TServerInstance tServerInstance) {
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        DataOutputStream dos = new DataOutputStream(baos)) {
+      dos.writeUTF(type.toString());
+      dos.writeUTF(tServerInstance.getHostPortSession());
+      dos.close();
+      return baos.toByteArray();
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
+  }
+
   private static Optional<KeyExtent> deserializeKeyExtent(FateKeyType type, DataInputBuffer buffer)
       throws IOException {
-    switch (type) {
-      case SPLIT:
-      case MERGE:
-        return Optional.of(KeyExtent.readFrom(buffer));
-      case COMPACTION_COMMIT:
-        return Optional.empty();
-      default:
-        throw new IllegalStateException("Unexpected FateInstanceType found " + type);
-    }
+    return switch (type) {
+      case SPLIT, MERGE -> Optional.of(KeyExtent.readFrom(buffer));
+      case COMPACTION_COMMIT, TSERVER_SHUTDOWN -> Optional.empty();
+    };
   }
 
   private static Optional<ExternalCompactionId> deserializeCompactionId(FateKeyType type,
       DataInputBuffer buffer) throws IOException {
-    switch (type) {
-      case SPLIT:
-      case MERGE:
-        return Optional.empty();
-      case COMPACTION_COMMIT:
-        return Optional.of(ExternalCompactionId.of(buffer.readUTF()));
-      default:
-        throw new IllegalStateException("Unexpected FateInstanceType found " + type);
-    }
+    return switch (type) {
+      case SPLIT, MERGE, TSERVER_SHUTDOWN -> Optional.empty();
+      case COMPACTION_COMMIT -> Optional.of(ExternalCompactionId.of(buffer.readUTF()));
+    };
+  }
+
+  private static Optional<TServerInstance> deserializeTserverId(FateKeyType type,
+      DataInputBuffer buffer) throws IOException {
+    return switch (type) {
+      case SPLIT, MERGE, COMPACTION_COMMIT -> Optional.empty();
+      case TSERVER_SHUTDOWN -> Optional.of(new TServerInstance(buffer.readUTF()));
+    };
   }
 
   @Override

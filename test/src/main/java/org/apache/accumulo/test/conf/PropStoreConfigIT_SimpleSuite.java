@@ -1,0 +1,791 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.test.conf;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.conf.ConfigurationTypeHelper.getMemoryAsBytes;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.regex.Pattern;
+
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.test.util.Wait;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+@Tag(MINI_CLUSTER_ONLY)
+public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
+
+  private static final Logger log = LoggerFactory.getLogger(PropStoreConfigIT_SimpleSuite.class);
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(1);
+  }
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @BeforeEach
+  public void clear() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.instanceOperations().modifyProperties(Map::clear);
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
+    }
+  }
+
+  @Test
+  public void setTablePropTest() throws Exception {
+    String table = getUniqueNames(1)[0];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.tableOperations().create(table);
+      String nid = client.tableOperations().getNamespace(table);
+
+      log.debug("Tables: {}", client.tableOperations().list());
+
+      AccumuloException ae = assertThrows(AccumuloException.class, () -> client.instanceOperations()
+          .setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+      assertTrue(ae.getMessage()
+          .contains("Table property " + Property.TABLE_BLOOM_ENABLED.getKey()
+              + " cannot be set at the system or resource group level."
+              + " Set table properties at the namespace or table level."));
+      // override default in namespace, and then over-ride that for table prop
+      client.namespaceOperations().setProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
+
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
+      Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
+
+      // revert namespace prop, and then over-ride to true with table prop
+      client.namespaceOperations().removeProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey());
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
+      Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
+
+    }
+  }
+
+  @Test
+  public void deletePropsTest() throws Exception {
+    String[] names = getUniqueNames(2);
+    String namespace = names[0];
+    String table = namespace + "." + names[1];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.namespaceOperations().create(namespace);
+      client.tableOperations().create(table);
+
+      log.info("Tables: {}", client.tableOperations().list());
+
+      client.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_SIZE.getKey(),
+          "23456");
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("23456"), 5000, 500);
+      assertEquals("23456",
+          client.tableOperations().getConfiguration(table).get(Property.TABLE_BLOOM_SIZE.getKey()));
+
+      client.tableOperations().setProperty(table, Property.TABLE_BLOOM_SIZE.getKey(), "34567");
+      Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("34567"), 5000, 500);
+      assertEquals(Property.TABLE_BLOOM_SIZE.getDefaultValue(), client.instanceOperations()
+          .getSystemConfiguration().get(Property.TABLE_BLOOM_SIZE.getKey()));
+      assertEquals("23456", client.namespaceOperations().getConfiguration(namespace)
+          .get(Property.TABLE_BLOOM_SIZE.getKey()));
+
+      var tableIdMap = client.tableOperations().tableIdMap();
+      var nsIdMap = client.namespaceOperations().namespaceIdMap();
+
+      ServerContext context = getCluster().getServerContext();
+
+      NamespaceId nid = NamespaceId.of(nsIdMap.get(namespace));
+      TableId tid = TableId.of(tableIdMap.get(table));
+
+      // check zk nodes exist
+      assertTrue(context.getPropStore().exists(NamespacePropKey.of(nid)));
+      assertTrue(context.getPropStore().exists(TablePropKey.of(tid)));
+      // check ServerConfigurationFactory
+      assertNotNull(context.getNamespaceConfiguration(nid));
+      assertNotNull(context.getTableConfiguration(tid));
+
+      client.tableOperations().delete(table);
+      client.namespaceOperations().delete(namespace);
+      Thread.sleep(100);
+
+      // check zk nodes deleted
+      assertFalse(context.getPropStore().exists(NamespacePropKey.of(nid)));
+      assertFalse(context.getPropStore().exists(TablePropKey.of(tid)));
+      // check ServerConfigurationFactory deleted - should return null
+      assertNull(context.getTableConfiguration(tid));
+    }
+  }
+
+  @Test
+  public void setInvalidPropertiesTest() throws Exception {
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      // Grab original default config
+      Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      Map<String,String> properties = getStoredConfiguration();
+
+      final String maxOpenFiles = config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
+
+      client.instanceOperations().modifyProperties(Map::clear);
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
+
+      // Properties should be empty to start
+      final int numProps = properties.size();
+
+      // Set properties in ZK
+      client.instanceOperations().modifyProperties(original -> {
+        original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), maxOpenFiles);
+      });
+
+      // Verify system properties added
+      Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500);
+
+      // Verify properties updated
+      properties = getStoredConfiguration();
+      assertEquals(maxOpenFiles, properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+
+      // Verify properties updated in config as well
+      config = client.instanceOperations().getSystemConfiguration();
+      assertEquals(maxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+
+      // Set invalid properties
+      assertThrows(AccumuloException.class,
+          () -> client.instanceOperations().modifyProperties(original -> {
+            original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), "foo");
+          }));
+      assertEquals(maxOpenFiles, properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+    }
+  }
+
+  /**
+   * Validate that property nodes have an ACL set to restrict world access.
+   */
+  @Test
+  public void permissionsTest() throws Exception {
+    var names = getUniqueNames(3);
+    String namespace = names[0];
+    String table1 = namespace + "." + names[1];
+    String table2 = names[2];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      client.namespaceOperations().create(namespace);
+      client.tableOperations().create(table1);
+      client.tableOperations().create(table2);
+
+      Thread.sleep(SECONDS.toMillis(3L));
+
+      ServerContext serverContext = getCluster().getServerContext();
+      ZooReaderWriter zrw = serverContext.getZooSession().asReaderWriter();
+
+      // validate that a world-readable node has expected perms to validate test method
+      var noAcl = zrw.getACL("/");
+      assertTrue(noAcl.size() > 1);
+      assertTrue(
+          noAcl.get(0).toString().contains("world") || noAcl.get(1).toString().contains("world"));
+
+      var sysAcl = zrw.getACL(SystemPropKey.of().getPath());
+      assertEquals(1, sysAcl.size());
+      assertFalse(sysAcl.get(0).toString().contains("world"));
+
+      for (Map.Entry<String,String> nsEntry : client.namespaceOperations().namespaceIdMap()
+          .entrySet()) {
+        log.debug("Check acl on namespace name: {}, id: {}", nsEntry.getKey(), nsEntry.getValue());
+        var namespaceAcl =
+            zrw.getACL(NamespacePropKey.of(NamespaceId.of(nsEntry.getValue())).getPath());
+        log.debug("namespace permissions: {}", namespaceAcl);
+        assertEquals(1, namespaceAcl.size());
+        assertFalse(namespaceAcl.get(0).toString().contains("world"));
+      }
+
+      for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
+        log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
+        var tableAcl = zrw.getACL(TablePropKey.of(TableId.of(tEntry.getValue())).getPath());
+        log.debug("Received ACLs of: {}", tableAcl);
+        assertEquals(1, tableAcl.size());
+        assertFalse(tableAcl.get(0).toString().contains("world"));
+      }
+    }
+  }
+
+  @Test
+  public void modifyInstancePropertiesTest() throws Exception {
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      // Grab original default config
+      Map<String,String> config = client.instanceOperations().getSystemConfiguration();
+      Map<String,String> properties = getStoredConfiguration();
+
+      final String origMaxOpenFiles = config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey());
+      final String origMaxMem = config.get(Property.TSERV_MAXMEM.getKey());
+      // final long origMaxMem = getMemoryAsBytes(config.get(Property.TSERV_MAXMEM.getKey()));
+
+      client.instanceOperations().modifyProperties(Map::clear);
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
+
+      // should be empty to start
+      final int numProps = properties.size();
+
+      final String expectedMaxOpenFiles = "" + (Integer.parseInt(origMaxOpenFiles) + 1);
+      final String expectMaxMem = (getMemoryAsBytes(origMaxMem) + 1024) + "M";
+
+      // Set properties in ZK
+      client.instanceOperations().modifyProperties(original -> {
+        original.put(Property.TSERV_SCAN_MAX_OPENFILES.getKey(), expectedMaxOpenFiles);
+        original.put(Property.TSERV_MAXMEM.getKey(), expectMaxMem);
+      });
+
+      // Verify system properties added
+      Wait.waitFor(() -> getStoredConfiguration().size() > numProps, 5000, 500);
+
+      // verify properties updated
+      properties = getStoredConfiguration();
+      assertEquals(expectedMaxOpenFiles,
+          properties.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+      assertEquals(expectMaxMem, properties.get(Property.TSERV_MAXMEM.getKey()));
+
+      // verify properties updated in config as well
+      config = client.instanceOperations().getSystemConfiguration();
+      assertEquals(expectedMaxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+      assertEquals(expectMaxMem, config.get(Property.TSERV_MAXMEM.getKey()));
+
+      // Verify removal by sending empty map - only removes props that were set in previous values
+      // should be restored
+      client.instanceOperations().modifyProperties(Map::clear);
+
+      Wait.waitFor(() -> getStoredConfiguration().size() == 0, 5000, 500);
+
+      // verify default system config restored
+      config = client.instanceOperations().getSystemConfiguration();
+      assertEquals(origMaxOpenFiles, config.get(Property.TSERV_SCAN_MAX_OPENFILES.getKey()));
+      assertEquals(origMaxMem, config.get(Property.TSERV_MAXMEM.getKey()));
+    }
+  }
+
+  @Test
+  public void getSystemPropertiesTest() throws Exception {
+
+    // Tests that getSystemProperties() does not return a merged view (only returns props set at the
+    // system level).
+    // Compares this with getSystemConfiguration() which does return a merged view (system + site +
+    // default).
+
+    String customPropKey1 = "general.custom.prop1";
+    String customPropKey2 = "general.custom.prop2";
+    String customPropVal1 = "v1";
+    String customPropVal2 = "v2";
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      // non-merged view
+      Map<String,String> sysProps = client.instanceOperations().getSystemProperties();
+      // merged view
+      Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
+      // sysProps is non-merged view, so should be empty at this point (no system props set yet)
+      assertTrue(sysProps.isEmpty());
+      // sysConfig is merged view, so will have some props already (default properties and those
+      // inherited from site config)
+      assertFalse(sysConfig.isEmpty());
+      client.instanceOperations().setProperty(customPropKey1, customPropVal1);
+      client.instanceOperations().setProperty(customPropKey2, customPropVal2);
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().get(customPropKey1)
+          .equals(customPropVal1), 5000, 500);
+      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration().get(customPropKey2)
+          .equals(customPropVal2), 5000, 500);
+      sysProps = client.instanceOperations().getSystemProperties();
+      // The custom props should be present (and the only props) in the non-merged view
+      assertEquals(2, sysProps.size());
+      assertEquals(customPropVal1, sysProps.get(customPropKey1));
+      assertEquals(customPropVal2, sysProps.get(customPropKey2));
+      sysConfig = client.instanceOperations().getSystemConfiguration();
+      // The custom props should be present in the merged view
+      assertTrue(sysConfig.size() > 2);
+      assertEquals(customPropVal1, sysConfig.get(customPropKey1));
+      assertEquals(customPropVal2, sysConfig.get(customPropKey2));
+    }
+  }
+
+  @Test
+  public void modifyTablePropTest() throws Exception {
+    String table = getUniqueNames(1)[0];
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+      log.info("Tables: {}", client.tableOperations().list());
+
+      testModifyProperties(() -> {
+        try {
+          // Method to grab full config
+          return client.tableOperations().getConfiguration(table);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, () -> {
+        try {
+          // Method to grab only properties
+          return client.tableOperations().getTableProperties(table);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, mapMutator -> {
+        try {
+          // Modify props on table
+          client.tableOperations().modifyProperties(table, mapMutator);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      });
+    }
+  }
+
+  @Test
+  public void modifyNamespacePropTest() throws Exception {
+    String namespace = "modifyNamespacePropTest";
+    String table = namespace + "testtable";
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(namespace);
+      client.tableOperations().create(table);
+
+      log.info("Tables: {}", client.tableOperations().list());
+
+      testModifyProperties(() -> {
+        try {
+          // Method to grab full config
+          return client.namespaceOperations().getConfiguration(namespace);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, () -> {
+        try {
+          // Method to grab only properties
+          return client.namespaceOperations().getNamespaceProperties(namespace);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      }, mapMutator -> {
+        try {
+          // Modify props on namespace
+          client.namespaceOperations().modifyProperties(namespace, mapMutator);
+        } catch (Exception e) {
+          throw new IllegalStateException(e);
+        }
+      });
+    }
+  }
+
+  private void testModifyProperties(Supplier<Map<String,String>> fullConfig,
+      Supplier<Map<String,String>> props, Consumer<Consumer<Map<String,String>>> modifyProperties)
+      throws Exception {
+    // Grab original default config
+    Map<String,String> config = fullConfig.get();
+    final String originalBloomEnabled = config.get(Property.TABLE_BLOOM_ENABLED.getKey());
+    final String originalBloomSize = config.get(Property.TABLE_BLOOM_SIZE.getKey());
+
+    var properties = props.get();
+    final int propsSize = properties.size();
+
+    // Modify table properties in ZK
+    modifyProperties.accept(original -> {
+      original.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      original.put(Property.TABLE_BLOOM_SIZE.getKey(), "1000");
+    });
+
+    Wait.waitFor(() -> props.get().size() > propsSize, 5000, 500);
+
+    // verify properties updated
+    properties = props.get();
+    assertEquals("true", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("1000", properties.get(Property.TABLE_BLOOM_SIZE.getKey()));
+
+    // verify properties updated in full configuration also
+    config = fullConfig.get();
+    assertEquals("true", config.get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals("1000", config.get(Property.TABLE_BLOOM_SIZE.getKey()));
+
+    // Verify removal
+    modifyProperties.accept(original -> {
+      original.remove(Property.TABLE_BLOOM_ENABLED.getKey());
+      original.remove(Property.TABLE_BLOOM_SIZE.getKey());
+    });
+
+    // Wait for clear
+    Wait.waitFor(() -> props.get().size() == propsSize, 5000, 500);
+
+    // verify default system config restored
+    config = fullConfig.get();
+    assertEquals(originalBloomEnabled, config.get(Property.TABLE_BLOOM_ENABLED.getKey()));
+    assertEquals(originalBloomSize, config.get(Property.TABLE_BLOOM_SIZE.getKey()));
+  }
+
+  private Map<String,String> getStoredConfiguration() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+    return ThriftClientTypes.CLIENT
+        .execute(ctx,
+            client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()))
+        .getProperties();
+  }
+
+  interface PropertyShim {
+    Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier) throws Exception;
+
+    Map<String,String> getProperties() throws Exception;
+  }
+
+  @Test
+  public void concurrentTablePropsModificationTest() throws Exception {
+    String table = getUniqueNames(1)[0];
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.tableOperations().create(table);
+
+      var propShim = new PropertyShim() {
+
+        @Override
+        public Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier)
+            throws Exception {
+          return client.tableOperations().modifyProperties(table, modifier);
+        }
+
+        @Override
+        public Map<String,String> getProperties() throws Exception {
+          return client.tableOperations().getTableProperties(table);
+        }
+      };
+
+      runConcurrentPropsModificationTest(propShim);
+    }
+  }
+
+  @Test
+  public void concurrentNamespacePropsModificationTest() throws Exception {
+    String namespace = getUniqueNames(1)[0];
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.namespaceOperations().create(namespace);
+
+      var propShim = new PropertyShim() {
+
+        @Override
+        public Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier)
+            throws Exception {
+          return client.namespaceOperations().modifyProperties(namespace, modifier);
+        }
+
+        @Override
+        public Map<String,String> getProperties() throws Exception {
+          return client.namespaceOperations().getNamespaceProperties(namespace);
+        }
+      };
+
+      runConcurrentPropsModificationTest(propShim);
+    }
+  }
+
+  @Test
+  public void concurrentInstancePropsModificationTest() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      var propShim = new PropertyShim() {
+
+        @Override
+        public Map<String,String> modifyProperties(Consumer<Map<String,String>> modifier)
+            throws Exception {
+          return client.instanceOperations().modifyProperties(modifier);
+        }
+
+        @Override
+        public Map<String,String> getProperties() throws Exception {
+          return client.instanceOperations().getSystemConfiguration();
+        }
+      };
+
+      runConcurrentPropsModificationTest(propShim);
+    }
+  }
+
+  /*
+   * Test concurrently modifying properties in many threads with each thread making many
+   * modifications. The modifications build on each other and the test is written in such a way that
+   * if any single modification is lost it can be detected.
+   */
+  private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
+    final int numTasks = 4;
+    ExecutorService executor = Executors.newFixedThreadPool(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks/threads to satisfy latch count - deadlock risk");
+    var tasks = new ArrayList<Callable<Void>>(numTasks);
+
+    final int iterations = 151;
+
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
+      for (int i = 0; i < iterations; i++) {
+
+        Map<String,String> prevProps = null;
+        if (i % 10 == 0) {
+          prevProps = propShim.getProperties();
+        }
+
+        Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
+          int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
+          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+          int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+          int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
+
+          tableProps.put("general.custom.A", A + 2 + "");
+          tableProps.put("general.custom.B", B + 3 + "");
+          tableProps.put("general.custom.C", C + 5 + "");
+          tableProps.put("general.custom.D", D + 7 + "");
+        });
+
+        if (prevProps != null) {
+          var beforeA = Integer.parseInt(prevProps.getOrDefault("general.custom.A", "0"));
+          var beforeB = Integer.parseInt(prevProps.getOrDefault("general.custom.B", "0"));
+          var beforeC = Integer.parseInt(prevProps.getOrDefault("general.custom.C", "0"));
+          var beforeD = Integer.parseInt(prevProps.getOrDefault("general.custom.D", "0"));
+
+          var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
+          var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
+          var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
+          var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
+
+          // because there are other thread possibly making changes since reading prevProps, can
+          // only do >= as opposed to == check. Should at a minimum see the changes made by this
+          // thread.
+          assertTrue(afterA >= beforeA + 2);
+          assertTrue(afterB >= beforeB + 3);
+          assertTrue(afterC >= beforeC + 5);
+          assertTrue(afterD >= beforeD + 7);
+        }
+      }
+      return null;
+    });
+
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+          int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+
+          tableProps.put("general.custom.B", B + 11 + "");
+          tableProps.put("general.custom.C", C + 13 + "");
+        });
+      }
+      return null;
+    });
+
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+
+          tableProps.put("general.custom.B", B + 17 + "");
+        });
+      }
+      return null;
+    });
+
+    tasks.add(() -> {
+      startLatch.countDown();
+      startLatch.await();
+      for (int i = 0; i < iterations; i++) {
+        propShim.modifyProperties(tableProps -> {
+          int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));
+          tableProps.put("general.custom.E", E + 19 + "");
+        });
+      }
+      return null;
+    });
+
+    assertEquals(numTasks, tasks.size());
+
+    // run all of the above task concurrently
+    for (Future<Void> future : executor.invokeAll(tasks)) {
+      // see if there were any exceptions in the background thread and wait for it to finish
+      future.get();
+    }
+
+    Map<String,String> expected = new HashMap<>();
+
+    // determine the expected sum for all the additions done by the separate threads for each
+    // property
+    expected.put("general.custom.A", iterations * 2 + "");
+    expected.put("general.custom.B", iterations * (3 + 11 + 17) + "");
+    expected.put("general.custom.C", iterations * (5 + 13) + "");
+    expected.put("general.custom.D", iterations * 7 + "");
+    expected.put("general.custom.E", iterations * 19 + "");
+
+    final var IS_NOT_CUSTOM_TABLE_PROP =
+        Pattern.compile("general[.]custom[.][ABCDEF]").asMatchPredicate().negate();
+    Wait.waitFor(() -> {
+      var tableProps = new HashMap<>(propShim.getProperties());
+      tableProps.keySet().removeIf(IS_NOT_CUSTOM_TABLE_PROP);
+      boolean equal = expected.equals(tableProps);
+      if (!equal) {
+        log.info(
+            "Waiting for properties to converge. Actual:" + tableProps + " Expected:" + expected);
+      }
+      return equal;
+    });
+
+    // now that there are not other thread modifying properties, make a modification to check that
+    // the returned map
+    // is exactly as expected.
+    Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
+      int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
+      int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+      int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+      int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
+
+      tableProps.put("general.custom.A", A + 2 + "");
+      tableProps.put("general.custom.B", B + 3 + "");
+      tableProps.put("general.custom.C", C + 5 + "");
+      tableProps.put("general.custom.D", D + 7 + "");
+    });
+
+    var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
+    var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
+    var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
+    var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
+    var afterE = Integer.parseInt(acceptedProps.get("general.custom.E"));
+
+    assertEquals(iterations * 2 + 2, afterA);
+    assertEquals(iterations * (3 + 11 + 17) + 3, afterB);
+    assertEquals(iterations * (5 + 13) + 5, afterC);
+    assertEquals(iterations * 7 + 7, afterD);
+    assertEquals(iterations * 19, afterE);
+
+    executor.shutdown();
+  }
+
+  @Test
+  public void testTablePropInSystemConfigFails() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+
+      assertFalse(defaultProperties.isEmpty());
+
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+        AccumuloException ae = assertThrows(AccumuloException.class,
+            () -> client.instanceOperations().setProperty(e.getKey(), e.getValue()));
+        assertTrue(ae.getMessage()
+            .contains("Table property " + e.getKey()
+                + " cannot be set at the system or resource group level."
+                + " Set table properties at the namespace or table level."));
+      }
+
+      assertEquals(Map.of(), client.instanceOperations().getSystemProperties());
+    }
+  }
+
+  @Test
+  public void testTablePropInResourceGroupConfigFails() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+
+      assertFalse(defaultProperties.isEmpty());
+
+      var rgid = ResourceGroupId.of("tabpt");
+      client.resourceGroupOperations().create(rgid);
+      client.resourceGroupOperations().setProperty(rgid,
+          Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123");
+
+      assertEquals(Map.of(),
+          client.resourceGroupOperations().getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Map.of(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123"),
+          client.resourceGroupOperations().getProperties(rgid));
+
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+        for (var testRG : List.of(rgid, ResourceGroupId.DEFAULT)) {
+          AccumuloException ae = assertThrows(AccumuloException.class,
+              () -> client.resourceGroupOperations().setProperty(testRG, e.getKey(), e.getValue()));
+          assertTrue(ae.getMessage()
+              .contains("Table property " + e.getKey()
+                  + " cannot be set at the system or resource group level."
+                  + " Set table properties at the namespace or table level."));
+        }
+      }
+
+      assertEquals(Map.of(),
+          client.resourceGroupOperations().getProperties(ResourceGroupId.DEFAULT));
+      assertEquals(Map.of(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey() + "abc", "123"),
+          client.resourceGroupOperations().getProperties(rgid));
+    }
+  }
+
+}

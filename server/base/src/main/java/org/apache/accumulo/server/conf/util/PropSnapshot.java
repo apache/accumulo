@@ -81,6 +81,7 @@ public class PropSnapshot implements PropChangeListener {
     updateLock.lock();
     try {
       needsUpdate.set(true);
+      propStore.invalidate(propStoreKey);
     } finally {
       updateLock.unlock();
     }

@@ -21,7 +21,7 @@ package org.apache.accumulo.core.client;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Properties;
 
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -42,7 +42,7 @@ public class ClientPropertiesTest {
     ClientProperty.validate(props1);
 
     Properties props2 =
-        Accumulo.newClientProperties().from(props1).as("user2", Paths.get("./path2")).build();
+        Accumulo.newClientProperties().from(props1).as("user2", Path.of("./path2")).build();
 
     // verify props1 is unchanged
     assertEquals("inst1", ClientProperty.INSTANCE_NAME.getValue(props1));

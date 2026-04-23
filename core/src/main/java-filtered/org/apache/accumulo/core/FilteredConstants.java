@@ -19,5 +19,5 @@
 package org.apache.accumulo.core;
 
 public class FilteredConstants {
-  public static final String VERSION = "${accumulo.release.version}";
+  public static final String VERSION = "${accumulo.build.release.version}";
 }

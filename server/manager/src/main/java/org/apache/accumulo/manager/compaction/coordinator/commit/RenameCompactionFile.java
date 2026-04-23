@@ -20,17 +20,20 @@ package org.apache.accumulo.manager.compaction.coordinator.commit;
 
 import java.io.IOException;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.manager.Manager;
-import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
+import org.apache.accumulo.manager.tableOps.AbstractFateOperation;
+import org.apache.accumulo.manager.tableOps.FateEnv;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RenameCompactionFile extends ManagerRepo {
+public class RenameCompactionFile extends AbstractFateOperation {
   private static final Logger log = LoggerFactory.getLogger(RenameCompactionFile.class);
   private static final long serialVersionUID = 1L;
   private final CompactionCommitData commitData;
@@ -40,9 +43,9 @@ public class RenameCompactionFile extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
+  public Repo<FateEnv> call(FateId fateId, FateEnv env) throws Exception {
     ReferencedTabletFile newDatafile = null;
-    var ctx = manager.getContext();
+    var ctx = env.getContext();
 
     var tmpPath = new Path(commitData.outputTmpPath);
 
@@ -71,6 +74,9 @@ public class RenameCompactionFile extends ManagerRepo {
         if (!ctx.getVolumeManager().rename(tmpPath, newDatafile.getPath())) {
           throw new IOException("rename returned false for " + tmpPath);
         }
+        TabletLogger.renamed(KeyExtent.fromThrift(commitData.textent),
+            UnreferencedTabletFile.of(ctx.getVolumeManager().getFileSystemByPath(tmpPath), tmpPath),
+            newDatafile);
       } catch (IOException ioe) {
         // Log something in case there is an exception while doing the check, will have the original
         // exception.

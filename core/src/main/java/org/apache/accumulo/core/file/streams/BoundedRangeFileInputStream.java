@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.Seekable;
  * regular input stream. One can create multiple BoundedRangeFileInputStream on top of the same
  * FSDataInputStream and they would not interfere with each other.
  */
-public class BoundedRangeFileInputStream extends InputStream {
+public final class BoundedRangeFileInputStream extends InputStream {
 
   private volatile boolean closed = false;
   private final InputStream in;

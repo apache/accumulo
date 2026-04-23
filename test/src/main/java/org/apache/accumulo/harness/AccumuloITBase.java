@@ -19,18 +19,26 @@
 package org.apache.accumulo.harness;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.SecurityOperations;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -45,6 +53,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class AccumuloITBase extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
+  public static final String UNIQUE_TEST_DIR_SYS_PROPERTY = "accumulo.it.uniq.test.dir";
   public static final String STANDALONE_CAPABLE_CLUSTER = "StandaloneCapableCluster";
   public static final String SUNNY_DAY = "SunnyDay";
   public static final String MINI_CLUSTER_ONLY = "MiniClusterOnly";
@@ -79,17 +88,23 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File getSslDir(File baseDir) {
     assertTrue(baseDir.exists() && baseDir.isDirectory());
-    return new File(baseDir.getParentFile(), baseDir.getName() + "-ssl");
+    return baseDir.getParentFile().toPath().resolve(baseDir.getName() + "-ssl").toFile();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File createTestDir(String name) {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name == null) {
       return baseDir;
     }
-    File testDir = new File(baseDir, name);
+
+    String uniqueName =
+        System.getProperty(UNIQUE_TEST_DIR_SYS_PROPERTY, "").equalsIgnoreCase("true")
+            ? String.format("%s-%d-%d", name, System.currentTimeMillis(),
+                RANDOM.get().nextInt(Short.MAX_VALUE))
+            : name;
+    File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -140,7 +155,7 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
   protected File initJar(String jarResourcePath, String namePrefix, String testDir)
       throws IOException {
-    var testFileDir = new File(testDir);
+    var testFileDir = Path.of(testDir).toFile();
     File jar = File.createTempFile(namePrefix, ".jar", testFileDir);
     var url = this.getClass().getResource(jarResourcePath);
     if (url == null) {
@@ -150,5 +165,15 @@ public class AccumuloITBase extends WithTestNames {
     jar.deleteOnExit();
 
     return jar;
+  }
+
+  // ITs may use the client properties to create an AccumuloClient
+  // and then interact with the Fate and ScanRef tables. By default
+  // only the system user can interact with these tables.
+  public static void setSystemTablePermsForITs(AccumuloClient client, SecurityOperations ops)
+      throws AccumuloException, AccumuloSecurityException {
+    ops.grantTablePermission(client.whoami(), SystemTables.FATE.tableName(), TablePermission.READ);
+    ops.grantTablePermission(client.whoami(), SystemTables.SCAN_REF.tableName(),
+        TablePermission.READ);
   }
 }

@@ -134,12 +134,10 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void and(final Filter filter) {
-    if (filter == null || !(filter instanceof DynamicBloomFilter)
+    if (filter == null || !(filter instanceof DynamicBloomFilter dbf)
         || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be and-ed");
     }
-
-    DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
 
     if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
       throw new IllegalArgumentException("filters cannot be and-ed");
@@ -174,12 +172,10 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void or(final Filter filter) {
-    if (filter == null || !(filter instanceof DynamicBloomFilter)
+    if (filter == null || !(filter instanceof DynamicBloomFilter dbf)
         || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be or-ed");
     }
-
-    DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
 
     if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
       throw new IllegalArgumentException("filters cannot be or-ed");
@@ -191,11 +187,10 @@ public class DynamicBloomFilter extends Filter {
 
   @Override
   public void xor(final Filter filter) {
-    if (filter == null || !(filter instanceof DynamicBloomFilter)
+    if (filter == null || !(filter instanceof DynamicBloomFilter dbf)
         || filter.vectorSize != this.vectorSize || filter.nbHash != this.nbHash) {
       throw new IllegalArgumentException("filters cannot be xor-ed");
     }
-    DynamicBloomFilter dbf = (DynamicBloomFilter) filter;
 
     if (dbf.matrix.length != this.matrix.length || dbf.nr != this.nr) {
       throw new IllegalArgumentException("filters cannot be xor-ed");

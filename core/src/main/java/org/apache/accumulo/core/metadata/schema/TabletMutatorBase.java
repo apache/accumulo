@@ -153,29 +153,19 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   protected String getLocationFamily(LocationType type) {
-    switch (type) {
-      case CURRENT:
-        return CurrentLocationColumnFamily.STR_NAME;
-      case FUTURE:
-        return FutureLocationColumnFamily.STR_NAME;
-      case LAST:
-        return LastLocationColumnFamily.STR_NAME;
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (type) {
+      case CURRENT -> CurrentLocationColumnFamily.STR_NAME;
+      case FUTURE -> FutureLocationColumnFamily.STR_NAME;
+      case LAST -> LastLocationColumnFamily.STR_NAME;
+    };
   }
 
   protected Text getLocationFamilyText(LocationType type) {
-    switch (type) {
-      case CURRENT:
-        return CurrentLocationColumnFamily.NAME;
-      case FUTURE:
-        return FutureLocationColumnFamily.NAME;
-      case LAST:
-        return LastLocationColumnFamily.NAME;
-      default:
-        throw new IllegalArgumentException();
-    }
+    return switch (type) {
+      case CURRENT -> CurrentLocationColumnFamily.NAME;
+      case FUTURE -> FutureLocationColumnFamily.NAME;
+      case LAST -> LastLocationColumnFamily.NAME;
+    };
   }
 
   @Override
@@ -392,6 +382,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   public T putTabletMergeability(TabletMergeabilityMetadata tabletMergeability) {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(mutation,
         TabletMergeabilityMetadata.toValue(tabletMergeability));
+    return getThis();
+  }
+
+  @Override
+  public T putMigration(TServerInstance tserver) {
+    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, new Value(tserver.getHostPortSession()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteMigration() {
+    ServerColumnFamily.MIGRATION_COLUMN.putDelete(mutation);
     return getThis();
   }
 

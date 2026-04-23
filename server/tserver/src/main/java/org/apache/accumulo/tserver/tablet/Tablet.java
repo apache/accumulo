@@ -20,6 +20,7 @@ package org.apache.accumulo.tserver.tablet;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.stream.Collectors.toList;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -65,9 +66,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
@@ -86,6 +87,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -125,7 +127,7 @@ import io.opentelemetry.context.Scope;
  */
 public class Tablet extends TabletBase {
   private static final Logger log = LoggerFactory.getLogger(Tablet.class);
-  private static final Logger CLOSING_STUCK_LOGGER =
+  private static final DeduplicatingLogger CLOSING_STUCK_LOGGER =
       new DeduplicatingLogger(log, Duration.ofMinutes(5), 1000);
 
   private final TabletServer tabletServer;
@@ -166,7 +168,7 @@ public class Tablet extends TabletBase {
     OPEN, REQUESTED, CLOSING, CLOSED, COMPLETE
   }
 
-  private long closeRequestTime = 0;
+  private Timer closeRequestTimer = null;
   private volatile CloseState closeState = CloseState.OPEN;
 
   private boolean updatingFlushID = false;
@@ -220,7 +222,7 @@ public class Tablet extends TabletBase {
     public boolean closed = false;
   }
 
-  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) throws IOException {
+  ReferencedTabletFile getNextDataFilename(FilePrefix prefix) {
     return TabletNameGenerator.getNextDataFilename(prefix, context, extent,
         getMetadata().getDirName(), dir -> checkTabletDir(new Path(dir)));
   }
@@ -237,7 +239,6 @@ public class Tablet extends TabletBase {
 
         if (files == null) {
           log.debug("Tablet {} had no dir, creating {}", extent, path);
-
           getTabletServer().getVolumeManager().mkdirs(path);
         }
         checkedTabletDirs.add(path);
@@ -248,8 +249,7 @@ public class Tablet extends TabletBase {
   }
 
   public Tablet(final TabletServer tabletServer, final KeyExtent extent,
-      final TabletResourceManager trm, TabletMetadata metadata)
-      throws IOException, IllegalArgumentException {
+      final TabletResourceManager trm, TabletMetadata metadata) {
 
     super(tabletServer, extent);
 
@@ -321,7 +321,7 @@ public class Tablet extends TabletBase {
           logEntries.clear();
         }
 
-      } catch (Exception t) {
+      } catch (IOException | RuntimeException t) {
         String msg = "Error recovering tablet " + extent + " from log files";
         if (tableConfiguration.getBoolean(Property.TABLE_FAILURES_IGNORE)) {
           log.warn(msg, t);
@@ -356,7 +356,7 @@ public class Tablet extends TabletBase {
   }
 
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
-      AtomicBoolean iFlag) throws IOException {
+      AtomicBoolean iFlag) throws IOException, ReflectiveOperationException {
 
     ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
         null, false, null, -1, null);
@@ -368,7 +368,7 @@ public class Tablet extends TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       checker.check(iter);
-    } catch (IOException | RuntimeException e) {
+    } catch (IOException | RuntimeException | ReflectiveOperationException e) {
       sawException = true;
       throw e;
     } finally {
@@ -398,7 +398,7 @@ public class Tablet extends TabletBase {
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         TraceUtil.setException(span, e, true);
         throw e;
       } finally {
@@ -410,12 +410,12 @@ public class Tablet extends TabletBase {
         bringMinorCompactionOnline(tmpDatafile, newDatafile,
             new DataFileValue(stats.getFileSize(), stats.getEntriesWritten()), commitSession,
             flushId, mincReason);
-      } catch (Exception e) {
+      } catch (RuntimeException e) {
         final ServiceLock tserverLock = tabletServer.getLock();
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
           log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
               + " Halting...", getExtent(), e);
-          Halt.halt("TabletServer lock does not exist", -1);
+          Halt.halt(1, "TabletServer lock does not exist", e);
         } else {
           TraceUtil.setException(span2, e, true);
           throw e;
@@ -425,14 +425,14 @@ public class Tablet extends TabletBase {
       }
 
       return new DataFileValue(stats.getFileSize(), stats.getEntriesWritten());
-    } catch (Exception | Error e) {
+    } catch (RuntimeException e) {
       failed = true;
       throw new RuntimeException("Exception occurred during minor compaction on " + extent, e);
     } finally {
       Thread.currentThread().setName(oldName);
       try {
         getTabletMemory().finalizeMinC();
-      } catch (Exception t) {
+      } catch (RuntimeException t) {
         log.error("Failed to free tablet memory on {}", extent, t);
       }
 
@@ -584,7 +584,8 @@ public class Tablet extends TabletBase {
   private MinorCompactionTask createMinorCompactionTask(long flushId,
       MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
-    long t1, t2;
+    long t1;
+    long t2;
 
     StringBuilder logMessage = null;
 
@@ -794,11 +795,11 @@ public class Tablet extends TabletBase {
 
     synchronized (this) {
       if (closeState == CloseState.OPEN) {
-        closeRequestTime = System.nanoTime();
+        closeRequestTimer = Timer.startNew();
         closeState = CloseState.REQUESTED;
       } else {
-        Preconditions.checkState(closeRequestTime != 0);
-        long runningTime = Duration.ofNanos(System.nanoTime() - closeRequestTime).toMinutes();
+        Preconditions.checkState(closeRequestTimer != null);
+        long runningTime = closeRequestTimer.elapsed(MINUTES);
         if (runningTime >= 15) {
           CLOSING_STUCK_LOGGER.info(
               "Tablet {} close requested again, but has been closing for {} minutes", this.extent,
@@ -893,42 +894,33 @@ public class Tablet extends TabletBase {
 
   private boolean closeCompleting = false;
 
-  synchronized void completeClose(boolean saveState) throws IOException {
+  void completeClose(boolean saveState) throws IOException {
+    boolean shouldPrepMinC;
+    MinorCompactionTask mct = null;
 
-    if (!isClosing() || isCloseComplete() || closeCompleting) {
-      throw new IllegalStateException("Bad close state " + closeState + " on tablet " + extent);
-    }
-
-    log.trace("completeClose(saveState={}) {}", saveState, extent);
-
-    // ensure this method is only called once, also guards against multiple
-    // threads entering the method at the same time
-    closeCompleting = true;
-    closeState = CloseState.CLOSED;
-
-    // modify dataSourceDeletions so scans will try to switch data sources and fail because the
-    // tablet is closed
-    dataSourceDeletions.incrementAndGet();
-
-    for (ScanDataSource activeScan : activeScans) {
-      activeScan.interrupt();
-    }
-
-    // create a copy so that it can be whittled down as client sessions are disabled
-    List<ScanDataSource> runningScans = new ArrayList<>(this.activeScans);
-
-    runningScans.removeIf(scanDataSource -> {
-      boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
-      if (currentlyUnreserved) {
-        log.debug("Disabled scan session in tablet close {} {}", extent, scanDataSource);
+    synchronized (this) {
+      if (!isClosing() || isCloseComplete() || closeCompleting) {
+        throw new IllegalStateException("Bad close state " + closeState + " on tablet " + extent);
       }
-      return currentlyUnreserved;
-    });
 
-    long lastLogTime = System.nanoTime();
+      log.trace("completeClose(saveState={}) {}", saveState, extent);
 
-    // wait for reads and writes to complete
-    while (writesInProgress > 0 || !runningScans.isEmpty()) {
+      // ensure this method is only called once, also guards against multiple
+      // threads entering the method at the same time
+      closeCompleting = true;
+      closeState = CloseState.CLOSED;
+
+      // modify dataSourceDeletions so scans will try to switch data sources and fail because the
+      // tablet is closed
+      dataSourceDeletions.incrementAndGet();
+
+      for (ScanDataSource activeScan : activeScans) {
+        activeScan.interrupt();
+      }
+
+      // create a copy so that it can be whittled down as client sessions are disabled
+      List<ScanDataSource> runningScans = new ArrayList<>(this.activeScans);
+
       runningScans.removeIf(scanDataSource -> {
         boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
         if (currentlyUnreserved) {
@@ -937,70 +929,97 @@ public class Tablet extends TabletBase {
         return currentlyUnreserved;
       });
 
-      if (log.isDebugEnabled() && System.nanoTime() - lastLogTime > TimeUnit.SECONDS.toNanos(60)) {
-        for (ScanDataSource activeScan : runningScans) {
-          log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
+      Timer lastLogTimer = Timer.startNew();
+
+      // wait for reads and writes to complete
+      while (writesInProgress > 0 || !runningScans.isEmpty()) {
+        runningScans.removeIf(scanDataSource -> {
+          boolean currentlyUnreserved = disallowNewReservations(scanDataSource.getScanParameters());
+          if (currentlyUnreserved) {
+            log.debug("Disabled scan session in tablet close {} {}", extent, scanDataSource);
+          }
+          return currentlyUnreserved;
+        });
+
+        if (log.isDebugEnabled() && lastLogTimer.hasElapsed(1, MINUTES)) {
+          for (ScanDataSource activeScan : runningScans) {
+            log.debug("Waiting on scan in completeClose {} {}", extent, activeScan);
+          }
+
+          lastLogTimer.restart();
         }
 
-        lastLogTime = System.nanoTime();
-      }
-
-      try {
-        log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
-            runningScans.size());
-        this.wait(50);
-      } catch (InterruptedException e) {
-        log.error("Interrupted waiting to completeClose for extent {}", extent, e);
-      }
-    }
-
-    // It is assumed that nothing new would have been added to activeScans since it was copied, so
-    // check that assumption. At this point activeScans should be empty or everything in it should
-    // be disabled.
-    Preconditions.checkState(activeScans.stream()
-        .allMatch(scanDataSource -> disallowNewReservations(scanDataSource.getScanParameters())));
-
-    getTabletMemory().waitForMinC();
-
-    if (saveState && getTabletMemory().getMemTable().getNumEntries() > 0) {
-      try {
-        prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE).run();
-      } catch (NoNodeException e) {
-        throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
-      }
-    }
-
-    if (saveState) {
-      // at this point all tablet data is flushed, so do a consistency check
-      RuntimeException err = null;
-      for (int i = 0; i < 5; i++) {
         try {
-          closeConsistencyCheck();
-          err = null;
-        } catch (RuntimeException t) {
-          err = t;
-          log.error("Consistency check fails, retrying", t);
-          sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+          log.debug("Waiting to completeClose for {}. {} writes {} scans", extent, writesInProgress,
+              runningScans.size());
+          this.wait(50);
+        } catch (InterruptedException e) {
+          log.error("Interrupted waiting to completeClose for extent {}", extent, e);
         }
       }
-      if (err != null) {
-        log.error("Tablet closed consistency check has failed for {} giving up and closing",
-            this.extent);
+
+      // It is assumed that nothing new would have been added to activeScans since it was copied, so
+      // check that assumption. At this point activeScans should be empty or everything in it should
+      // be disabled.
+      Preconditions.checkState(activeScans.stream()
+          .allMatch(scanDataSource -> disallowNewReservations(scanDataSource.getScanParameters())));
+
+      getTabletMemory().waitForMinC();
+
+      shouldPrepMinC = saveState && getTabletMemory().getMemTable().getNumEntries() > 0;
+      if (shouldPrepMinC) {
+        try {
+          mct = prepareForMinC(getFlushID(), MinorCompactionReason.CLOSE);
+        } catch (NoNodeException e) {
+          throw new RuntimeException("Exception on " + extent + " during prep for MinC", e);
+        }
       }
     }
 
-    try {
-      getTabletMemory().getMemTable().delete(0);
-    } catch (Exception t) {
-      log.error("Failed to delete mem table : " + t.getMessage() + " for tablet " + extent, t);
+    if (shouldPrepMinC) {
+      // must not run while tablet is locked, as this may result in deadlocks
+      mct.run();
     }
 
-    getTabletMemory().close();
+    synchronized (this) {
+      // gave up the lock to allow a minor compaction to run, now that the lock is reacquired
+      // validate that nothing unexpectedly changed
+      Preconditions.checkState(closeState == CloseState.CLOSED, "closeState:%s extent:%s",
+          closeState, extent);
+      Preconditions.checkState(writesInProgress == 0, "writesInProgress:%s extent:%s",
+          writesInProgress, extent);
+      if (saveState) {
+        // at this point all tablet data is flushed, so do a consistency check
+        RuntimeException err = null;
+        for (int i = 0; i < 5; i++) {
+          try {
+            closeConsistencyCheck();
+            err = null;
+          } catch (RuntimeException t) {
+            err = t;
+            log.error("Consistency check fails, retrying", t);
+            sleepUninterruptibly(500, TimeUnit.MILLISECONDS);
+          }
+        }
+        if (err != null) {
+          log.error("Tablet closed consistency check has failed for {} giving up and closing",
+              this.extent);
+        }
+      }
 
-    // close data files
-    getTabletResources().close();
+      try {
+        getTabletMemory().getMemTable().delete(0);
+      } catch (RuntimeException t) {
+        log.error("Failed to delete mem table : " + t.getMessage() + " for tablet " + extent, t);
+      }
 
-    closeState = CloseState.COMPLETE;
+      getTabletMemory().close();
+
+      // close data files
+      getTabletResources().close();
+
+      closeState = CloseState.COMPLETE;
+    }
   }
 
   private void closeConsistencyCheck() {
@@ -1030,15 +1049,14 @@ public class Tablet extends TabletBase {
 
       if (!tabletMeta.getLogs().isEmpty()) {
         String msg = "Closed tablet " + extent + " has walog entries in "
-            + AccumuloTable.METADATA.tableName() + " " + tabletMeta.getLogs();
+            + SystemTables.METADATA.tableName() + " " + tabletMeta.getLogs();
         log.error(msg);
         throw new RuntimeException(msg);
       }
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
       log.error(msg, e);
       throw new RuntimeException(msg, e);
-
     }
 
     if (!otherLogs.isEmpty() || !currentLogs.isEmpty() || !referencedLogs.isEmpty()) {
@@ -1148,7 +1166,7 @@ public class Tablet extends TabletBase {
     queryByteRate.update(now, this.queryResultBytes.get());
     ingestRate.update(now, ingestCount);
     ingestByteRate.update(now, ingestBytes);
-    scannedRate.update(now, this.scannedCount.get());
+    scannedRate.update(now, this.scannedCount.sum());
   }
 
   private Set<DfsLogger> currentLogs = new HashSet<>();
@@ -1220,10 +1238,6 @@ public class Tablet extends TabletBase {
     }
   }
 
-  ReentrantLock getLogLock() {
-    return logLock;
-  }
-
   Set<LogEntry> beginClearingUnusedLogs() {
     Preconditions.checkState(logLock.isHeldByCurrentThread());
     Set<LogEntry> unusedLogs = new HashSet<>();
@@ -1278,6 +1292,8 @@ public class Tablet extends TabletBase {
   private boolean removingLogs = false;
 
   // this lock is basically used to synchronize writing of log info to metadata
+  // care should be taken when using this lock. Lock order should be:
+  // refreshLock -> logLock -> tablet to prevent deadlock
   private final ReentrantLock logLock = new ReentrantLock();
 
   // don't release the lock if this method returns true for success; instead, the caller should
@@ -1288,8 +1304,6 @@ public class Tablet extends TabletBase {
 
     boolean releaseLock = true;
 
-    // Should not hold the tablet lock while trying to acquire the log lock because this could lead
-    // to deadlock. However there is a path in the code that does this. See #3759
     logLock.lock();
 
     try {
@@ -1481,6 +1495,24 @@ public class Tablet extends TabletBase {
     getScanfileManager().returnFilesForScan(scanId);
   }
 
+  public void removeBatchedScanRefs() {
+    synchronized (this) {
+      if (isClosed() || isClosing()) {
+        return;
+      }
+      // return early if there are no scan files to remove
+      if (!getScanfileManager().canScanRefsBeRemoved()) {
+        return;
+      }
+      incrementWritesInProgress();
+    }
+    try {
+      getScanfileManager().removeBatchedScanRefs();
+    } finally {
+      decrementWritesInProgress();
+    }
+  }
+
   TabletMemory getTabletMemory() {
     return tabletMemory;
   }
@@ -1518,6 +1550,8 @@ public class Tablet extends TabletBase {
 
   // The purpose of this lock is to prevent race conditions between concurrent refresh RPC calls and
   // between minor compactions and refresh calls.
+  // care should be taken when using this lock. Lock order should be:
+  // refreshLock -> logLock -> tablet to prevent deadlock
   private final ReentrantLock refreshLock = new ReentrantLock();
 
   void bringMinorCompactionOnline(ReferencedTabletFile tmpDatafile,
@@ -1546,12 +1580,13 @@ public class Tablet extends TabletBase {
           }
           attemptedRename = true;
           ScanfileManager.rename(vm, tmpDatafile.getPath(), newDatafile.getPath());
+          TabletLogger.renamed(getExtent(), tmpDatafile, newDatafile);
         }
         break;
       } catch (IOException ioe) {
-        log.warn("Tablet " + getExtent() + " failed to rename " + newDatafile
-            + " after MinC, will retry in 60 secs...", ioe);
-        sleepUninterruptibly(1, TimeUnit.MINUTES);
+        log.warn("Tablet {} failed to rename {} after MinC, will retry in 60 secs...", getExtent(),
+            newDatafile, ioe);
+        sleepUninterruptibly(1, MINUTES);
       }
     } while (true);
 
@@ -1559,11 +1594,11 @@ public class Tablet extends TabletBase {
     // This prevents a concurrent refresh operation from pulling in the new tablet file before the
     // in memory map reference related to the file is deactivated. Scans should use one of the in
     // memory map or the new file, never both.
-    Preconditions.checkState(!getLogLock().isHeldByCurrentThread());
+    Preconditions.checkState(!logLock.isHeldByCurrentThread());
     refreshLock.lock();
     try {
       // Can not hold tablet lock while acquiring the log lock.
-      getLogLock().lock();
+      logLock.lock();
       // do not place any code here between lock and try
       try {
         // The following call pairs with tablet.finishClearingUnusedLogs() later in this block. If
@@ -1580,7 +1615,7 @@ public class Tablet extends TabletBase {
 
         finishClearingUnusedLogs();
       } finally {
-        getLogLock().unlock();
+        logLock.unlock();
       }
 
       // Without the refresh lock, if a refresh happened here it could make the new file written to
@@ -1595,7 +1630,7 @@ public class Tablet extends TabletBase {
               commitSession.getWALogSeq() + 2);
           break;
         } catch (IOException e) {
-          log.error("Failed to write to write-ahead log " + e.getMessage() + " will retry", e);
+          log.error("Failed to write to write-ahead log {} will retry", e.getMessage(), e);
           sleepUninterruptibly(1, TimeUnit.SECONDS);
         }
       } while (true);

@@ -29,7 +29,7 @@ import com.google.common.base.Preconditions;
  * data can be obtained first and then children added later or visa veras.
  *
  */
-class ZcNode {
+final class ZcNode {
 
   /**
    * This enum represents what ZooCache has discovered about a given node in zookeeper so far.

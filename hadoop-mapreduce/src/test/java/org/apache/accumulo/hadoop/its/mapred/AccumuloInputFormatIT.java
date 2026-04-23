@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 
@@ -56,8 +55,15 @@ import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class AccumuloInputFormatIT extends AccumuloClusterHarness {
+
+  @SuppressFBWarnings("MS_SHOULD_BE_FINAL")
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   @BeforeAll
   public static void setupClass() {
@@ -148,7 +154,7 @@ public class AccumuloInputFormatIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

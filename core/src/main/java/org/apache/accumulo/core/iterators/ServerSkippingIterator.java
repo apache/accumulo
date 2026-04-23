@@ -32,7 +32,7 @@ import org.apache.accumulo.core.data.Value;
  * the <code>source</code> iterator is declared final and subclasses directly access it, no longer
  * requiring calls to getSource().
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public abstract class ServerSkippingIterator extends ServerWrappingIterator {
 

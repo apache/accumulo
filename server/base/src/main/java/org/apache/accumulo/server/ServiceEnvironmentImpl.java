@@ -59,7 +59,7 @@ public class ServiceEnvironmentImpl implements ServiceEnvironment {
 
   @Override
   public String getTableName(TableId tableId) throws TableNotFoundException {
-    return context.getTableName(tableId);
+    return context.getQualifiedTableName(tableId);
   }
 
   @Override

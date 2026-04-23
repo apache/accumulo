@@ -36,13 +36,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -52,13 +48,17 @@ import org.apache.hadoop.io.Text;
 public abstract class ClientTabletCache {
 
   /**
-   * Flipped false on call to {@link #clearInstances}. Checked by client classes that locally cache
+   * Flipped false on call to {@link #invalidate}. Checked by client classes that locally cache
    * Locators.
    */
   private volatile boolean isValid = true;
 
   boolean isValid() {
     return isValid;
+  }
+
+  void invalidate() {
+    isValid = false;
   }
 
   /**
@@ -115,17 +115,6 @@ public abstract class ClientTabletCache {
     return findTablet(context, row, skipRow, locationNeed, 0, null);
   }
 
-  public CachedTablet findTabletWithRetry(ClientContext context, Text row, boolean skipRow,
-      LocationNeed locationNeed) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
-    var tl = findTablet(context, row, skipRow, locationNeed);
-    while (tl == null && locationNeed == LocationNeed.REQUIRED) {
-      UtilWaitThread.sleep(100);
-      tl = findTablet(context, row, skipRow, locationNeed);
-    }
-    return tl;
-  }
-
   public abstract <T extends Mutation> void binMutations(ClientContext context, List<T> mutations,
       Map<String,TabletServerMutations<T>> binnedMutations, List<T> failures)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
@@ -179,44 +168,8 @@ public abstract class ClientTabletCache {
    */
   public abstract void invalidateCache();
 
-  /**
-   * Invalidate all metadata entries that point to server
-   */
-  public abstract void invalidateCache(ClientContext context, String server);
-
-  public static synchronized void clearInstances(ClientContext context) {
-    final var instances = context.tabletCaches();
-    for (ClientTabletCache locator : instances.values()) {
-      locator.isValid = false;
-    }
-    instances.clear();
-  }
-
   public long getTabletHostingRequestCount() {
     return 0L;
-  }
-
-  public static synchronized ClientTabletCache getInstance(ClientContext context, TableId tableId) {
-    final var caches = context.tabletCaches();
-    ClientTabletCache tl = caches.get(tableId);
-    if (tl == null) {
-      MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
-
-      if (AccumuloTable.ROOT.tableId().equals(tableId)) {
-        tl = new RootClientTabletCache(context.getTServerLockChecker());
-      } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
-        tl = new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
-            getInstance(context, AccumuloTable.ROOT.tableId()), mlo,
-            context.getTServerLockChecker());
-      } else {
-        tl = new ClientTabletCacheImpl(tableId,
-            getInstance(context, AccumuloTable.METADATA.tableId()), mlo,
-            context.getTServerLockChecker());
-      }
-      caches.put(tableId, tl);
-    }
-
-    return tl;
   }
 
   public static class CachedTablets {
@@ -277,8 +230,7 @@ public abstract class ClientTabletCache {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CachedTablet) {
-        CachedTablet otl = (CachedTablet) o;
+      if (o instanceof CachedTablet otl) {
         return getExtent().equals(otl.getExtent())
             && getTserverLocation().equals(otl.getTserverLocation())
             && getTserverSession().equals(otl.getTserverSession())

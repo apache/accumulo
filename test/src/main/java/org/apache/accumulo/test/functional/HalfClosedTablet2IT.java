@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.File;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
@@ -53,7 +53,7 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
       cfg.setProperty("general.custom.volume.chooser.default",
           PreferredVolumeChooser.class.getName());
       cfg.setProperty("general.custom.volume.preferred.default",
-          new File(cfg.getDir().getAbsolutePath(), "/accumulo").toURI().toString());
+          Path.of(cfg.getDir().getAbsolutePath()).resolve("accumulo").toFile().toURI().toString());
     }
   }
 
