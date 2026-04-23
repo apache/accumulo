@@ -16,10 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, SCAN_SERVER_PROCESS_VIEW, getSserversView, refreshServerInformation
-*/
 "use strict";
 
 const htmlBanner = '#sserversStatusBanner'

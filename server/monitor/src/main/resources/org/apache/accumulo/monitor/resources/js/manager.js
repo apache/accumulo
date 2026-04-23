@@ -16,12 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, MANAGER_SERVER_PROCESS_VIEW, getManagersView, getStoredRows, getStoredStatus,
-    MANAGER_FATE_SERVER_PROCESS_VIEW, getManagersFateView, refreshTable, refreshBanner, showBannerError,
-    getManagerGoalStateFromSession
-*/
 "use strict";
 
 const runningBanner = '#managerRunningBanner'
@@ -109,11 +103,6 @@ $(function () {
 
 // TODO: 6106 - left code commented for the recovery list table to be re-added
 
-/* JSLint global definitions */
-/*global
-    $, document, sessionStorage, getManager, bigNumberForQuantity,
-    timeDuration, dateFormat, getStatus, ajaxReloadTable, getManagerGoalStateFromSession
-*/
 /*
 "use strict";
 

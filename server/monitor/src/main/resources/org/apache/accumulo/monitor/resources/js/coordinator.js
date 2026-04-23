@@ -16,13 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/* JSLint global definitions */
-/*global
-    $, sessionStorage, getStoredRows, getStoredStatus,
-    COORDINATOR_QUEUE_PROCESS_VIEW, MANAGER_COMPACTION_SERVER_PROCESS_VIEW, RUNNING_COMPACTIONS_BY_TABLE, RUNNING_COMPACTIONS_BY_GROUP,
-    getCoordinatorQueueView, getManagersCompactionView, getRunningCompactionsByGroup, getRunningCompactionsByTable,
-	refreshTable, refreshBanner, showBannerError
-*/
 "use strict";
 
 const coordinatorHtmlTable = '#coordinators';
