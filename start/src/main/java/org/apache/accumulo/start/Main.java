@@ -92,14 +92,10 @@ public class Main {
       } else {
         final String keyword = args[0];
         argOffset = 1;
-        ke = executables.entrySet().stream().filter(e -> e.getKey() != clientGroup)
+        ke = executables.entrySet().stream().filter(e -> !clientGroup.equals(e.getKey()))
             .map(e -> e.getValue().get(keyword)).filter(Objects::nonNull).findFirst().orElse(null);
 
         if (ke != null) {
-          log.warn(
-              "Command '{}' should be invoked as 'accumulo {} {}'. "
-                  + "Direct invocation without group key is deprecated.",
-              keyword, ke.commandGroup().key(), keyword);
           execKeyword(ke, stripArgs(args, argOffset));
         } else {
           execMainClassName(keyword, stripArgs(args, argOffset));
