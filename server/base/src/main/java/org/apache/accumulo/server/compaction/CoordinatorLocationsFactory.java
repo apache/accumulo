@@ -21,6 +21,7 @@ package org.apache.accumulo.server.compaction;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.lang.reflect.Type;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -54,13 +55,15 @@ public class CoordinatorLocationsFactory {
       List<HostAndPort> sortedUniqueHost) {
   }
 
+  private static final Type MAP_TYPE = new TypeToken<Map<String,String>>() {}.getType();
+
   public synchronized CoordinatorLocations getLocations() {
     var zooCache = context.getZooCache();
     if (lastLocations == null || lastUpdateCount != zooCache.getUpdateCount()) {
       lastUpdateCount = zooCache.getUpdateCount();
       byte[] serializedMap = zooCache.get(Constants.ZMANAGER_COORDINATOR);
-      var type = new TypeToken<Map<String,String>>() {}.getType();
-      Map<String,String> stringMap = GSON.get().fromJson(new String(serializedMap, UTF_8), type);
+      Map<String,String> stringMap =
+          GSON.get().fromJson(new String(serializedMap, UTF_8), MAP_TYPE);
       Map<ResourceGroupId,HostAndPort> locations = new HashMap<>(stringMap.size());
       stringMap
           .forEach((rg, hp) -> locations.put(ResourceGroupId.of(rg), HostAndPort.fromString(hp)));

@@ -904,7 +904,6 @@ public class Manager extends AbstractServer
   private void setupAssistantMetrics(MetricsProducer... producers) {
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.addMetricsProducers(producers);
-    // TODO should tests compaction metrics from multiple managers
     metricsInfo.addMetricsProducers(requireNonNull(compactionCoordinator));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
