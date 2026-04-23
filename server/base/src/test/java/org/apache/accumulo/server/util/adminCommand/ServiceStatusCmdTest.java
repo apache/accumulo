@@ -40,6 +40,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -86,11 +87,14 @@ public class ServiceStatusCmdTest {
     String lock3Name = "zlock#" + UUID.randomUUID() + "#0000000003";
 
     String lock1data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.MANAGER + "\",\"address\":\"localhost:9991\",\"group\":\"default\"}]}";
     String lock2Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"localhost:9992\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.MANAGER + "\",\"address\":\"localhost:9992\",\"group\":\"default\"}]}";
     String lock3Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"hostA:9999\",\"group\":\"manager1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.MANAGER + "\",\"address\":\"hostA:9999\",\"group\":\"manager1\"}]}";
 
     String lockPath = Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(lockPath, null))
@@ -133,9 +137,11 @@ public class ServiceStatusCmdTest {
     String lock2Name = "zlock#" + UUID.randomUUID() + "#0000000002";
 
     String host1 =
-        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostA\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\""
+            + RpcService.NONE + "\",\"address\":\"hostA\",\"group\":\"default\"}]}";
     String host2 =
-        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostB\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\""
+            + RpcService.NONE + "\",\"address\":\"hostB\",\"group\":\"default\"}]}";
 
     String lockPath = Constants.ZMONITOR_LOCK;
     expect(zooReader.getChildren(lockPath, null)).andReturn(List.of(lock1Name, lock2Name));
@@ -180,38 +186,41 @@ public class ServiceStatusCmdTest {
     String host3 = "hostZ:9999";
 
     String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"CLIENT\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_INGEST\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
-            + host1
-            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\"TSERV\",\"address\":\""
-            + host1 + "\",\"group\":\"default\"}]}\n";
+        "{\"descriptors\":[{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\""
+            + RpcService.TABLET_MANAGEMENT + "\",\"address\":\"" + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\""
+            + RpcService.TSERV + "\",\"address\":\"" + host1
+            + "\",\"group\":\"default\"},{\"uuid\":\"e0a717f2-43a1-466c-aa91-8b33e20e17e5\",\"service\":\""
+            + RpcService.TABLET_INGEST + "\",\"address\":\"" + host1
+            + "\",\"group\":\"default\"}]}\n";
     String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"CLIENT\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TSERV\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TABLET_MANAGEMENT + "\",\"address\":\"" + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TSERV + "\",\"address\":\"" + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TABLET_INGEST + "\",\"address\":\"" + host2
+            + "\",\"group\":\"default\"}]}";
     String lockData3 =
-        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_MANAGEMENT\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"CLIENT\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TSERV\",\"address\":\""
-            + host3
-            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
-            + host3 + "\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TABLET_MANAGEMENT + "\",\"address\":\"" + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TSERV + "\",\"address\":\"" + host3
+            + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\""
+            + RpcService.TABLET_INGEST + "\",\"address\":\"" + host3
+            + "\",\"group\":\"default\"}]}";
 
     String basePath = Constants.ZTSERVERS;
     expect(zooCache.getChildren(basePath))
@@ -284,25 +293,25 @@ public class ServiceStatusCmdTest {
     String host4 = "host4:9091";
 
     String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host1
-            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host1 + "\",\"group\":\"sg1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host1
+            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host1 + "\",\"group\":\"sg1\"}]}";
     String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host2
-            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host2
+            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host2 + "\",\"group\":\"default\"}]}";
     String lockData3 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host3
-            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host3 + "\",\"group\":\"sg1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host3
+            + "\",\"group\":\"sg1\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host3 + "\",\"group\":\"sg1\"}]}";
     String lockData4 =
-        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"TABLET_SCAN\",\"address\":\""
-            + host4
-            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
-            + host4 + "\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.TABLET_SCAN + "\",\"address\":\"" + host4
+            + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\""
+            + RpcService.CLIENT + "\",\"address\":\"" + host4 + "\",\"group\":\"default\"}]}";
 
     String lockPath = Constants.ZSSERVERS;
     expect(zooCache.getChildren(lockPath))
@@ -364,13 +373,17 @@ public class ServiceStatusCmdTest {
     String lock4Name = "zlock#" + uuid4 + "#0000000044";
 
     String lock1data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostA:8080\",\"group\":\"q1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.COMPACTOR + "\",\"address\":\"hostA:8080\",\"group\":\"q1\"}]}";
     String lock2data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostC:8081\",\"group\":\"q1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.COMPACTOR + "\",\"address\":\"hostC:8081\",\"group\":\"q1\"}]}";
     String lock3data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostB:9090\",\"group\":\"q2\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.COMPACTOR + "\",\"address\":\"hostB:9090\",\"group\":\"q2\"}]}";
     String lock4data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostD:9091\",\"group\":\"q2\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.COMPACTOR + "\",\"address\":\"hostD:9091\",\"group\":\"q2\"}]}";
 
     String lockPath = Constants.ZCOMPACTORS;
     expect(zooCache.getChildren(lockPath)).andReturn(List.of("q1", "q2", "q3"));
@@ -419,11 +432,11 @@ public class ServiceStatusCmdTest {
     String host2 = "host2:9090";
 
     String lockData1 =
-        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\"GC\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\""
+            + RpcService.GC + "\",\"address\":\"" + host2 + "\",\"group\":\"default\"}]}";
     String lockData2 =
-        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\"GC\",\"address\":\""
-            + host1 + "\",\"group\":\"gc1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"5c901352-b027-4f78-8ee1-05ae163fbb0e\",\"service\":\""
+            + RpcService.GC + "\",\"address\":\"" + host1 + "\",\"group\":\"gc1\"}]}";
 
     expect(zooReader.getChildren(lockPath, null)).andReturn(List.of(lock1Name, lock2Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
@@ -462,11 +475,11 @@ public class ServiceStatusCmdTest {
     String host3 = "hostA:9999";
 
     String lock2Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
-            + host2 + "\",\"group\":\"default\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.MANAGER + "\",\"address\":\"" + host2 + "\",\"group\":\"default\"}]}";
     String lock3Data =
-        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
-            + host3 + "\",\"group\":\"manager1\"}]}";
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\""
+            + RpcService.MANAGER + "\",\"address\":\"" + host3 + "\",\"group\":\"manager1\"}]}";
 
     String lockPath = Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(lockPath, null))

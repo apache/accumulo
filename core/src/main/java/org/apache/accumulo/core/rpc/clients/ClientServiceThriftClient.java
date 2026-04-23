@@ -24,7 +24,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Client;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
@@ -36,15 +36,15 @@ public class ClientServiceThriftClient extends ThriftClientTypes<Client>
   private static final Logger LOG = LoggerFactory.getLogger(ClientServiceThriftClient.class);
   private final AtomicBoolean warnedAboutTServersBeingDown = new AtomicBoolean(false);
 
-  ClientServiceThriftClient(String serviceName) {
-    super(serviceName, new Client.Factory());
+  ClientServiceThriftClient(RpcService service) {
+    super(service, new Client.Factory());
   }
 
   @Override
   public Pair<String,Client> getThriftServerConnection(ClientContext context,
       boolean preferCachedConnections) throws TTransportException {
     return getThriftServerConnection(LOG, this, context, preferCachedConnections,
-        warnedAboutTServersBeingDown, ThriftService.CLIENT);
+        warnedAboutTServersBeingDown, getService());
   }
 
   @Override

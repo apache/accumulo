@@ -40,6 +40,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
+import org.apache.accumulo.core.rpc.clients.TServerClient.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -88,7 +89,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private Function<Credentials,ThriftClientTypes.Exec<Void,ManagerClientService.Client>> op;
+  private Function<Credentials,Exec<Void,ManagerClientService.Client>> op;
 
   @Test
   public void testPermissions_setManagerGoalState() throws Exception {
@@ -299,23 +300,21 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   }
 
   private static void expectPermissionSuccess(
-      Function<Credentials,ThriftClientTypes.Exec<Void,ManagerClientService.Client>> op,
-      Credentials user) throws Exception {
+      Function<Credentials,Exec<Void,ManagerClientService.Client>> op, Credentials user)
+      throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(user.getPrincipal(), user.getToken()).build()) {
       ThriftClientTypes.MANAGER.execute((ClientContext) client, op.apply(user));
     }
   }
 
-  private static void expectPermissionSuccess(
-      ThriftClientTypes.Exec<Void,ManagerClientService.Client> op, ClientContext context)
-      throws Exception {
+  private static void expectPermissionSuccess(Exec<Void,ManagerClientService.Client> op,
+      ClientContext context) throws Exception {
     ThriftClientTypes.MANAGER.execute(context, op);
   }
 
   private static void expectPermissionDenied(
-      Function<Credentials,ThriftClientTypes.Exec<Void,ManagerClientService.Client>> op,
-      Credentials user) {
+      Function<Credentials,Exec<Void,ManagerClientService.Client>> op, Credentials user) {
     var e = assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));
     assertSame(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());
   }

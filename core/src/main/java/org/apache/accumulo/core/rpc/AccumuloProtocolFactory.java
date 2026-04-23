@@ -22,6 +22,7 @@ import static java.util.Objects.requireNonNull;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -43,22 +44,26 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
   private final boolean isClient;
   private final InstanceId instanceId;
+  private final RpcService rpcService;
 
   static class AccumuloProtocol extends TCompactProtocol {
 
     static final int MAGIC_NUMBER = 0x41434355; // "ACCU" in ASCII
     static final byte PROTOCOL_VERSION = 1; // changes only when the header format changes
 
+    private final RpcService rpcService;
     private final boolean isClient;
     private final InstanceId instanceId;
 
     private Span span = null;
     private Scope scope = null;
 
-    private AccumuloProtocol(TTransport transport, InstanceId instanceId, boolean isClient) {
+    private AccumuloProtocol(TTransport transport, InstanceId instanceId, boolean isClient,
+        RpcService rpcService) {
       super(transport);
       this.instanceId = instanceId;
       this.isClient = isClient;
+      this.rpcService = rpcService;
     }
 
     /**
@@ -205,7 +210,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
   @Override
   public AccumuloProtocol getProtocol(TTransport trans) {
-    return new AccumuloProtocol(requireNonNull(trans), this.instanceId, isClient);
+    return new AccumuloProtocol(requireNonNull(trans), this.instanceId, isClient, rpcService);
   }
 
   /**
@@ -215,22 +220,24 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
    * @param isClient true if this factory produces protocols for the client side, false for the
    *        server side
    */
-  private AccumuloProtocolFactory(InstanceId instanceId, boolean isClient) {
+  private AccumuloProtocolFactory(InstanceId instanceId, boolean isClient, RpcService rpcService) {
     this.isClient = isClient;
     this.instanceId = requireNonNull(instanceId);
+    this.rpcService = rpcService;
   }
 
   /**
    * Creates a client-side factory for use in clients making RPC calls
    */
-  public static AccumuloProtocolFactory clientFactory(InstanceId instanceId) {
-    return new AccumuloProtocolFactory(instanceId, true);
+  public static AccumuloProtocolFactory clientFactory(InstanceId instanceId,
+      ThriftClientTypes<?> clientType) {
+    return new AccumuloProtocolFactory(instanceId, true, clientType.getService());
   }
 
   /**
    * Creates a server-side factory for use in servers receiving RPC calls
    */
   public static AccumuloProtocolFactory serverFactory(InstanceId instanceId) {
-    return new AccumuloProtocolFactory(instanceId, false);
+    return new AccumuloProtocolFactory(instanceId, false, RpcService.NONE);
   }
 }

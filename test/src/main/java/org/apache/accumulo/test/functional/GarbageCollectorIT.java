@@ -54,13 +54,13 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.SimpleGarbageCollector;
@@ -428,7 +428,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           Optional<ServiceLockData> sld = ServiceLockData.parse(zk.getData(lockPath));
 
           assertNotNull(sld.orElseThrow());
-          HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
+          HostAndPort hostAndPort = sld.orElseThrow().getAddress(RpcService.GC);
 
           // We shouldn't have the "bindall" address in zk
           assertNotEquals(ServerOpts.BIND_ALL_ADDRESSES, hostAndPort.getHost());

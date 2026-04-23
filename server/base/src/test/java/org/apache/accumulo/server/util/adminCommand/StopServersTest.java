@@ -35,8 +35,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
@@ -54,7 +54,7 @@ public class StopServersTest {
     String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
     final long session = 123456789L;
-    ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), server, ThriftService.TABLET_SCAN,
+    ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), server, RpcService.TABLET_SCAN,
         ResourceGroupId.DEFAULT);
 
     String serverPath = group + "/" + server;

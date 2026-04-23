@@ -21,79 +21,64 @@ package org.apache.accumulo.core.rpc.clients;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.manager.thrift.FateWorkerService;
-import org.apache.thrift.TException;
+import org.apache.accumulo.core.rpc.AccumuloTMultiplexedProtocol;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
-import org.apache.thrift.protocol.TMultiplexedProtocol;
 import org.apache.thrift.protocol.TProtocol;
 
 public abstract class ThriftClientTypes<C extends TServiceClient> {
 
-  public static final ClientServiceThriftClient CLIENT = new ClientServiceThriftClient("client");
+  public static final ClientServiceThriftClient CLIENT =
+      new ClientServiceThriftClient(RpcService.CLIENT);
 
   public static final CompactorServiceThriftClient COMPACTOR =
-      new CompactorServiceThriftClient("compactor");
+      new CompactorServiceThriftClient(RpcService.COMPACTOR);
 
   public static final CompactionCoordinatorServiceThriftClient COORDINATOR =
-      new CompactionCoordinatorServiceThriftClient("coordinator");
+      new CompactionCoordinatorServiceThriftClient(RpcService.COORDINATOR);
 
-  public static final FateThriftClient FATE = new FateThriftClient("fate");
+  public static final FateThriftClient FATE = new FateThriftClient(RpcService.FATE_CLIENT);
 
-  public static final GCMonitorServiceThriftClient GC = new GCMonitorServiceThriftClient("gc");
+  public static final GCMonitorServiceThriftClient GC =
+      new GCMonitorServiceThriftClient(RpcService.GC);
 
-  public static final ManagerThriftClient MANAGER = new ManagerThriftClient("mgr");
+  public static final ManagerThriftClient MANAGER = new ManagerThriftClient(RpcService.MANAGER);
 
   public static final TabletServerThriftClient TABLET_SERVER =
-      new TabletServerThriftClient("tserver");
+      new TabletServerThriftClient(RpcService.TSERV);
 
   public static final TabletScanClientServiceThriftClient TABLET_SCAN =
-      new TabletScanClientServiceThriftClient("scan");
+      new TabletScanClientServiceThriftClient(RpcService.TABLET_SCAN);
 
   public static final TabletIngestClientServiceThriftClient TABLET_INGEST =
-      new TabletIngestClientServiceThriftClient("ingest");
+      new TabletIngestClientServiceThriftClient(RpcService.TABLET_INGEST);
 
   public static final TabletManagementClientServiceThriftClient TABLET_MGMT =
-      new TabletManagementClientServiceThriftClient("tablet");
+      new TabletManagementClientServiceThriftClient(RpcService.TABLET_MANAGEMENT);
 
   public static final ServerProcessServiceThriftClient SERVER_PROCESS =
-      new ServerProcessServiceThriftClient("process");
+      new ServerProcessServiceThriftClient(RpcService.SERVER_PROCESS);
 
   public static final ThriftClientTypes<FateWorkerService.Client> FATE_WORKER =
-      new FateWorkerThriftClient("fate_worker");
+      new FateWorkerThriftClient(RpcService.FATE_WORKER);
 
-  /**
-   * execute method with supplied client returning object of type R
-   *
-   * @param <R> return type
-   * @param <C> client type
-   */
-  public interface Exec<R,C> {
-    R execute(C client) throws TException;
-  }
-
-  /**
-   * execute method with supplied client
-   *
-   * @param <C> client type
-   */
-  public interface ExecVoid<C> {
-    void execute(C client) throws TException;
-  }
-
-  private final String serviceName;
+  private final RpcService service;
   private final TServiceClientFactory<C> clientFactory;
 
-  protected ThriftClientTypes(String serviceName, TServiceClientFactory<C> factory) {
-    this.serviceName = serviceName;
+  protected ThriftClientTypes(RpcService service, TServiceClientFactory<C> factory) {
+    this.service = service;
     this.clientFactory = factory;
   }
 
   public final String getServiceName() {
-    return serviceName;
+    return service.name();
+  }
+
+  public final RpcService getService() {
+    return service;
   }
 
   public final TServiceClientFactory<C> getClientFactory() {
@@ -102,7 +87,7 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
 
   public C getClient(TProtocol prot) {
     // All server side TProcessors are multiplexed. Wrap this protocol.
-    return getClientFactory().getClient(new TMultiplexedProtocol(prot, getServiceName()));
+    return getClientFactory().getClient(new AccumuloTMultiplexedProtocol(prot, getService()));
   }
 
   public C getConnection(ClientContext context) {
@@ -119,18 +104,8 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
     }
   }
 
-  public <R> R execute(ClientContext context, Exec<R,C> exec)
-      throws AccumuloException, AccumuloSecurityException {
-    throw new UnsupportedOperationException("This method has not been implemented");
-  }
-
-  public void executeVoid(ClientContext context, ExecVoid<C> exec)
-      throws AccumuloException, AccumuloSecurityException {
-    throw new UnsupportedOperationException("This method has not been implemented");
-  }
-
   @Override
   public String toString() {
-    return serviceName;
+    return getServiceName();
   }
 }

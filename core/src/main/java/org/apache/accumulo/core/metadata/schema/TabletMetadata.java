@@ -69,7 +69,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -93,6 +92,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Sp
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.zookeeper.ZcStat;
@@ -849,7 +849,7 @@ public class TabletMetadata {
     ZcStat stat = new ZcStat();
     log.trace("Checking server at ZK path: {}", slp);
     return ServiceLock.getLockData(context.getZooCache(), slp, stat)
-        .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
+        .map(sld -> sld.getAddress(RpcService.TSERV))
         .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
   }
 

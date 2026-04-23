@@ -19,11 +19,12 @@
 package org.apache.accumulo.core.rpc.clients;
 
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService.Client;
+import org.apache.accumulo.core.rpc.RpcService;
 
 public class CompactionCoordinatorServiceThriftClient extends ThriftClientTypes<Client> {
 
-  CompactionCoordinatorServiceThriftClient(String serviceName) {
-    super(serviceName, new Client.Factory());
+  CompactionCoordinatorServiceThriftClient(RpcService service) {
+    super(service, new Client.Factory());
   }
 
 }

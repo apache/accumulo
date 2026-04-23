@@ -36,9 +36,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
 import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metrics.MetricsInfo;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
@@ -171,7 +171,7 @@ public class ZombieTServer {
       }
     };
 
-    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
+    if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, RpcService.TSERV,
         ResourceGroupId.DEFAULT))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }

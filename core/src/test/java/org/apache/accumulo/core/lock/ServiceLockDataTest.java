@@ -30,7 +30,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
-import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.rpc.RpcService;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.net.HostAndPort;
@@ -42,84 +42,82 @@ public class ServiceLockDataTest {
   @Test
   public void testSingleServiceConstructor() throws Exception {
     ServiceLockData ss =
-        new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV, ResourceGroupId.DEFAULT);
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
-    assertEquals("127.0.0.1", ss.getAddressString(ThriftService.TSERV));
-    assertThrows(IllegalArgumentException.class, () -> ss.getAddress(ThriftService.TSERV));
-    assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(ThriftService.TSERV));
-    assertNull(ss.getServerUUID(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddress(ThriftService.TABLET_SCAN));
-    assertNull(ss.getGroup(ThriftService.TABLET_SCAN));
+        new ServiceLockData(serverUUID, "127.0.0.1", RpcService.TSERV, ResourceGroupId.DEFAULT);
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TSERV));
+    assertEquals("127.0.0.1", ss.getAddressString(RpcService.TSERV));
+    assertThrows(IllegalArgumentException.class, () -> ss.getAddress(RpcService.TSERV));
+    assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(RpcService.TSERV));
+    assertNull(ss.getServerUUID(RpcService.TABLET_SCAN));
+    assertNull(ss.getAddressString(RpcService.TABLET_SCAN));
+    assertNull(ss.getAddress(RpcService.TABLET_SCAN));
+    assertNull(ss.getGroup(RpcService.TABLET_SCAN));
   }
 
   @Test
   public void testMultipleServiceConstructor() throws Exception {
     ServiceDescriptors sds = new ServiceDescriptors();
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV, "127.0.0.1:9997",
+    sds.addService(new ServiceDescriptor(serverUUID, RpcService.TSERV, "127.0.0.1:9997",
         ResourceGroupId.DEFAULT));
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN, "127.0.0.1:9998",
+    sds.addService(new ServiceDescriptor(serverUUID, RpcService.TABLET_SCAN, "127.0.0.1:9998",
         ResourceGroupId.DEFAULT));
     ServiceLockData ss = new ServiceLockData(sds);
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
-    assertEquals("127.0.0.1:9997", ss.getAddressString(ThriftService.TSERV));
-    assertEquals(HostAndPort.fromString("127.0.0.1:9997"), ss.getAddress(ThriftService.TSERV));
-    assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(ThriftService.TSERV));
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TABLET_SCAN));
-    assertEquals("127.0.0.1:9998", ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
-        ss.getAddress(ThriftService.TABLET_SCAN));
-    assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(ThriftService.TSERV));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TSERV));
+    assertEquals("127.0.0.1:9997", ss.getAddressString(RpcService.TSERV));
+    assertEquals(HostAndPort.fromString("127.0.0.1:9997"), ss.getAddress(RpcService.TSERV));
+    assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(RpcService.TSERV));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TABLET_SCAN));
+    assertEquals("127.0.0.1:9998", ss.getAddressString(RpcService.TABLET_SCAN));
+    assertEquals(HostAndPort.fromString("127.0.0.1:9998"), ss.getAddress(RpcService.TABLET_SCAN));
+    assertEquals(ResourceGroupId.DEFAULT, ss.getGroup(RpcService.TSERV));
   }
 
   @Test
   public void testSingleServiceConstructorWithGroup() throws Exception {
-    ServiceLockData ss = new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV,
-        ResourceGroupId.of("meta"));
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
-    assertEquals("127.0.0.1", ss.getAddressString(ThriftService.TSERV));
-    assertThrows(IllegalArgumentException.class, () -> ss.getAddress(ThriftService.TSERV));
-    assertEquals(ResourceGroupId.of("meta"), ss.getGroup(ThriftService.TSERV));
-    assertNull(ss.getServerUUID(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddress(ThriftService.TABLET_SCAN));
-    assertNull(ss.getGroup(ThriftService.TABLET_SCAN));
+    ServiceLockData ss =
+        new ServiceLockData(serverUUID, "127.0.0.1", RpcService.TSERV, ResourceGroupId.of("meta"));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TSERV));
+    assertEquals("127.0.0.1", ss.getAddressString(RpcService.TSERV));
+    assertThrows(IllegalArgumentException.class, () -> ss.getAddress(RpcService.TSERV));
+    assertEquals(ResourceGroupId.of("meta"), ss.getGroup(RpcService.TSERV));
+    assertNull(ss.getServerUUID(RpcService.TABLET_SCAN));
+    assertNull(ss.getAddressString(RpcService.TABLET_SCAN));
+    assertNull(ss.getAddress(RpcService.TABLET_SCAN));
+    assertNull(ss.getGroup(RpcService.TABLET_SCAN));
   }
 
   @Test
   public void testSingleServiceConstructor2WithGroup() throws Exception {
-    ServiceLockData ss = new ServiceLockData(serverUUID, "127.0.0.1", ThriftService.TSERV,
-        ResourceGroupId.of("meta"));
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
-    assertEquals("127.0.0.1", ss.getAddressString(ThriftService.TSERV));
-    assertThrows(IllegalArgumentException.class, () -> ss.getAddress(ThriftService.TSERV));
-    assertEquals(ResourceGroupId.of("meta"), ss.getGroup(ThriftService.TSERV));
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
-    assertNull(ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddress(ThriftService.TABLET_SCAN));
-    assertNull(ss.getGroup(ThriftService.TABLET_SCAN));
+    ServiceLockData ss =
+        new ServiceLockData(serverUUID, "127.0.0.1", RpcService.TSERV, ResourceGroupId.of("meta"));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TSERV));
+    assertEquals("127.0.0.1", ss.getAddressString(RpcService.TSERV));
+    assertThrows(IllegalArgumentException.class, () -> ss.getAddress(RpcService.TSERV));
+    assertEquals(ResourceGroupId.of("meta"), ss.getGroup(RpcService.TSERV));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TSERV));
+    assertNull(ss.getAddressString(RpcService.TABLET_SCAN));
+    assertNull(ss.getAddress(RpcService.TABLET_SCAN));
+    assertNull(ss.getGroup(RpcService.TABLET_SCAN));
   }
 
   @Test
   public void testMultipleServiceConstructorWithGroup() throws Exception {
     ServiceDescriptors sds = new ServiceDescriptors();
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TSERV, "127.0.0.1:9997",
+    sds.addService(new ServiceDescriptor(serverUUID, RpcService.TSERV, "127.0.0.1:9997",
         ResourceGroupId.of("meta")));
-    sds.addService(new ServiceDescriptor(serverUUID, ThriftService.TABLET_SCAN, "127.0.0.1:9998",
+    sds.addService(new ServiceDescriptor(serverUUID, RpcService.TABLET_SCAN, "127.0.0.1:9998",
         ResourceGroupId.of("ns1")));
     ServiceLockData ss = new ServiceLockData(sds);
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TSERV));
-    assertEquals("127.0.0.1:9997", ss.getAddressString(ThriftService.TSERV));
-    assertEquals(HostAndPort.fromString("127.0.0.1:9997"), ss.getAddress(ThriftService.TSERV));
-    assertEquals(ResourceGroupId.of("meta"), ss.getGroup(ThriftService.TSERV));
-    assertEquals(serverUUID, ss.getServerUUID(ThriftService.TABLET_SCAN));
-    assertEquals("127.0.0.1:9998", ss.getAddressString(ThriftService.TABLET_SCAN));
-    assertEquals(HostAndPort.fromString("127.0.0.1:9998"),
-        ss.getAddress(ThriftService.TABLET_SCAN));
-    assertEquals(ResourceGroupId.of("ns1"), ss.getGroup(ThriftService.TABLET_SCAN));
-    assertNull(ss.getAddressString(ThriftService.COMPACTOR));
-    assertNull(ss.getAddress(ThriftService.COMPACTOR));
-    assertNull(ss.getGroup(ThriftService.COMPACTOR));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TSERV));
+    assertEquals("127.0.0.1:9997", ss.getAddressString(RpcService.TSERV));
+    assertEquals(HostAndPort.fromString("127.0.0.1:9997"), ss.getAddress(RpcService.TSERV));
+    assertEquals(ResourceGroupId.of("meta"), ss.getGroup(RpcService.TSERV));
+    assertEquals(serverUUID, ss.getServerUUID(RpcService.TABLET_SCAN));
+    assertEquals("127.0.0.1:9998", ss.getAddressString(RpcService.TABLET_SCAN));
+    assertEquals(HostAndPort.fromString("127.0.0.1:9998"), ss.getAddress(RpcService.TABLET_SCAN));
+    assertEquals(ResourceGroupId.of("ns1"), ss.getGroup(RpcService.TABLET_SCAN));
+    assertNull(ss.getAddressString(RpcService.COMPACTOR));
+    assertNull(ss.getAddress(RpcService.COMPACTOR));
+    assertNull(ss.getGroup(RpcService.COMPACTOR));
   }
 
   @Test

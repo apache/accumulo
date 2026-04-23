@@ -71,8 +71,9 @@ public class ThriftUtil {
    *
    * @return The client-side Accumulo TProtocolFactory for RPC
    */
-  public static TProtocolFactory clientProtocolFactory(InstanceId instanceId) {
-    return AccumuloProtocolFactory.clientFactory(instanceId);
+  public static TProtocolFactory clientProtocolFactory(InstanceId instanceId,
+      ThriftClientTypes<?> type) {
+    return AccumuloProtocolFactory.clientFactory(instanceId, type);
   }
 
   /**
@@ -101,7 +102,7 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
       TTransport transport, InstanceId instanceId) {
-    return type.getClient(clientProtocolFactory(instanceId).getProtocol(transport));
+    return type.getClient(clientProtocolFactory(instanceId, type).getProtocol(transport));
   }
 
   /**
