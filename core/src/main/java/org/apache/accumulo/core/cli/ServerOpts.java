@@ -49,7 +49,7 @@ public class ServerOpts extends Help {
       description = "Overrides configuration set in accumulo.properties (but NOT system-wide config"
           + " set in Zookeeper). This is useful when you have process specific configuration items"
           + " that are one-offs from a shared common configuration. Setting the bind address,"
-          + " for example, can be done with the arguments \"-o general.process.bind.addr=127.0.0.1\"."
+          + " for example, can be done with the arguments \"-o rpc.bind.addr=127.0.0.1\"."
           + " Expected format: -o <key>=<value> [-o <key>=<value>]")
   private List<String> overrides = new ArrayList<>();
 
