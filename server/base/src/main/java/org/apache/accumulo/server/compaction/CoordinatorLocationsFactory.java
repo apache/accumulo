@@ -61,7 +61,7 @@ public class CoordinatorLocationsFactory {
       byte[] serializedMap = zooCache.get(Constants.ZMANAGER_COORDINATOR);
       var type = new TypeToken<Map<String,String>>() {}.getType();
       Map<String,String> stringMap = GSON.get().fromJson(new String(serializedMap, UTF_8), type);
-      Map<ResourceGroupId,HostAndPort> locations = new HashMap<>();
+      Map<ResourceGroupId,HostAndPort> locations = new HashMap<>(stringMap.size());
       stringMap
           .forEach((rg, hp) -> locations.put(ResourceGroupId.of(rg), HostAndPort.fromString(hp)));
       lastLocations = new CoordinatorLocations(Map.copyOf(locations), locations.values().stream()
