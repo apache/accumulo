@@ -679,9 +679,13 @@ public class AuditedSecurityOperation extends SecurityOperation {
     String operation = null;
     if (op == TFateOperation.TABLE_ONLINE) {
       operation = "onlineTable";
-    }
-    if (op == TFateOperation.TABLE_OFFLINE) {
+    } else if (op == TFateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
+    } else if (op == TFateOperation.TABLE_LOCK) {
+      operation = "lockTable";
+    } else if (op == TFateOperation.TABLE_UNLOCK) {
+      operation = "unlockTable";
+
     }
     try {
       boolean result = super.canChangeTableState(credentials, tableId, op, namespaceId);

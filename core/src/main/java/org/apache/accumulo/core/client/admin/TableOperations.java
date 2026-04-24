@@ -780,6 +780,48 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
 
   /**
+   * Initiates locking a table, but does not wait for action to complete
+   *
+   * @param tableName the table to lock
+   * @throws AccumuloException when there is a general accumulo error
+   * @throws AccumuloSecurityException when the user does not have the proper permissions
+   */
+  void lock(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   *
+   * @param tableName the table to lock
+   * @param wait if true, then will not return until table is locked
+   * @throws AccumuloException when there is a general accumulo error
+   * @throws AccumuloSecurityException when the user does not have the proper permissions
+   * @since 1.6.0
+   */
+  void lock(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   * Initiates unlocking a table, but does not wait for action to complete
+   *
+   * @param tableName the table to unlock
+   * @throws AccumuloException when there is a general accumulo error
+   * @throws AccumuloSecurityException when the user does not have the proper permissions
+   */
+  void unlock(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
+   *
+   * @param tableName the table to unlock
+   * @param wait if true, then will not return until table is unlocked
+   * @throws AccumuloException when there is a general accumulo error
+   * @throws AccumuloSecurityException when the user does not have the proper permissions
+   * @since 1.6.0
+   */
+  void unlock(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException;
+
+  /**
    * Check if a table is online through its current goal state only. Could run into issues if the
    * current state of the table is in between states. If you require a specific state, call
    * <code>online(tableName, true)</code> or <code>offline(tableName, true)</code>, this will wait

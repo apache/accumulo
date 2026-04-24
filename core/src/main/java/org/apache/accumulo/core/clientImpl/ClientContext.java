@@ -753,8 +753,10 @@ public class ClientContext implements AccumuloClient {
     return tableId;
   }
 
+  @SuppressWarnings("deprecation")
   public TableId requireNotOffline(TableId tableId, String tableName) {
-    if (getTableState(tableId) == TableState.OFFLINE) {
+    TableState state = getTableState(tableId);
+    if (state == TableState.OFFLINE || state == TableState.LOCKED) {
       throw new TableOfflineException(tableId, tableName);
     }
     return tableId;

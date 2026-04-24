@@ -42,7 +42,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -59,21 +59,18 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class OfflineTableIT extends SharedMiniClusterBase {
-
-  private static class OfflineTableITConfiguration implements MiniClusterConfigurationCallback {
-
+public class LockedTableIT extends SharedMiniClusterBase {
+  private static class LockedTableITConfiguration implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      // Timeout scan sessions after being idle for 3 seconds
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
     }
   }
 
   @BeforeAll
   public static void start() throws Exception {
-    OfflineTableITConfiguration c = new OfflineTableITConfiguration();
+    LockedTableITConfiguration c = new LockedTableITConfiguration();
     SharedMiniClusterBase.startMiniClusterWithConfig(c);
   }
 
@@ -83,13 +80,12 @@ public class OfflineTableIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testScanOffline() throws Exception {
-
+  public void testScanLocked() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
       ScanServerIT.createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      client.tableOperations().offline(tableName, true);
+      client.tableOperations().lock(tableName, true);
       assertFalse(client.tableOperations().isOnline(tableName));
 
       assertThrows(TableOfflineException.class,
@@ -98,13 +94,13 @@ public class OfflineTableIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testBatchScanOffline() throws Exception {
+  public void testBatchScanLocked() throws Exception {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
       ScanServerIT.createTableAndIngest(client, tableName, null, 10, 10, "colf");
-      client.tableOperations().offline(tableName, true);
+      client.tableOperations().lock(tableName, true);
       assertFalse(client.tableOperations().isOnline(tableName));
 
       assertThrows(TableOfflineException.class,
@@ -113,11 +109,11 @@ public class OfflineTableIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testSplitOffline() throws Exception {
+  public void testSplitLocked() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
-      client.tableOperations().offline(tableName, true);
+      client.tableOperations().lock(tableName, true);
       assertFalse(client.tableOperations().isOnline(tableName));
       TreeSet<Text> splits = new TreeSet<>();
       splits.add(new Text("m"));
@@ -128,7 +124,25 @@ public class OfflineTableIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testEcompWaitForOffline() throws Exception {
+  public void testUnlockRestoresOnline() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+      ScanServerIT.createTableAndIngest(client, tableName, null, 10, 10, "colf");
+
+      client.tableOperations().lock(tableName, true);
+      assertFalse(client.tableOperations().isOnline(tableName));
+
+      client.tableOperations().unlock(tableName, true);
+      assertTrue(client.tableOperations().isOnline(tableName));
+      try (var scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
+        assertTrue(scanner.iterator().hasNext(),
+            "Table should have rows and be scannable after unlock");
+      }
+    }
+  }
+
+  @Test
+  public void testEcompWaitForLocked() throws Exception {
     final var ctx = getCluster().getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -139,8 +153,7 @@ public class OfflineTableIT extends SharedMiniClusterBase {
 
       final var ecid = ExternalCompactionId.generate(UUID.randomUUID());
 
-      // Insert a fake External compaction which should prevent the wait for offline
-      // from returning
+      // Insert a fake external compaction to block the wait-for-lock
       try (var mutator = ctx.getAmple().mutateTablets()) {
         var tabletDir =
             tabletMeta.getFiles().stream().findFirst().orElseThrow().getPath().getParent();
@@ -151,15 +164,13 @@ public class OfflineTableIT extends SharedMiniClusterBase {
         mutator.mutateTablet(tabletMeta.getExtent()).putExternalCompaction(ecid, cm).mutate();
       }
 
-      // test the ecomp prevents the wait for the offline() table operation from finishing
-      // until the ecomp is deleted
-      testWaitForOffline(ctx, client, tableId, tableName, mutator -> mutator
+      testWaitForLocked(ctx, client, tableId, tableName, mutator -> mutator
           .mutateTablet(tabletMeta.getExtent()).deleteExternalCompaction(ecid).mutate());
     }
   }
 
   @Test
-  public void testOpidWaitForOffline() throws Exception {
+  public void testOpidWaitForLocked() throws Exception {
     final var ctx = getCluster().getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -168,7 +179,7 @@ public class OfflineTableIT extends SharedMiniClusterBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       final var tabletMeta = ctx.getAmple().readTablet(new KeyExtent(tableId, null, null));
 
-      // Insert a fake opid to prevent going offline
+      // Insert a fake opid to block the wait-for-lock
       try (var mutator = ctx.getAmple().mutateTablets()) {
         mutator.mutateTablet(tabletMeta.getExtent())
             .putOperation(TabletOperationId.from(TabletOperationType.SPLITTING,
@@ -176,52 +187,43 @@ public class OfflineTableIT extends SharedMiniClusterBase {
             .mutate();
       }
 
-      // test the opid prevents the wait for the offline() table operation from finishing
-      // until the opid is deleted
-      testWaitForOffline(ctx, client, tableId, tableName,
+      testWaitForLocked(ctx, client, tableId, tableName,
           mutator -> mutator.mutateTablet(tabletMeta.getExtent()).deleteOperation().mutate());
     }
   }
 
-  private void testWaitForOffline(ServerContext ctx, AccumuloClient client, TableId tableId,
-      String tableName, Consumer<TabletsMutator> clear) throws Exception {
+  private void testWaitForLocked(ServerContext ctx, AccumuloClient client, TableId tableId,
+      String tableName, Consumer<Ample.TabletsMutator> clear) throws Exception {
 
-    // Try and take the table offline. At this point this should hang because there is a condition
-    // preventing waitForTableStateTransition call from returning (either opid or ecomp)
     final var service = Executors.newSingleThreadExecutor();
     try {
       var tabletMeta = ctx.getAmple().readTablet(new KeyExtent(tableId, null, null));
       Future<?> f = service.submit(() -> {
         try {
-          client.tableOperations().offline(tableName, true);
+          client.tableOperations().lock(tableName, true);
         } catch (Exception e) {
           throw new RuntimeException(e);
         }
       });
 
-      // Check that the wait times out for the offline operation
+      // The lock(wait=true) call should not return while the blocking condition is present
       assertThrows(TimeoutException.class, () -> f.get(10, TimeUnit.SECONDS));
 
-      // Clear the condition that is preventing the waitForTableStateTransition method
-      // in TableOperationsImpl from finishing
+      // Remove the blocking condition
       try (var mutator = ctx.getAmple().mutateTablets()) {
         clear.accept(mutator);
       }
 
-      // The future should now finish and we should be offline
+      // Now the future should complete and the table should be LOCKED
       f.get();
       tabletMeta = ctx.getAmple().readTablet(new KeyExtent(tableId, null, null));
 
-      // Should have no location, ecomp, or
-
-      assertFalse(tabletMeta.hasCurrent());
-      assertNull(tabletMeta.getLocation());
-      assertTrue(tabletMeta.getExternalCompactions().isEmpty());
+      // Verify tablet state: LOCKED tablets keep their location but have no pending opid
       assertNull(tabletMeta.getOperationId());
+      assertTrue(tabletMeta.getExternalCompactions().isEmpty());
       assertFalse(client.tableOperations().isOnline(tableName));
     } finally {
       service.shutdownNow();
     }
   }
-
 }

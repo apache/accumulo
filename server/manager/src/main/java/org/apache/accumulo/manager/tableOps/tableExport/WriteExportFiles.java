@@ -81,12 +81,14 @@ class WriteExportFiles extends AbstractFateOperation {
   }
 
   private void checkOffline(ClientContext context) throws Exception {
-    if (context.getTableState(tableInfo.tableID) != TableState.OFFLINE) {
+    TableState state = context.getTableState(tableInfo.tableID);
+    if (state != TableState.OFFLINE && state != TableState.LOCKED) {
       context.clearTableListCache();
-      if (context.getTableState(tableInfo.tableID) != TableState.OFFLINE) {
+      state = context.getTableState(tableInfo.tableID);
+      if (state != TableState.OFFLINE && state != TableState.LOCKED) {
         throw new AcceptableThriftTableOperationException(tableInfo.tableID.canonical(),
             tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
-            "Table is not offline");
+            "Table must be in LOCKED or OFFLINE state to export. Current state: " + state);
       }
     }
   }

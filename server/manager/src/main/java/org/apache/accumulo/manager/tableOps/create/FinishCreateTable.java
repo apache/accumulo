@@ -59,6 +59,9 @@ class FinishCreateTable extends AbstractFateOperation {
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
       env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
           TableState.OFFLINE, expectedCurrStates);
+    } else if (tableInfo.getInitialTableState() == InitialTableState.LOCKED) {
+      env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
+          TableState.LOCKED, expectedCurrStates);
     } else {
       env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
           TableState.ONLINE, expectedCurrStates);

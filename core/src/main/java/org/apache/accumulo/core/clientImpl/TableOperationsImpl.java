@@ -1400,7 +1400,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
               && (availability == TabletAvailability.HOSTED
                   || availability == TabletAvailability.ONDEMAND && tablet.getHostingRequested())
               && (loc == null || loc.getType() == LocationType.FUTURE))
-              || (expectedState == TableState.OFFLINE
+              || ((expectedState == TableState.OFFLINE || expectedState == TableState.LOCKED)
                   && (loc != null || opid != null || !externalCompactions.isEmpty()))) {
             if (continueRow == null) {
               continueRow = tablet.getExtent().toMetaRow();
@@ -1508,6 +1508,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
           return;
         }
         break;
+      case LOCKED:
+        op = TFateOperation.TABLE_LOCK;
+        if (SystemTables.containsTableName(tableName)) {
+          throw new AccumuloException("Cannot set table to locked state");
+        }
+        break;
       default:
         throw new IllegalArgumentException(newState + " is not handled.");
     }
@@ -1544,6 +1550,45 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void online(String tableName, boolean wait)
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
     changeTableState(tableName, wait, TableState.ONLINE);
+  }
+
+  @Override
+  public void lock(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    lock(tableName, false);
+  }
+
+  @Override
+  public void lock(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    changeTableState(tableName, wait, TableState.LOCKED);
+
+  }
+
+  @Override
+  public void unlock(String tableName)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    unlock(tableName, false);
+  }
+
+  @Override
+  public void unlock(String tableName, boolean wait)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    EXISTING_TABLE_NAME.validate(tableName);
+
+    TableId tableId = context.getTableId(tableName);
+    List<ByteBuffer> args = List.of(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
+
+    try {
+      doTableFateOperation(tableName, TableNotFoundException.class, TFateOperation.TABLE_UNLOCK,
+          args, Collections.emptyMap());
+    } catch (TableExistsException e) {
+      throw new AssertionError(e);
+    }
+
+    if (wait) {
+      waitForTableStateTransition(tableId, TableState.ONLINE);
+    }
   }
 
   @Override

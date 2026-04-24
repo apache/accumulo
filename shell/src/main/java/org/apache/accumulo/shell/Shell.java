@@ -137,6 +137,7 @@ import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.shell.commands.ListTabletsCommand;
+import org.apache.accumulo.shell.commands.LockCommand;
 import org.apache.accumulo.shell.commands.MaxRowCommand;
 import org.apache.accumulo.shell.commands.MergeCommand;
 import org.apache.accumulo.shell.commands.NamespacePermissionsCommand;
@@ -166,6 +167,7 @@ import org.apache.accumulo.shell.commands.TableCommand;
 import org.apache.accumulo.shell.commands.TablePermissionsCommand;
 import org.apache.accumulo.shell.commands.TablesCommand;
 import org.apache.accumulo.shell.commands.TraceCommand;
+import org.apache.accumulo.shell.commands.UnlockCommand;
 import org.apache.accumulo.shell.commands.UserCommand;
 import org.apache.accumulo.shell.commands.UserPermissionsCommand;
 import org.apache.accumulo.shell.commands.UsersCommand;
@@ -406,7 +408,7 @@ public class Shell extends ClientKeywordExecutable<ShellOptionsJC> {
         new SetAvailabilityCommand(), new GetAvailabilityCommand(), new OnlineCommand(),
         new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
         new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
-        new SummariesCommand()};
+        new SummariesCommand(), new LockCommand(), new UnlockCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
         new ConstraintCommand(), new FlushCommand(), new GetGroupsCommand(), new GetSplitsCommand(),
         new MergeCommand(), new SetGroupsCommand()};

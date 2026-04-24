@@ -201,7 +201,7 @@ public class GarbageCollectionTest {
       } else if (level == Ample.DataLevel.USER) {
         Set<TableId> tableIds = new HashSet<>();
         getTableIDs().forEach((k, v) -> {
-          if (v == TableState.ONLINE || v == TableState.OFFLINE) {
+          if (v == TableState.ONLINE || v == TableState.OFFLINE || v == TableState.LOCKED) {
             // Don't return tables that are NEW, DELETING, or in an
             // UNKNOWN state.
             tableIds.add(k);

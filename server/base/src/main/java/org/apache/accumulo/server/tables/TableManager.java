@@ -113,9 +113,10 @@ public class TableManager {
         boolean transition = switch (currState) {
           // +--------+
           // v |
-          // NEW -> (ONLINE|OFFLINE)+--- DELETING
-          case NEW -> (newState == TableState.OFFLINE || newState == TableState.ONLINE);
-          case ONLINE, UNKNOWN, OFFLINE -> (newState != TableState.NEW);
+          // NEW -> (ONLINE|OFFLINE|LOCKED)+--- DELETING
+          case NEW -> (newState == TableState.OFFLINE || newState == TableState.ONLINE
+              || newState == TableState.LOCKED);
+          case ONLINE, UNKNOWN, OFFLINE, LOCKED -> (newState != TableState.NEW);
           case DELETING -> false;// Can't transition to any state from DELETING
         };
 
