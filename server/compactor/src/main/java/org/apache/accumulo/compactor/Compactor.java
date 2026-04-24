@@ -276,35 +276,35 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     final String rgName = MetricsUtil.formatString(getResourceGroup().canonical());
     FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
         .description(COMPACTOR_ENTRIES_READ.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
         .description(COMPACTOR_ENTRIES_WRITTEN.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     Gauge.builder(COMPACTOR_MAJC_IN_PROGRESS.getName(), this, Compactor::compactionInProgress)
         .description(COMPACTOR_MAJC_IN_PROGRESS.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
         .description(COMPACTOR_MAJC_STUCK.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     FunctionCounter.builder(COMPACTOR_MAJC_CANCELLED.getName(), this, Compactor::getCancellations)
         .description(COMPACTOR_MAJC_CANCELLED.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     FunctionCounter.builder(COMPACTOR_MAJC_COMPLETED.getName(), this, Compactor::getCompletions)
         .description(COMPACTOR_MAJC_COMPLETED.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     FunctionCounter.builder(COMPACTOR_MAJC_FAILED.getName(), this, Compactor::getFailures)
         .description(COMPACTOR_MAJC_FAILED.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     FunctionCounter
         .builder(COMPACTOR_MAJC_FAILURES_TERMINATION.getName(), this, Compactor::getTerminated)
         .description(COMPACTOR_MAJC_FAILURES_TERMINATION.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     Gauge
         .builder(COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getName(), this,
             Compactor::getConsecutiveFailures)
         .description(COMPACTOR_MAJC_FAILURES_CONSECUTIVE.getDescription())
-        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
+        .tags(List.of(Tag.of(MetricsInfo.QUEUE_TAG_KEY, rgName))).register(registry);
     CompactionWatcher.setTimer(timer);
   }
 

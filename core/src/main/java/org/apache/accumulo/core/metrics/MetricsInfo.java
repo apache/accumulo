@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 
@@ -38,9 +37,7 @@ public interface MetricsInfo {
   String RESOURCE_GROUP_TAG_KEY = "resource.group";
   String HOST_TAG_KEY = "host";
   String PORT_TAG_KEY = "port";
-
-  Set<String> allTags = Set.of(INSTANCE_NAME_TAG_KEY, PROCESS_NAME_TAG_KEY, RESOURCE_GROUP_TAG_KEY,
-      HOST_TAG_KEY, PORT_TAG_KEY);
+  String QUEUE_TAG_KEY = "queue.id";
 
   /**
    * Convenience method to create tag name / value pair for the instance name
