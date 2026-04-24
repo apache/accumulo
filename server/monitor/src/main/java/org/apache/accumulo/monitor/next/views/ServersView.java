@@ -20,9 +20,6 @@ package org.apache.accumulo.monitor.next.views;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -428,54 +425,46 @@ public class ServersView {
     return cols;
   }
 
-  private static class ColumnFactoryList {
-    private final Map<String,ColumnFactory> colFactories;
-
-    public ColumnFactoryList(int size) {
-      colFactories = new HashMap<>(size);
-    }
-
-    public void add(ColumnFactory factory) {
-      colFactories.put(factory.getColumn().key(), factory);
-    }
-
-    public Collection<ColumnFactory> list() {
-      return colFactories.values();
-    }
-  }
-
   private static void tabletServerColumns(List<ColumnFactory> cols) {
+    cols.add(new MetricColumnFactory(Metric.SERVER_IDLE));
+    cols.add(new MetricColumnFactory(Metric.LOW_MEMORY));
 
-    List<Metric> tabletServerMetrics = tabletServerMetrics();
-    ColumnFactoryList cfl = new ColumnFactoryList(tabletServerMetrics.size());
-    tabletServerMetrics.forEach(tsm -> cfl.add(new MetricColumnFactory(tsm)));
+    cols.add(new MetricColumnFactory(Metric.TSERVER_TABLETS_ONLINE));
+    cols.add(new MetricColumnFactory(Metric.TSERVER_TABLETS_LONG_ASSIGNMENTS));
 
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
         ThreadPoolNames.RPC_POOL.poolName, "Completed RPCs",
         "Task completed by the Thrift thread pool"));
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
         ThreadPoolNames.RPC_POOL.poolName, "Queued RPCs",
         "Task queued for the Thrift thread pool"));
 
     // Scan columns
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
         ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Completed scans",
         "Scan task completed by all scan thread pools"));
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
         ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Queued scans",
         "Scan task queued on all scan thread pools"));
-    cfl.add(new RatioColumnFactory("Index cache hit",
+    cols.add(new MetricColumnFactory(Metric.SCAN_ERRORS));
+    cols.add(new MetricColumnFactory(Metric.SCAN_SCANNED_ENTRIES));
+    cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS));
+    cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS_BYTES));
+    cols.add(new RatioColumnFactory("Index cache hit",
         "Ratio of hits/total request for the index block cache", Metric.BLOCKCACHE_INDEX_HITCOUNT,
         Metric.BLOCKCACHE_INDEX_REQUESTCOUNT));
-    cfl.add(new RatioColumnFactory("Data cache hit",
+    cols.add(new RatioColumnFactory("Data cache hit",
         "Ratio of hits/total request for the data block cache", Metric.BLOCKCACHE_DATA_HITCOUNT,
         Metric.BLOCKCACHE_DATA_REQUESTCOUNT));
 
     // Ingest and minc
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
+    cols.add(new MetricColumnFactory(Metric.TSERVER_INGEST_ENTRIES));
+    cols.add(new MetricColumnFactory(Metric.TSERVER_INGEST_BYTES));
+    cols.add(new MetricColumnFactory(Metric.TSERVER_HOLD));
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED,
         ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL.poolName, "Completed MinC",
         "Task completed by the minor compaction thread pool"));
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
         ThreadPoolNames.TSERVER_MINOR_COMPACTOR_POOL.poolName, "Queued MinC",
         "Task queued for the minor compaction thread pool"));
 
@@ -484,18 +473,12 @@ public class ServersView {
         tag -> ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_ROOT_POOL.poolName.equals(tag)
             || ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_META_POOL.poolName.equals(tag)
             || ThreadPoolNames.TSERVER_CONDITIONAL_UPDATE_USER_POOL.poolName.equals(tag);
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED, "conditional.update",
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.COMPLETED, "conditional.update",
         condTagPredicate, "Completed Conditional",
         "Task completed by the conditional update thread pool"));
-    cfl.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED, "conditional.update",
+    cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED, "conditional.update",
         condTagPredicate, "Queued Conditional",
         "Task queued for the conditional update thread pool"));
-
-    cols.addAll(cfl.list());
-    Comparator<ColumnFactory> comp =
-        Comparator.<ColumnFactory,String>comparing(cf -> cf.getColumn().key())
-            .thenComparing(COMMON_COLUMNS::contains);
-    Collections.sort(cols, comp);
 
     // TODO create scan problems that is a sum of zombie and low memory
   }
