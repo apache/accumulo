@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.client.PluginEnvironment.Configuration;
 import static org.apache.accumulo.core.conf.Property.TABLE_MAJC_RATIO;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -66,7 +67,7 @@ public class PluginEnvironmentTest {
     String key = TABLE_MAJC_RATIO.getKey();
     String defaultValue = TABLE_MAJC_RATIO.getDefaultValue();
     String overrideValue = "10";
-    assertEquals(overrideValue, defaultValue, "default value cannot match override value");
+    assertNotEquals(overrideValue, defaultValue, "default value cannot match override value");
     Configuration config = Configuration.from(Map.of(key, overrideValue), true);
     assertEquals(overrideValue, config.get(key));
   }
