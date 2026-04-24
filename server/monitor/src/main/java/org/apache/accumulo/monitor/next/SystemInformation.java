@@ -57,6 +57,7 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -495,7 +496,7 @@ public class SystemInformation {
         FMetric fm = FMetric.getRootAsFMetric(binary);
         for (int i = 0; i < fm.tagsLength(); i++) {
           FTag t = fm.tags(i);
-          if (t.key().equals("queue.id")) {
+          if (t.key().equals(MetricsInfo.QUEUE_TAG_KEY)) {
             queueMetrics
                 .computeIfAbsent(t.value(), (k) -> Collections.synchronizedList(new ArrayList<>()))
                 .add(fm);
