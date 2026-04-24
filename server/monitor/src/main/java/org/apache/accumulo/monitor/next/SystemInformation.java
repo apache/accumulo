@@ -414,9 +414,12 @@ public class SystemInformation {
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
   private final AtomicLong timestamp = new AtomicLong(0);
+  private final EnumMap<ServerId.Type,Status> componentStatuses =
+      new EnumMap<>(ServerId.Type.class);
   private final EnumMap<ServersView.ServerTable,Supplier<ServersView>> serverMetricsView =
       new EnumMap<>(ServersView.ServerTable.class);
   private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
+  private String managerGoalState;
   private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
@@ -450,6 +453,8 @@ public class SystemInformation {
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
     configuredCompactionResourceGroups.clear();
+    componentStatuses.clear();
+    managerGoalState = null;
     serverMetricsView.clear();
   }
 
@@ -651,6 +656,14 @@ public class SystemInformation {
     }
 
     timestamp.set(System.currentTimeMillis());
+    componentStatuses.clear();
+    for (final ServerId.Type type : ServerId.Type.values()) {
+      if (type == ServerId.Type.MONITOR) {
+        continue;
+      }
+      componentStatuses.put(type, computeServerStatus(type));
+    }
+    managerGoalState = computeManagerGoalState();
 
     for (final ServerId.Type type : ServerId.Type.values()) {
       Set<ServerId> servers = new HashSet<>();
@@ -700,6 +713,18 @@ public class SystemInformation {
   }
 
   public Status getServerStatus(ServerId.Type type) {
+    return componentStatuses.get(type);
+  }
+
+  public Map<ServerId.Type,Status> getComponentStatuses() {
+    return new EnumMap<>(componentStatuses);
+  }
+
+  public String getManagerGoalState() {
+    return managerGoalState;
+  }
+
+  private Status computeServerStatus(ServerId.Type type) {
     Set<ServerId> servers = getServers(type);
     long problemHostCount =
         problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
@@ -707,6 +732,23 @@ public class SystemInformation {
         .filter(serverId -> !ServersView.hasMetricData(allMetrics.getIfPresent(serverId))).count();
     return ServersView.buildStatus(servers.size(), problemHostCount, missingMetricCount,
         type == ServerId.Type.TABLET_SERVER);
+  }
+
+  private String computeManagerGoalState() {
+    Integer goalState = managers.stream().map(manager -> allMetrics.getIfPresent(manager))
+        .map(response -> ServersView.metricValuesByName(response)
+            .get(Metric.MANAGER_GOAL_STATE.getName()))
+        .filter(value -> value != null && !value.isEmpty())
+        .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(v -> v != null)
+            .map(Number::intValue).min(Comparator.naturalOrder()).orElse(null))
+        .filter(value -> value != null).min(Comparator.naturalOrder()).orElse(null);
+
+    return switch (goalState == null ? -1 : goalState) {
+      case 0 -> "CLEAN_STOP";
+      case 1 -> "SAFE_MODE";
+      case 2 -> "NORMAL";
+      default -> null;
+    };
   }
 
   private Set<ServerId> getServers(ServerId.Type type) {
