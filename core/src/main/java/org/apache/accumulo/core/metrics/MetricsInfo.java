@@ -23,7 +23,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 
 import org.apache.accumulo.core.data.ResourceGroupId;
 
@@ -38,9 +37,7 @@ public interface MetricsInfo {
   String RESOURCE_GROUP_TAG_KEY = "resource.group";
   String HOST_TAG_KEY = "host";
   String PORT_TAG_KEY = "port";
-
-  Set<String> allTags = Set.of(INSTANCE_NAME_TAG_KEY, PROCESS_NAME_TAG_KEY, RESOURCE_GROUP_TAG_KEY,
-      HOST_TAG_KEY, PORT_TAG_KEY);
+  String QUEUE_TAG_KEY = "queue.id";
 
   /**
    * Convenience method to create tag name / value pair for the instance name
@@ -50,7 +47,7 @@ public interface MetricsInfo {
   static Tag instanceNameTag(final String instanceName) {
     Objects.requireNonNull(instanceName,
         "cannot create the tag without providing the instance name");
-    return Tag.of(INSTANCE_NAME_TAG_KEY, instanceName);
+    return Tag.of(INSTANCE_NAME_TAG_KEY, MetricsUtil.formatString(instanceName));
   }
 
   /**
@@ -60,7 +57,7 @@ public interface MetricsInfo {
    */
   static Tag processTag(final String processName) {
     Objects.requireNonNull(processName, "cannot create the tag without providing the process name");
-    return Tag.of(PROCESS_NAME_TAG_KEY, processName);
+    return Tag.of(PROCESS_NAME_TAG_KEY, MetricsUtil.formatString(processName));
   }
 
   /**
@@ -70,9 +67,9 @@ public interface MetricsInfo {
    */
   static Tag resourceGroupTag(final ResourceGroupId resourceGroupName) {
     if (resourceGroupName == null) {
-      return Tag.of(RESOURCE_GROUP_TAG_KEY, "NOT_PROVIDED");
+      return Tag.of(RESOURCE_GROUP_TAG_KEY, MetricsUtil.formatString("NOT_PROVIDED"));
     }
-    return Tag.of(RESOURCE_GROUP_TAG_KEY, resourceGroupName.canonical());
+    return Tag.of(RESOURCE_GROUP_TAG_KEY, MetricsUtil.formatString(resourceGroupName.canonical()));
   }
 
   /**
@@ -84,7 +81,7 @@ public interface MetricsInfo {
   static List<Tag> addressTags(final HostAndPort hostAndPort) {
     Objects.requireNonNull(hostAndPort, "cannot create the tag without providing the hostAndPort");
     List<Tag> tags = new ArrayList<>(2);
-    tags.add(Tag.of(HOST_TAG_KEY, hostAndPort.getHost()));
+    tags.add(Tag.of(HOST_TAG_KEY, MetricsUtil.formatString(hostAndPort.getHost())));
     int port = hostAndPort.getPort();
     if (port != 0) {
       tags.add(Tag.of(PORT_TAG_KEY, Integer.toString(hostAndPort.getPort())));

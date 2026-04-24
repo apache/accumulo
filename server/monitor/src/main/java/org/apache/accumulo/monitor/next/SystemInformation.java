@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.next;
 
 import static com.google.common.base.Suppliers.memoize;
+import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -556,7 +557,7 @@ public class SystemInformation {
           fm = FMetric.getRootAsFMetric(binary, fm);
           for (int i = 0; i < fm.tagsLength(); i++) {
             t = fm.tags(t, i);
-            if (t.key().equals("queue.id")) {
+            if (t.key().equals(QUEUE_TAG_KEY)) {
               String queueName = t.value();
               // For these MetricResponse objects we are going to put the queueId value
               // in the place of the resource group, we'll update the column information
