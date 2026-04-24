@@ -21,6 +21,8 @@ package org.apache.accumulo.monitor.next.views;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -490,6 +492,11 @@ public class ServersView {
         "Task queued for the conditional update thread pool"));
 
     cols.addAll(cfl.list());
+    Comparator<ColumnFactory> comp =
+        Comparator.<ColumnFactory,String>comparing(cf -> cf.getColumn().key())
+            .thenComparing(COMMON_COLUMNS::contains);
+    Collections.sort(cols, comp);
+
     // TODO create scan problems that is a sum of zombie and low memory
   }
 

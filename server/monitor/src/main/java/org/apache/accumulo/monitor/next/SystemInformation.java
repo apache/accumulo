@@ -550,10 +550,12 @@ public class SystemInformation {
       MetricResponse response = allMetrics.getIfPresent(manager);
       if (response.getMetrics() != null) {
 
+        FMetric fm = new FMetric();
+        FTag t = new FTag();
         for (final ByteBuffer binary : response.getMetrics()) {
-          FMetric fm = FMetric.getRootAsFMetric(binary);
+          fm = FMetric.getRootAsFMetric(binary, fm);
           for (int i = 0; i < fm.tagsLength(); i++) {
-            FTag t = fm.tags(i);
+            t = fm.tags(t, i);
             if (t.key().equals("queue.id")) {
               String queueName = t.value();
               // For these MetricResponse objects we are going to put the queueId value
