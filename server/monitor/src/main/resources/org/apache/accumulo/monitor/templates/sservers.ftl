@@ -27,7 +27,17 @@
           <caption><span class="table-caption">Scan Servers</span><br />
             <span class="table-subcaption">The following Scan Servers reported status.</span><br />
           </caption>
-          <tbody></tbody>
+	      <thead><tr><th /></tr></thead>
+	      <tbody>
+	        <tr>
+	          <td>
+	            <div class="d-flex align-items-center">
+	              <strong role="status">Loading...</strong>
+	              <div class="spinner-border ms-auto" aria-hidden="true"></div>
+	            </div>
+	          </td>
+	        </tr>
+	      </tbody>
         </table>
       </div>
     </div>

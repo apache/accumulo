@@ -24,19 +24,49 @@
       <div>
         <table id="gc-server" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Garbage Collector</span><br /></caption>
-          <tbody></tbody>
+          <thead><tr><th /></tr></thead>
+	      <tbody>
+	        <tr>
+	          <td>
+	            <div class="d-flex align-items-center">
+	              <strong role="status">Loading...</strong>
+	              <div class="spinner-border ms-auto" aria-hidden="true"></div>
+	            </div>
+	          </td>
+	        </tr>
+	      </tbody>
         </table>
       </div>
       <div>
         <table id="gc-file" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">File Collection</span><br /></caption>
-          <tbody></tbody>
+	      <thead><tr><th /></tr></thead>
+	      <tbody>
+	        <tr>
+	          <td>
+	            <div class="d-flex align-items-center">
+	              <strong role="status">Loading...</strong>
+	              <div class="spinner-border ms-auto" aria-hidden="true"></div>
+	            </div>
+	          </td>
+	        </tr>
+	      </tbody>
         </table>
       </div>
             <div>
         <table id="gc-wal" class="table caption-top table-bordered table-striped table-condensed">
           <caption><span class="table-caption">Wal Collection</span><br /></caption>
-          <tbody></tbody>
+	      <thead><tr><th /></tr></thead>
+	      <tbody>
+	        <tr>
+	          <td>
+	            <div class="d-flex align-items-center">
+	              <strong role="status">Loading...</strong>
+	              <div class="spinner-border ms-auto" aria-hidden="true"></div>
+	            </div>
+	          </td>
+	        </tr>
+	      </tbody>
         </table>
       </div>
       
