@@ -213,6 +213,11 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
+  public void replaceAll(@NonNull PropStoreKey propStoreKey, @NonNull Map<String,String> props) {
+    mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, props);
+  }
+
+  @Override
   public void replaceAll(@NonNull PropStoreKey propStoreKey, long version,
       @NonNull Map<String,String> props) {
     mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
