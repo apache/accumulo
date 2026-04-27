@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.monitor.next.views;
 
+import static org.apache.accumulo.monitor.next.views.ServersView.MetricFilterPrefixes.GC_WAL;
+import static org.apache.accumulo.monitor.next.views.ServersView.MetricFilterPrefixes.MINC;
+import static org.apache.accumulo.monitor.next.views.ServersView.MetricFilterPrefixes.MINC_COMPACTION;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -483,13 +487,29 @@ public class ServersView {
     // TODO create scan problems that is a sum of zombie and low memory
   }
 
+  // Filters to use with the metricList method
+  public static enum MetricFilterPrefixes {
+
+    GC_WAL("accumulo.gc.wal."), MINC("accumulo.minc"), MINC_COMPACTION("accumulo.compaction.minc");
+
+    String prefix;
+
+    MetricFilterPrefixes(String prefix) {
+      this.prefix = prefix;
+    }
+
+    public String getPrefix() {
+      return prefix;
+    }
+  }
+
   /**
    * The following helper methods are where the metrics included in each table are defined as well
    * as their order.
    */
   private static List<Metric> coordinatorQueueMetrics() {
-    return metricList(m -> !m.getName().startsWith("accumulo.minc")
-        && !m.getName().startsWith("accumulo.compaction.minc"), MetricDocSection.COMPACTION);
+    return metricList(m -> !m.getName().startsWith(MINC.getPrefix())
+        && !m.getName().startsWith(MINC_COMPACTION.getPrefix()), MetricDocSection.COMPACTION);
   }
 
   private static List<Metric> compactorMetrics() {
@@ -502,12 +522,12 @@ public class ServersView {
   }
 
   private static List<Metric> gcFileMetrics() {
-    return metricList((m) -> !m.getName().startsWith("accumulo.gc.wal."),
+    return metricList((m) -> !m.getName().startsWith(GC_WAL.getPrefix()),
         MetricDocSection.GARBAGE_COLLECTION);
   }
 
   private static List<Metric> gcWalMetrics() {
-    return Arrays.stream(Metric.values()).filter(m -> m.getName().startsWith("accumulo.gc.wal."))
+    return Arrays.stream(Metric.values()).filter(m -> m.getName().startsWith(GC_WAL.getPrefix()))
         .collect(Collectors.toList());
   }
 
@@ -520,8 +540,8 @@ public class ServersView {
   }
 
   private static List<Metric> managerCompactionMetrics() {
-    return metricList(m -> !m.getName().startsWith("accumulo.minc")
-        && !m.getName().startsWith("accumulo.compaction.minc"), MetricDocSection.COMPACTION);
+    return metricList(m -> !m.getName().startsWith(MINC.getPrefix())
+        && !m.getName().startsWith(MINC_COMPACTION.getPrefix()), MetricDocSection.COMPACTION);
   }
 
   private static List<Metric> scanServerMetrics() {
