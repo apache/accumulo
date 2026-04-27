@@ -53,6 +53,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -193,7 +194,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           // test off, so only look for metrics from the compactor.
           String process = metric.getTags().getOrDefault("process.name", "none");
           if (!metricName.startsWith("accumulo.compaction.entries")
-              || !process.equals(ServerId.Type.COMPACTOR.name())) {
+              || !process.equals(MetricsUtil.formatString(ServerId.Type.COMPACTOR.name()))) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());

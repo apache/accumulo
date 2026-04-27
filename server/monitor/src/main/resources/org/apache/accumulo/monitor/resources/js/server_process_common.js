@@ -265,7 +265,7 @@ function createDataTable(table, storageKey) {
             if (data === null || data === undefined) {
               return '&mdash;';
             }
-            data = bigNumberForQuantity(data).toString()+"/s";
+            data = bigNumberForQuantity(data).toString() + "/s";
           }
           return data;
         }
@@ -277,7 +277,7 @@ function createDataTable(table, storageKey) {
             if (data === null || data === undefined) {
               return '&mdash;';
             }
-            data = bigNumberForSize(data).toString()+"/s";
+            data = bigNumberForSize(data).toString() + "/s";
           }
           return data;
         }
