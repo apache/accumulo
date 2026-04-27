@@ -25,7 +25,6 @@ const managerStateBanner = '#managerStateBanner'
 const managerStateBannerMessage = '#manager-state-message'
 const htmlTable = '#managers'
 const fateHtmlTable = '#managers_fate'
-const compactionHtmlTable = '#managers_compactions'
 
 function updateManagerGoalStateBanner() {
   const goalState = getManagerGoalStateFromSession();
@@ -47,22 +46,19 @@ function refreshManagerBanners() {
     $(runningBanner).show();
     $(htmlTable).hide();
     $(fateHtmlTable).hide();
-    $(compactionHtmlTable).hide();
   } else {
     // otherwise, hide the error banner and show manager table
     $(runningBanner).hide();
     $(fateHtmlTable).show();
     $(htmlTable).show();
-    $(compactionHtmlTable).show();
   }
   updateManagerGoalStateBanner();
 }
 
 function refresh() {
-  $.when(getManagersView(), getManagersFateView(), getManagersCompactionView()).then(function () {
+  $.when(getManagersView(), getManagersFateView()).then(function () {
     refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
     refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
-    refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     refreshManagerBanners();
     refreshBanner(htmlBanner, htmlBannerMessage, getStoredStatus(MANAGER_SERVER_PROCESS_VIEW));
   }).fail(function () {
@@ -76,18 +72,11 @@ function refresh() {
       columns: [],
       status: null
     });
-    sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
-      data: [],
-      columns: [],
-      status: null
-    });
     refreshTable(htmlTable, MANAGER_SERVER_PROCESS_VIEW);
     refreshTable(fateHtmlTable, MANAGER_FATE_SERVER_PROCESS_VIEW);
-    refreshTable(compactionHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);
     $(runningBanner).show();
     $(htmlTable).hide();
     $(fateHtmlTable).hide();
-    $(compactionHtmlTable).hide();
     $(managerStateBanner).hide();
     showBannerError(htmlBanner, htmlBannerMessage);
   });
@@ -100,11 +89,6 @@ $(function () {
     status: null
   });
   sessionStorage[MANAGER_FATE_SERVER_PROCESS_VIEW] = JSON.stringify({
-    data: [],
-    columns: [],
-    status: null
-  });
-  sessionStorage[MANAGER_COMPACTION_SERVER_PROCESS_VIEW] = JSON.stringify({
     data: [],
     columns: [],
     status: null
