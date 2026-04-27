@@ -23,6 +23,8 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TERMINATION;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.EXECUTOR_COMPLETED;
+import static org.apache.accumulo.core.metrics.Metric.EXECUTOR_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_THREADS_INACTIVE;
 import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_THREADS_TOTAL;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
@@ -160,6 +162,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // add sserver as flaky until scan server included in mini tests.
     Set<Metric> flakyMetrics = Set.of(
             COMPACTOR_MAJC_STUCK,
+            EXECUTOR_COMPLETED,
+            EXECUTOR_QUEUED,
             FATE_TYPE_IN_PROGRESS,
             MANAGER_BALANCER_MIGRATIONS_NEEDED,
             SCAN_BUSY_TIMEOUT_COUNT,

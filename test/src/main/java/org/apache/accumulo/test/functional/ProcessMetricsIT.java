@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.metrics.MetricsUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -155,18 +156,21 @@ public class ProcessMetricsIT extends SharedMiniClusterBase {
     Wait.waitFor(() -> {
       List<String> statsDMetrics = sink.getLines();
       statsDMetrics.stream().filter(line -> line.startsWith(SERVER_IDLE.getName())).peek(log::info)
-          .map(TestStatsDSink::parseStatsDMetric)
-          .filter(a -> a.getTags().get(RESOURCE_GROUP_TAG_KEY).equals(IDLE_RESOURCE_GROUP))
+          .map(TestStatsDSink::parseStatsDMetric).filter(a -> a.getTags()
+              .get(RESOURCE_GROUP_TAG_KEY).equals(MetricsUtil.formatString(IDLE_RESOURCE_GROUP)))
           .forEach(a -> {
             String processName = a.getTags().get(PROCESS_NAME_TAG_KEY);
             int value = Integer.parseInt(a.getValue());
             assertTrue(value == 0 || value == 1 || value == -1, "Unexpected value " + value);
             // check that the idle metric was emitted for each
-            if (ServerId.Type.TABLET_SERVER.name().equals(processName) && value == 1) {
+            if (MetricsUtil.formatString(ServerId.Type.TABLET_SERVER.name()).equals(processName)
+                && value == 1) {
               sawTServer.set(true);
-            } else if (ServerId.Type.SCAN_SERVER.name().equals(processName) && value == 1) {
+            } else if (MetricsUtil.formatString(ServerId.Type.SCAN_SERVER.name())
+                .equals(processName) && value == 1) {
               sawSServer.set(true);
-            } else if (ServerId.Type.COMPACTOR.name().equals(processName) && value == 1) {
+            } else if (MetricsUtil.formatString(ServerId.Type.COMPACTOR.name()).equals(processName)
+                && value == 1) {
               sawCompactor.set(true);
             }
 
@@ -193,15 +197,18 @@ public class ProcessMetricsIT extends SharedMiniClusterBase {
       statsDMetrics.stream().filter(line -> line.startsWith(LOW_MEMORY.getName())).peek(log::info)
           .map(TestStatsDSink::parseStatsDMetric).forEach(a -> {
             String processName = a.getTags().get(PROCESS_NAME_TAG_KEY);
-            if (ServerId.Type.TABLET_SERVER.name().equals(processName)) {
+            if (MetricsUtil.formatString(ServerId.Type.TABLET_SERVER.name()).equals(processName)) {
               sawTServer.set(true);
-            } else if (ServerId.Type.SCAN_SERVER.name().equals(processName)) {
+            } else if (MetricsUtil.formatString(ServerId.Type.SCAN_SERVER.name())
+                .equals(processName)) {
               sawSServer.set(true);
-            } else if (ServerId.Type.COMPACTOR.name().equals(processName)) {
+            } else if (MetricsUtil.formatString(ServerId.Type.COMPACTOR.name())
+                .equals(processName)) {
               sawCompactor.set(true);
-            } else if (ServerId.Type.MANAGER.name().equals(processName)) {
+            } else if (MetricsUtil.formatString(ServerId.Type.MANAGER.name()).equals(processName)) {
               sawManager.set(true);
-            } else if (ServerId.Type.GARBAGE_COLLECTOR.name().equals(processName)) {
+            } else if (MetricsUtil.formatString(ServerId.Type.GARBAGE_COLLECTOR.name())
+                .equals(processName)) {
               sawGC.set(true);
             }
 
@@ -300,7 +307,8 @@ public class ProcessMetricsIT extends SharedMiniClusterBase {
     Wait.waitFor(
         () -> sink.getLines().stream().filter(line -> line.startsWith(SERVER_IDLE.getName()))
             .map(TestStatsDSink::parseStatsDMetric)
-            .filter(a -> a.getTags().get("process.name").equals(processName))
+            .filter(
+                a -> a.getTags().get("process.name").equals(MetricsUtil.formatString(processName)))
             .peek(a -> log.info("Idle metric: {}", a))
             .anyMatch(a -> Integer.parseInt(a.getValue()) == expectedValue),
         60_000, 2000, "Idle metric did not reach the expected value " + expectedValue);
