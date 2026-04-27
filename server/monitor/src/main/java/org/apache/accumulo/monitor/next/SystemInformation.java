@@ -31,6 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -736,13 +737,13 @@ public class SystemInformation {
   }
 
   private String computeManagerGoalState() {
-    Integer goalState = managers.stream().map(manager -> allMetrics.getIfPresent(manager))
+    Integer goalState = managers.stream().map(allMetrics::getIfPresent)
         .map(response -> ServersView.metricValuesByName(response)
             .get(Metric.MANAGER_GOAL_STATE.getName()))
         .filter(value -> value != null && !value.isEmpty())
-        .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(v -> v != null)
+        .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(Objects::nonNull)
             .map(Number::intValue).min(Comparator.naturalOrder()).orElse(null))
-        .filter(value -> value != null).min(Comparator.naturalOrder()).orElse(null);
+        .filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
 
     return switch (goalState == null ? -1 : goalState) {
       case 0 -> "CLEAN_STOP";
