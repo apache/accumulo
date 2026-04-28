@@ -211,8 +211,7 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
   @VisibleForTesting
   public static void load(ServerContext serverContext, InputStream in, Opts options) {
     var loaderOpts = new LoaderOptions();
-    loaderOpts.setAllowDuplicateKeys(true);
-    loaderOpts.setWarnOnDuplicateKeys(false);
+    loaderOpts.setAllowDuplicateKeys(false);
     Yaml yaml = new Yaml(loaderOpts);
     List<ScopedProperties> allProps = read(yaml, options.inputFile, in);
 

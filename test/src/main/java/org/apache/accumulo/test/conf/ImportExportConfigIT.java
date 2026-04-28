@@ -55,6 +55,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.yaml.snakeyaml.constructor.DuplicateKeyException;
 
 public class ImportExportConfigIT extends AccumuloClusterHarness {
 
@@ -823,6 +824,23 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           iae.getMessage());
 
     }
+
+    // Test snake yaml settings dissallow duplicate map keys
+    var dupMapKeys = """
+        scope: SYSTEM
+        scope: RESOURCE_GROUP
+        name: ''
+        name: "rgid1"
+        properties: {
+        }
+        """;
+    var opts = new ImportConfigCommand.Opts();
+    opts.expectedFile = write(dupMapKeys);
+    opts.dryRun = true;
+    opts.ignoreExtra = true;
+    assertThrows(DuplicateKeyException.class, () -> ImportConfigCommand.load(getServerContext(),
+        new ByteArrayInputStream(dupMapKeys.getBytes(UTF_8)), opts));
+
   }
 
   private String write(String yaml) throws IOException {
