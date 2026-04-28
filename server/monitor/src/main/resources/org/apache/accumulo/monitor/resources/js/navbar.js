@@ -18,6 +18,8 @@
  */
 "use strict";
 
+const suggestionCategoryList = '#suggestion-category-list';
+
 /**
  * The status options from the servers
  */
@@ -117,6 +119,67 @@ function refreshSidebar() {
   getStatus().always(function () {
     refreshSideBarNotifications();
   });
+  getSuggestionCategories().then(function () {
+    updateSuggestionCategories();
+  });
+}
+
+/**
+ * Updates the list of suggestion categories
+ */
+function updateSuggestionCategories() {
+
+  var categories = JSON.parse(sessionStorage[SUGGESTION_CATEGORIES]);
+  if (!Array.isArray(categories)) {
+    categories = [];
+  }
+
+  var categoryList = $(suggestionCategoryList);
+  $.each(categories, function (index, cat) {
+
+    var switchId = "sug-cat-switch-" + cat;
+    var switchElement = "#" + switchId;
+    var savedValue = localStorage.getItem(switchId + "-state");
+
+    if ($(switchElement).length) {
+      // update it
+      if (savedValue === null || savedValue === 'true') {
+        switchElement.prop('checked', true);
+      } else {
+        switchElement.prop('checked', false);
+      }
+    } else {
+      // create it
+      var div = $(document.createElement("div"));
+      div.addClass("form-check form-check-reverse form-switch");
+
+      var input = $(document.createElement("input"));
+      input.addClass("form-check-input");
+      input.attr("type", "checkbox");
+      input.attr("role", "switch");
+      input.attr("id", switchId);
+
+      if (savedValue === null || savedValue === 'true') {
+        input.prop('checked', true);
+      } else {
+        input.prop('checked', false);
+      }
+
+      input.on("change", function () {
+        localStorage.setItem("sug-cat-switch-" + cat + "-state", $(this).is(':checked'));
+      });
+      div.append(input);
+
+      var label = $(document.createElement("label"));
+      label.addClass("form-check-label");
+      label.attr("for", switchId);
+      label.text("Suggestions: " + cat);
+      div.append(label);
+
+      categoryList.append(div);
+    }
+  });
+
 }
 
 /**

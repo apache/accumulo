@@ -24,6 +24,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -53,6 +54,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.SuggestionCategory;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -422,10 +424,18 @@ public class Endpoints {
   }
 
   @GET
+  @Path("suggestion/categories")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of suggestion categories")
+  public Set<SuggestionCategory> getSuggestionCategories() {
+    return EnumSet.allOf(SystemInformation.SuggestionCategory.class);
+  }
+
+  @GET
   @Path("suggestions")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of suggestions")
-  public Set<String> getSuggestions() {
+  public Map<SuggestionCategory,List<String>> getSuggestions() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getSuggestions();
   }
 

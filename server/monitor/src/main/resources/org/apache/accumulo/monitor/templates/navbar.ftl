@@ -70,6 +70,13 @@
               </ul>
             </li>
             <li class="dropdown">
+              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
+              role="button" data-bs-toggle="dropdown" aria-expanded="false">Preferences
+              </a>
+              <ul id="suggestion-category-list" class="dropdown-menu col-xs-12">
+              </ul>
+            </li>
+            <li class="dropdown">
               <a class="nav-link" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <span style="font-size: 1.2em;" class="bi bi-three-dots-vertical"></span>
