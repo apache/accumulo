@@ -18,8 +18,15 @@
  */
 package org.apache.accumulo.server.conf.util;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,6 +51,7 @@ import org.apache.accumulo.start.spi.CommandGroups;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import com.beust.jcommander.JCommander;
@@ -77,6 +85,12 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
   }
 
   public static class Opts extends ServerOpts {
+    @Parameter(names = "--input",
+        description = "Yaml file containing configuration data. If not specified will read from stdin.")
+    public String inputFile;
+    @Parameter(names = "--expected",
+        description = "Yaml file containing expected current config.  Changes are only made if config in zookeeper matches whats in this file.")
+    public String expectedFile;
     @Parameter(names = "--ignore-extra",
         description = "Proceed when Accumulo has extra tables, resource groups, or namespaces that are not in yaml")
     public boolean ignoreExtra = false;
@@ -99,6 +113,9 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
   }
 
   record ScopeName(Scope scope, String name) {
+    public ScopeName(ScopedProperties sp) {
+      this(sp.scope(), sp.name());
+    }
   }
 
   private static Set<ScopeName> getAllScopeNames(ServerContext context) {
@@ -124,9 +141,14 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
   }
 
   private static void validate(ServerContext serverContext, List<ScopedProperties> allProps,
-      boolean ignoreExtra) {
+      Map<ScopeName,ScopedProperties> expectedProps, boolean ignoreExtra) {
     var scopeNamesInYaml = new HashSet<ScopeName>();
-    allProps.forEach(sp -> scopeNamesInYaml.add(new ScopeName(sp.scope(), sp.name())));
+    allProps.forEach(sp -> {
+      if (!scopeNamesInYaml.add(new ScopeName(sp))) {
+        throw new IllegalArgumentException(
+            "Duplicate scope+name in input, scope:" + sp.scope() + " name:" + sp.name());
+      }
+    });
     var scopeNamesInAccumulo = getAllScopeNames(serverContext);
 
     if (!scopeNamesInYaml.equals(scopeNamesInAccumulo)) {
@@ -149,6 +171,17 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
       }
     }
 
+    if (expectedProps != null) {
+      for (var scopedProps : allProps) {
+        var key = new ScopeName(scopedProps.scope(), scopedProps.name());
+        if (!expectedProps.containsKey(key)) {
+          throw new IllegalArgumentException(
+              "Scope+name present in input but not present in expected file, scope:" + key.scope()
+                  + " name:" + key.name());
+        }
+      }
+    }
+
     // validate all scope+name before attempting to update any scope+name
     for (var scopedProps : allProps) {
       var propStoreKey = getKey(scopedProps.scope(), scopedProps.name(), serverContext);
@@ -156,22 +189,68 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
     }
   }
 
-  @VisibleForTesting
-  public static void load(ServerContext serverContext, InputStream in, Opts options) {
-    Yaml yaml = new Yaml();
+  private static List<ScopedProperties> read(Yaml yaml, String file, InputStream in) {
     List<ScopedProperties> allProps = new ArrayList<>();
-    for (var obj : yaml.loadAll(in)) {
-      allProps.add(new ScopedProperties((Map<?,?>) obj));
+    if (file != null) {
+      try (var fileIn = new BufferedInputStream(Files.newInputStream(Path.of(file)))) {
+        for (var obj : yaml.loadAll(fileIn)) {
+          allProps.add(new ScopedProperties((Map<?,?>) obj));
+        }
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    } else {
+      for (var obj : yaml.loadAll(in)) {
+        allProps.add(new ScopedProperties((Map<?,?>) obj));
+      }
     }
 
-    validate(serverContext, allProps, options.ignoreExtra);
+    return allProps;
+  }
+
+  @VisibleForTesting
+  public static void load(ServerContext serverContext, InputStream in, Opts options) {
+    var loaderOpts = new LoaderOptions();
+    loaderOpts.setAllowDuplicateKeys(true);
+    loaderOpts.setWarnOnDuplicateKeys(false);
+    Yaml yaml = new Yaml(loaderOpts);
+    List<ScopedProperties> allProps = read(yaml, options.inputFile, in);
+
+    Map<ScopeName,ScopedProperties> expectedProps;
+    if (options.expectedFile == null) {
+      expectedProps = null;
+    } else {
+      var grouped = new HashMap<ScopeName,ScopedProperties>();
+      for (var sp : read(yaml, options.expectedFile, null)) {
+        var key = new ScopeName(sp);
+        if (grouped.put(key, sp) != null) {
+          throw new IllegalArgumentException(
+              "Duplicate scope+name in expected file, scope:" + sp.scope() + " name:" + sp.name());
+        }
+      }
+      expectedProps = grouped;
+    }
+
+    validate(serverContext, allProps, expectedProps, options.ignoreExtra);
 
     if (!options.dryRun) {
       var propStore = serverContext.getPropStore();
 
       for (var sp : allProps) {
         var propStoreKey = getKey(sp.scope(), sp.name(), serverContext);
-        propStore.replaceAll(propStoreKey, sp.props());
+        if (expectedProps == null) {
+          // Unconditionally replace properties
+          propStore.replaceAll(propStoreKey, sp.props());
+        } else {
+          try {
+            // Only replace properties if they match the expected values
+            propStore.replaceAll(propStoreKey, expectedProps.get(new ScopeName(sp)).props(),
+                sp.props());
+          } catch (ConcurrentModificationException cme) {
+            throw new ConcurrentModificationException("Properties in scope:" + sp.scope() + " name:"
+                + sp.name() + " do not match the expected values.", cme);
+          }
+        }
       }
     }
   }
