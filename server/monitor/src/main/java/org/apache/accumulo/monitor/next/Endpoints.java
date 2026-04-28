@@ -57,8 +57,9 @@ import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
-import org.apache.accumulo.monitor.next.views.ServersView;
-import org.apache.accumulo.monitor.next.views.ServersView.Status;
+import org.apache.accumulo.monitor.next.views.Status;
+import org.apache.accumulo.monitor.next.views.TableData;
+import org.apache.accumulo.monitor.next.views.TableDataFactory;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -267,12 +268,12 @@ public class Endpoints {
   @GET
   @Path("servers/view")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a UI-ready table model for server process pages. Add ';table=<ServersView.ServerTable>' to URL")
-  public ServersView getServerProcessView(@MatrixParam("table") ServersView.ServerTable table) {
+  @Description("Returns a UI-ready table model for server process pages. Add ';table=<TableDataFactory.TableName>' to URL")
+  public TableData getServerProcessView(@MatrixParam("table") TableDataFactory.TableName table) {
     if (table == null) {
       throw new BadRequestException("A 'table' parameter is required");
     }
-    ServersView view =
+    TableData view =
         monitor.getInformationFetcher().getSummaryForEndpoint().getServerProcessView(table);
     if (view == null) {
       throw new NotFoundException("ServersView object for table " + table.name() + " not found");
