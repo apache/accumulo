@@ -139,7 +139,7 @@ public class TableDataFactory {
       MetricResponse metricResponse = allMetrics.get(serverId);
       boolean hasMetricData = hasMetricData(metricResponse);
       Map<String,List<FMetric>> serverMetrics =
-          hasMetricData ? TableDataFactory.metricValuesByName(metricResponse) : Map.of();
+          hasMetricData ? metricValuesByName(metricResponse) : Map.of();
 
       return new ServerMetricRow(serverId, metricResponse, serverMetrics);
     }).toList();
