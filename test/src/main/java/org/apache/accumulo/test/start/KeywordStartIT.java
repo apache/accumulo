@@ -58,6 +58,8 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
 import org.apache.accumulo.server.conf.CheckAccumuloProperties;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
+import org.apache.accumulo.server.conf.util.ExportConfigCommand;
+import org.apache.accumulo.server.conf.util.ImportConfigCommand;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.server.init.Initialize;
@@ -195,6 +197,8 @@ public class KeywordStartIT {
         .add(new CommandInfo(CommandGroups.INSTANCE, "delete-instance", DeleteZooInstance.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-config", DumpConfig.class));
     expectSet.add(new CommandInfo(CommandGroups.CONFIG, "dump-zoo", DumpZookeeper.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "import", ImportConfigCommand.class));
+    expectSet.add(new CommandInfo(CommandGroups.CONFIG, "export", ExportConfigCommand.class));
     expectSet.add(new CommandInfo(CommandGroups.INSTANCE, "fate", Fate.class));
     expectSet.add(new CommandInfo(CommandGroups.TABLE, "find-online-ondemand-tablets",
         ListOnlineOnDemandTablets.class));
