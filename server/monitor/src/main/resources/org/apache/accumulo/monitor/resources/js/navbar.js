@@ -167,6 +167,10 @@ function updateSuggestionCategories() {
 
       input.on("change", function () {
         localStorage.setItem("sug-cat-switch-" + cat + "-state", $(this).is(':checked'));
+        // Reload if currently on the overview page
+        if (window.location.pathname === "/") {
+          location.reload();
+        }
       });
       div.append(input);
 
