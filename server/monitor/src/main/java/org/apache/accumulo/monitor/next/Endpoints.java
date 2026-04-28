@@ -51,6 +51,8 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -334,6 +336,22 @@ public class Endpoints {
     return longRunning.values().stream().flatMap(TimeOrderedRunningCompactionSet::stream).distinct()
         .sorted(TimeOrderedRunningCompactionSet.OLDEST_FIRST_COMPARATOR)
         .collect(Collectors.toList());
+  }
+
+  @GET
+  @Path("compactions/running/group")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns number of running major compactions per group")
+  public List<CompactionGroupSummary> getRunningCompactionsPerGroup() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getRunningCompactionsPerGroup();
+  }
+
+  @GET
+  @Path("compactions/running/table")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns number of running major compactions per table")
+  public List<CompactionTableSummary> getRunningCompactionsPerTable() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getRunningCompactionsPerTable();
   }
 
   @GET

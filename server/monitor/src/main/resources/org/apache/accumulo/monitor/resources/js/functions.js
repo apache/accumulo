@@ -25,6 +25,7 @@ var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 const REST_V2_PREFIX = contextPath + 'rest-v2';
 
 const COMPACTOR_SERVER_PROCESS_VIEW = 'compactorsView';
+const COORDINATOR_QUEUE_PROCESS_VIEW = 'coordinatorQueueView';
 const GC_SERVER_PROCESS_VIEW = 'gcSummaryView';
 const GC_FILE_SERVER_PROCESS_VIEW = 'gcFileView';
 const GC_WAL_SERVER_PROCESS_VIEW = 'gcWalView';
@@ -34,6 +35,8 @@ const MANAGER_COMPACTION_SERVER_PROCESS_VIEW = 'managersCompactionView';
 const SCAN_SERVER_PROCESS_VIEW = 'sserversView';
 const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 var STATUS_REQUEST = null;
+const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
+const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -685,6 +688,10 @@ function getCompactorsView() {
   return getServerProcessView('COMPACTORS', COMPACTOR_SERVER_PROCESS_VIEW);
 }
 
+function getCoordinatorQueueView() {
+  return getServerProcessView('COORDINATOR_QUEUES', COORDINATOR_QUEUE_PROCESS_VIEW);
+}
+
 function getGcView() {
   return getServerProcessView('GC_SUMMARY', GC_SERVER_PROCESS_VIEW);
 }
@@ -771,6 +778,23 @@ function getTable(name) {
 function getCompactionsSummary() {
   return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
 }
+
+/**
+ * REST GET call for /compactions/running/table,
+ * stores it on a sessionStorage variable
+ */
+function getRunningCompactionsByTable() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/table', RUNNING_COMPACTIONS_BY_TABLE);
+}
+
+/**
+ * REST GET call for /compactions/running/group,
+ * stores it on a sessionStorage variable
+ */
+function getRunningCompactionsByGroup() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/running/group', RUNNING_COMPACTIONS_BY_GROUP);
+}
+
 
 /**
  * Returns true if the input is a valid regular expression, false otherwise.

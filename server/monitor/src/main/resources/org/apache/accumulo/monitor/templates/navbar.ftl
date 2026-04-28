@@ -54,9 +54,10 @@
                 Activity
               </a>
               <ul class="dropdown-menu col-xs-12" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" href="ec">Active&nbsp;Compactions</a></li>
-                <li><a class="dropdown-item" href="scans">Active&nbsp;Scans</a></li>
                 <li><a class="dropdown-item" href="bulkImports">Bulk&nbsp;Imports</a></li>
+                <li><a class="dropdown-item" href="coordinator">Compaction Overview</a></li>
+                <li><a class="dropdown-item" href="ec">Compaction Details</a></li>
+                <li><a class="dropdown-item" href="scans">Scans</a></li>
               </ul>
             </li>
             <li class="dropdown">
