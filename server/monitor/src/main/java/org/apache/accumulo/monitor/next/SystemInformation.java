@@ -33,6 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -69,6 +70,7 @@ import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ServersView;
 import org.apache.accumulo.monitor.next.views.ServersView.Column;
 import org.apache.accumulo.monitor.next.views.ServersView.ColumnFactory;
+import org.apache.accumulo.monitor.next.views.ServersView.Status;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -427,9 +429,12 @@ public class SystemInformation {
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
   private final AtomicLong timestamp = new AtomicLong(0);
+  private final EnumMap<ServerId.Type,Status> componentStatuses =
+      new EnumMap<>(ServerId.Type.class);
   private final EnumMap<ServersView.ServerTable,Supplier<ServersView>> serverMetricsView =
       new EnumMap<>(ServersView.ServerTable.class);
   private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
+  private String managerGoalState;
   private final int rgLongRunningCompactionSize;
 
   public SystemInformation(Cache<ServerId,MetricResponse> allMetrics, ServerContext ctx) {
@@ -465,6 +470,8 @@ public class SystemInformation {
     tableCompactions.clear();
     groupCompactions.clear();
     configuredCompactionResourceGroups.clear();
+    componentStatuses.clear();
+    managerGoalState = null;
     serverMetricsView.clear();
   }
 
@@ -726,6 +733,14 @@ public class SystemInformation {
     }
 
     timestamp.set(System.currentTimeMillis());
+    componentStatuses.clear();
+    for (final ServerId.Type type : ServerId.Type.values()) {
+      if (type == ServerId.Type.MONITOR) {
+        continue;
+      }
+      componentStatuses.put(type, computeServerStatus(type));
+    }
+    managerGoalState = computeManagerGoalState();
 
     for (Entry<TableId,LongAdder> e : runningCompactionsPerTable.entrySet()) {
       TableId tid = e.getKey();
@@ -741,38 +756,34 @@ public class SystemInformation {
         .forEach((k, v) -> groupCompactions.add(new CompactionGroupSummary(k, v.sum())));
 
     for (final ServerId.Type type : ServerId.Type.values()) {
-      long problemHostCount =
-          problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
       Set<ServerId> servers = new HashSet<>();
       switch (type) {
         case COMPACTOR:
           compactors.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers);
           break;
         case GARBAGE_COLLECTOR:
           servers.add(gc.get());
-          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers);
+          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers);
+          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers);
           break;
         case MANAGER:
           servers.addAll(managers);
-          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers, problemHostCount);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers,
-              problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers);
+          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers);
+          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers);
           ServersView coordinatorQueues = createCompactionQueueSummary(servers);
           serverMetricsView.put(ServersView.ServerTable.COORDINATOR_QUEUES,
               memoize(() -> coordinatorQueues));
-
           break;
         case SCAN_SERVER:
           sservers.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers);
           break;
         case TABLET_SERVER:
           tservers.values().forEach(servers::addAll);
-          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers, problemHostCount);
+          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers);
           break;
         case MONITOR:
         default:
@@ -792,6 +803,64 @@ public class SystemInformation {
 
   public Set<ServerId> getManagers() {
     return this.managers;
+  }
+
+  public Status getServerStatus(ServerId.Type type) {
+    return componentStatuses.get(type);
+  }
+
+  public Map<ServerId.Type,Status> getComponentStatuses() {
+    return new EnumMap<>(componentStatuses);
+  }
+
+  public String getManagerGoalState() {
+    return managerGoalState;
+  }
+
+  private Status computeServerStatus(ServerId.Type type) {
+    Set<ServerId> servers = getServers(type);
+    long problemHostCount =
+        problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
+    int missingMetricCount = (int) servers.stream()
+        .filter(serverId -> !ServersView.hasMetricData(allMetrics.getIfPresent(serverId))).count();
+    return ServersView.buildStatus(servers.size(), problemHostCount, missingMetricCount,
+        type == ServerId.Type.TABLET_SERVER);
+  }
+
+  private String computeManagerGoalState() {
+    Integer goalState = managers.stream().map(allMetrics::getIfPresent)
+        .map(response -> ServersView.metricValuesByName(response)
+            .get(Metric.MANAGER_GOAL_STATE.getName()))
+        .filter(value -> value != null && !value.isEmpty())
+        .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(Objects::nonNull)
+            .map(Number::intValue).min(Comparator.naturalOrder()).orElse(null))
+        .filter(Objects::nonNull).min(Comparator.naturalOrder()).orElse(null);
+
+    return switch (goalState == null ? -1 : goalState) {
+      case 0 -> "CLEAN_STOP";
+      case 1 -> "SAFE_MODE";
+      case 2 -> "NORMAL";
+      default -> null;
+    };
+  }
+
+  private Set<ServerId> getServers(ServerId.Type type) {
+    return switch (type) {
+      case COMPACTOR -> getAll(compactors);
+      case GARBAGE_COLLECTOR -> {
+        final var gcServer = gc.get();
+        yield gcServer == null ? Set.of() : Set.of(gcServer);
+      }
+      case MANAGER -> Set.copyOf(managers);
+      case SCAN_SERVER -> getAll(sservers);
+      case TABLET_SERVER -> getAll(tservers);
+      case MONITOR -> Set.of();
+    };
+  }
+
+  private static Set<ServerId> getAll(Map<String,Set<ServerId>> groupedServers) {
+    return groupedServers.values().stream().flatMap(Set::stream).collect(HashSet::new, Set::add,
+        Set::addAll);
   }
 
   public ServerId getGarbageCollector() {
@@ -880,8 +949,9 @@ public class SystemInformation {
   /**
    * Cache a ServersView for the given table and set of servers.
    */
-  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers,
-      long problemHostCount) {
+  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers) {
+    long problemHostCount =
+        problemHosts.stream().filter(serverId -> servers.contains(serverId)).count();
     serverMetricsView.put(table, memoize(() -> new ServersView(servers, problemHostCount,
         allMetrics.asMap(), timestamp.get(), ServersView.columnsFor(table))));
   }

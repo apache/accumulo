@@ -58,6 +58,7 @@ import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningComp
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.ec.CompactorsSummary;
 import org.apache.accumulo.monitor.next.views.ServersView;
+import org.apache.accumulo.monitor.next.views.ServersView.Status;
 
 import io.micrometer.core.instrument.Meter.Id;
 import io.micrometer.core.instrument.cumulative.CumulativeDistributionSummary;
@@ -82,6 +83,10 @@ public class Endpoints {
 
   @Inject
   private Monitor monitor;
+
+  public record MonitorStatus(String managerGoalState, Map<ServerId.Type,Status> componentStatuses,
+      long timestamp) {
+  }
 
   private void validateResourceGroup(String resourceGroup) {
     if (monitor.getInformationFetcher().getSummaryForEndpoint().getResourceGroups()
@@ -158,6 +163,16 @@ public class Endpoints {
       throw new NotFoundException("Garbage Collector not found");
     }
     return monitor.getInformationFetcher().getAllMetrics().asMap().get(s);
+  }
+
+  @GET
+  @Path("status")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns status of server components")
+  public MonitorStatus getStatus() {
+    SystemInformation summary = monitor.getInformationFetcher().getSummaryForEndpoint();
+    return new MonitorStatus(summary.getManagerGoalState(), summary.getComponentStatuses(),
+        summary.getTimestamp());
   }
 
   @GET
