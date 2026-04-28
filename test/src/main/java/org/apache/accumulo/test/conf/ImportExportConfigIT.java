@@ -21,6 +21,8 @@ package org.apache.accumulo.test.conf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -55,6 +57,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.yaml.snakeyaml.constructor.DuplicateKeyException;
 
 public class ImportExportConfigIT extends AccumuloClusterHarness {
@@ -852,8 +856,9 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
     return expectedFile.toAbsolutePath().toString();
   }
 
-  @Test
-  public void testExpected() throws Exception {
+  @ParameterizedTest
+  @ValueSource(booleans = {true, false})
+  public void testExpected(boolean precheckExpected) throws Exception {
 
     var opts = new ImportConfigCommand.Opts();
     opts.ignoreExtra = true;
@@ -887,16 +892,41 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       opts.expectedFile = write(expectedSystem);
       opts.inputFile = write(updateSystem1);
       ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
-          opts);
+          opts, precheckExpected);
       Wait.waitFor(() -> Map.of("general.server.threadpool.size", "5")
           .equals(client.instanceOperations().getSystemProperties()));
       // running the command again should fail because the expected is not correct
       opts.expectedFile = write(expectedSystem);
       opts.inputFile = write(updateSystem2);
-      var cme = assertThrows(ConcurrentModificationException.class, () -> ImportConfigCommand
-          .load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)), opts));
+      var cme = assertThrows(ConcurrentModificationException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
       assertEquals("Properties in scope:SYSTEM name: do not match the expected values.",
           cme.getMessage());
+      if (precheckExpected) {
+        assertNull(cme.getCause());
+      } else {
+        // when a failure happens in the zookeeper atomic update will have an exception wrapping an
+        // exception
+        assertNotNull(cme.getCause());
+        assertEquals(ConcurrentModificationException.class, cme.getCause().getClass());
+      }
+
+      // test dry run with expected
+      opts.dryRun = true;
+      if (precheckExpected) {
+        cme = assertThrows(ConcurrentModificationException.class,
+            () -> ImportConfigCommand.load(getServerContext(),
+                new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
+        assertEquals("Properties in scope:SYSTEM name: do not match the expected values.",
+            cme.getMessage());
+      } else {
+        // should not fail and should not change anything, this is testing the test code.
+        ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
+            opts, precheckExpected);
+      }
+      opts.dryRun = false;
+
       // The properties should not have changed, give any changes that may have been erroneously
       // made time to propagate
       Thread.sleep(100);
@@ -907,7 +937,7 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       opts.expectedFile = write(updateSystem1);
       opts.inputFile = write(updateSystem2);
       ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
-          opts);
+          opts, precheckExpected);
       Wait.waitFor(() -> Map
           .of("general.micrometer.log.metrics", "log4j2", "general.micrometer.enabled", "true")
           .equals(client.instanceOperations().getSystemProperties()));
@@ -927,8 +957,9 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       client.resourceGroupOperations().setProperty(rgid1, "general.micrometer.enabled", "true");
       opts.expectedFile = write(exportYaml);
       opts.inputFile = write(exportYaml.replace("9", "10"));
-      cme = assertThrows(ConcurrentModificationException.class, () -> ImportConfigCommand
-          .load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)), opts));
+      cme = assertThrows(ConcurrentModificationException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
       assertEquals(
           "Properties in scope:RESOURCE_GROUP name:expectedRG do not match the expected values.",
           cme.getMessage());
@@ -943,7 +974,7 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       opts.expectedFile = write(exportYaml);
       opts.inputFile = write(exportYaml.replace("987654321", "10"));
       ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
-          opts);
+          opts, precheckExpected);
       Wait.waitFor(() -> Map
           .of("general.server.threadpool.size", "10", "general.micrometer.enabled", "false")
           .equals(client.resourceGroupOperations().getProperties(rgid1)));
@@ -953,8 +984,9 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       client.tableOperations().setProperty("expns.t1", "table.split.threshold", "200M");
       opts.expectedFile = write(exportYaml);
       opts.inputFile = write(exportYaml.replace("100M", "600M"));
-      cme = assertThrows(ConcurrentModificationException.class, () -> ImportConfigCommand
-          .load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)), opts));
+      cme = assertThrows(ConcurrentModificationException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
       assertEquals("Properties in scope:TABLE name:expns.t1 do not match the expected values.",
           cme.getMessage());
       assertEquals(Map.of("table.split.threshold", "200M"),
@@ -962,7 +994,7 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       // correct expected file
       opts.expectedFile = write(exportYaml.replace("100M", "200M"));
       ImportConfigCommand.load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)),
-          opts);
+          opts, precheckExpected);
       Wait.waitFor(() -> Map.of("table.split.threshold", "600M")
           .equals(client.tableOperations().getTableProperties("expns.t1")));
 
@@ -973,8 +1005,9 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       var exportYaml2 = ExportConfigCommand.export(getServerContext());
       opts.expectedFile = write(exportYaml);
       opts.inputFile = write(exportYaml2.replace("600M", "123M"));
-      var iae = assertThrows(IllegalArgumentException.class, () -> ImportConfigCommand
-          .load(getServerContext(), new ByteArrayInputStream("".getBytes(UTF_8)), opts));
+      var iae = assertThrows(IllegalArgumentException.class,
+          () -> ImportConfigCommand.load(getServerContext(),
+              new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
       assertEquals(
           "Scope+name present in input but not present in expected file, scope:TABLE name:expns.t2",
           iae.getMessage());
