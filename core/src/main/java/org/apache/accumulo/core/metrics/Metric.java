@@ -241,22 +241,28 @@ public enum Metric {
 
   // Scan Server Metrics
   SCAN_RESERVATION_TOTAL_TIMER("accumulo.scan.reservation.total.timer", MetricType.TIMER,
-      "Time to reserve a tablet's files for scan.", MetricDocSection.SCAN_SERVER,
-      "Scan Reservation Total Time", null, NUMBER),
+      "Average time to reserve a tablet's files for scan.", MetricDocSection.SCAN_SERVER,
+      "Mean Reservation", null, NUMBER),
   SCAN_RESERVATION_WRITEOUT_TIMER("accumulo.scan.reservation.writeout.timer", MetricType.TIMER,
       "Time to write out a tablets file reservations for scan.", MetricDocSection.SCAN_SERVER,
       "Scan Reservation Write Time", null, NUMBER),
+  SCAN_RESERVATION_FILES("accumulo.scan.reservation.files", MetricType.TIMER,
+      "The number of files reserved by a scan server.", MetricDocSection.SCAN_SERVER,
+      "Files Reserved", null, NUMBER),
   SCAN_RESERVATION_CONFLICT_COUNTER("accumulo.scan.reservation.conflict.count", MetricType.COUNTER,
       "Count of instances where file reservation attempts for scans encountered conflicts.",
       MetricDocSection.SCAN_SERVER, "Scan Reservation Conflicts", null, NUMBER),
   SCAN_TABLET_METADATA_CACHE("accumulo.scan.tablet.metadata.cache", MetricType.CACHE,
       "Scan server tablet cache metrics.", MetricDocSection.SCAN_SERVER, "Scan Server Tablet Cache",
       null, NUMBER),
-
-  // Scan Metrics
   SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.FUNCTION_COUNTER,
       "Count of the scans where a busy timeout happened.", MetricDocSection.SCAN, "Scan Busy Count",
       null, NUMBER),
+  SCAN_TABLETS_CACHED("accumulo.scan.tablet.cached", MetricType.GAUGE,
+      "The number of tablets for which a scan server has cached metadata.", MetricDocSection.SCAN,
+      "Tablets Cached", null, NUMBER),
+
+  // Scan Metrics
   SCAN_TIMES("accumulo.scan.times", MetricType.TIMER, "Scan session lifetime (creation to close).",
       MetricDocSection.SCAN, "Scan Session Total Time", null, NUMBER),
   SCAN_OPEN_FILES("accumulo.scan.files.open", MetricType.GAUGE, "Number of files open for scans.",

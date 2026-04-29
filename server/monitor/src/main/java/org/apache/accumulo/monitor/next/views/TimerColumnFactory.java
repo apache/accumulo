@@ -18,54 +18,51 @@
  */
 package org.apache.accumulo.monitor.next.views;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
+import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
-import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.monitor.next.views.TableDataFactory.StatType;
 
-public class MetricColumnFactory implements ColumnFactory {
+import com.google.common.base.Preconditions;
 
-  private final Column column;
-  private final boolean computeRate;
+public class TimerColumnFactory implements ColumnFactory {
 
-  MetricColumnFactory(Metric metric) {
-    String classes;
-    if (metric.getType() == Metric.MetricType.FUNCTION_COUNTER) {
-      if (Arrays.asList(metric.getColumnClasses()).contains(Metric.MonitorCssClass.BYTES)) {
-        classes = Metric.MonitorCssClass.BYTES_RATE.getCssClass();
-      } else {
-        classes = Metric.MonitorCssClass.RATE.getCssClass();
-      }
-      computeRate = true;
-    } else {
-      classes = Arrays.stream(metric.getColumnClasses()).map(Metric.MonitorCssClass::getCssClass)
-          .collect(Collectors.joining(" "));
-      computeRate = false;
-    }
-    this.column = new Column(metric.getName(), metric.getColumnHeader(),
-        metric.getColumnDescription(), classes);
+  private final TableData.Column column;
+
+  public TimerColumnFactory(Metric metric) {
+    Preconditions.checkArgument(metric.getType() == Metric.MetricType.TIMER);
+
+    this.column = new TableData.Column(metric.getName(), metric.getColumnHeader(),
+        metric.getColumnDescription(), Metric.MonitorCssClass.DURATION.getCssClass());
+
   }
 
   @Override
-  public Column getColumn() {
+  public TableData.Column getColumn() {
     return column;
   }
 
   @Override
   public Object getRowData(ServerId sid, MetricResponse mr,
       Map<String,List<FMetric>> serverMetrics) {
-    var sum = sum(serverMetrics.getOrDefault(column.key(), List.of()), StatType.COUNT_OR_VALUE);
-    if (computeRate) {
-      return computeRate(sum);
-    } else {
-      return sum;
+    var metrics = serverMetrics.getOrDefault(column.key(), List.of());
+    FTag ftag = new FTag();
+    for (var metric : metrics) {
+      for (int i = 0; i < metric.tagsLength(); i++) {
+        metric.tags(ftag, i);
+      }
+      String statVal = TableDataFactory.extractStatistic(metric, ftag);
+      if (StatType.AVERAGE.equals(statVal)) {
+        // The average time in in seconds, convert it to millis for the monitor front end code.
+        return SystemInformation.getMetricValue(metric).doubleValue() * 1000;
+      }
     }
+    return null;
   }
 }

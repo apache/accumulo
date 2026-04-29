@@ -20,10 +20,12 @@ package org.apache.accumulo.monitor.next.views;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metrics.MonitorMeterRegistry;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
+import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.SystemInformation;
 import org.apache.accumulo.monitor.next.views.TableData.Column;
@@ -56,10 +58,14 @@ public interface ColumnFactory {
     }
   }
 
-  default Number sum(List<FMetric> metrics) {
+  default Number sum(List<FMetric> metrics, Predicate<String> statPredicate) {
     Number sum = null;
+    FTag tag = new FTag();
     for (var metric : metrics) {
-      sum = add(sum, SystemInformation.getMetricValue(metric));
+      var statValue = TableDataFactory.extractStatistic(metric, tag);
+      if (statPredicate.test(statValue)) {
+        sum = add(sum, SystemInformation.getMetricValue(metric));
+      }
     }
     return sum;
   }

@@ -26,6 +26,7 @@ import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.views.TableDataFactory.StatType;
 
 public class RatioColumnFactory implements ColumnFactory {
 
@@ -55,8 +56,8 @@ public class RatioColumnFactory implements ColumnFactory {
       return null;
     }
 
-    var numeratorSum = sum(n).doubleValue();
-    var denominatorSum = sum(n).doubleValue();
+    var numeratorSum = sum(n, StatType.COUNT_OR_VALUE).doubleValue();
+    var denominatorSum = sum(n, StatType.COUNT_OR_VALUE).doubleValue();
 
     if (denominatorSum == 0) {
       return null;
