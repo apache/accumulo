@@ -177,7 +177,7 @@ function updateSuggestionCategories() {
       var label = $(document.createElement("label"));
       label.addClass("form-check-label");
       label.attr("for", switchId);
-      label.text("Suggestions: " + cat);
+      label.text(cat);
       div.append(label);
 
       categoryList.append(div);

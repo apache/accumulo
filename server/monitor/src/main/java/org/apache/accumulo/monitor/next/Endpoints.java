@@ -435,7 +435,7 @@ public class Endpoints {
   @Path("suggestions")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of suggestions")
-  public Map<SuggestionCategory,List<String>> getSuggestions() {
+  public Map<SuggestionCategory,Set<String>> getSuggestions() {
     return monitor.getInformationFetcher().getSummaryForEndpoint().getSuggestions();
   }
 

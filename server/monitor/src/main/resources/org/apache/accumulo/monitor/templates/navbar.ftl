@@ -73,7 +73,10 @@
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">Preferences
               </a>
-              <ul id="suggestion-category-list" class="dropdown-menu dropdown-menu-end">
+              <ul id="preferences-list" class="dropdown-menu dropdown-menu-end">
+                <li><span class="dropdown-item-text">Suggestions</span></li>
+                <li><hr class="dropdown-divider"></li>
+                <div id="suggestion-category-list"></div>
               </ul>
             </li>
             <li class="dropdown">
