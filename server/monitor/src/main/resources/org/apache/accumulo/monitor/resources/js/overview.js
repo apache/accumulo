@@ -67,7 +67,7 @@ $(function () {
             return data;
           }
 
-          return '<a href="' + sanitize(link) + '">' + sanitize(data) + '</a>';
+          return '<a class="link-body-emphasis" href="' + sanitize(link) + '">' + sanitize(data) + '</a>';
         }
       },
       {
