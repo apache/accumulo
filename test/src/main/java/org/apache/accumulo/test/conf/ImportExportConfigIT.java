@@ -901,7 +901,8 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       var cme = assertThrows(ConcurrentModificationException.class,
           () -> ImportConfigCommand.load(getServerContext(),
               new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
-      assertEquals("Properties in scope:SYSTEM name: do not match the expected values.",
+      assertEquals(
+          "Properties in scope:SYSTEM name: do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
           cme.getMessage());
       if (precheckExpected) {
         assertNull(cme.getCause());
@@ -918,7 +919,8 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
         cme = assertThrows(ConcurrentModificationException.class,
             () -> ImportConfigCommand.load(getServerContext(),
                 new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
-        assertEquals("Properties in scope:SYSTEM name: do not match the expected values.",
+        assertEquals(
+            "Properties in scope:SYSTEM name: do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
             cme.getMessage());
       } else {
         // should not fail and should not change anything, this is testing the test code.
@@ -961,7 +963,7 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
           () -> ImportConfigCommand.load(getServerContext(),
               new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
       assertEquals(
-          "Properties in scope:RESOURCE_GROUP name:expectedRG do not match the expected values.",
+          "Properties in scope:RESOURCE_GROUP name:expectedRG do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
           cme.getMessage());
       // The properties should not have changed, give any changes that may have been erroneously
       // made time to propagate
@@ -987,7 +989,8 @@ public class ImportExportConfigIT extends AccumuloClusterHarness {
       cme = assertThrows(ConcurrentModificationException.class,
           () -> ImportConfigCommand.load(getServerContext(),
               new ByteArrayInputStream("".getBytes(UTF_8)), opts, precheckExpected));
-      assertEquals("Properties in scope:TABLE name:expns.t1 do not match the expected values.",
+      assertEquals(
+          "Properties in scope:TABLE name:expns.t1 do not match the expected values. To diagnose, export current config to a new file and diff with expected file.",
           cme.getMessage());
       assertEquals(Map.of("table.split.threshold", "200M"),
           client.tableOperations().getTableProperties("expns.t1"));

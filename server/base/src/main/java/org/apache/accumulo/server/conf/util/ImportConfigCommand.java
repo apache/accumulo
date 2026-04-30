@@ -198,8 +198,8 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
         // the expected being updated.
         if (!propStore.get(propStoreKey).asMap()
             .equals(expectedProps.get(new ScopeName(scopedProps)).props())) {
-          throw new ConcurrentModificationException("Properties in scope:" + scopedProps.scope()
-              + " name:" + scopedProps.name() + " do not match the expected values.");
+          throw new ConcurrentModificationException(
+              createUnexpectedMessage(scopedProps.scope(), scopedProps.name()));
         }
       }
     }
@@ -227,6 +227,11 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
   @VisibleForTesting
   public static void load(ServerContext serverContext, InputStream in, Opts options) {
     load(serverContext, in, options, true);
+  }
+
+  private static String createUnexpectedMessage(Scope scope, String name) {
+    return "Properties in scope:" + scope + " name:" + name
+        + " do not match the expected values. To diagnose, export current config to a new file and diff with expected file.";
   }
 
   @VisibleForTesting
@@ -268,8 +273,8 @@ public class ImportConfigCommand extends ServerKeywordExecutable<ImportConfigCom
             propStore.replaceAll(propStoreKey, expectedProps.get(new ScopeName(sp)).props(),
                 sp.props());
           } catch (ConcurrentModificationException cme) {
-            throw new ConcurrentModificationException("Properties in scope:" + sp.scope() + " name:"
-                + sp.name() + " do not match the expected values.", cme);
+            throw new ConcurrentModificationException(
+                createUnexpectedMessage(sp.scope(), sp.name()), cme);
           }
         }
       }
