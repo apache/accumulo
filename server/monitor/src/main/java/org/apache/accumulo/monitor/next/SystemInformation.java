@@ -67,10 +67,11 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
-import org.apache.accumulo.monitor.next.views.ServersView;
-import org.apache.accumulo.monitor.next.views.ServersView.Column;
-import org.apache.accumulo.monitor.next.views.ServersView.ColumnFactory;
-import org.apache.accumulo.monitor.next.views.ServersView.Status;
+import org.apache.accumulo.monitor.next.views.ColumnFactory;
+import org.apache.accumulo.monitor.next.views.Status;
+import org.apache.accumulo.monitor.next.views.TableData;
+import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.views.TableDataFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
@@ -432,8 +433,8 @@ public class SystemInformation {
   private final AtomicLong timestamp = new AtomicLong(0);
   private final EnumMap<ServerId.Type,Status> componentStatuses =
       new EnumMap<>(ServerId.Type.class);
-  private final EnumMap<ServersView.ServerTable,Supplier<ServersView>> serverMetricsView =
-      new EnumMap<>(ServersView.ServerTable.class);
+  private final EnumMap<TableDataFactory.TableName,Supplier<TableData>> serverMetricsView =
+      new EnumMap<>(TableDataFactory.TableName.class);
   private DeploymentOverview deploymentOverview = new DeploymentOverview(0L, List.of());
   private String managerGoalState;
   private final int rgLongRunningCompactionSize;
@@ -514,18 +515,19 @@ public class SystemInformation {
 
   }
 
-  private ServersView createCompactionQueueSummary(final Set<ServerId> managers) {
+  private TableData createCompactionQueueSummary(final Set<ServerId> managers) {
 
     final Column COMPACTION_QUEUE_COL =
-        new Column(ServersView.RG_COL_KEY, "Compaction Queue", "Compaction Queue", "");
+        new Column(TableDataFactory.RG_COL_KEY, "Compaction Queue", "Compaction Queue", "");
 
-    List<ColumnFactory> cols = ServersView.columnsFor(ServersView.ServerTable.COORDINATOR_QUEUES);
+    List<ColumnFactory> cols =
+        TableDataFactory.columnsFor(TableDataFactory.TableName.COORDINATOR_QUEUES);
 
     // Remove the column mapping for the resource group and replace it so that
     // the column header reads "Compaction Queue" instead of "Resource Group"
     int rgIdx = -1;
     for (int idx = 0; idx < cols.size(); idx++) {
-      if (cols.get(idx).getColumn().key().equals(ServersView.RG_COL_KEY)) {
+      if (cols.get(idx).getColumn().key().equals(TableDataFactory.RG_COL_KEY)) {
         rgIdx = idx;
         break;
       }
@@ -585,9 +587,9 @@ public class SystemInformation {
 
     if (!qm.isEmpty()) {
       // Create a ServersView object from the MetricResponse for each queue
-      return new ServersView(qm.keySet(), 0, qm, timestamp.get(), cols);
+      return TableDataFactory.forColumns(qm.keySet(), qm, timestamp.get(), cols);
     }
-    return new ServersView(Set.of(), 0, Map.of(), timestamp.get(), cols);
+    return TableDataFactory.forColumns(Set.of(), Map.of(), timestamp.get(), cols);
   }
 
   public void processResponse(final ServerId server, final MetricResponse response) {
@@ -769,26 +771,26 @@ public class SystemInformation {
       Set<ServerId> servers = getServers(type);
       switch (type) {
         case COMPACTOR:
-          cacheServerProcessView(ServersView.ServerTable.COMPACTORS, servers);
+          cacheServerProcessView(TableDataFactory.TableName.COMPACTORS, servers);
           break;
         case GARBAGE_COLLECTOR:
-          cacheServerProcessView(ServersView.ServerTable.GC_SUMMARY, servers);
-          cacheServerProcessView(ServersView.ServerTable.GC_FILES, servers);
-          cacheServerProcessView(ServersView.ServerTable.GC_WALS, servers);
+          cacheServerProcessView(TableDataFactory.TableName.GC_SUMMARY, servers);
+          cacheServerProcessView(TableDataFactory.TableName.GC_FILES, servers);
+          cacheServerProcessView(TableDataFactory.TableName.GC_WALS, servers);
           break;
         case MANAGER:
-          cacheServerProcessView(ServersView.ServerTable.MANAGERS, servers);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_FATE, servers);
-          cacheServerProcessView(ServersView.ServerTable.MANAGER_COMPACTIONS, servers);
-          ServersView coordinatorQueues = createCompactionQueueSummary(getActiveServers(type));
-          serverMetricsView.put(ServersView.ServerTable.COORDINATOR_QUEUES,
+          cacheServerProcessView(TableDataFactory.TableName.MANAGERS, servers);
+          cacheServerProcessView(TableDataFactory.TableName.MANAGER_FATE, servers);
+          cacheServerProcessView(TableDataFactory.TableName.MANAGER_COMPACTIONS, servers);
+          TableData coordinatorQueues = createCompactionQueueSummary(getActiveServers(type));
+          serverMetricsView.put(TableDataFactory.TableName.COORDINATOR_QUEUES,
               memoize(() -> coordinatorQueues));
           break;
         case SCAN_SERVER:
-          cacheServerProcessView(ServersView.ServerTable.SCAN_SERVERS, servers);
+          cacheServerProcessView(TableDataFactory.TableName.SCAN_SERVERS, servers);
           break;
         case TABLET_SERVER:
-          cacheServerProcessView(ServersView.ServerTable.TABLET_SERVERS, servers);
+          cacheServerProcessView(TableDataFactory.TableName.TABLET_SERVERS, servers);
           break;
         case MONITOR:
         default:
@@ -827,14 +829,15 @@ public class SystemInformation {
     long problemHostCount =
         problemHosts.stream().filter(serverId -> serverId.getType() == type).count();
     int missingMetricCount = (int) servers.stream()
-        .filter(serverId -> !ServersView.hasMetricData(allMetrics.getIfPresent(serverId))).count();
-    return ServersView.buildStatus(servers.size(), problemHostCount, missingMetricCount,
+        .filter(serverId -> !TableDataFactory.hasMetricData(allMetrics.getIfPresent(serverId)))
+        .count();
+    return Status.buildStatus(servers.size(), problemHostCount, missingMetricCount,
         type == ServerId.Type.TABLET_SERVER);
   }
 
   private String computeManagerGoalState() {
     Integer goalState = managers.stream().map(allMetrics::getIfPresent)
-        .map(response -> ServersView.metricValuesByName(response)
+        .map(response -> TableDataFactory.metricValuesByName(response)
             .get(Metric.MANAGER_GOAL_STATE.getName()))
         .filter(value -> value != null && !value.isEmpty())
         .map(value -> value.stream().map(SystemInformation::getMetricValue).filter(Objects::nonNull)
@@ -961,15 +964,13 @@ public class SystemInformation {
   /**
    * Cache a ServersView for the given table and set of servers.
    */
-  private void cacheServerProcessView(ServersView.ServerTable table, Set<ServerId> servers) {
-    long problemHostCount =
-        problemHosts.stream().filter(serverId -> servers.contains(serverId)).count();
-    serverMetricsView.put(table, memoize(() -> new ServersView(servers, problemHostCount,
-        allMetrics.asMap(), timestamp.get(), ServersView.columnsFor(table))));
+  private void cacheServerProcessView(TableDataFactory.TableName table, Set<ServerId> servers) {
+    serverMetricsView.put(table, memoize(
+        () -> TableDataFactory.forTable(table, servers, allMetrics.asMap(), timestamp.get())));
   }
 
-  public ServersView getServerProcessView(ServersView.ServerTable table) {
-    Supplier<ServersView> view = this.serverMetricsView.get(table);
+  public TableData getServerProcessView(TableDataFactory.TableName table) {
+    Supplier<TableData> view = this.serverMetricsView.get(table);
     if (view != null) {
       return view.get();
     }
