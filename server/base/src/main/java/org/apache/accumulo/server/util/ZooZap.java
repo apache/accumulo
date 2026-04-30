@@ -75,7 +75,7 @@ public class ZooZap extends ServerKeywordExecutable<ZapOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.PROCESS;
+    return CommandGroups.ZOOKEEPER;
   }
 
   static class ZapOpts extends ServerOpts {

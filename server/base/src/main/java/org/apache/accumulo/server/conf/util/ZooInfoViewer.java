@@ -113,7 +113,7 @@ public class ZooInfoViewer extends ServerKeywordExecutable<ViewerOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CONFIG;
+    return CommandGroups.ZOOKEEPER;
   }
 
   @Override
