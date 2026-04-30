@@ -54,7 +54,7 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
-import org.apache.accumulo.monitor.next.SystemInformation.SuggestionCategory;
+import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -424,19 +424,19 @@ public class Endpoints {
   }
 
   @GET
-  @Path("suggestion/categories")
+  @Path("message/categories")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of suggestion categories")
-  public Set<SuggestionCategory> getSuggestionCategories() {
-    return EnumSet.allOf(SystemInformation.SuggestionCategory.class);
+  @Description("Returns a list of message categories")
+  public Set<MessageCategory> getMessageCategories() {
+    return EnumSet.allOf(SystemInformation.MessageCategory.class);
   }
 
   @GET
-  @Path("suggestions")
+  @Path("messages")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of suggestions")
-  public Map<SuggestionCategory,Set<String>> getSuggestions() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getSuggestions();
+  @Description("Returns a list of messages")
+  public Map<MessageCategory,Set<String>> getMessages() {
+    return monitor.getInformationFetcher().getSummaryForEndpoint().getMessages();
   }
 
   @GET

@@ -60,6 +60,9 @@
                 <li><a class="dropdown-item" href="scans">Scans</a></li>
               </ul>
             </li>
+            <li>
+              <a class="nav-link" aria-current="page" href="messages">Messages</a>
+            </li>            
             <li class="dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">REST
@@ -67,16 +70,6 @@
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="rest/xml">XML Summary</a></li>
                 <li><a class="dropdown-item" href="rest/json">JSON Summary</a></li>
-              </ul>
-            </li>
-            <li class="dropdown">
-              <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
-              role="button" data-bs-toggle="dropdown" aria-expanded="false">Preferences
-              </a>
-              <ul id="preferences-list" class="dropdown-menu dropdown-menu-end">
-                <li><span class="dropdown-item-text">Suggestions</span></li>
-                <li><hr class="dropdown-divider"></li>
-                <div id="suggestion-category-list"></div>
               </ul>
             </li>
             <li class="dropdown">

@@ -24,22 +24,6 @@
         </div>
       </div>
       <div class="row d-flex justify-content-center">
-        <div class="col-xs-12" id="suggestions">
-          <table id="suggestionTable"
-            class="table table-bordered table-striped table-condensed" style="width: 100%; display: none;">
-            <thead>
-              <tr>
-                <th colspan="2" class="center">Suggestions / Problems</th>
-              </tr>
-              <tr>
-                <th class="col-xs-4">Category</th>
-                <th class="col-xs-8">Message</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-
         <div class="col-xs-12" id="deploymentOverview">
           <div id="deploymentWarning"></div>
           <div class="mb-4" style="max-width: 560px; margin: 0 auto;">

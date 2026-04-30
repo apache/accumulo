@@ -37,8 +37,8 @@ const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
-const SUGGESTION_CATEGORIES = 'suggestionCategories';
-const SUGGESTIONS = 'suggestions';
+const MESSAGE_CATEGORIES = 'messageCategories';
+const MESSAGES = 'messages';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -542,11 +542,19 @@ function getTserversSummary(group) {
 }
 
 /**
- * REST GET call for /suggestions,
+ * REST GET call for /message/categories
+ * store it on a sessionStorage variable
+ */
+function getMessageCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/message/categories', MESSAGE_CATEGORIES);
+}
+
+/**
+ * REST GET call for /messages,
  * stores it on a sessionStorage variable
  */
-function getSuggestions() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestions', SUGGESTIONS);
+function getMessages() {
+  return getJSONForTable(REST_V2_PREFIX + '/messages', MESSAGES);
 }
 
 /**
@@ -671,14 +679,6 @@ function getTables() {
  */
 function getGroups() {
   return getJSONForTable(REST_V2_PREFIX + '/groups', 'groups');
-}
-
-/**
- * REST GET call for /suggestions/categories
- * store it on a sessionStorage variable
- */
-function getSuggestionCategories() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestion/categories', SUGGESTION_CATEGORIES);
 }
 
 /**

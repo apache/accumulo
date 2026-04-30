@@ -143,7 +143,6 @@ $(function () {
  */
 function refreshOverview() {
   refreshDeploymentTables();
-  refreshSuggestions();
 }
 
 /**
@@ -151,53 +150,6 @@ function refreshOverview() {
  */
 function refresh() {
   refreshOverview();
-  refreshSuggestions();
-}
-
-function refreshSuggestions() {
-
-  var suggestionTable = $('#suggestionTable')
-  $.when(getSuggestionCategories(), getSuggestions()).then(function () {
-
-    var categories = JSON.parse(sessionStorage[SUGGESTION_CATEGORIES]);
-    if (!Array.isArray(categories)) {
-      categories = [];
-    }
-    if (categories.length === 0) {
-      $(suggestionTable).hide();
-    } else {
-      var suggestions = JSON.parse(sessionStorage[SUGGESTIONS]);
-      var body = $(document.createElement('tbody'));
-      var rowsCreated = false;
-      $.each(categories, function (index, cat) {
-        var savedValue = localStorage.getItem("sug-cat-switch-" + cat + "-state");
-        if (savedValue === null || savedValue === 'true') {
-          var catSuggestions = suggestions[cat];
-          if (Array.isArray(catSuggestions)) {
-            $(suggestionTable).find('tbody').remove();
-            $.each(catSuggestions, function (index, sug) {
-              var row = $(document.createElement("tr"));
-              var catCol = $(document.createElement("td"));
-              catCol.text(cat);
-              row.append(catCol);
-              var sugCol = $(document.createElement("td"));
-              sugCol.text(sug);
-              row.append(sugCol);
-              body.append(row);
-              rowsCreated = true;
-            });
-          }
-        }
-      });
-      if (rowsCreated === true) {
-        suggestionTable.append(body);
-        $(suggestionTable).show();
-      } else {
-        $(suggestionTable).hide();
-      }
-    }
-
-  });
 }
 
 /**
