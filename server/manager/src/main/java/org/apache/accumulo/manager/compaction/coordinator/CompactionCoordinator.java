@@ -192,8 +192,6 @@ public class CompactionCoordinator
 
   private final LoadingCache<ResourceGroupId,Integer> compactorCounts;
 
-  private volatile long coordinatorStartTime;
-
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
@@ -301,8 +299,6 @@ public class CompactionCoordinator
 
   @Override
   public void run() {
-
-    this.coordinatorStartTime = System.currentTimeMillis();
     startConfigMonitor(ctx.getScheduledExecutor());
     startCompactorZKCleaner(ctx.getScheduledExecutor());
 

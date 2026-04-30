@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
-import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellOptionsJC;
 import org.jline.reader.LineReader;
@@ -63,7 +62,6 @@ public class MockShell {
   public Terminal terminal;
 
   MockShell(File configFile) throws Exception {
-    ClientInfo info = ClientInfo.from(configFile.toPath());
     // start the shell
     output = new TestOutputStream();
     input = new StringInputStream();
