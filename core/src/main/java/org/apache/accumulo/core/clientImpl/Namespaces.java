@@ -34,11 +34,8 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Namespaces {
-  private static final Logger log = LoggerFactory.getLogger(Namespaces.class);
 
   public static boolean exists(ClientContext context, NamespaceId namespaceId) {
     ZooCache zc = context.getZooCache();
