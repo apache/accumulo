@@ -551,10 +551,21 @@ function getMessageCategories() {
 
 /**
  * REST GET call for /messages,
- * stores it on a sessionStorage variable
+ * results are not stored in session as this
+ * function takes parameters driven by toggles
+ * in the UI.
  */
-function getMessages() {
-  return getJSONForTable(REST_V2_PREFIX + '/messages', MESSAGES);
+function getMessages(high, info, cats) {
+
+  const params = new URLSearchParams();
+  params.append('high', high);
+  params.append('info', info);
+  $.each(cats, function (index, cat) {
+    params.append('category', cat);
+  });
+
+  var call = REST_V2_PREFIX + '/messages?' + params.toString();
+  return getJSONForTable(call, MESSAGES);
 }
 
 /**

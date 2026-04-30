@@ -365,6 +365,10 @@ public class SystemInformation {
   public record CompactionGroupSummary(String groupId, long running) {
   }
 
+  public enum MessagePriority {
+    Critical, High, Info;
+  }
+
   public enum MessageCategory {
     Configuration, Table;
   }
@@ -429,7 +433,8 @@ public class SystemInformation {
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
 
-  private final Map<MessageCategory,Set<String>> messages = new EnumMap<>(MessageCategory.class);
+  private final Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
+      new EnumMap<>(MessagePriority.class);
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
@@ -657,7 +662,8 @@ public class SystemInformation {
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
     if (sti.getEstimatedEntries() == 0) {
-      messages.computeIfAbsent(MessageCategory.Table, k -> new TreeSet<>())
+      messages.computeIfAbsent(MessagePriority.Info, k -> new EnumMap<>(MessageCategory.class))
+          .computeIfAbsent(MessageCategory.Table, k -> new TreeSet<>())
           .add("Tablet " + sti.getTabletId().toString() + " (tid: " + sti.getTabletId().getTable()
               + ") may have zero entries and could be merged.");
     }
@@ -689,7 +695,9 @@ public class SystemInformation {
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
       balancerRG = balancerRG == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : balancerRG;
       if (!tservers.containsKey(balancerRG)) {
-        messages.computeIfAbsent(MessageCategory.Table, k -> new TreeSet<>())
+        messages
+            .computeIfAbsent(MessagePriority.Critical, k -> new EnumMap<>(MessageCategory.class))
+            .computeIfAbsent(MessageCategory.Table, k -> new TreeSet<>())
             .add("Table " + table.tableName() + " configured to balance tablets in resource"
                 + " group " + balancerRG + ", but there are no TabletServers.");
       }
@@ -708,7 +716,10 @@ public class SystemInformation {
         Number numQueued = getMetricValue(queued.orElseThrow());
         if (numQueued.longValue() > 0) {
           if (rgCompactors == null || rgCompactors.size() == 0) {
-            messages.computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
+            messages
+                .computeIfAbsent(MessagePriority.Critical,
+                    k -> new EnumMap<>(MessageCategory.class))
+                .computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
                 .add("Compactor group " + rg + " has " + numQueued.longValue()
                     + " queued compactions but no running compactors");
           } else {
@@ -724,7 +735,10 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                messages.computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
+                messages
+                    .computeIfAbsent(MessagePriority.High,
+                        k -> new EnumMap<>(MessageCategory.class))
+                    .computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
                     .add("Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
@@ -736,7 +750,8 @@ public class SystemInformation {
 
     for (var compactorGroup : compactors.keySet()) {
       if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
-        messages.computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
+        messages.computeIfAbsent(MessagePriority.High, k -> new EnumMap<>(MessageCategory.class))
+            .computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
             .add("Compactor group " + compactorGroup
                 + " has running compactors, but no configuration uses them.");
       }
@@ -948,7 +963,7 @@ public class SystemInformation {
     return this.deploymentOverview;
   }
 
-  public Map<MessageCategory,Set<String>> getMessages() {
+  public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
     return this.messages;
   }
 

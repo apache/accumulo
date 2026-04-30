@@ -23,17 +23,25 @@
     <div class="col-xs-12" id="messages">
       <div class="row">
         <div class="col-xs-12">
-          <h5>Message Categories</h5>
+          <h5>Message Priority Settings (critical messages are always shown)</h5>
+        </div>
+        <div id="message-priority-list"></div>
+      </div>
+      <br />
+      <div class="row">
+        <div class="col-xs-12">
+          <h5>Message Category Settings</h5>
         </div>
         <div id="message-category-list"></div>      
       </div>
       <br />
       <h5>Messages</h5>
       <table id="messagesTable"
-        class="table table-bordered table-striped table-condensed" style="width: 100%; display: none;">
+        class="table table-bordered table-striped table-condensed" style="width: 100%;">
         <thead>
           <tr>
-            <th class="col-xs-4">Category</th>
+            <th class="col-xs-2">Priority</th>
+            <th class="col-xs-2">Category</th>
             <th class="col-xs-8">Message</th>
           </tr>
         </thead>
