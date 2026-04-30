@@ -31,7 +31,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3">
                   <div>
                     <span class="table-caption">Running Compactions</span>&nbsp;&nbsp;
-                    <a href="javascript:refreshRunningCompactions();">
+                    <a class="link-body-emphasis" href="javascript:refreshRunningCompactions();">
                       <span style="font-size: 1.5em; color: black;" class="bi bi-arrow-repeat"></span>
                     </a>
                   </div>

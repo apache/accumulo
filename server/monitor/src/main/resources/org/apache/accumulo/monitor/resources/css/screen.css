@@ -171,12 +171,10 @@ tr.details td.details-control {
 
 a {
   text-decoration: none;
-  color: #0000ff;
   line-height: 1.5em;
 }
 
 a:hover {
-  color: #004400;
   text-decoration: underline;
 }
 

@@ -107,6 +107,8 @@ function updateServerNotifications(statusData) {
  * Creates the initial sidebar
  */
 $(function () {
+  setTheme();
+  updateDarkThemeSwitch();
   refreshSidebar();
 });
 
@@ -137,4 +139,44 @@ function refreshSideBarNotifications() {
   }
 
   updateServerNotifications(statusData);
+}
+
+/**
+ * Set the theme based on the user
+ * preferences
+ */
+function setTheme() {
+  var setDarkMode = false;
+  var storedValue = localStorage.getItem("dark-theme-enabled");
+  if (storedValue === null) {
+    setDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  } else {
+    setDarkMode = storedValue === 'true';
+  }
+
+  if (setDarkMode === true) {
+    document.documentElement.setAttribute('data-bs-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-bs-theme', 'light');
+  }
+}
+
+/**
+ * Update the Dark Theme Switch in the Preference list
+ */
+function updateDarkThemeSwitch() {
+  var storageKey = "dark-theme-enabled";
+  var darkThemeSwitchElement = $('#darkThemeSwitch');
+  var savedValue = localStorage.getItem(storageKey);
+
+  if (savedValue === 'true') {
+    darkThemeSwitchElement.prop('checked', true);
+  } else {
+    darkThemeSwitchElement.prop('checked', false);
+  }
+
+  darkThemeSwitchElement.on("change", function () {
+    localStorage.setItem(storageKey, $(this).is(':checked'));
+    location.reload();
+  });
 }
