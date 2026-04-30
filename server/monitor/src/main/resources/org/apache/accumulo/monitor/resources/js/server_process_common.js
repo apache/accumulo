@@ -22,7 +22,7 @@
  * This file contains methods used to display tables on the Monitor's
  * pages for server processes. The REST Endpoint /rest-v2/servers/view;table=<ServerTable>
  * returns a data structure that has the following format:
- * 
+ *
  * {
  *   "data": [
  *     {
@@ -48,14 +48,12 @@
  *       "uiClass": ""
  *     }
  *   ],
- *   "status": {
- *   },
  *   timestamp: long
  * }
- * 
+ *
  * The value for the 'columns' key is an array of column definitions. The value for the
  * 'data' key is an array of row objects keyed by the column 'key' values.
- * 
+ *
  * The 'columns' array is used to dynamically create table header rows in the html and
  * the 'data' object is directly consumed by the DataTable where each object in the 'data'
  * is a row in the table and each field in the object is a column.
@@ -98,11 +96,36 @@ function getStoredRows(storageKey) {
 }
 
 /**
- * This function returns the stats object from the entire response
+ * This function returns the status object for a server process table.
  */
 function getStoredStatus(storageKey) {
-  var view = getStoredView(storageKey);
-  return view.status || null;
+  var status = sessionStorage.status ? JSON.parse(sessionStorage.status) : null;
+  var statusKey = getComponentStatusKey(storageKey);
+  if (!status || !status.componentStatuses || !statusKey) {
+    return null;
+  }
+  return status.componentStatuses[statusKey] || null;
+}
+
+function getComponentStatusKey(storageKey) {
+  switch (storageKey) {
+  case COMPACTOR_SERVER_PROCESS_VIEW:
+    return 'COMPACTOR';
+  case GC_SERVER_PROCESS_VIEW:
+  case GC_FILE_SERVER_PROCESS_VIEW:
+  case GC_WAL_SERVER_PROCESS_VIEW:
+    return 'GARBAGE_COLLECTOR';
+  case MANAGER_SERVER_PROCESS_VIEW:
+  case MANAGER_FATE_SERVER_PROCESS_VIEW:
+  case MANAGER_COMPACTION_SERVER_PROCESS_VIEW:
+    return 'MANAGER';
+  case SCAN_SERVER_PROCESS_VIEW:
+    return 'SCAN_SERVER';
+  case TABLET_SERVER_PROCESS_VIEW:
+    return 'TABLET_SERVER';
+  default:
+    return null;
+  }
 }
 
 /**
@@ -176,6 +199,12 @@ function refreshBanner(banner, bannerMsg, status) {
       .addClass('alert-warning')
       .text(status.message || 'WARN: server status warning.');
     $(banner).show();
+  } else if (status && status.level === 'ERROR') {
+    $(bannerMsg)
+      .removeClass('alert-warning')
+      .addClass('alert-danger')
+      .text(status.message || 'ERROR: server status error.');
+    $(banner).show();
   } else {
     $(banner).hide();
   }
@@ -192,7 +221,7 @@ function showBannerError(banner, bannerMsg) {
 /**
  * This function refreshes the table and banner, showing an
  * empty table and error banner if not successful
- * 
+ *
  * callback - the method to use to invoke the REST API call to get the data
  * table - reference to HTML table object in which to create table header columns
  * storageKey - the session storage key for the data returned from the REST API
@@ -200,14 +229,13 @@ function showBannerError(banner, bannerMsg) {
  * bannerMsg - reference to the HTML object that is the banner
  */
 function refreshServerInformation(callback, table, storageKey, banner, bannerMsg) {
-  callback().then(function () {
+  $.when(callback(), getStatus()).then(function () {
     refreshTable(table, storageKey);
     refreshBanner(banner, bannerMsg, getStoredStatus(storageKey));
   }).fail(function () {
     sessionStorage[storageKey] = JSON.stringify({
       data: [],
-      columns: [],
-      status: null
+      columns: []
     });
     refreshTable(table, storageKey);
     showBannerError(banner, bannerMsg);
@@ -254,6 +282,30 @@ function createDataTable(table, storageKey) {
               return '&mdash;';
             }
             data = bigNumberForSize(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "rate-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
+            data = bigNumberForQuantity(data).toString() + "/s";
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "rate-size",
+        "render": function (data, type) {
+          if (type === 'display') {
+            if (data === null || data === undefined) {
+              return '&mdash;';
+            }
+            data = bigNumberForSize(data).toString() + "/s";
           }
           return data;
         }

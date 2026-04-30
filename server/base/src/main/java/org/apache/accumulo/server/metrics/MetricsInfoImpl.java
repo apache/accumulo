@@ -25,11 +25,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MonitorMeterRegistry;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -66,6 +69,8 @@ public class MetricsInfoImpl implements MetricsInfo {
   private final boolean metricsEnabled;
 
   private final List<MetricsProducer> producers = new ArrayList<>();
+
+  public static final AtomicReference<MeterRegistry> MONITOR_REGISTRY = new AtomicReference<>();
 
   public MetricsInfoImpl(final ServerContext context) {
     this.context = context;
@@ -132,7 +137,7 @@ public class MetricsInfoImpl implements MetricsInfo {
       for (String userTag : userTagList) {
         String[] tagParts = userTag.split("=");
         if (tagParts.length == 2) {
-          Tag tag = Tag.of(tagParts[0], tagParts[1]);
+          Tag tag = Tag.of(tagParts[0], MetricsUtil.formatString(tagParts[1]));
           tags.add(tag);
         } else {
           LOG.warn("Malformed user metric tag: {} in property {}", userTag,
@@ -163,6 +168,9 @@ public class MetricsInfoImpl implements MetricsInfo {
         LOG.warn("Could not load registry {}", factoryName, ex);
       }
     }
+
+    MONITOR_REGISTRY.set(new MonitorMeterRegistry());
+    Metrics.globalRegistry.add(MONITOR_REGISTRY.get());
 
     // Set the MeterRegistry on the ThreadPools
     ThreadPools.getServerThreadPools().setMeterRegistry(Metrics.globalRegistry);
