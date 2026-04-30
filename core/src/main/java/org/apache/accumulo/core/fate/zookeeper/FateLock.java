@@ -74,7 +74,7 @@ public class FateLock implements QueueLock {
 
   public final static class FateLockEntry {
 
-    private static final String DELIMITER = "~";
+    private static final String DELIMITER = "_";
 
     final LockType lockType;
     final FateId fateId;
@@ -87,8 +87,7 @@ public class FateLock implements QueueLock {
     }
 
     private FateLockEntry(String entry) {
-      var fields = entry.split(DELIMITER);
-      Preconditions.checkArgument(fields.length == 4, entry);
+      var fields = entry.split(DELIMITER, 4);
       this.lockType = LockType.valueOf(fields[0]);
       this.fateId = FateId.from(fields[1]);
       this.range = LockRange.of(decodeRow(fields[2]), decodeRow(fields[3]));
@@ -110,13 +109,13 @@ public class FateLock implements QueueLock {
       if (row == null) {
         return "N";
       } else {
-        return "P" + Base64.getUrlEncoder().encodeToString(TextUtil.getBytes(row));
+        return "P" + Base64.getEncoder().encodeToString(TextUtil.getBytes(row));
       }
     }
 
     private Text decodeRow(String enc) {
       if (enc.charAt(0) == 'P') {
-        return new Text(Base64.getUrlDecoder().decode(enc.substring(1)));
+        return new Text(Base64.getDecoder().decode(enc.substring(1)));
       } else if (enc.charAt(0) == 'N') {
         return null;
       } else {
@@ -124,15 +123,9 @@ public class FateLock implements QueueLock {
       }
     }
 
-    private String checkForDelimiter(String s) {
-      Preconditions.checkArgument(!s.contains(DELIMITER), s);
-      return s;
-    }
-
     public String serialize() {
-      return checkForDelimiter(lockType.name()) + DELIMITER + checkForDelimiter(fateId.canonical())
-          + DELIMITER + checkForDelimiter(encodeRow(range.getStartRow())) + DELIMITER
-          + checkForDelimiter(encodeRow(range.getEndRow()));
+      return lockType.name() + DELIMITER + fateId.canonical() + DELIMITER
+          + encodeRow(range.getStartRow()) + DELIMITER + encodeRow(range.getEndRow());
     }
 
     public static FateLockEntry from(LockType lockType, FateId fateId, LockRange range) {
@@ -190,21 +183,19 @@ public class FateLock implements QueueLock {
   public long addEntry(FateLockEntry entry) {
 
     String dataString = entry.serialize();
-    Preconditions.checkState(!dataString.contains("#") && !dataString.contains("/"), dataString);
+    Preconditions.checkState(!dataString.contains("#"));
 
     String newPath;
     try {
       while (true) {
         try {
-          var prefix = path + "/" + PREFIX + dataString + "#";
-          log.info("Attempting to create {} in zookeeper", prefix);
-          newPath = zoo.putPersistentSequential(prefix, new byte[0]);
+          newPath =
+              zoo.putPersistentSequential(path + "/" + PREFIX + dataString + "#", new byte[0]);
           String[] parts = newPath.split("/");
           String last = parts[parts.length - 1];
           return new NodeName(last).sequence;
         } catch (NoNodeException nne) {
           // the parent does not exist so try to create it
-          log.info("Attempting to create parent {}", path.toString(), nne);
           zoo.putPersistentData(path.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
         }
       }
