@@ -49,7 +49,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -363,7 +362,7 @@ public class ScannerIT extends ConfigurableMacBase {
 
       client.tableOperations().flush(table, null, null, true);
 
-      var ctx = (ClientContext) client;
+      var ctx = getCluster().getServerContext();
       var tableId = ctx.getTableId(table);
 
       // Delete the tablets file to cause an IOException during opening the file. By default
