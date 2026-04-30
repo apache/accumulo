@@ -67,23 +67,12 @@ function refreshTServersBanner() {
     var statusData = getStoredStatusData();
     if (getComponentStatus(statusData, 'MANAGER') === 'ERROR') {
       $('#tserversManagerBanner').show();
-      $('#tserversWarnBanner').hide();
-      $('#tserversErrorBanner').hide();
+      $(htmlBanner).hide();
       $('#tservers_wrapper').hide();
       $('#recovery-caption').hide();
     } else {
       $('#tserversManagerBanner').hide();
       $('#tservers_wrapper').show();
-      if (getComponentStatus(statusData, 'TABLET_SERVER') === 'ERROR') {
-        $('#tserversWarnBanner').hide();
-        $('#tserversErrorBanner').show();
-      } else if (getComponentStatus(statusData, 'TABLET_SERVER') === 'WARN') {
-        $('#tserversWarnBanner').show();
-        $('#tserversErrorBanner').hide();
-      } else {
-        $('#tserversWarnBanner').hide();
-        $('#tserversErrorBanner').hide();
-      }
     }
   });
 }
@@ -91,9 +80,9 @@ function refreshTServersBanner() {
 
 function refresh() {
   refreshRecoveryList();
-  refreshTServersBanner();
   refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
     htmlBannerMessage);
+  refreshTServersBanner();
 }
 
 $(function () {
@@ -107,4 +96,5 @@ $(function () {
 
   refreshServerInformation(getTserversView, htmlTable, TABLET_SERVER_PROCESS_VIEW, htmlBanner,
     htmlBannerMessage);
+  refreshTServersBanner();
 });

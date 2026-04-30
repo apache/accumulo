@@ -378,6 +378,7 @@ public class SystemInformation {
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
+  private final Set<ServerId> retainedProblemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
@@ -449,6 +450,7 @@ public class SystemInformation {
     resourceGroups.clear();
     problemHosts.clear();
     metricProblemHosts.clear();
+    retainedProblemHosts.clear();
     managers.clear();
     compactors.clear();
     sservers.clear();
@@ -593,6 +595,7 @@ public class SystemInformation {
   public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
     metricProblemHosts.remove(server);
+    retainedProblemHosts.remove(server);
     allMetrics.put(server, response);
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
@@ -667,6 +670,13 @@ public class SystemInformation {
     problemHosts.add(server);
     metricProblemHosts.add(server);
     allMetrics.invalidate(server);
+  }
+
+  public void retainProblemServer(ServerId server) {
+    problemHosts.add(server);
+    metricProblemHosts.add(server);
+    retainedProblemHosts.add(server);
+    resourceGroups.add(server.getResourceGroup().canonical());
   }
 
   public void addConfiguredCompactionGroups(Set<String> groups) {
@@ -758,33 +768,28 @@ public class SystemInformation {
         .forEach((k, v) -> groupCompactions.add(new CompactionGroupSummary(k, v.sum())));
 
     for (final ServerId.Type type : ServerId.Type.values()) {
-      Set<ServerId> servers = new HashSet<>();
+      Set<ServerId> servers = getServers(type);
       switch (type) {
         case COMPACTOR:
-          compactors.values().forEach(servers::addAll);
           cacheServerProcessView(TableDataFactory.TableName.COMPACTORS, servers);
           break;
         case GARBAGE_COLLECTOR:
-          servers.add(gc.get());
           cacheServerProcessView(TableDataFactory.TableName.GC_SUMMARY, servers);
           cacheServerProcessView(TableDataFactory.TableName.GC_FILES, servers);
           cacheServerProcessView(TableDataFactory.TableName.GC_WALS, servers);
           break;
         case MANAGER:
-          servers.addAll(managers);
           cacheServerProcessView(TableDataFactory.TableName.MANAGERS, servers);
           cacheServerProcessView(TableDataFactory.TableName.MANAGER_FATE, servers);
           cacheServerProcessView(TableDataFactory.TableName.MANAGER_COMPACTIONS, servers);
-          TableData coordinatorQueues = createCompactionQueueSummary(servers);
+          TableData coordinatorQueues = createCompactionQueueSummary(getActiveServers(type));
           serverMetricsView.put(TableDataFactory.TableName.COORDINATOR_QUEUES,
               memoize(() -> coordinatorQueues));
           break;
         case SCAN_SERVER:
-          sservers.values().forEach(servers::addAll);
           cacheServerProcessView(TableDataFactory.TableName.SCAN_SERVERS, servers);
           break;
         case TABLET_SERVER:
-          tservers.values().forEach(servers::addAll);
           cacheServerProcessView(TableDataFactory.TableName.TABLET_SERVERS, servers);
           break;
         case MONITOR:
@@ -848,6 +853,13 @@ public class SystemInformation {
   }
 
   private Set<ServerId> getServers(ServerId.Type type) {
+    Set<ServerId> servers = new HashSet<>(getActiveServers(type));
+    retainedProblemHosts.stream().filter(serverId -> serverId.getType() == type)
+        .forEach(servers::add);
+    return servers;
+  }
+
+  private Set<ServerId> getActiveServers(ServerId.Type type) {
     return switch (type) {
       case COMPACTOR -> getAll(compactors);
       case GARBAGE_COLLECTOR -> {
