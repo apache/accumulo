@@ -704,7 +704,7 @@ public class SystemInformation {
       balancerRG = balancerRG == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : balancerRG;
       if (!tservers.containsKey(balancerRG)) {
         addMessage(Critical, Table,
-            "Table " + table.tableName() + " configured to balance tablets in resource" + " group "
+            "Table " + table.tableName() + " configured to balance tablets in resource group "
                 + balancerRG + ", but there are no TabletServers.");
       }
     }
