@@ -59,7 +59,7 @@ public class TimerColumnFactory implements ColumnFactory {
       }
       String statVal = TableDataFactory.extractStatistic(metric, ftag);
       if (StatType.AVERAGE.equals(statVal)) {
-        // The average time in in seconds, convert it to millis for the monitor front end code.
+        // The average time is in seconds, convert it to millis for the monitor front end code.
         return SystemInformation.getMetricValue(metric).doubleValue() * 1000;
       }
     }
