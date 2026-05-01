@@ -78,7 +78,14 @@
                 <span style="font-size: 1.2em;" class="bi bi-three-dots-vertical"></span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
+                <li>
+                  <div class="dropdown-item d-flex justify-content-between align-items-center">
+                    <label class="mb-0" for="autoRefreshSwitch">Auto-Refresh</label>
+                    <div class="form-check form-switch mb-0 ms-3">
+                      <input id="autoRefreshSwitch" class="form-check-input mt-0" type="checkbox" role="switch">
+                    </div>
+                  </div>
+                </li>
                 <li><a class="dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
               </ul>
             </li>

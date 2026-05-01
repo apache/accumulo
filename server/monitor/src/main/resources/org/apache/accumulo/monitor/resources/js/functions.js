@@ -37,6 +37,7 @@ const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
+const AUTO_REFRESH_KEY = 'auto-refresh';
 const MESSAGE_CATEGORIES = 'messageCategories';
 const MESSAGES = 'messages';
 
@@ -55,25 +56,17 @@ if ($.fn && $.fn.dataTable) {
  * and creates listeners for auto refresh
  */
 function setupAutoRefresh() {
-  // Sets auto refresh to true or false
-  if (!sessionStorage.autoRefresh) {
-    sessionStorage.autoRefresh = 'false';
-  }
-  // Need this to set the initial value for the autorefresh on page load
-  if (sessionStorage.autoRefresh === 'false') {
-    $('.auto-refresh').parent().removeClass('active');
+
+  var autoRefreshSwitch = $('#autoRefreshSwitch');
+  var savedValue = localStorage.getItem(AUTO_REFRESH_KEY);
+  if (savedValue === null || savedValue === 'false') {
+    autoRefreshSwitch.prop('checked', false);
   } else {
-    $('.auto-refresh').parent().addClass('active');
+    autoRefreshSwitch.prop('checked', true);
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').on("click", function () {
-    if ($(this).parent().attr('class') === 'active') {
-      $(this).parent().removeClass('active');
-      sessionStorage.autoRefresh = 'false';
-    } else {
-      $(this).parent().addClass('active');
-      sessionStorage.autoRefresh = 'true';
-    }
+  $('#autoRefreshSwitch').on("change", function () {
+    localStorage.setItem(AUTO_REFRESH_KEY, $(this).is(':checked'));
   });
 }
 
@@ -88,12 +81,9 @@ function refresh() {
  * Global timer that checks for auto refresh status every 5 seconds
  */
 TIMER = setInterval(function () {
-  if (sessionStorage.autoRefresh === 'true') {
-    $('.auto-refresh').parent().addClass('active');
+  if (localStorage.getItem(AUTO_REFRESH_KEY) === 'true') {
     refresh();
     refreshNavBar();
-  } else {
-    $('.auto-refresh').parent().removeClass('active');
   }
 }, 5000);
 
