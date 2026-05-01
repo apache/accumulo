@@ -83,6 +83,21 @@ public interface PropStore {
       throws ConcurrentModificationException;
 
   /**
+   * Replaces all current properties with map provided. If a property is not included in the new
+   * map, the property will not be set.
+   *
+   * @param propStoreKey the prop cache key
+   * @param expected expected current properties
+   * @param props a map of property k,v pairs
+   * @throws IllegalStateException if the values cannot be written or if an underlying store
+   *         exception occurs.
+   * @throws java.util.ConcurrentModificationException if the properties currently in the store do
+   *         not match the expected props passed. No changes are made when this happens.
+   */
+  void replaceAll(PropStoreKey propStoreKey, Map<String,String> expected, Map<String,String> props)
+      throws ConcurrentModificationException;
+
+  /**
    * Unconditionally replaces all properties with the map provided. If a property is not included in
    * the new map, the property will not be set.
    *
