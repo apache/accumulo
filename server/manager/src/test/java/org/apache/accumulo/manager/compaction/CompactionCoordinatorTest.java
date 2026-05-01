@@ -32,7 +32,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -96,13 +95,8 @@ public class CompactionCoordinatorTest {
 
   public class TestCoordinator extends CompactionCoordinator {
 
-    private final List<TExternalCompaction> runningCompactions;
-
-    private Set<ExternalCompactionId> metadataCompactionIds = null;
-
     public TestCoordinator(Manager manager, List<TExternalCompaction> runningCompactions) {
       super(manager, t -> null);
-      this.runningCompactions = runningCompactions;
     }
 
     @Override
@@ -138,14 +132,6 @@ public class CompactionCoordinatorTest {
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
         TKeyExtent extent, String exceptionClassName, TCompactionState failureState,
         String groupName, String compactorAddress) throws ThriftSecurityException {}
-
-    void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
-      metadataCompactionIds = mci;
-    }
-
-    public void resetInternals() {
-      metadataCompactionIds = null;
-    }
 
     @Override
     protected CompactionMetadata reserveCompaction(ResolvedCompactionJob rcJob,

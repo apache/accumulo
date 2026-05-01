@@ -28,7 +28,6 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -76,20 +75,18 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   public void experimentalPropTest() throws Exception {
     // ensure experimental props do not show up in config output unless set
 
-    AuthenticationToken token = getAdminToken();
     File clientPropsFile = null;
     switch (getClusterType()) {
-      case MINI:
+      case MINI -> {
         MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
         clientPropsFile = mac.getConfig().getClientPropsFile();
-        break;
-      case STANDALONE:
+      }
+      case STANDALONE -> {
         StandaloneAccumuloClusterConfiguration standaloneConf =
             (StandaloneAccumuloClusterConfiguration) getClusterConfiguration();
         clientPropsFile = standaloneConf.getClientPropsFile();
-        break;
-      default:
-        fail("Unknown cluster type");
+      }
+      default -> fail("Unknown cluster type");
     }
 
     assertNotNull(clientPropsFile);
