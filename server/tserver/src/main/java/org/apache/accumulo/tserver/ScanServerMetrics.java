@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_FILES;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_TOTAL_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_WRITEOUT_TIMER;
-import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLETS_CACHED;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLET_METADATA_CACHE;
 
 import java.time.Duration;
@@ -76,10 +75,6 @@ public class ScanServerMetrics implements MetricsProducer {
         .description(SCAN_RESERVATION_FILES.getDescription()).register(registry);
 
     if (tabletMetadataCache != null) {
-      Gauge
-          .builder(SCAN_TABLETS_CACHED.getName(),
-              () -> (double) tabletMetadataCache.estimatedSize())
-          .description(SCAN_TABLETS_CACHED.getDescription()).register(registry);
       Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),
           "Attempted to instrument cache that is not recording stats.");
       CaffeineCacheMetrics.monitor(registry, tabletMetadataCache,

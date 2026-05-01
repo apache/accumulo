@@ -258,9 +258,6 @@ public enum Metric {
   SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.FUNCTION_COUNTER,
       "Count of the scans where a busy timeout happened.", MetricDocSection.SCAN, "Scan Busy Count",
       null, NUMBER),
-  SCAN_TABLETS_CACHED("accumulo.scan.tablet.cached", MetricType.GAUGE,
-      "The number of tablets for which a scan server has cached metadata.", MetricDocSection.SCAN,
-      "Tablets Cached", null, NUMBER),
 
   // Scan Metrics
   SCAN_TIMES("accumulo.scan.times", MetricType.TIMER, "Scan session lifetime (creation to close).",
@@ -405,7 +402,11 @@ public enum Metric {
       MetricDocSection.GENERAL_SERVER, "Completed task", null, NUMBER),
   EXECUTOR_QUEUED("executor.queued", MetricType.GAUGE,
       "Task queued for a thread pool. Each thread pool emits this metric w/ a different tag.",
-      MetricDocSection.GENERAL_SERVER, "Queued task", null, NUMBER);
+      MetricDocSection.GENERAL_SERVER, "Queued task", null, NUMBER),
+
+  // Cache metrics
+  CACHE_SIZE("cache.size", MetricType.GAUGE, "The current number of entries a cache has.",
+      MetricDocSection.GENERAL_SERVER, "Cache size", null, NUMBER);
 
   public enum MonitorCssClass {
     BYTES("big-size"),

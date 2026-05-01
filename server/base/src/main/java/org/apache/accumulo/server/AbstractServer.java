@@ -410,7 +410,8 @@ public abstract class AbstractServer
       registry.getMeters().forEach(m -> {
         if (m.getId().getName().startsWith("accumulo.")
             || m.getId().getName().equals(Metric.EXECUTOR_COMPLETED.getName())
-            || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())) {
+            || m.getId().getName().equals(Metric.EXECUTOR_QUEUED.getName())
+            || m.getId().getName().equals(Metric.CACHE_SIZE.getName())) {
           if (!this.monitorMetricExclusions.contains(m.getId().getName())) {
             m.match(response::writeMeter, response::writeMeter, response::writeTimer,
                 response::writeDistributionSummary, response::writeLongTaskTimer,

@@ -266,7 +266,8 @@ public class TableDataFactory {
   private static void scanServerColumns(List<ColumnFactory> cols) {
     commonColumns(cols);
     scanColumns(cols);
-    cols.add(new MetricColumnFactory(Metric.SCAN_TABLETS_CACHED));
+    cols.add(new CacheSizeColumnFactory(Metric.SCAN_TABLET_METADATA_CACHE.getName(),
+        "Tablets Cached", "The number of tablets for which a scan server has cached metadata."));
     cols.add(new MetricColumnFactory(Metric.SCAN_RESERVATION_FILES));
     cols.add(new MetricColumnFactory(Metric.SCAN_BUSY_TIMEOUT_COUNT));
     cols.add(new TimerColumnFactory(Metric.SCAN_RESERVATION_TOTAL_TIMER));
