@@ -21,13 +21,14 @@ package org.apache.accumulo.monitor.next.views;
 import java.util.List;
 import java.util.Map;
 
-import com.google.common.base.Preconditions;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.SystemInformation;
+
+import com.google.common.base.Preconditions;
 
 public class CacheSizeColumnFactory implements ColumnFactory {
 

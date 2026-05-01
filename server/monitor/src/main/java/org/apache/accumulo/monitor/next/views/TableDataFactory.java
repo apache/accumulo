@@ -83,6 +83,7 @@ public class TableDataFactory {
     public static final String COUNT = "count";
     public static final String VALUE = "value";
     public static final String AVERAGE = "avg";
+    public static final String MAX = "max";
 
     public static final Predicate<String> COUNT_OR_VALUE = s -> COUNT.equals(s) || VALUE.equals(s);
   }
@@ -251,7 +252,8 @@ public class TableDataFactory {
     cols.add(new ExecutorColumnFactory(ExecutorColumnFactory.Type.QUEUED,
         ThreadPoolNames.SCAN_EXECUTOR_PREFIX.poolName, "Queued scans",
         "Scan task queued on all scan thread pools"));
-    cols.add(new MetricColumnFactory(Metric.SCAN_ERRORS));
+    cols.add(new MultiSumColumnFactory("Scan Problems", Metric.SCAN_ERRORS,
+        Metric.SCAN_PAUSED_FOR_MEM, Metric.SCAN_RETURN_FOR_MEM));
     cols.add(new MetricColumnFactory(Metric.SCAN_SCANNED_ENTRIES));
     cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS));
     cols.add(new MetricColumnFactory(Metric.SCAN_QUERY_SCAN_RESULTS_BYTES));
@@ -261,6 +263,8 @@ public class TableDataFactory {
     cols.add(new RatioColumnFactory("Data cache hit",
         "Ratio of hits/total request for the data block cache", Metric.BLOCKCACHE_DATA_HITCOUNT,
         Metric.BLOCKCACHE_DATA_REQUESTCOUNT));
+    cols.add(new MetricColumnFactory(Metric.SCAN_OPEN_FILES));
+    cols.add(new MetricColumnFactory(Metric.SCAN_YIELDS));
   }
 
   private static void scanServerColumns(List<ColumnFactory> cols) {

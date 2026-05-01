@@ -57,7 +57,7 @@ public class RatioColumnFactory implements ColumnFactory {
     }
 
     var numeratorSum = sum(n, StatType.COUNT_OR_VALUE).doubleValue();
-    var denominatorSum = sum(n, StatType.COUNT_OR_VALUE).doubleValue();
+    var denominatorSum = sum(d, StatType.COUNT_OR_VALUE).doubleValue();
 
     if (denominatorSum == 0) {
       return null;
