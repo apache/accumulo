@@ -60,6 +60,9 @@
                 <li><a class="dropdown-item" href="scans">Scans</a></li>
               </ul>
             </li>
+            <li>
+              <a class="nav-link" aria-current="page" href="messages">Messages</a>
+            </li>            
             <li class="dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">REST

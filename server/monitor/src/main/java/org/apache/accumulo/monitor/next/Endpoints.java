@@ -23,9 +23,12 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
@@ -39,6 +42,7 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
@@ -53,6 +57,8 @@ import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.next.InformationFetcher.InstanceSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionGroupSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.CompactionTableSummary;
+import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
+import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
 import org.apache.accumulo.monitor.next.SystemInformation.TableSummary;
 import org.apache.accumulo.monitor.next.SystemInformation.TimeOrderedRunningCompactionSet;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
@@ -423,11 +429,62 @@ public class Endpoints {
   }
 
   @GET
-  @Path("suggestions")
+  @Path("message/categories")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a list of suggestions")
-  public Set<String> getSuggestions() {
-    return monitor.getInformationFetcher().getSummaryForEndpoint().getSuggestions();
+  @Description("Returns a list of message categories")
+  public Set<MessageCategory> getMessageCategories() {
+    return EnumSet.allOf(SystemInformation.MessageCategory.class);
+  }
+
+  public record Message(String priority, String category, String message) {
+  }
+
+  @GET
+  @Path("messages")
+  @Produces(MediaType.APPLICATION_JSON)
+  @Description("Returns a list of messages")
+  public List<Message> getMessages(@QueryParam("high") boolean includeHigh,
+      @QueryParam("info") boolean includeInfo, @QueryParam("category") List<String> categories) {
+    List<Message> results = new ArrayList<>();
+
+    Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
+        monitor.getInformationFetcher().getSummaryForEndpoint().getMessages();
+
+    for (Entry<MessagePriority,Map<MessageCategory,Set<String>>> e : messages.entrySet()) {
+      MessagePriority prio = e.getKey();
+      Map<MessageCategory,Set<String>> value = e.getValue();
+      switch (prio) {
+        case Critical:
+          // Always include critical messages
+          value.forEach((cat, msgs) -> {
+            msgs.forEach(m -> results.add(new Message(prio.name(), cat.name(), m)));
+          });
+          break;
+        case High:
+          if (!includeHigh) {
+            break;
+          }
+          value.forEach((cat, msgs) -> {
+            if (categories.contains(cat.name())) {
+              msgs.forEach(m -> results.add(new Message(prio.name(), cat.name(), m)));
+            }
+          });
+          break;
+        case Info:
+          if (!includeInfo) {
+            break;
+          }
+          value.forEach((cat, msgs) -> {
+            if (categories.contains(cat.name())) {
+              msgs.forEach(m -> results.add(new Message(prio.name(), cat.name(), m)));
+            }
+          });
+          break;
+        default:
+          break;
+      }
+    }
+    return results;
   }
 
   @GET

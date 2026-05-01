@@ -37,6 +37,8 @@ const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
+const MESSAGE_CATEGORIES = 'messageCategories';
+const MESSAGES = 'messages';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -372,6 +374,20 @@ function getJSONForTable(call, sessionDataVar) {
   });
 }
 
+function getStoredJson(storageKey, defaultValue) {
+  var storedValue = sessionStorage.getItem(storageKey);
+  if (!storedValue) {
+    return defaultValue;
+  }
+
+  return JSON.parse(storedValue);
+}
+
+function getStoredArray(storageKey) {
+  var storedValue = getStoredJson(storageKey, []);
+  return Array.isArray(storedValue) ? storedValue : [];
+}
+
 /**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
@@ -540,11 +556,30 @@ function getTserversSummary(group) {
 }
 
 /**
- * REST GET call for /suggestions,
- * stores it on a sessionStorage variable
+ * REST GET call for /message/categories
+ * store it on a sessionStorage variable
  */
-function getSuggestions() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestions', 'suggestions');
+function getMessageCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/message/categories', MESSAGE_CATEGORIES);
+}
+
+/**
+ * REST GET call for /messages,
+ * results are not stored in session as this
+ * function takes parameters driven by toggles
+ * in the UI.
+ */
+function getMessages(high, info, cats) {
+
+  const params = new URLSearchParams();
+  params.append('high', high);
+  params.append('info', info);
+  $.each(cats, function (index, cat) {
+    params.append('category', cat);
+  });
+
+  var call = REST_V2_PREFIX + '/messages?' + params.toString();
+  return getJSONForTable(call, MESSAGES);
 }
 
 /**
