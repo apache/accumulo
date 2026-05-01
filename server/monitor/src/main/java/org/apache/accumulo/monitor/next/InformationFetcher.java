@@ -52,6 +52,8 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
+import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -321,11 +323,15 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
-          LOG.warn(
-              "Fetching information for Monitor has taken longer {}. Cancelling all"
-                  + " remaining tasks and monitor will display old information. Resolve issue"
-                  + " causing this or increase property {}.",
-              monitorFetchTimeout, Property.MONITOR_FETCH_TIMEOUT.getKey());
+          String message =
+              "Fetching information for Monitor has taken longer {}ms. Cancelling all remaining tasks (%s) "
+                  + "and monitor will display old information. Resolve issue causing this or increase property {}."
+                      .formatted(monitorFetchTimeout, futures.size(),
+                          Property.MONITOR_FETCH_TIMEOUT.getKey());
+          // Log and add to existing summary
+          summaryRef.get().addMessage(MessagePriority.Critical, MessageCategory.Configuration,
+              message);
+          LOG.warn(message);
           tookToLong = true;
         }
 

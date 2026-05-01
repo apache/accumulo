@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor.next;
 import static com.google.common.base.Suppliers.memoize;
 import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Resource;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.High;
@@ -376,7 +377,7 @@ public class SystemInformation {
   }
 
   public enum MessageCategory {
-    Configuration, Table;
+    Configuration, Resource, Table;
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
@@ -493,7 +494,7 @@ public class SystemInformation {
     serverMetricsView.clear();
   }
 
-  private void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
+  public void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
     messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
         .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
   }
@@ -676,10 +677,6 @@ public class SystemInformation {
     tablets.computeIfAbsent(tableId, (t) -> Collections.synchronizedList(new ArrayList<>()))
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
-    if (sti.getEstimatedEntries() == 0) {
-      addMessage(Info, Table, "Tablet " + sti.getTabletId().toString() + " (tid: "
-          + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
-    }
   }
 
   public void processError(ServerId server) {
@@ -703,13 +700,50 @@ public class SystemInformation {
     configuredCompactionResourceGroups.addAll(groups);
   }
 
-  public void finish() {
-    // Update the deployment not-responded numbers based
-    // on metric fetch failures for this refresh.
-    metricProblemHosts.forEach(serverId -> {
-      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
-          .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
+  private void computeMessages() {
+
+    if (managers.isEmpty()) {
+      addMessage(Critical, Resource, "No Managers are running");
+    }
+
+    if (gc.get() == null) {
+      addMessage(Critical, Resource, "Garbage Collector is not running");
+    }
+
+    if (problemHosts.size() > 0) {
+      addMessage(Info, Resource, "Monitor has not recevied a response from " + problemHosts.size()
+          + " servers in the last 10 minutes");
+    }
+
+    if (metricProblemHosts.size() > 0) {
+      addMessage(Info, Resource,
+          "Unable to gather information from " + metricProblemHosts.size() + " servers");
+    }
+
+    for (ResourceGroupId rg : ctx.resourceGroupOperations().list()) {
+      if (rg == ResourceGroupId.DEFAULT) {
+        continue;
+      }
+      if (!compactors.containsKey(rg.canonical()) && !sservers.containsKey(rg.canonical())
+          && !tservers.containsKey(rg.canonical())) {
+        addMessage(Info, Configuration, "Resource Group " + rg
+            + " exists, but no resources assigned. Consider removing the resource group");
+      }
+    }
+
+    tablets.forEach((tid, tablets) -> {
+      int empty = 0;
+      for (TabletInformation tablet : tablets) {
+        if (tablet.getEstimatedEntries() == 0) {
+          empty++;
+        }
+      }
+      if (empty > 0) {
+        addMessage(Info, Table,
+            "Table " + tid + " may have " + empty + " tablets that could be merged.");
+      }
     });
+
     for (SystemTables table : SystemTables.values()) {
       TableConfiguration tconf = this.ctx.getTableConfiguration(table.tableId());
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
@@ -719,6 +753,28 @@ public class SystemInformation {
             "Table " + table.tableName() + " configured to balance tablets in resource group "
                 + balancerRG + ", but there are no TabletServers.");
       }
+    }
+
+    FMetric flatbuffer = new FMetric();
+    long serversWithZombieScans = 0;
+    for (Entry<ServerId,MetricResponse> e : allMetrics.asMap().entrySet()) {
+      ServerId sid = e.getKey();
+      List<ByteBuffer> metrics = e.getValue().metrics;
+      if (sid.getType() == ServerId.Type.SCAN_SERVER
+          || sid.getType() == ServerId.Type.TABLET_SERVER) {
+        for (ByteBuffer binary : metrics) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          if (flatbuffer.name().equals(Metric.SCAN_ZOMBIE_THREADS.getName())) {
+            if (getMetricValue(flatbuffer).longValue() > 0) {
+              serversWithZombieScans++;
+            }
+          }
+        }
+      }
+    }
+    if (serversWithZombieScans > 0) {
+      addMessage(High, Resource,
+          "There are " + serversWithZombieScans + " servers with zombie scan threads");
     }
 
     for (String rg : getResourceGroups()) {
@@ -749,7 +805,7 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                addMessage(High, Configuration,
+                addMessage(High, Resource,
                     "Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
@@ -765,6 +821,18 @@ public class SystemInformation {
             + " has running compactors, but no configuration uses them.");
       }
     }
+
+  }
+
+  public void finish() {
+    // Update the deployment not-responded numbers based
+    // on metric fetch failures for this refresh.
+    metricProblemHosts.forEach(serverId -> {
+      deployment.computeIfAbsent(serverId.getResourceGroup(), g -> new ConcurrentHashMap<>())
+          .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
+    });
+
+    computeMessages();
 
     timestamp.set(System.currentTimeMillis());
     componentStatuses.clear();
