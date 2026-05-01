@@ -37,6 +37,9 @@ const TABLET_SERVER_PROCESS_VIEW = 'tserversView';
 var STATUS_REQUEST = null;
 const RUNNING_COMPACTIONS_BY_TABLE = 'runningCompactionsByTable';
 const RUNNING_COMPACTIONS_BY_GROUP = 'runningCompactionsByGroup';
+const AUTO_REFRESH_KEY = 'auto-refresh';
+const MESSAGE_CATEGORIES = 'messageCategories';
+const MESSAGES = 'messages';
 
 // Override Length Menu options for dataTables
 if ($.fn && $.fn.dataTable) {
@@ -53,25 +56,17 @@ if ($.fn && $.fn.dataTable) {
  * and creates listeners for auto refresh
  */
 function setupAutoRefresh() {
-  // Sets auto refresh to true or false
-  if (!sessionStorage.autoRefresh) {
-    sessionStorage.autoRefresh = 'false';
-  }
-  // Need this to set the initial value for the autorefresh on page load
-  if (sessionStorage.autoRefresh === 'false') {
-    $('.auto-refresh').parent().removeClass('active');
+
+  var autoRefreshSwitch = $('#autoRefreshSwitch');
+  var savedValue = localStorage.getItem(AUTO_REFRESH_KEY);
+  if (savedValue === null || savedValue === 'false') {
+    autoRefreshSwitch.prop('checked', false);
   } else {
-    $('.auto-refresh').parent().addClass('active');
+    autoRefreshSwitch.prop('checked', true);
   }
   // Initializes the auto refresh on click listener
-  $('.auto-refresh').on("click", function () {
-    if ($(this).parent().attr('class') === 'active') {
-      $(this).parent().removeClass('active');
-      sessionStorage.autoRefresh = 'false';
-    } else {
-      $(this).parent().addClass('active');
-      sessionStorage.autoRefresh = 'true';
-    }
+  $('#autoRefreshSwitch').on("change", function () {
+    localStorage.setItem(AUTO_REFRESH_KEY, $(this).is(':checked'));
   });
 }
 
@@ -86,12 +81,9 @@ function refresh() {
  * Global timer that checks for auto refresh status every 5 seconds
  */
 TIMER = setInterval(function () {
-  if (sessionStorage.autoRefresh === 'true') {
-    $('.auto-refresh').parent().addClass('active');
+  if (localStorage.getItem(AUTO_REFRESH_KEY) === 'true') {
     refresh();
     refreshNavBar();
-  } else {
-    $('.auto-refresh').parent().removeClass('active');
   }
 }, 5000);
 
@@ -372,6 +364,20 @@ function getJSONForTable(call, sessionDataVar) {
   });
 }
 
+function getStoredJson(storageKey, defaultValue) {
+  var storedValue = sessionStorage.getItem(storageKey);
+  if (!storedValue) {
+    return defaultValue;
+  }
+
+  return JSON.parse(storedValue);
+}
+
+function getStoredArray(storageKey) {
+  var storedValue = getStoredJson(storageKey, []);
+  return Array.isArray(storedValue) ? storedValue : [];
+}
+
 /**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called
@@ -540,11 +546,30 @@ function getTserversSummary(group) {
 }
 
 /**
- * REST GET call for /suggestions,
- * stores it on a sessionStorage variable
+ * REST GET call for /message/categories
+ * store it on a sessionStorage variable
  */
-function getSuggestions() {
-  return getJSONForTable(REST_V2_PREFIX + '/suggestions', 'suggestions');
+function getMessageCategories() {
+  return getJSONForTable(REST_V2_PREFIX + '/message/categories', MESSAGE_CATEGORIES);
+}
+
+/**
+ * REST GET call for /messages,
+ * results are not stored in session as this
+ * function takes parameters driven by toggles
+ * in the UI.
+ */
+function getMessages(high, info, cats) {
+
+  const params = new URLSearchParams();
+  params.append('high', high);
+  params.append('info', info);
+  $.each(cats, function (index, cat) {
+    params.append('category', cat);
+  });
+
+  var call = REST_V2_PREFIX + '/messages?' + params.toString();
+  return getJSONForTable(call, MESSAGES);
 }
 
 /**

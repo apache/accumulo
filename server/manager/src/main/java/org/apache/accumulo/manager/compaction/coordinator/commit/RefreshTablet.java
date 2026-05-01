@@ -38,10 +38,8 @@ public class RefreshTablet extends AbstractFateOperation {
   private static final long serialVersionUID = 1L;
   private final TKeyExtent extent;
   private final String tserverInstance;
-  private final String compactionId;
 
-  public RefreshTablet(String ecid, TKeyExtent extent, String tserverInstance) {
-    this.compactionId = ecid;
+  public RefreshTablet(TKeyExtent extent, String tserverInstance) {
     this.extent = extent;
     this.tserverInstance = tserverInstance;
   }

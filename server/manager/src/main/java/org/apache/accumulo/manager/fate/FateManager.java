@@ -215,7 +215,7 @@ public class FateManager {
     }
 
     if (!timer.isExpired()) {
-      FateStore<FateEnv> store = switch (fateType) {
+      try (FateStore<FateEnv> store = switch (fateType) {
         case USER -> new UserFateStore<FateEnv>(context, SystemTables.FATE.tableName(), null, null);
         case META -> {
           try {
@@ -224,18 +224,20 @@ public class FateManager {
             throw new IllegalStateException(e);
           }
         }
-      };
-      var reserved = store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
-      while (!reserved.isEmpty() && !timer.isExpired()) {
-        if (log.isTraceEnabled()) {
-          reserved.forEach((fateId, reservation) -> {
-            log.trace("In stop(), waiting on {} {} ", fateId, reservation);
-          });
-        }
-        try {
-          Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
-        } catch (InterruptedException e) {
-          throw new IllegalStateException(e);
+      }) {
+        var reserved =
+            store.getActiveReservations(Set.of(FatePartition.all(FateInstanceType.USER)));
+        while (!reserved.isEmpty() && !timer.isExpired()) {
+          if (log.isTraceEnabled()) {
+            reserved.forEach((fateId, reservation) -> {
+              log.trace("In stop(), waiting on {} {} ", fateId, reservation);
+            });
+          }
+          try {
+            Thread.sleep(Math.min(100, timer.timeLeft(TimeUnit.MILLISECONDS)));
+          } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+          }
         }
       }
     }

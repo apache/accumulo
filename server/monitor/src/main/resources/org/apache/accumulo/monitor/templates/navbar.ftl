@@ -60,6 +60,9 @@
                 <li><a class="link-body-emphasis dropdown-item" href="scans">Scans</a></li>
               </ul>
             </li>
+            <li>
+              <a class="nav-link" aria-current="page" href="messages">Messages</a>
+            </li>            
             <li class="dropdown">
               <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown"
               role="button" data-bs-toggle="dropdown" aria-expanded="false">REST
@@ -76,12 +79,21 @@
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                  <div class="form-check form-check-reverse form-switch">
-                    <input id="darkThemeSwitch" class="form-check-input" type="checkbox" role="switch">
-                    <label class="form-check-label" for="darkThemeSwitch">Dark Theme</label>
+                  <div class="dropdown-item d-flex justify-content-between align-items-center">
+                    <label class="mb-0" for="darkThemeSwitch">Dark Theme</label>
+                    <div class="form-check form-switch mb-0 ms-3">                  
+                      <input id="darkThemeSwitch" class="form-check-input mt-0" type="checkbox" role="switch">
+                    </div>
                   </div>
                 </li>
-                <li><a class="link-body-emphasis dropdown-item auto-refresh" style="cursor:pointer">Auto-Refresh</a></li>
+                <li>
+                  <div class="dropdown-item d-flex justify-content-between align-items-center">
+                    <label class="mb-0" for="autoRefreshSwitch">Auto-Refresh</label>
+                    <div class="form-check form-switch mb-0 ms-3">
+                      <input id="autoRefreshSwitch" class="form-check-input mt-0" type="checkbox" role="switch">
+                    </div>
+                  </div>
+                </li>
                 <li><a class="link-body-emphasis dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
               </ul>
             </li>

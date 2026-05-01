@@ -26,13 +26,6 @@ const runningQueueHtmlTable = '#queue_running';
 var tableRunning;
 var queueRunning;
 
-function getStoredArray(storageKey) {
-  if (!sessionStorage[storageKey]) {
-    return [];
-  }
-  return JSON.parse(sessionStorage[storageKey]);
-}
-
 function refresh() {
   $.when(getRunningCompactionsByTable(), getRunningCompactionsByGroup(), getCoordinatorQueueView(), getManagersCompactionView()).then(function () {
     refreshTable(coordinatorHtmlTable, MANAGER_COMPACTION_SERVER_PROCESS_VIEW);

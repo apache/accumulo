@@ -20,6 +20,11 @@ package org.apache.accumulo.monitor.next;
 
 import static com.google.common.base.Suppliers.memoize;
 import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.High;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Info;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -36,6 +41,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -365,6 +371,14 @@ public class SystemInformation {
   public record CompactionGroupSummary(String groupId, long running) {
   }
 
+  public enum MessagePriority {
+    Critical, High, Info;
+  }
+
+  public enum MessageCategory {
+    Configuration, Table;
+  }
+
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
 
   private final DistributionStatisticConfig DSC =
@@ -378,6 +392,7 @@ public class SystemInformation {
   private final Set<String> resourceGroups = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> problemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> metricProblemHosts = ConcurrentHashMap.newKeySet();
+  private final Set<ServerId> retainedProblemHosts = ConcurrentHashMap.newKeySet();
   private final Set<ServerId> managers = ConcurrentHashMap.newKeySet();
   private final AtomicReference<ServerId> gc = new AtomicReference<>();
 
@@ -425,7 +440,8 @@ public class SystemInformation {
   private final Map<ResourceGroupId,Map<ServerId.Type,ProcessSummary>> deployment =
       new ConcurrentHashMap<>();
 
-  private final Set<String> suggestions = new ConcurrentSkipListSet<>();
+  private final Map<MessagePriority,Map<MessageCategory,Set<String>>> messages =
+      new EnumMap<>(MessagePriority.class);
 
   private final Set<String> configuredCompactionResourceGroups = ConcurrentHashMap.newKeySet();
 
@@ -449,6 +465,7 @@ public class SystemInformation {
     resourceGroups.clear();
     problemHosts.clear();
     metricProblemHosts.clear();
+    retainedProblemHosts.clear();
     managers.clear();
     compactors.clear();
     sservers.clear();
@@ -465,7 +482,7 @@ public class SystemInformation {
     tables.clear();
     tablets.clear();
     deployment.clear();
-    suggestions.clear();
+    messages.clear();
     runningCompactionsPerGroup.clear();
     runningCompactionsPerTable.clear();
     tableCompactions.clear();
@@ -474,6 +491,11 @@ public class SystemInformation {
     componentStatuses.clear();
     managerGoalState = null;
     serverMetricsView.clear();
+  }
+
+  private void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
+    messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
+        .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
   }
 
   private void updateAggregates(final MetricResponse response,
@@ -593,6 +615,7 @@ public class SystemInformation {
   public void processResponse(final ServerId server, final MetricResponse response) {
     problemHosts.remove(server);
     metricProblemHosts.remove(server);
+    retainedProblemHosts.remove(server);
     allMetrics.put(server, response);
     resourceGroups.add(response.getResourceGroup());
     deployment.computeIfAbsent(server.getResourceGroup(), g -> new ConcurrentHashMap<>())
@@ -654,7 +677,7 @@ public class SystemInformation {
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
     if (sti.getEstimatedEntries() == 0) {
-      suggestions.add("Tablet " + sti.getTabletId().toString() + " (tid: "
+      addMessage(Info, Table, "Tablet " + sti.getTabletId().toString() + " (tid: "
           + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
     }
   }
@@ -667,6 +690,13 @@ public class SystemInformation {
     problemHosts.add(server);
     metricProblemHosts.add(server);
     allMetrics.invalidate(server);
+  }
+
+  public void retainProblemServer(ServerId server) {
+    problemHosts.add(server);
+    metricProblemHosts.add(server);
+    retainedProblemHosts.add(server);
+    resourceGroups.add(server.getResourceGroup().canonical());
   }
 
   public void addConfiguredCompactionGroups(Set<String> groups) {
@@ -685,8 +715,9 @@ public class SystemInformation {
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
       balancerRG = balancerRG == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : balancerRG;
       if (!tservers.containsKey(balancerRG)) {
-        suggestions.add("Table " + table.tableName() + " configured to balance tablets in resource"
-            + " group " + balancerRG + ", but there are no TabletServers.");
+        addMessage(Critical, Table,
+            "Table " + table.tableName() + " configured to balance tablets in resource group "
+                + balancerRG + ", but there are no TabletServers.");
       }
     }
 
@@ -703,8 +734,8 @@ public class SystemInformation {
         Number numQueued = getMetricValue(queued.orElseThrow());
         if (numQueued.longValue() > 0) {
           if (rgCompactors == null || rgCompactors.size() == 0) {
-            suggestions.add("Compactor group " + rg + " has " + numQueued.longValue()
-                + " queued compactions but no running compactors");
+            addMessage(Critical, Configuration, "Compactor group " + rg + " has "
+                + numQueued.longValue() + " queued compactions but no running compactors");
           } else {
             // Check for idle compactors.
             Map<Id,CumulativeDistributionSummary> rgMetrics =
@@ -718,7 +749,8 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                suggestions.add("Compactor group " + rg + " has queued jobs and idle compactors.");
+                addMessage(High, Configuration,
+                    "Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
 
@@ -729,7 +761,7 @@ public class SystemInformation {
 
     for (var compactorGroup : compactors.keySet()) {
       if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
-        suggestions.add("Compactor group " + compactorGroup
+        addMessage(High, Configuration, "Compactor group " + compactorGroup
             + " has running compactors, but no configuration uses them.");
       }
     }
@@ -758,33 +790,28 @@ public class SystemInformation {
         .forEach((k, v) -> groupCompactions.add(new CompactionGroupSummary(k, v.sum())));
 
     for (final ServerId.Type type : ServerId.Type.values()) {
-      Set<ServerId> servers = new HashSet<>();
+      Set<ServerId> servers = getServers(type);
       switch (type) {
         case COMPACTOR:
-          compactors.values().forEach(servers::addAll);
           cacheServerProcessView(TableDataFactory.TableName.COMPACTORS, servers);
           break;
         case GARBAGE_COLLECTOR:
-          servers.add(gc.get());
           cacheServerProcessView(TableDataFactory.TableName.GC_SUMMARY, servers);
           cacheServerProcessView(TableDataFactory.TableName.GC_FILES, servers);
           cacheServerProcessView(TableDataFactory.TableName.GC_WALS, servers);
           break;
         case MANAGER:
-          servers.addAll(managers);
           cacheServerProcessView(TableDataFactory.TableName.MANAGERS, servers);
           cacheServerProcessView(TableDataFactory.TableName.MANAGER_FATE, servers);
           cacheServerProcessView(TableDataFactory.TableName.MANAGER_COMPACTIONS, servers);
-          TableData coordinatorQueues = createCompactionQueueSummary(servers);
+          TableData coordinatorQueues = createCompactionQueueSummary(getActiveServers(type));
           serverMetricsView.put(TableDataFactory.TableName.COORDINATOR_QUEUES,
               memoize(() -> coordinatorQueues));
           break;
         case SCAN_SERVER:
-          sservers.values().forEach(servers::addAll);
           cacheServerProcessView(TableDataFactory.TableName.SCAN_SERVERS, servers);
           break;
         case TABLET_SERVER:
-          tservers.values().forEach(servers::addAll);
           cacheServerProcessView(TableDataFactory.TableName.TABLET_SERVERS, servers);
           break;
         case MONITOR:
@@ -848,6 +875,13 @@ public class SystemInformation {
   }
 
   private Set<ServerId> getServers(ServerId.Type type) {
+    Set<ServerId> servers = new HashSet<>(getActiveServers(type));
+    retainedProblemHosts.stream().filter(serverId -> serverId.getType() == type)
+        .forEach(servers::add);
+    return servers;
+  }
+
+  private Set<ServerId> getActiveServers(ServerId.Type type) {
     return switch (type) {
       case COMPACTOR -> getAll(compactors);
       case GARBAGE_COLLECTOR -> {
@@ -941,8 +975,8 @@ public class SystemInformation {
     return this.deploymentOverview;
   }
 
-  public Set<String> getSuggestions() {
-    return this.suggestions;
+  public Map<MessagePriority,Map<MessageCategory,Set<String>>> getMessages() {
+    return this.messages;
   }
 
   public long getTimestamp() {
