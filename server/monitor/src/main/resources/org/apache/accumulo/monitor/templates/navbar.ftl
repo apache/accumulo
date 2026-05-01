@@ -79,9 +79,11 @@
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
-                  <div class="form-check form-check-reverse form-switch">
-                    <input id="autoRefreshSwitch" class="form-check-input" type="checkbox" role="switch">
-                    <label class="form-check-label" for="autoRefreshSwitch">Auto-Refresh</label>
+                  <div class="dropdown-item d-flex justify-content-between align-items-center">
+                    <label class="mb-0" for="autoRefreshSwitch">Auto-Refresh</label>
+                    <div class="form-check form-switch mb-0 ms-3">
+                      <input id="autoRefreshSwitch" class="form-check-input mt-0" type="checkbox" role="switch">
+                    </div>
                   </div>
                 </li>
                 <li><a class="dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
