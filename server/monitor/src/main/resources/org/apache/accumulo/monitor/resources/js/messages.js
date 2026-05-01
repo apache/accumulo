@@ -66,7 +66,7 @@ function updateMessagePriorities() {
       div.append(input);
 
       var label = $(document.createElement("label"));
-      label.addClass("form-check-label");
+      label.addClass("form-check-label fs-6");
       label.attr("for", switchId);
       label.text(pri);
       div.append(label);
@@ -125,7 +125,7 @@ function updateMessageCategories() {
       div.append(input);
 
       var label = $(document.createElement("label"));
-      label.addClass("form-check-label");
+      label.addClass("form-check-label fs-6");
       label.attr("for", switchId);
       label.text(cat);
       div.append(label);

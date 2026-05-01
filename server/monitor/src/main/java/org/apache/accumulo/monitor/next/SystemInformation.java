@@ -20,6 +20,11 @@ package org.apache.accumulo.monitor.next;
 
 import static com.google.common.base.Suppliers.memoize;
 import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.High;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Info;
 
 import java.nio.ByteBuffer;
 import java.time.Duration;
@@ -485,6 +490,11 @@ public class SystemInformation {
     serverMetricsView.clear();
   }
 
+  private void addMessage(MessagePriority pri, MessageCategory cat, String msg) {
+    messages.computeIfAbsent(pri, k -> new EnumMap<>(MessageCategory.class))
+        .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
+  }
+
   private void updateAggregates(final MetricResponse response,
       final Map<Id,CumulativeDistributionSummary> total,
       final Map<String,Map<Id,CumulativeDistributionSummary>> rg) {
@@ -662,10 +672,8 @@ public class SystemInformation {
         .add(sti);
     tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
     if (sti.getEstimatedEntries() == 0) {
-      messages.computeIfAbsent(MessagePriority.Info, k -> new EnumMap<>(MessageCategory.class))
-          .computeIfAbsent(MessageCategory.Table, k -> new TreeSet<>())
-          .add("Tablet " + sti.getTabletId().toString() + " (tid: " + sti.getTabletId().getTable()
-              + ") may have zero entries and could be merged.");
+      addMessage(Info, Table, "Tablet " + sti.getTabletId().toString() + " (tid: "
+          + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
     }
   }
 
@@ -695,11 +703,9 @@ public class SystemInformation {
       String balancerRG = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
       balancerRG = balancerRG == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : balancerRG;
       if (!tservers.containsKey(balancerRG)) {
-        messages
-            .computeIfAbsent(MessagePriority.Critical, k -> new EnumMap<>(MessageCategory.class))
-            .computeIfAbsent(MessageCategory.Table, k -> new TreeSet<>())
-            .add("Table " + table.tableName() + " configured to balance tablets in resource"
-                + " group " + balancerRG + ", but there are no TabletServers.");
+        addMessage(Critical, Table,
+            "Table " + table.tableName() + " configured to balance tablets in resource" + " group "
+                + balancerRG + ", but there are no TabletServers.");
       }
     }
 
@@ -716,12 +722,8 @@ public class SystemInformation {
         Number numQueued = getMetricValue(queued.orElseThrow());
         if (numQueued.longValue() > 0) {
           if (rgCompactors == null || rgCompactors.size() == 0) {
-            messages
-                .computeIfAbsent(MessagePriority.Critical,
-                    k -> new EnumMap<>(MessageCategory.class))
-                .computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
-                .add("Compactor group " + rg + " has " + numQueued.longValue()
-                    + " queued compactions but no running compactors");
+            addMessage(Critical, Configuration, "Compactor group " + rg + " has "
+                + numQueued.longValue() + " queued compactions but no running compactors");
           } else {
             // Check for idle compactors.
             Map<Id,CumulativeDistributionSummary> rgMetrics =
@@ -735,11 +737,8 @@ public class SystemInformation {
             if (idleMetric.isPresent()) {
               var metric = idleMetric.orElseThrow().getValue();
               if (metric.max() == 1.0D) {
-                messages
-                    .computeIfAbsent(MessagePriority.High,
-                        k -> new EnumMap<>(MessageCategory.class))
-                    .computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
-                    .add("Compactor group " + rg + " has queued jobs and idle compactors.");
+                addMessage(High, Configuration,
+                    "Compactor group " + rg + " has queued jobs and idle compactors.");
               }
             }
 
@@ -750,10 +749,8 @@ public class SystemInformation {
 
     for (var compactorGroup : compactors.keySet()) {
       if (!configuredCompactionResourceGroups.contains(compactorGroup)) {
-        messages.computeIfAbsent(MessagePriority.High, k -> new EnumMap<>(MessageCategory.class))
-            .computeIfAbsent(MessageCategory.Configuration, k -> new TreeSet<>())
-            .add("Compactor group " + compactorGroup
-                + " has running compactors, but no configuration uses them.");
+        addMessage(High, Configuration, "Compactor group " + compactorGroup
+            + " has running compactors, but no configuration uses them.");
       }
     }
 

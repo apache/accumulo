@@ -19,21 +19,12 @@
 
 -->
     <br />
-    <br />
     <div class="col-xs-12" id="messages">
-      <div class="row">
-        <div class="col-xs-12">
-          <h5>Message Priority Settings (critical messages are always shown)</h5>
-        </div>
-        <div id="message-priority-list"></div>
-      </div>
+      <h5>Message Priority Settings <small>(critical messages are always shown)</small></h5>
+      <div id="message-priority-list"></div>
       <br />
-      <div class="row">
-        <div class="col-xs-12">
-          <h5>Message Category Settings</h5>
-        </div>
-        <div id="message-category-list"></div>      
-      </div>
+      <h5>Message Category Settings</h5>
+      <div id="message-category-list"></div>
       <br />
       <h5>Messages</h5>
       <table id="messagesTable"
