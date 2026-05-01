@@ -67,10 +67,7 @@ var dataTableRefs = new Map();
  * This function returns the entire response from session storage
  */
 function getStoredView(storageKey) {
-  if (!sessionStorage[storageKey]) {
-    return {};
-  }
-  return JSON.parse(sessionStorage[storageKey]);
+  return getStoredJson(storageKey, {});
 }
 
 /**

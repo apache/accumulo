@@ -374,6 +374,20 @@ function getJSONForTable(call, sessionDataVar) {
   });
 }
 
+function getStoredJson(storageKey, defaultValue) {
+  var storedValue = sessionStorage.getItem(storageKey);
+  if (!storedValue) {
+    return defaultValue;
+  }
+
+  return JSON.parse(storedValue);
+}
+
+function getStoredArray(storageKey) {
+  var storedValue = getStoredJson(storageKey, []);
+  return Array.isArray(storedValue) ? storedValue : [];
+}
+
 /**
  * Performs POST call and builds console logging message if successful
  * @param {string} call REST url called

@@ -20,10 +20,10 @@
 -->
     <br />
     <div class="col-xs-12" id="messages">
-      <h5>Message Priority Settings <small>(critical messages are always shown)</small></h5>
+      <h5>Message Priority Filters <small>(critical messages are always shown)</small></h5>
       <div id="message-priority-list"></div>
       <br />
-      <h5>Message Category Settings</h5>
+      <h5>Message Category Filters</h5>
       <div id="message-category-list"></div>
       <br />
       <h5>Messages</h5>

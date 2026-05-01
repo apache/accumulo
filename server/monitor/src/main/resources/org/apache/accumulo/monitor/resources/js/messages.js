@@ -82,10 +82,7 @@ function updateMessagePriorities() {
  */
 function updateMessageCategories() {
 
-  var categories = JSON.parse(sessionStorage[MESSAGE_CATEGORIES]);
-  if (!Array.isArray(categories)) {
-    categories = [];
-  }
+  var categories = getStoredArray(MESSAGE_CATEGORIES);
 
   var categoryList = $(messageCategoryList);
   $.each(categories, function (index, cat) {
@@ -152,31 +149,34 @@ function fetchTableData() {
     info = true;
   }
 
-  var categories = JSON.parse(sessionStorage[MESSAGE_CATEGORIES]);
-  if (!Array.isArray(categories)) {
-    categories = [];
+  var categories = getStoredArray(MESSAGE_CATEGORIES);
+  if (categories.length === 0) {
+    sessionStorage.setItem(MESSAGES, JSON.stringify([]));
+    return $.Deferred().resolve().promise();
   }
-  if (categories.length !== 0) {
-    var cats = [];
-    $.each(categories, function (index, cat) {
-      var savedValue = localStorage.getItem("msg-cat-switch-" + cat + "-state");
-      if (savedValue === null || savedValue === 'true') {
-        cats.push(cat);
-      }
-    });
-    getMessages(high, info, cats);
-  }
+
+  var cats = [];
+  $.each(categories, function (index, cat) {
+    var savedValue = localStorage.getItem("msg-cat-switch-" + cat + "-state");
+    if (savedValue === null || savedValue === 'true') {
+      cats.push(cat);
+    }
+  });
+  return getMessages(high, info, cats);
 }
 
 function getTableData() {
-  if (!sessionStorage[MESSAGES]) {
-    return [];
-  }
-  return JSON.parse(sessionStorage[MESSAGES]);
+  return getStoredArray(MESSAGES);
+}
+
+function loadMessagesPageData() {
+  return getMessageCategories().then(function () {
+    return fetchTableData();
+  });
 }
 
 function refresh() {
-  $.when(getMessageCategories(), fetchTableData()).then(function () {
+  return loadMessagesPageData().then(function () {
     updateMessagePriorities();
     updateMessageCategories();
     if (dataTableRef) {
@@ -213,7 +213,7 @@ function createDataTable() {
 }
 
 $(function () {
-  $.when(getMessageCategories(), fetchTableData()).then(function () {
+  loadMessagesPageData().then(function () {
     updateMessagePriorities();
     updateMessageCategories();
     createDataTable();
