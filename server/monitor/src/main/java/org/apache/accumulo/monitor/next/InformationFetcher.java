@@ -324,8 +324,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
           String message =
-              "Fetching information for Monitor has taken longer than %sms. Cancelling all remaining tasks (%s) "
-                  + "and monitor will display old information. Resolve issue causing this or increase property %s."
+              "Fetching information for Monitor has taken longer than %1$d ms. Cancelling all remaining tasks (%2$d) "
+                  + "and monitor will display old information. Resolve issue causing this or increase property %3$s."
                       .formatted(monitorFetchTimeout, futures.size(),
                           Property.MONITOR_FETCH_TIMEOUT.getKey());
           // Log and add to existing summary
