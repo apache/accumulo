@@ -1193,11 +1193,6 @@ public class ClientContext implements AccumuloClient {
     return thriftTransportPool;
   }
 
-  public MeterRegistry getMeterRegistry() {
-    ensureOpen();
-    return micrometer;
-  }
-
   public synchronized void setMeterRegistry(MeterRegistry micrometer) {
     ensureOpen();
     this.micrometer = micrometer;
