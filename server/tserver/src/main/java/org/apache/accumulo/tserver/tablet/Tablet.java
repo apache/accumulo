@@ -1213,6 +1213,7 @@ public class Tablet extends TabletBase {
         String msg = "Data files in " + extent + " differ from in-memory data "
             + tabletMeta.getFilesMap() + " " + getDatafileManager().getDatafileSizes();
         log.error(msg);
+        throw new RuntimeException(msg);
       }
     } catch (Exception e) {
       String msg = "Failed to do close consistency check for tablet " + extent;
