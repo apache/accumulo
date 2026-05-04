@@ -170,12 +170,7 @@ tr.details td.details-control {
 }
 
 a {
-  text-decoration: none;
   line-height: 1.5em;
-}
-
-a:hover {
-  text-decoration: underline;
 }
 
 a img {
