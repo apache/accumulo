@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPools.watchCriticalSch
 import static org.apache.accumulo.core.util.threads.ThreadPools.watchNonCriticalScheduledTask;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.management.ManagementFactory;
 import java.net.UnknownHostException;
 import java.security.SecureRandom;
@@ -89,6 +90,7 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
@@ -547,15 +549,34 @@ public class TabletServer extends AbstractServer
     managerMessages.addLast(m);
   }
 
-  void acquireRecoveryMemory(KeyExtent extent) {
-    if (!extent.isMeta()) {
+  private static final AutoCloseable NOOP_CLOSEABLE = () -> {};
+
+  AutoCloseable acquireRecoveryMemory(TabletMetadata tabletMetadata) {
+    if (tabletMetadata.getExtent().isMeta() || !needsRecovery(tabletMetadata)) {
+      return NOOP_CLOSEABLE;
+    } else {
       recoveryLock.lock();
+      return () -> recoveryLock.unlock();
     }
   }
 
   void releaseRecoveryMemory(KeyExtent extent) {
     if (!extent.isMeta()) {
       recoveryLock.unlock();
+    }
+  }
+
+  public boolean needsRecovery(TabletMetadata tabletMetadata) {
+    var logEntries = tabletMetadata.getLogs();
+
+    if (logEntries.isEmpty()) {
+      return false;
+    }
+
+    try {
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 
