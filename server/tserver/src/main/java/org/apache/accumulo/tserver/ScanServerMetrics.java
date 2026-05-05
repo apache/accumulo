@@ -20,12 +20,14 @@ package org.apache.accumulo.tserver;
 
 import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_CONFLICT_COUNTER;
+import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_FILES;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_TOTAL_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_RESERVATION_WRITEOUT_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_TABLET_METADATA_CACHE;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -36,12 +38,14 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.binder.cache.CaffeineCacheMetrics;
 
 public class ScanServerMetrics implements MetricsProducer {
 
+  private final IntSupplier reservedFilesSupplier;
   private Timer totalReservationTimer = NoopMetrics.useNoopTimer();
   private Timer writeOutReservationTimer = NoopMetrics.useNoopTimer();
   private final AtomicLong busyTimeoutCount = new AtomicLong(0);
@@ -49,8 +53,10 @@ public class ScanServerMetrics implements MetricsProducer {
 
   private final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache;
 
-  public ScanServerMetrics(final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache) {
+  public ScanServerMetrics(final LoadingCache<KeyExtent,TabletMetadata> tabletMetadataCache,
+      IntSupplier reservedFilesSupplier) {
     this.tabletMetadataCache = tabletMetadataCache;
+    this.reservedFilesSupplier = reservedFilesSupplier;
   }
 
   @Override
@@ -65,6 +71,8 @@ public class ScanServerMetrics implements MetricsProducer {
         .builder(SCAN_RESERVATION_CONFLICT_COUNTER.getName(), reservationConflictCount,
             AtomicLong::get)
         .description(SCAN_RESERVATION_CONFLICT_COUNTER.getDescription()).register(registry);
+    Gauge.builder(SCAN_RESERVATION_FILES.getName(), () -> (double) reservedFilesSupplier.getAsInt())
+        .description(SCAN_RESERVATION_FILES.getDescription()).register(registry);
 
     if (tabletMetadataCache != null) {
       Preconditions.checkState(tabletMetadataCache.policy().isRecordingStats(),

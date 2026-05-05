@@ -83,10 +83,10 @@ public enum Metric {
       MetricDocSection.COMPACTION, "Majc In Progress", null, NUMBER),
   COMPACTOR_MAJC_STUCK("accumulo.compaction.majc.stuck", MetricType.LONG_TASK_TIMER,
       "Number and duration of stuck major compactions.", MetricDocSection.COMPACTION, "Majc Stuck",
-      null, NUMBER),
+      null, DURATION),
   COMPACTOR_MINC_STUCK("accumulo.compaction.minc.stuck", MetricType.LONG_TASK_TIMER,
       "Number and duration of stuck minor compactions.", MetricDocSection.COMPACTION, "Minc Stuck",
-      null, NUMBER),
+      null, DURATION),
   COMPACTOR_ENTRIES_READ("accumulo.compaction.entries.read", MetricType.FUNCTION_COUNTER,
       "Number of entries read by all compactions that have run on this compactor (majc) or tserver (minc).",
       MetricDocSection.COMPACTION, "Compaction Entries Read", null, NUMBER),
@@ -122,7 +122,7 @@ public enum Metric {
       MetricDocSection.COMPACTION, "Compaction Queue Avg Job Age", null, NUMBER),
   COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER("accumulo.compaction.queue.jobs.exit.time",
       MetricType.TIMER, "Tracks time a job spent in the queue before exiting the queue.",
-      MetricDocSection.COMPACTION, "Compaction Queue Job Time Queued", null, NUMBER),
+      MetricDocSection.COMPACTION, "Compaction Queue Job Time Queued", null, DURATION),
 
   // Fate Metrics
   FATE_TYPE_IN_PROGRESS("accumulo.fate.ops.in.progress.by.type", MetricType.GAUGE,
@@ -241,24 +241,27 @@ public enum Metric {
 
   // Scan Server Metrics
   SCAN_RESERVATION_TOTAL_TIMER("accumulo.scan.reservation.total.timer", MetricType.TIMER,
-      "Time to reserve a tablet's files for scan.", MetricDocSection.SCAN_SERVER,
-      "Scan Reservation Total Time", null, NUMBER),
+      "Average time to reserve a tablet's files for scan.", MetricDocSection.SCAN_SERVER,
+      "Mean Reservation", null, DURATION),
   SCAN_RESERVATION_WRITEOUT_TIMER("accumulo.scan.reservation.writeout.timer", MetricType.TIMER,
       "Time to write out a tablets file reservations for scan.", MetricDocSection.SCAN_SERVER,
-      "Scan Reservation Write Time", null, NUMBER),
+      "Scan Reservation Write Time", null, DURATION),
+  SCAN_RESERVATION_FILES("accumulo.scan.reservation.files", MetricType.GAUGE,
+      "The number of files reserved by a scan server.", MetricDocSection.SCAN_SERVER,
+      "Files Reserved", null, NUMBER),
   SCAN_RESERVATION_CONFLICT_COUNTER("accumulo.scan.reservation.conflict.count", MetricType.COUNTER,
       "Count of instances where file reservation attempts for scans encountered conflicts.",
       MetricDocSection.SCAN_SERVER, "Scan Reservation Conflicts", null, NUMBER),
   SCAN_TABLET_METADATA_CACHE("accumulo.scan.tablet.metadata.cache", MetricType.CACHE,
       "Scan server tablet cache metrics.", MetricDocSection.SCAN_SERVER, "Scan Server Tablet Cache",
       null, NUMBER),
-
-  // Scan Metrics
   SCAN_BUSY_TIMEOUT_COUNT("accumulo.scan.busy.timeout.count", MetricType.FUNCTION_COUNTER,
       "Count of the scans where a busy timeout happened.", MetricDocSection.SCAN, "Scan Busy Count",
       null, NUMBER),
+
+  // Scan Metrics
   SCAN_TIMES("accumulo.scan.times", MetricType.TIMER, "Scan session lifetime (creation to close).",
-      MetricDocSection.SCAN, "Scan Session Total Time", null, NUMBER),
+      MetricDocSection.SCAN, "Scan Session Total Time", null, DURATION),
   SCAN_OPEN_FILES("accumulo.scan.files.open", MetricType.GAUGE, "Number of files open for scans.",
       MetricDocSection.SCAN, "Scan Files Open", null, NUMBER),
   SCAN_RESULTS("accumulo.scan.result", MetricType.DISTRIBUTION_SUMMARY, "Results per scan.",
@@ -307,10 +310,11 @@ public enum Metric {
   // Minor Compaction Metrics
   MINC_QUEUED("accumulo.compaction.minc.queued", MetricType.TIMER,
       "Queued minor compactions time queued.", MetricDocSection.COMPACTION, "Minc Queued", null,
-      NUMBER),
+      DURATION),
   MINC_RUNNING("accumulo.compaction.minc.running", MetricType.TIMER,
-      "Minor compactions time active.", MetricDocSection.COMPACTION, "Minc Running", null, NUMBER),
-  MINC_PAUSED("accumulo.compaction.minc.paused", MetricType.COUNTER,
+      "Minor compactions time active.", MetricDocSection.COMPACTION, "Minc Running", null,
+      DURATION),
+  MINC_PAUSED("accumulo.compaction.minc.paused", MetricType.FUNCTION_COUNTER,
       "Number of paused minor compactions.", MetricDocSection.COMPACTION, "Minc Paused", null,
       NUMBER),
 
@@ -320,19 +324,19 @@ public enum Metric {
       MetricDocSection.TABLET_SERVER, "Ingest Errors", null, NUMBER),
   UPDATE_LOCK("accumulo.updates.lock", MetricType.TIMER,
       "Average time taken for conditional mutation to get a row lock.",
-      MetricDocSection.TABLET_SERVER, "Conditional Mutation Row Lock Wait Time", null, NUMBER),
+      MetricDocSection.TABLET_SERVER, "Conditional Mutation Row Lock Wait Time", null, DURATION),
   UPDATE_CHECK("accumulo.updates.check", MetricType.TIMER,
       "Average time taken for conditional mutation to check conditions.",
-      MetricDocSection.TABLET_SERVER, "Conditional Mutation Condition Check Time", null, NUMBER),
+      MetricDocSection.TABLET_SERVER, "Conditional Mutation Condition Check Time", null, DURATION),
   UPDATE_COMMIT("accumulo.updates.commit", MetricType.TIMER,
       "Average time taken to commit a mutation.", MetricDocSection.TABLET_SERVER,
-      "Mutation Commit Avg Total Time", null, NUMBER),
+      "Mutation Commit Avg Total Time", null, DURATION),
   UPDATE_COMMIT_PREP("accumulo.updates.commit.prep", MetricType.TIMER,
       "Average time taken to prepare to commit a single mutation.", MetricDocSection.TABLET_SERVER,
-      "Mutation Commit Avg Prep Time", null, NUMBER),
+      "Mutation Commit Avg Prep Time", null, DURATION),
   UPDATE_WALOG_WRITE("accumulo.updates.walog.write", MetricType.TIMER,
       "Time taken to write a batch of mutations to WAL.", MetricDocSection.TABLET_SERVER,
-      "WAL Write Time", null, NUMBER),
+      "WAL Write Time", null, DURATION),
   UPDATE_MUTATION_ARRAY_SIZE("accumulo.updates.mutation.arrays.size",
       MetricType.DISTRIBUTION_SUMMARY, "Batch size of mutations from client.",
       MetricDocSection.TABLET_SERVER, "Mutation Batch Size", null, NUMBER),
@@ -408,7 +412,11 @@ public enum Metric {
       MetricDocSection.GENERAL_SERVER, "Completed task", null, NUMBER),
   EXECUTOR_QUEUED("executor.queued", MetricType.GAUGE,
       "Task queued for a thread pool. Each thread pool emits this metric w/ a different tag.",
-      MetricDocSection.GENERAL_SERVER, "Queued task", null, NUMBER);
+      MetricDocSection.GENERAL_SERVER, "Queued task", null, NUMBER),
+
+  // Cache metrics
+  CACHE_SIZE("cache.size", MetricType.GAUGE, "The current number of entries a cache has.",
+      MetricDocSection.GENERAL_SERVER, "Cache size", null, NUMBER);
 
   public enum MonitorCssClass {
     BYTES("big-size"),

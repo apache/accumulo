@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor.next.views;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -28,11 +29,13 @@ import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.next.views.TableData.Column;
+import org.apache.accumulo.monitor.next.views.TableDataFactory.StatType;
 
 public class MetricColumnFactory implements ColumnFactory {
 
   private final Column column;
   private final boolean computeRate;
+  private final Predicate<String> statPredicate;
 
   MetricColumnFactory(Metric metric) {
     String classes;
@@ -50,6 +53,14 @@ public class MetricColumnFactory implements ColumnFactory {
     }
     this.column = new Column(metric.getName(), metric.getColumnHeader(),
         metric.getColumnDescription(), classes);
+
+    statPredicate = switch (metric.getType()) {
+      case GAUGE -> sv -> sv.equals(StatType.VALUE);
+      case COUNTER, FUNCTION_COUNTER -> sv -> sv.equals(StatType.COUNT);
+      case TIMER, DISTRIBUTION_SUMMARY -> sv -> sv.equals(StatType.AVERAGE);
+      case LONG_TASK_TIMER -> sv -> sv.equals(StatType.MAX);
+      case CACHE -> StatType.COUNT_OR_VALUE; // TODO this class does not really support this type
+    };
   }
 
   @Override
@@ -60,7 +71,7 @@ public class MetricColumnFactory implements ColumnFactory {
   @Override
   public Object getRowData(ServerId sid, MetricResponse mr,
       Map<String,List<FMetric>> serverMetrics) {
-    var sum = sum(serverMetrics.getOrDefault(column.key(), List.of()));
+    var sum = sum(serverMetrics.getOrDefault(column.key(), List.of()), statPredicate);
     if (computeRate) {
       return computeRate(sum);
     } else {
