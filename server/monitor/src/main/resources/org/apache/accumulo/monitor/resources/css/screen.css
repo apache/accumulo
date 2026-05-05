@@ -116,7 +116,7 @@ table {
 
 .table-bordered th,
 .table-bordered td {
-    border: 1px solid #ddd !important;
+    border: 1px solid light-dark(#ddd, #444) !important;
  }
 
 table.sortable {
@@ -170,14 +170,7 @@ tr.details td.details-control {
 }
 
 a {
-  text-decoration: none;
-  color: #0000ff;
   line-height: 1.5em;
-}
-
-a:hover {
-  color: #004400;
-  text-decoration: underline;
 }
 
 a img {
