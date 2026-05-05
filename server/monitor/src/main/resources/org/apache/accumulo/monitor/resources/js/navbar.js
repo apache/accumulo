@@ -176,7 +176,8 @@ function updateDarkThemeSwitch() {
   }
 
   darkThemeSwitchElement.on("change", function () {
-    localStorage.setItem(storageKey, $(this).is(':checked'));
-    location.reload();
+    var enableDarkTheme = $(this).is(':checked');
+    localStorage.setItem(storageKey, enableDarkTheme);
+    document.documentElement.setAttribute('data-bs-theme', enableDarkTheme ? 'dark' : 'light');
   });
 }
