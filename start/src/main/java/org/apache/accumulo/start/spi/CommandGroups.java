@@ -163,7 +163,7 @@ public class CommandGroups {
 
     @Override
     public String key() {
-      return "instance";
+      return "inst";
     }
 
     @Override
