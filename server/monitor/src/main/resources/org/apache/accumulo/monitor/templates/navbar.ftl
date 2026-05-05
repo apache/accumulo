@@ -39,11 +39,11 @@
                 <span id="statusNotification" class="icon-dot normal"></span>&nbsp;Servers
               </a>
               <ul class="dropdown-menu">
-                <li><a class="dropdown-item" href="manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>
-                <li><a class="dropdown-item" href="tservers"><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers&nbsp;</a></li>
-                <li><a class="dropdown-item" href="sservers"><span id="sserverStatusNotification" class="icon-dot normal"></span>&nbsp;Scan&nbsp;Servers&nbsp;</a></li>
-                <li><a class="dropdown-item" href="compactors"><span id="compactorStatusNotification" class="icon-dot normal"></span>&nbsp;Compactors</a></li>
-                <li><a class="dropdown-item" href="gc"><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector&nbsp;</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="manager"><span id="managerStatusNotification" class="icon-dot normal"></span>&nbsp;Manager&nbsp;Server&nbsp;</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="tservers"><span id="serverStatusNotification" class="icon-dot normal"></span>&nbsp;Tablet&nbsp;Servers&nbsp;</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="sservers"><span id="sserverStatusNotification" class="icon-dot normal"></span>&nbsp;Scan&nbsp;Servers&nbsp;</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="compactors"><span id="compactorStatusNotification" class="icon-dot normal"></span>&nbsp;Compactors</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="gc"><span id="gcStatusNotification" class="icon-dot normal"></span>&nbsp;Garbage&nbsp;collector&nbsp;</a></li>
               </ul>
             </li>
             <li>
@@ -54,10 +54,10 @@
                 Activity
               </a>
               <ul class="dropdown-menu col-xs-12" aria-labelledby="navbarDropdown">
-                <li><a class="dropdown-item" href="bulkImports">Bulk&nbsp;Imports</a></li>
-                <li><a class="dropdown-item" href="coordinator">Compaction Overview</a></li>
-                <li><a class="dropdown-item" href="ec">Compaction Details</a></li>
-                <li><a class="dropdown-item" href="scans">Scans</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="bulkImports">Bulk&nbsp;Imports</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="coordinator">Compaction Overview</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="ec">Compaction Details</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="scans">Scans</a></li>
               </ul>
             </li>
             <li>
@@ -68,8 +68,8 @@
               role="button" data-bs-toggle="dropdown" aria-expanded="false">REST
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
-                <li><a class="dropdown-item" href="rest/xml">XML Summary</a></li>
-                <li><a class="dropdown-item" href="rest/json">JSON Summary</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="rest/xml">XML Summary</a></li>
+                <li><a class="link-body-emphasis dropdown-item" href="rest/json">JSON Summary</a></li>
               </ul>
             </li>
             <li class="dropdown">
@@ -80,13 +80,21 @@
               <ul class="dropdown-menu dropdown-menu-end">
                 <li>
                   <div class="dropdown-item d-flex justify-content-between align-items-center">
+                    <label class="mb-0" for="darkThemeSwitch">Dark Theme</label>
+                    <div class="form-check form-switch mb-0 ms-3">                  
+                      <input id="darkThemeSwitch" class="form-check-input mt-0" type="checkbox" role="switch">
+                    </div>
+                  </div>
+                </li>
+                <li>
+                  <div class="dropdown-item d-flex justify-content-between align-items-center">
                     <label class="mb-0" for="autoRefreshSwitch">Auto-Refresh</label>
                     <div class="form-check form-switch mb-0 ms-3">
                       <input id="autoRefreshSwitch" class="form-check-input mt-0" type="checkbox" role="switch">
                     </div>
                   </div>
                 </li>
-                <li><a class="dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
+                <li><a class="link-body-emphasis dropdown-item" data-bs-toggle="modal" href="#aboutModal">About</a></li>
               </ul>
             </li>
           </ul>
