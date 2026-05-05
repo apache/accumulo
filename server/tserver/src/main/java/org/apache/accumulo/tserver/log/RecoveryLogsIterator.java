@@ -66,16 +66,16 @@ public class RecoveryLogsIterator
   private final Iterator<Entry<Key,Value>> iter;
   private final CryptoEnvironment env = new CryptoEnvironmentImpl(CryptoEnvironment.Scope.RECOVERY);
 
-  public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
-      LogFileKey end, boolean checkFirstKey) throws IOException {
+  public RecoveryLogsIterator(ServerContext context, List<ResolvedSortedLog> recoveryLogDirs,
+      LogFileKey start, LogFileKey end, boolean checkFirstKey) throws IOException {
     this(context, recoveryLogDirs, start, end, checkFirstKey, null, null);
   }
 
   /**
    * Scans the files in each recoveryLogDir over the range [start,end].
    */
-  public RecoveryLogsIterator(ServerContext context, List<Path> recoveryLogDirs, LogFileKey start,
-      LogFileKey end, boolean checkFirstKey, Cache<String,Long> fileLenCache,
+  public RecoveryLogsIterator(ServerContext context, List<ResolvedSortedLog> recoveryLogDirs,
+      LogFileKey start, LogFileKey end, boolean checkFirstKey, Cache<String,Long> fileLenCache,
       CacheProvider cacheProvider) throws IOException {
 
     List<Iterator<Entry<Key,Value>>> iterators = new ArrayList<>(recoveryLogDirs.size());
@@ -86,14 +86,15 @@ public class RecoveryLogsIterator
     final CryptoService cryptoService = context.getCryptoFactory().getService(env,
         context.getConfiguration().getAllCryptoProperties());
 
-    for (Path logDir : recoveryLogDirs) {
-      LOG.debug("Opening recovery log dir {}", logDir.getName());
-      SortedSet<Path> logFiles = getFiles(vm, logDir);
-      var fs = vm.getFileSystemByPath(logDir);
+    for (ResolvedSortedLog logDir : recoveryLogDirs) {
+      LOG.debug("Opening recovery log dir {}", logDir.getDir().getName());
+      SortedSet<Path> logFiles = logDir.getChildren();
+      var fs = vm.getFileSystemByPath(logDir.getDir());
 
       // only check the first key once to prevent extra iterator creation and seeking
       if (checkFirstKey && !logFiles.isEmpty()) {
-        validateFirstKey(context, cryptoService, fs, logFiles, logDir, fileLenCache, cacheProvider);
+        validateFirstKey(context, cryptoService, fs, logFiles, logDir.getDir(), fileLenCache,
+            cacheProvider);
       }
 
       for (Path log : logFiles) {

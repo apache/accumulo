@@ -1281,24 +1281,21 @@ public class TabletServer extends AbstractServer
 
   public void recover(VolumeManager fs, KeyExtent extent, List<LogEntry> logEntries,
       Set<String> tabletFiles, MutationReceiver mutationReceiver) throws IOException {
-    List<Path> recoveryDirs = new ArrayList<>();
     List<LogEntry> sorted = new ArrayList<>(logEntries);
     sorted.sort((e1, e2) -> (int) (e1.timestamp - e2.timestamp));
+
+    // Validate that recovery logs exist before attempting recovery
     for (LogEntry entry : sorted) {
-      Path recovery = null;
       Path finished = RecoveryPath.getRecoveryPath(new Path(entry.filename));
       finished = SortedLogState.getFinishedMarkerPath(finished);
       TabletServer.log.debug("Looking for " + finished);
-      if (fs.exists(finished)) {
-        recovery = finished.getParent();
-      }
-      if (recovery == null) {
+      if (!fs.exists(finished)) {
         throw new IOException(
             "Unable to find recovery files for extent " + extent + " logEntry: " + entry);
       }
-      recoveryDirs.add(recovery);
     }
-    logger.recover(getContext(), extent, recoveryDirs, tabletFiles, mutationReceiver);
+
+    logger.recover(getContext(), extent, sorted, tabletFiles, mutationReceiver);
   }
 
   public int createLogId() {

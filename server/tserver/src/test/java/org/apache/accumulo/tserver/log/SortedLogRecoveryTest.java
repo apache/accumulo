@@ -217,7 +217,12 @@ public class SortedLogRecoveryTest extends WithTestNames {
       // Recover
       SortedLogRecovery recovery = new SortedLogRecovery(context, fileLenCache, cacheProvider);
       CaptureMutations capture = new CaptureMutations();
-      recovery.recover(extent, dirs, files, capture);
+      // Convert Path objects to ResolvedSortedLog objects for recovery
+      List<ResolvedSortedLog> resolvedLogs = new ArrayList<>();
+      for (Path dir : dirs) {
+        resolvedLogs.add(ResolvedSortedLog.fromSortedLogDir(dir, fs));
+      }
+      recovery.recover(extent, resolvedLogs, files, capture);
       verify(context);
       return capture.result;
     }

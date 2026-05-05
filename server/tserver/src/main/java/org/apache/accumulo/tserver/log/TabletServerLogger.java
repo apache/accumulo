@@ -65,6 +65,9 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+
 /**
  * Central logging facility for the TServerInfo.
  *
@@ -82,6 +85,9 @@ public class TabletServerLogger {
   private final long maxAge;
 
   private final TabletServer tserver;
+
+  // Cache for resolved sorted logs to avoid repeated expensive I/O operations
+  private final Cache<LogEntry,ResolvedSortedLog> sortedLogCache;
 
   // The current logger
   private DfsLogger currentLog = null;
@@ -164,6 +170,8 @@ public class TabletServerLogger {
     this.createRetry = null;
     this.writeRetryFactory = writeRetryFactory;
     this.maxAge = maxAge;
+    this.sortedLogCache =
+        CacheBuilder.newBuilder().expireAfterWrite(3, TimeUnit.SECONDS).maximumSize(1000).build();
   }
 
   private DfsLogger initializeLoggers(final AtomicInteger logIdOut) throws IOException {
@@ -560,10 +568,17 @@ public class TabletServerLogger {
     return seq;
   }
 
-  private List<Path> resolve(Collection<LogEntry> walogs) {
-    List<Path> sortedLogs = new ArrayList<>(walogs.size());
+  private List<ResolvedSortedLog> resolve(Collection<LogEntry> walogs) throws IOException {
+    List<ResolvedSortedLog> sortedLogs = new ArrayList<>(walogs.size());
+    VolumeManager fs = tserver.getContext().getVolumeManager();
     for (var logEntry : walogs) {
-      sortedLogs.add(new Path(logEntry.filename));
+      try {
+        ResolvedSortedLog resolvedLog =
+            sortedLogCache.get(logEntry, () -> ResolvedSortedLog.resolve(logEntry, fs));
+        sortedLogs.add(resolvedLog);
+      } catch (Exception e) {
+        throw new IOException("Failed to resolve sorted log for " + logEntry.filename, e);
+      }
     }
     return sortedLogs;
   }
@@ -587,14 +602,14 @@ public class TabletServerLogger {
     }
   }
 
-  public void recover(ServerContext context, KeyExtent extent, List<Path> recoveryDirs,
+  public void recover(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
       var resourceMgr = tserver.getResourceManager();
       var cacheProvider = createCacheProvider(resourceMgr);
       SortedLogRecovery recovery =
           new SortedLogRecovery(context, resourceMgr.getFileLenCache(), cacheProvider);
-      recovery.recover(extent, recoveryDirs, tabletFiles, mr);
+      recovery.recover(extent, resolve(walogs), tabletFiles, mr);
     } catch (Exception e) {
       throw new IOException(e);
     }
