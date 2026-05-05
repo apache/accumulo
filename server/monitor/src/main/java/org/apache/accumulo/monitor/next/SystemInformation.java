@@ -74,9 +74,10 @@ import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
-import org.apache.accumulo.monitor.next.InformationFetcher.FetchingFuture;
 import org.apache.accumulo.monitor.next.InformationFetcher.MetricFetcher;
 import org.apache.accumulo.monitor.next.InformationFetcher.TableInformationFetcher;
+import org.apache.accumulo.monitor.next.InformationFetcher.UpdateTaskFuture;
+import org.apache.accumulo.monitor.next.InformationFetcher.UpdateTasks;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ColumnFactory;
 import org.apache.accumulo.monitor.next.views.Status;
@@ -503,6 +504,11 @@ public class SystemInformation {
         .computeIfAbsent(cat, k -> new TreeSet<>()).add(msg);
   }
 
+  public void removeMessage(MessagePriority pri, MessageCategory cat, String part) {
+    messages.getOrDefault(pri, new EnumMap<>(MessageCategory.class))
+        .getOrDefault(cat, new HashSet<String>()).removeIf(s -> s.contains(part));
+  }
+
   private void updateAggregates(final MetricResponse response,
       final Map<Id,CumulativeDistributionSummary> total,
       final Map<String,Map<Id,CumulativeDistributionSummary>> rg) {
@@ -617,7 +623,8 @@ public class SystemInformation {
     return TableDataFactory.forColumns(Set.of(), Map.of(), timestamp.get(), cols);
   }
 
-  public void processResponse(final ServerId server, final MetricResponse response) {
+  public void processResponse(final ServerId server, final MetricResponse response,
+      final UpdateTasks callback) {
     problemHosts.remove(server);
     metricProblemHosts.remove(server);
     retainedProblemHosts.remove(server);
@@ -639,6 +646,27 @@ public class SystemInformation {
         break;
       case MANAGER:
         managers.add(server);
+        FMetric flatbuffer = new FMetric();
+        for (ByteBuffer binary : response.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.MANAGER_ROOT_TGW_RECOVERY.getName())
+              && getMetricValue(flatbuffer).longValue() > 0) {
+            addMessage(Critical, Table, "The root table requires recovery");
+          } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
+            long tablets = getMetricValue(flatbuffer).longValue();
+            if (tablets > 0) {
+              callback.stopCollectingTableInformation();
+              addMessage(Critical, Table, tablets + " metadata table tablets require recovery");
+            }
+          } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
+            long tablets = getMetricValue(flatbuffer).longValue();
+            if (tablets > 0) {
+              callback.stopCollectingTableInformation();
+              addMessage(High, Table, tablets + " user table tablets require recovery");
+            }
+          }
+        }
         break;
       case SCAN_SERVER:
         sservers.computeIfAbsent(response.getResourceGroup(), (rg) -> ConcurrentHashMap.newKeySet())
@@ -704,8 +732,8 @@ public class SystemInformation {
     configuredCompactionResourceGroups.addAll(groups);
   }
 
-  private void computeMessages(final List<FetchingFuture> failures,
-      final List<FetchingFuture> cancelled) {
+  private void computeMessages(final List<UpdateTaskFuture> failures,
+      final List<UpdateTaskFuture> cancelled) {
 
     if (failures.size() > 0) {
       addMessage(High, Monitor,
@@ -726,7 +754,7 @@ public class SystemInformation {
 
     Set<ServerId> failedOrCancelledServers = new HashSet<>();
     Set<TableId> failedOrCancelledTables = new HashSet<>();
-    for (FetchingFuture f : failures) {
+    for (UpdateTaskFuture f : failures) {
       switch (f.task().getType()) {
         case COMPACTION:
           addMessage(Info, Monitor,
@@ -749,7 +777,7 @@ public class SystemInformation {
       }
     }
 
-    for (FetchingFuture f : cancelled) {
+    for (UpdateTaskFuture f : cancelled) {
       switch (f.task().getType()) {
         case COMPACTION:
           addMessage(Info, Monitor,
@@ -790,29 +818,6 @@ public class SystemInformation {
 
     if (managers.isEmpty()) {
       addMessage(Critical, Resource, "No Managers are running");
-    } else {
-      FMetric flatbuffer = new FMetric();
-      for (ServerId manager : managers) {
-        MetricResponse mr = allMetrics.getIfPresent(manager);
-        for (ByteBuffer binary : mr.getMetrics()) {
-          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
-          final String metricName = flatbuffer.name();
-          if (metricName.equals(Metric.MANAGER_ROOT_TGW_RECOVERY.getName())
-              && getMetricValue(flatbuffer).longValue() > 0) {
-            addMessage(Critical, Table, "The root table requires recovery");
-          } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
-            long tablets = getMetricValue(flatbuffer).longValue();
-            if (tablets > 0) {
-              addMessage(Critical, Table, tablets + " metadata table tablets require recovery");
-            }
-          } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
-            long tablets = getMetricValue(flatbuffer).longValue();
-            if (tablets > 0) {
-              addMessage(High, Table, tablets + " user table tablets require recovery");
-            }
-          }
-        }
-      }
     }
 
     if (gc.get() == null) {
@@ -933,7 +938,8 @@ public class SystemInformation {
 
   }
 
-  public void finish(final List<FetchingFuture> failures, final List<FetchingFuture> cancelled) {
+  public void finish(final List<UpdateTaskFuture> failures,
+      final List<UpdateTaskFuture> cancelled) {
     // Update the deployment not-responded numbers based
     // on metric fetch failures for this refresh.
     metricProblemHosts.forEach(serverId -> {
