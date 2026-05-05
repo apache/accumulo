@@ -33,6 +33,8 @@ public class CommandGroups {
   public static final CommandGroup OTHER = new OtherCommandGroup();
   public static final CommandGroup PROCESS = new ProcessCommandGroup();
   public static final CommandGroup TABLE = new TableCommandGroup();
+  public static final CommandGroup ZOOKEEPER = new ZookeeperCommandGroup();
+  public static final CommandGroup CHECK = new CheckCommandGroup();
 
   /**
    * @since 4.0.0
@@ -241,6 +243,50 @@ public class CommandGroups {
     @Override
     public String description() {
       return "Table related commands";
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  public static class ZookeeperCommandGroup extends BaseCommandGroup {
+
+    private ZookeeperCommandGroup() {}
+
+    @Override
+    public String key() {
+      return "zk";
+    }
+
+    @Override
+    public String title() {
+      return "Zookeeper";
+    }
+
+    @Override
+    public String description() {
+      return "Zookeeper related commands";
+    }
+  }
+
+  /**
+   * @since 4.0.0
+   */
+  public static class CheckCommandGroup extends BaseCommandGroup {
+
+    @Override
+    public String key() {
+      return "check";
+    }
+
+    @Override
+    public String title() {
+      return "Check";
+    }
+
+    @Override
+    public String description() {
+      return "Troubleshooting and verification commands";
     }
   }
 

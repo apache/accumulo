@@ -87,7 +87,7 @@ public class ZooPropEditor extends ServerKeywordExecutable<EditorOpts> {
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.CONFIG;
+    return CommandGroups.ZOOKEEPER;
   }
 
   @Override

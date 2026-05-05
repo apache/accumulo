@@ -92,7 +92,7 @@ public class VerifyTabletAssignments extends ServerKeywordExecutable<VerifyTable
 
   @Override
   public CommandGroup commandGroup() {
-    return CommandGroups.INSTANCE;
+    return CommandGroups.CHECK;
   }
 
   @Override
