@@ -21,6 +21,7 @@ package org.apache.accumulo.monitor.next;
 import static com.google.common.base.Suppliers.memoize;
 import static org.apache.accumulo.core.metrics.MetricsInfo.QUEUE_TAG_KEY;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Configuration;
+import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Monitor;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Resource;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessageCategory.Table;
 import static org.apache.accumulo.monitor.next.SystemInformation.MessagePriority.Critical;
@@ -73,6 +74,9 @@ import org.apache.accumulo.core.metrics.flatbuffers.FTag;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
+import org.apache.accumulo.monitor.next.InformationFetcher.FetchingFuture;
+import org.apache.accumulo.monitor.next.InformationFetcher.MetricFetcher;
+import org.apache.accumulo.monitor.next.InformationFetcher.TableInformationFetcher;
 import org.apache.accumulo.monitor.next.deployment.DeploymentOverview;
 import org.apache.accumulo.monitor.next.views.ColumnFactory;
 import org.apache.accumulo.monitor.next.views.Status;
@@ -377,7 +381,7 @@ public class SystemInformation {
   }
 
   public enum MessageCategory {
-    Configuration, Resource, Table;
+    Configuration, Monitor, Resource, Table;
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(SystemInformation.class);
@@ -700,10 +704,115 @@ public class SystemInformation {
     configuredCompactionResourceGroups.addAll(groups);
   }
 
-  private void computeMessages() {
+  private void computeMessages(final List<FetchingFuture> failures,
+      final List<FetchingFuture> cancelled) {
+
+    if (failures.size() > 0) {
+      addMessage(High, Monitor,
+          "There were " + failures.size() + " failures in the last monitor update cycle."
+              + " Information displayed may be out of date or missing.");
+    }
+
+    if (cancelled.size() > 0) {
+      final long monitorFetchTimeout =
+          ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
+      String message =
+          "Fetching information for Monitor has taken longer than %1$d ms. (%2$d) tasks were cancelled."
+              + " Information displayed may be out of date or missing. Resolve the issue causing this or increase property `%3$s`."
+                  .formatted(monitorFetchTimeout, cancelled.size(),
+                      Property.MONITOR_FETCH_TIMEOUT.getKey());
+      addMessage(High, Monitor, message);
+    }
+
+    Set<ServerId> failedOrCancelledServers = new HashSet<>();
+    Set<TableId> failedOrCancelledTables = new HashSet<>();
+    for (FetchingFuture f : failures) {
+      switch (f.task().getType()) {
+        case COMPACTION:
+          addMessage(Info, Monitor,
+              "The task to get information about currently running compactions failed");
+          break;
+        case COMPACTION_RGS:
+          addMessage(Info, Monitor,
+              "The task to get information about configured compaction resource groups failed");
+          break;
+        case METRIC:
+          ServerId s = ((MetricFetcher) f.task()).getResource();
+          failedOrCancelledServers.add(s);
+          break;
+        case TABLE:
+          TableId t = ((TableInformationFetcher) f.task()).getResource();
+          failedOrCancelledTables.add(t);
+          break;
+        default:
+          break;
+      }
+    }
+
+    for (FetchingFuture f : cancelled) {
+      switch (f.task().getType()) {
+        case COMPACTION:
+          addMessage(Info, Monitor,
+              "The task to get information about currently running compactions was cancelled");
+          break;
+        case COMPACTION_RGS:
+          addMessage(Info, Monitor,
+              "The task to get information about configured compaction resource groups was cancelled");
+          break;
+        case METRIC:
+          ServerId s = ((MetricFetcher) f.task()).getResource();
+          failedOrCancelledServers.add(s);
+          break;
+        case TABLE:
+          TableId t = ((TableInformationFetcher) f.task()).getResource();
+          failedOrCancelledTables.add(t);
+          break;
+        default:
+          break;
+      }
+    }
+
+    if (failedOrCancelledServers.size() > 0) {
+      addMessage(High, Monitor, failedOrCancelledServers.size()
+          + " tasks to get information from servers were failed or cancelled.");
+      addMessage(Info, Monitor,
+          "The Monitor is not displaying updated information for the following servers: "
+              + failedOrCancelledServers);
+    }
+
+    if (failedOrCancelledTables.size() > 0) {
+      addMessage(High, Monitor, failedOrCancelledTables.size()
+          + " tasks to get information for tables were failed or cancelled.");
+      addMessage(Info, Monitor,
+          "The Monitor is not displaying updated information for the following tables: "
+              + failedOrCancelledTables);
+    }
 
     if (managers.isEmpty()) {
       addMessage(Critical, Resource, "No Managers are running");
+    } else {
+      FMetric flatbuffer = new FMetric();
+      for (ServerId manager : managers) {
+        MetricResponse mr = allMetrics.getIfPresent(manager);
+        for (ByteBuffer binary : mr.getMetrics()) {
+          flatbuffer = FMetric.getRootAsFMetric(binary, flatbuffer);
+          final String metricName = flatbuffer.name();
+          if (metricName.equals(Metric.MANAGER_ROOT_TGW_RECOVERY.getName())
+              && getMetricValue(flatbuffer).longValue() > 0) {
+            addMessage(Critical, Table, "The root table requires recovery");
+          } else if (metricName.equals(Metric.MANAGER_META_TGW_RECOVERY.getName())) {
+            long tablets = getMetricValue(flatbuffer).longValue();
+            if (tablets > 0) {
+              addMessage(Critical, Table, tablets + " metadata table tablets require recovery");
+            }
+          } else if (metricName.equals(Metric.MANAGER_USER_TGW_RECOVERY.getName())) {
+            long tablets = getMetricValue(flatbuffer).longValue();
+            if (tablets > 0) {
+              addMessage(High, Table, tablets + " user table tablets require recovery");
+            }
+          }
+        }
+      }
     }
 
     if (gc.get() == null) {
@@ -727,7 +836,7 @@ public class SystemInformation {
       if (!compactors.containsKey(rg.canonical()) && !sservers.containsKey(rg.canonical())
           && !tservers.containsKey(rg.canonical())) {
         addMessage(Info, Configuration, "Resource Group " + rg
-            + " exists, but no resources assigned. Consider removing the resource group");
+            + " exists, but no resources assigned. Consider removing the resource group with command `accumulo inst init --remove-resource-groups`");
       }
     }
 
@@ -824,7 +933,7 @@ public class SystemInformation {
 
   }
 
-  public void finish() {
+  public void finish(final List<FetchingFuture> failures, final List<FetchingFuture> cancelled) {
     // Update the deployment not-responded numbers based
     // on metric fetch failures for this refresh.
     metricProblemHosts.forEach(serverId -> {
@@ -832,7 +941,7 @@ public class SystemInformation {
           .computeIfAbsent(serverId.getType(), t -> new ProcessSummary()).addNotResponded(serverId);
     });
 
-    computeMessages();
+    computeMessages(failures, cancelled);
 
     timestamp.set(System.currentTimeMillis());
     componentStatuses.clear();

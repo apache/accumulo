@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.RowRange;
 import org.apache.accumulo.core.data.TableId;
@@ -52,8 +53,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.monitor.next.SystemInformation.MessageCategory;
-import org.apache.accumulo.monitor.next.SystemInformation.MessagePriority;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -110,7 +109,20 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class MetricFetcher implements Runnable {
+  enum FetcherType {
+    COMPACTION, COMPACTION_RGS, METRIC, TABLE;
+  }
+
+  interface Fetcher<T extends Object> extends Runnable {
+
+    FetcherType getType();
+
+    T getResource();
+
+    String getFailureMessage();
+  }
+
+  class MetricFetcher implements Fetcher<ServerId> {
 
     private final ServerContext ctx;
     private final ServerId server;
@@ -120,6 +132,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       this.ctx = ctx;
       this.server = server;
       this.summary = summary;
+    }
+
+    @Override
+    public FetcherType getType() {
+      return FetcherType.METRIC;
+    }
+
+    @Override
+    public ServerId getResource() {
+      return server;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get metrics from server: " + server;
     }
 
     @Override
@@ -143,7 +170,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
   }
 
-  private class TableInformationFetcher implements Runnable {
+  class TableInformationFetcher implements Fetcher<TableId> {
     private final ServerContext ctx;
     private final TableId tableId;
     private final SystemInformation summary;
@@ -152,6 +179,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       this.ctx = ctx;
       this.tableId = tableId;
       this.summary = summary;
+    }
+
+    @Override
+    public FetcherType getType() {
+      return FetcherType.TABLE;
+    }
+
+    @Override
+    public TableId getResource() {
+      return tableId;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get information for table: " + tableId;
     }
 
     @Override
@@ -171,7 +213,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
-  private class RunningCompactionFetcher implements Runnable {
+  class RunningCompactionFetcher implements Fetcher<TExternalCompaction> {
 
     private final SystemInformation summary;
     private final ThreadPoolExecutor executor;
@@ -179,6 +221,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     public RunningCompactionFetcher(SystemInformation summary, ThreadPoolExecutor executor) {
       this.summary = summary;
       this.executor = executor;
+    }
+
+    @Override
+    public FetcherType getType() {
+      return FetcherType.COMPACTION;
+    }
+
+    @Override
+    public TExternalCompaction getResource() {
+      return null;
+    }
+
+    @Override
+    public String getFailureMessage() {
+      return "Failed to get running compactions";
     }
 
     @Override
@@ -258,6 +315,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     }
   }
 
+  record FetchingFuture(Future<?> future, Fetcher<?> task) {
+  }
+
   @Override
   public void run() {
 
@@ -284,7 +344,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       LOG.info("Fetching information from servers");
 
-      final List<Future<?>> futures = new ArrayList<>();
+      final List<FetchingFuture> futures = new ArrayList<>();
       final SystemInformation summary = new SystemInformation(allMetrics, this.ctx);
       Set<ServerId> compactors = this.ctx.instanceOperations().getServers(Type.COMPACTOR);
       summary.processExternalCompactionInventory(compactors);
@@ -294,32 +354,66 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
           continue;
         }
         for (ServerId server : this.ctx.instanceOperations().getServers(type)) {
-          futures.add(this.pool.submit(new MetricFetcher(this.ctx, server, summary)));
+          MetricFetcher mf = new MetricFetcher(this.ctx, server, summary);
+          Future<?> mff = this.pool.submit(mf);
+          futures.add(new FetchingFuture(mff, mf));
         }
       }
       ThreadPools.resizePool(pool, () -> Math.max(20, (futures.size() / 20)), poolName);
 
       // Fetch external compaction information from the Compactors
-      futures.add(this.pool.submit(new RunningCompactionFetcher(summary, pool)));
+      RunningCompactionFetcher rcf = new RunningCompactionFetcher(summary, pool);
+      Future<?> rcff = this.pool.submit(rcf);
+      futures.add(new FetchingFuture(rcff, rcf));
 
       // Fetch Tablet / Tablet information from the metadata table
       for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
-        futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
+        TableInformationFetcher tif = new TableInformationFetcher(this.ctx, tableId, summary);
+        Future<?> tiff = this.pool.submit(tif);
+        futures.add(new FetchingFuture(tiff, tif));
       }
 
-      futures.add(this.pool.submit(() -> {
-        try {
-          var groups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx);
-          summary.addConfiguredCompactionGroups(groups);
-        } catch (ReflectiveOperationException e) {
-          throw new IllegalStateException(e);
+      Fetcher<Set<String>> r = new Fetcher<>() {
+
+        private Set<String> groups = null;
+
+        @Override
+        public void run() {
+          try {
+            groups = CompactionPluginUtils.getConfiguredCompactionResourceGroups(ctx);
+            summary.addConfiguredCompactionGroups(groups);
+          } catch (ReflectiveOperationException e) {
+            throw new IllegalStateException(e);
+          }
         }
-      }));
+
+        @Override
+        public FetcherType getType() {
+          return FetcherType.COMPACTION_RGS;
+        }
+
+        @Override
+        public Set<String> getResource() {
+          return groups;
+        }
+
+        @Override
+        public String getFailureMessage() {
+          return "Error fetching configured compaction resource groups";
+        }
+
+      };
+      Future<?> f = this.pool.submit(r);
+      futures.add(new FetchingFuture(f, r));
 
       final long monitorFetchTimeout =
           ctx.getConfiguration().getTimeInMillis(Property.MONITOR_FETCH_TIMEOUT);
       final long allFuturesAdded = NanoTime.now();
       boolean tookToLong = false;
+
+      final List<FetchingFuture> failures = new ArrayList<>();
+      final List<FetchingFuture> cancelled = new ArrayList<>();
+
       while (!futures.isEmpty()) {
 
         if (NanoTime.millisElapsed(allFuturesAdded, NanoTime.now()) > monitorFetchTimeout) {
@@ -328,23 +422,28 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
                   + "and monitor will display old information. Resolve issue causing this or increase property %3$s."
                       .formatted(monitorFetchTimeout, futures.size(),
                           Property.MONITOR_FETCH_TIMEOUT.getKey());
-          // Log and add to existing summary
-          summaryRef.get().addMessage(MessagePriority.Critical, MessageCategory.Configuration,
-              message);
           LOG.warn(message);
           tookToLong = true;
         }
 
-        Iterator<Future<?>> iter = futures.iterator();
+        // TODO: Deal with different failures types
+        // If errors fetching table information, are there root or metadata recoveries?
+
+        Iterator<FetchingFuture> iter = futures.iterator();
         while (iter.hasNext()) {
-          Future<?> future = iter.next();
-          if (tookToLong && !future.isCancelled()) {
-            future.cancel(true);
-          } else if (future.isDone()) {
+          FetchingFuture future = iter.next();
+          if (tookToLong && !future.future().isCancelled()) {
+            future.future().cancel(true);
+          } else if (future.future().isDone()) {
             iter.remove();
             try {
-              future.get();
-            } catch (CancellationException | InterruptedException | ExecutionException e) {
+              future.future().get();
+            } catch (CancellationException e) {
+              if (!tookToLong) {
+                cancelled.add(future);
+              }
+            } catch (InterruptedException | ExecutionException e) {
+              failures.add(future);
               LOG.error("Error getting status from future", e);
             }
           }
@@ -356,30 +455,26 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
       lastRunTime = NanoTime.now();
 
-      if (tookToLong) {
-        summary.clear();
-      } else {
-        retainedProblemServers.asMap().keySet().forEach(summary::retainProblemServer);
-        summary.finish();
+      retainedProblemServers.asMap().keySet().forEach(summary::retainProblemServer);
+      summary.finish(failures, cancelled);
 
-        LOG.info("Finished fetching metrics from servers");
-        LOG.info(
-            "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
-            allMetrics.estimatedSize(), summary.getManagers().size(),
-            summary.getGarbageCollector() != null,
-            summary.getCompactorAllMetricSummary().isEmpty() ? 0
-                : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
-                    .count(),
-            summary.getSServerAllMetricSummary().isEmpty() ? 0
-                : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
-                    .count(),
-            summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary
-                .getTServerAllMetricSummary().entrySet().iterator().next().getValue().count());
+      LOG.info("Finished fetching metrics from servers");
+      LOG.info(
+          "All: {}, Managers: {}, Garbage Collector: {}, Compactors: {}, Scan Servers: {}, Tablet Servers: {}",
+          allMetrics.estimatedSize(), summary.getManagers().size(),
+          summary.getGarbageCollector() != null,
+          summary.getCompactorAllMetricSummary().isEmpty() ? 0
+              : summary.getCompactorAllMetricSummary().entrySet().iterator().next().getValue()
+                  .count(),
+          summary.getSServerAllMetricSummary().isEmpty() ? 0
+              : summary.getSServerAllMetricSummary().entrySet().iterator().next().getValue()
+                  .count(),
+          summary.getTServerAllMetricSummary().isEmpty() ? 0 : summary.getTServerAllMetricSummary()
+              .entrySet().iterator().next().getValue().count());
 
-        SystemInformation oldSummary = summaryRef.getAndSet(summary);
-        if (oldSummary != null) {
-          oldSummary.clear();
-        }
+      SystemInformation oldSummary = summaryRef.getAndSet(summary);
+      if (oldSummary != null) {
+        oldSummary.clear();
       }
     }
 
