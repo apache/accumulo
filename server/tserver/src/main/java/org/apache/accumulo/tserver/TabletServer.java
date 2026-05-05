@@ -121,6 +121,7 @@ import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.log.SortedLogState;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
@@ -573,8 +574,24 @@ public class TabletServer extends AbstractServer
       return false;
     }
 
+    // This method is called prior to volumes being switched for a tablet during the load process,
+    // so switch volumes before calling needsRecovery()
+    var switchedLogEntries = new ArrayList<LogEntry>(logEntries.size());
+
+    for (LogEntry logEntry : logEntries) {
+      var switchedWalog = VolumeUtil.switchVolume(logEntry, context.getVolumeReplacements());
+      LogEntry walog;
+      if (switchedWalog != null) {
+        log.debug("Volume switched for needsRecovery {} -> {}", logEntry, switchedWalog);
+        walog = switchedWalog;
+      } else {
+        walog = logEntry;
+      }
+      switchedLogEntries.add(walog);
+    }
+
     try {
-      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), logEntries);
+      return logger.needsRecovery(getContext(), tabletMetadata.getExtent(), switchedLogEntries);
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
